@@ -236,21 +236,28 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     _simulation = simulation;
 }
 
-void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
+void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ignoreWarnings) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+        }
         return;
     }
 
     EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
+                        "entityID=" << entityID;
+        }
         return;
     }
 
     if (existingEntity->getLocked() && !force) {
-        qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+        if (!ignoreWarnings) {
+            qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+        }
         return;
     }
 
@@ -263,24 +270,31 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force) {
     _isDirty = true;
 }
 
-void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force) {
+void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool ignoreWarnings) {
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this);
     foreach(const EntityItemID& entityID, entityIDs) {
         EntityTreeElement* containingElement = getContainingElement(entityID);
         if (!containingElement) {
-            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+            }
             continue;
         }
 
         EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
-            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
+                            "entityID=" << entityID;
+            }
             continue;
         }
 
         if (existingEntity->getLocked() && !force) {
-            qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+            if (!ignoreWarnings) {
+                qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+            }
             continue;
         }
 
@@ -878,10 +892,9 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
         }
-        deleteEntities(entityItemIDsToDelete);
+        deleteEntities(entityItemIDsToDelete, true, true);
     }
     unlock();
-    
     return processedBytes;
 }
 
@@ -918,7 +931,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
         }
-        deleteEntities(entityItemIDsToDelete);
+        deleteEntities(entityItemIDsToDelete, true, true);
     }
     return processedBytes;
 }

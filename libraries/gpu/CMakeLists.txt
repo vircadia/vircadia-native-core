@@ -28,7 +28,6 @@ elseif (WIN32)
       target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
     endif ()
   endif()
-  
 elseif (ANDROID)
   target_link_libraries(${TARGET_NAME} "-lGLESv3" "-lEGL")
 else ()
