@@ -106,11 +106,11 @@ public:
     /// \param delayLoad if true, don't load the model immediately; wait until actually requested
     Q_INVOKABLE void setURL(const QUrl& url, const QUrl& fallback = QUrl(),
         bool retainCurrent = false, bool delayLoad = false);
+    const QUrl& getURL() const { return _url; }
 
     // Set the model to use for collisions
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
-
-    const QUrl& getURL() const { return _url; }
+    const QUrl& getCollisionURL() const { return _collisionUrl; }
     
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
@@ -132,6 +132,9 @@ public:
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
+
+    /// Returns a reference to the shared collision geometry.
+    const QSharedPointer<NetworkGeometry> getCollisionGeometry() {return _collisionGeometry; }
     
     /// Returns the number of joint states in the model.
     int getJointStateCount() const { return _jointStates.size(); }

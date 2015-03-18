@@ -417,6 +417,26 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
     return result;
 }
 
+const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const EntityItem* entityItem) {
+    const FBXGeometry* result = NULL;
+    
+    if (entityItem->getType() == EntityTypes::Model) {
+        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
+        if (constModelEntityItem->hasCollisionModel()) {
+            RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+            assert(modelEntityItem); // we need this!!!  Why?!!
+            Model* model = modelEntityItem->getModel(this);
+            if (model) {
+                const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
+                if (!collisionNetworkGeometry.isNull()) {
+                    result = &collisionNetworkGeometry->getFBXGeometry();
+                }
+            }
+        }
+    }
+    return result;
+}
+
 void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
     glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
     float elementSize = entityTreeElement->getScale();
@@ -591,7 +611,7 @@ void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, co
     static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }
 
-Model* EntityTreeRenderer::allocateModel(const QString& url) {
+Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
     Model* model = NULL;
     // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
@@ -604,10 +624,11 @@ Model* EntityTreeRenderer::allocateModel(const QString& url) {
     model = new Model();
     model->init();
     model->setURL(QUrl(url));
+    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 
-Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl) {
+Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, const QString& collisionUrl) {
     Model* model = NULL;
 
     // The caller shouldn't call us if the URL doesn't need to change. But if they
@@ -636,6 +657,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl) {
     model = new Model();
     model->init();
     model->setURL(QUrl(newUrl));
+    model->setCollisionModelURL(QUrl(collisionUrl));
         
     return model;
 }

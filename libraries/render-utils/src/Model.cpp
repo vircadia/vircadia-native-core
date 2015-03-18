@@ -1087,6 +1087,7 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 }
 
 void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
+    qDebug() << "|||||||||||||| Model::setURL" << url.toString();
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
         return;
@@ -1102,6 +1103,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
 }
 
 void Model::setCollisionModelURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    qDebug() << "|||||||||||||| Model::setCollisionModelURL" << url.toString();
     if (_collisionUrl == url) {
         return;
     }
