@@ -41,6 +41,12 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
     }
 
+    //Check for gpu specific attribute slotBindings
+    loc = glGetAttribLocation(glprogram, "gl_Vertex");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+    }
+
     loc = glGetAttribLocation(glprogram, "normal");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
@@ -520,18 +526,32 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
 
         // The uniform as a standard var type
         if (location != INVALID_UNIFORM_LOCATION) {
+            // Let's make sure the name doesn't contains an array element
+            std::string sname(name);
+            auto foundBracket = sname.find_first_of('[');
+            if (foundBracket != std::string::npos) {
+              //  std::string arrayname = sname.substr(0, foundBracket);
+
+                if (sname[foundBracket + 1] == '0') {
+                    sname = sname.substr(0, foundBracket);
+                } else {
+                    // skip this uniform since it's not the first element of an array
+                    continue;
+                }
+            }
+
             if (elementResource._resource == Resource::BUFFER) {
-                uniforms.insert(Shader::Slot(name, location, elementResource._element, elementResource._resource));
+                uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
                 GLint binding = -1;
                 glGetUniformiv(glprogram, location, &binding);
 
-                auto requestedBinding = slotBindings.find(std::string(name));
+                auto requestedBinding = slotBindings.find(std::string(sname));
                 if (requestedBinding != slotBindings.end()) {
                     if (binding != (*requestedBinding)._location) {
                         binding = (*requestedBinding)._location;
-                        glUniform1i(location, binding);
+                        glProgramUniform1i(glprogram, location, binding);
                     }
                 }
 

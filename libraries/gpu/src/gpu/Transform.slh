@@ -28,7 +28,7 @@ vec4 transformModelToClipPos(TransformCamera camera, TransformObject object, vec
     vec4 epos = (object._model * pos) + vec4(-pos.w * camera._viewInverse[3].xyz, 0.0);
     return camera._projectionViewUntranslated * epos;
     // Equivalent to the following but hoppefully a bit more accurate
-    // return camera._projection * camera._view * object._model * pos;
+    //return camera._projection * camera._view * object._model * pos;
 <@else@>
     return gl_ModelViewProjectionMatrix * pos;
 <@endif@>
@@ -68,14 +68,47 @@ TransformCamera getTransformCamera() {
 }
 
 <@else@>
-
+uniform vec4 transformObjectBuffer[7];
 TransformObject getTransformObject() {
     TransformObject object;
+    object._model[0] = transformObjectBuffer[0];
+    object._model[1] = transformObjectBuffer[1];
+    object._model[2] = transformObjectBuffer[2];
+    object._model[3] = transformObjectBuffer[3];
+
+    object._modelInverse[0] = transformObjectBuffer[4];
+    object._modelInverse[1] = transformObjectBuffer[5];
+    object._modelInverse[2] = transformObjectBuffer[6];
+    object._modelInverse[3] = transformObjectBuffer[7];
+
     return object;
 }
 
+uniform vec4 transformCameraBuffer[17];
 TransformCamera getTransformCamera() {
     TransformCamera camera;
+    camera._view[0] = transformCameraBuffer[0];
+    camera._view[1] = transformCameraBuffer[1];
+    camera._view[2] = transformCameraBuffer[2];
+    camera._view[3] = transformCameraBuffer[3];
+
+    camera._viewInverse[0] = transformCameraBuffer[4];
+    camera._viewInverse[1] = transformCameraBuffer[5];
+    camera._viewInverse[2] = transformCameraBuffer[6];
+    camera._viewInverse[3] = transformCameraBuffer[7];
+
+    camera._projectionViewUntranslated[0] = transformCameraBuffer[8];
+    camera._projectionViewUntranslated[1] = transformCameraBuffer[9];
+    camera._projectionViewUntranslated[2] = transformCameraBuffer[10];
+    camera._projectionViewUntranslated[3] = transformCameraBuffer[11];
+
+    camera._projection[0] = transformCameraBuffer[12];
+    camera._projection[1] = transformCameraBuffer[13];
+    camera._projection[2] = transformCameraBuffer[14];
+    camera._projection[3] = transformCameraBuffer[15];
+
+    camera._viewport = transformCameraBuffer[16];
+
     return camera;
 }
 

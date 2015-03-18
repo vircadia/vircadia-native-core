@@ -498,8 +498,8 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 0);
-        locations.lightBufferUnit = 0;
+        glUniformBlockBinding(program.programId(), loc, 3);
+        locations.lightBufferUnit = 3;
     } else {
         locations.lightBufferUnit = -1;
     }
@@ -515,8 +515,8 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 1);
-        locations.atmosphereBufferUnit = 1;
+        glUniformBlockBinding(program.programId(), loc, 4);
+        locations.atmosphereBufferUnit = 4;
     } else {
         locations.atmosphereBufferUnit = -1;
     }

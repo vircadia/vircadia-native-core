@@ -309,31 +309,49 @@ private:
     int _blendNumber;
     int _appliedBlendNumber;
 
+    /*
+    static ProgramObject _POprogram;
+    static ProgramObject _POnormalMapProgram;
+    static ProgramObject _POspecularMapProgram;
+    static ProgramObject _POnormalSpecularMapProgram;
+    static ProgramObject _POtranslucentProgram;
 
-    static ProgramObject _program;
-    static ProgramObject _normalMapProgram;
-    static ProgramObject _specularMapProgram;
-    static ProgramObject _normalSpecularMapProgram;
-    static ProgramObject _translucentProgram;
+    static ProgramObject _POlightmapProgram;
+    static ProgramObject _POlightmapNormalMapProgram;
+    static ProgramObject _POlightmapSpecularMapProgram;
+    static ProgramObject _POlightmapNormalSpecularMapProgram;
 
-    static ProgramObject _lightmapProgram;
-    static ProgramObject _lightmapNormalMapProgram;
-    static ProgramObject _lightmapSpecularMapProgram;
-    static ProgramObject _lightmapNormalSpecularMapProgram;
-
-    static ProgramObject _shadowProgram;
+    static ProgramObject _POshadowProgram;
     
-    static ProgramObject _skinProgram;
-    static ProgramObject _skinNormalMapProgram;
-    static ProgramObject _skinSpecularMapProgram;
-    static ProgramObject _skinNormalSpecularMapProgram;
-    static ProgramObject _skinTranslucentProgram;
+    static ProgramObject _POskinProgram;
+    static ProgramObject _POskinNormalMapProgram;
+    static ProgramObject _POskinSpecularMapProgram;
+    static ProgramObject _POskinNormalSpecularMapProgram;
+    static ProgramObject _POskinTranslucentProgram;
 
-    static ProgramObject _skinShadowProgram;
+    static ProgramObject _POskinShadowProgram;
+    */
+    static gpu::ShaderPointer _program;
+    static gpu::ShaderPointer _normalMapProgram;
+    static gpu::ShaderPointer _specularMapProgram;
+    static gpu::ShaderPointer _normalSpecularMapProgram;
+    static gpu::ShaderPointer _translucentProgram;
 
-    static int _normalMapTangentLocation;
-    static int _normalSpecularMapTangentLocation;
+    static gpu::ShaderPointer _lightmapProgram;
+    static gpu::ShaderPointer _lightmapNormalMapProgram;
+    static gpu::ShaderPointer _lightmapSpecularMapProgram;
+    static gpu::ShaderPointer _lightmapNormalSpecularMapProgram;
+
+    static gpu::ShaderPointer _shadowProgram;
     
+    static gpu::ShaderPointer _skinProgram;
+    static gpu::ShaderPointer _skinNormalMapProgram;
+    static gpu::ShaderPointer _skinSpecularMapProgram;
+    static gpu::ShaderPointer _skinNormalSpecularMapProgram;
+    static gpu::ShaderPointer _skinTranslucentProgram;
+
+    static gpu::ShaderPointer _skinShadowProgram;
+
     class Locations {
     public:
         int tangent;
@@ -356,8 +374,20 @@ private:
     static Locations _lightmapNormalMapLocations;
     static Locations _lightmapSpecularMapLocations;
     static Locations _lightmapNormalSpecularMapLocations;
-    
+/*
+    static Locations _POlocations;
+    static Locations _POnormalMapLocations;
+    static Locations _POspecularMapLocations;
+    static Locations _POnormalSpecularMapLocations;
+    static Locations _POtranslucentLocations;
+
+    static Locations _POlightmapLocations;
+    static Locations _POlightmapNormalMapLocations;
+    static Locations _POlightmapSpecularMapLocations;
+    static Locations _POlightmapNormalSpecularMapLocations;
+*/
     static void initProgram(ProgramObject& program, Locations& locations, bool link = true);
+    static void initProgram(gpu::ShaderPointer& program, Locations& locations);
         
     class SkinLocations : public Locations {
     public:
@@ -372,8 +402,16 @@ private:
     static SkinLocations _skinNormalSpecularMapLocations;    
     static SkinLocations _skinShadowLocations;
     static SkinLocations _skinTranslucentLocations;
-
+/*
+    static SkinLocations _POskinLocations;
+    static SkinLocations _POskinNormalMapLocations;
+    static SkinLocations _POskinSpecularMapLocations;
+    static SkinLocations _POskinNormalSpecularMapLocations;    
+    static SkinLocations _POskinShadowLocations;
+    static SkinLocations _POskinTranslucentLocations;
+*/
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
+    static void initSkinProgram(gpu::ShaderPointer& program, SkinLocations& locations);
 
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
