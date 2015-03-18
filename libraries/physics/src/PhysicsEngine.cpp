@@ -63,7 +63,6 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        qDebug() << "PhysicsEngine::addEntityInternal(" << entity;
         if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
