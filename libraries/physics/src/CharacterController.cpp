@@ -90,6 +90,9 @@ class btKinematicClosestNotMeConvexResultCallback : public btCollisionWorld::Clo
             hitNormalWorld = convexResult.m_hitCollisionObject->getWorldTransform().getBasis()*convexResult.m_hitNormalLocal;
         }
 
+        // Note: hitNormalWorld points into character, away from object
+        // and m_up points opposite to movement
+
         btScalar dotUp = m_up.dot(hitNormalWorld);
         if (dotUp < m_minSlopeDot) {
             return btScalar(1.0);
@@ -209,10 +212,10 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
             collisionPair->m_algorithm->getAllContactManifolds(m_manifoldArray);
         }
 
-        for (int j=0;j<m_manifoldArray.size();j++) {
+        for (int j = 0;j < m_manifoldArray.size(); j++) {
             btPersistentManifold* manifold = m_manifoldArray[j];
-            btScalar directionSign = manifold->getBody0() == m_ghostObject ? btScalar(-1.0) : btScalar(1.0);
-            for (int p=0;p<manifold->getNumContacts();p++) {
+            btScalar directionSign = (manifold->getBody0() == m_ghostObject) ? btScalar(-1.0) : btScalar(1.0);
+            for (int p = 0;p < manifold->getNumContacts(); p++) {
                 const btManifoldPoint&pt = manifold->getContactPoint(p);
 
                 btScalar dist = pt.getDistance();
@@ -570,6 +573,11 @@ void CharacterController::playerStep(  btCollisionWorld* collisionWorld, btScala
     btTransform xform;
     xform = m_ghostObject->getWorldTransform();
 
+    // the algorithm is as follows:
+    // (1) step the character up a little bit so that its forward step doesn't hit the floor
+    // (2) step the character forward
+    // (3) step the character down so that its back in contact with the ground
+
     stepUp (collisionWorld);
     if (m_useWalkDirection) {
         stepForwardAndStrafe(collisionWorld, m_walkDirection);
@@ -679,8 +687,7 @@ void CharacterController::createShapeAndGhost() {
     glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
     m_shapeLocalOffset = offset;
 
-    const float MIN_STEP_HEIGHT = 0.35f;
-    m_stepHeight = glm::max(MIN_STEP_HEIGHT, radius + 0.5f * halfHeight);
+    m_stepHeight = 0.1f;
 
     // create new shape
     m_convexShape = new btCapsuleShape(radius, 2.0f * halfHeight);

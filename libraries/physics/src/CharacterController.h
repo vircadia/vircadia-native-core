@@ -58,7 +58,7 @@ protected:
 
     btScalar m_turnAngle;
 
-    btScalar m_stepHeight;
+    btScalar m_stepHeight; // height of stepUp prior to stepForward
 
     btScalar m_addedMargin;//@todo: remove this and fix the code
 
@@ -75,7 +75,7 @@ protected:
     btManifoldArray m_manifoldArray;
 
     bool m_touchingContact;
-    btVector3 m_touchingNormal;
+    btVector3 m_touchingNormal; // points from character to object
 
     bool m_enabled;
     bool m_wasOnGround;
