@@ -175,8 +175,12 @@ public:
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
 
     Camera* getCamera() { return &_myCamera; }
-    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
-    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
+    // Represents the current view frustum of the avatar.  
+    ViewFrustum* getViewFrustum();
+    // Represents the view frustum of the current rendering pass, 
+    // which might be different from the viewFrustum, i.e. shadowmap 
+    // passes, mirror window passes, etc
+    ViewFrustum* getDisplayViewFrustum();
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }

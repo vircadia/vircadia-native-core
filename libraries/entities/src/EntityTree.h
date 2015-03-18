@@ -92,8 +92,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange);
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
     void removeEntityFromSimulation(EntityItem* entity);
 
     /// \param position point of query in world-frame (meters)
@@ -163,6 +163,9 @@ public:
     
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
+
+    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element);
+    bool readFromMap(QVariantMap& entityDescription);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
