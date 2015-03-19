@@ -123,9 +123,6 @@ private:
 
     /// character collisions
     CharacterController* _characterController = NULL;
-    class btPairCachingGhostObject* _avatarGhostObject = NULL;
-    AvatarData* _avatarData = NULL;
-    glm::vec3 _avatarShapeLocalOffset;
 };
 
 #endif // hifi_PhysicsEngine_h
