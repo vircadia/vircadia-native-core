@@ -93,8 +93,11 @@ enum EntityPropertyList {
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
     
+    // used by Model entities
+    PROP_ATTRIBUTION,
+    
     // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_PARTICLE_RADIUS,
+    PROP_LAST_ITEM = PROP_ATTRIBUTION,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
@@ -103,9 +106,6 @@ enum EntityPropertyList {
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
     PROP_COLLISION_MODEL_URL,
-    
-    // used by Model entities
-    PROP_ATTRIBUTION
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
