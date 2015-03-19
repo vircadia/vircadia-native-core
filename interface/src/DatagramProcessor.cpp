@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QWeakPointer>
+#include <QBuffer>
 
 #include <AccountManager.h>
 #include <PerfStat.h>
@@ -117,9 +118,15 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketTypeDomainConnectionDenied: {
+                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainConnectionDenied);
+                    QDataStream packetStream(QByteArray(incomingPacket.constData() + headerSize,
+                                                        incomingPacket.size() - headerSize));
+                    QString reason;
+                    packetStream >> reason;
+
                     // output to the log so the user knows they got a denied connection request
                     // and check and signal for an access token so that we can make sure they are logged in
-                    qDebug() << "The domain-server denied a connection request.";
+                    qDebug() << "The domain-server denied a connection request: " << reason;
                     qDebug() << "You may need to re-log to generate a keypair so you can provide a username signature.";
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
