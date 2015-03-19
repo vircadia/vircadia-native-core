@@ -95,6 +95,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
+static const QString JS_EXTENSION  = ".js";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -174,8 +175,12 @@ public:
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
 
     Camera* getCamera() { return &_myCamera; }
-    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
-    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
+    // Represents the current view frustum of the avatar.  
+    ViewFrustum* getViewFrustum();
+    // Represents the view frustum of the current rendering pass, 
+    // which might be different from the viewFrustum, i.e. shadowmap 
+    // passes, mirror window passes, etc
+    ViewFrustum* getDisplayViewFrustum();
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
@@ -336,6 +341,7 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
+    void askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);

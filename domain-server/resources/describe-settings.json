@@ -75,6 +75,14 @@
         ]
       },
       {
+        "name": "maximum_user_capacity",
+        "label": "Maximum User Capacity",
+        "help": "The limit on how many avatars can be connected at once.  0 means no limit.",
+        "placeholder": "0",
+        "default": "0",
+        "advanced": false
+      },
+      {
         "name": "allowed_editors",
         "type": "table",
         "label": "Allowed Editors",
@@ -323,6 +331,24 @@
         "help": "the path to the file entities are stored in. Make sure the path exists.",
         "placeholder": "resources/models.svo",
         "default": "resources/models.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistAsFileType",
+        "label": "File format for entity server's persistent data",
+        "help": "This defines how the entity server will save entities to disk.",
+        "default": "svo",
+        "type": "select",
+        "options": [
+          {
+            "value": "svo",
+            "label": "Entity server persists data as SVO"
+          },
+          {
+            "value": "json",
+            "label": "Entity server persists data as JSON"
+          }
+        ],
         "advanced": true
       },
       {

@@ -48,14 +48,26 @@ void ResourceCache::refresh(const QUrl& url) {
     }
 }
 
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
-
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
+                                                    bool delayLoad, void* extra, bool block) {
     if (QThread::currentThread() != thread()) {
-        QSharedPointer<Resource> result;
-        QMetaObject::invokeMethod(this, "getResource", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QSharedPointer<Resource>, result), Q_ARG(const QUrl&, url), Q_ARG(const QUrl&, fallback),
-                                  Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
-        return result;
+        // This will re-call this method in the main thread.  If block is true and the main thread
+        // is waiting on a lock, we'll deadlock here.
+        if (block) {
+            QSharedPointer<Resource> result;
+            QMetaObject::invokeMethod(this, "getResource", Qt::BlockingQueuedConnection,
+                                      Q_RETURN_ARG(QSharedPointer<Resource>, result), Q_ARG(const QUrl&, url),
+                                      Q_ARG(const QUrl&, fallback), Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
+            return result;
+        } else {
+            // Queue the re-invocation of this method, but if the main thread is blocked, don't wait.  The
+            // return value may be NULL -- it's expected that this will be called again later, in order
+            // to receive the actual Resource.
+            QMetaObject::invokeMethod(this, "getResource", Qt::QueuedConnection,
+                                      Q_ARG(const QUrl&, url),
+                                      Q_ARG(const QUrl&, fallback), Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
+            return _resources.value(url);
+        }
     }
 
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {

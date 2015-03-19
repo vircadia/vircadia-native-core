@@ -75,7 +75,9 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
+                    << "_octreeSizeScale=" << _octreeSizeScale;
+        
+        emit LODDecreased();
     }
     
     if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS
@@ -87,7 +89,9 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         changed = true;
         _lastAdjust = now;
         qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
+                    << "_octreeSizeScale=" << _octreeSizeScale;
+
+        emit LODIncreased();
     }
     
     if (changed) {

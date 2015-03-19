@@ -338,7 +338,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
+        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
@@ -1013,16 +1013,18 @@ float Avatar::getSkeletonHeight() const {
 }
 
 float Avatar::getHeadHeight() const {
-    Extents extents = getHead()->getFaceModel().getBindExtents();
+    Extents extents = getHead()->getFaceModel().getMeshExtents();
     if (!extents.isEmpty()) {
         return extents.maximum.y - extents.minimum.y;
     }
+
+    extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
-    glm::vec3 headPosition;
-    if (_skeletonModel.getNeckPosition(neckPosition) && _skeletonModel.getHeadPosition(headPosition)) {
-        return glm::distance(neckPosition, headPosition);
+    if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
+        return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
     }
-    const float DEFAULT_HEAD_HEIGHT = 0.1f;
+
+    const float DEFAULT_HEAD_HEIGHT = 0.25f;
     return DEFAULT_HEAD_HEIGHT;
 }
 
