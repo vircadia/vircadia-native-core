@@ -342,7 +342,6 @@ void PhysicsEngine::stepSimulation() {
         }
 
         unlock();
-        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
