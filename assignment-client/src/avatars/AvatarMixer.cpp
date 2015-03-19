@@ -145,6 +145,10 @@ void AvatarMixer::broadcastAvatarData() {
             
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
+            // TODO use this along with the distance in the calculation of whether to send an update 
+            // about a given otherNode to this node
+            // FIXME does this mean we should sort the othernodes by distance before iterating 
+            // over them?
             float outputBandwidth = node->getBandwidthRecorder().getTotalAverageOutputKilobitsPerSecond();
             
             // this is an AGENT we have received head data from
