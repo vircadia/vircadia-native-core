@@ -128,6 +128,8 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
+typedef bool (Application::* AcceptURLMethod)(const QString &);
+
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
@@ -222,7 +224,7 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
-    void importSVOFromURL(QUrl url);
+    bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -307,6 +309,10 @@ public:
     
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
+    
+    void initializeAcceptedFiles();
+    bool canAcceptURL(const QString& url);
+    bool acceptURL(const QString& url);
 
 signals:
 
@@ -342,8 +348,8 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    void askToSetAvatarUrl(const QString& url);
-    void askToLoadScript(const QString& scriptFilenameOrURL);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
@@ -597,6 +603,8 @@ private:
 
     QWidget* _fullscreenMenuWidget = new QWidget();
     int _menuBarHeight;
+    
+    QHash<QString, AcceptURLMethod> _acceptedExtensions;
 };
 
 #endif // hifi_Application_h
