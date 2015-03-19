@@ -3706,6 +3706,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     } else {
         qDebug() << "Declined to run the script: " << scriptFilenameOrURL;
     }
+    return true;
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
