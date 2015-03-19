@@ -40,7 +40,7 @@ class ShapeInfo {
 public:
     void clear();
 
-    void setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data = NULL, QString url="");
+    void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setEllipsoid(const glm::vec3& halfExtents);
@@ -50,9 +50,6 @@ public:
     const int getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
-
-    void setData(const QVector<glm::vec3>* data) { _externalData = data; }
-    const QVector<glm::vec3>* getData() const { return _externalData; }
 
     const QVector<glm::vec3>& getPoints() const { return _points; }
 
@@ -67,7 +64,6 @@ protected:
     ShapeType _type = SHAPE_TYPE_NONE;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
-    const QVector<glm::vec3>* _externalData = NULL;
     QVector<glm::vec3> _points; // points for convex collision hull
     QUrl _url; // url for model of convex collision hull
 };

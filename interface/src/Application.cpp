@@ -3562,6 +3562,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
+    scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
+
     QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
