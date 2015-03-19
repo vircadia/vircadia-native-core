@@ -16,6 +16,7 @@ const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
+
 // the interpolated normal
 varying vec4 normal;
 
@@ -30,7 +31,8 @@ void main(void) {
     // use standard pipeline transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    gl_Position = transformModelToClipPos(cam, obj, gl_Vertex);
+
+    gl_Position = transformModelToClipPos(cam, obj, vec4(gl_Vertex.xyz, 1.0));
     
     // transform and store the normal for interpolation
     normal = vec4(normalize(transformModelToEyeDir(cam, obj, gl_Normal)), 0.0);

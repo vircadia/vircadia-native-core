@@ -68,7 +68,8 @@ TransformCamera getTransformCamera() {
 }
 
 <@else@>
-uniform vec4 transformObjectBuffer[7];
+uniform vec4 transformObjectBuffer[8];
+
 TransformObject getTransformObject() {
     TransformObject object;
     object._model[0] = transformObjectBuffer[0];
