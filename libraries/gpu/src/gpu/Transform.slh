@@ -98,7 +98,7 @@ TransformCamera getTransformCamera() {
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
     }
 <@else@>
-    <$clippos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+    <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
 <@endif@>
 <@endfunc@>
 
