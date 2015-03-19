@@ -410,8 +410,6 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
     if (entityItem->getType() == EntityTypes::Model) {
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
         RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
-        assert(modelEntityItem); // we need this!!!
-    
         result = modelEntityItem->getModel(this);
     }
     return result;
@@ -424,7 +422,6 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const Entit
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
         if (constModelEntityItem->hasCollisionModel()) {
             RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
-            assert(modelEntityItem); // we need this!!!  Why?!!
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
