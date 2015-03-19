@@ -93,46 +93,7 @@ Model::Model(QObject* parent) :
 Model::~Model() {
     deleteGeometry();
 }
-/*
-ProgramObject Model::_POprogram;
-ProgramObject Model::_POnormalMapProgram;
-ProgramObject Model::_POspecularMapProgram;
-ProgramObject Model::_POnormalSpecularMapProgram;
-ProgramObject Model::_POtranslucentProgram;
 
-ProgramObject Model::_POlightmapProgram;
-ProgramObject Model::_POlightmapNormalMapProgram;
-ProgramObject Model::_POlightmapSpecularMapProgram;
-ProgramObject Model::_POlightmapNormalSpecularMapProgram;
-
-ProgramObject Model::_POshadowProgram;
-
-ProgramObject Model::_POskinProgram;
-ProgramObject Model::_POskinNormalMapProgram;
-ProgramObject Model::_POskinSpecularMapProgram;
-ProgramObject Model::_POskinNormalSpecularMapProgram;
-ProgramObject Model::_POskinTranslucentProgram;
-
-ProgramObject Model::_POskinShadowProgram;
-
-Model::Locations Model::_POlocations;
-Model::Locations Model::_POnormalMapLocations;
-Model::Locations Model::_POspecularMapLocations;
-Model::Locations Model::_POnormalSpecularMapLocations;
-Model::Locations Model::_POtranslucentLocations;
-
-Model::Locations Model::_POlightmapLocations;
-Model::Locations Model::_POlightmapNormalMapLocations;
-Model::Locations Model::_POlightmapSpecularMapLocations;
-Model::Locations Model::_POlightmapNormalSpecularMapLocations;
-
-Model::SkinLocations Model::_POskinLocations;
-Model::SkinLocations Model::_POskinNormalMapLocations;
-Model::SkinLocations Model::_POskinSpecularMapLocations;
-Model::SkinLocations Model::_POskinNormalSpecularMapLocations;
-Model::SkinLocations Model::_POskinShadowLocations;
-Model::SkinLocations Model::_POskinTranslucentLocations;
-*/
 gpu::ShaderPointer Model::_program;
 gpu::ShaderPointer Model::_normalMapProgram;
 gpu::ShaderPointer Model::_specularMapProgram;
@@ -232,100 +193,6 @@ void Model::initSkinProgram(gpu::ShaderPointer& program, Model::SkinLocations& l
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
     locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
 }
-/*
-void Model::initProgram(ProgramObject& program, Model::Locations& locations, bool link) {
-    if (link) {
-        program.bindAttributeLocation("tangent", gpu::Stream::TANGENT);
-        program.bindAttributeLocation("texcoord1", gpu::Stream::TEXCOORD1);
-        program.link();
-    }
-    program.bind();
-
-    locations.tangent = program.attributeLocation("tangent");
-
-    locations.alphaThreshold = program.uniformLocation("alphaThreshold");
-    locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
-    locations.emissiveParams = program.uniformLocation("emissiveParams");
-    locations.glowIntensity = program.uniformLocation("glowIntensity");
-    program.setUniformValue("diffuseMap", 0);
-    program.setUniformValue("normalMap", 1);
-
-    int loc = program.uniformLocation("specularMap");
-    if (loc >= 0) {
-        program.setUniformValue("specularMap", 2);
-        locations.specularTextureUnit = 2;
-    } else {
-        locations.specularTextureUnit = -1;
-    }
-    
-    loc = program.uniformLocation("emissiveMap");
-    if (loc >= 0) {
-        program.setUniformValue("emissiveMap", 3);
-        locations.emissiveTextureUnit = 3;
-    } else {
-        locations.emissiveTextureUnit = -1;
-    }
-
-    // bindable uniform version
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, MATERIAL_GPU_SLOT);
-        locations.materialBufferUnit = MATERIAL_GPU_SLOT;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
-#else
-    loc = program.uniformLocation("materialBuffer");
-    if (loc >= 0) {
-        locations.materialBufferUnit = loc;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
-#endif
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
-       // locations.materialBufferUnit = 1;
-    }
-#endif
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);
-       // locations.materialBufferUnit = 1;
-    }
-#endif
-
-    //program.link();
-    if (!program.isLinked()) {
-        program.release();
-    }
-
-    program.release();
-}*/
-/*
-void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
-    program.bindAttributeLocation("tangent", gpu::Stream::TANGENT);
-    program.bindAttributeLocation("texcoord1", gpu::Stream::TEXCOORD1);
-    program.bindAttributeLocation("clusterIndices", gpu::Stream::SKIN_CLUSTER_INDEX);
-    program.bindAttributeLocation("clusterWeights", gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    program.link();
-    
-    initProgram(program, locations, false);
-
-    program.bind();
-
-    locations.clusterMatrices = program.uniformLocation("clusterMatrices");    
-    locations.clusterIndices = program.attributeLocation("clusterIndices");
-    locations.clusterWeights = program.attributeLocation("clusterWeights");
-
-    program.release();
-}*/
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
     QVector<JointState> jointStates;
@@ -361,8 +228,6 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (_program.isNull()) {
- //   if (!_program.isLinked()) {
-      //Work in progress not used yet
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
@@ -460,78 +325,6 @@ void Model::init() {
         _skinTranslucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelTranslucentPixel));
         makeResult = gpu::Shader::makeProgram(*_skinTranslucentProgram, slotBindings);
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
-
-    /*
-        _POprogram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _POprogram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
-        initProgram(_POprogram, _POlocations);
-   
-        _POnormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
-        _POnormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
-        initProgram(_POnormalMapProgram, _POnormalMapLocations);
-        
-        _POspecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _POspecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
-        initProgram(_POspecularMapProgram, _POspecularMapLocations);
-        
-        _POnormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
-        _POnormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
-        initProgram(_POnormalSpecularMapProgram, _POnormalSpecularMapLocations);
-        
-        _POtranslucentProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _POtranslucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
-        initProgram(_POtranslucentProgram, _POtranslucentLocations);
-
-        // Lightmap
-        _POlightmapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
-        _POlightmapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_frag);
-        initProgram(_POlightmapProgram, _POlightmapLocations);
-
-        _POlightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
-        _POlightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_map_frag);
-        initProgram(_POlightmapNormalMapProgramddd, _POlightmapNormalMapLocations);
-        
-        _POlightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
-        _POlightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_specular_map_frag);
-        initProgram(_POlightmapSpecularMapProgram, _POlightmapSpecularMapLocations);
-        
-        _POlightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
-        _POlightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_specular_map_frag);
-        initProgram(_POlightmapNormalSpecularMapProgram, _POlightmapNormalSpecularMapLocations);
-        // end lightmap
-
-        
-        _POshadowProgram.addShaderFromSourceCode(QGLShader::Vertex, model_shadow_vert);
-        _POshadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
-        // Shadow program uses the same locations as standard rendering path but we still need to set the bindings
-        Model::Locations tempLoc;
-        initProgram(_POshadowProgram, tempLoc);
-
-        _POskinProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
-        _POskinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
-        initSkinProgram(_POskinProgram, _POskinLocations);
-        
-        _POskinNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
-        _POskinNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
-        initSkinProgram(_POskinNormalMapProgram, _PaOskinNormalMapLocations);
-        
-        _POskinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _POskinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
-        initSkinProgram(_POskinSpecularMapProgram, _POskinSpecularMapLocations);
-        
-        _POskinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
-        _POskinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
-        initSkinProgram(_POskinNormalSpecularMapProgram, _POskinNormalSpecularMapLocations);
-        
-        _POskinShadowProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_shadow_vert);
-        _POskinShadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
-        initSkinProgram(_POskinShadowProgram, _POskinShadowLocations);
-        
-
-        _POskinTranslucentProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
-        _POskinTranslucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
-        initSkinProgram(_POskinTranslucentProgram, _POskinTranslucentLocations);
-    */
     }
 }
 
@@ -2397,165 +2190,80 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
                             Locations*& locations, SkinLocations*& skinLocations) {
-/*    if (false)
-    {                       
-        ProgramObject* program = &_POprogram;
-        locations = &_POlocations;
-        ProgramObject* skinProgram = &_POskinProgram;
-        skinLocations = &_POskinLocations;
-        if (mode == SHADOW_RENDER_MODE) {
-            program = &_POshadowProgram;
-            skinProgram = &_POskinShadowProgram;
-            skinLocations = &_POskinShadowLocations;
-        } else if (translucent && alphaThreshold == 0.0f) {
-            program = &_POtranslucentProgram;
-            locations = &_POtranslucentLocations;
-            skinProgram = &_POskinTranslucentProgram;
-            skinLocations = &_POskinTranslucentLocations;
+    gpu::ShaderPointer program = _program;
+    locations = &_locations;
+    gpu::ShaderPointer skinProgram = _skinProgram;
+    skinLocations = &_skinLocations;
+    if (mode == SHADOW_RENDER_MODE) {
+        program = _shadowProgram;
+        skinProgram = _skinShadowProgram;
+        skinLocations = &_skinShadowLocations;
+    } else if (translucent && alphaThreshold == 0.0f) {
+        program = _translucentProgram;
+        locations = &_translucentLocations;
+        skinProgram = _skinTranslucentProgram;
+        skinLocations = &_skinTranslucentLocations;
         
-        } else if (hasLightmap) {
-            if (hasTangents) {
-                if (hasSpecular) {
-                    program = &_POlightmapNormalSpecularMapProgram;
-                    locations = &_POlightmapNormalSpecularMapLocations;
-                    skinProgram = NULL;
-                    skinLocations = NULL;
-                } else {
-                    program = &_POlightmapNormalMapProgram;
-                    locations = &_POlightmapNormalMapLocations;
-                    skinProgram = NULL;
-                    skinLocations = NULL;
-                }
-            } else if (hasSpecular) {
-                program = &_POlightmapSpecularMapProgram;
-                locations = &_POlightmapSpecularMapLocations;
-                skinProgram = NULL;
+    } else if (hasLightmap) {
+        if (hasTangents) {
+            if (hasSpecular) {
+                program = _lightmapNormalSpecularMapProgram;
+                locations = &_lightmapNormalSpecularMapLocations;
+                skinProgram.reset(nullptr);
                 skinLocations = NULL;
             } else {
-                program = &_POlightmapProgram;
-                locations = &_POlightmapLocations;
-                skinProgram = NULL;
+                program = _lightmapNormalMapProgram;
+                locations = &_lightmapNormalMapLocations;
+                skinProgram.reset(nullptr);
                 skinLocations = NULL;
             }
+        } else if (hasSpecular) {
+            program = _lightmapSpecularMapProgram;
+            locations = &_lightmapSpecularMapLocations;
+            skinProgram.reset(nullptr);
+            skinLocations = NULL;
         } else {
-            if (hasTangents) {
-                if (hasSpecular) {
-                    program = &_POnormalSpecularMapProgram;
-                    locations = &_POnormalSpecularMapLocations;
-                    skinProgram = &_POskinNormalSpecularMapProgram;
-                    skinLocations = &_POskinNormalSpecularMapLocations;
-                } else {
-                    program = &_POnormalMapProgram;
-                    locations = &_POnormalMapLocations;
-                    skinProgram = &_POskinNormalMapProgram;
-                    skinLocations = &_POskinNormalMapLocations;
-                }
-            } else if (hasSpecular) {
-                program = &_POspecularMapProgram;
-                locations = &_POspecularMapLocations;
-                skinProgram = &_POskinSpecularMapProgram;
-                skinLocations = &_POskinSpecularMapLocations;
+            program = _lightmapProgram;
+            locations = &_lightmapLocations;
+            skinProgram.reset(nullptr);
+            skinLocations = NULL;
+        }
+    } else {
+        if (hasTangents) {
+            if (hasSpecular) {
+                program = _normalSpecularMapProgram;
+                locations = &_normalSpecularMapLocations;
+                skinProgram = _skinNormalSpecularMapProgram;
+                skinLocations = &_skinNormalSpecularMapLocations;
+            } else {
+                program = _normalMapProgram;
+                locations = &_normalMapLocations;
+                skinProgram = _skinNormalMapProgram;
+                skinLocations = &_skinNormalMapLocations;
             }
-        } 
-
-        ProgramObject* activeProgram = program;
-        Locations* activeLocations = locations;
-
-        if (isSkinned) {
-            activeProgram = skinProgram;
-            activeLocations = skinLocations;
-            locations = skinLocations;
+        } else if (hasSpecular) {
+            program = _specularMapProgram;
+            locations = &_specularMapLocations;
+            skinProgram = _skinSpecularMapProgram;
+            skinLocations = &_skinSpecularMapLocations;
         }
-        // This code replace the "bind()" on the QGLProgram
-        if (!activeProgram->isLinked()) {
-            activeProgram->link();
-        }
+    } 
 
-        GLBATCH(glUseProgram)(activeProgram->programId());
-    
+    gpu::ShaderPointer activeProgram = program;
+    Locations* activeLocations = locations;
 
-        if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
-            GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
-        }
-
+    if (isSkinned) {
+        activeProgram = skinProgram;
+        activeLocations = skinLocations;
+        locations = skinLocations;
     }
-    else */
-    {
-        gpu::ShaderPointer program = _program;
-        locations = &_locations;
-        gpu::ShaderPointer skinProgram = _skinProgram;
-        skinLocations = &_skinLocations;
-        if (mode == SHADOW_RENDER_MODE) {
-            program = _shadowProgram;
-            skinProgram = _skinShadowProgram;
-            skinLocations = &_skinShadowLocations;
-        } else if (translucent && alphaThreshold == 0.0f) {
-            program = _translucentProgram;
-            locations = &_translucentLocations;
-            skinProgram = _skinTranslucentProgram;
-            skinLocations = &_skinTranslucentLocations;
-        
-        } else if (hasLightmap) {
-            if (hasTangents) {
-                if (hasSpecular) {
-                    program = _lightmapNormalSpecularMapProgram;
-                    locations = &_lightmapNormalSpecularMapLocations;
-                    skinProgram.reset(nullptr);
-                    skinLocations = NULL;
-                } else {
-                    program = _lightmapNormalMapProgram;
-                    locations = &_lightmapNormalMapLocations;
-                    skinProgram.reset(nullptr);
-                    skinLocations = NULL;
-                }
-            } else if (hasSpecular) {
-                program = _lightmapSpecularMapProgram;
-                locations = &_lightmapSpecularMapLocations;
-                skinProgram.reset(nullptr);
-                skinLocations = NULL;
-            } else {
-                program = _lightmapProgram;
-                locations = &_lightmapLocations;
-                skinProgram.reset(nullptr);
-                skinLocations = NULL;
-            }
-        } else {
-            if (hasTangents) {
-                if (hasSpecular) {
-                    program = _normalSpecularMapProgram;
-                    locations = &_normalSpecularMapLocations;
-                    skinProgram = _skinNormalSpecularMapProgram;
-                    skinLocations = &_skinNormalSpecularMapLocations;
-                } else {
-                    program = _normalMapProgram;
-                    locations = &_normalMapLocations;
-                    skinProgram = _skinNormalMapProgram;
-                    skinLocations = &_skinNormalMapLocations;
-                }
-            } else if (hasSpecular) {
-                program = _specularMapProgram;
-                locations = &_specularMapLocations;
-                skinProgram = _skinSpecularMapProgram;
-                skinLocations = &_skinSpecularMapLocations;
-            }
-        } 
 
-        gpu::ShaderPointer activeProgram = program;
-        Locations* activeLocations = locations;
-
-        if (isSkinned) {
-            activeProgram = skinProgram;
-            activeLocations = skinLocations;
-            locations = skinLocations;
-        }
-
-        GLuint glprogram = gpu::GLBackend::getShaderID(activeProgram);
-        GLBATCH(glUseProgram)(glprogram);
+    GLuint glprogram = gpu::GLBackend::getShaderID(activeProgram);
+    GLBATCH(glUseProgram)(glprogram);
     
 
-        if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
-            GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
-        }
+    if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
+        GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
     }
 }
 
