@@ -20,36 +20,32 @@
 
     var sizeOfTheHouse = {
         x: 10,
-        y: 10,
+        y: 15,
         z: 10
     };
-    /**/
-
-    // 
-    // var modelUrl = "http://localhost/~stojce/models/3-Buildings-2-SanFranciscoHouse-";
-    // var modelurlExt = ".fbx";
-    // var modelVariations = 100;
     
-    var houseModels = [
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseBlue.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseBlue3.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseGreen.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseGreen2.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseRed.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseRose.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseViolet.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseYellow.fbx",
-        "http://public.highfidelity.io/models/entities/3-Buildings-2-SanFranciscoHouseYellow2.fbx"
-    ];
-        
+    var randomizeModels = false;
+    /**/
+ 
+    var modelUrlPrefix = "http://public.highfidelity.io/load_testing/3-Buildings-2-SanFranciscoHouse-";
+    var modelurlExt = ".fbx";
+    var modelVariations = 100;
+
     var houses = [];
 
     function addHouseAt(position, rotation) {
-        // get random house model
-        //var modelNumber = 1 + Math.floor(Math.random() * (modelVariations - 1));
-        //var modelUrl = modelUrl + modelNumber + modelurlExt;
-        //print("Model ID:" + modelNumber);
-        var modelUrl = houseModels[Math.floor(Math.random() * houseModels.length)];
+        // get house model
+        var modelNumber = randomizeModels ?
+            1 + Math.floor(Math.random() * (modelVariations - 1)) :
+            (houses.length + 1) % modelVariations;
+        
+        if (modelNumber == 0) {
+            modelNumber = modelVariations;
+        }
+        
+        var modelUrl = modelUrlPrefix + (modelNumber + "") + modelurlExt;
+        print("Model ID:" + modelNumber);
+        print("Model URL:" + modelUrl);
         
         var properties = {
             type: "Model",
