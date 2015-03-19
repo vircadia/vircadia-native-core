@@ -46,9 +46,11 @@ protected:
     glm::vec3 m_shapeLocalOffset;
 
     btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
+    btScalar m_radius;
+    btScalar m_halfHeight;
 
     btScalar m_verticalVelocity;
-    btScalar m_verticalOffset;
+    btScalar m_verticalOffset; // fall distance from velocity this frame
     btScalar m_maxFallSpeed;
     btScalar m_jumpSpeed;
     btScalar m_maxJumpHeight;
@@ -68,19 +70,18 @@ protected:
 
     //some internal variables
     btVector3 m_currentPosition;
-    btScalar  m_currentStepOffset;
     btVector3 m_targetPosition;
+    btScalar  m_lastStepUp;
 
     ///keep track of the contact manifolds
     btManifoldArray m_manifoldArray;
 
     bool m_touchingContact;
-    btVector3 m_touchingNormal; // points from character to object
+    btVector3 m_floorNormal; // points from object to character
 
     bool m_enabled;
     bool m_wasOnGround;
     bool m_wasJumping;
-    bool m_useGhostObjectSweepTest;
     bool m_useWalkDirection;
     btScalar m_velocityTimeInterval;
     int m_upAxis;
@@ -97,7 +98,7 @@ protected:
     bool recoverFromPenetration(btCollisionWorld* collisionWorld);
     void stepUp(btCollisionWorld* collisionWorld);
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
-    void stepForwardAndStrafe(btCollisionWorld* collisionWorld, const btVector3& walkMove);
+    void stepForward(btCollisionWorld* collisionWorld, const btVector3& walkMove);
     void stepDown(btCollisionWorld* collisionWorld, btScalar dt);
     void createShapeAndGhost();
 public:
@@ -162,9 +163,6 @@ public:
     btScalar getMaxSlope() const;
 
     btPairCachingGhostObject* getGhostObject();
-    void setUseGhostSweepTest(bool useGhostObjectSweepTest) {
-        m_useGhostObjectSweepTest = useGhostObjectSweepTest;
-    }
 
     bool onGround() const;
     void setUpInterpolate(bool value);
