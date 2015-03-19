@@ -3680,19 +3680,16 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     if (msgBox.clickedButton() == headButton) {
         qDebug() << "Chose to use for head: " << url;
-        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         _myAvatar->setFaceModelURL(url);
         UserActivityLogger::getInstance().changedModel("head", url);
         _myAvatar->sendIdentityPacket();
     } else if (msgBox.clickedButton() == bodyButton) {
         qDebug() << "Chose to use for body: " << url;
-        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         _myAvatar->setSkeletonModelURL(url);
         UserActivityLogger::getInstance().changedModel("skeleton", url);
         _myAvatar->sendIdentityPacket();
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
         qDebug() << "Chose to use for body + head: " << url;
-        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         _myAvatar->setFaceModelURL(QString());
         _myAvatar->setSkeletonModelURL(url);
         UserActivityLogger::getInstance().changedModel("skeleton", url);
