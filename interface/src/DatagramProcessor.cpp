@@ -10,7 +10,6 @@
 //
 
 #include <QtCore/QWeakPointer>
-#include <QBuffer>
 
 #include <AccountManager.h>
 #include <PerfStat.h>

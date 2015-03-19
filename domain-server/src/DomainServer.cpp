@@ -22,7 +22,6 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrlQuery>
-#include <QBuffer>
 
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
