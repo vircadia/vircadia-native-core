@@ -348,6 +348,7 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
+    bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 

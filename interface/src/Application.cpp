@@ -1452,48 +1452,44 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::dropEvent(QDropEvent *event) {
-    QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
     bool atLeastOneFileAccepted = false;
     foreach (QUrl url, mimeData->urls()) {
-        auto lower = url.path().toLower();
-        if (lower.endsWith(SNAPSHOT_EXTENSION)) {
-            snapshotPath = url.toLocalFile();
-            
-            
-            SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
-            if (snapshotData) {
-                if (!snapshotData->getDomain().isEmpty()) {
-                    DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
-                }
-
-                _myAvatar->setPosition(snapshotData->getLocation());
-                _myAvatar->setOrientation(snapshotData->getOrientation());
+        QString urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            if (acceptURL(urlString)) {
                 atLeastOneFileAccepted = true;
-                break; // don't process further files
-            } else {
-                QMessageBox msgBox;
-                msgBox.setText("No location details were found in the file "
-                                + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
-                                
-                msgBox.setStandardButtons(QMessageBox::Ok);
-                msgBox.exec();
+                break;
             }
-        } else {
-            QString urlString = url.toString();
-            if (canAcceptURL(urlString)) {
-                if (acceptURL(urlString)) {
-                    atLeastOneFileAccepted = true;
-                    break;
-                }
-            }
-
-        }        
+        }
     }
     
     if (atLeastOneFileAccepted) {
         event->acceptProposedAction();
     }
+}
+
+bool Application::acceptSnapshot(const QString& urlString) {
+    QUrl url(urlString);
+    QString snapshotPath = url.toLocalFile();
+    
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+    if (snapshotData) {
+        if (!snapshotData->getDomain().isEmpty()) {
+            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
+        }
+
+        _myAvatar->setPosition(snapshotData->getLocation());
+        _myAvatar->setOrientation(snapshotData->getOrientation());
+    } else {
+        QMessageBox msgBox;
+        msgBox.setText("No location details were found in the file "
+                        + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
+                        
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
+    }
+    return true;
 }
 
 void Application::sendPingPackets() {
@@ -3600,6 +3596,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
         qDebug() << "Application::initializeAcceptedFiles()";
+        _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
         _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
