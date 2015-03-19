@@ -299,7 +299,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             _points << mesh.vertices;
         }
 
-        info.setParams(getShapeType(), 0.5f * getDimensions(), NULL, _collisionModelURL);
+        info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
         info.setConvexHull(_points);
     }
 }
