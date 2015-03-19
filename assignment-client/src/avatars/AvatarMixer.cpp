@@ -135,7 +135,7 @@ void AvatarMixer::broadcastAvatarData() {
         [&](const SharedNodePointer& node) {
             AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
             MutexTryLocker lock(nodeData->getMutex());
-            if (!lock.tryLock()) {
+            if (!lock.isLocked()) {
                 return;
             }
             ++_sumListeners;
@@ -149,7 +149,7 @@ void AvatarMixer::broadcastAvatarData() {
             // about a given otherNode to this node
             // FIXME does this mean we should sort the othernodes by distance before iterating 
             // over them?
-            float outputBandwidth = node->getBandwidthRecorder().getTotalAverageOutputKilobitsPerSecond();
+            float outputBandwidth = node->getOutboundBandwidth();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -164,14 +164,14 @@ void AvatarMixer::broadcastAvatarData() {
 
                     //  Check throttling value
                     if (!(_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))) {
-                        return;
+                        return false;
                     }
                     return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
                     AvatarMixerClientData* otherNodeData = otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     MutexTryLocker lock(otherNodeData->getMutex());
-                    if (!lock.tryLock()) {
+                    if (!lock.isLocked()) {
                         return;
                     }
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
