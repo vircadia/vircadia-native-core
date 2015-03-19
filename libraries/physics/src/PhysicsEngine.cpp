@@ -63,7 +63,6 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        qDebug() << "PhysicsEngine::addEntityInternal(" << entity;
         if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
@@ -343,7 +342,6 @@ void PhysicsEngine::stepSimulation() {
         }
 
         unlock();
-        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
@@ -506,10 +504,8 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
-        ShapeInfo shapeInfo;
-        ShapeInfoUtil::collectInfoFromShape(shape, shapeInfo);
         _dynamicsWorld->removeRigidBody(body);
-        _shapeManager.releaseShape(shapeInfo);
+        _shapeManager.releaseShape(shape);
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         motionState->setRigidBody(NULL);
         delete body;
