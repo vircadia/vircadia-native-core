@@ -10,6 +10,7 @@
 <@if not GPU_TRANSFORM_STATE_SLH@>
 <@def GPU_TRANSFORM_STATE_SLH@>
 
+<@func declareStandardTransform()@>
 struct TransformObject { 
     mat4 _model;
     mat4 _modelInverse;
@@ -23,48 +24,19 @@ struct TransformCamera {
     vec4 _viewport;
 };
 
-vec4 transformModelToClipPos(TransformCamera camera, TransformObject object, vec4 pos) {
-<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
-    vec4 epos = (object._model * pos) + vec4(-pos.w * camera._viewInverse[3].xyz, 0.0);
-    return camera._projectionViewUntranslated * epos;
-    // Equivalent to the following but hoppefully a bit more accurate
-    //return camera._projection * camera._view * object._model * pos;
-<@else@>
-    return gl_ModelViewProjectionMatrix * pos;
-<@endif@>
-}
-
-vec3 transformModelToEyeDir(TransformCamera camera, TransformObject object, vec3 dir) {
-<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
-    vec3 mr0 = vec3(object._modelInverse[0].x, object._modelInverse[1].x, object._modelInverse[2].x);
-    vec3 mr1 = vec3(object._modelInverse[0].y, object._modelInverse[1].y, object._modelInverse[2].y);
-    vec3 mr2 = vec3(object._modelInverse[0].z, object._modelInverse[1].z, object._modelInverse[2].z);
-
-    vec3 mvc0 = vec3(dot(camera._viewInverse[0].xyz, mr0), dot(camera._viewInverse[0].xyz, mr1), dot(camera._viewInverse[0].xyz, mr2));
-    vec3 mvc1 = vec3(dot(camera._viewInverse[1].xyz, mr0), dot(camera._viewInverse[1].xyz, mr1), dot(camera._viewInverse[1].xyz, mr2));
-    vec3 mvc2 = vec3(dot(camera._viewInverse[2].xyz, mr0), dot(camera._viewInverse[2].xyz, mr1), dot(camera._viewInverse[2].xyz, mr2));
-
-    vec3 result = vec3(dot(mvc0, dir), dot(mvc1, dir), dot(mvc2, dir));
-
-    return result;
-<@else@>
-    return gl_NormalMatrix * dir;
-<@endif@>
-}
-
 <@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
 uniform transformObjectBuffer {
-    TransformObject object;
+    TransformObject _object;
 };
 TransformObject getTransformObject() {
-    return object;
+    return _object;
 }
 
 uniform transformCameraBuffer {
-    TransformCamera camera;
+    TransformCamera _camera;
 };
 TransformCamera getTransformCamera() {
-    return camera;
+    return _camera;
 }
 
 <@else@>
@@ -114,6 +86,38 @@ TransformCamera getTransformCamera() {
 }
 
 <@endif@>
+<@endfunc@>
 
+
+<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    <!// Equivalent to the following but hoppefully a tad more accurate
+      //return camera._projection * camera._view * object._model * pos; !>
+    { // transformModelToClipPos
+        vec4 _eyepos = (<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+    }
+<@else@>
+    <$clippos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+<@endif@>
+<@endfunc@>
+
+<@func transformModelToEyeDir(cameraTransform, objectTransform, modelDir, eyeDir)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformModelToEyeDir
+        vec3 mr0 = vec3(<$objectTransform$>._modelInverse[0].x, <$objectTransform$>._modelInverse[1].x, <$objectTransform$>._modelInverse[2].x);
+        vec3 mr1 = vec3(<$objectTransform$>._modelInverse[0].y, <$objectTransform$>._modelInverse[1].y, <$objectTransform$>._modelInverse[2].y);
+        vec3 mr2 = vec3(<$objectTransform$>._modelInverse[0].z, <$objectTransform$>._modelInverse[1].z, <$objectTransform$>._modelInverse[2].z);
+
+        vec3 mvc0 = vec3(dot(<$cameraTransform$>._viewInverse[0].xyz, mr0), dot(<$cameraTransform$>._viewInverse[0].xyz, mr1), dot(<$cameraTransform$>._viewInverse[0].xyz, mr2));
+        vec3 mvc1 = vec3(dot(<$cameraTransform$>._viewInverse[1].xyz, mr0), dot(<$cameraTransform$>._viewInverse[1].xyz, mr1), dot(<$cameraTransform$>._viewInverse[1].xyz, mr2));
+        vec3 mvc2 = vec3(dot(<$cameraTransform$>._viewInverse[2].xyz, mr0), dot(<$cameraTransform$>._viewInverse[2].xyz, mr1), dot(<$cameraTransform$>._viewInverse[2].xyz, mr2));
+
+        <$eyeDir$> = vec3(dot(mvc0, <$modelDir$>), dot(mvc1, <$modelDir$>), dot(mvc2, <$modelDir$>));
+    }
+<@else@>
+    <$eyeDir$> = gl_NormalMatrix * <$modelDir$>;
+<@endif@>
+<@endfunc@>
 
 <@endif@>
