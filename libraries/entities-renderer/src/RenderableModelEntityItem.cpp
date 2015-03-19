@@ -266,4 +266,53 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
+bool RenderableModelEntityItem::isReadyToComputeShape() {
+    if (_collisionModelURL == "") {
+        // no model url, so we're ready to compute a shape.
+        return true;
+    }
 
+    if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
+        // we have a _collisionModelURL AND a _collisionNetworkGeometry AND it's fully loaded.
+        return true;
+    }
+
+    if (_collisionNetworkGeometry.isNull()) {
+        // we have a _collisionModelURL but we don't yet have a _collisionNetworkGeometry.
+        _collisionNetworkGeometry =
+            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
+
+        if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
+            // shortcut in case it's already loaded.
+            return true;
+        }
+    }
+
+    // the model is still being downloaded.
+    return false;
+}
+
+void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
+    if (_collisionModelURL == "") {
+        info.setParams(getShapeType(), 0.5f * getDimensions());
+    } else {
+        const FBXGeometry& fbxGeometry = _collisionNetworkGeometry->getFBXGeometry();
+
+        _points.clear();
+        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+            _points << mesh.vertices;
+        }
+
+        info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
+        info.setConvexHull(_points);
+    }
+}
+
+ShapeType RenderableModelEntityItem::getShapeType() const {
+    // XXX make hull an option in edit.js ?
+    if (_collisionModelURL != "") {
+        return SHAPE_TYPE_CONVEX_HULL;
+    } else {
+        return _shapeType;
+    }
+}
