@@ -272,7 +272,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         return false; // hmm...
     }
 
-    if (_model->getCollisionURL().toString() == "") {
+    if (_model->getCollisionURL().isEmpty()) {
         // no model url, so we're ready to compute a shape.
         return true;
     }
@@ -288,7 +288,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_model->getCollisionURL().toString() == "") {
+    if (_model->getCollisionURL().isEmpty()) {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
@@ -306,7 +306,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
 ShapeType RenderableModelEntityItem::getShapeType() const {
     // XXX make hull an option in edit.js ?
-    if (!_model || _model->getCollisionURL().toString() == "") {
+    if (!_model || _model->getCollisionURL().isEmpty()) {
         return _shapeType;
     } else {
         return SHAPE_TYPE_CONVEX_HULL;
