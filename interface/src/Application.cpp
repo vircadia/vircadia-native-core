@@ -893,6 +893,8 @@ bool Application::event(QEvent* event) {
                 emit svoImportRequested(url.url());
             } else if (url.path().toLower().endsWith(JS_EXTENSION)) {
                 askToLoadScript(url.toString());
+            //} else if (url.path().toLower().endsWith(FST_EXTENSION)) {
+            //    askToSetAvatarUrl(url.toString());
             }
         }
         return false;
@@ -1486,6 +1488,9 @@ void Application::dropEvent(QDropEvent *event) {
             atLeastOneFileAccepted = true;
         } else if (lower.endsWith(JS_EXTENSION)) {
             askToLoadScript(url.url());
+            atLeastOneFileAccepted = true;
+        } else if (lower.endsWith(FST_EXTENSION)) {
+            askToSetAvatarUrl(url.url());
             atLeastOneFileAccepted = true;
         }
     }
@@ -3595,6 +3600,58 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
 }
+
+void Application::askToSetAvatarUrl(const QString& url) {
+    QUrl realUrl(url);
+    if (realUrl.isLocalFile()) {
+        QString message = "You can not use local files for avatar components.";
+
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        return;
+    }
+
+    QString message = "Would you like to use this model for part of avatar:\n" + url;
+    QMessageBox msgBox;
+
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle("Set Avatar");
+    msgBox.setText(message);
+
+    QPushButton* headButton = msgBox.addButton(tr("Head"), QMessageBox::ActionRole);
+    QPushButton* bodyButton = msgBox.addButton(tr("Body"), QMessageBox::ActionRole);
+    QPushButton* bodyAndHeadButton = msgBox.addButton(tr("Body + Head"), QMessageBox::ActionRole);
+    QPushButton* cancelButton = msgBox.addButton(QMessageBox::Cancel);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == headButton) {
+        qDebug() << "Chose to use for head: " << url;
+        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        _myAvatar->setFaceModelURL(url);
+        UserActivityLogger::getInstance().changedModel("head", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyButton) {
+        qDebug() << "Chose to use for body: " << url;
+        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
+        qDebug() << "Chose to use for body + head: " << url;
+        //MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        _myAvatar->setFaceModelURL(QString());
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else {
+        qDebug() << "Declined to use the avatar: " << url;
+    }
+}
+
 
 void Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
