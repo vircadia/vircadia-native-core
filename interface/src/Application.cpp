@@ -3595,7 +3595,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
 void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
-        qDebug() << "Application::initializeAcceptedFiles()";
         _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
@@ -3604,7 +3603,6 @@ void Application::initializeAcceptedFiles() {
 }
 
 bool Application::canAcceptURL(const QString& urlString) {
-    qDebug() << "Application::canAcceptURL() urlString:" << urlString;
     initializeAcceptedFiles();
     
     QUrl url(urlString);
@@ -3623,7 +3621,6 @@ bool Application::canAcceptURL(const QString& urlString) {
 }
 
 bool Application::acceptURL(const QString& urlString) {
-    qDebug() << "Application::acceptURL() urlString:" << urlString;
     initializeAcceptedFiles();
     
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
