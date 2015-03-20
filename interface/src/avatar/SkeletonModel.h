@@ -110,6 +110,8 @@ public:
 
     bool hasSkeleton();
 
+    float getHeadClipDistance() const { return _headClipDistance; }
+
 signals:
 
     void skeletonLoaded();
@@ -160,6 +162,8 @@ private:
     int _standingFoot;
     glm::vec3 _standingOffset;
     glm::vec3 _clampedFootPosition;
+
+    float _headClipDistance;  // Near clip distance to use if no separate head model
 };
 
 #endif // hifi_SkeletonModel_h
