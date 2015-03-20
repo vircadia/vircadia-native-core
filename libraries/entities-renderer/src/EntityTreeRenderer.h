@@ -59,15 +59,16 @@ public:
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
+    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem);
     
     /// clears the tree
     virtual void clear();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE Model* allocateModel(const QString& url);
+    Q_INVOKABLE Model* allocateModel(const QString& url, const QString& collisionUrl);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl); 
+    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl, const QString& collisionUrl); 
 
     /// if a renderable entity item is done with a model, it should return it to us
     void releaseModel(Model* model);

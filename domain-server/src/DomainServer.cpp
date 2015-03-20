@@ -612,13 +612,15 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QByteArray usernameSignature;
     
     packetStream >> nodeInterestList >> username >> usernameSignature;
-    
-    if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr)) {
+
+    QString reason;
+    if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-        QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
-        
-        // send this oauth request datagram back to the client
-        DependencyManager::get<LimitedNodeList>()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+        QByteArray connectionDeniedByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
+        QDataStream out(&connectionDeniedByteArray, QIODevice::WriteOnly | QIODevice::Append);
+        out << reason;
+        // tell client it has been refused.
+        DependencyManager::get<LimitedNodeList>()->writeUnverifiedDatagram(connectionDeniedByteArray, senderSockAddr);
         
         return;
     }
@@ -680,9 +682,63 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 
+bool DomainServer::verifyUsersKey (const QString& username,
+                                   const QByteArray& usernameSignature,
+                                   QString& reasonReturn) {
+    // it's possible this user can be allowed to connect, but we need to check their username signature
+            
+    QByteArray publicKeyArray = _userPublicKeys.value(username);
+    if (!publicKeyArray.isEmpty()) {
+        // if we do have a public key for the user, check for a signature match
+                
+        const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
+                
+        // first load up the public key into an RSA struct
+        RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
+                
+        if (rsaPublicKey) {
+            QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
+            int decryptResult =
+                RSA_public_decrypt(usernameSignature.size(),
+                                   reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
+                                   reinterpret_cast<unsigned char*>(decryptedArray.data()),
+                                   rsaPublicKey, RSA_PKCS1_PADDING);
+                    
+            if (decryptResult != -1) {
+                if (username.toLower() == decryptedArray) {
+                    qDebug() << "Username signature matches for" << username << "- allowing connection.";
+                            
+                    // free up the public key before we return
+                    RSA_free(rsaPublicKey);
+                            
+                    return true;
+                } else {
+                    qDebug() << "Username signature did not match for" << username << "- denying connection.";
+                    reasonReturn = "Username signature did not match.";
+                }
+            } else {
+                qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
+                reasonReturn = "Couldn't decrypt user signature.";
+            }
+                    
+            // free up the public key, we don't need it anymore
+            RSA_free(rsaPublicKey);
+        } else {
+            // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+            qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
+            reasonReturn = "Couldn't convert data to RSA key.";
+        }
+    }
+
+    requestUserPublicKey(username); // no joy.  maybe next time?
+    return false;
+}
+
+
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
-                                                 const HifiSockAddr& senderSockAddr) {
+                                                 const HifiSockAddr& senderSockAddr,
+                                                 QString& reasonReturn) {
 
     const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
                                                                  ALLOWED_USERS_SETTINGS_KEYPATH);
@@ -693,72 +749,46 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
         || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
         return true;
     }
-
-    const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
-    if (maximumUserCapacity > 0) {
-        unsigned int connectedUsers = countConnectedUsers();
-        if (connectedUsers >= maximumUserCapacity) {
-            // too many users, deny the new connection.
-            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
-            return false;
-        }
-        qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
-    }
     
     if (allowedUsers.count() > 0) {
         if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-            // it's possible this user can be allowed to connect, but we need to check their username signature
-            
-            QByteArray publicKeyArray = _userPublicKeys.value(username);
-            if (!publicKeyArray.isEmpty()) {
-                // if we do have a public key for the user, check for a signature match
-                
-                const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
-                
-                // first load up the public key into an RSA struct
-                RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
-                
-                if (rsaPublicKey) {
-                    QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
-                    int decryptResult = RSA_public_decrypt(usernameSignature.size(),
-                                                           reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
-                                                           reinterpret_cast<unsigned char*>(decryptedArray.data()),
-                                                           rsaPublicKey, RSA_PKCS1_PADDING);
-                    
-                    if (decryptResult != -1) {
-                        if (username.toLower() == decryptedArray) {
-                            qDebug() << "Username signature matches for" << username << "- allowing connection.";
-                            
-                            // free up the public key before we return
-                            RSA_free(rsaPublicKey);
-                            
-                            return true;
-                        } else {
-                            qDebug() << "Username signature did not match for" << username << "- denying connection.";
-                        }
-                    } else {
-                        qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
-                    }
-                    
-                    // free up the public key, we don't need it anymore
-                    RSA_free(rsaPublicKey);
-                } else {
-                    // we can't let this user in since we couldn't convert their public key to an RSA key we could use
-                    qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
-                }
+            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+                return true;
             }
-        
-            requestUserPublicKey(username);
         } else {
             qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
+            reasonReturn = "User not on whitelist.";
         }
+        return false;
     } else {
-        // since we have no allowed user list, let them all in
+        // we have no allowed user list.
+
+        // if this user is in the editors list, exempt them from the max-capacity check
+        const QVariant* allowedEditorsVariant =
+            valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+        QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
+        if (allowedEditors.contains(username)) {
+            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+                return true;
+            }
+        }
+
+        // if we haven't reached max-capacity, let them in.
+        const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
+        unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+        if (maximumUserCapacity > 0) {
+            unsigned int connectedUsers = countConnectedUsers();
+            if (connectedUsers >= maximumUserCapacity) {
+                // too many users, deny the new connection.
+                qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
+                reasonReturn = "Too many connected users.";
+                return false;
+            }
+            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
+        }
+
         return true;
     }
-    
-    return false;
 }
 
 void DomainServer::preloadAllowedUserPublicKeys() {

@@ -96,6 +96,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
 static const QString JS_EXTENSION  = ".js";
+static const QString FST_EXTENSION  = ".fst";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -126,6 +127,8 @@ class Application;
 #undef qApp
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
+typedef bool (Application::* AcceptURLMethod)(const QString &);
 
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
@@ -221,7 +224,7 @@ public:
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
-    void importSVOFromURL(QUrl url);
+    bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -306,6 +309,10 @@ public:
     
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
+    
+    void initializeAcceptedFiles();
+    bool canAcceptURL(const QString& url);
+    bool acceptURL(const QString& url);
 
 signals:
 
@@ -341,7 +348,9 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    void askToLoadScript(const QString& scriptFilenameOrURL);
+    bool acceptSnapshot(const QString& urlString);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
@@ -595,6 +604,8 @@ private:
 
     QWidget* _fullscreenMenuWidget = new QWidget();
     int _menuBarHeight;
+    
+    QHash<QString, AcceptURLMethod> _acceptedExtensions;
 };
 
 #endif // hifi_Application_h

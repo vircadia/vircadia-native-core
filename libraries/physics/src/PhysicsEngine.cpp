@@ -298,6 +298,7 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
+    _avatarData->lockForRead();
     if (_avatarData->isPhysicsEnabled()) {
         // update character controller
         glm::quat rotation = _avatarData->getOrientation();
@@ -307,6 +308,7 @@ void PhysicsEngine::stepSimulation() {
         btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
         _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
     }
+    _avatarData->unlock();
 
     // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
