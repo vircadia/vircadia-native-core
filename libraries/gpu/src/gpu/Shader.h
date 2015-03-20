@@ -69,7 +69,7 @@ public:
     public:
         std::string _name;
         int32 _location;
-        Binding(const std::string&& name, int32 loc = INVALID_LOCATION) : _name(name), _location(loc) {}
+        Binding(const std::string& name, int32 loc = INVALID_LOCATION) : _name(name), _location(loc) {}
     };
 
     template <typename T> class Less {
