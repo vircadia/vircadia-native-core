@@ -93,7 +93,7 @@ enum EntityPropertyList {
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
     
-    // used by Model entities
+    PROP_COLLISION_MODEL_URL,
     PROP_ATTRIBUTION,
     
     // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
@@ -104,8 +104,7 @@ enum EntityPropertyList {
     PROP_TEXT_COLOR = PROP_COLOR,
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
-    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL,
+    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
