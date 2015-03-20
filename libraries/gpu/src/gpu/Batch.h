@@ -56,8 +56,11 @@ enum Primitive {
 };
 
 enum ReservedSlot {
-    TRANSFORM_OBJECT_SLOT = 6,
+/*    TRANSFORM_OBJECT_SLOT = 6,
     TRANSFORM_CAMERA_SLOT = 7,
+    */
+    TRANSFORM_OBJECT_SLOT = 1,
+    TRANSFORM_CAMERA_SLOT = 2,
 };
 
 class Batch {

@@ -14,6 +14,8 @@
 
 <@include gpu/Transform.slh@>
 
+<$declareStandardTransform()$>
+
 const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
@@ -35,12 +37,12 @@ void main(void) {
   //  interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0)).xy;
     interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.0, 1.0)).xy;
 
-    // use standard pipeline transform
+    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    gl_Position = transformModelToClipPos(cam, obj, gl_Vertex);
-    
-    // transform and store the normal for interpolation
-    normal = vec4(normalize(transformModelToEyeDir(cam, obj, gl_Normal)), 0.0);
+    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, gl_Normal, normal.xyz)$>
+
+    normal = vec4(normalize(normal.xyz), 0.0);
 }
 
