@@ -93,16 +93,18 @@ enum EntityPropertyList {
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
     
+    PROP_COLLISION_MODEL_URL,
+    PROP_ATTRIBUTION,
+    
     // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_PARTICLE_RADIUS,
+    PROP_LAST_ITEM = PROP_ATTRIBUTION,
 
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
     PROP_TEXT_COLOR = PROP_COLOR,
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
-    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL,
+    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -195,6 +197,7 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_STRENGTH, EmitStrength, emitStrength, float);
     DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
+    DEFINE_PROPERTY_REF(PROP_ATTRIBUTION, Attribution, attribution, QString);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -322,6 +325,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitStrength, emitStrength, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Attribution, attribution, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";
