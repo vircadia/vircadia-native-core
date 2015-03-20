@@ -15,7 +15,7 @@
 #include <QMutex>
 
 class MutexTryLocker {
-    QMutex & _mutex;
+    QMutex& _mutex;
     bool _locked{ false };
 public:
     MutexTryLocker(QMutex &m) : _mutex(m), _locked(m.tryLock()) {}
