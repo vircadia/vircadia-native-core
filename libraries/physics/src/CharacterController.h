@@ -41,53 +41,50 @@ ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInt
 {
 protected:
 
-    AvatarData* m_avatarData = NULL;
-    btPairCachingGhostObject* m_ghostObject;
-    glm::vec3 m_shapeLocalOffset;
+    AvatarData* _avatarData = NULL;
+    btPairCachingGhostObject* _ghostObject;
+    glm::vec3 _shapeLocalOffset;
 
-    btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
-    btScalar m_radius;
-    btScalar m_halfHeight;
+    btConvexShape* _convexShape;//is also in _ghostObject, but it needs to be convex, so we store it here to avoid upcast
+    btScalar _radius;
+    btScalar _halfHeight;
 
-    btScalar m_verticalVelocity;
-    btScalar m_verticalOffset; // fall distance from velocity this frame
-    btScalar m_maxFallSpeed;
-    btScalar m_jumpSpeed;
-    btScalar m_maxJumpHeight;
-    btScalar m_maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
-    btScalar m_maxSlopeCosine;  // Cosine equivalent of m_maxSlopeRadians (calculated once when set, for optimization)
-    btScalar m_gravity;
+    btScalar _verticalVelocity;
+    btScalar _verticalOffset; // fall distance from velocity this frame
+    btScalar _maxFallSpeed;
+    btScalar _jumpSpeed;
+    btScalar _maxJumpHeight;
+    btScalar _maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
+    btScalar _maxSlopeCosine;  // Cosine equivalent of _maxSlopeRadians (calculated once when set, for optimization)
+    btScalar _gravity;
 
-    btScalar m_stepHeight; // height of stepUp prior to stepForward
+    btScalar _stepHeight; // height of stepUp prior to stepForward
 
-    btScalar m_addedMargin;//@todo: remove this and fix the code
+    btScalar _addedMargin;//@todo: remove this and fix the code
 
     ///this is the desired walk direction, set by the user
-    btVector3 m_walkDirection;
-    btVector3 m_normalizedDirection;
+    btVector3 _walkDirection;
+    btVector3 _normalizedDirection;
 
     //some internal variables
-    btVector3 m_currentPosition;
-    btVector3 m_targetPosition;
-    btScalar  m_lastStepUp;
+    btVector3 _currentPosition;
+    btVector3 _targetPosition;
+    btScalar  _lastStepUp;
 
     ///keep track of the contact manifolds
-    btManifoldArray m_manifoldArray;
+    btManifoldArray _manifoldArray;
 
-    bool m_touchingContact;
-    btVector3 m_floorNormal; // points from object to character
+    bool _touchingContact;
+    btVector3 _floorNormal; // points from object to character
 
-    bool m_enabled;
-    bool m_wasOnGround;
-    bool m_wasJumping;
-    bool m_useWalkDirection;
-    btScalar m_velocityTimeInterval;
-    int m_upAxis;
+    bool _enabled;
+    bool _wasOnGround;
+    bool _wasJumping;
+    bool _useWalkDirection;
+    btScalar _velocityTimeInterval;
+    int _upAxis;
 
     static btVector3* getUpAxisDirections();
-    bool  m_interpolateUp;
-    bool  full_drop;
-    bool  bounce_fix;
 
     btVector3 computeReflectionDirection(const btVector3& direction, const btVector3& normal);
     btVector3 parallelComponent(const btVector3& direction, const btVector3& normal);
@@ -121,7 +118,7 @@ public:
             axis = 0;
         if (axis > 2)
             axis = 2;
-        m_upAxis = axis;
+        _upAxis = axis;
     }
 
     /// This should probably be called setPositionIncrementPerSimulatorStep.
