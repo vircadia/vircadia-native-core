@@ -252,16 +252,16 @@ public:
     // Schema to access the attribute values of the light
     class Schema {
     public:
-        Vec4 _position = Vec4(0.0f, 0.0f, 0.0f, 1.0f); 
-        Vec3 _direction = Vec3(0.0f, 0.0f, -1.0f);
-        float _spare0 = 0.0f;
-        Color _color = Color(1.0f);
-        float _intensity = 1.0f;
-        Vec4 _attenuation = Vec4(1.0f);
-        Vec4 _spot = Vec4(0.0f, 0.0f, 0.0f, 3.0f);
-        Vec4 _shadow = Vec4(0.0f);
+        Vec4 _position{0.0f, 0.0f, 0.0f, 1.0f}; 
+        Vec3 _direction{0.0f, 0.0f, -1.0f};
+        float _spare0{0.0f};
+        Color _color{1.0f};
+        float _intensity{1.0f};
+        Vec4 _attenuation{1.0f};
+        Vec4 _spot{0.0f, 0.0f, 0.0f, 3.0f};
+        Vec4 _shadow{0.0f};
 
-        Vec4 _control = Vec4(0.0f);
+        Vec4 _control{0.0f};
 
         Schema() {}
     };

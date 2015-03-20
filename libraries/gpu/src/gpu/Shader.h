@@ -41,18 +41,18 @@ public:
         Language _lang = GLSL;
     };
 
-    static const uint32 INVALID_LOCATION = -1;
+    static const int32 INVALID_LOCATION = -1;
 
     class Slot {
     public:
 
-        std::string _name = ("");
-        int32 _location = INVALID_LOCATION;
-        Element _element = Element();
-        uint16 _resourceType = Resource::BUFFER;
+        std::string _name;
+        int32 _location{INVALID_LOCATION};
+        Element _element;
+        uint16 _resourceType{Resource::BUFFER};
  
         Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
-        Slot(const Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
+        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
         Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
              _name(name), _location(location), _element(element), _resourceType(resourceType) {}
         Slot(const std::string& name) : _name(name) {}
@@ -79,13 +79,13 @@ public:
 
     class SlotSet : public std::set<Slot, Less<Slot>> {
     public:
-        const Slot&& findSlot(const std::string& name) const {
+        Slot findSlot(const std::string& name) const {
             auto key = Slot(name);
             auto found = static_cast<const std::set<Slot, Less<Slot>>*>(this)->find(key);
             if (found != end()) {
-                return std::move((*found));
+                return (*found);
             }
-            return std::move(key);
+            return key;
         }
         int32 findLocation(const std::string& name) const {
             return findSlot(name)._location;
