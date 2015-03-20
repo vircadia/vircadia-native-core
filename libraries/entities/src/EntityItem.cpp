@@ -240,6 +240,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_ATTRIBUTION, appendValue, getAttribution());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -247,8 +248,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
                                 propertiesDidntFit,
                                 propertyCount,
                                 appendState);
-        
-        APPEND_ENTITY_PROPERTY(PROP_ATTRIBUTION, appendValue, getAttribution());
     }
 
     if (propertyCount > 0) {
@@ -556,9 +555,22 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_ATTRIBUTION) {
+            READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
+        }
+
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
-        
-        READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
+
+        ////////////////////////////////////
+        // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
+        //
+        // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
+        // by doing this parsing here... but it's not likely going to fully recover the content.
+        //
+        // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
+        if (args.bitstreamVersion == VERSION_ENTITIES_HAS_ATTRIBUTION_DAMAGED) {
+            READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
+        }
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more

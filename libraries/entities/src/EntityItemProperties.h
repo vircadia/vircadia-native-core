@@ -96,15 +96,23 @@ enum EntityPropertyList {
     PROP_COLLISION_MODEL_URL,
     PROP_ATTRIBUTION,
     
-    // NOTE: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // ATTENTION: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
     PROP_LAST_ITEM = PROP_ATTRIBUTION,
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // WARNING! Do not add props here unless you intentionally mean to reuse PROP_ indexes
+    //
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
     PROP_TEXT_COLOR = PROP_COLOR,
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
-    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS
+    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
+    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1
+    // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
