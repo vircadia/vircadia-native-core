@@ -216,6 +216,8 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
     return direction - parallelComponent(direction, normal);
 }
 
+const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
+
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
     _avatarData = avatarData;
@@ -226,8 +228,6 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _avatarData->unlock();
 
     createShapeAndGhost();
-
-    _upAxis = 1; // HACK: hard coded to be 1 for now (yAxis)
 
     _addedMargin = 0.02f;
     _walkDirection.setValue(0.0f,0.0f,0.0f);
@@ -272,7 +272,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     collisionWorld->getDispatcher()->dispatchAllCollisionPairs(_ghostObject->getOverlappingPairCache(), collisionWorld->getDispatchInfo(), collisionWorld->getDispatcher());
 
     _currentPosition = _ghostObject->getWorldTransform().getOrigin();
-    btVector3 up = getUpAxisDirections()[_upAxis];
+    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
 
     btVector3 currentPosition = _currentPosition;
 
@@ -355,14 +355,15 @@ void CharacterController::stepUp( btCollisionWorld* world) {
     // compute start and end
     btTransform start, end;
     start.setIdentity();
-    start.setOrigin(_currentPosition + getUpAxisDirections()[_upAxis] * (_convexShape->getMargin() + _addedMargin));
+    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
+    start.setOrigin(_currentPosition + up * (_convexShape->getMargin() + _addedMargin));
 
-    _targetPosition = _currentPosition + getUpAxisDirections()[_upAxis] * _stepHeight;
+    _targetPosition = _currentPosition + up * _stepHeight;
     end.setIdentity();
     end.setOrigin(_targetPosition);
 
     // sweep up
-    btVector3 sweepDirNegative = -getUpAxisDirections()[_upAxis];
+    btVector3 sweepDirNegative = - up;
     btKinematicClosestNotMeConvexResultCallback callback(_ghostObject, sweepDirNegative, btScalar(0.7071));
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
     callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
@@ -370,11 +371,11 @@ void CharacterController::stepUp( btCollisionWorld* world) {
 
     if (callback.hasHit()) {
         // we hit something, so zero our vertical velocity
-        _verticalVelocity = 0.0;
-        _verticalOffset = 0.0;
+        _verticalVelocity = 0.0f;
+        _verticalOffset = 0.0f;
 
         // Only modify the position if the hit was a slope and not a wall or ceiling.
-        if (callback.m_hitNormalWorld.dot(getUpAxisDirections()[_upAxis]) > 0.0) {
+        if (callback.m_hitNormalWorld.dot(up) > 0.0f) {
             _lastStepUp = _stepHeight * callback.m_closestHitFraction;
             _currentPosition.setInterpolate3(_currentPosition, _targetPosition, callback.m_closestHitFraction);
         } else {
@@ -484,10 +485,11 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
     }
 
     // first sweep for ledge
-    btVector3 step = getUpAxisDirections()[_upAxis] * (-(_lastStepUp + downSpeed * dt));
+    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
+    btVector3 step = up * (-(_lastStepUp + downSpeed * dt));
 
     StepDownConvexResultCallback callback(_ghostObject, 
-            getUpAxisDirections()[_upAxis], 
+            up, 
             _currentPosition, step, 
             _walkDirection,
             _maxSlopeCosine, 
@@ -512,7 +514,7 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
     } else {
         // sweep again for floor within downStep threshold
         StepDownConvexResultCallback callback2 (_ghostObject, 
-                getUpAxisDirections()[_upAxis], 
+                up, 
                 _currentPosition, step,
                 _walkDirection,
                 _maxSlopeCosine, 
@@ -523,7 +525,7 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
 
         _currentPosition = _targetPosition;
         btVector3 oldPosition = _currentPosition;
-        step = (- _stepHeight) * getUpAxisDirections()[_upAxis];
+        step = (- _stepHeight) * up;
         _targetPosition = _currentPosition + step;
 
         start.setOrigin(_currentPosition);
@@ -537,7 +539,7 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
             _wasJumping = false;
         } else {
             // nothing to step down on, so remove the stepUp effect
-            _currentPosition = oldPosition - _lastStepUp * getUpAxisDirections()[_upAxis];
+            _currentPosition = oldPosition - _lastStepUp * up;
             _lastStepUp = 0.0f;
         }
     }
@@ -595,7 +597,9 @@ void CharacterController::preStep(  btCollisionWorld* collisionWorld) {
         }
     }
 
-    _currentPosition = _ghostObject->getWorldTransform().getOrigin();
+    const btTransform& transform = _ghostObject->getWorldTransform();
+    _currentRotation = transform.getRotation();
+    _currentPosition = transform.getOrigin();
     _targetPosition = _currentPosition;
 }
 
@@ -695,12 +699,6 @@ btScalar CharacterController::getMaxSlope() const {
 
 bool CharacterController::onGround() const {
     return _enabled && _verticalVelocity == 0.0 && _verticalOffset == 0.0;
-}
-
-btVector3* CharacterController::getUpAxisDirections() {
-    static btVector3 sUpAxisDirection[3] = { btVector3(1.0f, 0.0f, 0.0f), btVector3(0.0f, 1.0f, 0.0f), btVector3(0.0f, 0.0f, 1.0f) };
-
-    return sUpAxisDirection;
 }
 
 void CharacterController::debugDraw(btIDebugDraw* debugDrawer) {

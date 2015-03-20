@@ -68,6 +68,7 @@ protected:
 
     //some internal variables
     btVector3 _currentPosition;
+    btQuaternion _currentRotation;
     btVector3 _targetPosition;
     btScalar  _lastStepUp;
 
@@ -82,9 +83,6 @@ protected:
     bool _wasJumping;
     bool _useWalkDirection;
     btScalar _velocityTimeInterval;
-    int _upAxis;
-
-    static btVector3* getUpAxisDirections();
 
     btVector3 computeReflectionDirection(const btVector3& direction, const btVector3& normal);
     btVector3 parallelComponent(const btVector3& direction, const btVector3& normal);
@@ -112,14 +110,6 @@ public:
 
     ///btActionInterface interface
     void debugDraw(btIDebugDraw* debugDrawer);
-
-    void setUpAxis(int axis) {
-        if (axis < 0)
-            axis = 0;
-        if (axis > 2)
-            axis = 2;
-        _upAxis = axis;
-    }
 
     /// This should probably be called setPositionIncrementPerSimulatorStep.
     /// This is neither a direction nor a velocity, but the amount to
