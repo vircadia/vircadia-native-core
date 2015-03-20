@@ -40,11 +40,11 @@ TransformCamera getTransformCamera() {
 }
 
 <@else@>
-uniform vec4 transformObjectBuffer[8];
+//uniform vec4 transformObjectBuffer[8];
 
 TransformObject getTransformObject() {
     TransformObject object;
-    object._model[0] = transformObjectBuffer[0];
+ /*   object._model[0] = transformObjectBuffer[0];
     object._model[1] = transformObjectBuffer[1];
     object._model[2] = transformObjectBuffer[2];
     object._model[3] = transformObjectBuffer[3];
@@ -53,14 +53,14 @@ TransformObject getTransformObject() {
     object._modelInverse[1] = transformObjectBuffer[5];
     object._modelInverse[2] = transformObjectBuffer[6];
     object._modelInverse[3] = transformObjectBuffer[7];
-
+*/
     return object;
 }
 
-uniform vec4 transformCameraBuffer[17];
+//uniform vec4 transformCameraBuffer[17];
 TransformCamera getTransformCamera() {
     TransformCamera camera;
-    camera._view[0] = transformCameraBuffer[0];
+/*    camera._view[0] = transformCameraBuffer[0];
     camera._view[1] = transformCameraBuffer[1];
     camera._view[2] = transformCameraBuffer[2];
     camera._view[3] = transformCameraBuffer[3];
@@ -81,7 +81,7 @@ TransformCamera getTransformCamera() {
     camera._projection[3] = transformCameraBuffer[15];
 
     camera._viewport = transformCameraBuffer[16];
-
+*/
     return camera;
 }
 
