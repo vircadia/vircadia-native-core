@@ -98,6 +98,8 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
         setCollisionModelURL("");
+    } else if (args.bitstreamVersion < VERSION_ENTITIES_HAS_ATTRIBUTION) {
+        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL_OLD_VERSION, setCollisionModelURL);
     } else {
         READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
     }
