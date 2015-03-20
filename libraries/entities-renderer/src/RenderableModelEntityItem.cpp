@@ -295,12 +295,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
 
         _points.clear();
+        unsigned int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
-            _points << mesh.vertices;
+            _points[i++] << mesh.vertices;
         }
 
         info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
-        info.setConvexHull(_points);
+        info.setConvexHulls(_points);
     }
 }
 
@@ -308,7 +309,9 @@ ShapeType RenderableModelEntityItem::getShapeType() const {
     // XXX make hull an option in edit.js ?
     if (!_model || _model->getCollisionURL().isEmpty()) {
         return _shapeType;
-    } else {
+    } else if (_points.size() == 1) {
         return SHAPE_TYPE_CONVEX_HULL;
+    } else {
+        return SHAPE_TYPE_COMPOUND;
     }
 }

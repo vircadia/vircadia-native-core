@@ -66,7 +66,7 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
-    QVector<glm::vec3> _points;
+    QVector<QVector<glm::vec3>> _points;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

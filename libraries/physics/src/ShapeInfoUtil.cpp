@@ -70,12 +70,12 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                 const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(shape);
                 const int numPoints = convexHullShape->getNumPoints();
                 const btVector3* btPoints = convexHullShape->getUnscaledPoints();
-                QVector<glm::vec3> points;
+                QVector<QVector<glm::vec3>> points;
                 for (int i = 0; i < numPoints; i++) {
                     glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
-                    points << point;
+                    points[0] << point;
                 }
-                info.setConvexHull(points);
+                info.setConvexHulls(points);
             }
             break;
             default: {
@@ -109,10 +109,24 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
         break;
         case SHAPE_TYPE_CONVEX_HULL: {
             shape = new btConvexHullShape();
-            const QVector<glm::vec3>& points = info.getPoints();
-            foreach (glm::vec3 point, points) {
+            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+            foreach (glm::vec3 point, points[0]) {
                 btVector3 btPoint(point[0], point[1], point[2]);
                 static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);
+            }
+        }
+        break;
+        case SHAPE_TYPE_COMPOUND: {
+            shape = new btCompoundShape();
+            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+            foreach (QVector<glm::vec3> hullPoints, info.getPoints()) {
+                auto hull = new btConvexHullShape();
+                foreach (glm::vec3 point, hullPoints) {
+                    btVector3 btPoint(point[0], point[1], point[2]);
+                    hull->addPoint(btPoint);
+                }
+                btTransform trans;
+                static_cast<btCompoundShape*>(shape)->addChildShape (trans, hull);
             }
         }
         break;

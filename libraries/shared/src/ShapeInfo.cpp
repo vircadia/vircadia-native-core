@@ -64,7 +64,7 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
     _doubleHashKey.clear();
 }
 
-void ShapeInfo::setConvexHull(const QVector<glm::vec3>& points) {
+void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
     _type = SHAPE_TYPE_CONVEX_HULL;
     _points = points;
 }
