@@ -2209,23 +2209,23 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
             if (hasSpecular) {
                 program = _lightmapNormalSpecularMapProgram;
                 locations = &_lightmapNormalSpecularMapLocations;
-                skinProgram.reset(nullptr);
+                skinProgram.reset();
                 skinLocations = NULL;
             } else {
                 program = _lightmapNormalMapProgram;
                 locations = &_lightmapNormalMapLocations;
-                skinProgram.reset(nullptr);
+                skinProgram.reset();
                 skinLocations = NULL;
             }
         } else if (hasSpecular) {
             program = _lightmapSpecularMapProgram;
             locations = &_lightmapSpecularMapLocations;
-            skinProgram.reset(nullptr);
+            skinProgram.reset();
             skinLocations = NULL;
         } else {
             program = _lightmapProgram;
             locations = &_lightmapLocations;
-            skinProgram.reset(nullptr);
+            skinProgram.reset();
             skinLocations = NULL;
         }
     } else {
