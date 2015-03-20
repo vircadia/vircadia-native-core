@@ -140,6 +140,7 @@
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
             var elUserData = document.getElementById("property-user-data");
+            var elAttribution = document.getElementById("property-attribution");
 
             var elBoxSections = document.querySelectorAll(".box-section");
             var elBoxColorRed = document.getElementById("property-box-red");
@@ -263,6 +264,7 @@
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
+                            elAttribution.value = properties.attribution;
 
                             if (properties.type != "Box") {
                                 for (var i = 0; i < elBoxSections.length; i++) {
@@ -393,6 +395,7 @@
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
+            elAttribution.addEventListener('change', createEmitTextPropertyUpdateFunction('attribution'));
 
             var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
@@ -624,6 +627,13 @@
             <div class="label">User Data</div>
             <div class="value">
                 <textarea id="property-user-data"></textarea>
+            </div>
+        </div>
+
+        <div class="property">
+            <div class="label">Attribution</div>
+            <div class="value">
+                <textarea id="property-attribution"></textarea>
             </div>
         </div>
 
