@@ -494,18 +494,13 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.invViewMat = program.uniformLocation("invViewMat");
 
     GLint loc = -1;
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("lightBuffer");
-    if (loc >= 0) {
-        locations.lightBufferUnit = loc;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint LIGHT_GPU_SLOT = 3;
     loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 0);
-        locations.lightBufferUnit = 0;
+        glUniformBlockBinding(program.programId(), loc, LIGHT_GPU_SLOT);
+        locations.lightBufferUnit = LIGHT_GPU_SLOT;
     } else {
         locations.lightBufferUnit = -1;
     }
@@ -518,18 +513,12 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     }
 #endif
 
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("atmosphereBufferUnit");
-    if (loc >= 0) {
-        locations.atmosphereBufferUnit = loc;
-    } else {
-        locations.atmosphereBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint ATMOSPHERE_GPU_SLOT = 4;
     loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 1);
-        locations.atmosphereBufferUnit = 1;
+        glUniformBlockBinding(program.programId(), loc, ATMOSPHERE_GPU_SLOT);
+        locations.atmosphereBufferUnit = ATMOSPHERE_GPU_SLOT;
     } else {
         locations.atmosphereBufferUnit = -1;
     }
