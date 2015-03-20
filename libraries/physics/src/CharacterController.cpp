@@ -231,7 +231,6 @@ CharacterController::CharacterController(AvatarData* avatarData) {
 
     m_addedMargin = 0.02f;
     m_walkDirection.setValue(0.0f,0.0f,0.0f);
-    m_turnAngle = btScalar(0.0f);
     m_useWalkDirection = true; // use walk direction by default, legacy behavior
     m_velocityTimeInterval = 0.0f;
     m_verticalVelocity = 0.0f;
@@ -797,19 +796,31 @@ void CharacterController::updateShape() {
 }
 
 void CharacterController::preSimulation(btScalar timeStep) {
+    bool wasEnabled = m_enabled;
+
+    // lock avatarData, get everything we need from it ASAP, then unlock
     m_avatarData->lockForRead();
-
-    // cache the "PhysicsEnabled" state of m_avatarData here 
-    // and use the cached value for the rest of the simulation step
     m_enabled = m_avatarData->isPhysicsEnabled();
-
     glm::quat rotation = m_avatarData->getOrientation();
     glm::vec3 position = m_avatarData->getPosition() + rotation * m_shapeLocalOffset;
-    m_ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
+    // TODO: Andrew to implement: harvest jump event here
     btVector3 walkVelocity = glmToBullet(m_avatarData->getVelocity());
-    setVelocityForTimeInterval(walkVelocity, timeStep);
 
     m_avatarData->unlock();
+
+    if (wasEnabled != m_enabled) {
+        if (m_enabled) {
+            // TODO: Andrew to implement: add collision shape back into world
+        } else {
+            // TODO: Andrew to implement: remove collision shape from world,
+            // otherwise things will continue to collide with it
+        }
+    }
+
+    if (m_enabled) {
+        m_ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
+        setVelocityForTimeInterval(walkVelocity, timeStep);
+    }
 }
 
 void CharacterController::postSimulation() {

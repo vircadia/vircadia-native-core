@@ -58,8 +58,6 @@ protected:
     btScalar m_maxSlopeCosine;  // Cosine equivalent of m_maxSlopeRadians (calculated once when set, for optimization)
     btScalar m_gravity;
 
-    btScalar m_turnAngle;
-
     btScalar m_stepHeight; // height of stepUp prior to stepForward
 
     btScalar m_addedMargin;//@todo: remove this and fix the code

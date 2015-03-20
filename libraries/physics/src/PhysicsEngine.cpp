@@ -294,16 +294,18 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // This is step (2).
+    // TODO: move character->preSimulation() into relayIncomingChanges
     if (_characterController) {
         _characterController->preSimulation(timeStep);
     }
 
+    // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
     stepNonPhysicalKinematics(usecTimestampNow());
     unlock();
 
+    // TODO: make all of this harvest stuff into one function: relayOutgoingChanges()
     if (numSubsteps > 0) {
         // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
         //
