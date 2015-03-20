@@ -31,6 +31,7 @@ class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem) = 0;    
+    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem) = 0;
 };
 
 
