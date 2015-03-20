@@ -1028,7 +1028,28 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
-    
+
+    Camera *camera = Application::getInstance()->getCamera();
+    const glm::vec3 cameraPos = camera->getPosition();
+
+    // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
+    if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
+        renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
+    } else {
+        float clipDistance = _skeletonModel.getHeadClipDistance();
+        if (OculusManager::isConnected()) {
+            // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
+            glm::vec3 cameraToAvatar = _position - cameraPos;
+            cameraToAvatar.y = 0.0f;
+            glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
+            float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
+            if (headOffset > 0) {
+                clipDistance += headOffset;
+            }
+        }
+        renderFrustum->setNearClip(clipDistance);
+    }
+
     //  Render the body's voxels and head
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
@@ -1040,8 +1061,6 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
     }
     
     //  Render head so long as the camera isn't inside it
-    const Camera *camera = Application::getInstance()->getCamera();
-    const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
         getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
     }
@@ -1357,6 +1376,9 @@ void MyAvatar::updatePositionWithPhysics(float deltaTime) {
 
     // rotate back into world-frame
     _velocity = rotation * newLocalVelocity;
+
+    _velocity += _thrust * deltaTime;
+    _thrust = glm::vec3(0.0f);
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {

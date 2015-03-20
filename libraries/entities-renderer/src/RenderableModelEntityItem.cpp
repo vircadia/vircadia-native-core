@@ -223,10 +223,10 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         // if we have a previously allocated model, but it's URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL());
+            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCollisionModelURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL());
+            result = _model = _myRenderer->allocateModel(getModelURL(), getCollisionModelURL());
             _needsInitialSimulation = true;
         } else { // we already have the model we want...
             result = _model;
@@ -267,25 +267,20 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 }
 
 bool RenderableModelEntityItem::isReadyToComputeShape() {
-    if (_collisionModelURL == "") {
+
+    if (!_model) {
+        return false; // hmm...
+    }
+
+    if (_model->getCollisionURL().isEmpty()) {
         // no model url, so we're ready to compute a shape.
         return true;
     }
 
-    if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
-        // we have a _collisionModelURL AND a _collisionNetworkGeometry AND it's fully loaded.
+    const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+    if (! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) {
+        // we have a _collisionModelURL AND a collisionNetworkGeometry AND it's fully loaded.
         return true;
-    }
-
-    if (_collisionNetworkGeometry.isNull()) {
-        // we have a _collisionModelURL but we don't yet have a _collisionNetworkGeometry.
-        _collisionNetworkGeometry =
-            DependencyManager::get<GeometryCache>()->getGeometry(_collisionModelURL, QUrl(), false, false);
-
-        if (! _collisionNetworkGeometry.isNull() && _collisionNetworkGeometry->isLoadedWithTextures()) {
-            // shortcut in case it's already loaded.
-            return true;
-        }
     }
 
     // the model is still being downloaded.
@@ -293,10 +288,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_collisionModelURL == "") {
+    if (_model->getCollisionURL().isEmpty()) {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
-        const FBXGeometry& fbxGeometry = _collisionNetworkGeometry->getFBXGeometry();
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
 
         _points.clear();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
@@ -310,9 +306,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
 ShapeType RenderableModelEntityItem::getShapeType() const {
     // XXX make hull an option in edit.js ?
-    if (_collisionModelURL != "") {
-        return SHAPE_TYPE_CONVEX_HULL;
-    } else {
+    if (!_model || _model->getCollisionURL().isEmpty()) {
         return _shapeType;
+    } else {
+        return SHAPE_TYPE_CONVEX_HULL;
     }
 }

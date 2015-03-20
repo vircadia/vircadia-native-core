@@ -21,6 +21,9 @@ if (POLICY CMP0042)
   cmake_policy(SET CMP0042 OLD)
 endif ()
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
 
@@ -173,9 +176,13 @@ endif ()
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
+  set_target_properties(assignment-client PROPERTIES FOLDER "Apps")
   add_subdirectory(domain-server)
+  set_target_properties(domain-server PROPERTIES FOLDER "Apps")
   add_subdirectory(ice-server)
+  set_target_properties(ice-server PROPERTIES FOLDER "Apps")
   add_subdirectory(interface)
+  set_target_properties(interface PROPERTIES FOLDER "Apps")
   add_subdirectory(tests)
   add_subdirectory(tools)
 endif ()

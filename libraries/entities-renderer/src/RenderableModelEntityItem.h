@@ -30,8 +30,7 @@ public:
         _needsInitialSimulation(true),
         _needsModelReload(true),
         _myRenderer(NULL),
-        _originalTexturesRead(false),
-        _collisionNetworkGeometry(QSharedPointer<NetworkGeometry>()) { }
+        _originalTexturesRead(false) { }
 
     virtual ~RenderableModelEntityItem();
 
@@ -67,8 +66,6 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
-
-    QSharedPointer<NetworkGeometry> _collisionNetworkGeometry;
     QVector<glm::vec3> _points;
 };
 
