@@ -102,33 +102,32 @@ QDebug operator<<(QDebug debug, const NetworkPeer &peer) {
 
 // FIXME this is a temporary implementation to determine if this is the right approach.
 // If so, migrate the BandwidthRecorder into the NetworkPeer class
-using BandwidthRecorderPtr = QSharedPointer < BandwidthRecorder > ;
+using BandwidthRecorderPtr = QSharedPointer<BandwidthRecorder>;
 static QHash<QUuid, BandwidthRecorderPtr> PEER_BANDWIDTH;
 
-BandwidthRecorder & getBandwidthRecorder(const QUuid & uuid) {
+BandwidthRecorder& getBandwidthRecorder(const QUuid & uuid) {
     if (!PEER_BANDWIDTH.count(uuid)) {
         PEER_BANDWIDTH.insert(uuid, BandwidthRecorderPtr(new BandwidthRecorder()));
     }
     return *PEER_BANDWIDTH[uuid].data();
 }
 
-
 void NetworkPeer::recordBytesSent(int count) {
-    auto & bw = getBandwidthRecorder(_uuid);
+    auto& bw = getBandwidthRecorder(_uuid);
     bw.updateOutboundData(0, count);
 }
 
 void NetworkPeer::recordBytesReceived(int count) {
-    auto & bw = getBandwidthRecorder(_uuid);
+    auto& bw = getBandwidthRecorder(_uuid);
     bw.updateInboundData(0, count);
 }
 
 float NetworkPeer::getOutboundBandwidth() {
-    auto & bw = getBandwidthRecorder(_uuid);
+    auto& bw = getBandwidthRecorder(_uuid);
     return bw.getAverageOutputKilobitsPerSecond(0);
 }
 
 float NetworkPeer::getInboundBandwidth() {
-    auto & bw = getBandwidthRecorder(_uuid);
+    auto& bw = getBandwidthRecorder(_uuid);
     return bw.getAverageInputKilobitsPerSecond(0);
 }
