@@ -32,22 +32,13 @@ void DataWebPage::javaScriptConsoleMessage(const QString& message, int lineNumbe
 }
 
 bool DataWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type) {
-
-    if (!request.url().toString().startsWith(HIFI_URL_SCHEME)) {
-        if (request.url().path().toLower().endsWith(SVO_EXTENSION)) {
-            Application::getInstance()->importSVOFromURL(request.url());
-            return false;
-        } else if (request.url().path().toLower().endsWith(JS_EXTENSION)) {
-            Application::getInstance()->askToLoadScript(request.url().toString());
-            return false;
+    QString urlString = request.url().toString();
+    if (Application::getInstance()->canAcceptURL(urlString)) {
+        if (Application::getInstance()->acceptURL(urlString)) {
+            return false; // we handled it, so QWebPage doesn't need to handle it
         }
-        return true;
-    } else {
-        // this is a hifi URL - have the AddressManager handle it
-        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
-                                  Qt::AutoConnection, Q_ARG(const QString&, request.url().toString()));
-        return false;
     }
+    return true;
 }
 
 QString DataWebPage::userAgentForUrl(const QUrl& url) const {

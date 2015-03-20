@@ -37,7 +37,8 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
-    _clampedFootPosition(0.0f)
+    _clampedFootPosition(0.0f),
+    _headClipDistance(DEFAULT_NEAR_CLIP)
 {
 }
 
@@ -77,6 +78,10 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
     if (_enableShapes) {
         buildShapes();
     }
+
+    Extents meshExtents = getMeshExtents();
+    _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
+    _headClipDistance = std::max(_headClipDistance, DEFAULT_NEAR_CLIP);
 
     emit skeletonLoaded();
 }

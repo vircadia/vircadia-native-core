@@ -869,8 +869,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
     }
 }
 
-void Application::importSVOFromURL(QUrl url) {
+bool Application::importSVOFromURL(const QString& urlString) {
+    QUrl url(urlString);
     emit svoImportRequested(url.url());
+    return true; // assume it's accepted
 }
 
 bool Application::event(QEvent* event) {
@@ -883,12 +885,9 @@ bool Application::event(QEvent* event) {
         QUrl url = fileEvent->url();
         
         if (!url.isEmpty()) {
-            if (url.scheme() == HIFI_URL_SCHEME) {
-                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
-            } else if (url.path().toLower().endsWith(SVO_EXTENSION)) {
-                emit svoImportRequested(url.url());
-            } else if (url.path().toLower().endsWith(JS_EXTENSION)) {
-                askToLoadScript(url.toString());
+            QString urlString = url.toString();
+            if (canAcceptURL(urlString)) {
+                return acceptURL(urlString);
             }
         }
         return false;
@@ -1449,46 +1448,44 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::dropEvent(QDropEvent *event) {
-    QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
     bool atLeastOneFileAccepted = false;
     foreach (QUrl url, mimeData->urls()) {
-        auto lower = url.path().toLower();
-        if (lower.endsWith(SNAPSHOT_EXTENSION)) {
-            snapshotPath = url.toLocalFile();
-            
-            
-            SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
-            if (snapshotData) {
-                if (!snapshotData->getDomain().isEmpty()) {
-                    DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
-                }
-
-                _myAvatar->setPosition(snapshotData->getLocation());
-                _myAvatar->setOrientation(snapshotData->getOrientation());
+        QString urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            if (acceptURL(urlString)) {
                 atLeastOneFileAccepted = true;
-                break; // don't process further files
-            } else {
-                QMessageBox msgBox;
-                msgBox.setText("No location details were found in the file "
-                                + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
-                                
-                msgBox.setStandardButtons(QMessageBox::Ok);
-                msgBox.exec();
+                break;
             }
-        } else if (lower.endsWith(SVO_EXTENSION)) {
-            emit svoImportRequested(url.url());
-            event->acceptProposedAction();
-            atLeastOneFileAccepted = true;
-        } else if (lower.endsWith(JS_EXTENSION)) {
-            askToLoadScript(url.url());
-            atLeastOneFileAccepted = true;
         }
     }
     
     if (atLeastOneFileAccepted) {
         event->acceptProposedAction();
     }
+}
+
+bool Application::acceptSnapshot(const QString& urlString) {
+    QUrl url(urlString);
+    QString snapshotPath = url.toLocalFile();
+    
+    SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
+    if (snapshotData) {
+        if (!snapshotData->getDomain().isEmpty()) {
+            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
+        }
+
+        _myAvatar->setPosition(snapshotData->getLocation());
+        _myAvatar->setOrientation(snapshotData->getOrientation());
+    } else {
+        QMessageBox msgBox;
+        msgBox.setText("No location details were found in the file "
+                        + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
+                        
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
+    }
+    return true;
 }
 
 void Application::sendPingPackets() {
@@ -3594,7 +3591,109 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     workerThread->start();
 }
 
-void Application::askToLoadScript(const QString& scriptFilenameOrURL) {
+void Application::initializeAcceptedFiles() {
+    if (_acceptedExtensions.size() == 0) {
+        _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
+        _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
+        _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
+    }
+}
+
+bool Application::canAcceptURL(const QString& urlString) {
+    initializeAcceptedFiles();
+    
+    QUrl url(urlString);
+    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+        return true;
+    }
+    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
+    QString lowerPath = url.path().toLower();
+    while (i.hasNext()) {
+        i.next();
+        if (lowerPath.endsWith(i.key())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Application::acceptURL(const QString& urlString) {
+    initializeAcceptedFiles();
+    
+    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+        // this is a hifi URL - have the AddressManager handle it
+        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
+                                  Qt::AutoConnection, Q_ARG(const QString&, urlString));
+        return true;
+    } else {
+        QUrl url(urlString);
+        QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
+        QString lowerPath = url.path().toLower();
+        while (i.hasNext()) {
+            i.next();
+            if (lowerPath.endsWith(i.key())) {
+                AcceptURLMethod method = i.value();
+                (this->*method)(urlString);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+bool Application::askToSetAvatarUrl(const QString& url) {
+    QUrl realUrl(url);
+    if (realUrl.isLocalFile()) {
+        QString message = "You can not use local files for avatar components.";
+
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        return false;
+    }
+
+    QString message = "Would you like to use this model for part of avatar:\n" + url;
+    QMessageBox msgBox;
+
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle("Set Avatar");
+    msgBox.setText(message);
+
+    QPushButton* headButton = msgBox.addButton(tr("Head"), QMessageBox::ActionRole);
+    QPushButton* bodyButton = msgBox.addButton(tr("Body"), QMessageBox::ActionRole);
+    QPushButton* bodyAndHeadButton = msgBox.addButton(tr("Body + Head"), QMessageBox::ActionRole);
+    msgBox.addButton(QMessageBox::Cancel);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == headButton) {
+        qDebug() << "Chose to use for head: " << url;
+        _myAvatar->setFaceModelURL(url);
+        UserActivityLogger::getInstance().changedModel("head", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyButton) {
+        qDebug() << "Chose to use for body: " << url;
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
+        qDebug() << "Chose to use for body + head: " << url;
+        _myAvatar->setFaceModelURL(QString());
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else {
+        qDebug() << "Declined to use the avatar: " << url;
+    }
+    return true;
+}
+
+
+bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
     QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
     reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
@@ -3605,6 +3704,7 @@ void Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     } else {
         qDebug() << "Declined to run the script: " << scriptFilenameOrURL;
     }
+    return true;
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
