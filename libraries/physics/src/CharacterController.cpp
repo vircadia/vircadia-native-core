@@ -112,21 +112,21 @@ class StepDownConvexResultCallback : public btCollisionWorld::ClosestConvexResul
     public:
         StepDownConvexResultCallback(btCollisionObject* me, 
                 const btVector3& up, 
-                btScalar minSlopeDot,
                 const btVector3& start,
                 const btVector3& step,
+                const btVector3& pushDirection,
+                btScalar minSlopeDot,
                 btScalar radius,
-                btScalar halfHeight,
-                btVector3 pushDirection)
+                btScalar halfHeight)
             : btCollisionWorld::ClosestConvexResultCallback(btVector3(0.0, 0.0, 0.0), btVector3(0.0, 0.0, 0.0))
               , m_me(me)
               , m_up(up)
-              , m_minSlopeDot(minSlopeDot)
               , m_start(start)
               , m_step(step)
+              , m_pushDirection(pushDirection)
+              , m_minSlopeDot(minSlopeDot)
               , m_radius(radius)
               , m_halfHeight(halfHeight)
-              , m_pushDirection(pushDirection)
     {
     }
 
@@ -184,12 +184,12 @@ class StepDownConvexResultCallback : public btCollisionWorld::ClosestConvexResul
 protected:
     btCollisionObject* m_me;
     const btVector3 m_up;
-    btScalar m_minSlopeDot;
     btVector3 m_start;
     btVector3 m_step;
+    btVector3 m_pushDirection;
+    btScalar m_minSlopeDot;
     btScalar m_radius;
     btScalar m_halfHeight;
-    btVector3 m_pushDirection;
 };
 
 /*
@@ -499,8 +499,10 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
 
     StepDownConvexResultCallback callback(m_ghostObject, 
             getUpAxisDirections()[m_upAxis], 
-            m_maxSlopeCosine, m_currentPosition, 
-            step, m_radius, m_halfHeight, m_walkDirection);
+            m_currentPosition, step, 
+            m_walkDirection,
+            m_maxSlopeCosine, 
+            m_radius, m_halfHeight);
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
     callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
 
@@ -520,7 +522,12 @@ void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar d
         m_wasJumping = false;
     } else {
         // sweep again for floor within downStep threshold
-        StepDownConvexResultCallback callback2 (m_ghostObject, getUpAxisDirections()[m_upAxis], m_maxSlopeCosine, m_currentPosition, step, m_radius, m_halfHeight, m_walkDirection);
+        StepDownConvexResultCallback callback2 (m_ghostObject, 
+                getUpAxisDirections()[m_upAxis], 
+                m_currentPosition, step,
+                m_walkDirection,
+                m_maxSlopeCosine, 
+                m_radius, m_halfHeight);
 
         callback2.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
         callback2.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
