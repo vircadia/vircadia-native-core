@@ -263,8 +263,10 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
 
         emit dataSent(destinationNode->getType(), datagram.size());
-        
-        return writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        auto bytesWritten = writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        // Keep track of per-destination-node bandwidth
+        destinationNode->recordBytesSent(bytesWritten);
+        return bytesWritten;
     }
     
     // didn't have a destinationNode to send to, return 0

@@ -151,7 +151,18 @@ public:
             functor(it->second);
         }
     }
-    
+
+    template<typename PredLambda, typename NodeLambda>
+    void eachMatchingNode(PredLambda predicate, NodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (predicate(it->second)) {
+                functor(it->second);
+            }
+        }
+    }
+
     template<typename BreakableNodeLambda>
     void eachNodeBreakable(BreakableNodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
