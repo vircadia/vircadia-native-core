@@ -29,6 +29,9 @@ int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
         case SHAPE_TYPE_CONVEX_HULL:
             bulletShapeType = CONVEX_HULL_SHAPE_PROXYTYPE;
             break;
+        case SHAPE_TYPE_COMPOUND:
+            bulletShapeType = COMPOUND_SHAPE_PROXYTYPE;
+            break;
     }
     return bulletShapeType;
 }
@@ -47,6 +50,9 @@ int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
             break;
         case CONVEX_HULL_SHAPE_PROXYTYPE:
             shapeInfoType = SHAPE_TYPE_CONVEX_HULL;
+            break;
+        case COMPOUND_SHAPE_PROXYTYPE:
+            shapeInfoType = SHAPE_TYPE_COMPOUND;
             break;
     }
     return shapeInfoType;
@@ -74,6 +80,26 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                 for (int i = 0; i < numPoints; i++) {
                     glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
                     points[0] << point;
+                }
+                info.setConvexHulls(points);
+            }
+            break;
+            case SHAPE_TYPE_COMPOUND: {
+                const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
+                const int numChildShapes = compoundShape->getNumChildShapes();
+                QVector<QVector<glm::vec3>> points;
+                for (int i = 0; i < numChildShapes; i ++) {
+                    const btCollisionShape* childShape = compoundShape->getChildShape(i);
+                    const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(childShape);
+                    const int numPoints = convexHullShape->getNumPoints();
+                    const btVector3* btPoints = convexHullShape->getUnscaledPoints();
+
+                    QVector<glm::vec3> childPoints;
+                    for (int j = 0; j < numPoints; j++) {
+                        glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
+                        childPoints << point;
+                    }
+                    points << childPoints;
                 }
                 info.setConvexHulls(points);
             }

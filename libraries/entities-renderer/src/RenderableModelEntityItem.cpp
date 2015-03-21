@@ -297,6 +297,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         _points.clear();
         unsigned int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
+            QVector<glm::vec3> newMeshPoints;
+            _points << newMeshPoints;
             _points[i++] << mesh.vertices;
         }
 
