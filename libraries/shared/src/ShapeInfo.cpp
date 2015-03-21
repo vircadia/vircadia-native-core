@@ -40,6 +40,10 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             _url = QUrl(url);
             _halfExtents = halfExtents;
             break;
+        case SHAPE_TYPE_COMPOUND:
+            _url = QUrl(url);
+            _halfExtents = halfExtents;
+            break;
         default:
             _halfExtents = halfExtents;
             break;
@@ -65,7 +69,11 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
 }
 
 void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
-    _type = SHAPE_TYPE_CONVEX_HULL;
+    if (points.size() == 1) {
+        _type = SHAPE_TYPE_CONVEX_HULL;
+    } else {
+        _type = SHAPE_TYPE_COMPOUND;
+    }
     _points = points;
 }
 

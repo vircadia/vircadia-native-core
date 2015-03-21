@@ -297,9 +297,34 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         _points.clear();
         unsigned int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
-            QVector<glm::vec3> newMeshPoints;
-            _points << newMeshPoints;
-            _points[i++] << mesh.vertices;
+
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                QVector<glm::vec3> pointsInPart;
+                unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+                for (unsigned int i = 0; i < triangleCount; i++) {
+                    unsigned int p0Index = meshPart.triangleIndices[i*3];
+                    unsigned int p1Index = meshPart.triangleIndices[i*3+1];
+                    unsigned int p2Index = meshPart.triangleIndices[i*3+2];
+
+                    glm::vec3 p0 = mesh.vertices[p0Index];
+                    glm::vec3 p1 = mesh.vertices[p1Index];
+                    glm::vec3 p2 = mesh.vertices[p2Index];
+
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                }
+
+                QVector<glm::vec3> newMeshPoints;
+                _points << newMeshPoints;
+                _points[i++] << pointsInPart;
+            }
         }
 
         info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
