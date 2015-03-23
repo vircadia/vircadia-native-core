@@ -181,7 +181,4 @@
             this.updateRelativeLightPosition();
         }
     };
-    
-    // file:///Users/clement/hifi/examples/entityScripts/lightController.js
-    // file:///Users/clement/Downloads/japan-lamp.fbx
 })
