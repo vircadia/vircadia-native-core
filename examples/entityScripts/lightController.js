@@ -158,7 +158,7 @@
        newProperties.cutoff = lightProperties.cutoff;
 
         var userData = getUserData(this.entityID);
-        userData.lightDefaultProperties = copyObject(lightProperties);
+        userData.lightDefaultProperties = copyObject(newProperties);
         updateUserData(this.entityID, userData);
         
         print("Relative properties of light entity saved.");
