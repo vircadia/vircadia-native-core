@@ -136,7 +136,6 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
-    const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
