@@ -459,12 +459,15 @@ private:
     void renderSetup(RenderArgs* args);
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
+                        bool forceRenderSomeMeshes = false);
+                        
     void setupBatchTransform(gpu::Batch& batch);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations);
+                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations, 
+                                        bool forceRenderSomeMeshes = false);
 
     static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
