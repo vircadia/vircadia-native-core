@@ -11,7 +11,11 @@
         return entityID && entityID.isKnownID;
     }
     function doesEntityExistNow(entityID) {
-        return entityID && Entities.getEntityProperties(entityID).isKnownID;
+        return entityID && getTrueID(entityID).isKnownID;
+    }
+    function getTrueID(entityID) {
+        var properties = Entities.getEntityProperties(entityID);
+        return { id: properties.id, creatorTokenID: properties.creatorTokenID, isKnownID: properties.isKnownID };
     }
     function getUserData(entityID) {
         var properties = Entities.getEntityProperties(entityID);
@@ -96,7 +100,7 @@
         if (doesEntityExistNow(this.lightID)) {
             if (!didEntityExist(this.lightID)) {
                 // Light now has an ID, so update it in userData
-                this.lightID = Entities.identifyEntity(this.lightID);
+                this.lightID = getTrueID(this.lightID);
                 userData.lightID = this.lightID;
                 updateUserData(this.entityID, userData);
             }
@@ -104,7 +108,7 @@
         }
         
         if (doesEntityExistNow(userData.lightID)) {
-            this.lightID = Entities.identifyEntity(userData.lightID);
+            this.lightID = getTrueID(userData.lightID);
             return;
         }
 
