@@ -79,7 +79,7 @@
                 lightDefaultProperties: {
                     type: "Light",
                     position: { x: 0, y: 0, z: 0 },
-                    dimensions: { x: 2, y: 2, z: 2 },
+                    dimensions: { x: 5, y: 5, z: 5 },
                     isSpotlight: false,
                     color: { red: 255, green: 48, blue: 0 },
                     diffuseColor: { red: 255, green: 255, blue: 255 },
@@ -172,6 +172,9 @@
     };
     
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
+        this.entityID = entityID;
+        this.maybeDownloadSound();
+        
         if (mouseEvent.isLeftButton) {
             this.updateLightID();
             this.maybeMoveLight();
