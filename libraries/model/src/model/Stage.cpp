@@ -184,6 +184,14 @@ void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
     data._scales.z = data._scales.x / data._scales.y;
 }
 
+Skybox::Skybox() {
+}
+
+void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
+    _cubemap = cubemap;
+}
+
+
 
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
@@ -273,3 +281,6 @@ void SunSkyStage::updateGraphicsObject() const {
 
 }
 
+void SunSkyStage::setSkybox(const Vec3& color) {
+    _skybox ;
+}
