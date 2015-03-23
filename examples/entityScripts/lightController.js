@@ -1,23 +1,31 @@
 (function() {
     this.entityID = null;
+    this.properties = null;
     this.lightID = null;
     this.sound = null;
 
-    function checkEntity(entityID) {
-        return entityID && Entities.identifyEntity(entityID).isKnownID;
+    function copyObject(object) {
+        return JSON.parse(JSON.stringify(object));
+    }
+    function didEntityExist(entityID) {
+        return entityID && entityID.isKnownID;
+    }
+    function doesEntityExistNow(entityID) {
+        return entityID && Entities.getEntityProperties(entityID).isKnownID;
     }
     function getUserData(entityID) {
         var properties = Entities.getEntityProperties(entityID);
         if (properties.userData) {
             return JSON.parse(properties.userData);
+        } else {
+            print("Warning: light controller has no user data.");
+            return null;
         }
-        print("Warning: light controller has no user data.");
-        // TODO: Remove before merge
-        this.DO_NOT_MERGE();
-        return getUserData(entityID);
-        ////////////////////////////
-        return null;
     }
+    function updateUserData(entityID, userData) {
+        Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+    }
+    
     // Download sound if needed
     this.maybeDownloadSound = function() {
         if (this.sound === null) {
@@ -32,6 +40,7 @@
             print("Warning: Couldn't play sound.");
         }
     }
+
     // Toggles the associated light entity
     this.toggleLight = function() {
         if (this.lightID) {
@@ -42,37 +51,124 @@
         }
     }
     
-    this.createLight = function() {
-        var lightProperties = getUserData(this.entityID).lightDefaultProperties;
+    this.createLight = function(userData) {
+        var lightProperties = copyObject(userData.lightDefaultProperties);
         if (lightProperties) {
-            var properties = Entities.getEntityProperties(this.entityID);
+            var entityProperties = Entities.getEntityProperties(this.entityID);
             
-            lightProperties.rotation = Quat.multiply(properties.rotation, lightProperties.rotation);
-            lightProperties.position = Vec3.sum(properties.position,
-                                                Vec3.multiplyQbyV(properties.rotation, lightProperties.position));
-            print("Created light");
-            return Entities.addEntity(lightProperties);
+            lightProperties.visible = false;
+            lightProperties.position = Vec3.sum(entityProperties.position,
+                                                Vec3.multiplyQbyV(entityProperties.rotation,
+                                                                  lightProperties.position));
+
+            print(lightProperties);
+            print(JSON.stringify(lightProperties));
+            var newLight = Entities.addEntity(lightProperties);
+            print(newLight);
+            print(JSON.stringify(newLight));
+            return newLight;
         } else {
             print("Warning: light controller has no default light.");
             return null;
         }
     }
     
-    this.updateLight = function() {
+    this.updateLightID = function() {
+        var userData = getUserData(this.entityID);
+        if (!userData) {
+            userData = {
+                lightID: null,
+                lightDefaultProperties: {
+                    type: "Light",
+                    position: { x: 0, y: 0, z: 0 },
+                    dimensions: { x: 2, y: 2, z: 2 },
+                    isSpotlight: false,
+                    color: { red: 255, green: 48, blue: 0 },
+                    diffuseColor: { red: 255, green: 255, blue: 255 },
+                    ambientColor: { red: 255, green: 255, blue: 255 },
+                    specularColor: { red: 0, green: 0, blue: 0 },
+                    constantAttenuation: 1,
+                    linearAttenuation: 0,
+                    quadraticAttenuation: 0,
+                    intensity: 10,
+                    exponent: 0,
+                    cutoff: 180, // in degrees
+                }
+            };
+            updateUserData(this.entityID, userData);
+        }
+        
         // Find valid light
-        if (!checkEntity(this.lightID)) {
-            var userData = getUserData(this.entityID);
-            if (userData.lightID && checkEntity(userData.lightID)) {
-                this.lightID = userData.lightID;
-            } else {
-                this.lightID = null;
+        if (doesEntityExistNow(this.lightID)) {
+            if (!didEntityExist(this.lightID)) {
+                // Light now has an ID, so update it in userData
+                this.lightID = Entities.identifyEntity(this.lightID);
+                userData.lightID = this.lightID.id;
+                updateUserData(this.entityID, userData);
             }
+            return;
+        }
+        
+        if (doesEntityExistNow(userData.lightID)) {
+            this.lightID = Entities.identifyEntity(userData.lightID);
+            return;
         }
 
         // No valid light, create one
-        if (!this.lightID) {
-            this.lightID = this.createLight();
+        this.lightID = this.createLight(userData);
+        print("Created new light entity");
+        
+        // Update user data with new ID
+        userData.lightID = this.lightID.id;
+        updateUserData(this.entityID, userData);
+    }
+    
+    this.maybeMoveLight = function() {
+        var entityProperties = Entities.getEntityProperties(this.entityID);
+        var lightProperties = Entities.getEntityProperties(this.lightID);
+        var lightDefaultProperties = getUserData(this.entityID).lightDefaultProperties;
+        
+        var position = Vec3.sum(entityProperties.position,
+                                Vec3.multiplyQbyV(entityProperties.rotation,
+                                                  lightDefaultProperties.position));
+                                                              
+        if (!Vec3.equal(position, lightProperties.position)) {
+            print("Lamp entity moved, moving light entity as well");
+            Entities.editEntity(this.lightID, { position: position });
         }
+    }
+
+    this.updateRelativeLightPosition = function() {
+        if (!doesEntityExistNow(this.entityID) || !doesEntityExistNow(this.lightID)) {
+            print("Warning: ID invalid, couldn't save relative position.");
+            return;
+        }
+
+        var entityProperties = Entities.getEntityProperties(this.entityID);
+        var lightProperties = Entities.getEntityProperties(this.lightID);
+        var newProperties = {};
+
+        newProperties.position = Quat.multiply(Quat.inverse(entityProperties.rotation),
+                                                 Vec3.subtract(lightProperties.position,
+                                                               entityProperties.position));
+       // inverse "visible" because right after we loaded the properties, the light entity is toggled.
+       newProperties.visible = !lightProperties.visible;
+       
+       // Copy only meaningful properties (trying to save space in userData here)
+       newProperties.dimensions = lightProperties.dimensions;
+       newProperties.color = lightProperties.color;
+       newProperties.lifetime = lightProperties.lifetime;
+       newProperties.isSpotlight = lightProperties.isSpotlight;
+       newProperties.intensity = lightProperties.intensity;
+       newProperties.exponent = lightProperties.exponent;
+       newProperties.cutoff = lightProperties.cutoff;
+
+        var userData = getUserData(this.entityID);
+        userData.lightDefaultProperties = copyObject(lightProperties);
+        updateUserData(this.entityID, userData);
+        
+        print("Relative properties of light entity saved.");
+        print(JSON.stringify(userData));
     }
 
     this.preload = function(entityID) {
@@ -82,38 +178,15 @@
     
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
         if (mouseEvent.isLeftButton) {
-            this.updateLight();
+            this.updateLightID();
+            this.maybeMoveLight();
             this.toggleLight();
             this.playSound();
         } else if (mouseEvent.isRightButton) {
-            print("Right button");
+            this.updateRelativeLightPosition();
         }
     };
     
-    this.DO_NOT_MERGE = function() {
-        var userData = {
-            lightID: null,
-            lightDefaultProperties: {
-                type: "Light",  
-                position: { x: 0, y: 0.5, z: 0 },
-                dimensions: { x: 2, y: 2, z: 2 },
-                angularVelocity: { x: 0, y: 0, z: 0 },
-                angularDamping: 0,
-
-                isSpotlight: true,
-                color: { red: 255, green: 0, blue: 0 },
-                diffuseColor: { red: 255, green: 0, blue: 0 },
-                ambientColor: { red: 0, green: 0, blue: 255 },
-                specularColor: { red: 0, green: 255, blue: 0 },
-
-                intensity: 10,
-                constantAttenuation: 0,
-                linearAttenuation: 1,
-                quadraticAttenuation: 0,
-                exponent: 0,
-                cutoff: 180, // in degrees
-            }
-        };
-        Entities.editEntity(this.entityID, { userData: JSON.stringify(userData) });
-    }
+    // file:///Users/clement/hifi/examples/entityScripts/lightController.js
+    // file:///Users/clement/Downloads/japan-lamp.fbx
 })
