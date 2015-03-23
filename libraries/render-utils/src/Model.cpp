@@ -842,8 +842,65 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
         args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
     }
-
+    
+    #ifdef WANT_DEBUG_MESHBOXES
+    renderDebugMeshBoxes();
+    #endif
+    
     return true;
+}
+
+void Model::renderDebugMeshBoxes() {
+    int colorNdx = 0;
+    foreach(AABox box, _calculatedMeshBoxes) {
+        if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
+            _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
+        }
+        QVector<glm::vec3> points;
+        
+        glm::vec3 brn = box.getCorner();
+        glm::vec3 bln = brn + glm::vec3(box.getDimensions().x, 0, 0);
+        glm::vec3 brf = brn + glm::vec3(0, 0, box.getDimensions().z);
+        glm::vec3 blf = brn + glm::vec3(box.getDimensions().x, 0, box.getDimensions().z);
+
+        glm::vec3 trn = brn + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 tln = bln + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 trf = brf + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 tlf = blf + glm::vec3(0, box.getDimensions().y, 0);
+
+        points << brn << bln;
+        points << brf << blf;
+        points << brn << brf;
+        points << bln << blf;
+
+        points << trn << tln;
+        points << trf << tlf;
+        points << trn << trf;
+        points << tln << tlf;
+
+        points << brn << trn;
+        points << brf << trf;
+        points << bln << tln;
+        points << blf << tlf;
+
+        glm::vec4 color[] = {
+            { 1.0f, 0.0f, 0.0f, 1.0f }, // red
+            { 0.0f, 1.0f, 0.0f, 1.0f }, // green
+            { 0.0f, 0.0f, 1.0f, 1.0f }, // blue
+            { 1.0f, 0.0f, 1.0f, 1.0f }, // purple
+            { 1.0f, 1.0f, 0.0f, 1.0f }, // yellow
+            { 0.0f, 1.0f, 1.0f, 1.0f }, // cyan
+            { 1.0f, 1.0f, 1.0f, 1.0f }, // white
+            { 0.0f, 0.5f, 0.0f, 1.0f }, 
+            { 0.0f, 0.0f, 0.5f, 1.0f }, 
+            { 0.5f, 0.0f, 0.5f, 1.0f }, 
+            { 0.5f, 0.5f, 0.0f, 1.0f }, 
+            { 0.0f, 0.5f, 0.5f, 1.0f } };
+            
+        DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
+        DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
+        colorNdx++;
+    }
 }
 
 Extents Model::getBindExtents() const {

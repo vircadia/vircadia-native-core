@@ -444,6 +444,9 @@ private:
     QVector<int> _meshesOpaqueLightmapTangentsSpecular;
     QVector<int> _meshesOpaqueLightmapSpecular;
 
+    // debug rendering support
+    void renderDebugMeshBoxes();
+    int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // Scene rendering support
     static QVector<Model*> _modelsInScene;
