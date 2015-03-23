@@ -1363,6 +1363,7 @@ void Model::updateJointState(int index) {
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
         state.computeTransform(parentTransform);
     } else {
+        // guard against out-of-bounds access to _jointStates
         if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
             const JointState& parentState = _jointStates.at(parentIndex);
             state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
