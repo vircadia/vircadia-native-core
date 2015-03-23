@@ -91,10 +91,12 @@ var NotificationType = {
     MUTE_TOGGLE: 1,
     SNAPSHOT: 2,
     WINDOW_RESIZE: 3,
+    CONNECTION_REFUSED: 4,
     properties: [
         { text: "Mute Toggle" },
         { text: "Snapshot" },
-        { text: "Window Resize" }
+        { text: "Window Resize" },
+        { text: "Connection Refused" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -489,6 +491,10 @@ function onMuteStateChanged() {
     createNotification(muteString, NotificationType.MUTE_TOGGLE);
 }
 
+function onDomainConnectionRefused(reason) {
+    createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED );
+}
+
 //  handles mouse clicks on buttons
 function mousePressEvent(event) {
     var pickRay,
@@ -582,5 +588,6 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 Menu.menuItemEvent.connect(menuItemEvent);
+Window.domainConnectionRefused.connect(onDomainConnectionRefused);
 
 setup();
