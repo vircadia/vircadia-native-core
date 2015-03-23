@@ -281,6 +281,7 @@ void SunSkyStage::updateGraphicsObject() const {
 
 }
 
-void SunSkyStage::setSkybox(const Vec3& color) {
-    _skybox ;
+void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
+    _skybox = skybox;
+    invalidate();
 }

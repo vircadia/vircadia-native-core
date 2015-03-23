@@ -75,6 +75,27 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
+    class GLState : public GPUObject {
+    public:
+        class Command {
+        public:
+            typedef void *GlFunction(GLenum);
+
+            GlFunction _glFunction;
+            GLenum _enum;
+            
+            void run() { _glFunction(_enum); }
+        };
+
+        typedef std::vector< Command > Commands;
+
+        Commands _commands;
+        
+
+        GLState();
+        ~GLState();
+    };
+    static GLState* syncGPUObject(const State& state);
 
     class GLPipeline : public GPUObject {
     public:

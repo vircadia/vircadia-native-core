@@ -548,3 +548,7 @@ void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const gl
     light->setColor(diffuse);
     light->setIntensity(intensity);
 }
+
+void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
+    _skybox = skybox;
+}
