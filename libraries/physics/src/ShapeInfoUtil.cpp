@@ -77,10 +77,12 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                 const int numPoints = convexHullShape->getNumPoints();
                 const btVector3* btPoints = convexHullShape->getUnscaledPoints();
                 QVector<QVector<glm::vec3>> points;
+                QVector<glm::vec3> childPoints;
                 for (int i = 0; i < numPoints; i++) {
                     glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
-                    points[0] << point;
+                    childPoints << point;
                 }
+                points << childPoints;
                 info.setConvexHulls(points);
             }
             break;
@@ -116,9 +118,6 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
 
 btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
-
-    qDebug() << "\n\nHERE" << info.getType();
-
     switch(info.getType()) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
@@ -149,13 +148,8 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
             shape = new btCompoundShape();
             const QVector<QVector<glm::vec3>>& points = info.getPoints();
 
-            qDebug() << "\n\nSHAPE_TYPE_COMPOUND" << info.getPoints().size() << "hulls.";
-
             foreach (QVector<glm::vec3> hullPoints, info.getPoints()) {
                 auto hull = new btConvexHullShape();
-
-                qDebug() << "    SHAPE_TYPE_COMPOUND" << hullPoints.size() << "points in hull.";
-
                 foreach (glm::vec3 point, hullPoints) {
                     btVector3 btPoint(point[0], point[1], point[2]);
                     hull->addPoint(btPoint);
@@ -165,9 +159,6 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                 static_cast<btCompoundShape*>(shape)->addChildShape (trans, hull);
             }
         }
-
-        qDebug() << "DONE, getNumChildShapes =" << static_cast<btCompoundShape*>(shape)->getNumChildShapes();
-
         break;
     }
     return shape;

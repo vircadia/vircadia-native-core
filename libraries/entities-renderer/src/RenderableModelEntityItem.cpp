@@ -266,6 +266,14 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::updateDimensions(const glm::vec3& value) {
+    if (glm::distance(_dimensions, value) > MIN_DIMENSIONS_DELTA) {
+        _dimensions = value;
+        _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
+    }
+    _model->setScaleToFit(true, _dimensions);
+}
+
 bool RenderableModelEntityItem::isReadyToComputeShape() {
 
     if (!_model) {
@@ -294,6 +302,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
 
+        AABox aaBox;
         _points.clear();
         unsigned int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
@@ -301,14 +310,28 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
                 QVector<glm::vec3> pointsInPart;
                 unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-                for (unsigned int i = 0; i < triangleCount; i++) {
-                    unsigned int p0Index = meshPart.triangleIndices[i*3];
-                    unsigned int p1Index = meshPart.triangleIndices[i*3+1];
-                    unsigned int p2Index = meshPart.triangleIndices[i*3+2];
+                assert((unsigned int)meshPart.triangleIndices.size() == triangleCount*3);
+                for (unsigned int j = 0; j < triangleCount; j++) {
+                    unsigned int p0Index = meshPart.triangleIndices[j*3];
+                    unsigned int p1Index = meshPart.triangleIndices[j*3+1];
+                    unsigned int p2Index = meshPart.triangleIndices[j*3+2];
+
+                    assert(p0Index < (unsigned int)mesh.vertices.size());
+                    assert(p1Index < (unsigned int)mesh.vertices.size());
+                    assert(p2Index < (unsigned int)mesh.vertices.size());
+
+                    // glm::vec3 p0 = mesh.vertices[p0Index] * scale[0];
+                    // glm::vec3 p1 = mesh.vertices[p1Index] * scale[1];
+                    // glm::vec3 p2 = mesh.vertices[p2Index] * scale[2];
+
 
                     glm::vec3 p0 = mesh.vertices[p0Index];
                     glm::vec3 p1 = mesh.vertices[p1Index];
                     glm::vec3 p2 = mesh.vertices[p2Index];
+
+                    aaBox += p0;
+                    aaBox += p1;
+                    aaBox += p2;
 
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
@@ -327,7 +350,21 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
 
-        info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
+        // make sure we aren't about to divide by zero
+        glm::vec3 aaBoxDim = aaBox.getDimensions();
+        aaBoxDim = glm::clamp(aaBoxDim, glm::vec3(FLT_EPSILON), aaBoxDim);
+
+        // scale = dimensions / aabox
+        glm::vec3 scale = _dimensions / aaBoxDim;
+
+        // multiply each point by scale before handing the point-set off to the physics engine
+        for (int i = 0; i < _points.size(); i++) {
+            for (int j = 0; j < _points[i].size(); j++) {
+                _points[i][j] *= scale;
+            }
+        }
+
+        info.setParams(getShapeType(), _dimensions, _collisionModelURL);
         info.setConvexHulls(_points);
     }
 }

@@ -52,6 +52,8 @@ public:
 
     bool needsToCallUpdate() const;
 
+    virtual void updateDimensions(const glm::vec3& value);
+
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
     ShapeType getShapeType() const;
