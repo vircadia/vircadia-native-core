@@ -1751,7 +1751,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree.addEntity(entityItem->getEntityItemID(), properties);
     }
 
-    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    exportTree.writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
     _window->activateWindow();
