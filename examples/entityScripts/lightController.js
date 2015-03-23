@@ -60,13 +60,7 @@
             lightProperties.position = Vec3.sum(entityProperties.position,
                                                 Vec3.multiplyQbyV(entityProperties.rotation,
                                                                   lightProperties.position));
-
-            print(lightProperties);
-            print(JSON.stringify(lightProperties));
-            var newLight = Entities.addEntity(lightProperties);
-            print(newLight);
-            print(JSON.stringify(newLight));
-            return newLight;
+            return Entities.addEntity(lightProperties);
         } else {
             print("Warning: light controller has no default light.");
             return null;
@@ -168,7 +162,6 @@
         updateUserData(this.entityID, userData);
         
         print("Relative properties of light entity saved.");
-        print(JSON.stringify(userData));
     }
 
     this.preload = function(entityID) {
