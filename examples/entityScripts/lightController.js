@@ -138,29 +138,27 @@
             return;
         }
 
+        var userData = getUserData(this.entityID);
+        var newProperties = {};
+      
+        // Copy only meaningful properties (trying to save space in userData here)
+        for (var key in userData.lightDefaultProperties) {
+            if (userData.lightDefaultProperties.hasOwnProperty(key)) {
+                newProperties[key] = userData.lightDefaultProperties[key];
+            }
+        }
+        
+        // Compute new relative position
         var entityProperties = Entities.getEntityProperties(this.entityID);
         var lightProperties = Entities.getEntityProperties(this.lightID);
-        var newProperties = {};
-
         newProperties.position = Quat.multiply(Quat.inverse(entityProperties.rotation),
                                                  Vec3.subtract(lightProperties.position,
                                                                entityProperties.position));
        // inverse "visible" because right after we loaded the properties, the light entity is toggled.
        newProperties.visible = !lightProperties.visible;
-       
-       // Copy only meaningful properties (trying to save space in userData here)
-       newProperties.dimensions = lightProperties.dimensions;
-       newProperties.color = lightProperties.color;
-       newProperties.lifetime = lightProperties.lifetime;
-       newProperties.isSpotlight = lightProperties.isSpotlight;
-       newProperties.intensity = lightProperties.intensity;
-       newProperties.exponent = lightProperties.exponent;
-       newProperties.cutoff = lightProperties.cutoff;
 
-        var userData = getUserData(this.entityID);
         userData.lightDefaultProperties = copyObject(newProperties);
         updateUserData(this.entityID, userData);
-        
         print("Relative properties of light entity saved.");
     }
 
