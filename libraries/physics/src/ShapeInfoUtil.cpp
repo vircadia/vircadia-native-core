@@ -161,6 +161,7 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                     hull->addPoint(btPoint);
                 }
                 btTransform trans;
+                trans.setIdentity();
                 static_cast<btCompoundShape*>(shape)->addChildShape (trans, hull);
             }
         }
