@@ -97,7 +97,7 @@
             if (!didEntityExist(this.lightID)) {
                 // Light now has an ID, so update it in userData
                 this.lightID = Entities.identifyEntity(this.lightID);
-                userData.lightID = this.lightID.id;
+                userData.lightID = this.lightID;
                 updateUserData(this.entityID, userData);
             }
             return;
@@ -113,7 +113,7 @@
         print("Created new light entity");
         
         // Update user data with new ID
-        userData.lightID = this.lightID.id;
+        userData.lightID = this.lightID;
         updateUserData(this.entityID, userData);
     }
     
