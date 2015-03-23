@@ -39,7 +39,10 @@
     // Play switch sound
     this.playSound = function() {
         if (this.sound && this.sound.downloaded) {
-            Audio.playSound(this.sound, { position: Entities.getEntityProperties(this.entityID).position });
+            Audio.playSound(this.sound, {
+                position: Entities.getEntityProperties(this.entityID).position,
+                volume: 0.2
+            });
         } else {
             print("Warning: Couldn't play sound.");
         }
