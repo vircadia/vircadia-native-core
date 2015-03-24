@@ -26,12 +26,14 @@ public:
     State() {}
     virtual ~State();
 
+    const Stamp getStamp() const { return _stamp; }
+
     // All the possible fields
     enum Field {
         FILL_MODE,
         CULL_MODE,
+
         DEPTH_BIAS,
-        DEPTH_BIAS_CLAMP,
         DEPTH_BIAS_SLOPE_SCALE,
 
         FRONT_CLOCKWISE,
@@ -47,37 +49,22 @@ public:
         STENCIL_ENABLE,
         STENCIL_READ_MASK,
         STENCIL_WRITE_MASK,
-
-        STENCIL_FUNC_FRONT,
-        STENCIL_FRONT_FUNC,
-        STENCIL_FRONT_FAIL_OP,
-        STENCIL_FRONT_DEPTH_FAIL_OP,
-        STENCIL_FRONT_PASS_OP,
-        
-        STENCIL_BACK_FUNC,
-        STENCIL_BACK_FAIL_OP,
-        STENCIL_BACK_DEPTH_FAIL_OP,
-        STENCIL_BACK_PASS_OP,
-        STENCIL_FUNC_BACK,
-
+        STENCIL_TEST_FRONT,
+        STENCIL_TEST_BACK,
         STENCIL_REFERENCE,
 
         SAMPLE_MASK,
         ALPHA_TO_COVERAGE_ENABLE,
+
+        BLEND_ENABLE,
+        BLEND_FUNCTION_COLOR,
+        BLEND_FUNCTION_ALPHA,
         BLEND_FACTOR_X,
         BLEND_FACTOR_Y,
         BLEND_FACTOR_Z,
         BLEND_FACTOR_W,
- 
-        BLEND_INDEPENDANT_ENABLE,
-        BLEND_ENABLE,
-        BLEND_SOURCE,
-        BLEND_DESTINATION,
-        BLEND_OPERATION,
-        BLEND_SOURCE_ALPHA,
-        BLEND_DESTINATION_ALPHA,
-        BLEND_OPERATION_ALPHA,
-        BLEND_WRITE_MASK,
+
+        COLOR_WRITE_MASK,
  
         NUM_FIELDS, // not a valid field, just the count
     };
@@ -138,10 +125,6 @@ public:
         SRC_ALPHA_SAT,
         BLEND_FACTOR,
         INV_BLEND_FACTOR,
-        SRC1_COLOR,
-        INV_SRC1_COLOR,
-        SRC1_ALPHA,
-        INV_SRC1_ALPHA,
     
         NUM_BLEND_ARGS,
     };
@@ -166,6 +149,33 @@ public:
         WRITE_ALL = (WRITE_RED | WRITE_GREEN | WRITE_BLUE | WRITE_ALPHA ),
     };
 
+    class StencilTest {
+    public:
+        int8 _failOp = STENCIL_OP_KEEP;
+        int8 _depthFailOp = STENCIL_OP_KEEP;
+        int8 _passOp = STENCIL_OP_KEEP;
+        int8 _function = ALWAYS;
+
+        StencilTest(StencilOp failOp, StencilOp depthFailOp, StencilOp passOp, ComparisonFunction func) :
+            _failOp(failOp), _depthFailOp(depthFailOp), _passOp(passOp), _function(func) {}
+
+        int32 raw() const { return *(reinterpret_cast<const int32*>(this)); }
+        StencilTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
+    };
+
+    class BlendFunction {
+    public:
+        int8 _source = ONE;
+        int8 _operation = BLEND_OP_ADD;
+        int8 _destination = ZERO;
+        int8 _spare = 0;
+
+        BlendFunction(BlendArg source, BlendOp operation, BlendArg destination) :
+            _source(source), _operation(operation), _destination(destination) {}
+
+        int32 raw() const { return *(reinterpret_cast<const int32*>(this)); }
+        BlendFunction(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
+    };
 
     class Value {
     public:
@@ -176,6 +186,8 @@ public:
         };
     };
     typedef std::unordered_map<Field, Value> FieldMap; 
+
+    const FieldMap& getFields() const { return _fields; }
 
     void set(Field field, bool value);
     void set(Field field, uint32 value);
@@ -189,11 +201,9 @@ public:
     FillMode getFillMode() const { return FillMode(get(FILL_MODE)._integer); }
     CullMode getCullMode() const { return CullMode(get(CULL_MODE)._integer); }
 
-    void setDepthBias(int32 bias) { set(DEPTH_BIAS, bias); }
-    void setDepthBiasClamp(float clamp) { set(DEPTH_BIAS_CLAMP, clamp); }
+    void setDepthBias(float bias) { set(DEPTH_BIAS, bias); }
     void setDepthBiasSlopeScale(float scale) { set(DEPTH_BIAS_SLOPE_SCALE, scale); }
-    int32 getDepthBias() const { return get(DEPTH_BIAS)._integer; }
-    float getDepthBiasClamp() const { return get(DEPTH_BIAS_CLAMP)._float; }
+    float getDepthBias() const { return get(DEPTH_BIAS)._integer; }
     float getDepthBiasSlopeScale() const { return get(DEPTH_BIAS_SLOPE_SCALE)._float; }
  
     void setFrontClockwise(bool enable) { set(FRONT_CLOCKWISE, enable); }
@@ -221,23 +231,10 @@ public:
     uint8 getStencilReadMask() const { return get(STENCIL_READ_MASK)._unsigned_integer; }
     uint8 getStencilWriteMask() const { return get(STENCIL_WRITE_MASK)._unsigned_integer; }
 
-    void setStencilFrontFailOp(StencilOp op)  { set(STENCIL_FRONT_FAIL_OP, op); }
-    void setStencilFrontDepthFailOp(StencilOp op)  { set(STENCIL_FRONT_DEPTH_FAIL_OP, op); }
-    void setStencilFrontPassOp(StencilOp op)  { set(STENCIL_FRONT_PASS_OP, op); }
-    void setStencilFrontFunc(ComparisonFunction func)  { set(STENCIL_FRONT_FUNC, func); }
-    StencilOp getStencilFrontFailOp() const { return StencilOp(get(STENCIL_FRONT_FAIL_OP)._integer); }
-    StencilOp getStencilFrontDepthFailOp() const { return StencilOp(get(STENCIL_FRONT_DEPTH_FAIL_OP)._integer); }
-    StencilOp getStencilFrontPassOp() const { return StencilOp(get(STENCIL_FRONT_PASS_OP)._integer); }
-    ComparisonFunction getStencilFrontFunc() const { return ComparisonFunction(get(STENCIL_FRONT_FUNC)._integer); }
-
-    void setStencilBackFailOp(StencilOp op)  { set(STENCIL_BACK_FAIL_OP, op); }
-    void setStencilBackDepthFailOp(StencilOp op)  { set(STENCIL_BACK_DEPTH_FAIL_OP, op); }
-    void setStencilBackPassOp(StencilOp op)  { set(STENCIL_BACK_PASS_OP, op); }
-    void setStencilBackFunc(ComparisonFunction func)  { set(STENCIL_BACK_FUNC, func); }
-    StencilOp getStencilBackFailOp() const { return StencilOp(get(STENCIL_BACK_FAIL_OP)._integer); }
-    StencilOp getStencilBackDepthFailOp() const { return StencilOp(get(STENCIL_BACK_DEPTH_FAIL_OP)._integer); }
-    StencilOp getStencilBackPassOp() const { return StencilOp(get(STENCIL_BACK_PASS_OP)._integer); }
-    ComparisonFunction getStencilBackFunc() const { return ComparisonFunction(get(STENCIL_BACK_FUNC)._integer); }
+    void setStencilTestFront(StencilTest test)  { set(STENCIL_TEST_FRONT, test.raw()); }
+    void setStencilTestBack(StencilTest test)  { set(STENCIL_TEST_BACK, test.raw()); }
+    StencilTest getStencilTestFront() const { return StencilTest(get(STENCIL_TEST_FRONT)._integer); }
+    StencilTest getStencilTestBack() const { return StencilTest(get(STENCIL_TEST_BACK)._integer); }
 
     void setStencilReference(uint32 ref) { set(STENCIL_REFERENCE, ref); }
     uint32 getStencilReference() const { return get(STENCIL_REFERENCE)._unsigned_integer; }
@@ -247,38 +244,29 @@ public:
 
     void setSampleMask(uint32 mask) { set(SAMPLE_MASK, mask); }
     uint32 getSampleMask() const { return get(SAMPLE_MASK)._unsigned_integer; }
-
-  //  void setBlendIndependantEnable(bool enable) { set(BLEND_INDEPENDANT_ENABLE, enable); }
-  //  bool getBlendIndependantEnable() const { return get(BLEND_INDEPENDANT_ENABLE)._integer; }
  
     void setBlendEnable(bool enable) { set(BLEND_ENABLE, enable); }
     bool getBlendEnable() const { return get(BLEND_ENABLE)._integer; }
 
-    void setBlendSource(BlendArg source) { set(BLEND_SOURCE, source); }
-    void setBlendDestination(BlendArg destination) { set(BLEND_DESTINATION, destination); }
-    void setBlendOperation(BlendOp operation) { set(BLEND_OPERATION, operation); }
-    BlendArg getBlendSource() const { return BlendArg(get(BLEND_SOURCE)._integer); }
-    BlendArg getBlendDestination() const { return BlendArg(get(BLEND_DESTINATION)._integer); }
-    BlendOp getBlendOperation() const { return BlendOp(get(BLEND_OPERATION)._integer); }
-
-    void setBlendSourceAlpha(BlendArg source) { set(BLEND_SOURCE_ALPHA, source); }
-    void setBlendDestinationAlpha(BlendArg destination) { set(BLEND_DESTINATION_ALPHA, destination); }
-    void setBlendOperationAlpha(BlendOp operation) { set(BLEND_OPERATION_ALPHA, operation); }
-    BlendArg getBlendSourceAlpha() const { return BlendArg(get(BLEND_SOURCE_ALPHA)._integer); }
-    BlendArg getBlendDestinationAlpha() const { return BlendArg(get(BLEND_DESTINATION_ALPHA)._integer); }
-    BlendOp getBlendOperationAlpha() const { return BlendOp(get(BLEND_OPERATION_ALPHA)._integer); }
-
-    void setBlendWriteMask(ColorMask mask) { set(BLEND_WRITE_MASK, mask); }
-    ColorMask getBlendWriteMask() const { return ColorMask(get(BLEND_WRITE_MASK)._integer); }
-
+    void setBlendFunctionColor(BlendFunction function) { set(BLEND_FUNCTION_COLOR, function.raw()); }
+    BlendFunction getBlendFunctionColor() const { return BlendFunction(get(BLEND_FUNCTION_COLOR)._integer); }
+     void setBlendFunctionAlpha(BlendFunction function) { set(BLEND_FUNCTION_ALPHA, function.raw()); }
+    BlendFunction getBlendFunctionAlpha() const { return BlendFunction(get(BLEND_FUNCTION_ALPHA)._integer); }
+ 
     void setBlendFactor(const Vec4& factor) { set(BLEND_FACTOR_X, factor.x); set(BLEND_FACTOR_Y, factor.y); set(BLEND_FACTOR_Z, factor.z); set(BLEND_FACTOR_W, factor.w); }
     Vec4 getBlendFactor() const { return Vec4(get(BLEND_FACTOR_X)._float, get(BLEND_FACTOR_Y)._float, get(BLEND_FACTOR_Z)._float, get(BLEND_FACTOR_W)._float); }
+
+
+    void setColorWriteMask(ColorMask mask) { set(COLOR_WRITE_MASK, mask); }
+    ColorMask getColorWriteMask() const { return ColorMask(get(COLOR_WRITE_MASK)._integer); }
 
 protected:
     State(const State& state);
     State& operator=(const State& state);
 
     FieldMap _fields;
+
+    Stamp _stamp;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
     mutable GPUObject* _gpuObject = NULL;

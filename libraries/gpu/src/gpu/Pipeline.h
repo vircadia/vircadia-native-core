@@ -22,16 +22,16 @@ namespace gpu {
 
 class Pipeline {
 public:
-    static Pipeline* create(const ShaderPointer& program, const States& states);
+    static Pipeline* create(const ShaderPointer& program, const StatePointer& state);
     ~Pipeline();
 
     const ShaderPointer& getProgram() const { return _program; }
 
-    const States& getStates() const { return _states; }
+    const StatePointer& getState() const { return _state; }
 
 protected:
     ShaderPointer _program;
-    States _states;
+    StatePointer _state;
 
     Pipeline();
     Pipeline(const Pipeline& pipeline); // deep copy of the sysmem shader

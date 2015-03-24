@@ -215,7 +215,13 @@ SunSkyStage::SunSkyStage() :
     auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
     auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
     auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
-    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, gpu::States()));
+
+    auto skyState = gpu::StatePointer(new gpu::State());
+    skyState->setDepthEnable(false);
+    skyState->setStencilEnable(false);
+    skyState->setBlendEnable(false);
+
+    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
 
 }
 

@@ -318,6 +318,29 @@ private:
     int _blendNumber;
     int _appliedBlendNumber;
 
+/*
+    static gpu::PipelinePointer _program;
+    static gpu::PipelinePointer _normalMapProgram;
+    static gpu::PipelinePointer _specularMapProgram;
+    static gpu::PipelinePointer _normalSpecularMapProgram;
+    static gpu::PipelinePointer _translucentProgram;
+
+    static gpu::PipelinePointer _lightmapProgram;
+    static gpu::PipelinePointer _lightmapNormalMapProgram;
+    static gpu::PipelinePointer _lightmapSpecularMapProgram;
+    static gpu::PipelinePointer _lightmapNormalSpecularMapProgram;
+
+    static gpu::PipelinePointer _shadowProgram;
+
+    static gpu::PipelinePointer _skinProgram;
+    static gpu::PipelinePointer _skinNormalMapProgram;
+    static gpu::PipelinePointer _skinSpecularMapProgram;
+    static gpu::PipelinePointer _skinNormalSpecularMapProgram;
+    static gpu::PipelinePointer _skinTranslucentProgram;
+
+    static gpu::PipelinePointer _skinShadowProgram;
+*/
+
     static gpu::ShaderPointer _program;
     static gpu::ShaderPointer _normalMapProgram;
     static gpu::ShaderPointer _specularMapProgram;
@@ -473,6 +496,17 @@ private:
 
     static AbstractViewStateInterface* _viewState;
 
+ /*   class RenderKey {
+    public:
+        enum Flag {
+            TRANSLUCENT = 0,
+            HAS_LIGHTMAP,
+        };
+
+        RenderMode mode;
+
+    };
+*/
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

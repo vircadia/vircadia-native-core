@@ -15,11 +15,13 @@
 using namespace gpu;
 
 GLBackend::GLPipeline::GLPipeline() :
-    _program(nullptr)
+    _program(nullptr),
+    _state(nullptr)
 {}
 
 GLBackend::GLPipeline::~GLPipeline() {
     _program = nullptr;
+    _state = nullptr;
 }
 
 GLBackend::GLPipeline* GLBackend::syncGPUObject(const Pipeline& pipeline) {
@@ -30,7 +32,29 @@ GLBackend::GLPipeline* GLBackend::syncGPUObject(const Pipeline& pipeline) {
         return object;
     }
 
-    return nullptr;
+    // No object allocated yet, let's see if it's worth it...
+    ShaderPointer shader = pipeline.getProgram();
+    GLShader* programObject = GLBackend::syncGPUObject((*shader));
+    if (programObject == nullptr) {
+        return nullptr;
+    }
+
+    StatePointer state = pipeline.getState();
+    GLState* stateObject = GLBackend::syncGPUObject((*state));
+    if (stateObject == nullptr) {
+        return nullptr;
+    }
+
+    // Program and state are valid, we can create the pipeline object
+    if (!object) {
+        object = new GLPipeline();
+        Backend::setGPUObject(pipeline, object);
+    }
+
+    object->_program = programObject;
+    object->_state = stateObject;
+
+    return object;
 }
 
 void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
@@ -46,8 +70,15 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     }
     
     _pipeline._pipeline = pipeline;
-    _pipeline._program = pipelineObject->_program->_program;
-    _pipeline._invalidProgram = true;
+
+    if (_pipeline._program != pipelineObject->_program->_program) {
+        _pipeline._program = pipelineObject->_program->_program;
+        _pipeline._invalidProgram = true;
+    }
+
+    _pipeline._stateCommands = pipelineObject->_state->_commands;
+    _pipeline._invalidState = true;
+
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
@@ -86,8 +117,15 @@ void GLBackend::updatePipeline() {
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
         CHECK_GL_ERROR();
+        _pipeline._invalidProgram = false;
+    }
 
-        _pipeline._invalidProgram = true;
+    if (_pipeline._invalidState) {
+        for (auto command: _pipeline._stateCommands) {
+            command->run();
+        }
+        CHECK_GL_ERROR();
+        _pipeline._invalidState = false;
     }
 }
 

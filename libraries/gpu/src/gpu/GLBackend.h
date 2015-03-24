@@ -79,18 +79,61 @@ public:
     public:
         class Command {
         public:
-            typedef void *GlFunction(GLenum);
-
-            GlFunction _glFunction;
-            GLenum _enum;
             
-            void run() { _glFunction(_enum); }
+            virtual void run() = 0;
+
+            Command() {}
+            virtual ~Command() {};
         };
 
-        typedef std::vector< Command > Commands;
+        template <class T> class Command1 : public Command {
+        public:
+            typedef void (*GLFunction)(typename T);
+
+            void run() { (_func)(_param); }
+
+            Command1(GLFunction func, T param) : _func(func), _param(param) {};
+
+            GLFunction _func;
+            T _param;
+        };
+        template <class T, class U> class Command2 : public Command {
+        public:
+            typedef void (*GLFunction)(typename T, typename U);
+
+            void run() { (_func)(_param0, _param1); }
+
+            Command2(GLFunction func, T param0, U param1) : _func(func), _param0(param0), _param1(param1) {};
+
+            GLFunction _func;
+            T _param0;
+            U _param1;
+        };
+
+        template <class T, class U, class V, class W> class Command4 : public Command {
+        public:
+            typedef void (*GLFunction)(typename T, typename U, typename V, typename W);
+
+            void run() { (_func)(_param0, _param1, _param2, _param3); }
+
+            Command4(GLFunction func, T param0, U param1, V param2, W param3) :
+                 _func(func),
+                 _param0(param0),
+                 _param1(param1),
+                 _param2(param2),
+                 _param3(param3) {};
+
+            GLFunction _func;
+            T _param0;
+            U _param1;
+            V _param2;
+            W _param3;
+        };
+        typedef std::shared_ptr< Command > CommandPointer;
+        typedef std::vector< CommandPointer > Commands;
 
         Commands _commands;
-        
+        Stamp _stamp;
 
         GLState();
         ~GLState();
@@ -100,6 +143,7 @@ public:
     class GLPipeline : public GPUObject {
     public:
         GLShader* _program;
+        GLState* _state;
 
         GLPipeline();
         ~GLPipeline();
@@ -203,14 +247,19 @@ protected:
         GLuint _program;
         bool _invalidProgram;
 
+        State _state;
+        GLState::Commands _stateCommands;
+        bool _invalidState;
+
         PipelineStageState() :
             _pipeline(),
             _program(0),
-            _invalidProgram(false)
+            _invalidProgram(false),
+            _state(),
+            _invalidState(false)
              {}
     } _pipeline;
 
- 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API

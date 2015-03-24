@@ -24,10 +24,6 @@
 
 namespace gpu {
 
-class GPUObject;
-
-typedef int  Stamp;
-
 class Resource {
 public:
     typedef unsigned char Byte;
