@@ -168,12 +168,10 @@ void EntityMotionState::updateObjectVelocities() {
     }
 }
 
-bool EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
+void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
     if (_entity->isReadyToComputeShape()) {
         _entity->computeShapeInfo(shapeInfo);
-        return true;
     }
-    return false;
 }
 
 float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {

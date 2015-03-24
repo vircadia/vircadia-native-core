@@ -53,7 +53,7 @@ public:
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame);
     virtual void updateObjectVelocities();
 
-    virtual bool computeShapeInfo(ShapeInfo& shapeInfo);
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     virtual float computeMass(const ShapeInfo& shapeInfo) const;
 
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);

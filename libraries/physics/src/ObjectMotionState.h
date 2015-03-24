@@ -67,7 +67,7 @@ public:
     MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual bool computeShapeInfo(ShapeInfo& info) = 0;
+    virtual void computeShapeInfo(ShapeInfo& info) = 0;
     virtual float computeMass(const ShapeInfo& shapeInfo) const = 0;
 
     void setFriction(float friction);

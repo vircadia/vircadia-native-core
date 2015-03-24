@@ -267,49 +267,25 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
-// void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
-    
-//     // XXX PhysicsEngine::entityChangedInternal(this);
-//     // EntityTree* x = this->getElement()->_myTree;
-//     // EntityTreeRenderer* _myRenderer;
-
-//     qDebug() << "--------------------------------";
-//     this->ModelEntityItem::setCollisionModelURL(url);
-
-//     if ((_dirtyFlags & (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS)) ==
-//         (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS)) {
-
-//         EntityTreeElement* element = this->getElement();
-//         if (element) {
-//             qDebug() << "element =" << element;
-//             EntityTree* tree = element->getTree();
-//             qDebug() << "tree =" << tree;
-//             tree->reconfigureEntity(this);
-//         }
-//     }
-// }
-
-
 void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
     ModelEntityItem::setCollisionModelURL(url);
-    _model->setCollisionModelURL(QUrl(url));
+    if (_model) {
+        _model->setCollisionModelURL(QUrl(url));
+    }
 }
-
 
 bool RenderableModelEntityItem::hasCollisionModel() const {
-    // return !_collisionModelURL.isEmpty();
-    return ! _model->getCollisionURL().isEmpty();
+    if (_model) {
+        return ! _model->getCollisionURL().isEmpty();
+    } else {
+        return !_collisionModelURL.isEmpty();
+    }
 }
-
 
 const QString& RenderableModelEntityItem::getCollisionModelURL() const {
-    // return _collisionModelURL;
-    _collisionModelURL = _model->getCollisionURL().toString();
+    assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
     return _collisionModelURL;
 }
-
-
-
 
 void RenderableModelEntityItem::updateDimensions(const glm::vec3& value) {
     if (glm::distance(_dimensions, value) > MIN_DIMENSIONS_DELTA) {
@@ -342,12 +318,9 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    qDebug() << "RenderableModelEntityItem::computeShapeInfo";
     if (_model->getCollisionURL().isEmpty()) {
-        qDebug() << "  _model->getCollisionURL().isEmpty()";
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
-        qDebug() << "  _model->getCollisionURL() wasn't empty.";
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
 

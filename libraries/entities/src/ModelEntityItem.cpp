@@ -74,7 +74,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
 
     if (somethingChanged) {
-        bool wantDebug = true;
+        bool wantDebug = false;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
@@ -284,10 +284,6 @@ void ModelEntityItem::updateShapeType(ShapeType type) {
 void ModelEntityItem::setCollisionModelURL(const QString& url)
 {
     if (_collisionModelURL != url) {
-
-        qDebug() << "\n\n----";
-        qDebug() << "ModelEntityItem::setCollisionModelURL";
-
         _collisionModelURL = url;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
