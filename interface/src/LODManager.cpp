@@ -20,12 +20,13 @@
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
 
-
-Setting::Handle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
-                                                           DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
 Setting::Handle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
 Setting::Handle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
 
+
+LODManager::LODManager() {
+    calculateAvatarLODDistanceMultiplier();
+}
 
 float LODManager::getLODDecreaseFPS() {
     if (Application::getInstance()->isHMDMode()) {
@@ -64,21 +65,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         // LOD Downward adjustment    
         if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < getLODDecreaseFPS()) {
 
-            // Avatars... attempt to lower the detail in proportion to the fps difference
-            float targetFps = (getLODDecreaseFPS() + getLODIncreaseFPS()) * 0.5f;
-            float averageFps = _fastFPSAverage.getAverage();
-            const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
-            float oldAvatarLODDistanceMultiplier = _avatarLODDistanceMultiplier;
-            _avatarLODDistanceMultiplier = qMin(MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
-                                                (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE :
-                                                 qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
-        
-            if (oldAvatarLODDistanceMultiplier != _avatarLODDistanceMultiplier) {
-                qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                            << "_avatarLODDistanceMultiplier=" << _avatarLODDistanceMultiplier;
-                changed = true;
-            }
-
             // Octree items... stepwise adjustment
             if (_octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
                 _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
@@ -99,20 +85,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     
         // LOD Upward adjustment
         if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > getLODIncreaseFPS()) {
-
-            // Avatars... let the detail level creep slowly upwards
-            if (_avatarLODDistanceMultiplier < MAXIMUM_AUTO_ADJUST_AVATAR_LOD_DISTANCE_MULTIPLIER) {
-                const float DISTANCE_DECREASE_RATE = 0.05f;
-                float oldAvatarLODDistanceMultiplier = _avatarLODDistanceMultiplier;
-                _avatarLODDistanceMultiplier = qMax(MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
-                                                    _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
-                                                    
-                if (oldAvatarLODDistanceMultiplier != _avatarLODDistanceMultiplier) {
-                    qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-                                << "_avatarLODDistanceMultiplier=" << _avatarLODDistanceMultiplier;
-                    changed = true;
-                }
-            }
 
             // Octee items... stepwise adjustment
             if (_octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
@@ -137,6 +109,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         }
     
         if (changed) {
+            calculateAvatarLODDistanceMultiplier();
             _shouldRenderTableNeedsRebuilding = true;
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
@@ -231,7 +204,12 @@ bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
+    calculateAvatarLODDistanceMultiplier();
     _shouldRenderTableNeedsRebuilding = true;
+}
+
+void LODManager::calculateAvatarLODDistanceMultiplier() {
+    _avatarLODDistanceMultiplier = AVATAR_TO_ENTITY_RATIO / (_octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE);
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
@@ -243,8 +221,6 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
-
-    setAvatarLODDistanceMultiplier(avatarLODDistanceMultiplier.get());
     setBoundaryLevelAdjust(boundaryLevelAdjust.get());
     setOctreeSizeScale(octreeSizeScale.get());
 }
@@ -252,8 +228,6 @@ void LODManager::loadSettings() {
 void LODManager::saveSettings() {
     desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
-
-    avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
     boundaryLevelAdjust.set(getBoundaryLevelAdjust());
     octreeSizeScale.set(getOctreeSizeScale());
 }

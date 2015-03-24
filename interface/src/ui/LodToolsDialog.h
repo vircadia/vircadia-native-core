@@ -50,8 +50,6 @@ private:
 
     QDoubleSpinBox* _hmdLODDecreaseFPS;
 
-
-    QDoubleSpinBox* _avatarLOD;
     QLabel* _feedback;
 };
 

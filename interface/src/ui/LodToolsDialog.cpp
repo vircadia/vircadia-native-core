@@ -50,13 +50,6 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _automaticLODAdjust->setChecked(lodManager->getAutomaticLODAdjust());
     connect(_automaticLODAdjust, SIGNAL(toggled(bool)), SLOT(updateAutomaticLODAdjust()));
     
-    form->addRow("Avatar LOD:", _avatarLOD = new QDoubleSpinBox(this));
-    _avatarLOD->setDecimals(3);
-    _avatarLOD->setRange(1.0 / MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, 1.0 / MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER);
-    _avatarLOD->setSingleStep(0.001);
-    _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
-    connect(_avatarLOD, SIGNAL(valueChanged(double)), SLOT(updateAvatarLODValues()));
-
     _lodSize = new QSlider(Qt::Horizontal, this);
     const int MAX_LOD_SIZE = MAX_LOD_SIZE_MULTIPLIER;
     const int MIN_LOD_SIZE = ADJUST_LOD_MIN_SIZE_SCALE;
@@ -89,9 +82,6 @@ void LodToolsDialog::reloadSliders() {
     auto lodManager = DependencyManager::get<LODManager>();
     _lodSize->setValue(lodManager->getOctreeSizeScale() / TREE_SCALE);
     _feedback->setText(lodManager->getLODFeedbackText());
-
-    _avatarLOD->setValue(1.0 / lodManager->getAvatarLODDistanceMultiplier());
-
 }
 
 void LodToolsDialog::updateAutomaticLODAdjust() {
@@ -101,9 +91,7 @@ void LodToolsDialog::updateAutomaticLODAdjust() {
 
 void LodToolsDialog::updateLODValues() {
     auto lodManager = DependencyManager::get<LODManager>();
-
     lodManager->setAutomaticLODAdjust(_automaticLODAdjust->isChecked());
-    lodManager->setAvatarLODDistanceMultiplier(1.0 / _avatarLOD->value());
 }
 
 void LodToolsDialog::sizeScaleValueChanged(int value) {
@@ -119,7 +107,6 @@ void LodToolsDialog::resetClicked(bool checked) {
     int sliderValue = DEFAULT_OCTREE_SIZE_SCALE / TREE_SCALE;
     _lodSize->setValue(sliderValue);
     _automaticLODAdjust->setChecked(true);
-    _avatarLOD->setValue(1.0 / DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     
     updateLODValues(); // tell our LOD manager about the reset
 }
