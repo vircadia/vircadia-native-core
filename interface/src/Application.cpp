@@ -1969,7 +1969,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
+    if (!isThrottleRendering()) {
         DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
