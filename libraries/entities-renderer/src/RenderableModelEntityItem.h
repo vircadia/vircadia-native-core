@@ -49,8 +49,14 @@ public:
                          void** intersectedObject, bool precisionPicking) const;
 
     Model* getModel(EntityTreeRenderer* renderer);
+    // virtual void setCollisionModelURL(const QString& url);
 
     bool needsToCallUpdate() const;
+
+    virtual void setCollisionModelURL(const QString& url);
+    virtual bool hasCollisionModel() const;
+    virtual const QString& getCollisionModelURL() const;
+
 
     virtual void updateDimensions(const glm::vec3& value);
 

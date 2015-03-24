@@ -126,11 +126,11 @@ void EntitySimulation::addEntity(EntityItem* entity) {
     if (entity->needsToCallUpdate()) {
         _updateableEntities.insert(entity);
     }
-    addEntityInternal(entity);
-
-    // DirtyFlags are used to signal changes to entities that have already been added, 
-    // so we can clear them for this entity which has just been added.
-    entity->clearDirtyFlags();
+    if (addEntityInternal(entity)) {
+        // DirtyFlags are used to signal changes to entities that have already been added, 
+        // so we can clear them for this entity which has just been added.
+        entity->clearDirtyFlags();
+    }
 }
 
 void EntitySimulation::removeEntity(EntityItem* entity) {

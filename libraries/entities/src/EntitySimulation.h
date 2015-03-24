@@ -63,6 +63,10 @@ public:
 
     EntityTree* getEntityTree() { return _entityTree; }
 
+    /* virtual void reconfigureEntity(EntityItem* entity) { */
+    /*     qDebug() << "EntitySimulation::reconfigureEntity"; */
+    /* } */
+
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -74,7 +78,7 @@ protected:
     // NOTE: updateEntitiesInternal() should clear all dirty flags on each changed entity as side effect
     virtual void updateEntitiesInternal(const quint64& now) = 0;
 
-    virtual void addEntityInternal(EntityItem* entity) = 0;
+    virtual bool addEntityInternal(EntityItem* entity) = 0;
 
     virtual void removeEntityInternal(EntityItem* entity) = 0;
 

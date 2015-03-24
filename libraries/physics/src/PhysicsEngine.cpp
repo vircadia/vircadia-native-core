@@ -58,31 +58,49 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-void PhysicsEngine::addEntityInternal(EntityItem* entity) {
+bool PhysicsEngine::addEntityInternal(EntityItem* entity) {
+
+    qDebug() << "PhysicsEngine::addEntityInternal";
+
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        if (entity->isReadyToComputeShape()) {
-            ShapeInfo shapeInfo;
-            entity->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-            if (shape) {
-                EntityMotionState* motionState = new EntityMotionState(entity);
-                entity->setPhysicsInfo(static_cast<void*>(motionState));
-                _entityMotionStates.insert(motionState);
-                addObject(shapeInfo, shape, motionState);
-            } else if (entity->isMoving()) {
-                EntityMotionState* motionState = new EntityMotionState(entity);
-                entity->setPhysicsInfo(static_cast<void*>(motionState));
-                _entityMotionStates.insert(motionState);
-
-                motionState->setKinematic(true, _numSubsteps);
-                _nonPhysicalKinematicObjects.insert(motionState);
-                // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
-            }
+        qDebug() << "  PhysicsEngine::addEntityInternal no physicsInfo";
+        if (! entity->isReadyToComputeShape()) {
+            qDebug() << "  PhysicsEngine::addEntityInternal not ready to compute";
+            return false;
         }
+        qDebug() << "  PhysicsEngine::addEntityInternal ready to compute";
+        ShapeInfo shapeInfo;
+        entity->computeShapeInfo(shapeInfo);
+
+        DoubleHashKey hkey = shapeInfo.getHash();
+        qDebug() << "  shapeInfo hash:" << hkey.getHash() << hkey.getHash2();
+
+        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+        if (shape) {
+            qDebug() << "  got a shape";
+            EntityMotionState* motionState = new EntityMotionState(entity);
+            entity->setPhysicsInfo(static_cast<void*>(motionState));
+            _entityMotionStates.insert(motionState);
+            addObject(shapeInfo, shape, motionState);
+        } else if (entity->isMoving()) {
+            qDebug() << "  no shape but is moving";
+            EntityMotionState* motionState = new EntityMotionState(entity);
+            entity->setPhysicsInfo(static_cast<void*>(motionState));
+            _entityMotionStates.insert(motionState);
+
+            motionState->setKinematic(true, _numSubsteps);
+            _nonPhysicalKinematicObjects.insert(motionState);
+            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+        } else {
+            qDebug() << "  no shape and not moving";
+        }
+    } else {
+        qDebug() << "  PhysicsEngine::addEntityInternal already had physicsInfo";
     }
+    return true;
 }
 
 void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
@@ -105,17 +123,27 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
 }
 
 void PhysicsEngine::entityChangedInternal(EntityItem* entity) {
+
+    qDebug() << "PhysicsEngine::entityChangedInternal";
+
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
+        qDebug() << "  PhysicsEngine::entityChangedInternal had physicsInfo";
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         _incomingChanges.insert(motionState);
     } else {
+        qDebug() << "  PhysicsEngine::entityChangedInternal had no physicsInfo";
         // try to add this entity again (maybe something changed such that it will work this time)
         addEntity(entity);
     }
 }
+
+// void PhysicsEngine::reconfigureEntity(EntityItem* entity) {
+//     qDebug() << "PhysicsEngine::reconfigureEntity";
+//     entityChangedInternal(entity);
+// }
 
 void PhysicsEngine::sortEntitiesThatMovedInternal() {
     // entities that have been simulated forward (hence in the _entitiesToBeSorted list) 
@@ -509,8 +537,20 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
         // get new shape
         btCollisionShape* oldShape = body->getCollisionShape();
         ShapeInfo shapeInfo;
-        motionState->computeShapeInfo(shapeInfo);
+
+
+        bool computeShapeInfoResult = motionState->computeShapeInfo(shapeInfo);
+        qDebug() << "\n\n---";
+        qDebug() << "PhysicsEngine::updateObjectHard #1 computeShapeInfoResult =" << computeShapeInfoResult;
+
+
         btCollisionShape* newShape = _shapeManager.getShape(shapeInfo);
+
+        DoubleHashKey hkey = shapeInfo.getHash();
+        qDebug() << "  shapeInfo hash:" << hkey.getHash() << hkey.getHash2();
+        qDebug() << "  newShape =" << newShape;
+
+
         if (!newShape) {
             // FAIL! we are unable to support these changes!
             _shapeManager.releaseShape(oldShape);
@@ -563,7 +603,12 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
             if (! (flags & EntityItem::DIRTY_MASS)) {
                 // always update mass properties when going dynamic (unless it's already been done above)
                 ShapeInfo shapeInfo;
-                motionState->computeShapeInfo(shapeInfo);
+                bool computeShapeInfoResult = motionState->computeShapeInfo(shapeInfo);
+
+                qDebug() << "\n\n---";
+                qDebug() << "PhysicsEngine::updateObjectHard #2 computeShapeInfoResult =" << computeShapeInfoResult;
+
+
                 float mass = motionState->computeMass(shapeInfo);
                 btVector3 inertia(0.0f, 0.0f, 0.0f);
                 body->getCollisionShape()->calculateLocalInertia(mass, inertia);

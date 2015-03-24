@@ -60,7 +60,7 @@ public:
 
     // overrides for EntitySimulation
     void updateEntitiesInternal(const quint64& now);
-    void addEntityInternal(EntityItem* entity);
+    bool addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
     void entityChangedInternal(EntityItem* entity);
     void sortEntitiesThatMovedInternal();
@@ -87,6 +87,8 @@ public:
     void relayIncomingChangesToSimulation();
 
     void setAvatarData(AvatarData *avatarData);
+
+    // virtual void reconfigureEntity(EntityItem* entity);
 
 private:
     /// \param motionState pointer to Object's MotionState
