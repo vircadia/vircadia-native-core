@@ -34,7 +34,6 @@ public slots:
     void resetClicked(bool checked);
     void reloadSliders();
     void updateAutomaticLODAdjust();
-    void updateLODValues();
 
 protected:
 
@@ -44,7 +43,7 @@ protected:
 private:
     QSlider* _lodSize;
 
-    QCheckBox* _automaticLODAdjust;
+    QCheckBox* _manualLODAdjust;
 
     QDoubleSpinBox* _desktopLODDecreaseFPS;
 

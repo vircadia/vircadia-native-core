@@ -46,9 +46,9 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _feedback->setFixedWidth(FEEDBACK_WIDTH);
     form->addRow("You can see... ", _feedback);
 
-    form->addRow("Automatic LOD Adjustment:", _automaticLODAdjust = new QCheckBox(this));
-    _automaticLODAdjust->setChecked(lodManager->getAutomaticLODAdjust());
-    connect(_automaticLODAdjust, SIGNAL(toggled(bool)), SLOT(updateAutomaticLODAdjust()));
+    form->addRow("Manually Adjust Level of Detail:", _manualLODAdjust = new QCheckBox(this));
+    _manualLODAdjust->setChecked(!lodManager->getAutomaticLODAdjust());
+    connect(_manualLODAdjust, SIGNAL(toggled(bool)), SLOT(updateAutomaticLODAdjust()));
     
     _lodSize = new QSlider(Qt::Horizontal, this);
     const int MAX_LOD_SIZE = MAX_LOD_SIZE_MULTIPLIER;
@@ -65,7 +65,7 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _lodSize->setPageStep(PAGE_STEP_LOD_SIZE);
     int sliderValue = lodManager->getOctreeSizeScale() / TREE_SCALE;
     _lodSize->setValue(sliderValue);
-    form->addRow("Non-Avatar Content LOD:", _lodSize);
+    form->addRow("Level of Detail:", _lodSize);
     connect(_lodSize,SIGNAL(valueChanged(int)),this,SLOT(sizeScaleValueChanged(int)));
     
     // Add a button to reset
@@ -86,12 +86,8 @@ void LodToolsDialog::reloadSliders() {
 
 void LodToolsDialog::updateAutomaticLODAdjust() {
     auto lodManager = DependencyManager::get<LODManager>();
-    lodManager->setAutomaticLODAdjust(_automaticLODAdjust->isChecked());
-}
-
-void LodToolsDialog::updateLODValues() {
-    auto lodManager = DependencyManager::get<LODManager>();
-    lodManager->setAutomaticLODAdjust(_automaticLODAdjust->isChecked());
+    lodManager->setAutomaticLODAdjust(!_manualLODAdjust->isChecked());
+    _lodSize->setEnabled(_manualLODAdjust->isChecked());
 }
 
 void LodToolsDialog::sizeScaleValueChanged(int value) {
@@ -106,9 +102,9 @@ void LodToolsDialog::resetClicked(bool checked) {
 
     int sliderValue = DEFAULT_OCTREE_SIZE_SCALE / TREE_SCALE;
     _lodSize->setValue(sliderValue);
-    _automaticLODAdjust->setChecked(true);
+    _manualLODAdjust->setChecked(false);
     
-    updateLODValues(); // tell our LOD manager about the reset
+    updateAutomaticLODAdjust(); // tell our LOD manager about the reset
 }
 
 void LodToolsDialog::reject() {
@@ -119,6 +115,15 @@ void LodToolsDialog::reject() {
 void LodToolsDialog::closeEvent(QCloseEvent* event) {
     this->QDialog::closeEvent(event);
     emit closed();
+    auto lodManager = DependencyManager::get<LODManager>();
+    
+    // always revert back to automatic LOD adjustment when closed
+    lodManager->setAutomaticLODAdjust(true); 
+
+    // if the user adjusted the LOD above "normal" then always revert back to default
+    if (lodManager->getOctreeSizeScale() > DEFAULT_OCTREE_SIZE_SCALE) {
+        lodManager->setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
+    }
 }
 
 

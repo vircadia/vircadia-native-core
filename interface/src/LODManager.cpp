@@ -20,10 +20,6 @@
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
 
-Setting::Handle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
-Setting::Handle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
-
-
 LODManager::LODManager() {
     calculateAvatarLODDistanceMultiplier();
 }
@@ -221,15 +217,11 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
-    setBoundaryLevelAdjust(boundaryLevelAdjust.get());
-    setOctreeSizeScale(octreeSizeScale.get());
 }
 
 void LODManager::saveSettings() {
     desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
-    boundaryLevelAdjust.set(getBoundaryLevelAdjust());
-    octreeSizeScale.set(getOctreeSizeScale());
 }
 
 
