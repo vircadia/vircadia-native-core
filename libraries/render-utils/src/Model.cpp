@@ -94,48 +94,81 @@ Model::~Model() {
     deleteGeometry();
 }
 
-gpu::ShaderPointer Model::_program;
-gpu::ShaderPointer Model::_normalMapProgram;
-gpu::ShaderPointer Model::_specularMapProgram;
-gpu::ShaderPointer Model::_normalSpecularMapProgram;
-gpu::ShaderPointer Model::_translucentProgram;
+Model::RenderPipelineLib Model::_renderPipelineLib;
+const GLint MATERIAL_GPU_SLOT = 3;
 
-gpu::ShaderPointer Model::_lightmapProgram;
-gpu::ShaderPointer Model::_lightmapNormalMapProgram;
-gpu::ShaderPointer Model::_lightmapSpecularMapProgram;
-gpu::ShaderPointer Model::_lightmapNormalSpecularMapProgram;
+void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey& key,
+    gpu::ShaderPointer& vertexShader,
+    gpu::ShaderPointer& pixelShader ) {
 
-gpu::ShaderPointer Model::_shadowProgram;
+    gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
-gpu::ShaderPointer Model::_skinProgram;
-gpu::ShaderPointer Model::_skinNormalMapProgram;
-gpu::ShaderPointer Model::_skinSpecularMapProgram;
-gpu::ShaderPointer Model::_skinNormalSpecularMapProgram;
-gpu::ShaderPointer Model::_skinTranslucentProgram;
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+    bool makeResult = gpu::Shader::makeProgram(*program, slotBindings);
+    
+    
+    Locations* locations = new Locations();
+    initLocations(program, *locations);
 
-gpu::ShaderPointer Model::_skinShadowProgram;
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    if (key.isShadow()) {
+        state->setCullMode(gpu::State::CULL_FRONT);
+    } else {
+        state->setCullMode(gpu::State::CULL_BACK);
+    }
 
-Model::Locations Model::_locations;
-Model::Locations Model::_normalMapLocations;
-Model::Locations Model::_specularMapLocations;
-Model::Locations Model::_normalSpecularMapLocations;
-Model::Locations Model::_translucentLocations;
+    if (key.isTranslucent()) {
+    } else {
+        state->setBlendEnable(false);
+    }
 
-Model::Locations Model::_lightmapLocations;
-Model::Locations Model::_lightmapNormalMapLocations;
-Model::Locations Model::_lightmapSpecularMapLocations;
-Model::Locations Model::_lightmapNormalSpecularMapLocations;
+    /*
+    GLBATCH(glDisable)(GL_BLEND);
+    GLBATCH(glEnable)(GL_ALPHA_TEST);
+    
+    if (mode == SHADOW_RENDER_MODE) {
+        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
+    }
+    */
 
-Model::SkinLocations Model::_skinLocations;
-Model::SkinLocations Model::_skinNormalMapLocations;
-Model::SkinLocations Model::_skinSpecularMapLocations;
-Model::SkinLocations Model::_skinNormalSpecularMapLocations;
-Model::SkinLocations Model::_skinShadowLocations;
-Model::SkinLocations Model::_skinTranslucentLocations;
+
+    auto it = insert(value_type(key.getRaw(),
+        RenderPipeline(
+            gpu::PipelinePointer( gpu::Pipeline::create(program, state) ),
+            std::shared_ptr<Locations>(locations)
+        )));
+
+}
+
+
+void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model::Locations& locations) {
+    locations.alphaThreshold = program->getUniforms().findLocation("alphaThreshold");
+    locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
+    locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
+    locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
+
+    locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
+    locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+#else
+    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
+#endif
+    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
+
+    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
+    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
+
+}
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
-const GLint MATERIAL_GPU_SLOT = 3;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -165,33 +198,6 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false; 
     _snappedToRegistrationPoint = false; 
-}
-
-void Model::initProgram(gpu::ShaderPointer& program, Model::Locations& locations) {
-    locations.alphaThreshold = program->getUniforms().findLocation("alphaThreshold");
-    locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
-    locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
-    locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
-
-    locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
-    locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
-#else
-    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
-#endif
-
-}
-
-void Model::initSkinProgram(gpu::ShaderPointer& program, Model::SkinLocations& locations) {
-    
-    initProgram(program, locations);
-
-    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-
-    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
-    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
 }
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
@@ -227,7 +233,7 @@ void Model::initJointTransforms() {
 }
 
 void Model::init() {
-    if (_program.isNull()) {
+    if (_renderPipelineLib.empty()) {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
@@ -257,74 +263,69 @@ void Model::init() {
         auto modelLightmapSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag)));
         auto modelLightmapNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag)));
 
+        // Fill the renderPipelineLib
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(0),
+            modelVertex, modelPixel);
 
-        bool makeResult = false;
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_TANGENTS),
+            modelNormalMapVertex, modelNormalMapPixel);
 
-        // Programs
-        _program = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelPixel));
-        makeResult = gpu::Shader::makeProgram(*_program, slotBindings);
-        initProgram(_program, _locations);
+       _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_SPECULAR),
+            modelVertex, modelSpecularMapPixel);
 
-        _normalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_normalMapProgram, slotBindings);
-        initProgram(_normalMapProgram, _normalMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+            modelNormalMapVertex, modelNormalSpecularMapPixel);
 
-        _specularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_specularMapProgram, slotBindings);
-        initProgram(_specularMapProgram, _specularMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_TRANSLUCENT),
+            modelVertex, modelTranslucentPixel);
+         
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_DEPTH_ONLY),
+            modelShadowVertex, modelShadowPixel);
+ 
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_LIGHTMAP),
+            modelLightmapVertex, modelLightmapPixel);
+       _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS),
+            modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
 
-        _normalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_normalSpecularMapProgram, slotBindings);
-        initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_SPECULAR),
+            modelLightmapVertex, modelLightmapSpecularMapPixel);
 
-        _translucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelTranslucentPixel));
-        makeResult = gpu::Shader::makeProgram(*_translucentProgram, slotBindings);
-        initProgram(_translucentProgram, _translucentLocations);
-        
-        _shadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelShadowVertex, modelShadowPixel));
-        makeResult = gpu::Shader::makeProgram(*_shadowProgram, slotBindings);
-        Model::Locations tempShadowLoc;
-        initProgram(_shadowProgram, tempShadowLoc);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+            modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
 
-        _lightmapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapPixel));
-        makeResult = gpu::Shader::makeProgram(*_lightmapProgram, slotBindings);
-        initProgram(_lightmapProgram, _lightmapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED),
+            skinModelVertex, modelPixel);
 
-        _lightmapNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_lightmapNormalMapProgram, slotBindings);
-        initProgram(_lightmapNormalMapProgram, _lightmapNormalMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS),
+            skinModelNormalMapVertex, modelNormalMapPixel);
 
-        _lightmapSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_lightmapSpecularMapProgram, slotBindings);
-        initProgram(_lightmapSpecularMapProgram, _lightmapSpecularMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR),
+            skinModelVertex, modelSpecularMapPixel);
 
-        _lightmapNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_lightmapNormalSpecularMapProgram, slotBindings);
-        initProgram(_lightmapNormalSpecularMapProgram, _lightmapNormalSpecularMapLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+            skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 
-        _skinProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinProgram, slotBindings);
-        initSkinProgram(_skinProgram, _skinLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY),
+            skinModelShadowVertex, modelShadowPixel);
 
-        _skinNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinNormalMapProgram, slotBindings);
-        initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
-
-        _skinSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinSpecularMapProgram, slotBindings);
-        initSkinProgram(_skinSpecularMapProgram, _skinSpecularMapLocations);
-
-        _skinNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalSpecularMapPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinNormalSpecularMapProgram, slotBindings);
-        initSkinProgram(_skinNormalSpecularMapProgram, _skinNormalSpecularMapLocations);
-        
-        _skinShadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelShadowVertex, modelShadowPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinShadowProgram, slotBindings);
-        initSkinProgram(_skinShadowProgram, _skinShadowLocations);
-        
-        _skinTranslucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelTranslucentPixel));
-        makeResult = gpu::Shader::makeProgram(*_skinTranslucentProgram, slotBindings);
-        initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_TRANSLUCENT),
+            skinModelVertex, modelTranslucentPixel);
     }
 }
 
@@ -2249,81 +2250,24 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            Locations*& locations, SkinLocations*& skinLocations) {
-    gpu::ShaderPointer program = _program;
-    locations = &_locations;
-    gpu::ShaderPointer skinProgram = _skinProgram;
-    skinLocations = &_skinLocations;
-    if (mode == SHADOW_RENDER_MODE) {
-        program = _shadowProgram;
-        skinProgram = _skinShadowProgram;
-        skinLocations = &_skinShadowLocations;
-    } else if (translucent && alphaThreshold == 0.0f) {
-        program = _translucentProgram;
-        locations = &_translucentLocations;
-        skinProgram = _skinTranslucentProgram;
-        skinLocations = &_skinTranslucentLocations;
-        
-    } else if (hasLightmap) {
-        if (hasTangents) {
-            if (hasSpecular) {
-                program = _lightmapNormalSpecularMapProgram;
-                locations = &_lightmapNormalSpecularMapLocations;
-                skinProgram.reset();
-                skinLocations = NULL;
-            } else {
-                program = _lightmapNormalMapProgram;
-                locations = &_lightmapNormalMapLocations;
-                skinProgram.reset();
-                skinLocations = NULL;
-            }
-        } else if (hasSpecular) {
-            program = _lightmapSpecularMapProgram;
-            locations = &_lightmapSpecularMapLocations;
-            skinProgram.reset();
-            skinLocations = NULL;
-        } else {
-            program = _lightmapProgram;
-            locations = &_lightmapLocations;
-            skinProgram.reset();
-            skinLocations = NULL;
-        }
-    } else {
-        if (hasTangents) {
-            if (hasSpecular) {
-                program = _normalSpecularMapProgram;
-                locations = &_normalSpecularMapLocations;
-                skinProgram = _skinNormalSpecularMapProgram;
-                skinLocations = &_skinNormalSpecularMapLocations;
-            } else {
-                program = _normalMapProgram;
-                locations = &_normalMapLocations;
-                skinProgram = _skinNormalMapProgram;
-                skinLocations = &_skinNormalMapLocations;
-            }
-        } else if (hasSpecular) {
-            program = _specularMapProgram;
-            locations = &_specularMapLocations;
-            skinProgram = _skinSpecularMapProgram;
-            skinLocations = &_skinSpecularMapLocations;
-        }
-    } 
+                            Locations*& locations) {
 
-    gpu::ShaderPointer activeProgram = program;
-    Locations* activeLocations = locations;
-
-    if (isSkinned) {
-        activeProgram = skinProgram;
-        activeLocations = skinLocations;
-        locations = skinLocations;
+    RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
+    auto pipeline = _renderPipelineLib.find(key.getRaw());
+    if (pipeline == _renderPipelineLib.end()) {
+        qDebug() << "No good, couldn;t find a pipeline from the key ?" << key.getRaw();
+        return;
     }
 
-    GLuint glprogram = gpu::GLBackend::getShaderID(activeProgram);
+    gpu::ShaderPointer program = (*pipeline).second._pipeline->getProgram();
+    locations = (*pipeline).second._locations.get();
+
+    GLuint glprogram = gpu::GLBackend::getShaderID(program);
     GLBATCH(glUseProgram)(glprogram);
     
 
-    if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+    if ((locations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
+        GLBATCH(glUniform1f)(locations->alphaThreshold, alphaThreshold);
     }
 }
 
@@ -2335,7 +2279,6 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
 
     bool pickProgramsNeeded = true;
     Locations* locations;
-    SkinLocations* skinLocations;
     
     foreach(Model* model, _modelsInScene) {
         QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
@@ -2343,11 +2286,11 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
             QVector<int>& list = *whichList;
             if (list.size() > 0) {
                 if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations, skinLocations);
+                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations);
                     pickProgramsNeeded = false;
                 }
                 model->setupBatchTransform(batch);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
+                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations);
             }
         }
     }
@@ -2379,11 +2322,10 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     }
 
     Locations* locations;
-    SkinLocations* skinLocations;
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, 
-                                args, locations, skinLocations);
+                                args, locations);
     meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
-                                args, locations, skinLocations, forceRenderSomeMeshes);
+                                args, locations, forceRenderSomeMeshes);
     GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
@@ -2391,7 +2333,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
 
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        Locations* locations, SkinLocations* skinLocations, bool forceRenderSomeMeshes) {
+                                        Locations* locations, bool forceRenderSomeMeshes) {
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2462,7 +2404,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
-            GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
+            GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
             batch.setModelTransform(Transform());
         } else {

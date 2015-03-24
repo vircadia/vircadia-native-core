@@ -102,16 +102,14 @@ void generateAntialiasedLineEnable(GLBackend::GLState::Commands& commands, bool 
     ADD_ENABLE_DISABLE_COMMAND(GL_LINE_SMOOTH);
 }
 
-void generateDepthEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_DEPTH_TEST);
-}
-
-void generateDepthWriteMask(GLBackend::GLState::Commands& commands, bool write) {
-    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthMask, write)));
-}
-
-void generateDepthFunc(GLBackend::GLState::Commands& commands, State::ComparisonFunction function) {
-    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthFunc, GL_COMPARISON_FUNCTIONS[function])));
+void generateDepthTest(GLBackend::GLState::Commands& commands, State::DepthTest& test) {
+    if (!test._enabled) {
+        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_DEPTH_TEST))));
+    } else {
+        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glEnable, GLenum(GL_DEPTH_TEST))));
+        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthMask, test._writeMask)));
+        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthFunc, GL_COMPARISON_FUNCTIONS[test._function])));
+    }
 }
 
 void generateStencilEnable(GLBackend::GLState::Commands& commands, bool enable) {
@@ -228,9 +226,6 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
 
     bool depthBias = false;
 
-    bool depthEnabled = false;
-    bool depthState = false;
-
     bool stencilEnabled = false;
     bool stencilState = false;
 
@@ -275,16 +270,11 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             break;
         }
 
-        case State::DEPTH_ENABLE: {
-            depthEnabled = bool(field.second._integer);
-            generateDepthEnable(object->_commands, depthEnabled);
+        case State::DEPTH_TEST: {
+            generateDepthTest(object->_commands, State::DepthTest(field.second._integer));
             break;
         }
-        case State::DEPTH_WRITE_MASK:
-        case State::DEPTH_FUNC: {
-            depthState = true;
-            break;
-        }
+
         case State::STENCIL_ENABLE: {
             stencilEnabled = bool(field.second._integer);
             generateStencilEnable(object->_commands, stencilEnabled);
@@ -335,11 +325,6 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
 
     if (depthBias) {
         generateDepthBias(object->_commands, state);
-    }
-
-    if (depthEnabled) {
-        generateDepthWriteMask(object->_commands, state.getDepthWriteMask());
-        generateDepthFunc(object->_commands, state.getDepthFunc());
     }
 
     if (stencilEnabled) {

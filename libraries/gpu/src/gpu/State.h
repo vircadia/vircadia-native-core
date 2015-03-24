@@ -42,9 +42,7 @@ public:
         MULTISAMPLE_ENABLE,
         ANTIALISED_LINE_ENABLE,
 
-        DEPTH_ENABLE,
-        DEPTH_WRITE_MASK,
-        DEPTH_FUNC,
+        DEPTH_TEST,
 
         STENCIL_ENABLE,
         STENCIL_READ_MASK,
@@ -149,6 +147,18 @@ public:
         WRITE_ALL = (WRITE_RED | WRITE_GREEN | WRITE_BLUE | WRITE_ALPHA ),
     };
 
+    class DepthTest {
+    public:
+        DepthTest(bool enable, bool writeMask, ComparisonFunction func) : 
+            _function(func), _writeMask(writeMask), _enabled(enable) {}
+        uint8 _function = ALWAYS;
+        bool _writeMask = false;
+        bool _enabled = false;
+
+        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
+        DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
+   };
+
     class StencilTest {
     public:
         int8 _failOp = STENCIL_OP_KEEP;
@@ -217,13 +227,12 @@ public:
     bool getMultisampleEnable() const { return get(MULTISAMPLE_ENABLE)._integer; }
     bool getAntialiasedLineEnable() const { return get(ANTIALISED_LINE_ENABLE)._integer; }
 
-    void setDepthEnable(bool enable) { set(DEPTH_ENABLE, enable); }
-    void setDepthWriteMask(bool enable)  { set(DEPTH_WRITE_MASK, enable); }
-    void setDepthFunc(ComparisonFunction func)  { set(DEPTH_FUNC, func); }
-    bool getDepthEnable() const { return get(DEPTH_ENABLE)._integer; }
-    bool getDepthWriteMask() const { return get(DEPTH_WRITE_MASK)._integer; }
-    ComparisonFunction getDepthFunc() const { return ComparisonFunction(get(DEPTH_FUNC)._integer); }
-
+    void setDepthTest(bool enable, bool writeMask, ComparisonFunction func) { set(DEPTH_TEST, DepthTest(enable, writeMask, func).getRaw()); }
+    DepthTest getDepthTest() const { return DepthTest(get(DEPTH_TEST)._integer); }
+    bool getDepthTestEnabled() const { return getDepthTest()._enabled; }
+    bool getDepthTestWriteMask() const { return getDepthTest()._writeMask; }
+    ComparisonFunction getDepthTestFunc() const { return ComparisonFunction(getDepthTest()._function); }
+ 
     void setStencilEnable(bool enable) { set(STENCIL_ENABLE, enable); }
     void setStencilReadMask(uint8 mask)  { set(STENCIL_READ_MASK, mask); }
     void setStencilWriteMask(uint8 mask)  { set(STENCIL_WRITE_MASK, mask); }

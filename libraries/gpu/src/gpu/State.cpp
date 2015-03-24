@@ -20,25 +20,25 @@ State::~State()
 }
 
 void State::set(Field field, bool value) {
-    auto found = _fields.at(field);
+    auto found = _fields[field];
     found._integer = value;
     _stamp++;
 }
 
 void State::set(Field field, uint32 value) {
-    auto found = _fields.at(field);
+    auto found = _fields[field];
     found._unsigned_integer = value;
     _stamp++;
 }
 
 void State::set(Field field, int32 value) {
-    auto found = _fields.at(field);
+    auto found = _fields[field];
     found._integer = value;
     _stamp++;
 }
 
 void State::set(Field field, float value) {
-    auto found = _fields.at(field);
+    auto found = _fields[field];
     found._float = value;
     _stamp++;
 }

@@ -18,12 +18,16 @@
 #include <QObject>
 #include <QUrl>
 
+#include <unordered_map>
+#include <functional>
+
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
+#include <gpu/Pipeline.h>
 #include "PhysicsEntity.h"
 #include <Transform.h>
 
@@ -318,50 +322,6 @@ private:
     int _blendNumber;
     int _appliedBlendNumber;
 
-/*
-    static gpu::PipelinePointer _program;
-    static gpu::PipelinePointer _normalMapProgram;
-    static gpu::PipelinePointer _specularMapProgram;
-    static gpu::PipelinePointer _normalSpecularMapProgram;
-    static gpu::PipelinePointer _translucentProgram;
-
-    static gpu::PipelinePointer _lightmapProgram;
-    static gpu::PipelinePointer _lightmapNormalMapProgram;
-    static gpu::PipelinePointer _lightmapSpecularMapProgram;
-    static gpu::PipelinePointer _lightmapNormalSpecularMapProgram;
-
-    static gpu::PipelinePointer _shadowProgram;
-
-    static gpu::PipelinePointer _skinProgram;
-    static gpu::PipelinePointer _skinNormalMapProgram;
-    static gpu::PipelinePointer _skinSpecularMapProgram;
-    static gpu::PipelinePointer _skinNormalSpecularMapProgram;
-    static gpu::PipelinePointer _skinTranslucentProgram;
-
-    static gpu::PipelinePointer _skinShadowProgram;
-*/
-
-    static gpu::ShaderPointer _program;
-    static gpu::ShaderPointer _normalMapProgram;
-    static gpu::ShaderPointer _specularMapProgram;
-    static gpu::ShaderPointer _normalSpecularMapProgram;
-    static gpu::ShaderPointer _translucentProgram;
-
-    static gpu::ShaderPointer _lightmapProgram;
-    static gpu::ShaderPointer _lightmapNormalMapProgram;
-    static gpu::ShaderPointer _lightmapSpecularMapProgram;
-    static gpu::ShaderPointer _lightmapNormalSpecularMapProgram;
-
-    static gpu::ShaderPointer _shadowProgram;
-    
-    static gpu::ShaderPointer _skinProgram;
-    static gpu::ShaderPointer _skinNormalMapProgram;
-    static gpu::ShaderPointer _skinSpecularMapProgram;
-    static gpu::ShaderPointer _skinNormalSpecularMapProgram;
-    static gpu::ShaderPointer _skinTranslucentProgram;
-
-    static gpu::ShaderPointer _skinShadowProgram;
-
     class Locations {
     public:
         int tangent;
@@ -372,38 +332,10 @@ private:
         int emissiveParams;
         int glowIntensity;
         int materialBufferUnit;
-    };
-    
-    static Locations _locations;
-    static Locations _normalMapLocations;
-    static Locations _specularMapLocations;
-    static Locations _normalSpecularMapLocations;
-    static Locations _translucentLocations;
-
-    static Locations _lightmapLocations;
-    static Locations _lightmapNormalMapLocations;
-    static Locations _lightmapSpecularMapLocations;
-    static Locations _lightmapNormalSpecularMapLocations;
-
-    static void initProgram(ProgramObject& program, Locations& locations, bool link = true);
-    static void initProgram(gpu::ShaderPointer& program, Locations& locations);
-        
-    class SkinLocations : public Locations {
-    public:
         int clusterMatrices;
         int clusterIndices;
         int clusterWeights;
     };
-    
-    static SkinLocations _skinLocations;
-    static SkinLocations _skinNormalMapLocations;
-    static SkinLocations _skinSpecularMapLocations;
-    static SkinLocations _skinNormalSpecularMapLocations;    
-    static SkinLocations _skinShadowLocations;
-    static SkinLocations _skinTranslucentLocations;
-
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
-    static void initSkinProgram(gpu::ShaderPointer& program, SkinLocations& locations);
 
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
@@ -489,12 +421,12 @@ private:
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations, 
+                                        RenderArgs* args, Locations* locations, 
                                         bool forceRenderSomeMeshes = false);
 
     static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            Locations*& locations, SkinLocations*& skinLocations);
+                            Locations*& locations);
 
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
@@ -502,17 +434,90 @@ private:
 
     static AbstractViewStateInterface* _viewState;
 
- /*   class RenderKey {
+    class RenderKey {
     public:
-        enum Flag {
-            TRANSLUCENT = 0,
-            HAS_LIGHTMAP,
+         enum FlagBit {
+            IS_TRANSLUCENT_FLAG = 0,
+            HAS_LIGHTMAP_FLAG,
+            HAS_TANGENTS_FLAG,
+            HAS_SPECULAR_FLAG,
+            HAS_EMISSIVE_FLAG,
+            IS_SKINNED_FLAG,
+            IS_STEREO_FLAG,
+            IS_DEPTH_ONLY_FLAG,
+            IS_SHADOW_FLAG,
+
+            NUM_FLAGS,
         };
+        
+        enum Flag {
+            IS_TRANSLUCENT = (1 << IS_TRANSLUCENT_FLAG),
+            HAS_LIGHTMAP = (1 << HAS_LIGHTMAP_FLAG),
+            HAS_TANGENTS = (1 << HAS_TANGENTS_FLAG),
+            HAS_SPECULAR = (1 << HAS_SPECULAR_FLAG),
+            HAS_EMISSIVE = (1 << HAS_EMISSIVE_FLAG),
+            IS_SKINNED = (1 << IS_SKINNED_FLAG),
+            IS_STEREO = (1 << IS_STEREO_FLAG),
+            IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
+            IS_SHADOW = (1 << IS_SHADOW_FLAG),
 
-        RenderMode mode;
+        };
+        typedef unsigned short Flags;
 
+
+
+        bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
+
+        bool isTranslucent() const { return isFlag(IS_TRANSLUCENT); }
+        bool hasLightmap() const { return isFlag(HAS_LIGHTMAP); }
+        bool hasTangents() const { return isFlag(HAS_TANGENTS); }
+        bool HasSpecular() const { return isFlag(HAS_SPECULAR); }
+        bool HasEmissive() const { return isFlag(HAS_EMISSIVE); }
+        bool isSkinned() const { return isFlag(IS_SKINNED); }
+        bool isStereo() const { return isFlag(IS_STEREO); }
+        bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
+        bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
+
+        Flags _flags = 0;
+        short _spare = 0;
+
+        int getRaw() { return *reinterpret_cast<int*>(this); }
+
+        RenderKey(RenderMode mode,
+            bool translucent, float alphaThreshold, bool hasLightmap,
+            bool hasTangents, bool hasSpecular, bool isSkinned) :
+            RenderKey( ((translucent && (alphaThreshold == 0.0f)) ? IS_TRANSLUCENT : 0)
+                      | (hasLightmap && (mode != SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
+                      | (hasTangents && (mode != SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
+                      | (hasSpecular && (mode != SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
+                      | (isSkinned ? IS_SKINNED : 0)
+                      | ((mode == SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
+                      | ((mode == SHADOW_RENDER_MODE) ? IS_SHADOW : 0)) {}
+
+        RenderKey(int bitmask) : _flags(bitmask) {}
     };
-*/
+
+ 
+    class RenderPipeline {
+    public:
+        gpu::PipelinePointer _pipeline;
+        std::shared_ptr<Locations> _locations;
+        RenderPipeline(gpu::PipelinePointer& pipeline, std::shared_ptr<Locations>& locations) :
+            _pipeline(pipeline), _locations(locations) {}
+    };
+
+    typedef std::unordered_map<int, RenderPipeline> BaseRenderPipelineMap;
+    class RenderPipelineLib : public BaseRenderPipelineMap {
+    public:
+        typedef RenderKey Key;
+
+        
+        void addRenderPipeline(Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+
+        void initLocations(gpu::ShaderPointer& program, Locations& locations);
+    };
+    static RenderPipelineLib _renderPipelineLib;
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
