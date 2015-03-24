@@ -58,12 +58,12 @@ void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-bool PhysicsEngine::addEntityInternal(EntityItem* entity) {
+void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
         if (! entity->isReadyToComputeShape()) {
-            return false;
+            return;
         }
         ShapeInfo shapeInfo;
         entity->computeShapeInfo(shapeInfo);
@@ -84,7 +84,7 @@ bool PhysicsEngine::addEntityInternal(EntityItem* entity) {
             //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
         }
     }
-    return true;
+    return;
 }
 
 void PhysicsEngine::removeEntityInternal(EntityItem* entity) {

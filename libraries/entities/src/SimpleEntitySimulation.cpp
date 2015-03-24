@@ -29,13 +29,12 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-bool SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
     if (entity->isMoving()) {
         _movingEntities.insert(entity);
     } else if (entity->getCollisionsWillMove()) {
         _movableButStoppedEntities.insert(entity);
     }
-    return true;
 }
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {

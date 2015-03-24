@@ -60,7 +60,7 @@ public:
 
     // overrides for EntitySimulation
     void updateEntitiesInternal(const quint64& now);
-    bool addEntityInternal(EntityItem* entity);
+    void addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
     void entityChangedInternal(EntityItem* entity);
     void sortEntitiesThatMovedInternal();

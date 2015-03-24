@@ -23,7 +23,7 @@ public:
 
 protected:
     virtual void updateEntitiesInternal(const quint64& now);
-    virtual bool addEntityInternal(EntityItem* entity);
+    virtual void addEntityInternal(EntityItem* entity);
     virtual void removeEntityInternal(EntityItem* entity);
     virtual void entityChangedInternal(EntityItem* entity);
     virtual void clearEntitiesInternal();

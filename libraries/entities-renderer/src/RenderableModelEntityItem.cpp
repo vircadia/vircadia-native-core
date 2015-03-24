@@ -22,7 +22,6 @@
 #include "EntityTreeRenderer.h"
 #include "RenderableModelEntityItem.h"
 
-
 EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableModelEntityItem(entityID, properties);
 }
@@ -309,7 +308,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
     if (! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) {
         // we have a _collisionModelURL AND a collisionNetworkGeometry AND it's fully loaded.
-        // _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
         return true;
     }
 
@@ -341,11 +339,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     assert(p0Index < (unsigned int)mesh.vertices.size());
                     assert(p1Index < (unsigned int)mesh.vertices.size());
                     assert(p2Index < (unsigned int)mesh.vertices.size());
-
-                    // glm::vec3 p0 = mesh.vertices[p0Index] * scale[0];
-                    // glm::vec3 p1 = mesh.vertices[p1Index] * scale[1];
-                    // glm::vec3 p2 = mesh.vertices[p2Index] * scale[2];
-
 
                     glm::vec3 p0 = mesh.vertices[p0Index];
                     glm::vec3 p1 = mesh.vertices[p1Index];
