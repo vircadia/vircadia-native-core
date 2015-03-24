@@ -24,8 +24,7 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    : _originOffset(offset),
-    _avatarShapeLocalOffset(0.0f) {
+    : _originOffset(offset) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -63,23 +62,25 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        ShapeInfo shapeInfo;
-        entity->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-        if (shape) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
-            addObject(shapeInfo, shape, motionState);
-        } else if (entity->isMoving()) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
+        if (entity->isReadyToComputeShape()) {
+            ShapeInfo shapeInfo;
+            entity->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+            if (shape) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
+                addObject(shapeInfo, shape, motionState);
+            } else if (entity->isMoving()) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
 
-            motionState->setKinematic(true, _numSubsteps);
-            _nonPhysicalKinematicObjects.insert(motionState);
-            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+                motionState->setKinematic(true, _numSubsteps);
+                _nonPhysicalKinematicObjects.insert(motionState);
+                // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+            }
         }
     }
 }
@@ -277,9 +278,6 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 }
 
 void PhysicsEngine::stepSimulation() {
-    // expect the engine to have an avatar (and hence: a character controller)
-    assert(_avatarData);
-
     lock();
     // NOTE: the grand order of operations is:
     // (1) relay incoming changes
@@ -296,17 +294,11 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    if (_avatarData->isPhysicsEnabled()) {
-        // update character controller
-        glm::quat rotation = _avatarData->getOrientation();
-        glm::vec3 position = _avatarData->getPosition() + rotation * _avatarShapeLocalOffset;
-        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
-        
-        btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
-        _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
+    // This is step (2).
+    if (_characterController) {
+        _characterController->preSimulation(timeStep);
     }
 
-    // This is step (2).
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
     stepNonPhysicalKinematics(usecTimestampNow());
@@ -322,20 +314,14 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
-        _avatarData->lockForWrite();
         lock();
         _dynamicsWorld->synchronizeMotionStates();
 
-        if (_avatarData->isPhysicsEnabled()) {
-            const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
-            glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
-            glm::vec3 offset = rotation * _avatarShapeLocalOffset;
-            _avatarData->setOrientation(rotation);
-            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
+        if (_characterController) {
+            _characterController->postSimulation();
         }
 
         unlock();
-        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
@@ -498,10 +484,8 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
-        ShapeInfo shapeInfo;
-        ShapeInfoUtil::collectInfoFromShape(shape, shapeInfo);
         _dynamicsWorld->removeRigidBody(body);
-        _shapeManager.releaseShape(shapeInfo);
+        _shapeManager.releaseShape(shape);
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         motionState->setRigidBody(NULL);
         delete body;
@@ -614,76 +598,35 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     return true;
 }
 
-
-
 void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
-    assert(avatarData); // don't pass NULL argument
-
-    // compute capsule dimensions
-    AABox box = avatarData->getLocalAABox();
-    const glm::vec3& diagonal = box.getScale();
-    float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    float halfHeight = 0.5f * diagonal.y - radius;
-    float MIN_HALF_HEIGHT = 0.1f;
-    if (halfHeight < MIN_HALF_HEIGHT) {
-        halfHeight = MIN_HALF_HEIGHT;
-    }
-    glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
-
-    if (!_avatarData) {
-        // _avatarData is being initialized
-        _avatarData = avatarData;
-    } else {
-        // _avatarData is being updated
-        assert(_avatarData == avatarData);
-
-        // get old dimensions from shape
-        btCapsuleShape* capsule = static_cast<btCapsuleShape*>(_avatarGhostObject->getCollisionShape());
-        btScalar oldRadius = capsule->getRadius();
-        btScalar oldHalfHeight = capsule->getHalfHeight();
-
-        // compare dimensions (and offset)
-        float radiusDelta = glm::abs(radius - oldRadius);
-        float heightDelta = glm::abs(halfHeight - oldHalfHeight);
-        if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
-            // shape hasn't changed --> nothing to do
-            float offsetDelta = glm::distance(offset, _avatarShapeLocalOffset);
-            if (offsetDelta > FLT_EPSILON) {
-                // if only the offset changes then we can update it --> no need to rebuild shape
-                _avatarShapeLocalOffset = offset;
-            }
-            return;
+    if (_characterController) {
+        bool needsShapeUpdate = _characterController->needsShapeUpdate();
+        if (needsShapeUpdate) {
+            lock();
+            // remove old info
+            _dynamicsWorld->removeCollisionObject(_characterController->getGhostObject());
+            _dynamicsWorld->removeAction(_characterController);
+            // update shape
+            _characterController->updateShape();
+            // insert new info
+            _dynamicsWorld->addCollisionObject(_characterController->getGhostObject(), 
+                    btBroadphaseProxy::CharacterFilter,
+                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+            _dynamicsWorld->addAction(_characterController);
+            _characterController->reset(_dynamicsWorld);
+            unlock();
         }
-
-        // delete old controller and friends
-        _dynamicsWorld->removeCollisionObject(_avatarGhostObject);
-        _dynamicsWorld->removeAction(_characterController);
-        delete _characterController;
-        _characterController = NULL;
-        delete _avatarGhostObject;
-        _avatarGhostObject = NULL;
-        delete capsule;
+    } else {
+        // initialize _characterController
+        assert(avatarData); // don't pass NULL argument
+        lock();
+        _characterController = new CharacterController(avatarData);
+        _dynamicsWorld->addCollisionObject(_characterController->getGhostObject(), 
+                btBroadphaseProxy::CharacterFilter,
+                btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+        _dynamicsWorld->addAction(_characterController);
+        _characterController->reset(_dynamicsWorld);
+        unlock();
     }
-
-    // set offset
-    _avatarShapeLocalOffset = offset;
-
-    // build ghost, shape, and controller
-    _avatarGhostObject = new btPairCachingGhostObject();
-    _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                    glmToBullet(_avatarData->getPosition())));
-    // ?TODO: use ShapeManager to get avatar's shape?
-    btCapsuleShape* capsule = new btCapsuleShape(radius, 2.0f * halfHeight);
-
-    _avatarGhostObject->setCollisionShape(capsule);
-    _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
-
-    const float MIN_STEP_HEIGHT = 0.35f;
-    btScalar stepHeight = glm::max(MIN_STEP_HEIGHT, radius + 0.5f * halfHeight);
-    _characterController = new CharacterController(_avatarGhostObject, capsule, stepHeight);
-
-    _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
-                                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
-    _dynamicsWorld->addAction(_characterController);
-    _characterController->reset(_dynamicsWorld);
 }
+

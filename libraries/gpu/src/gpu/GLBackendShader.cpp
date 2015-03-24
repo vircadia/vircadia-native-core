@@ -41,6 +41,12 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
     }
 
+    //Check for gpu specific attribute slotBindings
+    loc = glGetAttribLocation(glprogram, "gl_Vertex");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+    }
+
     loc = glGetAttribLocation(glprogram, "normal");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
@@ -88,7 +94,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-#if defined(Q_OS_WIN)
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
     loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
@@ -503,6 +509,12 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
     GLint uniformsCount = 0;
 
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    GLint currentProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
+    glUseProgram(glprogram);
+#endif
+
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
 
     for (int i = 0; i < uniformsCount; i++) {
@@ -520,18 +532,36 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
 
         // The uniform as a standard var type
         if (location != INVALID_UNIFORM_LOCATION) {
+            // Let's make sure the name doesn't contains an array element
+            std::string sname(name);
+            auto foundBracket = sname.find_first_of('[');
+            if (foundBracket != std::string::npos) {
+              //  std::string arrayname = sname.substr(0, foundBracket);
+
+                if (sname[foundBracket + 1] == '0') {
+                    sname = sname.substr(0, foundBracket);
+                } else {
+                    // skip this uniform since it's not the first element of an array
+                    continue;
+                }
+            }
+
             if (elementResource._resource == Resource::BUFFER) {
-                uniforms.insert(Shader::Slot(name, location, elementResource._element, elementResource._resource));
+                uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
                 GLint binding = -1;
                 glGetUniformiv(glprogram, location, &binding);
 
-                auto requestedBinding = slotBindings.find(std::string(name));
+                auto requestedBinding = slotBindings.find(std::string(sname));
                 if (requestedBinding != slotBindings.end()) {
                     if (binding != (*requestedBinding)._location) {
                         binding = (*requestedBinding)._location;
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
                         glUniform1i(location, binding);
+#else
+                        glProgramUniform1i(glprogram, location, binding);
+#endif
                     }
                 }
 
@@ -540,6 +570,10 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
             }
         }
     }
+
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    glUseProgram(currentProgram);
+#endif
 
     return uniformsCount;
 }
@@ -551,7 +585,9 @@ bool isUnusedSlot(GLint binding) {
 
 int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
     GLint buffersCount = 0;
-#if defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
 
     // fast exit

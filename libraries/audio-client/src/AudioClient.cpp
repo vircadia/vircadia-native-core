@@ -812,7 +812,7 @@ void AudioClient::handleAudioInput() {
             }
             
             emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
-                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
+                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(AudioConstants::AudioSample)));
 
         } else {
             // our input loudness is 0, since we're muted

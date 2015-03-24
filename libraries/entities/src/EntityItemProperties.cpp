@@ -70,6 +70,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(emitStrength, ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH),
     CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
     CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
+    CONSTRUCT_PROPERTY(attribution, ENTITY_ITEM_DEFAULT_ATTRIBUTION),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -176,7 +177,8 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created; 
 }
 
-const char* shapeTypeNames[] = {"none", "box", "sphere"};
+const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "convex-hull", "plane", "compound", "capsule-x",
+                                "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -184,10 +186,22 @@ void buildStringToShapeTypeLookup() {
     stringToShapeTypeLookup["none"] = SHAPE_TYPE_NONE;
     stringToShapeTypeLookup["box"] = SHAPE_TYPE_BOX;
     stringToShapeTypeLookup["sphere"] = SHAPE_TYPE_SPHERE;
+    stringToShapeTypeLookup["ellipsoid"] = SHAPE_TYPE_ELLIPSOID;
+    stringToShapeTypeLookup["convex-hull"] = SHAPE_TYPE_CONVEX_HULL;
+    stringToShapeTypeLookup["plane"] = SHAPE_TYPE_PLANE;
+    stringToShapeTypeLookup["compound"] = SHAPE_TYPE_COMPOUND;
+    stringToShapeTypeLookup["capsule-x"] = SHAPE_TYPE_CAPSULE_X;
+    stringToShapeTypeLookup["capsule-y"] = SHAPE_TYPE_CAPSULE_Y;
+    stringToShapeTypeLookup["capsule-z"] = SHAPE_TYPE_CAPSULE_Z;
+    stringToShapeTypeLookup["cylinder-x"] = SHAPE_TYPE_CYLINDER_X;
+    stringToShapeTypeLookup["cylinder-y"] = SHAPE_TYPE_CYLINDER_Y;
+    stringToShapeTypeLookup["cylinder-z"] = SHAPE_TYPE_CYLINDER_Z;
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
-    return QString(shapeTypeNames[_shapeType]);
+    if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
+        return QString(shapeTypeNames[_shapeType]);
+    return QString("none");
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
@@ -246,6 +260,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EMIT_STRENGTH, emitStrength);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
+    CHECK_PROPERTY_CHANGE(PROP_ATTRIBUTION, attribution);
 
     return changedProperties;
 }
@@ -308,6 +323,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(attribution);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -389,6 +405,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(emitStrength, setEmitStrength);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(attribution, setAttribution);
 
     _lastEdited = usecTimestampNow();
 }
@@ -573,6 +590,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
             }
+            
+            APPEND_ENTITY_PROPERTY(PROP_ATTRIBUTION, appendValue, properties.getAttribution());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -803,6 +822,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     }
     
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ATTRIBUTION, setAttribution);
+    
     return valid;
 }
 
@@ -883,6 +904,8 @@ void EntityItemProperties::markAllChanged() {
     _emitStrengthChanged = true;
     _localGravityChanged = true;
     _particleRadiusChanged = true;
+    
+    _attributionChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

@@ -52,6 +52,10 @@ public:
 
     bool needsToCallUpdate() const;
 
+    bool isReadyToComputeShape();
+    void computeShapeInfo(ShapeInfo& info);
+    ShapeType getShapeType() const;
+
 private:
     void remapTextures();
     
@@ -62,6 +66,7 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
+    QVector<glm::vec3> _points;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

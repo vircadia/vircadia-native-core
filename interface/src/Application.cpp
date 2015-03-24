@@ -382,6 +382,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
+    
+    // if we get a domain change, immediately attempt update location in metaverse server
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -873,8 +877,10 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
     }
 }
 
-void Application::importSVOFromURL(QUrl url) {
+bool Application::importSVOFromURL(const QString& urlString) {
+    QUrl url(urlString);
     emit svoImportRequested(url.url());
+    return true; // assume it's accepted
 }
 
 bool Application::event(QEvent* event) {
@@ -887,13 +893,11 @@ bool Application::event(QEvent* event) {
         QUrl url = fileEvent->url();
         
         if (!url.isEmpty()) {
-            if (url.scheme() == HIFI_URL_SCHEME) {
-                DependencyManager::get<AddressManager>()->handleLookupString(fileEvent->url().toString());
-            } else if (url.path().toLower().endsWith(SVO_EXTENSION)) {
-                emit svoImportRequested(url.url());
+            QString urlString = url.toString();
+            if (canAcceptURL(urlString)) {
+                return acceptURL(urlString);
             }
         }
-        
         return false;
     }
     
@@ -1452,20 +1456,27 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::dropEvent(QDropEvent *event) {
-    QString snapshotPath;
     const QMimeData *mimeData = event->mimeData();
+    bool atLeastOneFileAccepted = false;
     foreach (QUrl url, mimeData->urls()) {
-        auto lower = url.path().toLower();
-        if (lower.endsWith(SNAPSHOT_EXTENSION)) {
-            snapshotPath = url.toLocalFile();
-            break;
-        } else if (lower.endsWith(SVO_EXTENSION)) {
-            emit svoImportRequested(url.url());
-            event->acceptProposedAction();
-            return;
+        QString urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            if (acceptURL(urlString)) {
+                atLeastOneFileAccepted = true;
+                break;
+            }
         }
     }
+    
+    if (atLeastOneFileAccepted) {
+        event->acceptProposedAction();
+    }
+}
 
+bool Application::acceptSnapshot(const QString& urlString) {
+    QUrl url(urlString);
+    QString snapshotPath = url.toLocalFile();
+    
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
@@ -1476,10 +1487,13 @@ void Application::dropEvent(QDropEvent *event) {
         _myAvatar->setOrientation(snapshotData->getOrientation());
     } else {
         QMessageBox msgBox;
-        msgBox.setText("No location details were found in this JPG, try dragging in an authentic Hifi snapshot.");
+        msgBox.setText("No location details were found in the file "
+                        + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
+                        
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.exec();
     }
+    return true;
 }
 
 void Application::sendPingPackets() {
@@ -1798,7 +1812,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
         url = QUrl::fromLocalFile(urlOrFilename);
     }
     
-    bool success = _entityClipboard.readFromSVOURL(url.toString());
+    bool success = _entityClipboard.readFromURL(url.toString());
     if (success) {
         _entityClipboard.reaverageOctreeElements();
     }
@@ -1959,7 +1973,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
+    if (!isThrottleRendering()) {
         DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -2795,7 +2809,31 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
+// FIXME, preprocessor guard this check to occur only in DEBUG builds
+static QThread * activeRenderingThread = nullptr;
+
+ViewFrustum* Application::getViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() == activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+    }
+#endif
+    return &_viewFrustum;
+}
+
+ViewFrustum* Application::getDisplayViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+#endif
+    return &_displayViewFrustum;
+}
+
 void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -3020,6 +3058,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glClear(GL_DEPTH_BUFFER_BIT);
         _overlays.renderWorld(true);
     }
+    activeRenderingThread = nullptr;
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
@@ -3112,17 +3151,25 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
-        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
-        if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
-            // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
-            // face/body so that the average eye position lies at the origin
-            eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+        // FIXME note that the positioing of the camera relative to the avatar can suffer limited 
+        // precision as the user's position moves further away from the origin.  Thus at 
+        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways 
+        // wildly as you rotate your avatar because the floating point values are becoming 
+        // larger, squeezing out the available digits of precision you have available at the 
+        // human scale for camera positioning.  
 
-        } else {
-            _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-        }
+        // Previously there was a hack to correct this using the mechanism of repositioning 
+        // the avatar at the origin of the world for the purposes of rendering the mirror, 
+        // but it resulted in failing to render the avatar's head model in the mirror view 
+        // when in first person mode.  Presumably this was because of some missed culling logic 
+        // that was not accounted for in the hack.  
+
+        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further 
+        // investigated in order to adapt the technique while fixing the head rendering issue,
+        // but the complexity of the hack suggests that a better approach 
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
+        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                    _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
@@ -3149,58 +3196,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    if (eyeRelativeCamera) {
-        // save absolute translations
-        glm::vec3 absoluteSkeletonTranslation = _myAvatar->getSkeletonModel().getTranslation();
-        glm::vec3 absoluteFaceTranslation = _myAvatar->getHead()->getFaceModel().getTranslation();
-
-        // get the neck position so we can translate the face relative to it
-        glm::vec3 neckPosition;
-        _myAvatar->getSkeletonModel().setTranslation(glm::vec3());
-        _myAvatar->getSkeletonModel().getNeckPosition(neckPosition);
-
-        // get the eye position relative to the body
-        glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
-        float eyeHeight = eyePosition.y - _myAvatar->getPosition().y;
-
-        // set the translation of the face relative to the neck position
-        _myAvatar->getHead()->getFaceModel().setTranslation(neckPosition - glm::vec3(0, eyeHeight, 0));
-
-        // translate the neck relative to the face
-        _myAvatar->getSkeletonModel().setTranslation(_myAvatar->getHead()->getFaceModel().getTranslation() -
-            neckPosition);
-
-        // update the attachments to match
-        QVector<glm::vec3> absoluteAttachmentTranslations;
-        glm::vec3 delta = _myAvatar->getSkeletonModel().getTranslation() - absoluteSkeletonTranslation;
-        foreach (Model* attachment, _myAvatar->getAttachmentModels()) {
-            absoluteAttachmentTranslations.append(attachment->getTranslation());
-            attachment->setTranslation(attachment->getTranslation() + delta);
-        }
-
-        // and lo, even the shadow matrices
-        glm::mat4 savedShadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
-        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
-            savedShadowMatrices[i] = _shadowMatrices[i];
-            _shadowMatrices[i] = glm::transpose(glm::transpose(_shadowMatrices[i]) * glm::translate(-delta));
-        }
-
-        displaySide(_mirrorCamera, true);
-
-        // restore absolute translations
-        _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
-        _myAvatar->getHead()->getFaceModel().setTranslation(absoluteFaceTranslation);
-        for (int i = 0; i < absoluteAttachmentTranslations.size(); i++) {
-            _myAvatar->getAttachmentModels().at(i)->setTranslation(absoluteAttachmentTranslations.at(i));
-        }
-        
-        // restore the shadow matrices
-        for (int i = 0; i < CASCADED_SHADOW_MATRIX_COUNT; i++) {
-            _shadowMatrices[i] = savedShadowMatrices[i];
-        }
-    } else {
-        displaySide(_mirrorCamera, true);
-    }
+    displaySide(_mirrorCamera, true);
     glPopMatrix();
 
     if (!billboard) {
@@ -3303,11 +3299,6 @@ void Application::connectedToDomain(const QString& hostname) {
     const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
-        // update our data-server with the domain-server we're logged in with
-        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
-
         _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
@@ -3570,6 +3561,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
+    scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
+
     QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
@@ -3599,6 +3592,122 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
+}
+
+void Application::initializeAcceptedFiles() {
+    if (_acceptedExtensions.size() == 0) {
+        _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
+        _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
+        _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
+    }
+}
+
+bool Application::canAcceptURL(const QString& urlString) {
+    initializeAcceptedFiles();
+    
+    QUrl url(urlString);
+    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+        return true;
+    }
+    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
+    QString lowerPath = url.path().toLower();
+    while (i.hasNext()) {
+        i.next();
+        if (lowerPath.endsWith(i.key())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Application::acceptURL(const QString& urlString) {
+    initializeAcceptedFiles();
+    
+    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+        // this is a hifi URL - have the AddressManager handle it
+        QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
+                                  Qt::AutoConnection, Q_ARG(const QString&, urlString));
+        return true;
+    } else {
+        QUrl url(urlString);
+        QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
+        QString lowerPath = url.path().toLower();
+        while (i.hasNext()) {
+            i.next();
+            if (lowerPath.endsWith(i.key())) {
+                AcceptURLMethod method = i.value();
+                (this->*method)(urlString);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+bool Application::askToSetAvatarUrl(const QString& url) {
+    QUrl realUrl(url);
+    if (realUrl.isLocalFile()) {
+        QString message = "You can not use local files for avatar components.";
+
+        QMessageBox msgBox;
+        msgBox.setText(message);
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.exec();
+        return false;
+    }
+
+    QString message = "Would you like to use this model for part of avatar:\n" + url;
+    QMessageBox msgBox;
+
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle("Set Avatar");
+    msgBox.setText(message);
+
+    QPushButton* headButton = msgBox.addButton(tr("Head"), QMessageBox::ActionRole);
+    QPushButton* bodyButton = msgBox.addButton(tr("Body"), QMessageBox::ActionRole);
+    QPushButton* bodyAndHeadButton = msgBox.addButton(tr("Body + Head"), QMessageBox::ActionRole);
+    msgBox.addButton(QMessageBox::Cancel);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == headButton) {
+        qDebug() << "Chose to use for head: " << url;
+        _myAvatar->setFaceModelURL(url);
+        UserActivityLogger::getInstance().changedModel("head", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyButton) {
+        qDebug() << "Chose to use for body: " << url;
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else if (msgBox.clickedButton() == bodyAndHeadButton) {
+        qDebug() << "Chose to use for body + head: " << url;
+        _myAvatar->setFaceModelURL(QString());
+        _myAvatar->setSkeletonModelURL(url);
+        UserActivityLogger::getInstance().changedModel("skeleton", url);
+        _myAvatar->sendIdentityPacket();
+    } else {
+        qDebug() << "Declined to use the avatar: " << url;
+    }
+    return true;
+}
+
+
+bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
+    QMessageBox::StandardButton reply;
+    QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
+    reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        qDebug() << "Chose to run the script: " << scriptFilenameOrURL;
+        loadScript(scriptFilenameOrURL);
+    } else {
+        qDebug() << "Declined to run the script: " << scriptFilenameOrURL;
+    }
+    return true;
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,

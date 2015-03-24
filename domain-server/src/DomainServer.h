@@ -83,8 +83,10 @@ private:
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    unsigned int countConnectedUsers();
+    bool verifyUsersKey (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
-                                       const HifiSockAddr& senderSockAddr);
+                                       const HifiSockAddr& senderSockAddr, QString& reasonReturn);
     
     void preloadAllowedUserPublicKeys();
     void requestUserPublicKey(const QString& username);
