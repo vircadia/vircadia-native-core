@@ -56,8 +56,6 @@ public:
     virtual bool hasCollisionModel() const;
     virtual const QString& getCollisionModelURL() const;
 
-    virtual void updateDimensions(const glm::vec3& value);
-
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
     ShapeType getShapeType() const;

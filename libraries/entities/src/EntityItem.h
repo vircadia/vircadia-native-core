@@ -40,15 +40,6 @@ class EntityTreeElementExtraEncodeData;
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
 
-extern const float MIN_POSITION_DELTA;
-extern const float MIN_DIMENSIONS_DELTA;
-extern const float MIN_ALIGNMENT_DOT;
-extern const float MIN_VELOCITY_DELTA;
-extern const float MIN_DAMPING_DELTA;
-extern const float MIN_GRAVITY_DELTA;
-extern const float MIN_SPIN_DELTA;
-
-
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -279,7 +270,7 @@ public:
     void updatePositionInDomainUnits(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
     void updateDimensionsInDomainUnits(const glm::vec3& value);
-    virtual void updateDimensions(const glm::vec3& value);
+    void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);

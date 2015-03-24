@@ -286,14 +286,6 @@ const QString& RenderableModelEntityItem::getCollisionModelURL() const {
     return _collisionModelURL;
 }
 
-void RenderableModelEntityItem::updateDimensions(const glm::vec3& value) {
-    if (glm::distance(_dimensions, value) > MIN_DIMENSIONS_DELTA) {
-        _dimensions = value;
-        _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
-    }
-    _model->setScaleToFit(true, _dimensions);
-}
-
 bool RenderableModelEntityItem::isReadyToComputeShape() {
 
     if (!_model) {
