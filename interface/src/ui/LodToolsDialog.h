@@ -47,10 +47,8 @@ private:
     QCheckBox* _automaticLODAdjust;
 
     QDoubleSpinBox* _desktopLODDecreaseFPS;
-    QDoubleSpinBox* _desktopLODIncreaseFPS;
 
     QDoubleSpinBox* _hmdLODDecreaseFPS;
-    QDoubleSpinBox* _hmdLODIncreaseFPS;
 
 
     QDoubleSpinBox* _avatarLOD;

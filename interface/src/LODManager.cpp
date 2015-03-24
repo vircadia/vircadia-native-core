@@ -17,11 +17,8 @@
 
 #include "LODManager.h"
 
-Setting::Handle<bool> automaticLODAdjust("automaticLODAdjust", true);
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
-Setting::Handle<float> desktopLODIncreaseFPS("desktopLODIncreaseFPS",  DEFAULT_DESKTOP_LOD_UP_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
-Setting::Handle<float> hmdLODIncreaseFPS("hmdLODIncreaseFPS",  DEFAULT_HMD_LOD_UP_FPS);
 
 
 Setting::Handle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
@@ -244,11 +241,8 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 
 
 void LODManager::loadSettings() {
-    setAutomaticLODAdjust(automaticLODAdjust.get());
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
-    setDesktopLODIncreaseFPS(desktopLODIncreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
-    setHMDLODIncreaseFPS(hmdLODIncreaseFPS.get());
 
     setAvatarLODDistanceMultiplier(avatarLODDistanceMultiplier.get());
     setBoundaryLevelAdjust(boundaryLevelAdjust.get());
@@ -256,11 +250,8 @@ void LODManager::loadSettings() {
 }
 
 void LODManager::saveSettings() {
-    automaticLODAdjust.set(getAutomaticLODAdjust());
     desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
-    desktopLODIncreaseFPS.set(getDesktopLODIncreaseFPS());
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
-    hmdLODIncreaseFPS.set(getHMDLODIncreaseFPS());
 
     avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
     boundaryLevelAdjust.set(getBoundaryLevelAdjust());

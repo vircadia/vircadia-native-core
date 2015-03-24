@@ -50,26 +50,6 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     _automaticLODAdjust->setChecked(lodManager->getAutomaticLODAdjust());
     connect(_automaticLODAdjust, SIGNAL(toggled(bool)), SLOT(updateAutomaticLODAdjust()));
     
-    form->addRow("Desktop Decrease LOD Below FPS:", _desktopLODDecreaseFPS = new QDoubleSpinBox(this));
-    _desktopLODDecreaseFPS->setValue(lodManager->getDesktopLODDecreaseFPS());
-    _desktopLODDecreaseFPS->setDecimals(0);
-    connect(_desktopLODDecreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateLODValues()));
-    
-    form->addRow("Desktop Increase LOD Above FPS:", _desktopLODIncreaseFPS = new QDoubleSpinBox(this));
-    _desktopLODIncreaseFPS->setValue(lodManager->getDesktopLODIncreaseFPS());
-    _desktopLODIncreaseFPS->setDecimals(0);
-    connect(_desktopLODIncreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateLODValues()));
-
-    form->addRow("HMD Decrease LOD Below FPS:", _hmdLODDecreaseFPS = new QDoubleSpinBox(this));
-    _hmdLODDecreaseFPS->setValue(lodManager->getHMDLODDecreaseFPS());
-    _hmdLODDecreaseFPS->setDecimals(0);
-    connect(_hmdLODDecreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateLODValues()));
-    
-    form->addRow("HMD Increase LOD Above FPS:", _hmdLODIncreaseFPS = new QDoubleSpinBox(this));
-    _hmdLODIncreaseFPS->setValue(lodManager->getHMDLODIncreaseFPS());
-    _hmdLODIncreaseFPS->setDecimals(0);
-    connect(_hmdLODIncreaseFPS, SIGNAL(valueChanged(double)), SLOT(updateLODValues()));
-    
     form->addRow("Avatar LOD:", _avatarLOD = new QDoubleSpinBox(this));
     _avatarLOD->setDecimals(3);
     _avatarLOD->setRange(1.0 / MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, 1.0 / MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER);
@@ -123,12 +103,6 @@ void LodToolsDialog::updateLODValues() {
     auto lodManager = DependencyManager::get<LODManager>();
 
     lodManager->setAutomaticLODAdjust(_automaticLODAdjust->isChecked());
-
-    lodManager->setDesktopLODDecreaseFPS(_desktopLODDecreaseFPS->value());
-    lodManager->setDesktopLODIncreaseFPS(_desktopLODIncreaseFPS->value());
-    lodManager->setHMDLODDecreaseFPS(_hmdLODDecreaseFPS->value());
-    lodManager->setHMDLODIncreaseFPS(_hmdLODIncreaseFPS->value());
-
     lodManager->setAvatarLODDistanceMultiplier(1.0 / _avatarLOD->value());
 }
 
@@ -145,11 +119,6 @@ void LodToolsDialog::resetClicked(bool checked) {
     int sliderValue = DEFAULT_OCTREE_SIZE_SCALE / TREE_SCALE;
     _lodSize->setValue(sliderValue);
     _automaticLODAdjust->setChecked(true);
-    _desktopLODDecreaseFPS->setValue(DEFAULT_DESKTOP_LOD_DOWN_FPS);
-    _desktopLODIncreaseFPS->setValue(DEFAULT_DESKTOP_LOD_UP_FPS);
-    _hmdLODDecreaseFPS->setValue(DEFAULT_HMD_LOD_DOWN_FPS);
-    _hmdLODIncreaseFPS->setValue(DEFAULT_HMD_LOD_UP_FPS);
-
     _avatarLOD->setValue(1.0 / DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
     
     updateLODValues(); // tell our LOD manager about the reset
