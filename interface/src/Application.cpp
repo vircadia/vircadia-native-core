@@ -382,6 +382,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
+    
+    // if we get a domain change, immediately attempt update location in metaverse server
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -3295,11 +3299,6 @@ void Application::connectedToDomain(const QString& hostname) {
     const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
-        // update our data-server with the domain-server we're logged in with
-        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
-
         _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
