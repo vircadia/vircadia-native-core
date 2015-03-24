@@ -369,7 +369,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 aaBoxDim = aaBox.getDimensions();
         aaBoxDim = glm::clamp(aaBoxDim, glm::vec3(FLT_EPSILON), aaBoxDim);
 
-        // scale = dimensions / aabox
         glm::vec3 scale = _dimensions / aaBoxDim;
 
         // multiply each point by scale before handing the point-set off to the physics engine

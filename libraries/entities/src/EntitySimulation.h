@@ -63,10 +63,6 @@ public:
 
     EntityTree* getEntityTree() { return _entityTree; }
 
-    /* virtual void reconfigureEntity(EntityItem* entity) { */
-    /*     qDebug() << "EntitySimulation::reconfigureEntity"; */
-    /* } */
-
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

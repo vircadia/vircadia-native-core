@@ -147,7 +147,6 @@ public:
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
 
     void setTree(EntityTree* tree) { _myTree = tree; }
-    EntityTree* getTree() { return _myTree; }
 
     bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItem* entity);

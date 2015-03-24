@@ -315,12 +315,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
     }
 }
 
-void EntityTree::reconfigureEntity(EntityItem* entity) {
-    qDebug() << "EntityTree::reconfigureEntity";
-    // _simulation->reconfigureEntity(entity);
-    _simulation->entityChanged(entity);
-}
-
 void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
     const RemovedEntities& entities = theOperator.getEntities();
     if (_simulation) {

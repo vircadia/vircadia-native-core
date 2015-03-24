@@ -88,8 +88,6 @@ public:
 
     void setAvatarData(AvatarData *avatarData);
 
-    // virtual void reconfigureEntity(EntityItem* entity);
-
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
