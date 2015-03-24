@@ -3599,6 +3599,7 @@ void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
         _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
         _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
     }
