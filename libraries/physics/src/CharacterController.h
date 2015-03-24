@@ -19,6 +19,8 @@ subject to the following restrictions:
 #ifndef hifi_CharacterController_h
 #define hifi_CharacterController_h
 
+#include <AvatarData.h>
+
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 #include <BulletCollision/BroadphaseCollision/btCollisionAlgorithm.h>
@@ -39,14 +41,17 @@ ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInt
 {
 protected:
 
+    AvatarData* m_avatarData = NULL;
+    btPairCachingGhostObject* m_ghostObject;
+    glm::vec3 m_shapeLocalOffset;
+
+    btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
+    btScalar m_radius;
     btScalar m_halfHeight;
 
-    btPairCachingGhostObject* m_ghostObject;
-    btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
-
     btScalar m_verticalVelocity;
-    btScalar m_verticalOffset;
-    btScalar m_fallSpeed;
+    btScalar m_verticalOffset; // fall distance from velocity this frame
+    btScalar m_maxFallSpeed;
     btScalar m_jumpSpeed;
     btScalar m_maxJumpHeight;
     btScalar m_maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
@@ -55,7 +60,7 @@ protected:
 
     btScalar m_turnAngle;
 
-    btScalar m_stepHeight;
+    btScalar m_stepHeight; // height of stepUp prior to stepForward
 
     btScalar m_addedMargin;//@todo: remove this and fix the code
 
@@ -65,18 +70,18 @@ protected:
 
     //some internal variables
     btVector3 m_currentPosition;
-    btScalar  m_currentStepOffset;
     btVector3 m_targetPosition;
+    btScalar  m_lastStepUp;
 
     ///keep track of the contact manifolds
     btManifoldArray m_manifoldArray;
 
     bool m_touchingContact;
-    btVector3 m_touchingNormal;
+    btVector3 m_floorNormal; // points from object to character
 
-    bool  m_wasOnGround;
-    bool  m_wasJumping;
-    bool m_useGhostObjectSweepTest;
+    bool m_enabled;
+    bool m_wasOnGround;
+    bool m_wasJumping;
     bool m_useWalkDirection;
     btScalar m_velocityTimeInterval;
     int m_upAxis;
@@ -93,17 +98,14 @@ protected:
     bool recoverFromPenetration(btCollisionWorld* collisionWorld);
     void stepUp(btCollisionWorld* collisionWorld);
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
-    void stepForwardAndStrafe(btCollisionWorld* collisionWorld, const btVector3& walkMove);
+    void stepForward(btCollisionWorld* collisionWorld, const btVector3& walkMove);
     void stepDown(btCollisionWorld* collisionWorld, btScalar dt);
+    void createShapeAndGhost();
 public:
 
     BT_DECLARE_ALIGNED_ALLOCATOR();
 
-    CharacterController(
-            btPairCachingGhostObject* ghostObject, 
-            btConvexShape* convexShape, 
-            btScalar stepHeight, 
-            int upAxis = 1);
+    CharacterController(AvatarData* avatarData);
     ~CharacterController();
 
 
@@ -145,7 +147,7 @@ public:
     void preStep(btCollisionWorld* collisionWorld);
     void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
 
-    void setFallSpeed(btScalar fallSpeed);
+    void setMaxFallSpeed(btScalar speed);
     void setJumpSpeed(btScalar jumpSpeed);
     void setMaxJumpHeight(btScalar maxJumpHeight);
     bool canJump() const;
@@ -161,12 +163,15 @@ public:
     btScalar getMaxSlope() const;
 
     btPairCachingGhostObject* getGhostObject();
-    void setUseGhostSweepTest(bool useGhostObjectSweepTest) {
-        m_useGhostObjectSweepTest = useGhostObjectSweepTest;
-    }
 
     bool onGround() const;
     void setUpInterpolate(bool value);
+
+    bool needsShapeUpdate();
+    void updateShape();
+
+    void preSimulation(btScalar timeStep);
+    void postSimulation();
 };
 
 #endif // hifi_CharacterController_h
