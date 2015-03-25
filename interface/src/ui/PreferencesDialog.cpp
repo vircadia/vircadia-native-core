@@ -19,6 +19,7 @@
 
 #include "Application.h"
 #include "MainWindow.h"
+#include "LODManager.h"
 #include "Menu.h"
 #include "ModelsBrowser.h"
 #include "PreferencesDialog.h"
@@ -174,6 +175,10 @@ void PreferencesDialog::loadPreferences() {
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
+    // LOD items
+    auto lodManager = DependencyManager::get<LODManager>();
+    ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
+    ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
 }
 
 void PreferencesDialog::savePreferences() {
@@ -275,4 +280,9 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+
+    // LOD items
+    auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
+    lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
 }

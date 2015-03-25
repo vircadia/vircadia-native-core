@@ -31,11 +31,9 @@ signals:
 public slots:
     void reject();
     void sizeScaleValueChanged(int value);
-    void boundaryLevelValueChanged(int value);
     void resetClicked(bool checked);
     void reloadSliders();
-    void updateAvatarLODControls();
-    void updateAvatarLODValues();
+    void updateAutomaticLODAdjust();
 
 protected:
 
@@ -44,11 +42,13 @@ protected:
 
 private:
     QSlider* _lodSize;
-    QSlider* _boundaryLevelAdjust;
-    QCheckBox* _automaticAvatarLOD;
-    QDoubleSpinBox* _avatarLODDecreaseFPS;
-    QDoubleSpinBox* _avatarLODIncreaseFPS;
-    QDoubleSpinBox* _avatarLOD;
+
+    QCheckBox* _manualLODAdjust;
+
+    QDoubleSpinBox* _desktopLODDecreaseFPS;
+
+    QDoubleSpinBox* _hmdLODDecreaseFPS;
+
     QLabel* _feedback;
 };
 

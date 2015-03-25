@@ -382,6 +382,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
+    
+    // if we get a domain change, immediately attempt update location in metaverse server
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -1786,6 +1790,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 void Application::loadSettings() {
 
     DependencyManager::get<AudioClient>()->loadSettings();
+    DependencyManager::get<LODManager>()->loadSettings();
 
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
@@ -1793,6 +1798,7 @@ void Application::loadSettings() {
 
 void Application::saveSettings() {
     DependencyManager::get<AudioClient>()->saveSettings();
+    DependencyManager::get<LODManager>()->saveSettings();
 
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
@@ -1969,7 +1975,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
+    if (!isThrottleRendering()) {
         DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -3295,11 +3301,6 @@ void Application::connectedToDomain(const QString& hostname) {
     const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
-        // update our data-server with the domain-server we're logged in with
-        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
-
         _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
