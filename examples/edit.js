@@ -655,7 +655,6 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    print("CLICK");
     if (isActive && event.isLeftButton) {
         var result = findClickedEntity(event);
         if (result === null) {
