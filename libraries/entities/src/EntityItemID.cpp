@@ -25,7 +25,7 @@ EntityItemID::EntityItemID() :
     creatorTokenID(UNKNOWN_ENTITY_TOKEN), 
     isKnownID(false) 
 { 
-};
+}
 
 EntityItemID::EntityItemID(const EntityItemID& other)  :
     id(other.id), 
