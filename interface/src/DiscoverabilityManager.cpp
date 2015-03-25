@@ -61,6 +61,9 @@ void DiscoverabilityManager::updateLocation() {
                                       uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
             }
             
+            const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
+            locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
+            
             rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
             
             accountManager.authenticatedRequest(API_USER_LOCATION_PATH, QNetworkAccessManager::PutOperation,
