@@ -115,7 +115,7 @@ void AccountManager::updateBalance() {
         callbackParameters.jsonCallbackReceiver = &_accountInfo;
         callbackParameters.jsonCallbackMethod = "setBalanceFromJSON";
 
-        authenticatedRequest("/api/v1/wallets/mine", QNetworkAccessManager::GetOperation, callbackParameters);
+        sendRequest("/api/v1/wallets/mine", AccountManagerAuth::Required, QNetworkAccessManager::GetOperation, callbackParameters);
     }
 }
 
@@ -159,50 +159,30 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
     }
 }
 
-void AccountManager::authenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                          const JSONCallbackParameters& callbackParams,
-                                          const QByteArray& dataByteArray,
-                                          QHttpMultiPart* dataMultiPart,
-                                          const QVariantMap& propertyMap) {
+void AccountManager::sendRequest(const QString& path,
+                                 AccountManagerAuth::Type authType,
+                                 QNetworkAccessManager::Operation operation,
+                                 const JSONCallbackParameters& callbackParams,
+                                 const QByteArray& dataByteArray,
+                                 QHttpMultiPart* dataMultiPart,
+                                 const QVariantMap& propertyMap) {
     
-    QMetaObject::invokeMethod(this, "invokedRequest",
-                              Q_ARG(const QString&, path),
-                              Q_ARG(bool, true),
-                              Q_ARG(QNetworkAccessManager::Operation, operation),
-                              Q_ARG(const JSONCallbackParameters&, callbackParams),
-                              Q_ARG(const QByteArray&, dataByteArray),
-                              Q_ARG(QHttpMultiPart*, dataMultiPart),
-                              Q_ARG(QVariantMap, propertyMap));
-}
-
-void AccountManager::unauthenticatedRequest(const QString& path, QNetworkAccessManager::Operation operation,
-                                            const JSONCallbackParameters& callbackParams,
-                                            const QByteArray& dataByteArray,
-                                            QHttpMultiPart* dataMultiPart,
-                                            const QVariantMap& propertyMap) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendRequest",
+                                  Q_ARG(const QString&, path),
+                                  Q_ARG(AccountManagerAuth::Type, AccountManagerAuth::Required),
+                                  Q_ARG(QNetworkAccessManager::Operation, operation),
+                                  Q_ARG(const JSONCallbackParameters&, callbackParams),
+                                  Q_ARG(const QByteArray&, dataByteArray),
+                                  Q_ARG(QHttpMultiPart*, dataMultiPart),
+                                  Q_ARG(QVariantMap, propertyMap));
+    }
     
-    QMetaObject::invokeMethod(this, "invokedRequest",
-                              Q_ARG(const QString&, path),
-                              Q_ARG(bool, false),
-                              Q_ARG(QNetworkAccessManager::Operation, operation),
-                              Q_ARG(const JSONCallbackParameters&, callbackParams),
-                              Q_ARG(const QByteArray&, dataByteArray),
-                              Q_ARG(QHttpMultiPart*, dataMultiPart),
-                              Q_ARG(QVariantMap, propertyMap));
-}
-
-void AccountManager::invokedRequest(const QString& path,
-                                    bool requiresAuthentication,
-                                    QNetworkAccessManager::Operation operation,
-                                    const JSONCallbackParameters& callbackParams,
-                                    const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart,
-                                    const QVariantMap& propertyMap) {
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-
+    
     QNetworkRequest networkRequest;
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-
+    
     QUrl requestURL = _authURL;
     
     if (path.startsWith("/")) {
@@ -211,13 +191,17 @@ void AccountManager::invokedRequest(const QString& path,
         requestURL.setPath("/" + path);
     }
     
-    if (requiresAuthentication) {
+    if (authType != AccountManagerAuth::None ) {
         if (hasValidAccessToken()) {
             networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
                                         _accountInfo.getAccessToken().authorizationHeaderValue());
         } else {
-            qDebug() << "No valid access token present. Bailing on authenticated invoked request.";
-            return;
+            if (authType == AccountManagerAuth::Required) {
+                qDebug() << "No valid access token present. Bailing on invoked request to"
+                    << path << "that requires authentication";
+                return;
+            }
+            
         }
     }
     
@@ -540,8 +524,8 @@ void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const 
     
     requestMultiPart->append(keyPart);
     
-    authenticatedRequest(PUBLIC_KEY_UPDATE_PATH, QNetworkAccessManager::PutOperation,
-                         JSONCallbackParameters(), QByteArray(), requestMultiPart);
+    sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
+                JSONCallbackParameters(), QByteArray(), requestMultiPart);
     
     // get rid of the keypair generator now that we don't need it anymore
     sender()->deleteLater();
