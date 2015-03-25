@@ -37,13 +37,13 @@ class btPairCachingGhostObject;
 ///It uses a ghost object and convex sweep test to test for upcoming collisions. This is combined with discrete collision detection to recover from penetrations.
 ///Interaction between btKinematicCharacterController and dynamic rigid bodies needs to be explicity implemented by the user.
 
+
 ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInterface
 {
 protected:
 
     AvatarData* _avatarData = NULL;
     btPairCachingGhostObject* _ghostObject;
-    glm::vec3 _shapeLocalOffset;
 
     btConvexShape* _convexShape;//is also in _ghostObject, but it needs to be convex, so we store it here to avoid upcast
     btScalar _radius;
@@ -83,6 +83,12 @@ protected:
     bool _wasJumping;
     bool _useWalkDirection;
     btScalar _velocityTimeInterval;
+    uint32_t _pendingFlags;
+
+    glm::vec3 _shapeLocalOffset;
+    glm::vec3 _boxScale; // used to compute capsule shape
+
+    btDynamicsWorld* _dynamicsWorld = NULL;
 
     btVector3 computeReflectionDirection(const btVector3& direction, const btVector3& normal);
     btVector3 parallelComponent(const btVector3& direction, const btVector3& normal);
@@ -152,7 +158,13 @@ public:
     bool onGround() const;
     void setUpInterpolate(bool value);
 
-    bool needsShapeUpdate();
+    bool needsRemoval() const;
+    bool needsAddition() const;
+    void setEnabled(bool enabled);
+    void setDynamicsWorld(btDynamicsWorld* world);
+
+    void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
+    bool needsShapeUpdate() const;
     void updateShape();
 
     void preSimulation(btScalar timeStep);

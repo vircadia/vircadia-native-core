@@ -1903,8 +1903,6 @@ void Application::init() {
     _physicsEngine.init(&_entityEditSender);
 
 
-    _physicsEngine.setAvatarData(_myAvatar);
-
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
@@ -2191,6 +2189,7 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
+        _myAvatar->preSimulation();
         _physicsEngine.stepSimulation();
     }
 
@@ -4207,7 +4206,7 @@ void Application::checkSkeleton() {
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
     } else {
-        _myAvatar->updateLocalAABox();
-        _physicsEngine.setAvatarData(_myAvatar);
+        _myAvatar->updateCharacterController();
+        _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }

@@ -82,6 +82,8 @@ MyAvatar::MyAvatar() :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
+    _characterController(this),
+    _enablePhysics(false),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
@@ -954,15 +956,15 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
-void MyAvatar::updateLocalAABox() {
+void MyAvatar::updateCharacterController() {
+    // compute localAABox
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     float radius = capsule.getRadius();
     float height = 2.0f * (capsule.getHalfHeight() + radius);
-    glm::vec3 offset = _skeletonModel.getBoundingShapeOffset();
     glm::vec3 corner(-radius, -0.5f * height, -radius);
-    corner += offset;
+    corner += _skeletonModel.getBoundingShapeOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
-    _localAABox.setBox(corner, scale);
+    _characterController.setLocalBoundingBox(corner, scale);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1578,6 +1580,10 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     }
 
     return palm->getPosition();
+}
+
+void MyAvatar::preSimulation() {
+    _characterController.setEnabled(_enablePhysics);
 }
 
 void MyAvatar::clearDriveKeys() {

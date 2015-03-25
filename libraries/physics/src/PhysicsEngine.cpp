@@ -280,12 +280,12 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 void PhysicsEngine::stepSimulation() {
     lock();
     // NOTE: the grand order of operations is:
-    // (1) relay incoming changes
+    // (1) pull incoming changes
     // (2) step simulation
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-    // This is step (1).
+    // This is step (1) pull incoming changes
     relayIncomingChangesToSimulation();
 
     const int MAX_NUM_SUBSTEPS = 4;
@@ -296,10 +296,17 @@ void PhysicsEngine::stepSimulation() {
 
     // TODO: move character->preSimulation() into relayIncomingChanges
     if (_characterController) {
+        if (_characterController->needsRemoval()) {
+            _characterController->setDynamicsWorld(NULL);
+        }
+        _characterController->updateShape();
+        if (_characterController->needsAddition()) {
+            _characterController->setDynamicsWorld(_dynamicsWorld);
+        }
         _characterController->preSimulation(timeStep);
     }
 
-    // This is step (2).
+    // This is step (2) step simulation
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
     stepNonPhysicalKinematics(usecTimestampNow());
@@ -600,34 +607,10 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     return true;
 }
 
-void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
-    if (_characterController) {
-        bool needsShapeUpdate = _characterController->needsShapeUpdate();
-        if (needsShapeUpdate) {
-            lock();
-            // remove old info
-            _dynamicsWorld->removeCollisionObject(_characterController->getGhostObject());
-            _dynamicsWorld->removeAction(_characterController);
-            // update shape
-            _characterController->updateShape();
-            // insert new info
-            _dynamicsWorld->addCollisionObject(_characterController->getGhostObject(), 
-                    btBroadphaseProxy::CharacterFilter,
-                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
-            _dynamicsWorld->addAction(_characterController);
-            _characterController->reset(_dynamicsWorld);
-            unlock();
-        }
-    } else {
-        // initialize _characterController
-        assert(avatarData); // don't pass NULL argument
+void PhysicsEngine::setCharacterController(CharacterController* character) {
+    if (!_characterController) {
         lock();
-        _characterController = new CharacterController(avatarData);
-        _dynamicsWorld->addCollisionObject(_characterController->getGhostObject(), 
-                btBroadphaseProxy::CharacterFilter,
-                btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
-        _dynamicsWorld->addAction(_characterController);
-        _characterController->reset(_dynamicsWorld);
+        _characterController = character;
         unlock();
     }
 }

@@ -21,6 +21,12 @@ subject to the following restrictions:
 #include "BulletUtil.h"
 #include "CharacterController.h"
 
+const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
+const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
+//const uint32_t PENDING_FLAG_ENABLE = 1U << 0;
+//const uint32_t PENDING_FLAG_DISABLE = 1U << 1;
+const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
+const uint32_t PENDING_FLAG_JUMP = 1U << 4;
 
 // static helper method
 static btVector3 getNormalizedVector(const btVector3& v) {
@@ -223,11 +229,10 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _avatarData = avatarData;
 
     // cache the "PhysicsEnabled" state of _avatarData
-    _avatarData->lockForRead();
-    _enabled = _avatarData->isPhysicsEnabled();
-    _avatarData->unlock();
+    _enabled = false;
 
-    createShapeAndGhost();
+    _ghostObject = NULL;
+    _convexShape = NULL;
 
     _addedMargin = 0.02f;
     _walkDirection.setValue(0.0f,0.0f,0.0f);
@@ -242,6 +247,7 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _wasJumping = false;
     setMaxSlope(btRadians(45.0f));
     _lastStepUp = 0.0f;
+    _pendingFlags = 0;
 }
 
 CharacterController::~CharacterController() {
@@ -349,7 +355,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     return penetration;
 }
 
-void CharacterController::stepUp( btCollisionWorld* world) {
+void CharacterController::stepUp(btCollisionWorld* world) {
     // phase 1: up
 
     // compute start and end
@@ -416,7 +422,7 @@ void CharacterController::updateTargetPositionBasedOnCollision(const btVector3& 
     }
 }
 
-void CharacterController::stepForward( btCollisionWorld* collisionWorld, const btVector3& movement) {
+void CharacterController::stepForward(btCollisionWorld* collisionWorld, const btVector3& movement) {
     // phase 2: forward
     _targetPosition = _currentPosition + movement;
 
@@ -472,7 +478,7 @@ void CharacterController::stepForward( btCollisionWorld* collisionWorld, const b
     _convexShape->setMargin(margin);
 }
 
-void CharacterController::stepDown( btCollisionWorld* collisionWorld, btScalar dt) {
+void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt) {
     // phase 3: down
     //
     // The "stepDown" phase first makes a normal sweep down that cancels the lift from the "stepUp" phase.  
@@ -558,7 +564,7 @@ void CharacterController::setVelocityForTimeInterval(const btVector3& velocity, 
     _velocityTimeInterval += timeInterval;
 }
 
-void CharacterController::reset( btCollisionWorld* collisionWorld ) {
+void CharacterController::reset(btCollisionWorld* collisionWorld) {
     _verticalVelocity = 0.0;
     _verticalOffset = 0.0;
     _wasOnGround = false;
@@ -583,7 +589,7 @@ void CharacterController::warp(const btVector3& origin) {
 }
 
 
-void CharacterController::preStep(  btCollisionWorld* collisionWorld) {
+void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     if (!_enabled) {
         return;
     }
@@ -603,7 +609,7 @@ void CharacterController::preStep(  btCollisionWorld* collisionWorld) {
     _targetPosition = _currentPosition;
 }
 
-void CharacterController::playerStep(  btCollisionWorld* collisionWorld, btScalar dt) {
+void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar dt) {
     if (!_enabled || (!_useWalkDirection && _velocityTimeInterval <= 0.0)) {
         return; // no motion
     }
@@ -710,106 +716,163 @@ void CharacterController::setUpInterpolate(bool value) {
     // (interpolate = true, and now default behavior) or happily penetrate objects above the avatar.
 }
 
+/*
 // protected
 void CharacterController::createShapeAndGhost() {
     // get new dimensions from avatar
-    _avatarData->lockForRead();
-    AABox box = _avatarData->getLocalAABox();
-
-    // create new ghost
-    _ghostObject = new btPairCachingGhostObject();
-    _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                    glmToBullet(_avatarData->getPosition())));
-    _avatarData->unlock();
-
-    const glm::vec3& diagonal = box.getScale();
-    _radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    _halfHeight = 0.5f * diagonal.y - _radius;
+    float x = _boxScale.x;
+    float z = _boxScale.z;
+    _radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
+    _halfHeight = 0.5f * _boxScale.y - _radius;
     float MIN_HALF_HEIGHT = 0.1f;
     if (_halfHeight < MIN_HALF_HEIGHT) {
         _halfHeight = MIN_HALF_HEIGHT;
     }
-    glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
-    _shapeLocalOffset = offset;
+    // NOTE: _shapeLocalOffset is already computed
 
-    // stepHeight affects the heights of ledges that the character can ascend
-    // however the actual ledge height is some function of _stepHeight 
-    // due to character shape and this CharacterController algorithm 
-    // (the function is approximately 2*_stepHeight)
-    _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
-
-    // create new shape
-    _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
-    _ghostObject->setCollisionShape(_convexShape);
-    _ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+    if (_radius > 0.0f) {
+        // create new ghost
+        _ghostObject = new btPairCachingGhostObject();
+        _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                        glmToBullet(_avatarData->getPosition())));
+        // stepHeight affects the heights of ledges that the character can ascend
+        // however the actual ledge height is some function of _stepHeight 
+        // due to character shape and this CharacterController algorithm 
+        // (the function is approximately 2*_stepHeight)
+        _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
+    
+        // create new shape
+        _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+        _ghostObject->setCollisionShape(_convexShape);
+        _ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+    } else {
+        // TODO: handle this failure case
+    }
+    _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
 }
+*/
 
-bool CharacterController::needsShapeUpdate() {
-    // get new dimensions from avatar
-    _avatarData->lockForRead();
-    AABox box = _avatarData->getLocalAABox();
-    _avatarData->unlock();
+void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
+    _boxScale = scale;
 
-    const glm::vec3& diagonal = box.getScale();
-    float radius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    float halfHeight = 0.5f * diagonal.y - radius;
+    float x = _boxScale.x;
+    float z = _boxScale.z;
+    float radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
+    float halfHeight = 0.5f * _boxScale.y - radius;
     float MIN_HALF_HEIGHT = 0.1f;
     if (halfHeight < MIN_HALF_HEIGHT) {
         halfHeight = MIN_HALF_HEIGHT;
     }
-    glm::vec3 offset = box.getCorner() + 0.5f * diagonal;
 
-    // compare dimensions (and offset)
+    // compare dimensions
     float radiusDelta = glm::abs(radius - _radius);
     float heightDelta = glm::abs(halfHeight - _halfHeight);
     if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
         // shape hasn't changed --> nothing to do
-        float offsetDelta = glm::distance(offset, _shapeLocalOffset);
-        if (offsetDelta > FLT_EPSILON) {
-            // if only the offset changes then we can update it --> no need to rebuild shape
-            _shapeLocalOffset = offset;
-        }
-        return false;
+    } else {
+        // we need to: remove, update, add
+        _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION
+            | PENDING_FLAG_UPDATE_SHAPE
+            | PENDING_FLAG_ADD_TO_SIMULATION;
     }
-    return true;
+
+    // it's ok to change offset immediately -- there are no thread safety issues here
+    _shapeLocalOffset = corner + 0.5f * _boxScale;
+}
+
+bool CharacterController::needsAddition() const {
+    return (bool)(_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION);
+}
+
+bool CharacterController::needsRemoval() const {
+    return (bool)(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION);
+}
+
+void CharacterController::setEnabled(bool enabled) {
+    if (enabled != _enabled) {
+        if (enabled) {
+            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
+        } else {
+            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
+        }
+        _enabled = enabled;
+    }
+}
+
+void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
+    if (_dynamicsWorld != world) {
+        if (_dynamicsWorld) {
+            _dynamicsWorld->removeCollisionObject(getGhostObject());
+            _dynamicsWorld->removeAction(this);
+        }
+        _dynamicsWorld = world;
+        if (_dynamicsWorld) {
+            _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
+            _dynamicsWorld->addCollisionObject(getGhostObject(),
+                    btBroadphaseProxy::CharacterFilter,
+                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
+            _dynamicsWorld->addAction(this);
+            reset(_dynamicsWorld);
+        } else {
+            _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
+        }
+    } else {
+        _pendingFlags &= ~ (PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_ADD_TO_SIMULATION);
+    }
 }
 
 void CharacterController::updateShape() {
-    // DANGER: make sure this CharacterController and its GhostShape have been removed from
-    // the PhysicsEngine before calling this.
-
-    // delete shape and GhostObject
-    delete _ghostObject;
-    _ghostObject = NULL;
-    delete _convexShape;
-    _convexShape = NULL;
-   
-    createShapeAndGhost();
+    if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
+        assert(!(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION));
+        _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
+        // make sure there is NO pending removal from simulation at this point
+        // (don't want to delete _ghostObject out from under the simulation)
+        // delete shape and GhostObject
+        delete _ghostObject;
+        _ghostObject = NULL;
+        delete _convexShape;
+        _convexShape = NULL;
+    
+        // compute new dimensions from avatar's bounding box
+        float x = _boxScale.x;
+        float z = _boxScale.z;
+        _radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
+        _halfHeight = 0.5f * _boxScale.y - _radius;
+        float MIN_HALF_HEIGHT = 0.1f;
+        if (_halfHeight < MIN_HALF_HEIGHT) {
+            _halfHeight = MIN_HALF_HEIGHT;
+        }
+        // NOTE: _shapeLocalOffset is already computed
+    
+        if (_radius > 0.0f) {
+            // create new ghost
+            _ghostObject = new btPairCachingGhostObject();
+            _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
+                                                            glmToBullet(_avatarData->getPosition())));
+            // stepHeight affects the heights of ledges that the character can ascend
+            // however the actual ledge height is some function of _stepHeight 
+            // due to character shape and this CharacterController algorithm 
+            // (the function is approximately 2*_stepHeight)
+            _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
+        
+            // create new shape
+            _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+            _ghostObject->setCollisionShape(_convexShape);
+            _ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+        } else {
+            // TODO: handle this failure case
+        }
+    }
 }
 
 void CharacterController::preSimulation(btScalar timeStep) {
-    bool wasEnabled = _enabled;
+    if (_enabled && _dynamicsWorld) {
+        glm::quat rotation = _avatarData->getOrientation();
+        glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
+        // TODO: harvest jump event here
+        btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
 
-    // lock avatarData, get everything we need from it ASAP, then unlock
-    _avatarData->lockForRead();
-    _enabled = _avatarData->isPhysicsEnabled();
-    glm::quat rotation = _avatarData->getOrientation();
-    glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
-    // TODO: Andrew to implement: harvest jump event here
-    btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
-
-    _avatarData->unlock();
-
-    if (wasEnabled != _enabled) {
-        if (_enabled) {
-            // TODO: Andrew to implement: add collision shape back into world
-        } else {
-            // TODO: Andrew to implement: remove collision shape from world,
-            // otherwise things will continue to collide with it
-        }
-    }
-
-    if (_enabled) {
         _ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
         setVelocityForTimeInterval(walkVelocity, timeStep);
     }
@@ -817,13 +880,11 @@ void CharacterController::preSimulation(btScalar timeStep) {
 
 void CharacterController::postSimulation() {
     if (_enabled) {
-        _avatarData->lockForWrite();
         const btTransform& avatarTransform = _ghostObject->getWorldTransform();            
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 offset = rotation * _shapeLocalOffset;
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);             
-        _avatarData->unlock();
     }
 }
 
