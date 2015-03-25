@@ -107,7 +107,7 @@ private:
     
     quint64 _lastDownShift = 0;
     quint64 _lastUpShift = 0;
-    bool _lastAdjustWasUpShift = true; // start out as if we've just upshifted
+    bool _isDownshifting = false; // start out as if we're not downshifting
     
     SimpleMovingAverage _fpsAverageStartWindow = START_DELAY_SAMPLES_OF_FRAMES;
     SimpleMovingAverage _fpsAverageDownWindow = DOWN_SHIFT_SAMPLES_OF_FRAMES;

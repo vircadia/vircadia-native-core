@@ -50,6 +50,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         currentFPS = ASSUMED_FPS;
         _lastUpShift = _lastDownShift = usecTimestampNow();
     }
+    
     _fpsAverageStartWindow.updateAverage(currentFPS);
     _fpsAverageDownWindow.updateAverage(currentFPS);
     _fpsAverageUpWindow.updateAverage(currentFPS);
@@ -64,12 +65,17 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     if (_automaticLODAdjust) {
     
         // LOD Downward adjustment 
-        // If our last adjust was an upshift, then we don't want to consider any downshifts until we've delayed at least
-        // our START_DELAY_WINDOW_IN_SECS
-        bool doDownShift = _lastAdjustWasUpShift
-                ? (elapsedSinceUpShift > START_SHIFT_ELPASED && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS())
-                : (elapsedSinceDownShift > DOWN_SHIFT_ELPASED && _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS());
+        // If we've been downshifting, we watch a shorter downshift window so that we will quickly move toward our
+        // target frame rate. But if we haven't just done a downshift (either because our last shift was an upshift,
+        // or because we've just started out) then we look at a much longer window to consider whether or not to start
+        // downshifting.
+        bool doDownShift = false; 
 
+        if (_isDownshifting) {
+            doDownShift = (elapsedSinceDownShift > DOWN_SHIFT_ELPASED && _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS());
+        } else {
+            doDownShift = (elapsedSinceUpShift > START_SHIFT_ELPASED && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS());
+        }
         
         if (doDownShift) {
 
@@ -83,24 +89,26 @@ void LODManager::autoAdjustLOD(float currentFPS) {
             }
 
             if (changed) {
-                if (_lastAdjustWasUpShift) {
-                    qDebug() << "adjusting LOD DOWN after initial delay..."
-                                << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was " 
-                                << _fpsAverageStartWindow.getAverage() 
-                                << "minimum is:" << getLODDecreaseFPS() 
-                                << "elapsedSinceUpShift:" << elapsedSinceUpShift
-                                << " NEW _octreeSizeScale=" << _octreeSizeScale;
-                } else {
+                if (_isDownshifting) {
+                    // subsequent downshift
                     qDebug() << "adjusting LOD DOWN..."
                                 << "average fps for last "<< DOWN_SHIFT_WINDOW_IN_SECS <<"seconds was " 
                                 << _fpsAverageDownWindow.getAverage() 
                                 << "minimum is:" << getLODDecreaseFPS() 
                                 << "elapsedSinceDownShift:" << elapsedSinceDownShift
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
+                } else {
+                    // first downshift
+                    qDebug() << "adjusting LOD DOWN after initial delay..."
+                                << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was " 
+                                << _fpsAverageStartWindow.getAverage() 
+                                << "minimum is:" << getLODDecreaseFPS() 
+                                << "elapsedSinceUpShift:" << elapsedSinceUpShift
+                                << " NEW _octreeSizeScale=" << _octreeSizeScale;
                 }
 
                 _lastDownShift = now;
-                _lastAdjustWasUpShift = false;
+                _isDownshifting = true;
         
                 emit LODDecreased();
             }
@@ -130,7 +138,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
 
                     _lastUpShift = now;
-                    _lastAdjustWasUpShift = true;
+                    _isDownshifting = false;
                 
                     emit LODIncreased();
                 }
@@ -149,13 +157,11 @@ void LODManager::autoAdjustLOD(float currentFPS) {
 }
 
 void LODManager::resetLODAdjust() {
-
-    // TODO: Do we need this???
-    /*
+    _fpsAverageStartWindow.reset();
     _fpsAverageDownWindow.reset();
     _fpsAverageUpWindow.reset();
-    _lastAdjust = usecTimestampNow();
-    */
+    _lastUpShift = _lastDownShift = usecTimestampNow();
+    _isDownshifting = false;
 }
 
 QString LODManager::getLODFeedbackText() {
