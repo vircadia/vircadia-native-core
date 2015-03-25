@@ -18,9 +18,8 @@
 #include <SimpleMovingAverage.h>
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0;
-const float DEFAULT_DESKTOP_LOD_UP_FPS = 50.0;
 const float DEFAULT_HMD_LOD_DOWN_FPS = 60.0;
-const float DEFAULT_HMD_LOD_UP_FPS = 65.0;
+const float INCREASE_LOD_GAP = 5.0f;
 
 const quint64 ADJUST_LOD_DOWN_DELAY = 1000 * 1000 * 0.5; // Consider adjusting LOD down after half a second
 const quint64 ADJUST_LOD_UP_DELAY = ADJUST_LOD_DOWN_DELAY * 2;
@@ -34,10 +33,9 @@ const float ADJUST_LOD_UP_BY = 1.1f;
 const float ADJUST_LOD_MIN_SIZE_SCALE = 1.0f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
-const float MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 0.1f;
-const float MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER = 15.0f;
-const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
-const float MAXIMUM_AUTO_ADJUST_AVATAR_LOD_DISTANCE_MULTIPLIER = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
+// The ratio of "visibility" of avatars to other content. A value larger than 1 will mean Avatars "cull" later than entities
+// do. But both are still culled using the same angular size logic.
+const float AVATAR_TO_ENTITY_RATIO = 2.0f;
 
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
@@ -53,15 +51,12 @@ public:
 
     Q_INVOKABLE void setDesktopLODDecreaseFPS(float value) { _desktopLODDecreaseFPS = value; }
     Q_INVOKABLE float getDesktopLODDecreaseFPS() const { return _desktopLODDecreaseFPS; }
-    Q_INVOKABLE void setDesktopLODIncreaseFPS(float value) { _desktopLODIncreaseFPS = value; }
-    Q_INVOKABLE float getDesktopLODIncreaseFPS() const { return _desktopLODIncreaseFPS; }
+    Q_INVOKABLE float getDesktopLODIncreaseFPS() const { return _desktopLODDecreaseFPS + INCREASE_LOD_GAP; }
 
     Q_INVOKABLE void setHMDLODDecreaseFPS(float value) { _hmdLODDecreaseFPS = value; }
     Q_INVOKABLE float getHMDLODDecreaseFPS() const { return _hmdLODDecreaseFPS; }
-    Q_INVOKABLE void setHMDLODIncreaseFPS(float value) { _hmdLODIncreaseFPS = value; }
-    Q_INVOKABLE float getHMDLODIncreaseFPS() const { return _hmdLODIncreaseFPS; }
+    Q_INVOKABLE float getHMDLODIncreaseFPS() const { return _hmdLODDecreaseFPS + INCREASE_LOD_GAP; }
 
-    Q_INVOKABLE void setAvatarLODDistanceMultiplier(float multiplier) { _avatarLODDistanceMultiplier = multiplier; }
     Q_INVOKABLE float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     
     // User Tweakable LOD Items
@@ -90,16 +85,14 @@ signals:
     void LODDecreased();
     
 private:
-    LODManager() {}
+    LODManager();
+    void calculateAvatarLODDistanceMultiplier();
     
     bool _automaticLODAdjust = true;
     float _desktopLODDecreaseFPS = DEFAULT_DESKTOP_LOD_DOWN_FPS;
-    float _desktopLODIncreaseFPS = DEFAULT_DESKTOP_LOD_UP_FPS;
     float _hmdLODDecreaseFPS = DEFAULT_HMD_LOD_DOWN_FPS;
-    float _hmdLODIncreaseFPS = DEFAULT_HMD_LOD_UP_FPS;
 
-    float _avatarLODDistanceMultiplier = DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER;
-    
+    float _avatarLODDistanceMultiplier;
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
     

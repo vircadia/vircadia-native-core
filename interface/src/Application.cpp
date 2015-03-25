@@ -1790,6 +1790,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 void Application::loadSettings() {
 
     DependencyManager::get<AudioClient>()->loadSettings();
+    DependencyManager::get<LODManager>()->loadSettings();
 
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
@@ -1797,6 +1798,7 @@ void Application::loadSettings() {
 
 void Application::saveSettings() {
     DependencyManager::get<AudioClient>()->saveSettings();
+    DependencyManager::get<LODManager>()->saveSettings();
 
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
