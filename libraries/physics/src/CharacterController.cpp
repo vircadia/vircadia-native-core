@@ -684,10 +684,13 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm
     if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
         // shape hasn't changed --> nothing to do
     } else {
-        // we need to: remove, update, add
+        // we always need to: REMOVE when UPDATE_SHAPE, to avoid deleting shapes out from under the PhysicsEngine
         _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION
-            | PENDING_FLAG_UPDATE_SHAPE
-            | PENDING_FLAG_ADD_TO_SIMULATION;
+            | PENDING_FLAG_UPDATE_SHAPE;
+        // but only need to ADD back when we happen to be enabled
+        if (_enabled) {
+            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
+        }
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here
@@ -705,8 +708,12 @@ bool CharacterController::needsRemoval() const {
 void CharacterController::setEnabled(bool enabled) {
     if (enabled != _enabled) {
         if (enabled) {
+            // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
+            // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
         } else {
+            // Always set REMOVE bit when going disabled, and we always clear the ADD bit just in case 
+            // it was previously set by something else (e.g. an UPDATE_SHAPE event).
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
         }
