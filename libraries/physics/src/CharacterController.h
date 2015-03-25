@@ -81,7 +81,6 @@ protected:
     bool _enabled;
     bool _wasOnGround;
     bool _wasJumping;
-    bool _useWalkDirection;
     btScalar _velocityTimeInterval;
     uint32_t _pendingFlags;
 
@@ -132,18 +131,19 @@ public:
     virtual void setVelocityForTimeInterval(const btVector3& velocity,
             btScalar timeInterval);
 
-    void reset(btCollisionWorld* collisionWorld );
-    void warp(const btVector3& origin);
+    virtual void reset(btCollisionWorld* collisionWorld );
+    virtual void warp(const btVector3& origin);
 
-    void preStep(btCollisionWorld* collisionWorld);
-    void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
+    virtual void preStep(btCollisionWorld* collisionWorld);
+    virtual void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
+
+    virtual bool canJump() const;
+    virtual void jump();
+    virtual bool onGround() const;
 
     void setMaxFallSpeed(btScalar speed);
     void setJumpSpeed(btScalar jumpSpeed);
     void setMaxJumpHeight(btScalar maxJumpHeight);
-    bool canJump() const;
-
-    void jump();
 
     void setGravity(btScalar gravity);
     btScalar getGravity() const;
@@ -155,7 +155,6 @@ public:
 
     btPairCachingGhostObject* getGhostObject();
 
-    bool onGround() const;
     void setUpInterpolate(bool value);
 
     bool needsRemoval() const;

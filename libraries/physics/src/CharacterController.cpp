@@ -23,10 +23,8 @@ subject to the following restrictions:
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
-//const uint32_t PENDING_FLAG_ENABLE = 1U << 0;
-//const uint32_t PENDING_FLAG_DISABLE = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
-const uint32_t PENDING_FLAG_JUMP = 1U << 4;
+const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 
 // static helper method
 static btVector3 getNormalizedVector(const btVector3& v) {
@@ -40,34 +38,6 @@ static btVector3 getNormalizedVector(const btVector3& v) {
     n /= vLength;
     return n;
 }
-
-///@todo Interact with dynamic objects,
-///Ride kinematicly animated platforms properly
-///More realistic (or maybe just a config option) falling
-/// -> Should integrate falling velocity manually and use that in stepDown()
-///Support jumping
-///Support ducking
-
-/* This callback is unused, but we're keeping it around just in case we figure out how to use it.
-class btKinematicClosestNotMeRayResultCallback : public btCollisionWorld::ClosestRayResultCallback
-{
-public:
-btKinematicClosestNotMeRayResultCallback(btCollisionObject* me) : btCollisionWorld::ClosestRayResultCallback(btVector3(0.0, 0.0, 0.0), btVector3(0.0, 0.0, 0.0))
-{
-_me = me;
-}
-
-virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace)
-{
-if (rayResult.m_collisionObject == _me)
-return 1.0;
-
-return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace);
-}
-protected:
-btCollisionObject* _me;
-};
-*/
 
 class btKinematicClosestNotMeConvexResultCallback : public btCollisionWorld::ClosestConvexResultCallback {
     public:
@@ -236,13 +206,12 @@ CharacterController::CharacterController(AvatarData* avatarData) {
 
     _addedMargin = 0.02f;
     _walkDirection.setValue(0.0f,0.0f,0.0f);
-    _useWalkDirection = true; // use walk direction by default, legacy behavior
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
     _gravity = 9.8f;
     _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
-    _jumpSpeed = 10.0f; // ?
+    _jumpSpeed = 7.0f;
     _wasOnGround = false;
     _wasJumping = false;
     setMaxSlope(btRadians(45.0f));
@@ -485,14 +454,9 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
     // If it hits a ledge then it stops otherwise it makes another sweep down in search of a floor within
     // reach of the character's feet.
 
-    btScalar downSpeed = (_verticalVelocity < 0.0f) ? -_verticalVelocity : 0.0f;
-    if (downSpeed > 0.0f && downSpeed > _maxFallSpeed && (_wasOnGround || !_wasJumping)) {
-        downSpeed = _maxFallSpeed;
-    }
-
     // first sweep for ledge
     btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
-    btVector3 step = up * (-(_lastStepUp + downSpeed * dt));
+    btVector3 step = (_verticalVelocity * dt - _lastStepUp) * up;
 
     StepDownConvexResultCallback callback(_ghostObject, 
             up, 
@@ -517,7 +481,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _verticalVelocity = 0.0f;
         _verticalOffset = 0.0f;
         _wasJumping = false;
-    } else {
+    } else if (!_wasJumping) {
         // sweep again for floor within downStep threshold
         StepDownConvexResultCallback callback2 (_ghostObject, 
                 up, 
@@ -548,17 +512,19 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _currentPosition = oldPosition - _lastStepUp * up;
             _lastStepUp = 0.0f;
         }
+    } else {
+        // we're jumping, and didn't hit anything, so our target position is where we would have fallen to
+        _currentPosition = _targetPosition;
     }
 }
 
 void CharacterController::setWalkDirection(const btVector3& walkDirection) {
-    _useWalkDirection = true;
-    _walkDirection = walkDirection;
-    _normalizedDirection = getNormalizedVector(_walkDirection);
+    // This must be implemented to satisfy base-class interface but does nothing.
+    // Use setVelocityForTimeInterval() instead.
+    assert(false);
 }
 
 void CharacterController::setVelocityForTimeInterval(const btVector3& velocity, btScalar timeInterval) {
-    _useWalkDirection = false;
     _walkDirection = velocity;
     _normalizedDirection = getNormalizedVector(_walkDirection);
     _velocityTimeInterval += timeInterval;
@@ -610,7 +576,7 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
 }
 
 void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar dt) {
-    if (!_enabled || (!_useWalkDirection && _velocityTimeInterval <= 0.0)) {
+    if (!_enabled) {
         return; // no motion
     }
 
@@ -634,17 +600,15 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     // (3) step the character down looking for new ledges, the original floor, or a floor one step below where we started
 
     stepUp(collisionWorld);
-    if (_useWalkDirection) {
-        stepForward(collisionWorld, _walkDirection);
-    } else {
-        // compute substep and decrement total interval
-        btScalar dtMoving = (dt < _velocityTimeInterval) ? dt : _velocityTimeInterval;
-        _velocityTimeInterval -= dt;
 
-        // stepForward substep
-        btVector3 move = _walkDirection * dtMoving;
-        stepForward(collisionWorld, move);
-    }
+    // compute substep and decrement total interval
+    btScalar dtMoving = (dt < _velocityTimeInterval) ? dt : _velocityTimeInterval;
+    _velocityTimeInterval -= dt;
+
+    // stepForward substep
+    btVector3 move = _walkDirection * dtMoving;
+    stepForward(collisionWorld, move);
+
     stepDown(collisionWorld, dt);
 
     xform.setOrigin(_currentPosition);
@@ -668,22 +632,7 @@ bool CharacterController::canJump() const {
 }
 
 void CharacterController::jump() {
-    if (!canJump()) {
-        return;
-    }
-
-    _verticalVelocity = _jumpSpeed;
-    _wasJumping = true;
-
-#if 0
-    currently no jumping.
-    btTransform xform;
-    _rigidBody->getMotionState()->getWorldTransform(xform);
-    btVector3 up = xform.getBasis()[1];
-    up.normalize();
-    btScalar magnitude = (btScalar(1.0)/_rigidBody->getInvMass()) * btScalar(8.0);
-    _rigidBody->applyCentralImpulse (up * magnitude);
-#endif
+    _pendingFlags |= PENDING_FLAG_JUMP;
 }
 
 void CharacterController::setGravity(btScalar gravity) {
@@ -704,7 +653,7 @@ btScalar CharacterController::getMaxSlope() const {
 }
 
 bool CharacterController::onGround() const {
-    return _enabled && _verticalVelocity == 0.0 && _verticalOffset == 0.0;
+    return _enabled && _verticalVelocity == 0.0f && _verticalOffset == 0.0f;
 }
 
 void CharacterController::debugDraw(btIDebugDraw* debugDrawer) {
@@ -715,42 +664,6 @@ void CharacterController::setUpInterpolate(bool value) {
     // What it used to do was determine whether stepUp() would: stop where it hit the ceiling
     // (interpolate = true, and now default behavior) or happily penetrate objects above the avatar.
 }
-
-/*
-// protected
-void CharacterController::createShapeAndGhost() {
-    // get new dimensions from avatar
-    float x = _boxScale.x;
-    float z = _boxScale.z;
-    _radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
-    _halfHeight = 0.5f * _boxScale.y - _radius;
-    float MIN_HALF_HEIGHT = 0.1f;
-    if (_halfHeight < MIN_HALF_HEIGHT) {
-        _halfHeight = MIN_HALF_HEIGHT;
-    }
-    // NOTE: _shapeLocalOffset is already computed
-
-    if (_radius > 0.0f) {
-        // create new ghost
-        _ghostObject = new btPairCachingGhostObject();
-        _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                        glmToBullet(_avatarData->getPosition())));
-        // stepHeight affects the heights of ledges that the character can ascend
-        // however the actual ledge height is some function of _stepHeight 
-        // due to character shape and this CharacterController algorithm 
-        // (the function is approximately 2*_stepHeight)
-        _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
-    
-        // create new shape
-        _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
-        _ghostObject->setCollisionShape(_convexShape);
-        _ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
-    } else {
-        // TODO: handle this failure case
-    }
-    _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
-}
-*/
 
 void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
     _boxScale = scale;
@@ -808,7 +721,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         }
         _dynamicsWorld = world;
         if (_dynamicsWorld) {
-            _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
+            _pendingFlags &= ~ (PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_JUMP);
             _dynamicsWorld->addCollisionObject(getGhostObject(),
                     btBroadphaseProxy::CharacterFilter,
                     btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
@@ -870,11 +783,17 @@ void CharacterController::preSimulation(btScalar timeStep) {
     if (_enabled && _dynamicsWorld) {
         glm::quat rotation = _avatarData->getOrientation();
         glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
-        // TODO: harvest jump event here
         btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
 
         _ghostObject->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
         setVelocityForTimeInterval(walkVelocity, timeStep);
+        if (_pendingFlags & PENDING_FLAG_JUMP) {
+            _pendingFlags &= ~ PENDING_FLAG_JUMP;
+            if (canJump()) {
+                _verticalVelocity = _jumpSpeed;
+                _wasJumping = true;
+            }
+        }
     }
 }
 

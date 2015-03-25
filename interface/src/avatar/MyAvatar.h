@@ -89,7 +89,7 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    void jump() { _shouldJump = true; };
+    void jump() { _characterController.jump(); }
     
     bool isMyAvatar() { return true; }
     
@@ -194,7 +194,6 @@ private:
     float _turningKeyPressTime;
     glm::vec3 _gravity;
 
-    bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
