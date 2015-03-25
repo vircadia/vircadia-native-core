@@ -164,7 +164,7 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
     bool needsShapeUpdate() const;
-    void updateShape();
+    void updateShapeIfNecessary();
 
     void preSimulation(btScalar timeStep);
     void postSimulation();

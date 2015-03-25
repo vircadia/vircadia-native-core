@@ -299,7 +299,7 @@ void PhysicsEngine::stepSimulation() {
         if (_characterController->needsRemoval()) {
             _characterController->setDynamicsWorld(NULL);
         }
-        _characterController->updateShape();
+        _characterController->updateShapeIfNecessary();
         if (_characterController->needsAddition()) {
             _characterController->setDynamicsWorld(_dynamicsWorld);
         }

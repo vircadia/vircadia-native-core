@@ -735,7 +735,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }
 
-void CharacterController::updateShape() {
+void CharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
         assert(!(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION));
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
