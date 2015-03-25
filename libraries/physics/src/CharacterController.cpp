@@ -5,12 +5,12 @@ Copyright (c) 2003-2008 Erwin Coumans  http://bulletphysics.com
 
 This software is provided 'as-is', without any express or implied warranty.
 In no event will the authors be held liable for any damages arising from the use of this software.
-Permission is granted to anyone to use this software for any purpose, 
-including commercial applications, and to alter it and redistribute it freely, 
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it freely,
 subject to the following restrictions:
 
-1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. 
-   If you use this software in a product, an acknowledgment in the product documentation would be appreciated 
+1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software.
+   If you use this software in a product, an acknowledgment in the product documentation would be appreciated
    but is not required.
 2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
@@ -29,7 +29,7 @@ const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 
 // static helper method
 static btVector3 getNormalizedVector(const btVector3& v) {
-    // NOTE: check the length first, then normalize 
+    // NOTE: check the length first, then normalize
     // --> avoids assert when trying to normalize zero-length vectors
     btScalar vLength = v.length();
     if (vLength < FLT_EPSILON) {
@@ -87,8 +87,8 @@ protected:
 class StepDownConvexResultCallback : public btCollisionWorld::ClosestConvexResultCallback {
     // special convex sweep callback for character during the stepDown() phase
     public:
-        StepDownConvexResultCallback(btCollisionObject* me, 
-                const btVector3& up, 
+        StepDownConvexResultCallback(btCollisionObject* me,
+                const btVector3& up,
                 const btVector3& start,
                 const btVector3& step,
                 const btVector3& pushDirection,
@@ -144,7 +144,7 @@ class StepDownConvexResultCallback : public btCollisionWorld::ClosestConvexResul
             btVector3 side(_radius, - (_halfHeight - _step.length() + fractionalStep.dot(_up)), 0.0f);
             btScalar maxAngle = side.angle(-_up);
 
-            // Ignore hits that are larger than maxAngle. Effectively what is happening here is: 
+            // Ignore hits that are larger than maxAngle. Effectively what is happening here is:
             // we're ignoring hits at contacts that have non-vertical normals... if they hit higher
             // than the character's "feet".  Ignoring the contact allows the character to slide down
             // for these hits.  In other words, vertical walls against the character's torso will
@@ -238,9 +238,9 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
 
     btVector3 minAabb, maxAabb;
     _convexShape->getAabb(_ghostObject->getWorldTransform(), minAabb, maxAabb);
-    collisionWorld->getBroadphase()->setAabb(_ghostObject->getBroadphaseHandle(), 
-            minAabb, 
-            maxAabb, 
+    collisionWorld->getBroadphase()->setAabb(_ghostObject->getBroadphaseHandle(),
+            minAabb,
+            maxAabb,
             collisionWorld->getDispatcher());
 
     bool penetration = false;
@@ -299,14 +299,14 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
 
                         if (collisionHeight < _lastStepUp) {
                             // This contact is below the lastStepUp, so we ignore it for penetration resolution,
-                            // otherwise it may prevent the character from getting close enough to find any available 
+                            // otherwise it may prevent the character from getting close enough to find any available
                             // horizontal foothold that would allow it to climbe the ledge.  In other words, we're
                             // making the character's "feet" soft for collisions against steps, but not floors.
                             useContact = false;
-                        } 
+                        }
                     }
                     if (useContact) {
-    
+
                         if (dist < maxPen) {
                             maxPen = dist;
                             _floorNormal = normal;
@@ -382,7 +382,7 @@ void CharacterController::updateTargetPositionBasedOnCollision(const btVector3& 
         //if (tangentMag != 0.0) {
         if (0) {
             btVector3 parComponent = parallelDir * btScalar(tangentMag * movementLength);
-            _targetPosition +=  parComponent;
+            _targetPosition += parComponent;
         }
 
         if (normalMag != 0.0) {
@@ -451,7 +451,7 @@ void CharacterController::stepForward(btCollisionWorld* collisionWorld, const bt
 void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt) {
     // phase 3: down
     //
-    // The "stepDown" phase first makes a normal sweep down that cancels the lift from the "stepUp" phase.  
+    // The "stepDown" phase first makes a normal sweep down that cancels the lift from the "stepUp" phase.
     // If it hits a ledge then it stops otherwise it makes another sweep down in search of a floor within
     // reach of the character's feet.
 
@@ -459,11 +459,11 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
     btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
     btVector3 step = (_verticalVelocity * dt - _lastStepUp) * up;
 
-    StepDownConvexResultCallback callback(_ghostObject, 
-            up, 
-            _currentPosition, step, 
+    StepDownConvexResultCallback callback(_ghostObject,
+            up,
+            _currentPosition, step,
             _walkDirection,
-            _maxSlopeCosine, 
+            _maxSlopeCosine,
             _radius, _halfHeight);
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
     callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
@@ -484,11 +484,11 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _wasJumping = false;
     } else if (!_wasJumping) {
         // sweep again for floor within downStep threshold
-        StepDownConvexResultCallback callback2 (_ghostObject, 
-                up, 
+        StepDownConvexResultCallback callback2 (_ghostObject,
+                up,
                 _currentPosition, step,
                 _walkDirection,
-                _maxSlopeCosine, 
+                _maxSlopeCosine,
                 _radius, _halfHeight);
 
         callback2.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
@@ -542,8 +542,8 @@ void CharacterController::reset(btCollisionWorld* collisionWorld) {
     //clear pair cache
     btHashedOverlappingPairCache *cache = _ghostObject->getOverlappingPairCache();
     while (cache->getOverlappingPairArray().size() > 0) {
-        cache->removeOverlappingPair(cache->getOverlappingPairArray()[0].m_pProxy0, 
-                cache->getOverlappingPairArray()[0].m_pProxy1, 
+        cache->removeOverlappingPair(cache->getOverlappingPairArray()[0].m_pProxy0,
+                cache->getOverlappingPairArray()[0].m_pProxy1,
                 collisionWorld->getDispatcher());
     }
 }
@@ -712,7 +712,7 @@ void CharacterController::setEnabled(bool enabled) {
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
         } else {
-            // Always set REMOVE bit when going disabled, and we always clear the ADD bit just in case 
+            // Always set REMOVE bit when going disabled, and we always clear the ADD bit just in case
             // it was previously set by something else (e.g. an UPDATE_SHAPE event).
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
@@ -754,7 +754,7 @@ void CharacterController::updateShapeIfNecessary() {
         _ghostObject = NULL;
         delete _convexShape;
         _convexShape = NULL;
-    
+
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
         float z = _boxScale.z;
@@ -765,18 +765,18 @@ void CharacterController::updateShapeIfNecessary() {
             _halfHeight = MIN_HALF_HEIGHT;
         }
         // NOTE: _shapeLocalOffset is already computed
-    
+
         if (_radius > 0.0f) {
             // create new ghost
             _ghostObject = new btPairCachingGhostObject();
             _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                             glmToBullet(_avatarData->getPosition())));
             // stepHeight affects the heights of ledges that the character can ascend
-            // however the actual ledge height is some function of _stepHeight 
-            // due to character shape and this CharacterController algorithm 
+            // however the actual ledge height is some function of _stepHeight
+            // due to character shape and this CharacterController algorithm
             // (the function is approximately 2*_stepHeight)
             _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
-        
+
             // create new shape
             _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
             _ghostObject->setCollisionShape(_convexShape);
@@ -807,11 +807,11 @@ void CharacterController::preSimulation(btScalar timeStep) {
 
 void CharacterController::postSimulation() {
     if (_enabled) {
-        const btTransform& avatarTransform = _ghostObject->getWorldTransform();            
+        const btTransform& avatarTransform = _ghostObject->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 offset = rotation * _shapeLocalOffset;
         _avatarData->setOrientation(rotation);
-        _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);             
+        _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
     }
 }
 
