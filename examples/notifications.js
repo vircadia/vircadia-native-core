@@ -43,7 +43,6 @@
 //  after that we will send it to createNotification(text).
 //  If the message is 42 chars or less you should bypass wordWrap() and call createNotification() directly.
 
-
 //  To add a keypress driven notification:
 //
 //  1. Add a key to the keyPressEvent(key).
@@ -85,16 +84,19 @@ var PLAY_NOTIFICATION_SOUNDS_MENU_ITEM = "Play Notification Sounds";
 var NOTIFICATION_MENU_ITEM_POST = " Notifications";
 var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
 var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
+var lodTextID = false;
 
 var NotificationType = {
     UNKNOWN: 0,
     MUTE_TOGGLE: 1,
     SNAPSHOT: 2,
     WINDOW_RESIZE: 3,
+    LOD_WARNING: 4,
     properties: [
         { text: "Mute Toggle" },
         { text: "Snapshot" },
-        { text: "Window Resize" }
+        { text: "Window Resize" },
+        { text: "Level of Detail" }
     ],
     getTypeFromMenuItem: function(menuItemName) {
         if (menuItemName.substr(menuItemName.length - NOTIFICATION_MENU_ITEM_POST.length) !== NOTIFICATION_MENU_ITEM_POST) {
@@ -143,6 +145,10 @@ function createArrays(notice, button, createTime, height, myAlpha) {
 
 //  This handles the final dismissal of a notification after fading
 function dismiss(firstNoteOut, firstButOut, firstOut) {
+    if (firstNoteOut == lodTextID) {
+        lodTextID = false;
+    }
+
     Overlays.deleteOverlay(firstNoteOut);
     Overlays.deleteOverlay(firstButOut);
     notifications.splice(firstOut, 1);
@@ -261,7 +267,8 @@ function notify(notice, button, height) {
             height: noticeHeight
         });
     } else {
-        notifications.push((Overlays.addOverlay("text", notice)));
+        var notificationText = Overlays.addOverlay("text", notice);
+        notifications.push((notificationText));
         buttons.push((Overlays.addOverlay("image", button)));
     }
 
@@ -272,6 +279,7 @@ function notify(notice, button, height) {
     last = notifications.length - 1;
     createArrays(notifications[last], buttons[last], times[last], heights[last], myAlpha[last]);
     fadeIn(notifications[last], buttons[last]);
+    return notificationText;
 }
 
 //  This function creates and sizes the overlays
@@ -331,11 +339,15 @@ function createNotification(text, notificationType) {
         randomSounds.playRandom();
     }
 
-    notify(noticeProperties, buttonProperties, height);
+    return notify(noticeProperties, buttonProperties, height);
 }
 
 function deleteNotification(index) {
-    Overlays.deleteOverlay(notifications[index]);
+    var notificationTextID = notifications[index];
+    if (notificationTextID == lodTextID) {
+        lodTextID = false;
+    }
+    Overlays.deleteOverlay(notificationTextID);
     Overlays.deleteOverlay(buttons[index]);
     notifications.splice(index, 1);
     buttons.splice(index, 1);
@@ -574,6 +586,20 @@ function menuItemEvent(menuItem) {
         Settings.setValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + notificationType, Menu.isOptionChecked(menuItem));
     }
 }
+
+LODManager.LODDecreased.connect(function() {
+    var warningText = "\n"
+            + "Due to the complexity of the content, the \n"
+            + "level of detail has been decreased."
+            + "You can now see: \n" 
+            + LODManager.getLODFeedbackText();
+
+    if (lodTextID == false) {
+        lodTextID = createNotification(warningText, NotificationType.LOD_WARNING);
+    } else {
+        Overlays.editOverlay(lodTextID, { text: warningText });
+    }
+});
 
 AudioDevice.muteToggled.connect(onMuteStateChanged);
 Controller.keyPressEvent.connect(keyPressEvent);

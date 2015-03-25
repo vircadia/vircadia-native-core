@@ -13,6 +13,7 @@
 //
 
 <@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
 
 const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
@@ -43,11 +44,11 @@ void main(void) {
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
-    // use standard pipeline transform
+    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    gl_Position = transformModelToClipPos(cam, obj, position);
-    
-    // transform and store the normal for interpolation
-    normal = vec4(normalize(transformModelToEyeDir(cam, obj, normal.xyz)), 0.0);
+    <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, normal.xyz, normal.xyz)$>
+
+    normal = vec4(normalize(normal.xyz), 0.0);
 }
