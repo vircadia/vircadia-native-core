@@ -1,6 +1,5 @@
 (function() {
     this.entityID = null;
-    this.properties = null;
     this.lightID = null;
     this.sound = null;
 
@@ -51,19 +50,6 @@
         Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
     }
     
-    // Checks whether the userData is well-formed and updates it if not
-    this.checkUserData = function() {
-        var userData = getUserData(this.entityID);
-        if (!userData) {
-            userData = DEFAULT_USER_DATA;
-        } else if (!userData.lightDefaultProperties) {
-            userData.lightDefaultProperties = DEFAULT_USER_DATA.lightDefaultProperties;
-        } else if (typeof userData.creatingLight == 'undefined') {
-            userData.creatingLight = DEFAULT_USER_DATA.creatingLight;
-        }
-        updateUserData(this.entityID, userData);
-    }
-    
     // Download sound if needed
     this.maybeDownloadSound = function() {
         if (this.sound === null) {
@@ -81,17 +67,21 @@
             print("Warning: Couldn't play sound.");
         }
     }
-
-    // Toggles the associated light entity
-    this.toggleLight = function() {
-        if (this.lightID) {
-            var lightProperties = Entities.getEntityProperties(this.lightID);
-            Entities.editEntity(this.lightID, { visible: !lightProperties.visible });
-        } else {
-            print("Warning: No light to turn on/off");
+    
+    // Checks whether the userData is well-formed and updates it if not
+    this.checkUserData = function() {
+        var userData = getUserData(this.entityID);
+        if (!userData) {
+            userData = DEFAULT_USER_DATA;
+        } else if (!userData.lightDefaultProperties) {
+            userData.lightDefaultProperties = DEFAULT_USER_DATA.lightDefaultProperties;
+        } else if (typeof userData.creatingLight == 'undefined') {
+            userData.creatingLight = DEFAULT_USER_DATA.creatingLight;
         }
+        updateUserData(this.entityID, userData);
     }
     
+    // Create a Light entity
     this.createLight = function(userData) {
         var lightProperties = copyObject(userData.lightDefaultProperties);
         if (lightProperties) {
@@ -108,34 +98,48 @@
         }
     }
     
+    // Tries to find a valid light, creates one otherwise
     this.updateLightID = function() {
-        var userData = getUserData(this.entityID);
-        
         // Find valid light
         if (doesEntityExistNow(this.lightID)) {
-            if (!didEntityExist(this.lightID)) {
-                // Light now has an ID, so update it in userData
-                this.lightID = getTrueID(this.lightID);
-                userData.lightID = this.lightID;
-                updateUserData(this.entityID, userData);
-            }
             return;
         }
         
+        var userData = getUserData(this.entityID);
         if (doesEntityExistNow(userData.lightID)) {
-            this.lightID = getTrueID(userData.lightID);
+            this.lightID = userData.lightID;
             return;
         }
 
-        // No valid light, create one
-        this.lightID = this.createLight(userData);
-        print("Created new light entity");
-        
-        // Update user data with new ID
+        if (!userData.creatingLight) {
+            // No valid light, create one
+            userData.creatingLight = true;
+            updateUserData(this.entityID, userData);
+            this.lightID = this.createLight(userData);
+            this.maybeUpdateLightIDInUserData();
+            print("Created new light entity");
+        }
+    }
+    
+    this.maybeUpdateLightIDInUserData = function() {
+        this.lightID = getTrueID(this.lightID);
+        if (this.lightID.isKnownID) {
+            this.updateLightIDInUserData();
+        } else {
+            var that = this;
+    		Script.setTimeout(function() { that.maybeUpdateLightIDInUserData() }, 500);
+        }
+    }
+    
+    // Update user data with new lightID
+    this.updateLightIDInUserData = function() {
+        var userData = getUserData(this.entityID);
         userData.lightID = this.lightID;
+        userData.creatingLight = false;
         updateUserData(this.entityID, userData);
     }
     
+    // Moves light entity if the lamp entity moved
     this.maybeMoveLight = function() {
         var entityProperties = Entities.getEntityProperties(this.entityID);
         var lightProperties = Entities.getEntityProperties(this.lightID);
@@ -151,8 +155,9 @@
         }
     }
 
+    // Stores light entity relative position in the lamp metadata
     this.updateRelativeLightPosition = function() {
-        if (!doesEntityExistNow(this.entityID) || !doesEntityExistNow(this.lightID)) {
+        if (!doesEntityExistNow(this.lightID)) {
             print("Warning: ID invalid, couldn't save relative position.");
             return;
         }
@@ -189,6 +194,17 @@
         this.checkUserData();
     }
 
+    // Toggles the associated light entity
+    this.toggleLight = function() {
+        if (this.lightID) {
+            var lightProperties = Entities.getEntityProperties(this.lightID);
+            Entities.editEntity(this.lightID, { visible: !lightProperties.visible });
+            this.playSound();
+        } else {
+            print("Warning: No light to turn on/off");
+        }
+    }
+
     this.preload = function(entityID) {
         this.preOperation(entityID);
     };
@@ -200,7 +216,6 @@
             this.updateLightID();
             this.maybeMoveLight();
             this.toggleLight();
-            this.playSound();
         } else if (mouseEvent.isRightButton) {
             this.updateRelativeLightPosition();
         }
