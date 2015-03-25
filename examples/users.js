@@ -11,7 +11,7 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_WIDTH_2D = 150,
+    var WINDOW_WIDTH_2D = 160,
         WINDOW_MARGIN_2D = 12,
         WINDOW_FONT_2D = { size: 12 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
@@ -22,6 +22,13 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
         windowPane2D,
         windowHeading2D,
+        SCROLLBAR_BACKGROUND_WIDTH_2D = 12,
+        SCROLLBAR_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
+        SCROLLBAR_BACKGROUND_ALPHA_2D = 0.8,
+        scrollbarBackground2D,
+        SCROLLBAR_BAR_COLOR_2D = { red: 180, green: 180, blue: 180 },
+        SCROLLBAR_BAR_ALPHA_2D = 0.8,
+        scrollbarBar2D,
         VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
         visibilityHeading2D,
         VISIBILITY_RADIO_SPACE = 16,
@@ -91,6 +98,12 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
         });
+        Overlays.editOverlay(scrollbarBackground2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight
+        });
+        Overlays.editOverlay(scrollbarBar2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1
+        });
         Overlays.editOverlay(visibilityHeading2D, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
         });
@@ -135,7 +148,7 @@ var usersWindow = (function () {
                 }
                 textWidth = Overlays.textSize(windowPane2D, userText).width;
 
-                maxTextWidth = WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
+                maxTextWidth = WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
                 if (textWidth > maxTextWidth) {
                     // Trim and append "..." to fit window width
                     maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
@@ -166,6 +179,15 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D,
             text: linesOfUsers.length > 0 ? "Users online" : "No users online"
+        });
+
+        Overlays.editOverlay(scrollbarBackground2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight,
+            height: linesOfUsers.length * windowLineHeight - windowLineSpacing / 2
+        });
+        Overlays.editOverlay(scrollbarBar2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1,
+            height: linesOfUsers.length * windowLineHeight / 3 // TODO
         });
 
         updateOverlayPositions();
@@ -239,6 +261,8 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(windowPane2D, { visible: isVisible });
         Overlays.editOverlay(windowHeading2D, { visible: isVisible });
+        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible });
+        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible });
@@ -372,6 +396,28 @@ var usersWindow = (function () {
             visible: isVisible
         });
 
+        scrollbarBackground2D = Overlays.addOverlay("text", {
+            x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D,
+            y: viewportHeight,
+            width: SCROLLBAR_BACKGROUND_WIDTH_2D,
+            height: windowTextHeight,
+            backgroundColor: SCROLLBAR_BACKGROUND_COLOR_2D,
+            backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA_2D,
+            text: "",
+            visible: isVisible
+        });
+
+        scrollbarBar2D = Overlays.addOverlay("text", {
+            x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D + 1,
+            y: viewportHeight,
+            width: SCROLLBAR_BACKGROUND_WIDTH_2D - 2,
+            height: windowTextHeight,
+            backgroundColor: SCROLLBAR_BAR_COLOR_2D,
+            backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D,
+            text: "",
+            visible: isVisible
+        });
+
         visibilityHeading2D = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN_2D,
             y: viewportHeight,
@@ -413,7 +459,7 @@ var usersWindow = (function () {
             textOverlay: Overlays.addOverlay("text", {
                 x: WINDOW_MARGIN_2D,
                 y: viewportHeight,
-                width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+                width: WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
                 height: windowTextHeight,
                 topMargin: 0,
                 leftMargin: VISIBILITY_RADIO_SPACE,
@@ -479,6 +525,8 @@ var usersWindow = (function () {
         Script.clearTimeout(usersTimer);
         Overlays.deleteOverlay(windowPane2D);
         Overlays.deleteOverlay(windowHeading2D);
+        Overlays.deleteOverlay(scrollbarBackground2D);
+        Overlays.deleteOverlay(scrollbarBar2D);
         Overlays.deleteOverlay(visibilityHeading2D);
         for (i = 0; i <= visibilityControls2D.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls2D[i].textOverlay);
