@@ -2,6 +2,9 @@
     this.entityID = null;
     this.lightID = null;
     this.sound = null;
+    this.soundURLs = ["https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_1.wav",
+                      "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav",
+                      "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_3.wav"]
 
     var DEFAULT_USER_DATA = {
         creatingLight: false,
@@ -21,7 +24,8 @@
             intensity: 10,
             exponent: 0,
             cutoff: 180, // in degrees
-        }
+        },
+        soundIndex: Math.floor(Math.random() * this.soundURLs.length)
     };
 
     function copyObject(object) {
@@ -53,7 +57,8 @@
     // Download sound if needed
     this.maybeDownloadSound = function() {
         if (this.sound === null) {
-            this.sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Footsteps/FootstepW3Left-12db.wav");
+            var soundIndex = getUserData(this.entityID).soundIndex;
+            this.sound = SoundCache.getSound(this.soundURLs[soundIndex]);
         }
     }
     // Play switch sound
@@ -75,6 +80,8 @@
             userData = DEFAULT_USER_DATA;
         } else if (!userData.lightDefaultProperties) {
             userData.lightDefaultProperties = DEFAULT_USER_DATA.lightDefaultProperties;
+        } else if (!userData.soundIndex) {
+            userData.soundIndex = DEFAULT_USER_DATA.soundIndex;
         }
         updateUserData(this.entityID, userData);
     }
@@ -187,9 +194,9 @@
     // This function should be called before any callback is executed
     this.preOperation = function(entityID) {
         this.entityID = entityID;
-        this.maybeDownloadSound();
         
         this.checkUserData();
+        this.maybeDownloadSound();
     }
 
     // Toggles the associated light entity
