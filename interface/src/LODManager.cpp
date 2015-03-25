@@ -45,7 +45,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     // really want to count them in our average, so we will ignore the real frame rates and stuff
     // our moving average with simulated good data
     const int IGNORE_THESE_SAMPLES = 100;
-    //const float ASSUMED_FPS = 60.0f;
     if (_fpsAverageUpWindow.getSampleCount() < IGNORE_THESE_SAMPLES) {
         currentFPS = ASSUMED_FPS;
         _lastStable = _lastUpShift = _lastDownShift = usecTimestampNow();
