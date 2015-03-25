@@ -76,10 +76,6 @@ public:
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
-    Q_INVOKABLE void resetLODAdjust();
-    //Q_INVOKABLE float getFPSAverage() const { return _fpsAverage.getAverage(); }
-    //Q_INVOKABLE float getFastFPSAverage() const { return _fastFPSAverage.getAverage(); }
-    
     Q_INVOKABLE float getLODDecreaseFPS();
     Q_INVOKABLE float getLODIncreaseFPS();
     
@@ -88,6 +84,7 @@ public:
     
     void loadSettings();
     void saveSettings();
+    void resetLODAdjust();
     
 signals:
     void LODIncreased();
