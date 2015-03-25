@@ -1263,11 +1263,13 @@ SelectionDisplay = (function () {
                 duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
-                    var entityID = Entities.addEntity(properties);
-                    duplicatedEntityIDs.push({
-                        entityID: entityID,
-                        properties: properties,
-                    });
+                    if (!properties.locked) {
+                        var entityID = Entities.addEntity(properties);
+                        duplicatedEntityIDs.push({
+                            entityID: entityID,
+                            properties: properties,
+                        });
+                    }
                 }
             } else {
                 duplicatedEntityIDs = null;
@@ -1361,11 +1363,13 @@ SelectionDisplay = (function () {
                 duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
-                    var entityID = Entities.addEntity(properties);
-                    duplicatedEntityIDs.push({
-                        entityID: entityID,
-                        properties: properties,
-                    });
+                    if (!properties.locked) {
+                        var entityID = Entities.addEntity(properties);
+                        duplicatedEntityIDs.push({
+                            entityID: entityID,
+                            properties: properties,
+                        });
+                    }
                 }
             } else {
                 duplicatedEntityIDs = null;
