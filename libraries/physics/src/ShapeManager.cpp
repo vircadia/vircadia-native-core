@@ -100,6 +100,18 @@ void ShapeManager::collectGarbage() {
         DoubleHashKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
+            // if the shape we're about to delete is compound, delete the children first.
+            auto shapeType = ShapeInfoUtil::fromBulletShapeType(shapeRef->shape->getShapeType());
+            if (shapeType == SHAPE_TYPE_COMPOUND) {
+                const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shapeRef->shape);
+                const int numChildShapes = compoundShape->getNumChildShapes();
+                QVector<QVector<glm::vec3>> points;
+                for (int i = 0; i < numChildShapes; i ++) {
+                    const btCollisionShape* childShape = compoundShape->getChildShape(i);
+                    delete childShape;
+                }
+            }
+
             delete shapeRef->shape;
             _shapeMap.remove(key);
         }
