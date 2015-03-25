@@ -839,11 +839,21 @@ Script.scriptEnding.connect(function() {
     Overlays.deleteOverlay(importingSVOTextOverlay);
 });
 
+var lastOrientation = null;
+var lastPosition = null;
+
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
     toolBar.move();
     progressDialog.move();
     selectionDisplay.checkMove();
+    var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
+    var dPosition = Vec3.distance(Camera.position, lastPosition);
+    if (dOrientation > 0.001 || dPosition > 0.001) {
+        propertyMenu.hide();
+        lastOrientation = Camera.orientation;
+        lastPosition = Camera.position;
+    }
 });
 
 function insideBox(center, dimensions, point) {
