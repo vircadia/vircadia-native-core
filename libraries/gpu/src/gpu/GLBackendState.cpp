@@ -23,6 +23,8 @@ GLBackend::GLState::~GLState() {
 
 typedef GLBackend::GLState::Command Command;
 typedef GLBackend::GLState::CommandPointer CommandPointer;
+typedef GLBackend::GLState::Command1<int32> Command1I;
+typedef GLBackend::GLState::Command1<State::DepthTest> Command1DT;
 typedef GLBackend::GLState::Command1<GLenum> Command1E;
 typedef GLBackend::GLState::Command2<GLenum, GLenum> Command2E;
 typedef GLBackend::GLState::Command2<GLfloat, GLfloat> Command2F;
@@ -40,27 +42,16 @@ static GLenum GL_COMPARISON_FUNCTIONS[] = {
     GL_GEQUAL,
     GL_ALWAYS };
 
-void glBackend_glPolygonMode(GLenum fillMode) {
-    glPolygonMode(GL_FRONT_AND_BACK, fillMode);
-}
-
 void generateFillMode(GLBackend::GLState::Commands& commands, State::FillMode fillMode) {
-    static GLenum GL_FILL_MODES[] = { GL_POINT, GL_LINE, GL_FILL };
-    commands.push_back(CommandPointer(new Command1E(glBackend_glPolygonMode, GL_FILL_MODES[fillMode])));
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, int32(fillMode))));
 }
 
 void generateCullMode(GLBackend::GLState::Commands& commands, State::CullMode cullMode) {
-    static GLenum CULL_MODES[] = { GL_FRONT_AND_BACK, GL_FRONT, GL_BACK };
-    if (cullMode == State::CULL_NONE) {
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_CULL_FACE))));
-    } else {
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glEnable, GLenum(GL_CULL_FACE))));
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glCullFace, CULL_MODES[cullMode])));
-    }
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, int32(cullMode))));
 }
 
 void generateDepthBias(GLBackend::GLState::Commands& commands, const State& state) {
-    if ((state.getDepthBias() == 0) && (state.getDepthBiasSlopeScale() == 0.0f)) {
+  /*  if ((state.getDepthBias() == 0) && (state.getDepthBiasSlopeScale() == 0.0f)) {
         commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_POLYGON_OFFSET_FILL))));
         commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_POLYGON_OFFSET_LINE))));
         commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_POLYGON_OFFSET_POINT))));
@@ -71,53 +62,39 @@ void generateDepthBias(GLBackend::GLState::Commands& commands, const State& stat
         commands.push_back(CommandPointer(new Command2F((Command2F::GLFunction)glPolygonOffset,
             state.getDepthBiasSlopeScale(),
             state.getDepthBias())));
-    }
+    }*/
 }
 
 void generateFrontClockwise(GLBackend::GLState::Commands& commands, bool frontClockwise) {
-    static GLenum GL_FRONT_FACES[] = { GL_CCW, GL_CW };
-    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glFrontFace, GL_FRONT_FACES[frontClockwise])));
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateFrontClockwise, int32(frontClockwise))));
 }
 
-#define ADD_ENABLE_DISABLE_COMMAND( NAME )     if (enable) {\
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glEnable, NAME)));\
-    } else {\
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, NAME)));\
-    }
-
 void generateDepthClipEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_DEPTH_CLAMP);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateDepthClipEnable, int32(enable))));
 }
 
 void generateScissorEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_SCISSOR_TEST);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateScissorEnable, int32(enable))));
 }
 
 void generateMultisampleEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_MULTISAMPLE);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateMultisampleEnable, int32(enable))));
 }
 
 void generateAntialiasedLineEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_POINT_SMOOTH);
-    ADD_ENABLE_DISABLE_COMMAND(GL_LINE_SMOOTH);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateAntialiasedLineEnable, int32(enable))));
 }
 
 void generateDepthTest(GLBackend::GLState::Commands& commands, State::DepthTest& test) {
-    if (!test._enabled) {
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDisable, GLenum(GL_DEPTH_TEST))));
-    } else {
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glEnable, GLenum(GL_DEPTH_TEST))));
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthMask, test._writeMask)));
-        commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glDepthFunc, GL_COMPARISON_FUNCTIONS[test._function])));
-    }
+    commands.push_back(CommandPointer(new Command1DT(&GLBackend::do_setStateDepthTest, int32(test.getRaw()))));
 }
 
 void generateStencilEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_STENCIL_TEST);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateStencilEnable, int32(enable))));
 }
 
 void generateStencilWriteMask(GLBackend::GLState::Commands& commands, uint32 mask) {
-    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glStencilMask, mask)));
+//    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glStencilMask, mask)));
 }
 
 void generateStencilState(GLBackend::GLState::Commands& commands, const State& state) {
@@ -146,11 +123,11 @@ void generateStencilState(GLBackend::GLState::Commands& commands, const State& s
 }
 
 void generateAlphaToCoverageEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateAlphaToCoverageEnable, int32(enable))));
 }
 
 void generateBlendEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    ADD_ENABLE_DISABLE_COMMAND(GL_BLEND);
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateBlendEnable, int32(enable))));
 }
 
 void generateBlendFunction(GLBackend::GLState::Commands& commands, const State& state) {
@@ -209,9 +186,7 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
 
     // If GPU object already created then good
     if (object) {
-        if (object->_stamp == state.getStamp()) {
-            return object;
-        }
+        return object;
     }
 
     // Else allocate and create the GLState
@@ -269,7 +244,6 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             generateAntialiasedLineEnable(object->_commands, bool(field.second._integer));
             break;
         }
-
         case State::DEPTH_TEST: {
             generateDepthTest(object->_commands, State::DepthTest(field.second._integer));
             break;
@@ -337,5 +311,105 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
         generateBlendFactor(object->_commands, state.getBlendFactor());
     }
 
-    return nullptr;
+    return object;
+}
+
+
+void GLBackend::do_setStateFillMode(int32 mode) {
+    static GLenum GL_FILL_MODES[] = { GL_POINT, GL_LINE, GL_FILL };
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL_MODES[mode]);
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateCullMode(int32 mode) {
+    static GLenum GL_CULL_MODES[] = { GL_FRONT_AND_BACK, GL_FRONT, GL_BACK };
+    if (mode == State::CULL_NONE) {
+        glDisable(GL_CULL_FACE);
+        glCullFace(GL_FRONT_AND_BACK);
+    } else {
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_CULL_MODES[mode]);
+    }
+}
+
+void GLBackend::do_setStateFrontClockwise(int32 isFrontClockwise) {
+    static GLenum  GL_FRONT_FACES[] = { GL_CCW, GL_CW };
+    glFrontFace(GL_FRONT_FACES[isFrontClockwise]);
+}
+
+void GLBackend::do_setStateDepthClipEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_DEPTH_CLAMP);
+    } else {
+        glDisable(GL_DEPTH_CLAMP);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateScissorEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_SCISSOR_TEST);
+    } else {
+        glDisable(GL_SCISSOR_TEST);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateMultisampleEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_MULTISAMPLE);
+    } else {
+        glDisable(GL_MULTISAMPLE);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateAntialiasedLineEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_POINT_SMOOTH);
+        glEnable(GL_LINE_SMOOTH);
+    } else {
+        glDisable(GL_POINT_SMOOTH);
+        glDisable(GL_LINE_SMOOTH);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateDepthTest(State::DepthTest test) {
+    if (test._enabled) {
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(test._writeMask);
+        glDepthFunc(GL_COMPARISON_FUNCTIONS[test._function]);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateStencilEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_STENCIL_TEST);
+    } else {
+        glDisable(GL_STENCIL_TEST);
+    }
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateAlphaToCoverageEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    } else {
+        glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    }
+    CHECK_GL_ERROR();
+}
+
+
+void GLBackend::do_setStateBlendEnable(int32 enable) {
+    if (enable) {
+        glEnable(GL_BLEND);
+    } else {
+        glDisable(GL_BLEND);
+    }
+    CHECK_GL_ERROR();
 }

@@ -116,26 +116,19 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey& key,
     initLocations(program, *locations);
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    
+    // Backface on shadow
     if (key.isShadow()) {
         state->setCullMode(gpu::State::CULL_FRONT);
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
     }
 
-    if (key.isTranslucent()) {
-    } else {
-        state->setBlendEnable(false);
-    }
+    // Z test depends if transparent or not
+    state->setDepthTest(true, !key.isTranslucent(), gpu::State::LESS_EQUAL);
 
-    /*
-    GLBATCH(glDisable)(GL_BLEND);
-    GLBATCH(glEnable)(GL_ALPHA_TEST);
-    
-    if (mode == SHADOW_RENDER_MODE) {
-        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
-    }
-    */
-
+    // Blend on transparent
+    state->setBlendEnable(key.isTranslucent());
 
     auto it = insert(value_type(key.getRaw(),
         RenderPipeline(
@@ -285,7 +278,7 @@ void Model::init() {
             modelVertex, modelTranslucentPixel);
          
         _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_DEPTH_ONLY),
+            RenderKey(RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
             modelShadowVertex, modelShadowPixel);
  
         _renderPipelineLib.addRenderPipeline(
@@ -320,7 +313,7 @@ void Model::init() {
             skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 
         _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY),
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
             skinModelShadowVertex, modelShadowPixel);
 
         _renderPipelineLib.addRenderPipeline(
@@ -684,7 +677,8 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
-    if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+    // taking care of by the state?
+   /* if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
         GLBATCH(glDisable)(GL_CULL_FACE);
     } else {
         GLBATCH(glEnable)(GL_CULL_FACE);
@@ -692,10 +686,11 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
             GLBATCH(glCullFace)(GL_FRONT);
         }
     }
-    
+    */
+
     // render opaque meshes with alpha testing
 
-    GLBATCH(glDisable)(GL_BLEND);
+//    GLBATCH(glDisable)(GL_BLEND);
     GLBATCH(glEnable)(GL_ALPHA_TEST);
     
     if (mode == SHADOW_RENDER_MODE) {
@@ -764,10 +759,10 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
 
     GLBATCH(glDisable)(GL_ALPHA_TEST);
-    GLBATCH(glEnable)(GL_BLEND);
+  /*  GLBATCH(glEnable)(GL_BLEND);
     GLBATCH(glDepthMask)(false);
     GLBATCH(glDepthFunc)(GL_LEQUAL);
-    
+    */
     //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
     {
         GLenum buffers[1];
@@ -1740,18 +1735,18 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
         GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
-        if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+      /*  if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
             GLBATCH(glDisable)(GL_CULL_FACE);
         } else {
             GLBATCH(glEnable)(GL_CULL_FACE);
             if (mode == SHADOW_RENDER_MODE) {
                 GLBATCH(glCullFace)(GL_FRONT);
             }
-        }
+        }*/
     
         // render opaque meshes with alpha testing
 
-        GLBATCH(glDisable)(GL_BLEND);
+      //  GLBATCH(glDisable)(GL_BLEND);
         GLBATCH(glEnable)(GL_ALPHA_TEST);
     
         if (mode == SHADOW_RENDER_MODE) {
@@ -1820,10 +1815,10 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
 
         GLBATCH(glDisable)(GL_ALPHA_TEST);
-        GLBATCH(glEnable)(GL_BLEND);
+       /* GLBATCH(glEnable)(GL_BLEND);
         GLBATCH(glDepthMask)(false);
         GLBATCH(glDepthFunc)(GL_LEQUAL);
-    
+    */
         //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
         {
             GLenum buffers[1];
@@ -2262,9 +2257,11 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     gpu::ShaderPointer program = (*pipeline).second._pipeline->getProgram();
     locations = (*pipeline).second._locations.get();
 
-    GLuint glprogram = gpu::GLBackend::getShaderID(program);
-    GLBATCH(glUseProgram)(glprogram);
+    //GLuint glprogram = gpu::GLBackend::getShaderID(program);
+    //GLBATCH(glUseProgram)(glprogram);
     
+    // dare!
+    batch.setPipeline((*pipeline).second._pipeline);
 
     if ((locations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
         GLBATCH(glUniform1f)(locations->alphaThreshold, alphaThreshold);

@@ -80,7 +80,7 @@ public:
         class Command {
         public:
             
-            virtual void run() = 0;
+            virtual void run(GLBackend* backend) = 0;
 
             Command() {}
             virtual ~Command() {};
@@ -88,9 +88,9 @@ public:
 
         template <class T> class Command1 : public Command {
         public:
-            typedef void (*GLFunction)(typename T);
+            typedef void (GLBackend::*GLFunction)(typename T);
 
-            void run() { (_func)(_param); }
+            void run(GLBackend* backend) { (backend->*(_func))(_param); }
 
             Command1(GLFunction func, T param) : _func(func), _param(param) {};
 
@@ -101,7 +101,7 @@ public:
         public:
             typedef void (*GLFunction)(typename T, typename U);
 
-            void run() { (_func)(_param0, _param1); }
+            void run(GLBackend* backend) { (_func)(_param0, _param1); }
 
             Command2(GLFunction func, T param0, U param1) : _func(func), _param0(param0), _param1(param1) {};
 
@@ -114,7 +114,7 @@ public:
         public:
             typedef void (*GLFunction)(typename T, typename U, typename V, typename W);
 
-            void run() { (_func)(_param0, _param1, _param2, _param3); }
+            void run(GLBackend* backend) { (_func)(_param0, _param1, _param2, _param3); }
 
             Command4(GLFunction func, T param0, U param1, V param2, W param3) :
                  _func(func),
@@ -154,6 +154,24 @@ public:
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
     uint32 getNumInputBuffers() const { return _input._buffersState.size(); }
+
+
+
+    void do_setStateFillMode(int32 mode);
+    void do_setStateCullMode(int32 mode);
+    void do_setStateFrontClockwise(int32 isFrontClockwise);
+    void do_setStateDepthClipEnable(int32 enable);
+    void do_setStateScissorEnable(int32 enable);
+    void do_setStateMultisampleEnable(int32 enable);
+    void do_setStateAntialiasedLineEnable(int32 enable);
+
+    void do_setStateDepthTest(State::DepthTest test);
+
+    void do_setStateStencilEnable(int32 enable);
+
+    void do_setStateAlphaToCoverageEnable(int32 enable);
+
+    void do_setStateBlendEnable(int32 enable);
 
 protected:
 

@@ -79,6 +79,13 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     _pipeline._stateCommands = pipelineObject->_state->_commands;
     _pipeline._invalidState = true;
 
+
+    // THis should be done on Pipeline::update...
+    if (_pipeline._invalidProgram) {
+        glUseProgram(_pipeline._program);
+        CHECK_GL_ERROR();
+        _pipeline._invalidProgram = false;
+    }
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
@@ -115,6 +122,7 @@ void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::updatePipeline() {
     if (_pipeline._invalidProgram) {
+        // doing it here is aproblem for calls to glUniform.... so will do it on assing...
         glUseProgram(_pipeline._program);
         CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
@@ -122,7 +130,7 @@ void GLBackend::updatePipeline() {
 
     if (_pipeline._invalidState) {
         for (auto command: _pipeline._stateCommands) {
-            command->run();
+            command->run(this);
         }
         CHECK_GL_ERROR();
         _pipeline._invalidState = false;

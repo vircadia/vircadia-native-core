@@ -373,6 +373,9 @@ private:
     QMap<QString, int> _unsortedMeshesOpaqueLightmapTangents;
     QMap<QString, int> _unsortedMeshesOpaqueLightmapTangentsSpecular;
     QMap<QString, int> _unsortedMeshesOpaqueLightmapSpecular;
+    
+    typedef std::unordered_map<int, QVector<int>> MeshListMap;
+    MeshListMap _sortedMeshes;
 
     QVector<int> _meshesTranslucent;
     QVector<int> _meshesTranslucentTangents;
@@ -486,7 +489,7 @@ private:
         RenderKey(RenderMode mode,
             bool translucent, float alphaThreshold, bool hasLightmap,
             bool hasTangents, bool hasSpecular, bool isSkinned) :
-            RenderKey( ((translucent && (alphaThreshold == 0.0f)) ? IS_TRANSLUCENT : 0)
+            RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
                       | (hasLightmap && (mode != SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
                       | (hasTangents && (mode != SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
                       | (hasSpecular && (mode != SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)

@@ -149,11 +149,13 @@ public:
 
     class DepthTest {
     public:
+        uint8 _function = LESS;
+        bool _writeMask = true;
+        bool _enabled = false;
+
         DepthTest(bool enable, bool writeMask, ComparisonFunction func) : 
             _function(func), _writeMask(writeMask), _enabled(enable) {}
-        uint8 _function = ALWAYS;
-        bool _writeMask = false;
-        bool _enabled = false;
+
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
@@ -190,7 +192,7 @@ public:
     class Value {
     public:
         union {
-            uint32 _unsigned_integer;
+            uint32 _unsigned_integer = 0;
             int32 _integer;
             float _float;
         };
@@ -207,17 +209,20 @@ public:
     Value get(Field field) const;
 
     void setFillMode(FillMode fill) { set(FILL_MODE, uint32(fill)); }
-    void setCullMode(CullMode cull)  { set(FILL_MODE, uint32(cull)); }
     FillMode getFillMode() const { return FillMode(get(FILL_MODE)._integer); }
+ 
+    void setCullMode(CullMode cull)  { set(CULL_MODE, uint32(cull)); }
     CullMode getCullMode() const { return CullMode(get(CULL_MODE)._integer); }
 
+    void setFrontClockwise(bool enable) { set(FRONT_CLOCKWISE, enable); }
+    void setDepthClipEnable(bool enable) { set(DEPTH_CLIP_ENABLE, enable); }
+ 
     void setDepthBias(float bias) { set(DEPTH_BIAS, bias); }
     void setDepthBiasSlopeScale(float scale) { set(DEPTH_BIAS_SLOPE_SCALE, scale); }
     float getDepthBias() const { return get(DEPTH_BIAS)._integer; }
     float getDepthBiasSlopeScale() const { return get(DEPTH_BIAS_SLOPE_SCALE)._float; }
  
-    void setFrontClockwise(bool enable) { set(FRONT_CLOCKWISE, enable); }
-    void setDepthClipEnable(bool enable) { set(DEPTH_CLIP_ENABLE, enable); }
+
     void setScissorEnable(bool enable) { set(SCISSOR_ENABLE, enable); }
     void setMultisampleEnable(bool enable) { set(MULTISAMPLE_ENABLE, enable); }
     void setAntialiasedLineEnable(bool enable) { set(ANTIALISED_LINE_ENABLE, enable); }
@@ -278,7 +283,7 @@ protected:
     Stamp _stamp;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
+    mutable GPUObject* _gpuObject = nullptr;
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
     GPUObject* getGPUObject() const { return _gpuObject; }
     friend class Backend;
