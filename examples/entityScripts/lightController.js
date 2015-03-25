@@ -4,6 +4,27 @@
     this.lightID = null;
     this.sound = null;
 
+    var DEFAULT_USER_DATA = {
+        creatingLight: false,
+        lightID: null,
+        lightDefaultProperties: {
+            type: "Light",
+            position: { x: 0, y: 0, z: 0 },
+            dimensions: { x: 5, y: 5, z: 5 },
+            isSpotlight: false,
+            color: { red: 255, green: 48, blue: 0 },
+            diffuseColor: { red: 255, green: 255, blue: 255 },
+            ambientColor: { red: 255, green: 255, blue: 255 },
+            specularColor: { red: 0, green: 0, blue: 0 },
+            constantAttenuation: 1,
+            linearAttenuation: 0,
+            quadraticAttenuation: 0,
+            intensity: 10,
+            exponent: 0,
+            cutoff: 180, // in degrees
+        }
+    };
+
     function copyObject(object) {
         return JSON.parse(JSON.stringify(object));
     }
@@ -28,6 +49,19 @@
     }
     function updateUserData(entityID, userData) {
         Entities.editEntity(entityID, { userData: JSON.stringify(userData) });
+    }
+    
+    // Checks whether the userData is well-formed and updates it if not
+    this.checkUserData = function() {
+        var userData = getUserData(this.entityID);
+        if (!userData) {
+            userData = DEFAULT_USER_DATA;
+        } else if (!userData.lightDefaultProperties) {
+            userData.lightDefaultProperties = DEFAULT_USER_DATA.lightDefaultProperties;
+        } else if (typeof userData.creatingLight == 'undefined') {
+            userData.creatingLight = DEFAULT_USER_DATA.creatingLight;
+        }
+        updateUserData(this.entityID, userData);
     }
     
     // Download sound if needed
@@ -76,28 +110,6 @@
     
     this.updateLightID = function() {
         var userData = getUserData(this.entityID);
-        if (!userData) {
-            userData = {
-                lightID: null,
-                lightDefaultProperties: {
-                    type: "Light",
-                    position: { x: 0, y: 0, z: 0 },
-                    dimensions: { x: 5, y: 5, z: 5 },
-                    isSpotlight: false,
-                    color: { red: 255, green: 48, blue: 0 },
-                    diffuseColor: { red: 255, green: 255, blue: 255 },
-                    ambientColor: { red: 255, green: 255, blue: 255 },
-                    specularColor: { red: 0, green: 0, blue: 0 },
-                    constantAttenuation: 1,
-                    linearAttenuation: 0,
-                    quadraticAttenuation: 0,
-                    intensity: 10,
-                    exponent: 0,
-                    cutoff: 180, // in degrees
-                }
-            };
-            updateUserData(this.entityID, userData);
-        }
         
         // Find valid light
         if (doesEntityExistNow(this.lightID)) {
@@ -168,15 +180,21 @@
         updateUserData(this.entityID, userData);
         print("Relative properties of light entity saved.");
     }
-
-    this.preload = function(entityID) {
+    
+    // This function should be called before any callback is executed
+    this.preOperation = function(entityID) {
         this.entityID = entityID;
         this.maybeDownloadSound();
+        
+        this.checkUserData();
+    }
+
+    this.preload = function(entityID) {
+        this.preOperation(entityID);
     };
     
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
-        this.entityID = entityID;
-        this.maybeDownloadSound();
+        this.preOperation(entityID);
         
         if (mouseEvent.isLeftButton) {
             this.updateLightID();
