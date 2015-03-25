@@ -48,7 +48,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     //const float ASSUMED_FPS = 60.0f;
     if (_fpsAverageUpWindow.getSampleCount() < IGNORE_THESE_SAMPLES) {
         currentFPS = ASSUMED_FPS;
-        _lastUpShift = _lastDownShift = usecTimestampNow();
+        _lastStable = _lastUpShift = _lastDownShift = usecTimestampNow();
     }
     
     _fpsAverageStartWindow.updateAverage(currentFPS);
@@ -58,9 +58,11 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     quint64 now = usecTimestampNow();
 
     bool changed = false;
-    bool octreeChanged = false;
     quint64 elapsedSinceDownShift = now - _lastDownShift;
     quint64 elapsedSinceUpShift = now - _lastUpShift;
+
+    quint64 lastStableOrUpshift = glm::max(_lastUpShift, _lastStable);
+    quint64 elapsedSinceStableOrUpShift = now - lastStableOrUpshift;
     
     if (_automaticLODAdjust) {
     
@@ -72,9 +74,19 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         bool doDownShift = false; 
 
         if (_isDownshifting) {
-            doDownShift = (elapsedSinceDownShift > DOWN_SHIFT_ELPASED && _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS());
+            // only consider things if our DOWN_SHIFT time has elapsed...
+            if (elapsedSinceDownShift > DOWN_SHIFT_ELPASED) {
+                doDownShift = _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS();
+                
+                if (!doDownShift) {
+                    qDebug() << "---- WE APPEAR TO BE DONE DOWN SHIFTING -----";
+                    _isDownshifting = false;
+                    _lastStable = now;
+                }
+            }
         } else {
-            doDownShift = (elapsedSinceUpShift > START_SHIFT_ELPASED && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS());
+            doDownShift = (elapsedSinceStableOrUpShift > START_SHIFT_ELPASED 
+                                && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS());
         }
         
         if (doDownShift) {
@@ -85,7 +97,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
                 if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
                 }
-                octreeChanged = changed = true;
+                changed = true;
             }
 
             if (changed) {
@@ -109,25 +121,28 @@ void LODManager::autoAdjustLOD(float currentFPS) {
 
                 _lastDownShift = now;
                 _isDownshifting = true;
-        
+
                 emit LODDecreased();
             }
         } else {
     
             // LOD Upward adjustment
-            if (elapsedSinceUpShift > UP_SHIFT_ELPASED && _fpsAverageUpWindow.getAverage() > getLODIncreaseFPS()) {
+            if (elapsedSinceUpShift > UP_SHIFT_ELPASED) {
+            
+                if (_fpsAverageUpWindow.getAverage() > getLODIncreaseFPS()) {
 
-                // Octee items... stepwise adjustment
-                if (_octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
-                    if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
-                        _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
-                    } else {
-                        _octreeSizeScale *= ADJUST_LOD_UP_BY;
+                    // Octee items... stepwise adjustment
+                    if (_octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+                        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+                            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+                        } else {
+                            _octreeSizeScale *= ADJUST_LOD_UP_BY;
+                        }
+                        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+                            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+                        }
+                        changed = true;
                     }
-                    if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
-                        _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
-                    }
-                    octreeChanged = changed = true;
                 }
         
                 if (changed) {
@@ -139,7 +154,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
 
                     _lastUpShift = now;
                     _isDownshifting = false;
-                
+
                     emit LODIncreased();
                 }
             }
