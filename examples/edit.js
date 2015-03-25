@@ -76,7 +76,6 @@ var DEFAULT_DIMENSIONS = {
 
 var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
-var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
@@ -553,18 +552,6 @@ function mousePressEvent(event) {
             // Event handled; do nothing.
             return;
         }
-    } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
-        var result = findClickedEntity(event);
-        if (event.isRightButton) {
-            if (result !== null) {
-                var currentProperties = Entities.getEntityProperties(result.entityID);
-                cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-                cameraManager.mousePressEvent(event);
-            }
-        } else {
-            cameraManager.mousePressEvent(event);
-        }
     }
 }
 
@@ -780,7 +767,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
@@ -811,7 +798,6 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Entities");
     Menu.removeMenuItem("File", "Import Entities from URL");
 
-    Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
