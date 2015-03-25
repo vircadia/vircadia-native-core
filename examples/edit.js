@@ -130,7 +130,7 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
     visible: false,
 });
 
-var MARKETPLACE_URL = "https://metaverse.highfidelity.io/marketplace";
+var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new WebWindow('Marketplace', MARKETPLACE_URL, 900, 700, false);
 marketplaceWindow.setVisible(false);
 
@@ -338,7 +338,11 @@ var toolBar = (function () {
             return true;
         }
         if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+            if (marketplaceWindow.url != MARKETPLACE_URL) {
+                marketplaceWindow.setURL(MARKETPLACE_URL);
+            }
             marketplaceWindow.setVisible(true);
+            marketplaceWindow.raise();
             return true;
         }
 
@@ -1143,6 +1147,10 @@ PropertiesTool = function(opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
+        } else if (data.type = "showMarketplace") {
+            if (marketplaceWindow.url != data.url) {
+                marketplaceWindow.setURL(data.url);
+            }
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
