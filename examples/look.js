@@ -80,7 +80,6 @@ function touchBeginEvent(event) {
     yawFromTouch = 0;
     pitchFromTouch = 0;
     startedTouching = true;
-    print("TOUCH BEGIN");
 }
 
 function touchEndEvent(event) {
@@ -88,7 +87,6 @@ function touchEndEvent(event) {
         print("touchEndEvent event.x,y=" + event.x + ", " + event.y);
     }
     startedTouching = false;
-    print("TOUCH END");
 }
 
 function touchUpdateEvent(event) {
