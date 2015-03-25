@@ -543,7 +543,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (propertyMenu.mousePressEvent(event) || toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
@@ -563,6 +563,8 @@ var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 function mouseMoveEvent(event) {
+    mouseHasMovedSincePress = true;
+
     if (placingEntityID) {
         if (!placingEntityID.isKnownID) {
             placingEntityID = Entities.identifyEntity(placingEntityID);
@@ -583,10 +585,8 @@ function mouseMoveEvent(event) {
         Script.clearTimeout(idleMouseTimerId);
     }
 
-    mouseHasMovedSincePress = true;
-
     // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
+    if (selectionDisplay.mouseMoveEvent(event) || propertyMenu.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
     }
 
@@ -631,7 +631,7 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
-    if (toolBar.mouseReleaseEvent(event)) {
+    if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
         return true;
     }
     if (placingEntityID) {
@@ -655,74 +655,94 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!event.isLeftButton || !isActive) {
-        return;
-    }
-
-    var result = findClickedEntity(event);
-    if (result === null) {
-        if (!event.isShifted) {
-            selectionManager.clearSelections();
-        }
-        return;
-    }
-    toolBar.setActive(true);
-    var pickRay = result.pickRay;
-    var foundEntity = result.entityID;
-
-    var properties = Entities.getEntityProperties(foundEntity);
-    if (isLocked(properties)) {
-        print("Model locked " + properties.id);
-    } else {
-        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-        print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
-        //                P         P - Model
-        //               /|         A - Palm
-        //              / | d       B - unit vector toward tip
-        //             /  |         X - base of the perpendicular line
-        //            A---X----->B  d - distance fom axis
-        //              x           x - distance from A
-        //
-        //            |X-A| = (P-A).B
-        //            X == A + ((P-A).B)B
-        //            d = |P-X|
-
-        var A = pickRay.origin;
-        var B = Vec3.normalize(pickRay.direction);
-        var P = properties.position;
-
-        var x = Vec3.dot(Vec3.subtract(P, A), B);
-        var X = Vec3.sum(A, Vec3.multiply(B, x));
-        var d = Vec3.length(Vec3.subtract(P, X));
-        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-        if (0 < x && sizeOK) {
-            entitySelected = true;
-            selectedEntityID = foundEntity;
-            orientation = MyAvatar.orientation;
-            intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-
-
+    print("CLICK");
+    if (isActive && event.isLeftButton) {
+        var result = findClickedEntity(event);
+        if (result === null) {
             if (!event.isShifted) {
-                selectionManager.setSelections([foundEntity]);
+                selectionManager.clearSelections();
+            }
+            return;
+        }
+        toolBar.setActive(true);
+        var pickRay = result.pickRay;
+        var foundEntity = result.entityID;
+
+        var properties = Entities.getEntityProperties(foundEntity);
+        if (isLocked(properties)) {
+            print("Model locked " + properties.id);
+        } else {
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+            //                P         P - Model
+            //               /|         A - Palm
+            //              / | d       B - unit vector toward tip
+            //             /  |         X - base of the perpendicular line
+            //            A---X----->B  d - distance fom axis
+            //              x           x - distance from A
+            //
+            //            |X-A| = (P-A).B
+            //            X == A + ((P-A).B)B
+            //            d = |P-X|
+
+            var A = pickRay.origin;
+            var B = Vec3.normalize(pickRay.direction);
+            var P = properties.position;
+
+            var x = Vec3.dot(Vec3.subtract(P, A), B);
+            var X = Vec3.sum(A, Vec3.multiply(B, x));
+            var d = Vec3.length(Vec3.subtract(P, X));
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+            if (0 < x && sizeOK) {
+                entitySelected = true;
+                selectedEntityID = foundEntity;
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+
+
+                if (!event.isShifted) {
+                    selectionManager.setSelections([foundEntity]);
+                } else {
+                    selectionManager.addEntity(foundEntity, true);
+                }
+
+                print("Model selected: " + foundEntity.id);
+                selectionDisplay.select(selectedEntityID, event);
+
+                if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                    cameraManager.focus(selectionManager.worldPosition,
+                                        selectionManager.worldDimensions,
+                                        Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                }
+            }
+        }
+    } else if (event.isRightButton) {
+        var result = findClickedEntity(event);
+        if (result) {
+            var properties = Entities.getEntityProperties(result.entityID);
+            var data = {};
+            try {
+                data = JSON.parse(properties.attribution);
+            } catch (e) {
+            }
+            if (data.marketplaceID) {
+                propertyMenu.marketplaceID = data.marketplaceID;
+                propertyMenu.updateMenuItemText(showMenuItem, "Show in Marketplace");
             } else {
-                selectionManager.addEntity(foundEntity, true);
+                propertyMenu.marketplaceID = null;
+                propertyMenu.updateMenuItemText(showMenuItem, "No marketplace info");
             }
-
-            print("Model selected: " + foundEntity.id);
-            selectionDisplay.select(selectedEntityID, event);
-
-            if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
-                cameraManager.focus(selectionManager.worldPosition,
-                                    selectionManager.worldDimensions,
-                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-            }
+            propertyMenu.setPosition(event.x, event.y);
+            propertyMenu.show();
+        } else {
+            propertyMenu.hide();
         }
     }
 }
@@ -1137,6 +1157,8 @@ PropertiesTool = function(opts) {
             if (marketplaceWindow.url != data.url) {
                 marketplaceWindow.setURL(data.url);
             }
+            marketplaceWindow.setVisible(true);
+            marketplaceWindow.raise();
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -1332,5 +1354,20 @@ PopupMenu = function() {
 
     return this;
 };
+
+var propertyMenu = PopupMenu();
+
+propertyMenu.onSelectMenuItem = function(name) {
+    if (propertyMenu.marketplaceID) {
+        var url = "https://metaverse.highfidelity.io/marketplace/items/" + propertyMenu.marketplaceID;
+        if (marketplaceWindow.url != url) {
+            marketplaceWindow.setURL(url);
+        }
+        marketplaceWindow.setVisible(true);
+        marketplaceWindow.raise();
+    }
+};
+
+var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
