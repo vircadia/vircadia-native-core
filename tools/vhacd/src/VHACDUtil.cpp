@@ -57,8 +57,15 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
         if (triangles.count() <= 0){
             continue;
         }           
+
+        AABox aaBox;
+        foreach (glm::vec3 p, vertices) {
+            aaBox += p;
+        }
+
         results->perMeshVertices.append(vertices);
         results->perMeshTriangleIndices.append(triangles);
+        results->perMeshLargestDimension.append(aaBox.getLargestDimension());
         count++;
     }
 
@@ -66,23 +73,40 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     return true;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const{
+bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params,
+                                    vhacd::ComputeResults *results,
+                                    int startMeshIndex, int endMeshIndex, float minimumMeshSize) const {
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
     int meshCount = meshes->meshCount;
     int count = 0;
     std::cout << "Performing V-HACD computation on " << meshCount << " meshes ..... " << std::endl;
 
-    for (int i = 0; i < meshCount; i++){
+    if (startMeshIndex < 0) {
+        startMeshIndex = 0;
+    }
+    if (endMeshIndex < 0) {
+        endMeshIndex = meshCount;
+    }
 
+    for (int i = startMeshIndex; i < endMeshIndex; i++){
+        qDebug() << "--------------------";
         std::vector<glm::vec3> vertices = meshes->perMeshVertices.at(i).toStdVector();
         std::vector<int> triangles = meshes->perMeshTriangleIndices.at(i).toStdVector();
         int nPoints = (unsigned int)vertices.size();
         int nTriangles = (unsigned int)triangles.size() / 3;
-        std::cout << "Mesh " << i + 1 << " :    ";
+        const float largestDimension = meshes->perMeshLargestDimension.at(i);
+
+        qDebug() << "Mesh " << i << " -- " << nPoints << " points, " << nTriangles << " triangles, "
+                 << "size =" << largestDimension;
+
+        if (largestDimension < minimumMeshSize || largestDimension > 1000) {
+            qDebug() << " Skipping...";
+            continue;
+        }
         // compute approximate convex decomposition
         bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, nTriangles, params);
         if (!res){
-            std::cout << "V-HACD computation failed for Mesh : " << i + 1 << std::endl;
+            qDebug() << "V-HACD computation failed for Mesh : " << i;
             continue;
         }
         count++; //For counting number of successfull computations
