@@ -1210,4 +1210,127 @@ PropertiesTool = function(opts) {
     return that;
 };
 
+PopupMenu = function() {
+    var self = this;
+
+    var MENU_ITEM_HEIGHT = 21;
+    var MENU_ITEM_SPACING = 1;
+    var TEXT_MARGIN = 7;
+
+    var overlays = [];
+    var overlayInfo = {};
+
+    var upColor = { red: 0, green: 0, blue: 0 };
+    var downColor = { red: 192, green: 192, blue: 192 };
+    var overColor = { red: 128, green: 128, blue: 128 };
+
+    self.onSelectMenuItem = function() { };
+
+    self.addMenuItem = function(name) {
+        var id = Overlays.addOverlay("text", {
+            text: name,
+            backgroundAlpha: 1.0,
+            backgroundColor: upColor,
+            topMargin: TEXT_MARGIN,
+            leftMargin: TEXT_MARGIN,
+            width: 210,
+            height: MENU_ITEM_HEIGHT,
+            font: { size: 12 },
+            visible: false,
+        });
+        overlays.push(id);
+        overlayInfo[id] = { name: name };
+        return id;
+    };
+
+    self.updateMenuItemText = function(id, newText) {
+        Overlays.editOverlay(id, { text: newText });
+    };
+
+    self.setPosition = function(x, y) {
+        for (var key in overlayInfo) {
+            Overlays.editOverlay(key, {
+                x: x,
+                y: y,
+            });
+            y += MENU_ITEM_HEIGHT + MENU_ITEM_SPACING;
+        }
+    };
+
+    self.onSelected = function() { };
+
+    var pressingOverlay = null;
+    var hoveringOverlay = null;
+
+    self.mousePressEvent = function(event) {
+        if (event.isLeftButton) {
+            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (overlay in overlayInfo) {
+                pressingOverlay = overlay;
+                Overlays.editOverlay(pressingOverlay, { backgroundColor: downColor });
+            } else {
+                self.hide();
+            }
+            return false;
+        }
+    };
+    self.mouseMoveEvent = function(event) {
+        if (visible) {
+            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (!pressingOverlay) {
+                if (hoveringOverlay != null && overlay != hoveringOverlay) {
+                    Overlays.editOverlay(hoveringOverlay, { backgroundColor: upColor});
+                    hoveringOverlay = null;
+                }
+                if (overlay != hoveringOverlay && overlay in overlayInfo) {
+                    Overlays.editOverlay(overlay, { backgroundColor: overColor });
+                    hoveringOverlay = overlay;
+                }
+            }
+        }
+        return false;
+    };
+    self.mouseReleaseEvent = function(event) {
+        var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        if (pressingOverlay != null) {
+            if (overlay == pressingOverlay) {
+                self.onSelectMenuItem(overlayInfo[overlay].name);
+            }
+            Overlays.editOverlay(pressingOverlay, { backgroundColor: upColor });
+            pressingOverlay = null;
+            self.hide();
+        }
+    };
+
+    var visible = false;
+
+    self.setVisible = function(newVisible) {
+        if (newVisible != visible) {
+            visible = newVisible;
+            for (var key in overlayInfo) {
+                Overlays.editOverlay(key, { visible: newVisible });
+            }
+        }
+    }
+    self.show = function() {
+        self.setVisible(true);
+    }
+    self.hide = function() {
+        self.setVisible(false);
+    }
+
+    function cleanup() {
+        for (var i = 0; i < overlays.length; i++) {
+            Overlays.deleteOverlay(overlays[i]);
+        }
+    }
+
+    Controller.mousePressEvent.connect(self.mousePressEvent);
+    Controller.mouseMoveEvent.connect(self.mouseMoveEvent);
+    Controller.mouseReleaseEvent.connect(self.mouseReleaseEvent);
+    Script.scriptEnding.connect(cleanup);
+
+    return this;
+};
+
 propertiesTool = PropertiesTool();
