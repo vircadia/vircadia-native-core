@@ -36,7 +36,7 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://metaverse.highfidelity.io");
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://metaverse.highfidelity.com");
 
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
     linkedDataCreateCallback(NULL),

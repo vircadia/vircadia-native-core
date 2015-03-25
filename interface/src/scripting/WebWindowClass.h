@@ -34,6 +34,7 @@ signals:
 class WebWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* eventBridge READ getEventBridge)
+    Q_PROPERTY(QString url READ getURL)
 public:
     WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow = false);
     ~WebWindowClass();
@@ -42,6 +43,9 @@ public:
 
 public slots:
     void setVisible(bool visible);
+    QString getURL() const { return _webView->url().url(); }
+    void setURL(const QString& url);
+    void raise();
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
 
