@@ -75,8 +75,6 @@
             userData = DEFAULT_USER_DATA;
         } else if (!userData.lightDefaultProperties) {
             userData.lightDefaultProperties = DEFAULT_USER_DATA.lightDefaultProperties;
-        } else if (typeof userData.creatingLight == 'undefined') {
-            userData.creatingLight = DEFAULT_USER_DATA.creatingLight;
         }
         updateUserData(this.entityID, userData);
     }
@@ -122,8 +120,8 @@
     }
     
     this.maybeUpdateLightIDInUserData = function() {
-        this.lightID = getTrueID(this.lightID);
-        if (this.lightID.isKnownID) {
+        if (getTrueID(this.lightID).isKnownID) {
+            this.lightID = getTrueID(this.lightID);
             this.updateLightIDInUserData();
         } else {
             var that = this;
