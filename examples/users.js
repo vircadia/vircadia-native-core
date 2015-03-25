@@ -54,6 +54,8 @@ var usersWindow = (function () {
         isVisible = true,
 
         viewportHeight,
+        isMirrorDisplay = false,
+        isFullscreenMirror = false,
 
         HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
@@ -62,10 +64,21 @@ var usersWindow = (function () {
         radioButtonDiameter;
 
     function calculateWindowHeight() {
+        var AUDIO_METER_HEIGHT = 52,
+            MIRROR_HEIGHT = 220,
+            maxWindowHeight;
+
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
         windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 5 : 5) * windowLineHeight
                 - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
+
+        // Limit to height of window minus VU meter and mirror if displayed
+        maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
+        if (isMirrorDisplay && !isFullscreenMirror) {
+            maxWindowHeight -= MIRROR_HEIGHT;
+        }
+        windowHeight = Math.min(windowHeight, maxWindowHeight);
     }
 
     function updateOverlayPositions() {
@@ -295,10 +308,20 @@ var usersWindow = (function () {
     }
 
     function onScriptUpdate() {
-        var oldViewportHeight = viewportHeight;
+        var oldViewportHeight = viewportHeight,
+            oldIsMirrorDisplay = isMirrorDisplay,
+            oldIsFullscreenMirror = isFullscreenMirror,
+            MIRROR_MENU_ITEM = "Mirror",
+            FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
 
         viewportHeight = Controller.getViewportDimensions().y;
-        if (viewportHeight !== oldViewportHeight) {
+        isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
+        isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
+
+        if (viewportHeight !== oldViewportHeight
+                || isMirrorDisplay !== oldIsMirrorDisplay
+                || isFullscreenMirror !== oldIsFullscreenMirror) {
+            calculateWindowHeight();
             updateOverlayPositions();
         }
     }
