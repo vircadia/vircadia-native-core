@@ -65,6 +65,8 @@ var usersWindow = (function () {
         isMirrorDisplay = false,
         isFullscreenMirror = false,
 
+        isUsingScrollbars = false,
+
         HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
         RADIO_BUTTON_SVG_DIAMETER = 14,
@@ -91,6 +93,7 @@ var usersWindow = (function () {
 
         // Corresponding number of users to actually display
         numUsersToDisplay = Math.round((windowHeight - nonUsersHeight) / windowLineHeight);
+        isUsingScrollbars = numUsersToDisplay < linesOfUsers.length;
     }
 
     function updateOverlayPositions() {
@@ -143,14 +146,13 @@ var usersWindow = (function () {
             reducedTextWidth,
             i;
 
-        maxTextWidth = WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
+        maxTextWidth = WINDOW_WIDTH_2D - (isUsingScrollbars ? SCROLLBAR_BACKGROUND_WIDTH_2D : 0) - 2 * WINDOW_MARGIN_2D;
         ellipsisWidth = Overlays.textSize(windowPane2D, "...").width;
         reducedTextWidth = maxTextWidth - ellipsisWidth;
 
         for (i = 0; i < numUsersToDisplay; i += 1) {
             user = usersOnline[linesOfUsers[i]];
             userText = user.text;
-            print(userText);
             textWidth = user.textWidth;
 
             if (textWidth > maxTextWidth) {
@@ -181,11 +183,13 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(scrollbarBackground2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight,
-            height: numUsersToDisplay * windowLineHeight - windowLineSpacing / 2
+            height: numUsersToDisplay * windowLineHeight - windowLineSpacing / 2,
+            visible: isUsingScrollbars
         });
         Overlays.editOverlay(scrollbarBar2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1,
-            height: numUsersToDisplay * windowLineHeight / 3 // TODO
+            height: numUsersToDisplay * windowLineHeight / 3, // TODO
+            visible: isUsingScrollbars
         });
 
         updateOverlayPositions();
@@ -282,8 +286,8 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(windowPane2D, { visible: isVisible });
         Overlays.editOverlay(windowHeading2D, { visible: isVisible });
-        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible });
-        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible });
+        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars });
+        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible });
@@ -426,7 +430,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BACKGROUND_COLOR_2D,
             backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA_2D,
             text: "",
-            visible: isVisible
+            visible: isVisible && isUsingScrollbars
         });
 
         scrollbarBar2D = Overlays.addOverlay("text", {
@@ -437,7 +441,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BAR_COLOR_2D,
             backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D,
             text: "",
-            visible: isVisible
+            visible: isVisible && isUsingScrollbars
         });
 
         visibilityHeading2D = Overlays.addOverlay("text", {
