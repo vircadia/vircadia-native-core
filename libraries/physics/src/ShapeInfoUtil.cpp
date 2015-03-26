@@ -29,6 +29,9 @@ int ShapeInfoUtil::toBulletShapeType(int shapeInfoType) {
         case SHAPE_TYPE_CONVEX_HULL:
             bulletShapeType = CONVEX_HULL_SHAPE_PROXYTYPE;
             break;
+        case SHAPE_TYPE_COMPOUND:
+            bulletShapeType = COMPOUND_SHAPE_PROXYTYPE;
+            break;
     }
     return bulletShapeType;
 }
@@ -47,6 +50,9 @@ int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
             break;
         case CONVEX_HULL_SHAPE_PROXYTYPE:
             shapeInfoType = SHAPE_TYPE_CONVEX_HULL;
+            break;
+        case COMPOUND_SHAPE_PROXYTYPE:
+            shapeInfoType = SHAPE_TYPE_COMPOUND;
             break;
     }
     return shapeInfoType;
@@ -70,12 +76,34 @@ void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInf
                 const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(shape);
                 const int numPoints = convexHullShape->getNumPoints();
                 const btVector3* btPoints = convexHullShape->getUnscaledPoints();
-                QVector<glm::vec3> points;
+                QVector<QVector<glm::vec3>> points;
+                QVector<glm::vec3> childPoints;
                 for (int i = 0; i < numPoints; i++) {
                     glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
-                    points << point;
+                    childPoints << point;
                 }
-                info.setConvexHull(points);
+                points << childPoints;
+                info.setConvexHulls(points);
+            }
+            break;
+            case SHAPE_TYPE_COMPOUND: {
+                const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shape);
+                const int numChildShapes = compoundShape->getNumChildShapes();
+                QVector<QVector<glm::vec3>> points;
+                for (int i = 0; i < numChildShapes; i ++) {
+                    const btCollisionShape* childShape = compoundShape->getChildShape(i);
+                    const btConvexHullShape* convexHullShape = static_cast<const btConvexHullShape*>(childShape);
+                    const int numPoints = convexHullShape->getNumPoints();
+                    const btVector3* btPoints = convexHullShape->getUnscaledPoints();
+
+                    QVector<glm::vec3> childPoints;
+                    for (int j = 0; j < numPoints; j++) {
+                        glm::vec3 point(btPoints->getX(), btPoints->getY(), btPoints->getZ());
+                        childPoints << point;
+                    }
+                    points << childPoints;
+                }
+                info.setConvexHulls(points);
             }
             break;
             default: {
@@ -109,10 +137,26 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
         break;
         case SHAPE_TYPE_CONVEX_HULL: {
             shape = new btConvexHullShape();
-            const QVector<glm::vec3>& points = info.getPoints();
-            foreach (glm::vec3 point, points) {
+            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+            foreach (glm::vec3 point, points[0]) {
                 btVector3 btPoint(point[0], point[1], point[2]);
                 static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);
+            }
+        }
+        break;
+        case SHAPE_TYPE_COMPOUND: {
+            shape = new btCompoundShape();
+            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+
+            foreach (QVector<glm::vec3> hullPoints, info.getPoints()) {
+                auto hull = new btConvexHullShape();
+                foreach (glm::vec3 point, hullPoints) {
+                    btVector3 btPoint(point[0], point[1], point[2]);
+                    hull->addPoint(btPoint);
+                }
+                btTransform trans;
+                trans.setIdentity();
+                static_cast<btCompoundShape*>(shape)->addChildShape (trans, hull);
             }
         }
         break;
