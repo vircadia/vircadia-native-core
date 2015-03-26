@@ -43,18 +43,18 @@ static btVector3 getNormalizedVector(const btVector3& v) {
 class btKinematicClosestNotMeRayResultCallback : public btCollisionWorld::ClosestRayResultCallback {
 public:
     btKinematicClosestNotMeRayResultCallback (btCollisionObject* me) : 
-        btCollisionWorld::ClosestRayResultCallback(btVector3(0.0, 0.0, 0.0), btVector3(0.0, 0.0, 0.0)) {
-        m_me = me;
+        btCollisionWorld::ClosestRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
+        _me = me;
     }
 
     virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
-        if (rayResult.m_collisionObject == m_me) {
-            return 1.0;
+        if (rayResult.m_collisionObject == _me) {
+            return 1.0f;
         }
         return ClosestRayResultCallback::addSingleResult (rayResult, normalInWorldSpace);
     }
 protected:
-    btCollisionObject* m_me;
+    btCollisionObject* _me;
 };
 
 
@@ -357,7 +357,6 @@ void CharacterController::scanDown(btCollisionWorld* world) {
     btVector3 end = start - MAX_SCAN_HEIGHT * up;
 
     world->rayTest(start, end, callback);
-    bool wasHovering = _isHovering;
     if (!callback.hasHit()) {
         _isHovering = true;
     } else if (_isHovering && callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT) {
