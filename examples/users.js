@@ -329,7 +329,8 @@ var usersWindow = (function () {
             lineClicked,
             userClicked,
             i,
-            visibilityChanged;
+            visibilityChanged,
+            delta;
 
         if (!isVisible) {
             return;
@@ -379,6 +380,20 @@ var usersWindow = (function () {
         if (clickedOverlay === scrollbarBar2D) {
             scrollbarBarClickedAt = (event.y - scrollbarBarPosition.y) / scrollbarBarHeight;
             isMovingScrollbar = true;
+        }
+
+        if (clickedOverlay === scrollbarBackground2D) {
+            delta = scrollbarBarHeight / (scrollbarBackgroundHeight - scrollbarBarHeight);
+
+            if (event.y < scrollbarBarPosition.y) {
+                scrollbarValue = Math.max(scrollbarValue - delta, 0.0);
+            } else {
+                scrollbarValue = Math.min(scrollbarValue + delta, 1.0);
+            }
+
+            firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
+            updateOverlayPositions();
+            updateUsersDisplay();
         }
     }
 
