@@ -40,6 +40,7 @@ var usersWindow = (function () {
 
         usersOnline,                                        // Raw users data
         linesOfUsers = [],                                  // Array of indexes pointing into usersOnline
+        numUsersToDisplay = 0,
 
         API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
@@ -73,19 +74,23 @@ var usersWindow = (function () {
     function calculateWindowHeight() {
         var AUDIO_METER_HEIGHT = 52,
             MIRROR_HEIGHT = 220,
+            nonUsersHeight,
             maxWindowHeight;
 
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
-        windowHeight = (linesOfUsers.length > 0 ? linesOfUsers.length + 5 : 5) * windowLineHeight
-                - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
+        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
 
-        // Limit to height of window minus VU meter and mirror if displayed
+        // Limit window to height of viewport minus VU meter and mirror if displayed
+        windowHeight = linesOfUsers.length * windowLineHeight + nonUsersHeight;
         maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
         }
         windowHeight = Math.min(windowHeight, maxWindowHeight);
+
+        // Corresponding number of users to actually display
+        numUsersToDisplay = Math.round((windowHeight - nonUsersHeight) / windowLineHeight);
     }
 
     function updateOverlayPositions() {
@@ -130,45 +135,38 @@ var usersWindow = (function () {
 
     function updateUsersDisplay() {
         var displayText = "",
-            myUsername,
             user,
             userText,
             textWidth,
             maxTextWidth,
+            ellipsisWidth,
+            reducedTextWidth,
             i;
 
-        myUsername = GlobalServices.username;
-        linesOfUsers = [];
-        for (i = 0; i < usersOnline.length; i += 1) {
-            user = usersOnline[i];
-            if (user.username !== myUsername && user.online) {
-                userText = user.username;
-                if (user.location.root) {
-                    userText += " @ " + user.location.root.name;
-                }
-                textWidth = Overlays.textSize(windowPane2D, userText).width;
+        maxTextWidth = WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
+        ellipsisWidth = Overlays.textSize(windowPane2D, "...").width;
+        reducedTextWidth = maxTextWidth - ellipsisWidth;
 
-                maxTextWidth = WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D;
-                if (textWidth > maxTextWidth) {
-                    // Trim and append "..." to fit window width
-                    maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
-                    while (textWidth > maxTextWidth) {
-                        userText = userText.slice(0, -1);
-                        textWidth = Overlays.textSize(windowPane2D, userText).width;
-                    }
-                    userText += "...";
+        for (i = 0; i < numUsersToDisplay; i += 1) {
+            user = usersOnline[linesOfUsers[i]];
+            userText = user.text;
+            print(userText);
+            textWidth = user.textWidth;
+
+            if (textWidth > maxTextWidth) {
+                // Trim and append "..." to fit window width
+                maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
+                while (textWidth > reducedTextWidth) {
+                    userText = userText.slice(0, -1);
                     textWidth = Overlays.textSize(windowPane2D, userText).width;
                 }
-
-                usersOnline[i].textWidth = textWidth;
-                linesOfUsers.push(i);
-                displayText += "\n" + userText;
+                userText += "...";
             }
+
+            displayText += "\n" + userText;
         }
 
         displayText = displayText.slice(1);  // Remove leading "\n".
-
-        calculateWindowHeight();
 
         Overlays.editOverlay(windowPane2D, {
             y: viewportHeight - windowHeight,
@@ -183,11 +181,11 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(scrollbarBackground2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight,
-            height: linesOfUsers.length * windowLineHeight - windowLineSpacing / 2
+            height: numUsersToDisplay * windowLineHeight - windowLineSpacing / 2
         });
         Overlays.editOverlay(scrollbarBar2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1,
-            height: linesOfUsers.length * windowLineHeight / 3 // TODO
+            height: numUsersToDisplay * windowLineHeight / 3 // TODO
         });
 
         updateOverlayPositions();
@@ -203,7 +201,11 @@ var usersWindow = (function () {
     }
 
     processUsers = function () {
-        var response;
+        var response,
+            myUsername,
+            user,
+            userText,
+            i;
 
         if (usersRequest.readyState === usersRequest.DONE) {
             if (usersRequest.status === 200) {
@@ -220,7 +222,26 @@ var usersWindow = (function () {
                 }
 
                 usersOnline = response.data.users;
+                myUsername = GlobalServices.username;
+                linesOfUsers = [];
+                for (i = 0; i < usersOnline.length; i += 1) {
+                    user = usersOnline[i];
+                    if (user.username !== myUsername && user.online) {
+                        userText = user.username;
+                        if (user.location.root) {
+                            userText += " @ " + user.location.root.name;
+                        }
+
+                        usersOnline[i].text = userText;
+                        usersOnline[i].textWidth = Overlays.textSize(windowPane2D, userText).width;
+
+                        linesOfUsers.push(i);
+                    }
+                }
+
+                calculateWindowHeight();
                 updateUsersDisplay();
+
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
                 usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
@@ -346,6 +367,7 @@ var usersWindow = (function () {
                 || isMirrorDisplay !== oldIsMirrorDisplay
                 || isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
+            updateUsersDisplay();
             updateOverlayPositions();
         }
     }
@@ -361,9 +383,9 @@ var usersWindow = (function () {
         radioButtonDiameter = RADIO_BUTTON_DISPLAY_SCALE * windowTextHeight;
         Overlays.deleteOverlay(textSizeOverlay);
 
-        calculateWindowHeight();
-
         viewportHeight = Controller.getViewportDimensions().y;
+
+        calculateWindowHeight();
 
         windowPane2D = Overlays.addOverlay("text", {
             x: 0,
