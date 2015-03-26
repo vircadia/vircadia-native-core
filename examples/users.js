@@ -29,6 +29,7 @@ var usersWindow = (function () {
         SCROLLBAR_BAR_MIN_HEIGHT = 5,
         SCROLLBAR_BAR_COLOR_2D = { red: 180, green: 180, blue: 180 },
         SCROLLBAR_BAR_ALPHA_2D = 0.8,
+        SCROLLBAR_BAR_SELECTED_ALPHA_2D = 0.9,
         scrollbarBar2D,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
@@ -379,6 +380,9 @@ var usersWindow = (function () {
 
         if (clickedOverlay === scrollbarBar2D) {
             scrollbarBarClickedAt = (event.y - scrollbarBarPosition.y) / scrollbarBarHeight;
+            Overlays.editOverlay(scrollbarBar2D, {
+                backgroundAlpha: SCROLLBAR_BAR_SELECTED_ALPHA_2D
+            });
             isMovingScrollbar = true;
         }
 
@@ -410,12 +414,18 @@ var usersWindow = (function () {
                 updateOverlayPositions();
                 updateUsersDisplay();
             } else {
+                Overlays.editOverlay(scrollbarBar2D, {
+                    backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D
+                });
                 isMovingScrollbar = false;
             }
         }
     }
 
     function onMouseReleaseEvent() {
+        Overlays.editOverlay(scrollbarBar2D, {
+            backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D
+        });
         isMovingScrollbar = false;
     }
 
