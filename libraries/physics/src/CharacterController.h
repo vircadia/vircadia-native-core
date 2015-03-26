@@ -82,6 +82,7 @@ protected:
     bool _enabled;
     bool _wasOnGround;
     bool _wasJumping;
+    bool _isHovering;
     btScalar _velocityTimeInterval;
     uint32_t _pendingFlags;
 
@@ -95,6 +96,7 @@ protected:
     btVector3 perpindicularComponent(const btVector3& direction, const btVector3& normal);
 
     bool recoverFromPenetration(btCollisionWorld* collisionWorld);
+    void scanDown(btCollisionWorld* collisionWorld);
     void stepUp(btCollisionWorld* collisionWorld);
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
     void stepForward(btCollisionWorld* collisionWorld, const btVector3& walkMove);

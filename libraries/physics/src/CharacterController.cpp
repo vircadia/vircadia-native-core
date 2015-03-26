@@ -40,6 +40,24 @@ static btVector3 getNormalizedVector(const btVector3& v) {
     return n;
 }
 
+class btKinematicClosestNotMeRayResultCallback : public btCollisionWorld::ClosestRayResultCallback {
+public:
+    btKinematicClosestNotMeRayResultCallback (btCollisionObject* me) : 
+        btCollisionWorld::ClosestRayResultCallback(btVector3(0.0, 0.0, 0.0), btVector3(0.0, 0.0, 0.0)) {
+        m_me = me;
+    }
+
+    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
+        if (rayResult.m_collisionObject == m_me) {
+            return 1.0;
+        }
+        return ClosestRayResultCallback::addSingleResult (rayResult, normalInWorldSpace);
+    }
+protected:
+    btCollisionObject* m_me;
+};
+
+
 class btKinematicClosestNotMeConvexResultCallback : public btCollisionWorld::ClosestConvexResultCallback {
     public:
         btKinematicClosestNotMeConvexResultCallback(btCollisionObject* me, const btVector3& up, btScalar minSlopeDot)
@@ -215,6 +233,7 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _jumpSpeed = 7.0f;
     _wasOnGround = false;
     _wasJumping = false;
+    _isHovering = true;
     setMaxSlope(btRadians(45.0f));
     _lastStepUp = 0.0f;
     _pendingFlags = 0;
@@ -323,6 +342,27 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     newTrans.setOrigin(_currentPosition);
     _ghostObject->setWorldTransform(newTrans);
     return penetration;
+}
+
+void CharacterController::scanDown(btCollisionWorld* world) {
+    // we test with downward raycast and if we don't find floor close enough then turn on "hover"
+    btKinematicClosestNotMeRayResultCallback callback(_ghostObject);
+    callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
+    callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
+
+    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
+    btVector3 start = _currentPosition;
+    const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight; // closest possible floor for disabling hover
+    const btScalar MIN_HOVER_HEIGHT = 2.0f + _halfHeight; // distance to floor for enabling hover
+    btVector3 end = start - MAX_SCAN_HEIGHT * up;
+
+    world->rayTest(start, end, callback);
+    bool wasHovering = _isHovering;
+    if (!callback.hasHit()) {
+        _isHovering = true;
+    } else if (_isHovering && callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT) {
+        _isHovering = false;
+    }
 }
 
 void CharacterController::stepUp(btCollisionWorld* world) {
@@ -495,7 +535,6 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         callback2.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
 
         _currentPosition = _targetPosition;
-        btVector3 oldPosition = _currentPosition;
         step = (- _stepHeight) * up;
         _targetPosition = _currentPosition + step;
 
@@ -510,7 +549,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _wasJumping = false;
         } else {
             // nothing to step down on, so remove the stepUp effect
-            _currentPosition = oldPosition - _lastStepUp * up;
+            //_currentPosition = oldPosition;
             _lastStepUp = 0.0f;
         }
     } else {
@@ -581,14 +620,19 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         return; // no motion
     }
 
-    _wasOnGround = onGround();
-
     // Update fall velocity.
-    _verticalVelocity -= _gravity * dt;
-    if (_verticalVelocity > _jumpSpeed) {
-        _verticalVelocity = _jumpSpeed;
-    } else if (_verticalVelocity < -_maxFallSpeed) {
-        _verticalVelocity = -_maxFallSpeed;
+    if (_isHovering) {
+        _wasOnGround = false;
+        const btScalar HOVER_RELAXATION_TIMESCALE = 1.0f;
+        _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
+    } else {
+        _wasOnGround = onGround();
+        _verticalVelocity -= _gravity * dt;
+        if (_verticalVelocity > _jumpSpeed) {
+            _verticalVelocity = _jumpSpeed;
+        } else if (_verticalVelocity < -_maxFallSpeed) {
+            _verticalVelocity = -_maxFallSpeed;
+        }
     }
     _verticalOffset = _verticalVelocity * dt;
 
@@ -599,6 +643,8 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     // (1) step the character up a little bit so that its forward step doesn't hit the floor
     // (2) step the character forward
     // (3) step the character down looking for new ledges, the original floor, or a floor one step below where we started
+
+    scanDown(collisionWorld);
 
     stepUp(collisionWorld);
 
@@ -711,6 +757,7 @@ void CharacterController::setEnabled(bool enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
+            _isHovering = true;
         } else {
             // Always set REMOVE bit when going disabled, and we always clear the ADD bit just in case
             // it was previously set by something else (e.g. an UPDATE_SHAPE event).
