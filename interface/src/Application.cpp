@@ -1755,7 +1755,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree.addEntity(entityItem->getEntityItemID(), properties);
     }
 
-    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    exportTree.writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
     _window->activateWindow();
@@ -3599,6 +3599,7 @@ void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
         _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
         _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
     }

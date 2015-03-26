@@ -95,6 +95,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
+static const QString SVO_JSON_EXTENSION  = ".svo.json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 
