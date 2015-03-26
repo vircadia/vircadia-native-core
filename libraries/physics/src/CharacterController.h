@@ -59,7 +59,8 @@ protected:
     btScalar _maxSlopeCosine;  // Cosine equivalent of _maxSlopeRadians (calculated once when set, for optimization)
     btScalar _gravity;
 
-    btScalar _stepHeight; // height of stepUp prior to stepForward
+    btScalar _stepUpHeight; // height of stepUp prior to stepForward
+    btScalar _stepDownHeight; // height of stepDown
 
     btScalar _addedMargin;//@todo: remove this and fix the code
 

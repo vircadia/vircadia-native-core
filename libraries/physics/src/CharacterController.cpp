@@ -228,9 +228,9 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
-    _gravity = 9.8f;
+    _gravity = 5.0f; // slower than Earth's
     _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
-    _jumpSpeed = 7.0f;
+    _jumpSpeed = 5.0f;
     _wasOnGround = false;
     _wasJumping = false;
     _isHovering = true;
@@ -352,8 +352,8 @@ void CharacterController::scanDown(btCollisionWorld* world) {
 
     btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
     btVector3 start = _currentPosition;
-    const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight; // closest possible floor for disabling hover
-    const btScalar MIN_HOVER_HEIGHT = 2.0f + _halfHeight; // distance to floor for enabling hover
+    const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight + _radius; // closest possible floor for disabling hover
+    const btScalar MIN_HOVER_HEIGHT = 3.0f + _halfHeight + _radius; // distance to floor for enabling hover
     btVector3 end = start - MAX_SCAN_HEIGHT * up;
 
     world->rayTest(start, end, callback);
@@ -374,7 +374,7 @@ void CharacterController::stepUp(btCollisionWorld* world) {
     btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
     start.setOrigin(_currentPosition + up * (_convexShape->getMargin() + _addedMargin));
 
-    _targetPosition = _currentPosition + up * _stepHeight;
+    _targetPosition = _currentPosition + up * _stepUpHeight;
     end.setIdentity();
     end.setOrigin(_targetPosition);
 
@@ -392,15 +392,15 @@ void CharacterController::stepUp(btCollisionWorld* world) {
 
         // Only modify the position if the hit was a slope and not a wall or ceiling.
         if (callback.m_hitNormalWorld.dot(up) > 0.0f) {
-            _lastStepUp = _stepHeight * callback.m_closestHitFraction;
+            _lastStepUp = _stepUpHeight * callback.m_closestHitFraction;
             _currentPosition.setInterpolate3(_currentPosition, _targetPosition, callback.m_closestHitFraction);
         } else {
-            _lastStepUp = _stepHeight;
+            _lastStepUp = _stepUpHeight;
             _currentPosition = _targetPosition;
         }
     } else {
         _currentPosition = _targetPosition;
-        _lastStepUp = _stepHeight;
+        _lastStepUp = _stepUpHeight;
     }
 }
 
@@ -524,6 +524,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _wasJumping = false;
     } else if (!_wasJumping) {
         // sweep again for floor within downStep threshold
+        step = -_stepDownHeight * up;
         StepDownConvexResultCallback callback2 (_ghostObject,
                 up,
                 _currentPosition, step,
@@ -535,7 +536,6 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         callback2.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
 
         _currentPosition = _targetPosition;
-        step = (- _stepHeight) * up;
         _targetPosition = _currentPosition + step;
 
         start.setOrigin(_currentPosition);
@@ -549,7 +549,6 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _wasJumping = false;
         } else {
             // nothing to step down on, so remove the stepUp effect
-            //_currentPosition = oldPosition;
             _lastStepUp = 0.0f;
         }
     } else {
@@ -819,10 +818,8 @@ void CharacterController::updateShapeIfNecessary() {
             _ghostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                             glmToBullet(_avatarData->getPosition())));
             // stepHeight affects the heights of ledges that the character can ascend
-            // however the actual ledge height is some function of _stepHeight
-            // due to character shape and this CharacterController algorithm
-            // (the function is approximately 2*_stepHeight)
-            _stepHeight = 0.1f * (_radius + _halfHeight) + 0.1f;
+            _stepUpHeight = _radius + 0.25f * _halfHeight + 0.1f;
+            _stepDownHeight = _radius;
 
             // create new shape
             _convexShape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
