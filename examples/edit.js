@@ -76,7 +76,6 @@ var DEFAULT_DIMENSIONS = {
 
 var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
-var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
@@ -544,7 +543,7 @@ function mousePressEvent(event) {
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (propertyMenu.mousePressEvent(event) || toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         mouseCapturedByTool = true;
         return;
     }
@@ -552,18 +551,6 @@ function mousePressEvent(event) {
         if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
             // Event handled; do nothing.
             return;
-        }
-    } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
-        var result = findClickedEntity(event);
-        if (event.isRightButton) {
-            if (result !== null) {
-                var currentProperties = Entities.getEntityProperties(result.entityID);
-                cameraManager.enable();
-                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-                cameraManager.mousePressEvent(event);
-            }
-        } else {
-            cameraManager.mousePressEvent(event);
         }
     }
 }
@@ -576,6 +563,8 @@ var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 function mouseMoveEvent(event) {
+    mouseHasMovedSincePress = true;
+
     if (placingEntityID) {
         if (!placingEntityID.isKnownID) {
             placingEntityID = Entities.identifyEntity(placingEntityID);
@@ -596,10 +585,8 @@ function mouseMoveEvent(event) {
         Script.clearTimeout(idleMouseTimerId);
     }
 
-    mouseHasMovedSincePress = true;
-
     // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
+    if (selectionDisplay.mouseMoveEvent(event) || propertyMenu.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
     }
 
@@ -644,7 +631,7 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
-    if (toolBar.mouseReleaseEvent(event)) {
+    if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
         return true;
     }
     if (placingEntityID) {
@@ -668,74 +655,93 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
-    if (!event.isLeftButton || !isActive) {
-        return;
-    }
-
-    var result = findClickedEntity(event);
-    if (result === null) {
-        if (!event.isShifted) {
-            selectionManager.clearSelections();
-        }
-        return;
-    }
-    toolBar.setActive(true);
-    var pickRay = result.pickRay;
-    var foundEntity = result.entityID;
-
-    var properties = Entities.getEntityProperties(foundEntity);
-    if (isLocked(properties)) {
-        print("Model locked " + properties.id);
-    } else {
-        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-        print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
-        //                P         P - Model
-        //               /|         A - Palm
-        //              / | d       B - unit vector toward tip
-        //             /  |         X - base of the perpendicular line
-        //            A---X----->B  d - distance fom axis
-        //              x           x - distance from A
-        //
-        //            |X-A| = (P-A).B
-        //            X == A + ((P-A).B)B
-        //            d = |P-X|
-
-        var A = pickRay.origin;
-        var B = Vec3.normalize(pickRay.direction);
-        var P = properties.position;
-
-        var x = Vec3.dot(Vec3.subtract(P, A), B);
-        var X = Vec3.sum(A, Vec3.multiply(B, x));
-        var d = Vec3.length(Vec3.subtract(P, X));
-        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-        if (0 < x && sizeOK) {
-            entitySelected = true;
-            selectedEntityID = foundEntity;
-            orientation = MyAvatar.orientation;
-            intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-
-
+    if (isActive && event.isLeftButton) {
+        var result = findClickedEntity(event);
+        if (result === null) {
             if (!event.isShifted) {
-                selectionManager.setSelections([foundEntity]);
+                selectionManager.clearSelections();
+            }
+            return;
+        }
+        toolBar.setActive(true);
+        var pickRay = result.pickRay;
+        var foundEntity = result.entityID;
+
+        var properties = Entities.getEntityProperties(foundEntity);
+        if (isLocked(properties)) {
+            print("Model locked " + properties.id);
+        } else {
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+            //                P         P - Model
+            //               /|         A - Palm
+            //              / | d       B - unit vector toward tip
+            //             /  |         X - base of the perpendicular line
+            //            A---X----->B  d - distance fom axis
+            //              x           x - distance from A
+            //
+            //            |X-A| = (P-A).B
+            //            X == A + ((P-A).B)B
+            //            d = |P-X|
+
+            var A = pickRay.origin;
+            var B = Vec3.normalize(pickRay.direction);
+            var P = properties.position;
+
+            var x = Vec3.dot(Vec3.subtract(P, A), B);
+            var X = Vec3.sum(A, Vec3.multiply(B, x));
+            var d = Vec3.length(Vec3.subtract(P, X));
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+            if (0 < x && sizeOK) {
+                entitySelected = true;
+                selectedEntityID = foundEntity;
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+
+
+                if (!event.isShifted) {
+                    selectionManager.setSelections([foundEntity]);
+                } else {
+                    selectionManager.addEntity(foundEntity, true);
+                }
+
+                print("Model selected: " + foundEntity.id);
+                selectionDisplay.select(selectedEntityID, event);
+
+                if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                    cameraManager.focus(selectionManager.worldPosition,
+                                        selectionManager.worldDimensions,
+                                        Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                }
+            }
+        }
+    } else if (event.isRightButton) {
+        var result = findClickedEntity(event);
+        if (result) {
+            var properties = Entities.getEntityProperties(result.entityID);
+            var data = {};
+            try {
+                data = JSON.parse(properties.attribution);
+            } catch (e) {
+            }
+            if (data.marketplaceID) {
+                propertyMenu.marketplaceID = data.marketplaceID;
+                propertyMenu.updateMenuItemText(showMenuItem, "Show in Marketplace");
             } else {
-                selectionManager.addEntity(foundEntity, true);
+                propertyMenu.marketplaceID = null;
+                propertyMenu.updateMenuItemText(showMenuItem, "No marketplace info");
             }
-
-            print("Model selected: " + foundEntity.id);
-            selectionDisplay.select(selectedEntityID, event);
-
-            if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
-                cameraManager.focus(selectionManager.worldPosition,
-                                    selectionManager.worldDimensions,
-                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-            }
+            propertyMenu.setPosition(event.x, event.y);
+            propertyMenu.show();
+        } else {
+            propertyMenu.hide();
         }
     }
 }
@@ -780,7 +786,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT, afterItem: MENU_INSPECT_TOOL_ENABLED,
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
@@ -811,7 +817,6 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Entities");
     Menu.removeMenuItem("File", "Import Entities from URL");
 
-    Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
@@ -833,11 +838,21 @@ Script.scriptEnding.connect(function() {
     Overlays.deleteOverlay(importingSVOTextOverlay);
 });
 
+var lastOrientation = null;
+var lastPosition = null;
+
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
     toolBar.move();
     progressDialog.move();
     selectionDisplay.checkMove();
+    var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
+    var dPosition = Vec3.distance(Camera.position, lastPosition);
+    if (dOrientation > 0.001 || dPosition > 0.001) {
+        propertyMenu.hide();
+        lastOrientation = Camera.orientation;
+        lastPosition = Camera.position;
+    }
 });
 
 function insideBox(center, dimensions, point) {
@@ -914,8 +929,8 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.alert("No entities have been selected.");
         } else {
-            var filename = "models__" + Window.location.hostname + "__.svo";
-            filename = Window.save("Select where to save", filename, "*.svo")
+            var filename = "entities__" + Window.location.hostname + ".svo.json";
+            filename = Window.save("Select where to save", filename, "*.json")
             if (filename) {
                 var success = Clipboard.exportEntities(filename, selectionManager.selections);
                 if (!success) {
@@ -927,7 +942,7 @@ function handeMenuEvent(menuItem) {
     
         var importURL;
         if (menuItem == "Import Entities") {
-            importURL = Window.browse("Select models to import", "", "*.svo");
+            importURL = Window.browse("Select models to import", "", "*.json");
         } else {
             importURL = Window.prompt("URL of SVO to import", "");
         }
@@ -1151,6 +1166,8 @@ PropertiesTool = function(opts) {
             if (marketplaceWindow.url != data.url) {
                 marketplaceWindow.setURL(data.url);
             }
+            marketplaceWindow.setVisible(true);
+            marketplaceWindow.raise();
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -1223,5 +1240,143 @@ PropertiesTool = function(opts) {
 
     return that;
 };
+
+PopupMenu = function() {
+    var self = this;
+
+    var MENU_ITEM_HEIGHT = 21;
+    var MENU_ITEM_SPACING = 1;
+    var TEXT_MARGIN = 7;
+
+    var overlays = [];
+    var overlayInfo = {};
+
+    var upColor = { red: 0, green: 0, blue: 0 };
+    var downColor = { red: 192, green: 192, blue: 192 };
+    var overColor = { red: 128, green: 128, blue: 128 };
+
+    self.onSelectMenuItem = function() { };
+
+    self.addMenuItem = function(name) {
+        var id = Overlays.addOverlay("text", {
+            text: name,
+            backgroundAlpha: 1.0,
+            backgroundColor: upColor,
+            topMargin: TEXT_MARGIN,
+            leftMargin: TEXT_MARGIN,
+            width: 210,
+            height: MENU_ITEM_HEIGHT,
+            font: { size: 12 },
+            visible: false,
+        });
+        overlays.push(id);
+        overlayInfo[id] = { name: name };
+        return id;
+    };
+
+    self.updateMenuItemText = function(id, newText) {
+        Overlays.editOverlay(id, { text: newText });
+    };
+
+    self.setPosition = function(x, y) {
+        for (var key in overlayInfo) {
+            Overlays.editOverlay(key, {
+                x: x,
+                y: y,
+            });
+            y += MENU_ITEM_HEIGHT + MENU_ITEM_SPACING;
+        }
+    };
+
+    self.onSelected = function() { };
+
+    var pressingOverlay = null;
+    var hoveringOverlay = null;
+
+    self.mousePressEvent = function(event) {
+        if (event.isLeftButton) {
+            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (overlay in overlayInfo) {
+                pressingOverlay = overlay;
+                Overlays.editOverlay(pressingOverlay, { backgroundColor: downColor });
+            } else {
+                self.hide();
+            }
+            return false;
+        }
+    };
+    self.mouseMoveEvent = function(event) {
+        if (visible) {
+            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            if (!pressingOverlay) {
+                if (hoveringOverlay != null && overlay != hoveringOverlay) {
+                    Overlays.editOverlay(hoveringOverlay, { backgroundColor: upColor});
+                    hoveringOverlay = null;
+                }
+                if (overlay != hoveringOverlay && overlay in overlayInfo) {
+                    Overlays.editOverlay(overlay, { backgroundColor: overColor });
+                    hoveringOverlay = overlay;
+                }
+            }
+        }
+        return false;
+    };
+    self.mouseReleaseEvent = function(event) {
+        var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        if (pressingOverlay != null) {
+            if (overlay == pressingOverlay) {
+                self.onSelectMenuItem(overlayInfo[overlay].name);
+            }
+            Overlays.editOverlay(pressingOverlay, { backgroundColor: upColor });
+            pressingOverlay = null;
+            self.hide();
+        }
+    };
+
+    var visible = false;
+
+    self.setVisible = function(newVisible) {
+        if (newVisible != visible) {
+            visible = newVisible;
+            for (var key in overlayInfo) {
+                Overlays.editOverlay(key, { visible: newVisible });
+            }
+        }
+    }
+    self.show = function() {
+        self.setVisible(true);
+    }
+    self.hide = function() {
+        self.setVisible(false);
+    }
+
+    function cleanup() {
+        for (var i = 0; i < overlays.length; i++) {
+            Overlays.deleteOverlay(overlays[i]);
+        }
+    }
+
+    Controller.mousePressEvent.connect(self.mousePressEvent);
+    Controller.mouseMoveEvent.connect(self.mouseMoveEvent);
+    Controller.mouseReleaseEvent.connect(self.mouseReleaseEvent);
+    Script.scriptEnding.connect(cleanup);
+
+    return this;
+};
+
+var propertyMenu = PopupMenu();
+
+propertyMenu.onSelectMenuItem = function(name) {
+    if (propertyMenu.marketplaceID) {
+        var url = "https://metaverse.highfidelity.io/marketplace/items/" + propertyMenu.marketplaceID;
+        if (marketplaceWindow.url != url) {
+            marketplaceWindow.setURL(url);
+        }
+        marketplaceWindow.setVisible(true);
+        marketplaceWindow.raise();
+    }
+};
+
+var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
