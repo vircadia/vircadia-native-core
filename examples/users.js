@@ -69,6 +69,11 @@ var usersWindow = (function () {
         isFullscreenMirror = false,
 
         isUsingScrollbars = false,
+        isMovingScrollbar = false,
+        scrollbarBackgroundPosition = {},
+        scrollbarBarPosition = {},
+        scrollbarBarClickedAt,                              // 0.0 .. 1.0
+        scrollbarValue = 0.0,                               // 0.0 .. 1.0
 
         HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
@@ -109,11 +114,15 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
         });
+
+        scrollbarBackgroundPosition.y = viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight;
         Overlays.editOverlay(scrollbarBackground2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight
+            y: scrollbarBackgroundPosition.y
         });
+        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
+                + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
         Overlays.editOverlay(scrollbarBar2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1
+            y: scrollbarBarPosition.y
         });
         Overlays.editOverlay(visibilityHeading2D, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
@@ -174,25 +183,22 @@ var usersWindow = (function () {
         displayText = displayText.slice(1);  // Remove leading "\n".
 
         Overlays.editOverlay(windowPane2D, {
-            y: viewportHeight - windowHeight,
             height: windowHeight,
             text: displayText
         });
 
         Overlays.editOverlay(windowHeading2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D,
             text: linesOfUsers.length > 0 ? "Users online" : "No users online"
         });
 
         scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
         Overlays.editOverlay(scrollbarBackground2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight,
             height: scrollbarBackgroundHeight,
             visible: isUsingScrollbars
         });
-        scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight, SCROLLBAR_BAR_MIN_HEIGHT);
+        scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight,
+            SCROLLBAR_BAR_MIN_HEIGHT);
         Overlays.editOverlay(scrollbarBar2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1,
             height: scrollbarBarHeight,
             visible: isUsingScrollbars
         });
@@ -359,6 +365,31 @@ var usersWindow = (function () {
             }
             updateVisibilityControls();
         }
+
+        if (clickedOverlay === scrollbarBar2D) {
+            scrollbarBarClickedAt = (event.y - scrollbarBarPosition.y) / scrollbarBarHeight;
+            isMovingScrollbar = true;
+        }
+    }
+
+    function onMouseMoveEvent(event) {
+        if (isMovingScrollbar) {
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN_2D <= event.x
+                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH_2D + WINDOW_MARGIN_2D
+                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN_2D <= event.y
+                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN_2D) {
+                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
+                    / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+                scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
+                updateOverlayPositions();
+            } else {
+                isMovingScrollbar = false;
+            }
+        }
+    }
+
+    function onMouseReleaseEvent() {
+        isMovingScrollbar = false;
     }
 
     function onScriptUpdate() {
@@ -427,9 +458,13 @@ var usersWindow = (function () {
             visible: isVisible
         });
 
-        scrollbarBackground2D = Overlays.addOverlay("text", {
+        scrollbarBackgroundPosition = {
             x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D,
-            y: viewportHeight,
+            y: viewportHeight
+        };
+        scrollbarBackground2D = Overlays.addOverlay("text", {
+            x: scrollbarBackgroundPosition.x,
+            y: scrollbarBackgroundPosition.y,
             width: SCROLLBAR_BACKGROUND_WIDTH_2D,
             height: windowTextHeight,
             backgroundColor: SCROLLBAR_BACKGROUND_COLOR_2D,
@@ -438,9 +473,13 @@ var usersWindow = (function () {
             visible: isVisible && isUsingScrollbars
         });
 
-        scrollbarBar2D = Overlays.addOverlay("text", {
+        scrollbarBarPosition = {
             x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D + 1,
-            y: viewportHeight,
+            y: viewportHeight
+        };
+        scrollbarBar2D = Overlays.addOverlay("text", {
+            x: scrollbarBarPosition.x,
+            y: scrollbarBarPosition.y,
             width: SCROLLBAR_BACKGROUND_WIDTH_2D - 2,
             height: windowTextHeight,
             backgroundColor: SCROLLBAR_BAR_COLOR_2D,
@@ -529,6 +568,8 @@ var usersWindow = (function () {
         updateVisibilityControls();
 
         Controller.mousePressEvent.connect(onMousePressEvent);
+        Controller.mouseMoveEvent.connect(onMouseMoveEvent);
+        Controller.mouseReleaseEvent.connect(onMouseReleaseEvent);
 
         Menu.addMenuItem({
             menuName: MENU_NAME,
