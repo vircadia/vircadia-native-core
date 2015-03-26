@@ -357,7 +357,6 @@ void CharacterController::scanDown(btCollisionWorld* world) {
     btVector3 end = start - MAX_SCAN_HEIGHT * up;
 
     world->rayTest(start, end, callback);
-    bool wasHovering = _isHovering;
     if (!callback.hasHit()) {
         _isHovering = true;
     } else if (_isHovering && callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT) {
