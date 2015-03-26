@@ -89,11 +89,11 @@ var usersWindow = (function () {
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
         }
-        windowHeight = Math.min(windowHeight, maxWindowHeight);
+        windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
 
         // Corresponding number of users to actually display
-        numUsersToDisplay = Math.round((windowHeight - nonUsersHeight) / windowLineHeight);
-        isUsingScrollbars = numUsersToDisplay < linesOfUsers.length;
+        numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
+        isUsingScrollbars = 0 < numUsersToDisplay && numUsersToDisplay < linesOfUsers.length;
     }
 
     function updateOverlayPositions() {
