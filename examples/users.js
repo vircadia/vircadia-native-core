@@ -26,9 +26,12 @@ var usersWindow = (function () {
         SCROLLBAR_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
         SCROLLBAR_BACKGROUND_ALPHA_2D = 0.8,
         scrollbarBackground2D,
+        SCROLLBAR_BAR_MIN_HEIGHT = 5,
         SCROLLBAR_BAR_COLOR_2D = { red: 180, green: 180, blue: 180 },
         SCROLLBAR_BAR_ALPHA_2D = 0.8,
         scrollbarBar2D,
+        scrollbarBackgroundHeight,
+        scrollbarBarHeight,
         VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
         visibilityHeading2D,
         VISIBILITY_RADIO_SPACE = 16,
@@ -181,14 +184,16 @@ var usersWindow = (function () {
             text: linesOfUsers.length > 0 ? "Users online" : "No users online"
         });
 
+        scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
         Overlays.editOverlay(scrollbarBackground2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight,
-            height: numUsersToDisplay * windowLineHeight - windowLineSpacing / 2,
+            height: scrollbarBackgroundHeight,
             visible: isUsingScrollbars
         });
+        scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight, SCROLLBAR_BAR_MIN_HEIGHT);
         Overlays.editOverlay(scrollbarBar2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight + 1,
-            height: numUsersToDisplay * windowLineHeight / 3, // TODO
+            height: scrollbarBarHeight,
             visible: isUsingScrollbars
         });
 
