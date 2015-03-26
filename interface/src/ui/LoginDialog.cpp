@@ -23,7 +23,7 @@
 #include "LoginDialog.h"
 #include "UIUtil.h"
 
-const QString FORGOT_PASSWORD_URL = "https://metaverse.highfidelity.io/users/password/new";
+const QString FORGOT_PASSWORD_URL = "https://metaverse.highfidelity.com/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
     FramelessDialog(parent, 0, FramelessDialog::POSITION_TOP),

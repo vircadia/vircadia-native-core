@@ -13,5 +13,4 @@ Script.load("progress.js");
 Script.load("lobby.js");
 Script.load("notifications.js");
 Script.load("controllers/oculus/goTo.js");
-Script.load("utilities/LODWarning.js");
 //Script.load("scripts.js");  // Not created yet

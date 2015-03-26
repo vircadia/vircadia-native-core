@@ -18,4 +18,3 @@ Script.load("lobby.js");
 Script.load("notifications.js");
 Script.load("look.js");
 Script.load("users.js");
-Script.load("utilities/LODWarning.js");

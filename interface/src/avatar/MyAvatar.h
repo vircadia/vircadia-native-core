@@ -13,6 +13,7 @@
 #define hifi_MyAvatar_h
 
 #include <SettingHandle.h>
+#include <CharacterController.h>
 
 #include "Avatar.h"
 
@@ -88,7 +89,7 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    void jump() { _shouldJump = true; };
+    void jump() { _characterController.jump(); }
     
     bool isMyAvatar() { return true; }
     
@@ -122,6 +123,8 @@ public:
 
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
+    CharacterController* getCharacterController() { return &_characterController; }
+    void updateCharacterController();
     
     void clearJointAnimationPriorities();
 
@@ -145,6 +148,11 @@ public:
     
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
+
+    void togglePhysicsEnabled() { _enablePhysics = !_enablePhysics; }
+    bool isPhysicsEnabled() { return _enablePhysics; }
+    void setPhysicsEnabled(bool enablePhysics) { _enablePhysics = enablePhysics; }
+    void preSimulation();
     
 public slots:
     void increaseSize();
@@ -186,7 +194,6 @@ private:
     float _turningKeyPressTime;
     glm::vec3 _gravity;
 
-    bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
@@ -201,6 +208,9 @@ private:
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
+
+    bool _enablePhysics;
+    CharacterController _characterController;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

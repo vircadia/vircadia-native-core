@@ -34,7 +34,7 @@ var usersWindow = (function () {
         usersOnline,                                        // Raw users data
         linesOfUsers = [],                                  // Array of indexes pointing into usersOnline
 
-        API_URL = "https://metaverse.highfidelity.io/api/v1/users?status=online",
+        API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
         usersRequest,
         processUsers,
