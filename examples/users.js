@@ -44,6 +44,7 @@ var usersWindow = (function () {
         usersOnline,                                        // Raw users data
         linesOfUsers = [],                                  // Array of indexes pointing into usersOnline
         numUsersToDisplay = 0,
+        firstUserToDisplay = 0,
 
         API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online",
         HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
@@ -102,6 +103,12 @@ var usersWindow = (function () {
         // Corresponding number of users to actually display
         numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
         isUsingScrollbars = 0 < numUsersToDisplay && numUsersToDisplay < linesOfUsers.length;
+        if (isUsingScrollbars) {
+            firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
+        } else {
+            firstUserToDisplay = 0;
+            scrollbarValue = 0.0;
+        }
     }
 
     function updateOverlayPositions() {
@@ -163,7 +170,7 @@ var usersWindow = (function () {
         reducedTextWidth = maxTextWidth - ellipsisWidth;
 
         for (i = 0; i < numUsersToDisplay; i += 1) {
-            user = usersOnline[linesOfUsers[i]];
+            user = usersOnline[linesOfUsers[firstUserToDisplay + i]];
             userText = user.text;
             textWidth = user.textWidth;
 
@@ -320,6 +327,7 @@ var usersWindow = (function () {
             minY,
             maxY,
             lineClicked,
+            userClicked,
             i,
             visibilityChanged;
 
@@ -334,7 +342,7 @@ var usersWindow = (function () {
             overlayX = event.x - WINDOW_MARGIN_2D;
             overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN_2D - windowLineHeight;
 
-            numLinesBefore = Math.floor(overlayY / windowLineHeight);
+            numLinesBefore = Math.round(overlayY / windowLineHeight);
             minY = numLinesBefore * windowLineHeight;
             maxY = minY + windowTextHeight;
 
@@ -343,10 +351,12 @@ var usersWindow = (function () {
                 lineClicked = numLinesBefore;
             }
 
-            if (0 <= lineClicked && lineClicked < linesOfUsers.length
-                    && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[lineClicked]].textWidth) {
-                //print("Go to " + usersOnline[linesOfUsers[lineClicked]].username);
-                location.goToUser(usersOnline[linesOfUsers[lineClicked]].username);
+            userClicked = firstUserToDisplay + lineClicked;
+
+            if (0 <= userClicked && userClicked < linesOfUsers.length
+                    && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
+                //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
+                location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
         }
 
@@ -381,7 +391,9 @@ var usersWindow = (function () {
                 scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
                     / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
+                firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
                 updateOverlayPositions();
+                updateUsersDisplay();
             } else {
                 isMovingScrollbar = false;
             }
