@@ -32,31 +32,25 @@ public:
     enum Field {
         FILL_MODE,
         CULL_MODE,
-
-        DEPTH_BIAS,
-        DEPTH_BIAS_SLOPE_SCALE,
-
-        FRONT_CLOCKWISE,
+        FRONT_FACE,
         DEPTH_CLIP_ENABLE,
         SCISSOR_ENABLE,
         MULTISAMPLE_ENABLE,
         ANTIALISED_LINE_ENABLE,
 
+        DEPTH_BIAS,
+        DEPTH_BIAS_SLOPE_SCALE,
+
         DEPTH_TEST,
 
-        STENCIL_ENABLE,
-        STENCIL_READ_MASK,
-        STENCIL_WRITE_MASK,
+        STENCIL_ACTIVATION,
         STENCIL_TEST_FRONT,
         STENCIL_TEST_BACK,
-        STENCIL_REFERENCE,
 
         SAMPLE_MASK,
         ALPHA_TO_COVERAGE_ENABLE,
 
-        BLEND_ENABLE,
-        BLEND_FUNCTION_COLOR,
-        BLEND_FUNCTION_ALPHA,
+        BLEND_FUNCTION,
         BLEND_FACTOR_X,
         BLEND_FACTOR_Y,
         BLEND_FACTOR_Z,
@@ -121,9 +115,11 @@ public:
         DEST_COLOR,
         INV_DEST_COLOR,
         SRC_ALPHA_SAT,
-        BLEND_FACTOR,
-        INV_BLEND_FACTOR,
-    
+        FACTOR_COLOR,
+        INV_FACTOR_COLOR,
+        FACTOR_ALPHA,
+        INV_FACTOR_ALPHA,
+
         NUM_BLEND_ARGS,
     };
 
@@ -153,37 +149,65 @@ public:
         bool _writeMask = true;
         bool _enabled = false;
 
-        DepthTest(bool enable, bool writeMask, ComparisonFunction func) : 
-            _function(func), _writeMask(writeMask), _enabled(enable) {}
+        DepthTest(bool enabled, bool writeMask, ComparisonFunction func) : 
+            _function(func), _writeMask(writeMask), _enabled(enabled) {}
 
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
    };
 
-    class StencilTest {
-    public:
-        int8 _failOp = STENCIL_OP_KEEP;
-        int8 _depthFailOp = STENCIL_OP_KEEP;
-        int8 _passOp = STENCIL_OP_KEEP;
-        int8 _function = ALWAYS;
-
-        StencilTest(StencilOp failOp, StencilOp depthFailOp, StencilOp passOp, ComparisonFunction func) :
-            _failOp(failOp), _depthFailOp(depthFailOp), _passOp(passOp), _function(func) {}
-
-        int32 raw() const { return *(reinterpret_cast<const int32*>(this)); }
+     class StencilTest {
+     public:
+        uint8 _reference;
+        uint8 _readMask;
+        int8 _function : 4;
+        int8 _failOp : 4;
+        int8 _depthFailOp : 4;
+        int8 _passOp : 4;
+ 
+        StencilTest(uint8 reference = 0, uint8 readMask =0xFF, ComparisonFunction func = ALWAYS, StencilOp failOp = STENCIL_OP_KEEP, StencilOp depthFailOp = STENCIL_OP_KEEP, StencilOp passOp = STENCIL_OP_KEEP) :
+            _reference(reference), _readMask(readMask), _function(func), _failOp(failOp), _depthFailOp(depthFailOp), _passOp(passOp) {}
+ 
+        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         StencilTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
+     };
+
+     class StencilActivation {
+     public:
+        uint8 _frontWriteMask;
+        uint8 _backWriteMask;
+        int16 _enabled;
+ 
+        StencilActivation(bool enabled, uint8 frontWriteMask = 0xFF, uint8 backWriteMask = 0xFF) :
+            _frontWriteMask(frontWriteMask), _backWriteMask(backWriteMask), _enabled(enabled) {}
+
+        int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
+        StencilActivation(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
     };
+
 
     class BlendFunction {
     public:
-        int8 _source = ONE;
-        int8 _operation = BLEND_OP_ADD;
-        int8 _destination = ZERO;
-        int8 _spare = 0;
+        int8 _enabled;
+        int8 _sourceColor : 4;
+        int8 _sourceAlpha : 4;
+        int8 _destinationColor : 4;
+        int8 _destinationAlpha : 4;
+        int8 _operationColor : 4;
+        int8 _operationAlpha : 4;
 
-        BlendFunction(BlendArg source, BlendOp operation, BlendArg destination) :
-            _source(source), _operation(operation), _destination(destination) {}
+        BlendFunction(bool enabled,
+            BlendArg sourceColor, BlendOp operationColor, BlendArg destinationColor,
+            BlendArg sourceAlpha, BlendOp operationAlpha, BlendArg destinationAlpha) :
+            _enabled(enabled),
+            _sourceColor(sourceColor), _operationColor(operationColor), _destinationColor(destinationColor),
+            _sourceAlpha(sourceAlpha), _operationAlpha(operationAlpha), _destinationAlpha(destinationAlpha) {}
+
+        BlendFunction(bool enabled, BlendArg source, BlendOp operation, BlendArg destination) :
+            _enabled(enabled),
+            _sourceColor(source), _operationColor(operation), _destinationColor(destination),
+            _sourceAlpha(source), _operationAlpha(operation), _destinationAlpha(destination) {}
 
         int32 raw() const { return *(reinterpret_cast<const int32*>(this)); }
         BlendFunction(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
@@ -214,65 +238,61 @@ public:
     void setCullMode(CullMode cull)  { set(CULL_MODE, uint32(cull)); }
     CullMode getCullMode() const { return CullMode(get(CULL_MODE)._integer); }
 
-    void setFrontClockwise(bool enable) { set(FRONT_CLOCKWISE, enable); }
+    void setFrontFace(bool isClockwise) { set(FRONT_FACE, isClockwise); }
     void setDepthClipEnable(bool enable) { set(DEPTH_CLIP_ENABLE, enable); }
- 
+    void setScissorEnable(bool enable) { set(SCISSOR_ENABLE, enable); }
+    void setMultisampleEnable(bool enable) { set(MULTISAMPLE_ENABLE, enable); }
+    void setAntialiasedLineEnable(bool enable) { set(ANTIALISED_LINE_ENABLE, enable); }
+
+    bool isFrontFaceClockwise() const { return get(FRONT_FACE)._integer; }
+    bool isDepthClipEnable() const { return get(DEPTH_CLIP_ENABLE)._integer; }
+    bool isScissorEnable() const { return get(SCISSOR_ENABLE)._integer; }
+    bool isMultisampleEnable() const { return get(MULTISAMPLE_ENABLE)._integer; }
+    bool isAntialiasedLineEnable() const { return get(ANTIALISED_LINE_ENABLE)._integer; }
+
     void setDepthBias(float bias) { set(DEPTH_BIAS, bias); }
     void setDepthBiasSlopeScale(float scale) { set(DEPTH_BIAS_SLOPE_SCALE, scale); }
     float getDepthBias() const { return get(DEPTH_BIAS)._integer; }
     float getDepthBiasSlopeScale() const { return get(DEPTH_BIAS_SLOPE_SCALE)._float; }
- 
-
-    void setScissorEnable(bool enable) { set(SCISSOR_ENABLE, enable); }
-    void setMultisampleEnable(bool enable) { set(MULTISAMPLE_ENABLE, enable); }
-    void setAntialiasedLineEnable(bool enable) { set(ANTIALISED_LINE_ENABLE, enable); }
-    bool getFrontClockwise() const { return get(FRONT_CLOCKWISE)._integer; }
-    bool getDepthClipEnable() const { return get(DEPTH_CLIP_ENABLE)._integer; }
-    bool getScissorEnable() const { return get(SCISSOR_ENABLE)._integer; }
-    bool getMultisampleEnable() const { return get(MULTISAMPLE_ENABLE)._integer; }
-    bool getAntialiasedLineEnable() const { return get(ANTIALISED_LINE_ENABLE)._integer; }
 
     void setDepthTest(bool enable, bool writeMask, ComparisonFunction func) { set(DEPTH_TEST, DepthTest(enable, writeMask, func).getRaw()); }
     DepthTest getDepthTest() const { return DepthTest(get(DEPTH_TEST)._integer); }
-    bool getDepthTestEnabled() const { return getDepthTest()._enabled; }
+    bool isDepthTestEnabled() const { return getDepthTest()._enabled; }
     bool getDepthTestWriteMask() const { return getDepthTest()._writeMask; }
     ComparisonFunction getDepthTestFunc() const { return ComparisonFunction(getDepthTest()._function); }
  
-    void setStencilEnable(bool enable) { set(STENCIL_ENABLE, enable); }
-    void setStencilReadMask(uint8 mask)  { set(STENCIL_READ_MASK, mask); }
-    void setStencilWriteMask(uint8 mask)  { set(STENCIL_WRITE_MASK, mask); }
-    bool getStencilEnable() const { return get(STENCIL_ENABLE)._integer; }
-    uint8 getStencilReadMask() const { return get(STENCIL_READ_MASK)._unsigned_integer; }
-    uint8 getStencilWriteMask() const { return get(STENCIL_WRITE_MASK)._unsigned_integer; }
+    void setStencilTest(bool enabled, uint8 frontWriteMask, StencilTest frontTest, uint8 backWriteMask, StencilTest backTest) {
+        set(STENCIL_ACTIVATION, StencilActivation(enabled, frontWriteMask, backWriteMask).getRaw());
+        set(STENCIL_TEST_FRONT, frontTest.getRaw()); set(STENCIL_TEST_BACK, backTest.getRaw());
+    }
+    void setStencilTest(bool enabled, uint8 frontWriteMask, StencilTest frontTest) { setStencilTest(enabled, frontWriteMask, frontTest, frontWriteMask, frontTest); }
 
-    void setStencilTestFront(StencilTest test)  { set(STENCIL_TEST_FRONT, test.raw()); }
-    void setStencilTestBack(StencilTest test)  { set(STENCIL_TEST_BACK, test.raw()); }
+    StencilActivation getStencilActivation() const { return StencilActivation(get(STENCIL_ACTIVATION)._integer); }
+    bool isStencilEnabled() const { return getStencilActivation()._enabled != 0; }
+    uint8 getStencilWriteMaskFront() const { return getStencilActivation()._frontWriteMask; }
+    uint8 getStencilWriteMaskBack() const { return getStencilActivation()._backWriteMask; }
     StencilTest getStencilTestFront() const { return StencilTest(get(STENCIL_TEST_FRONT)._integer); }
     StencilTest getStencilTestBack() const { return StencilTest(get(STENCIL_TEST_BACK)._integer); }
 
-    void setStencilReference(uint32 ref) { set(STENCIL_REFERENCE, ref); }
-    uint32 getStencilReference() const { return get(STENCIL_REFERENCE)._unsigned_integer; }
-
     void setAlphaToCoverageEnable(bool enable) { set(ALPHA_TO_COVERAGE_ENABLE, enable); }
-    bool getAlphaToCoverageEnable() const { return get(ALPHA_TO_COVERAGE_ENABLE)._integer; }
+    bool isAlphaToCoverageEnabled() const { return get(ALPHA_TO_COVERAGE_ENABLE)._integer; }
 
     void setSampleMask(uint32 mask) { set(SAMPLE_MASK, mask); }
     uint32 getSampleMask() const { return get(SAMPLE_MASK)._unsigned_integer; }
  
-    void setBlendEnable(bool enable) { set(BLEND_ENABLE, enable); }
-    bool getBlendEnable() const { return get(BLEND_ENABLE)._integer; }
-
-    void setBlendFunctionColor(BlendFunction function) { set(BLEND_FUNCTION_COLOR, function.raw()); }
-    BlendFunction getBlendFunctionColor() const { return BlendFunction(get(BLEND_FUNCTION_COLOR)._integer); }
-     void setBlendFunctionAlpha(BlendFunction function) { set(BLEND_FUNCTION_ALPHA, function.raw()); }
-    BlendFunction getBlendFunctionAlpha() const { return BlendFunction(get(BLEND_FUNCTION_ALPHA)._integer); }
- 
+    void setBlendFunction(BlendFunction function) { set(BLEND_FUNCTION, function.raw()); }
+    void setBlendFunction(bool enabled, BlendArg sourceColor, BlendOp operationColor, BlendArg destinationColor,
+                          BlendArg sourceAlpha, BlendOp operationAlpha, BlendArg destinationAlpha) {
+        setBlendFunction(BlendFunction(enabled, sourceColor, operationColor, destinationColor, sourceAlpha, operationAlpha, destinationAlpha)); }
+    void setBlendFunction(bool enabled, BlendArg source, BlendOp operation, BlendArg destination) {
+        setBlendFunction(BlendFunction(enabled, source, operation, destination)); }
+    bool isBlendEnabled() const { return BlendFunction(get(BLEND_FUNCTION)._integer)._enabled; }
+    BlendFunction getBlendFunction() const { return BlendFunction(get(BLEND_FUNCTION)._integer); } 
     void setBlendFactor(const Vec4& factor) { set(BLEND_FACTOR_X, factor.x); set(BLEND_FACTOR_Y, factor.y); set(BLEND_FACTOR_Z, factor.z); set(BLEND_FACTOR_W, factor.w); }
     Vec4 getBlendFactor() const { return Vec4(get(BLEND_FACTOR_X)._float, get(BLEND_FACTOR_Y)._float, get(BLEND_FACTOR_Z)._float, get(BLEND_FACTOR_W)._float); }
 
-
-    void setColorWriteMask(ColorMask mask) { set(COLOR_WRITE_MASK, mask); }
-    ColorMask getColorWriteMask() const { return ColorMask(get(COLOR_WRITE_MASK)._integer); }
+    void setColorWriteMask(int32 mask) { set(COLOR_WRITE_MASK, mask); }
+    int32 getColorWriteMask() const { return ColorMask(get(COLOR_WRITE_MASK)._integer); }
 
 protected:
     State(const State& state);
@@ -280,7 +300,7 @@ protected:
 
     FieldMap _fields;
 
-    Stamp _stamp;
+    Stamp _stamp = 0;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
     mutable GPUObject* _gpuObject = nullptr;

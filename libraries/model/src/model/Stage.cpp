@@ -217,8 +217,8 @@ SunSkyStage::SunSkyStage() :
     auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
 
     auto skyState = gpu::StatePointer(new gpu::State());
-    skyState->setStencilEnable(false);
-    skyState->setBlendEnable(false);
+ //   skyState->setStencilEnable(false);
+   // skyState->setBlendEnable(false);
 
     _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
 

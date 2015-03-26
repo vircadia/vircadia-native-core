@@ -79,9 +79,7 @@ public:
     public:
         class Command {
         public:
-            
             virtual void run(GLBackend* backend) = 0;
-
             Command() {}
             virtual ~Command() {};
         };
@@ -89,46 +87,32 @@ public:
         template <class T> class Command1 : public Command {
         public:
             typedef void (GLBackend::*GLFunction)(typename T);
-
             void run(GLBackend* backend) { (backend->*(_func))(_param); }
-
             Command1(GLFunction func, T param) : _func(func), _param(param) {};
-
             GLFunction _func;
             T _param;
         };
         template <class T, class U> class Command2 : public Command {
         public:
-            typedef void (*GLFunction)(typename T, typename U);
-
-            void run(GLBackend* backend) { (_func)(_param0, _param1); }
-
+            typedef void (GLBackend::*GLFunction)(typename T, typename U);
+            void run(GLBackend* backend) { (backend->*(_func))(_param0, _param1); }
             Command2(GLFunction func, T param0, U param1) : _func(func), _param0(param0), _param1(param1) {};
-
             GLFunction _func;
             T _param0;
             U _param1;
         };
 
-        template <class T, class U, class V, class W> class Command4 : public Command {
+        template <class T, class U, class V> class Command3 : public Command {
         public:
-            typedef void (*GLFunction)(typename T, typename U, typename V, typename W);
-
-            void run(GLBackend* backend) { (_func)(_param0, _param1, _param2, _param3); }
-
-            Command4(GLFunction func, T param0, U param1, V param2, W param3) :
-                 _func(func),
-                 _param0(param0),
-                 _param1(param1),
-                 _param2(param2),
-                 _param3(param3) {};
-
+            typedef void (GLBackend::*GLFunction)(typename T, typename U, typename V);
+            void run(GLBackend* backend) { (backend->*(_func))(_param0, _param1, _param2); }
+            Command3(GLFunction func, T param0, U param1, V param2) : _func(func), _param0(param0), _param1(param1), _param2(param2) {};
             GLFunction _func;
             T _param0;
             U _param1;
             V _param2;
-            W _param3;
         };
+
         typedef std::shared_ptr< Command > CommandPointer;
         typedef std::vector< CommandPointer > Commands;
 
@@ -137,6 +121,8 @@ public:
 
         GLState();
         ~GLState();
+
+        friend class GLBackend;
     };
     static GLState* syncGPUObject(const State& state);
 
@@ -156,7 +142,7 @@ public:
     uint32 getNumInputBuffers() const { return _input._buffersState.size(); }
 
 
-
+    // The State setters called by the GLState::Commands when a new state is assigned
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
     void do_setStateFrontClockwise(int32 isFrontClockwise);
@@ -167,11 +153,12 @@ public:
 
     void do_setStateDepthTest(State::DepthTest test);
 
-    void do_setStateStencilEnable(int32 enable);
+    void do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest);
 
     void do_setStateAlphaToCoverageEnable(int32 enable);
 
-    void do_setStateBlendEnable(int32 enable);
+    void do_setStateBlend(State::BlendFunction blendFunction, Vec4 blendFactor);
+    void do_setStateColorWriteMask(int32 mask);
 
 protected:
 

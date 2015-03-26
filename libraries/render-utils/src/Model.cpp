@@ -128,7 +128,9 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey& key,
     state->setDepthTest(true, !key.isTranslucent(), gpu::State::LESS_EQUAL);
 
     // Blend on transparent
-    state->setBlendEnable(key.isTranslucent());
+    state->setBlendFunction(key.isTranslucent(),
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     auto it = insert(value_type(key.getRaw(),
         RenderPipeline(

@@ -24,23 +24,10 @@ GLBackend::GLState::~GLState() {
 typedef GLBackend::GLState::Command Command;
 typedef GLBackend::GLState::CommandPointer CommandPointer;
 typedef GLBackend::GLState::Command1<int32> Command1I;
-typedef GLBackend::GLState::Command1<State::DepthTest> Command1DT;
-typedef GLBackend::GLState::Command1<GLenum> Command1E;
-typedef GLBackend::GLState::Command2<GLenum, GLenum> Command2E;
-typedef GLBackend::GLState::Command2<GLfloat, GLfloat> Command2F;
-typedef GLBackend::GLState::Command4<GLenum, GLenum, GLenum, GLenum> Command4E;
-typedef GLBackend::GLState::Command4<GLfloat, GLfloat, GLfloat, GLfloat> Command4F;
-typedef GLBackend::GLState::Command4<GLboolean, GLboolean, GLboolean, GLboolean> Command4B;
+typedef GLBackend::GLState::Command1<State::DepthTest> CommandDepthTest;
+typedef GLBackend::GLState::Command3<State::StencilActivation, State::StencilTest, State::StencilTest> CommandStencil;
+typedef GLBackend::GLState::Command2<State::BlendFunction, Vec4> CommandBlend;
 
-static GLenum GL_COMPARISON_FUNCTIONS[] = {
-    GL_NEVER,
-    GL_LESS,
-    GL_EQUAL,
-    GL_LEQUAL,
-    GL_GREATER,
-    GL_NOTEQUAL,
-    GL_GEQUAL,
-    GL_ALWAYS };
 
 void generateFillMode(GLBackend::GLState::Commands& commands, State::FillMode fillMode) {
     commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, int32(fillMode))));
@@ -86,99 +73,23 @@ void generateAntialiasedLineEnable(GLBackend::GLState::Commands& commands, bool 
 }
 
 void generateDepthTest(GLBackend::GLState::Commands& commands, State::DepthTest& test) {
-    commands.push_back(CommandPointer(new Command1DT(&GLBackend::do_setStateDepthTest, int32(test.getRaw()))));
+    commands.push_back(CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, int32(test.getRaw()))));
 }
 
-void generateStencilEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateStencilEnable, int32(enable))));
-}
-
-void generateStencilWriteMask(GLBackend::GLState::Commands& commands, uint32 mask) {
-//    commands.push_back(CommandPointer(new Command1E((Command1E::GLFunction)glStencilMask, mask)));
-}
-
-void generateStencilState(GLBackend::GLState::Commands& commands, const State& state) {
-    auto frontTest(state.getStencilTestFront());
-    auto backTest(state.getStencilTestBack());
-
-    commands.push_back(CommandPointer(new Command4E((Command4E::GLFunction)glBlendEquationSeparate,
-        GL_FRONT, GL_COMPARISON_FUNCTIONS[frontTest._function], state.getStencilReference(), state.getStencilReadMask())));
-    commands.push_back(CommandPointer(new Command4E((Command4E::GLFunction)glBlendEquationSeparate,
-        GL_BACK, GL_COMPARISON_FUNCTIONS[backTest._function], state.getStencilReference(), state.getStencilReadMask())));
-
-    static GLenum STENCIL_OPS[] = {
-        GL_KEEP,
-        GL_ZERO,
-        GL_REPLACE,
-        GL_INCR_WRAP,
-        GL_DECR_WRAP,
-        GL_INVERT,
-        GL_INCR,
-        GL_DECR };
-
-    commands.push_back(CommandPointer(new Command4E((Command4E::GLFunction)glStencilOpSeparate,
-        GL_FRONT, STENCIL_OPS[frontTest._failOp], STENCIL_OPS[frontTest._passOp], STENCIL_OPS[frontTest._depthFailOp])));
-    commands.push_back(CommandPointer(new Command4E((Command4E::GLFunction)glStencilOpSeparate,
-        GL_BACK, STENCIL_OPS[backTest._failOp], STENCIL_OPS[backTest._passOp], STENCIL_OPS[backTest._depthFailOp])));
+void generateStencil(GLBackend::GLState::Commands& commands, const State& state) {
+    commands.push_back(CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, state.getStencilActivation(), state.getStencilTestFront(), state.getStencilTestBack())));
 }
 
 void generateAlphaToCoverageEnable(GLBackend::GLState::Commands& commands, bool enable) {
     commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateAlphaToCoverageEnable, int32(enable))));
 }
 
-void generateBlendEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateBlendEnable, int32(enable))));
+void generateBlend(GLBackend::GLState::Commands& commands, const State& state) {
+    commands.push_back(CommandPointer(new CommandBlend(&GLBackend::do_setStateBlend, state.getBlendFunction(), state.getBlendFactor())));
 }
 
-void generateBlendFunction(GLBackend::GLState::Commands& commands, const State& state) {
-    static GLenum GL_BLEND_OPS[] = {
-        GL_FUNC_ADD,
-        GL_FUNC_SUBTRACT,
-        GL_FUNC_REVERSE_SUBTRACT,
-        GL_MIN,
-        GL_MAX };
-
-    auto colorFunction = state.getBlendFunctionColor();
-    auto alphaFunction = state.getBlendFunctionColor();
-
-    commands.push_back(CommandPointer(new Command2E((Command2E::GLFunction)glBlendEquationSeparate,
-        GL_BLEND_OPS[colorFunction._operation],
-        GL_BLEND_OPS[alphaFunction._operation])));
-
-    static GLenum BLEND_ARGS[] = {
-        GL_ZERO,
-        GL_ONE,
-        GL_SRC_COLOR,
-        GL_ONE_MINUS_SRC_COLOR,
-        GL_SRC_ALPHA,
-        GL_ONE_MINUS_SRC_ALPHA,
-        GL_DST_ALPHA,
-        GL_ONE_MINUS_DST_ALPHA,
-        GL_DST_COLOR,
-        GL_ONE_MINUS_DST_COLOR,
-        GL_SRC_ALPHA_SATURATE,
-        GL_CONSTANT_COLOR,
-        GL_ONE_MINUS_CONSTANT_COLOR
-    };
-
-    commands.push_back(CommandPointer(new Command4E((Command4E::GLFunction)glBlendFuncSeparate,
-        BLEND_ARGS[colorFunction._source],
-        BLEND_ARGS[colorFunction._destination],
-        BLEND_ARGS[alphaFunction._source],
-        BLEND_ARGS[alphaFunction._destination])));
-}
-
-void generateBlendFactor(GLBackend::GLState::Commands& commands, const Vec4& factor) {
-    commands.push_back(CommandPointer(new Command4F((Command4F::GLFunction)glBlendColor,
-        factor.x, factor.y, factor.z, factor.w)));
-}
-
-void generateColorWriteMask(GLBackend::GLState::Commands& commands, State::ColorMask mask) {
-    commands.push_back(CommandPointer(new Command4B((Command4B::GLFunction)glColorMask,
-         mask & State::ColorMask::WRITE_RED,
-         mask & State::ColorMask::WRITE_GREEN,
-         mask & State::ColorMask::WRITE_BLUE,
-         mask & State::ColorMask::WRITE_ALPHA )));
+void generateColorWriteMask(GLBackend::GLState::Commands& commands, int32 mask) {
+    commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateColorWriteMask, int32(mask))));
 }
 
 GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
@@ -200,13 +111,8 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
     object->_stamp = state.getStamp();
 
     bool depthBias = false;
-
-    bool stencilEnabled = false;
     bool stencilState = false;
-
-    bool blendEnabled = false;
-    bool blendFunction = false;
-    bool blendFactor = false;
+    bool blendState = false;
 
     // go thorugh the list of state fields in the State and record the corresponding gl command
     for (auto field: state.getFields()) {
@@ -224,7 +130,7 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             depthBias = true;
             break;
         }
-        case State::FRONT_CLOCKWISE: {
+        case State::FRONT_FACE: {
             generateFrontClockwise(object->_commands, bool(field.second._integer));
             break;
         }
@@ -249,14 +155,7 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             break;
         }
 
-        case State::STENCIL_ENABLE: {
-            stencilEnabled = bool(field.second._integer);
-            generateStencilEnable(object->_commands, stencilEnabled);
-            break;
-        }
-        case State::STENCIL_WRITE_MASK:
-        case State::STENCIL_READ_MASK:
-        case State::STENCIL_REFERENCE:
+        case State::STENCIL_ACTIVATION:
         case State::STENCIL_TEST_FRONT:
         case State::STENCIL_TEST_BACK: {
             stencilState = true;
@@ -271,26 +170,17 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             break;
         }
 
-        case State::BLEND_ENABLE: {
-            blendEnabled = field.second._integer;
-            generateBlendEnable(object->_commands, blendEnabled);
-            break;
-        }
-        case State::BLEND_FUNCTION_COLOR:
-        case State::BLEND_FUNCTION_ALPHA: {
-            blendFunction = true;
-            break;
-        }
+        case State::BLEND_FUNCTION:
         case State::BLEND_FACTOR_X:
         case State::BLEND_FACTOR_Y:
         case State::BLEND_FACTOR_Z:
         case State::BLEND_FACTOR_W: {
-            blendFactor = true;
+            blendState = true;
             break;
         }
 
         case State::COLOR_WRITE_MASK: {
-            generateColorWriteMask(object->_commands, State::ColorMask(field.second._integer));
+            generateColorWriteMask(object->_commands, field.second._integer);
             break;
         }
 
@@ -301,19 +191,27 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
         generateDepthBias(object->_commands, state);
     }
 
-    if (stencilEnabled) {
-        generateStencilState(object->_commands, state);
-        generateStencilWriteMask(object->_commands, state.getStencilWriteMask());
+    if (stencilState) {
+        generateStencil(object->_commands, state);
     }
 
-    if (blendEnabled) {
-        generateBlendFunction(object->_commands, state);
-        generateBlendFactor(object->_commands, state.getBlendFactor());
+    if (blendState) {
+        generateBlend(object->_commands, state);
     }
 
     return object;
 }
 
+
+static GLenum GL_COMPARISON_FUNCTIONS[] = {
+    GL_NEVER,
+    GL_LESS,
+    GL_EQUAL,
+    GL_LEQUAL,
+    GL_GREATER,
+    GL_NOTEQUAL,
+    GL_GEQUAL,
+    GL_ALWAYS };
 
 void GLBackend::do_setStateFillMode(int32 mode) {
     static GLenum GL_FILL_MODES[] = { GL_POINT, GL_LINE, GL_FILL };
@@ -386,9 +284,27 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
     CHECK_GL_ERROR();
 }
 
-void GLBackend::do_setStateStencilEnable(int32 enable) {
-    if (enable) {
+void GLBackend::do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest) {
+    if (activation._enabled) {
         glEnable(GL_STENCIL_TEST);
+        glStencilMaskSeparate(GL_FRONT, activation._frontWriteMask);
+        glStencilMaskSeparate(GL_BACK, activation._backWriteMask);
+
+         static GLenum STENCIL_OPS[] = {
+            GL_KEEP,
+            GL_ZERO,
+            GL_REPLACE,
+            GL_INCR_WRAP,
+            GL_DECR_WRAP,
+            GL_INVERT,
+            GL_INCR,
+            GL_DECR };
+
+        glStencilFuncSeparate(GL_FRONT, STENCIL_OPS[frontTest._failOp], STENCIL_OPS[frontTest._passOp], STENCIL_OPS[frontTest._depthFailOp]);
+        glStencilFuncSeparate(GL_FRONT, GL_COMPARISON_FUNCTIONS[frontTest._function], frontTest._reference, frontTest._readMask);
+
+        glStencilFuncSeparate(GL_BACK, STENCIL_OPS[backTest._failOp], STENCIL_OPS[backTest._passOp], STENCIL_OPS[backTest._depthFailOp]);
+        glStencilFuncSeparate(GL_BACK, GL_COMPARISON_FUNCTIONS[backTest._function], backTest._reference, backTest._readMask);
     } else {
         glDisable(GL_STENCIL_TEST);
     }
@@ -404,12 +320,50 @@ void GLBackend::do_setStateAlphaToCoverageEnable(int32 enable) {
     CHECK_GL_ERROR();
 }
 
-
-void GLBackend::do_setStateBlendEnable(int32 enable) {
-    if (enable) {
+void GLBackend::do_setStateBlend(State::BlendFunction function, Vec4 factor ) {
+    if (function._enabled) {
         glEnable(GL_BLEND);
+
+        static GLenum GL_BLEND_OPS[] = {
+            GL_FUNC_ADD,
+            GL_FUNC_SUBTRACT,
+            GL_FUNC_REVERSE_SUBTRACT,
+            GL_MIN,
+            GL_MAX };
+
+        glBlendEquationSeparate(GL_BLEND_OPS[function._operationColor], GL_BLEND_OPS[function._operationAlpha]);
+
+        static GLenum BLEND_ARGS[] = {
+            GL_ZERO,
+            GL_ONE,
+            GL_SRC_COLOR,
+            GL_ONE_MINUS_SRC_COLOR,
+            GL_SRC_ALPHA,
+            GL_ONE_MINUS_SRC_ALPHA,
+            GL_DST_ALPHA,
+            GL_ONE_MINUS_DST_ALPHA,
+            GL_DST_COLOR,
+            GL_ONE_MINUS_DST_COLOR,
+            GL_SRC_ALPHA_SATURATE,
+            GL_CONSTANT_COLOR,
+            GL_ONE_MINUS_CONSTANT_COLOR,
+            GL_CONSTANT_ALPHA,
+            GL_ONE_MINUS_CONSTANT_ALPHA,
+        };
+
+        glBlendFuncSeparate(BLEND_ARGS[function._sourceColor], BLEND_ARGS[function._destinationColor],
+                            BLEND_ARGS[function._sourceAlpha], BLEND_ARGS[function._destinationAlpha]);
+
+        glBlendColor(factor.x, factor.y, factor.z, factor.w);
     } else {
         glDisable(GL_BLEND);
     }
     CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setStateColorWriteMask(int32 mask) {
+    glColorMask(mask & State::ColorMask::WRITE_RED,
+                mask & State::ColorMask::WRITE_GREEN,
+                mask & State::ColorMask::WRITE_BLUE,
+                mask & State::ColorMask::WRITE_ALPHA );
 }

@@ -370,8 +370,9 @@ void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glUniform1f(GLint location, GLfloat v0) {
+    if (location < 0) 
+        return;
     ADD_COMMAND_GL(glUniform1f);
-
     _params.push_back(v0);
     _params.push_back(location);
 
