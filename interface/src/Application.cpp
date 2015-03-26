@@ -1755,7 +1755,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree.addEntity(entityItem->getEntityItemID(), properties);
     }
 
-    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    exportTree.writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
     _window->activateWindow();
@@ -1908,8 +1908,6 @@ void Application::init() {
     tree->setSimulation(&_physicsEngine);
     _physicsEngine.init(&_entityEditSender);
 
-
-    _physicsEngine.setAvatarData(_myAvatar);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
@@ -2197,6 +2195,7 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
+        _myAvatar->preSimulation();
         _physicsEngine.stepSimulation();
     }
 
@@ -3600,6 +3599,7 @@ void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
         _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
         _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
     }
@@ -4208,7 +4208,7 @@ void Application::checkSkeleton() {
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
     } else {
-        _myAvatar->updateLocalAABox();
-        _physicsEngine.setAvatarData(_myAvatar);
+        _myAvatar->updateCharacterController();
+        _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }

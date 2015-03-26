@@ -294,12 +294,11 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
         requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
     }
     
-    AccountManager::getInstance().unauthenticatedRequest(GET_PLACE.arg(placeName),
-                                                         QNetworkAccessManager::GetOperation,
-                                                         apiCallbackParameters(),
-                                                         QByteArray(),
-                                                         NULL,
-                                                         requestParams);
+    AccountManager::getInstance().sendRequest(GET_PLACE.arg(placeName),
+                                              AccountManagerAuth::None,
+                                              QNetworkAccessManager::GetOperation,
+                                              apiCallbackParameters(),
+                                              QByteArray(), NULL, requestParams);
 }
 
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
@@ -439,9 +438,10 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
 void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
     // this is a username - pull the captured name and lookup that user's location
-    AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
-                                                         QNetworkAccessManager::GetOperation,
-                                                         apiCallbackParameters());
+    AccountManager::getInstance().sendRequest(GET_USER_LOCATION.arg(formattedUsername),
+                                              AccountManagerAuth::Optional,
+                                              QNetworkAccessManager::GetOperation,
+                                              apiCallbackParameters());
 }
 
 void AddressManager::copyAddress() {

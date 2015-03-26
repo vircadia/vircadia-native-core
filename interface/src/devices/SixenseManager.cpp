@@ -223,7 +223,7 @@ void SixenseManager::update(float deltaTime) {
             palm->setJoystick(data->joystick_x, data->joystick_y);
             
             // Emulate the mouse so we can use scripts
-            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
                 emulateMouse(palm, numActiveControllers - 1);
             }
             
