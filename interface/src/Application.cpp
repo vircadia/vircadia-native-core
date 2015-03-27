@@ -987,12 +987,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 resetSensors();
                 break;
 
-            case Qt::Key_G:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::ObeyEnvironmentalGravity);
-                }
-                break;
-
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
@@ -1165,10 +1159,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_Comma: {
-                _myAvatar->togglePhysicsEnabled();
-            }
-            
             default:
                 event->ignore();
                 break;
@@ -2192,7 +2182,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
-        _myAvatar->preSimulation();
         _physicsEngine.stepSimulation();
     }
 

@@ -217,9 +217,7 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
     _avatarData = avatarData;
 
-    // cache the "PhysicsEnabled" state of _avatarData
     _enabled = false;
-
     _ghostObject = NULL;
     _convexShape = NULL;
 
@@ -730,10 +728,12 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm
     if (radiusDelta < FLT_EPSILON && heightDelta < FLT_EPSILON) {
         // shape hasn't changed --> nothing to do
     } else {
-        // we always need to: REMOVE when UPDATE_SHAPE, to avoid deleting shapes out from under the PhysicsEngine
-        _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION
-            | PENDING_FLAG_UPDATE_SHAPE;
-        // but only need to ADD back when we happen to be enabled
+        if (_dynamicsWorld) {
+            // must REMOVE from world prior to shape update
+            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
+        }
+        _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
+        // only need to ADD back when we happen to be enabled
         if (_enabled) {
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
         }
@@ -759,9 +759,9 @@ void CharacterController::setEnabled(bool enabled) {
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
             _isHovering = true;
         } else {
-            // Always set REMOVE bit when going disabled, and we always clear the ADD bit just in case
-            // it was previously set by something else (e.g. an UPDATE_SHAPE event).
-            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            if (_dynamicsWorld) {
+                _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            }
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
             _isOnGround = false;
         }
@@ -777,17 +777,23 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         }
         _dynamicsWorld = world;
         if (_dynamicsWorld) {
-            _pendingFlags &= ~ (PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_JUMP);
+            _pendingFlags &= ~ PENDING_FLAG_JUMP;
             _dynamicsWorld->addCollisionObject(getGhostObject(),
                     btBroadphaseProxy::CharacterFilter,
                     btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
             _dynamicsWorld->addAction(this);
             reset(_dynamicsWorld);
+        }
+    }
+    if (_dynamicsWorld) {
+        if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
+            // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
+            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION;
         } else {
-            _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
         }
     } else {
-        _pendingFlags &= ~ (PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_ADD_TO_SIMULATION);
+        _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
     }
 }
 

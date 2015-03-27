@@ -25,7 +25,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
-    Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
+    //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
 	MyAvatar();
@@ -44,13 +44,11 @@ public:
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
-    void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    glm::vec3 getGravity() const { return _gravity; }
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
@@ -148,11 +146,6 @@ public:
     
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
-
-    void togglePhysicsEnabled() { _enablePhysics = !_enablePhysics; }
-    bool isPhysicsEnabled() { return _enablePhysics; }
-    void setPhysicsEnabled(bool enablePhysics) { _enablePhysics = enablePhysics; }
-    void preSimulation();
     
 public slots:
     void increaseSize();
@@ -209,7 +202,6 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
-    bool _enablePhysics;
     CharacterController _characterController;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
@@ -236,7 +228,6 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
-    void setGravity(const glm::vec3& gravity);
 };
 
 #endif // hifi_MyAvatar_h

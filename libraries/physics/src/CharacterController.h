@@ -166,6 +166,7 @@ public:
     bool needsRemoval() const;
     bool needsAddition() const;
     void setEnabled(bool enabled);
+    bool isEnabled() const { return _enabled; }
     void setDynamicsWorld(btDynamicsWorld* world);
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
