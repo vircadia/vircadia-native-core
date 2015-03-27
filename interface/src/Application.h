@@ -333,6 +333,8 @@ signals:
 
     void svoImportRequested(const QString& url);
 
+    void checkBackgroundDownloads();
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
