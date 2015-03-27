@@ -88,13 +88,7 @@ var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 
 var modelURLs = [
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed7.fbx"
+       "Insert the URL to your FBX"
     ];
 
 var mode = 0;
@@ -387,9 +381,7 @@ var toolBar = (function () {
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
                                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
                                 isSpotlight: false,
-                                diffuseColor: { red: 255, green: 255, blue: 255 },
-                                ambientColor: { red: 255, green: 255, blue: 255 },
-                                specularColor: { red: 0, green: 0, blue: 0 },
+                                color: { red: 150, green: 150, blue: 150 },
 
                                 constantAttenuation: 1,
                                 linearAttenuation: 0,
