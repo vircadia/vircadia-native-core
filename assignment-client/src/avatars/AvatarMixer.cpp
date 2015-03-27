@@ -149,7 +149,8 @@ void AvatarMixer::broadcastAvatarData() {
             // about a given otherNode to this node
             // FIXME does this mean we should sort the othernodes by distance before iterating 
             // over them?
-            float outputBandwidth = node->getOutboundBandwidth();
+            // float outputBandwidth =
+            node->getOutboundBandwidth();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
