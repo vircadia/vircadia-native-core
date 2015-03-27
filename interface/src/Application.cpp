@@ -796,7 +796,7 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
+        {
             PerformanceTimer perfTimer("renderOverlay");
             _applicationOverlay.renderOverlay(true);
             _applicationOverlay.displayOverlayTexture();
@@ -994,12 +994,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 resetSensors();
                 break;
 
-            case Qt::Key_G:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::ObeyEnvironmentalGravity);
-                }
-                break;
-
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
@@ -1134,13 +1128,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
                 }
                 break;
-            case Qt::Key_Slash:
-                Menu::getInstance()->triggerOption(MenuOption::UserInterface);
-                break;
             case Qt::Key_P:
                  Menu::getInstance()->triggerOption(MenuOption::FirstPerson);
                  break;
-            case Qt::Key_Percent:
+            case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
             case Qt::Key_Plus:
@@ -1175,10 +1166,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_Comma: {
-                _myAvatar->togglePhysicsEnabled();
-            }
-            
             default:
                 event->ignore();
                 break;
@@ -2205,7 +2192,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
-        _myAvatar->preSimulation();
         _physicsEngine.stepSimulation();
     }
 
@@ -3029,8 +3015,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         _nodeBoundsDisplay.draw();
     
         //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
-                Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
+        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
         }

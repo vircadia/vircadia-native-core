@@ -59,7 +59,8 @@ protected:
     btScalar _maxSlopeCosine;  // Cosine equivalent of _maxSlopeRadians (calculated once when set, for optimization)
     btScalar _gravity;
 
-    btScalar _stepHeight; // height of stepUp prior to stepForward
+    btScalar _stepUpHeight; // height of stepUp prior to stepForward
+    btScalar _stepDownHeight; // height of stepDown
 
     btScalar _addedMargin;//@todo: remove this and fix the code
 
@@ -71,6 +72,7 @@ protected:
     btVector3 _currentPosition;
     btQuaternion _currentRotation;
     btVector3 _targetPosition;
+    glm::vec3 _lastPosition;
     btScalar  _lastStepUp;
 
     ///keep track of the contact manifolds
@@ -80,9 +82,12 @@ protected:
     btVector3 _floorNormal; // points from object to character
 
     bool _enabled;
-    bool _wasOnGround;
-    bool _wasJumping;
+    bool _isOnGround;
+    bool _isJumping;
+    bool _isHovering;
+    quint64 _jumpToHoverStart;
     btScalar _velocityTimeInterval;
+    btScalar _stepDt;
     uint32_t _pendingFlags;
 
     glm::vec3 _shapeLocalOffset;
@@ -95,6 +100,7 @@ protected:
     btVector3 perpindicularComponent(const btVector3& direction, const btVector3& normal);
 
     bool recoverFromPenetration(btCollisionWorld* collisionWorld);
+    void scanDown(btCollisionWorld* collisionWorld);
     void stepUp(btCollisionWorld* collisionWorld);
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
     void stepForward(btCollisionWorld* collisionWorld, const btVector3& walkMove);
@@ -161,6 +167,7 @@ public:
     bool needsRemoval() const;
     bool needsAddition() const;
     void setEnabled(bool enabled);
+    bool isEnabled() const { return _enabled; }
     void setDynamicsWorld(btDynamicsWorld* world);
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);

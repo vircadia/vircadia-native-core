@@ -360,10 +360,6 @@ void ScriptEngine::init() {
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
-
-    globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
-    globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
-
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {

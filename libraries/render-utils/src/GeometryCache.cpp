@@ -21,6 +21,7 @@
 #include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
+#include <FSTReader.h>
 #include <SharedUtil.h>
 
 #include "TextureCache.h"

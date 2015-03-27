@@ -201,9 +201,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
-            avatar, SLOT(updateMotionBehavior()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::StandOnNearbyFloors, 0, true,
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
@@ -230,7 +228,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             qApp, SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
                                            false,
@@ -259,14 +256,13 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
 
-    addDisabledActionAndSeparator(viewMenu, "Stats");
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Percent);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, qApp, SLOT(toggleLogDialog()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
                                   dialogsManager.data(), SLOT(octreeStatsDetails()));
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
+
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -538,10 +534,12 @@ Menu::Menu() {
                                             statsRenderer.data(),
                                             SLOT(toggleShowInjectedStreams()));
 
-#ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
-    QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
-    connect(helpAction, SIGNAL(triggered()), qApp, SLOT(aboutApp()));
+    addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
+
+#ifndef Q_OS_MAC
+    QAction* aboutAction = helpMenu->addAction(MenuOption::AboutApp);
+    connect(aboutAction, SIGNAL(triggered()), qApp, SLOT(aboutApp()));
 #endif
 }
 
