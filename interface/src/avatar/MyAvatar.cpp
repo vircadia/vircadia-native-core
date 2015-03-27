@@ -81,7 +81,6 @@ MyAvatar::MyAvatar() :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _enablePhysics(false),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -101,6 +100,7 @@ MyAvatar::MyAvatar() :
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
+    _characterController.setEnabled(true);
 }
 
 MyAvatar::~MyAvatar() {
@@ -146,10 +146,6 @@ void MyAvatar::update(float deltaTime) {
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
-
-    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
-        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
-    }
 
     simulate(deltaTime);
     if (_feetTouchFloor) {
@@ -478,26 +474,6 @@ void MyAvatar::loadLastRecording() {
     }
     
     _player->loadRecording(_recorder->getRecording());
-}
-
-void MyAvatar::setLocalGravity(glm::vec3 gravity) {
-    _motionBehaviors |= AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
-    // Environmental and Local gravities are incompatible.  Since Local is being set here
-    // the environmental setting must be removed.
-    _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
-    setGravity(gravity);
-}
-
-void MyAvatar::setGravity(const glm::vec3& gravity) {
-    _gravity = gravity;
-
-    // use the gravity to determine the new world up direction, if possible
-    float gravityLength = glm::length(gravity);
-    if (gravityLength > EPSILON) {
-        _worldUpDirection = _gravity / -gravityLength;
-    }
-    // NOTE: the else case here it to leave _worldUpDirection unchanged
-    // so it continues to point opposite to the previous gravity setting.
 }
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
@@ -1276,7 +1252,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         speed = MAX_AVATAR_SPEED;
     }
     
-    if (speed > MIN_AVATAR_SPEED && !isPhysicsEnabled()) {
+    if (speed > MIN_AVATAR_SPEED && !_characterController.isEnabled()) {
         // update position ourselves
         applyPositionDelta(deltaTime * _velocity);
         measureMotionDerivatives(deltaTime);
@@ -1402,23 +1378,6 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 
 void MyAvatar::updateMotionBehavior() {
     Menu* menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
-        _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
-        // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
-        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
-    } else {
-        _motionBehaviors &= ~AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
-    }
-    if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
-        setGravity(glm::vec3(0.0f));
-    }
-    if (menu->isOptionChecked(MenuOption::StandOnNearbyFloors)) {
-        _motionBehaviors |= AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
-        // standing on floors requires collision with voxels
-        // TODO: determine what to do with this now that voxels are gone
-    } else {
-        _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
-    }
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
     } else {
@@ -1429,6 +1388,7 @@ void MyAvatar::updateMotionBehavior() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+    _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
@@ -1485,10 +1445,6 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     }
 
     return palm->getPosition();
-}
-
-void MyAvatar::preSimulation() {
-    _characterController.setEnabled(_enablePhysics);
 }
 
 void MyAvatar::clearDriveKeys() {
