@@ -54,44 +54,45 @@ QVariantHash readMapping(const QByteArray& data) {
     return parseMapping(&buffer);
 }
 
+void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {
+    QByteArray key = it.key().toUtf8() + " = ";
+    QVariantHash hashValue = it.value().toHash();
+    if (hashValue.isEmpty()) {
+        buffer.write(key + it.value().toByteArray() + "\n");
+        return;
+    }
+    for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
+        QByteArray extendedKey = key + second.key().toUtf8();
+        QVariantList listValue = second.value().toList();
+        if (listValue.isEmpty()) {
+            buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
+            continue;
+        }
+        buffer.write(extendedKey);
+        for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
+            buffer.write(" = " + third->toByteArray());
+        }
+        buffer.write("\n");
+    }
+};
+
 QByteArray writeMapping(const QVariantHash& mapping) {
     static const QStringList PREFERED_ORDER = QStringList() << NAME_FIELD << SCALE_FIELD << FILENAME_FIELD
     << TEXDIR_FIELD << JOINT_FIELD << FREE_JOINT_FIELD
     << BLENDSHAPE_FIELD << JOINT_INDEX_FIELD;
     QBuffer buffer;
-    auto writeVariant = [&buffer](QVariantHash::const_iterator& it) {
-        QByteArray key = it.key().toUtf8() + " = ";
-        QVariantHash hashValue = it.value().toHash();
-        if (hashValue.isEmpty()) {
-            buffer.write(key + it.value().toByteArray() + "\n");
-            return;
-        }
-        for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
-            QByteArray extendedKey = key + second.key().toUtf8();
-            QVariantList listValue = second.value().toList();
-            if (listValue.isEmpty()) {
-                buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
-                continue;
-            }
-            buffer.write(extendedKey);
-            for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
-                buffer.write(" = " + third->toByteArray());
-            }
-            buffer.write("\n");
-        }
-    };
     buffer.open(QIODevice::WriteOnly);
     
     for (auto key : PREFERED_ORDER) {
         auto it = mapping.find(key);
         if (it != mapping.constEnd()) {
-            writeVariant(it);
+            writeVariant(buffer, it);
         }
     }
     
     for (auto it = mapping.constBegin(); it != mapping.constEnd(); it++) {
         if (!PREFERED_ORDER.contains(it.key())) {
-            writeVariant(it);
+            writeVariant(buffer, it);
         }
     }
     return buffer.data();
