@@ -88,6 +88,12 @@ var usersWindow = (function () {
         scrollbarBarClickedAt,                              // 0.0 .. 1.0
         scrollbarValue = 0.0,                               // 0.0 .. 1.0
 
+        FRIENDS_DIALOG_TITLE = "Add/Remove Friends",
+        FRIENDS_DIALOG_URL = "https://metaverse.highfidelity.com/user/friends",
+        FRIENDS_DIALOG_WIDTH = 900,
+        FRIENDS_DIALOG_HEIGHT = 700,
+        friendsDialog,
+
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
         RADIO_BUTTON_SVG_DIAMETER = 14,
         RADIO_BUTTON_DISPLAY_SCALE = 0.7,                   // 1.0 = windowTextHeight
@@ -418,6 +424,11 @@ var usersWindow = (function () {
             updateOverlayPositions();
             updateUsersDisplay();
         }
+
+        if (clickedOverlay === friendsButton2D) {
+            friendsDialog.setVisible(true);
+            friendsDialog.raise();
+        }
     }
 
     function onMouseMoveEvent(event) {
@@ -575,6 +586,10 @@ var usersWindow = (function () {
             print("Error: Unrecognized findableBy value");
             myVisibility = "";
         }
+
+        friendsDialog = new WebWindow(FRIENDS_DIALOG_TITLE, FRIENDS_DIALOG_URL, FRIENDS_DIALOG_WIDTH, FRIENDS_DIALOG_HEIGHT,
+            false);
+        friendsDialog.setVisible(false);
 
         optionText = "everyone";
         visibilityControls2D = [{
