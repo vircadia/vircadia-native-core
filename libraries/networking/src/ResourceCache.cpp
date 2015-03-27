@@ -58,14 +58,12 @@ void ResourceCache::getResourceAsynchronously(const QUrl& url) {
 
 void ResourceCache::checkAsynchronousGets() {
     assert(QThread::currentThread() == thread());
-    _resourcesToBeGottenLock.lockForRead();
-    if (_resourcesToBeGotten.isEmpty()) {
+    if (!_resourcesToBeGotten.isEmpty()) {
+        _resourcesToBeGottenLock.lockForWrite();
+        QUrl url = _resourcesToBeGotten.dequeue();
         _resourcesToBeGottenLock.unlock();
-        return;
+        getResource(url);
     }
-    QUrl url = _resourcesToBeGotten.dequeue();
-    _resourcesToBeGottenLock.unlock();
-    getResource(url);
 }
 
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
