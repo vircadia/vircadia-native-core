@@ -637,7 +637,7 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
 /// \param const QString& nameFilter filter to filter filenames
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::showS3Browse(const QString& nameFilter) {
-    ModelsBrowser browser(ENTITY_MODEL);
+    ModelsBrowser browser(FSTReader::ENTITY_MODEL);
     if (nameFilter != "") {
         browser.setNameFilter(nameFilter);
     }

@@ -2132,7 +2132,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = readMapping(reply->readAll());
+        _mapping = FSTReader::readMapping(reply->readAll());
         reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {

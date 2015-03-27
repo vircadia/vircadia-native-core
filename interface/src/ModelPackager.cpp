@@ -85,7 +85,7 @@ bool ModelPackager::loadModel() {
             return false;
         }
         qDebug() << "Reading FST file : " << _modelFile.filePath();
-        _mapping = readMapping(fst.readAll());
+        _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
         
         _fbxInfo = QFileInfo(_modelFile.path() + "/" + _mapping.value(FILENAME_FIELD).toString());
@@ -120,6 +120,7 @@ bool ModelPackager::editProperties() {
     }
     _mapping = properties.getMapping();
     
+    /*
     // Make sure that a mapping for the root joint has been specified
     QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointRoot")) {
@@ -135,6 +136,7 @@ bool ModelPackager::editProperties() {
         
         return false;
     }
+    */
     
     return true;
 }
@@ -183,7 +185,7 @@ bool ModelPackager::zipModel() {
     // Copy FST
     QFile fst(tempDir.path() + "/" + nameField + ".fst");
     if (fst.open(QIODevice::WriteOnly)) {
-        fst.write(writeMapping(_mapping));
+        fst.write(FSTReader::writeMapping(_mapping));
         fst.close();
     } else {
         qDebug() << "Couldn't write FST file" << fst.fileName();
@@ -205,6 +207,7 @@ bool ModelPackager::zipModel() {
 
 void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry) {
 
+    bool isBodyType = _modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL;
 
     // mixamo files - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
     // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
@@ -243,28 +246,36 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", geometry.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
-    if (!joints.contains("jointRoot")) {
-        joints.insert("jointRoot", "Hips");
+    
+    if (isBodyType) {
+        if (!joints.contains("jointRoot")) {
+            joints.insert("jointRoot", "Hips");
+        }
+        if (!joints.contains("jointLean")) {
+            joints.insert("jointLean", "Spine");
+        }
+        if (!joints.contains("jointLeftHand")) {
+            joints.insert("jointLeftHand", "LeftHand");
+        }
+        if (!joints.contains("jointRightHand")) {
+            joints.insert("jointRightHand", "RightHand");
+        }
     }
-    if (!joints.contains("jointLean")) {
-        joints.insert("jointLean", "Spine");
-    }
+    
     if (!joints.contains("jointHead")) {
         const char* topName = likelyMixamoFile ? "HeadTop_End" : "HeadEnd";
         joints.insert("jointHead", geometry.jointIndices.contains(topName) ? topName : "Head");
     }
-    if (!joints.contains("jointLeftHand")) {
-        joints.insert("jointLeftHand", "LeftHand");
-    }
-    if (!joints.contains("jointRightHand")) {
-        joints.insert("jointRightHand", "RightHand");
-    }
+
     mapping.insert(JOINT_FIELD, joints);
-    if (!mapping.contains(FREE_JOINT_FIELD)) {
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+
+    if (isBodyType) {
+        if (!mapping.contains(FREE_JOINT_FIELD)) {
+            mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+        }
     }
     
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,

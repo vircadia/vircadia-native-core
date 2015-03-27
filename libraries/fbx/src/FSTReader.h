@@ -12,6 +12,7 @@
 #ifndef hifi_FSTReader_h
 #define hifi_FSTReader_h
 
+#include <QBuffer>
 #include <QVariantHash>
 
 static const QString NAME_FIELD = "name";
@@ -28,10 +29,37 @@ static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 static const QString BLENDSHAPE_FIELD = "bs";
 
-/// Reads an FST mapping from the supplied data.
-QVariantHash readMapping(const QByteArray& data);
+class FSTReader {
+public:
 
-/// Writes an FST mapping to a byte array.
-QByteArray writeMapping(const QVariantHash& mapping);
+    enum ModelType {
+        ENTITY_MODEL,
+        HEAD_MODEL,
+        BODY_ONLY_MODEL,
+        HEAD_AND_BODY_MODEL,
+        ATTACHMENT_MODEL
+    };
+
+    /// Reads an FST mapping from the supplied data.
+    static QVariantHash readMapping(const QByteArray& data);
+
+    /// Writes an FST mapping to a byte array.
+    static QByteArray writeMapping(const QVariantHash& mapping);
+
+    /// Predicts the type of model by examining the mapping 
+    static ModelType predictModelType(const QVariantHash& mapping);
+
+    static QString getTypeName(ModelType modelType);
+
+    static QString getNameFromType(ModelType modelType);
+    static FSTReader::ModelType getTypeFromName(const QString& name);
+
+private:
+    static void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it);
+    static QVariantHash parseMapping(QIODevice* device);
+
+    static QHash<FSTReader::ModelType, QString> _typesToNames;
+    static QHash<QString, FSTReader::ModelType> _namesToTypes;
+};
 
 #endif // hifi_FSTReader_h

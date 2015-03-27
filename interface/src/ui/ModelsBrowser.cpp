@@ -71,7 +71,7 @@ static const QString propertiesIds[MODEL_METADATA_COUNT] = {
     "Tags"
 };
 
-ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
+ModelsBrowser::ModelsBrowser(FSTReader::ModelType modelsType, QWidget* parent) :
     QWidget(parent, Qt::WindowStaysOnTopHint),
     _handler(new ModelHandler(modelsType))
 {
@@ -184,7 +184,7 @@ void ModelsBrowser::browse() {
 }
 
 
-ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
+ModelHandler::ModelHandler(FSTReader::ModelType modelsType, QWidget* parent) :
     QObject(parent),
     _initiateExit(false),
     _type(modelsType),

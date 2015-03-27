@@ -67,13 +67,13 @@ void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
-    ModelsBrowser modelBrowser(HEAD_MODEL);
+    ModelsBrowser modelBrowser(FSTReader::HEAD_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
     modelBrowser.browse();
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    ModelsBrowser modelBrowser(HEAD_AND_BODY_MODEL);
+    ModelsBrowser modelBrowser(FSTReader::HEAD_AND_BODY_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
 }

@@ -52,19 +52,19 @@ QFileInfo ModelSelector::getFileInfo() const {
     return _modelFile;
 }
 
-ModelType ModelSelector::getModelType() const {
+FSTReader::ModelType ModelSelector::getModelType() const {
     QString text = _modelType->currentText();
     
     if (text == AVATAR_HEAD_STRING) {
-        return HEAD_MODEL;
+        return FSTReader::HEAD_MODEL;
     } else if (text == AVATAR_BODY_STRING) {
-        return BODY_ONLY_MODEL;
+        return FSTReader::BODY_ONLY_MODEL;
     } else if (text == AVATAR_HEAD_AND_BODY_STRING) {
-        return HEAD_AND_BODY_MODEL;
+        return FSTReader::HEAD_AND_BODY_MODEL;
     } else if (text == AVATAR_ATTACHEMENT_STRING) {
-        return ATTACHMENT_MODEL;
+        return FSTReader::ATTACHMENT_MODEL;
     } else if (text == ENTITY_MODEL_STRING) {
-        return ENTITY_MODEL;
+        return FSTReader::ENTITY_MODEL;
     } else {
         Q_UNREACHABLE();
     }

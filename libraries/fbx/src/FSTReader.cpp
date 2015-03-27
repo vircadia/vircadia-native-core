@@ -10,10 +10,11 @@
 //
 
 #include <QBuffer>
+#include <QDebug>
 
 #include "FSTReader.h"
 
-QVariantHash parseMapping(QIODevice* device) {
+QVariantHash FSTReader::parseMapping(QIODevice* device) {
     QVariantHash properties;
     
     QByteArray line;
@@ -48,13 +49,13 @@ QVariantHash parseMapping(QIODevice* device) {
     return properties;
 }
 
-QVariantHash readMapping(const QByteArray& data) {
+QVariantHash FSTReader::readMapping(const QByteArray& data) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    return parseMapping(&buffer);
+    return FSTReader::parseMapping(&buffer);
 }
 
-void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {
+void FSTReader::writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {
     QByteArray key = it.key().toUtf8() + " = ";
     QVariantHash hashValue = it.value().toHash();
     if (hashValue.isEmpty()) {
@@ -76,7 +77,7 @@ void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {
     }
 }
 
-QByteArray writeMapping(const QVariantHash& mapping) {
+QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     static const QStringList PREFERED_ORDER = QStringList() << NAME_FIELD << TYPE_FIELD << SCALE_FIELD << FILENAME_FIELD
     << TEXDIR_FIELD << JOINT_FIELD << FREE_JOINT_FIELD
     << BLENDSHAPE_FIELD << JOINT_INDEX_FIELD;
@@ -96,4 +97,76 @@ QByteArray writeMapping(const QVariantHash& mapping) {
         }
     }
     return buffer.data();
+}
+
+QHash<FSTReader::ModelType, QString> FSTReader::_typesToNames;
+QString FSTReader::getNameFromType(ModelType modelType) {
+    if (_typesToNames.size() == 0) {
+        _typesToNames[ENTITY_MODEL] = "entity";
+        _typesToNames[HEAD_MODEL] = "head";
+        _typesToNames[BODY_ONLY_MODEL] = "body";
+        _typesToNames[HEAD_AND_BODY_MODEL] = "body+head";
+        _typesToNames[ATTACHMENT_MODEL] = "attachment";
+    }
+    return _typesToNames[modelType];
+}
+
+QHash<QString, FSTReader::ModelType> FSTReader::_namesToTypes;
+FSTReader::ModelType FSTReader::getTypeFromName(const QString& name) {
+    if (_namesToTypes.size() == 0) {
+        _namesToTypes["entity"] = ENTITY_MODEL;
+        _namesToTypes["head"] = HEAD_MODEL ;
+        _namesToTypes["body"] = BODY_ONLY_MODEL;
+        _namesToTypes["body+head"] = HEAD_AND_BODY_MODEL;
+        _namesToTypes["attachment"] = ATTACHMENT_MODEL;
+    }
+    return _namesToTypes[name];
+}
+
+FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
+
+    QVariantHash joints;
+
+    if (mapping.contains("joint") && mapping["joint"].type() == QVariant::Hash) {
+        joints = mapping["joint"].toHash();
+    }
+
+    // if the mapping includes the type hint... then we trust the mapping
+    if (mapping.contains(TYPE_FIELD)) {
+        return FSTReader::getTypeFromName(mapping[TYPE_FIELD].toString());
+    }
+    
+    // check for blendshapes
+    bool hasBlendshapes = mapping.contains(BLENDSHAPE_FIELD);
+
+    // a Head needs to have these minimum fields...
+    //joint = jointEyeLeft = EyeL = 1
+    //joint = jointEyeRight = EyeR = 1
+    //joint = jointNeck = Head = 1
+    bool hasHeadMinimum = joints.contains("jointNeck") && joints.contains("jointEyeLeft") && joints.contains("jointEyeRight");
+
+    // a Body needs to have these minimum fields...
+    //joint = jointRoot = Hips
+    //joint = jointLean = Spine
+    //joint = jointNeck = Neck
+    //joint = jointHead = HeadTop_End
+
+    bool hasBodyMinimumJoints = joints.contains("jointRoot") && joints.contains("jointLean") && joints.contains("jointNeck")  
+                                        && joints.contains("jointHead");
+    
+    bool isLikelyHead = hasBlendshapes || hasHeadMinimum;
+
+    if (isLikelyHead && hasBodyMinimumJoints) {
+        return HEAD_AND_BODY_MODEL;
+    }
+      
+    if (isLikelyHead) {
+        return HEAD_MODEL;
+    }
+
+    if (hasBodyMinimumJoints) {
+        return BODY_ONLY_MODEL;
+    }
+    
+    return ENTITY_MODEL;
 }
