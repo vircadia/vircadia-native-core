@@ -95,9 +95,15 @@ elseif (UNIX)
 endif () 
 
 if (DEFINED _TBB_LIB_DIR)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb_debug.${_LIB_EXT} CACHE FILEPATH "TBB debug library location")
+  if (NOT APPLE)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb_debug.${_LIB_EXT} CACHE FILEPATH "TBB debug library location")
+    set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc_debug.${_LIB_EXT} CACHE FILEPATH "TBB malloc debug library location")
+  else ()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "TBB debug library location")
+    set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG "" CACHE FILEPATH "TBB malloc debug library location")
+  endif ()
+  
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb.${_LIB_EXT} CACHE FILEPATH "TBB release library location")
-  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc_debug.${_LIB_EXT} CACHE FILEPATH "TBB malloc debug library location")
   set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc.${_LIB_EXT} CACHE FILEPATH "TBB malloc release library location")
 endif ()
 
