@@ -365,8 +365,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
-    QUrl _faceModelURL = DEFAULT_HEAD_MODEL_URL;
-    QUrl _skeletonModelURL = DEFAULT_BODY_MODEL_URL;
+    QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
+    QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
