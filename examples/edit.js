@@ -88,13 +88,7 @@ var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 
 var modelURLs = [
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
-        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed7.fbx"
+       "Insert the URL to your FBX"
     ];
 
 var mode = 0;
