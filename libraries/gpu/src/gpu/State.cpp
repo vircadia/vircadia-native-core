@@ -14,35 +14,8 @@
 
 using namespace gpu;
 
-
-State::~State()
-{
+State::State() {
 }
 
-void State::set(Field field, bool value) {
-     _fields[field]._integer = value;
-    _stamp++;
-}
-
-void State::set(Field field, uint32 value) {
-    _fields[field]._unsigned_integer = value;
-    _stamp++;
-}
-
-void State::set(Field field, int32 value) {
-    _fields[field]._integer = value;
-    _stamp++;
-}
-
-void State::set(Field field, float value) {
-    _fields[field]._float = value;
-    _stamp++;
-}
-
-State::Value State::get(Field field) const {
-    auto found = _fields.find(field);
-    if (found != _fields.end()) {
-        return (*found).second;
-    }
-    return Value();
+State::~State() {
 }

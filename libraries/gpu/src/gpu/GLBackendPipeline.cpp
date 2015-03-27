@@ -71,6 +71,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     
     _pipeline._pipeline = pipeline;
 
+
     if (_pipeline._program != pipelineObject->_program->_program) {
         _pipeline._program = pipelineObject->_program->_program;
         _pipeline._invalidProgram = true;

@@ -379,6 +379,8 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
     DO_IT_NOW(_glUniform1f, 1);
 }
 void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0)
+        return;
     glUniform1f(
         batch._params[paramOffset + 1]._int,
         batch._params[paramOffset + 0]._float);

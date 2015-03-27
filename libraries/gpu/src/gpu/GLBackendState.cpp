@@ -228,11 +228,13 @@ void GLBackend::do_setStateCullMode(int32 mode) {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_CULL_MODES[mode]);
     }
+    CHECK_GL_ERROR();
 }
 
 void GLBackend::do_setStateFrontClockwise(int32 isFrontClockwise) {
     static GLenum  GL_FRONT_FACES[] = { GL_CCW, GL_CW };
     glFrontFace(GL_FRONT_FACES[isFrontClockwise]);
+    CHECK_GL_ERROR();
 }
 
 void GLBackend::do_setStateDepthClipEnable(int32 enable) {
@@ -274,10 +276,10 @@ void GLBackend::do_setStateAntialiasedLineEnable(int32 enable) {
 }
 
 void GLBackend::do_setStateDepthTest(State::DepthTest test) {
-    if (test._enabled) {
+    if (test.isEnabled()) {
         glEnable(GL_DEPTH_TEST);
-        glDepthMask(test._writeMask);
-        glDepthFunc(GL_COMPARISON_FUNCTIONS[test._function]);
+        glDepthMask(test.getWriteMask());
+        glDepthFunc(GL_COMPARISON_FUNCTIONS[test.getFunction()]);
     } else {
         glDisable(GL_DEPTH_TEST);
     }
@@ -285,12 +287,12 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
 }
 
 void GLBackend::do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest) {
-    if (activation._enabled) {
+    if (activation.isEnabled()) {
         glEnable(GL_STENCIL_TEST);
-        glStencilMaskSeparate(GL_FRONT, activation._frontWriteMask);
-        glStencilMaskSeparate(GL_BACK, activation._backWriteMask);
+        glStencilMaskSeparate(GL_FRONT, activation.getWriteMaskFront());
+        glStencilMaskSeparate(GL_BACK, activation.getWriteMaskBack());
 
-         static GLenum STENCIL_OPS[] = {
+        static GLenum STENCIL_OPS[] = {
             GL_KEEP,
             GL_ZERO,
             GL_REPLACE,
@@ -300,11 +302,11 @@ void GLBackend::do_setStateStencil(State::StencilActivation activation, State::S
             GL_INCR,
             GL_DECR };
 
-        glStencilFuncSeparate(GL_FRONT, STENCIL_OPS[frontTest._failOp], STENCIL_OPS[frontTest._passOp], STENCIL_OPS[frontTest._depthFailOp]);
-        glStencilFuncSeparate(GL_FRONT, GL_COMPARISON_FUNCTIONS[frontTest._function], frontTest._reference, frontTest._readMask);
+        glStencilFuncSeparate(GL_FRONT, STENCIL_OPS[frontTest.getFailOp()], STENCIL_OPS[frontTest.getPassOp()], STENCIL_OPS[frontTest.getDepthFailOp()]);
+        glStencilFuncSeparate(GL_FRONT, GL_COMPARISON_FUNCTIONS[frontTest.getFunction()], frontTest.getReference(), frontTest.getReadMask());
 
-        glStencilFuncSeparate(GL_BACK, STENCIL_OPS[backTest._failOp], STENCIL_OPS[backTest._passOp], STENCIL_OPS[backTest._depthFailOp]);
-        glStencilFuncSeparate(GL_BACK, GL_COMPARISON_FUNCTIONS[backTest._function], backTest._reference, backTest._readMask);
+        glStencilFuncSeparate(GL_BACK, STENCIL_OPS[backTest.getFailOp()], STENCIL_OPS[backTest.getPassOp()], STENCIL_OPS[backTest.getDepthFailOp()]);
+        glStencilFuncSeparate(GL_BACK, GL_COMPARISON_FUNCTIONS[backTest.getFunction()], backTest.getReference(), backTest.getReadMask());
     } else {
         glDisable(GL_STENCIL_TEST);
     }
@@ -321,7 +323,7 @@ void GLBackend::do_setStateAlphaToCoverageEnable(int32 enable) {
 }
 
 void GLBackend::do_setStateBlend(State::BlendFunction function, Vec4 factor ) {
-    if (function._enabled) {
+    if (function.isEnabled()) {
         glEnable(GL_BLEND);
 
         static GLenum GL_BLEND_OPS[] = {
@@ -331,7 +333,8 @@ void GLBackend::do_setStateBlend(State::BlendFunction function, Vec4 factor ) {
             GL_MIN,
             GL_MAX };
 
-        glBlendEquationSeparate(GL_BLEND_OPS[function._operationColor], GL_BLEND_OPS[function._operationAlpha]);
+        glBlendEquationSeparate(GL_BLEND_OPS[function.getOperationColor()], GL_BLEND_OPS[function.getOperationAlpha()]);
+        CHECK_GL_ERROR();
 
         static GLenum BLEND_ARGS[] = {
             GL_ZERO,
@@ -351,14 +354,15 @@ void GLBackend::do_setStateBlend(State::BlendFunction function, Vec4 factor ) {
             GL_ONE_MINUS_CONSTANT_ALPHA,
         };
 
-        glBlendFuncSeparate(BLEND_ARGS[function._sourceColor], BLEND_ARGS[function._destinationColor],
-                            BLEND_ARGS[function._sourceAlpha], BLEND_ARGS[function._destinationAlpha]);
+        glBlendFuncSeparate(BLEND_ARGS[function.getSourceColor()], BLEND_ARGS[function.getDestinationColor()],
+                            BLEND_ARGS[function.getSourceAlpha()], BLEND_ARGS[function.getDestinationAlpha()]);
+        CHECK_GL_ERROR();
 
         glBlendColor(factor.x, factor.y, factor.z, factor.w);
+        CHECK_GL_ERROR();
     } else {
         glDisable(GL_BLEND);
     }
-    CHECK_GL_ERROR();
 }
 
 void GLBackend::do_setStateColorWriteMask(int32 mask) {

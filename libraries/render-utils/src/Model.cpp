@@ -816,6 +816,9 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
     GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
 
+    // Back to no program
+    GLBATCH(glUseProgram)(0);
+
     // Render!
     {
         PROFILE_RANGE("render Batch");
@@ -1873,6 +1876,10 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
         GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
         GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
+        // Back to no program
+        GLBATCH(glUseProgram)(0);
+
     if (args) {
         args->_translucentMeshPartsRendered = translucentParts;
         args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
@@ -2295,7 +2302,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
     }
     // if we selected a program, then unselect it
     if (!pickProgramsNeeded) {
-        GLBATCH(glUseProgram)(0);
+ //       GLBATCH(glUseProgram)(0);
     }
     return meshPartsRendered;
 }
@@ -2325,7 +2332,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                                 args, locations);
     meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
                                 args, locations, forceRenderSomeMeshes);
-    GLBATCH(glUseProgram)(0);
+   // GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
 }
