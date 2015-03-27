@@ -30,8 +30,9 @@ DiscoverabilityManager::DiscoverabilityManager() :
 const QString API_USER_LOCATION_PATH = "/api/v1/user/location";
 
 void DiscoverabilityManager::updateLocation() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
     if (_mode.get() != Discoverability::None) {
-        AccountManager& accountManager = AccountManager::getInstance();
         auto addressManager = DependencyManager::get<AddressManager>();
         DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
         
@@ -70,6 +71,10 @@ void DiscoverabilityManager::updateLocation() {
                                        QNetworkAccessManager::PutOperation,
                                        JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
         }
+    } else {
+        // we still send a heartbeat to the metaverse server for stats collection
+        const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
+        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation);
     }
 }
 
