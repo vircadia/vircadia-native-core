@@ -15,8 +15,6 @@
 #include <QFileInfo>
 #include <QVariantHash>
 
-#include <FBXReader.h>
-
 #include "ui/ModelsBrowser.h"
 
 class ModelPackager : public QObject {

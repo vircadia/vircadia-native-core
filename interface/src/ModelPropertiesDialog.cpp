@@ -19,6 +19,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 
+#include <FSTReader.h>
 #include <GLMHelpers.h>
 
 #include "ModelPropertiesDialog.h"
