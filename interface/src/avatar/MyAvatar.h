@@ -234,7 +234,6 @@ private:
     glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    void updatePositionWithPhysics(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
     void setGravity(const glm::vec3& gravity);
