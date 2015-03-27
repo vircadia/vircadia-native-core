@@ -73,7 +73,7 @@ void PreferencesDialog::openHeadModelBrowser() {
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    ModelsBrowser modelBrowser(SKELETON_MODEL);
+    ModelsBrowser modelBrowser(HEAD_AND_BODY_MODEL);
     connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
     modelBrowser.browse();
 }

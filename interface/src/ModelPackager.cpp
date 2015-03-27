@@ -204,6 +204,17 @@ bool ModelPackager::zipModel() {
 }
 
 void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry) {
+
+
+    // mixamo files - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
+    // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
+    bool likelyMixamoFile = geometry.applicationName == "mixamo.com" ||
+                            (geometry.blendshapeChannelNames.contains("BrowsDown_Right") &&
+                             geometry.blendshapeChannelNames.contains("MouthOpen") &&
+                             geometry.blendshapeChannelNames.contains("Blink_Left") &&
+                             geometry.blendshapeChannelNames.contains("Blink_Right") &&
+                             geometry.blendshapeChannelNames.contains("Squint_Right"));
+    
     if (!mapping.contains(NAME_FIELD)) {
         mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
     }
@@ -239,7 +250,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
         joints.insert("jointLean", "Spine");
     }
     if (!joints.contains("jointHead")) {
-        const char* topName = (geometry.applicationName == "mixamo.com") ? "HeadTop_End" : "HeadEnd";
+        const char* topName = likelyMixamoFile ? "HeadTop_End" : "HeadEnd";
         joints.insert("jointHead", geometry.jointIndices.contains(topName) ? topName : "Head");
     }
     if (!joints.contains("jointLeftHand")) {
@@ -256,15 +267,8 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
         mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
     }
     
-    // mixamo blendshapes - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
-    // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
-    bool likelyMixamoFile = geometry.applicationName == "mixamo.com" ||
-    (geometry.blendshapeChannelNames.contains("BrowsDown_Right") &&
-     geometry.blendshapeChannelNames.contains("MouthOpen") &&
-     geometry.blendshapeChannelNames.contains("Blink_Left") &&
-     geometry.blendshapeChannelNames.contains("Blink_Right") &&
-     geometry.blendshapeChannelNames.contains("Squint_Right"));
-    
+    // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
+    // then we can add the default mixamo to "faceshift" mappings
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);

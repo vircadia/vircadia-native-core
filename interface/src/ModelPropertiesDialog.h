@@ -43,6 +43,7 @@ private:
     QComboBox* createJointBox(bool withNone = true) const;
     QDoubleSpinBox* createTranslationBox() const;
     void insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const;
+    QString getType() const;
     
     ModelType _modelType;
     QVariantHash _originalMapping;

@@ -15,6 +15,7 @@
 #include <QVariantHash>
 
 static const QString NAME_FIELD = "name";
+static const QString TYPE_FIELD = "type";
 static const QString FILENAME_FIELD = "filename";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";

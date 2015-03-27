@@ -28,7 +28,7 @@
 
 #include "ModelsBrowser.h"
 
-const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "attachments" };
+const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "skeletons", "attachments" };
 
 static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";

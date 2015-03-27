@@ -21,7 +21,8 @@ class QNetworkReply;
 enum ModelType {
     ENTITY_MODEL,
     HEAD_MODEL,
-    SKELETON_MODEL,
+    BODY_ONLY_MODEL,
+    HEAD_AND_BODY_MODEL,
     ATTACHMENT_MODEL
 };
 

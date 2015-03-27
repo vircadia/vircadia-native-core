@@ -63,7 +63,7 @@ _geometry(geometry)
             form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
             form->addRow("Neck Joint:", _neckJoint = createJointBox());
         }
-        if (_modelType == SKELETON_MODEL) {
+        if (_modelType == BODY_ONLY_MODEL || _modelType == HEAD_AND_BODY_MODEL) {
             form->addRow("Root Joint:", _rootJoint = createJointBox());
             form->addRow("Lean Joint:", _leanJoint = createJointBox());
             form->addRow("Head Joint:", _headJoint = createJointBox());
@@ -89,8 +89,36 @@ _geometry(geometry)
     reset();
 }
 
+
+QString ModelPropertiesDialog::getType() const {
+    QString type = "unknown";
+    switch(_modelType) {
+        case ENTITY_MODEL:
+            type = "entity";
+        break;
+
+        case HEAD_MODEL:
+            type = "head";
+        break;
+
+        case BODY_ONLY_MODEL:
+            type = "body";
+        break;
+
+        case HEAD_AND_BODY_MODEL:
+            type = "body+head";
+        break;
+
+        case ATTACHMENT_MODEL:
+            type = "attachment";
+        break;
+    }
+    return type;
+}
+
 QVariantHash ModelPropertiesDialog::getMapping() const {
     QVariantHash mapping = _originalMapping;
+    mapping.insert(TYPE_FIELD, getType());
     mapping.insert(NAME_FIELD, _name->text());
     mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
     mapping.insert(SCALE_FIELD, QString::number(_scale->value()));
@@ -121,7 +149,9 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
             insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
             insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
         }
-        if (_modelType == SKELETON_MODEL) {
+        
+        
+        if (_modelType == BODY_ONLY_MODEL || _modelType == HEAD_AND_BODY_MODEL) {
             insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
             insertJointMapping(joints, "jointLean", _leanJoint->currentText());
             insertJointMapping(joints, "jointHead", _headJoint->currentText());
@@ -164,7 +194,8 @@ void ModelPropertiesDialog::reset() {
             setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
             setJointText(_neckJoint, jointHash.value("jointNeck").toString());
         }
-        if (_modelType == SKELETON_MODEL) {
+        
+        if (_modelType == BODY_ONLY_MODEL || _modelType == HEAD_AND_BODY_MODEL) {
             setJointText(_rootJoint, jointHash.value("jointRoot").toString());
             setJointText(_leanJoint, jointHash.value("jointLean").toString());
             setJointText(_headJoint, jointHash.value("jointHead").toString());
