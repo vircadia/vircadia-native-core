@@ -1162,7 +1162,7 @@ PropertiesTool = function(opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if (data.type = "showMarketplace") {
+        } else if (data.type == "showMarketplace") {
             if (marketplaceWindow.url != data.url) {
                 marketplaceWindow.setURL(data.url);
             }
