@@ -176,18 +176,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     _textureAspectRatio = (float)glCanvas->getDeviceWidth() / (float)glCanvas->getDeviceHeight();
 
     //Handle fading and deactivation/activation of UI
-    if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
-        _alpha += FADE_SPEED;
-        if (_alpha > 1.0f) {
-            _alpha = 1.0f;
-        }
-    } else {
-        _alpha -= FADE_SPEED;
-        if (_alpha <= 0.0f) {
-            _alpha = 0.0f;
-        }
-    }
-
+    
     // Render 2D overlay
     glMatrixMode(GL_PROJECTION);
     glDisable(GL_DEPTH_TEST);

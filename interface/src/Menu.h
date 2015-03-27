@@ -184,12 +184,10 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NoFaceTracking = "None";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
-    const QString OctreeStats = "Voxel and Entity Statistics";
+    const QString OctreeStats = "Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
-    const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString Pair = "Pair";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
@@ -233,7 +231,6 @@ namespace MenuOption {
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
@@ -251,7 +248,6 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString PackageModel = "Package Model";
-    const QString UserInterface = "User Interface";
     const QString Visage = "Visage";
     const QString Wireframe = "Wireframe";
 }
