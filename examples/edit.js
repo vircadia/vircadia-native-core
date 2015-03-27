@@ -387,9 +387,7 @@ var toolBar = (function () {
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_LIGHT_DIMENSIONS), DEFAULT_LIGHT_DIMENSIONS),
                                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
                                 isSpotlight: false,
-                                diffuseColor: { red: 255, green: 255, blue: 255 },
-                                ambientColor: { red: 255, green: 255, blue: 255 },
-                                specularColor: { red: 0, green: 0, blue: 0 },
+                                color: { red: 150, green: 150, blue: 150 },
 
                                 constantAttenuation: 1,
                                 linearAttenuation: 0,
