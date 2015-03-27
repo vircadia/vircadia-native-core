@@ -11,7 +11,9 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_WIDTH_2D = 160,
+    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+
+        WINDOW_WIDTH_2D = 160,
         WINDOW_MARGIN_2D = 12,
         WINDOW_FONT_2D = { size: 12 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
@@ -33,7 +35,16 @@ var usersWindow = (function () {
         scrollbarBar2D,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
+        FRIENDS_BUTTON_SPACER_2D = 12,                      // Space before add/remove friends button
+        FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG_WIDTH = 107,
+        FRIENDS_BUTTON_SVG_HEIGHT = 27,
+        FRIENDS_BUTTON_WIDTH_2D = FRIENDS_BUTTON_SVG_WIDTH,
+        FRIENDS_BUTTON_HEIGHT_2D = FRIENDS_BUTTON_SVG_HEIGHT,
+        FRIENDS_BUTTON_COLOR_2D = { red: 255, green: 255, blue: 255 },
+        FRIENDS_BUTTON_ALPHA_2D = 0.9,
+        friendsButton2D,
+        VISIBILITY_SPACER_2D = 12,                          // Space between before visibility controls
         visibilityHeading2D,
         VISIBILITY_RADIO_SPACE = 16,
         visibilityControls2D,
@@ -77,7 +88,6 @@ var usersWindow = (function () {
         scrollbarBarClickedAt,                              // 0.0 .. 1.0
         scrollbarValue = 0.0,                               // 0.0 .. 1.0
 
-        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
         RADIO_BUTTON_SVG_DIAMETER = 14,
         RADIO_BUTTON_DISPLAY_SCALE = 0.7,                   // 1.0 = windowTextHeight
@@ -91,10 +101,12 @@ var usersWindow = (function () {
 
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
-        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
+        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing
+            + FRIENDS_BUTTON_SPACER_2D + FRIENDS_BUTTON_HEIGHT_2D
+            + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
-        windowHeight = linesOfUsers.length * windowLineHeight + nonUsersHeight;
+        windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
         maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
@@ -132,6 +144,12 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBar2D, {
             y: scrollbarBarPosition.y
         });
+
+        Overlays.editOverlay(friendsButton2D, {
+            y: viewportHeight - FRIENDS_BUTTON_HEIGHT_2D - VISIBILITY_SPACER_2D
+                - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
+        });
+
         Overlays.editOverlay(visibilityHeading2D, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
         });
@@ -307,6 +325,7 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, { visible: isVisible });
         Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars });
         Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars });
+        Overlays.editOverlay(friendsButton2D, { visible: isVisible });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible });
@@ -525,6 +544,17 @@ var usersWindow = (function () {
             visible: isVisible && isUsingScrollbars
         });
 
+        friendsButton2D = Overlays.addOverlay("image", {
+            x: WINDOW_MARGIN_2D,
+            y: viewportHeight,
+            width: FRIENDS_BUTTON_WIDTH_2D,
+            height: FRIENDS_BUTTON_HEIGHT_2D,
+            imageURL: FRIENDS_BUTTON_SVG,
+            subImage: { x: 0, y: 0, width: FRIENDS_BUTTON_SVG_WIDTH, height: FRIENDS_BUTTON_SVG_HEIGHT },
+            color: FRIENDS_BUTTON_COLOR_2D,
+            alpha: FRIENDS_BUTTON_ALPHA_2D
+        });
+
         visibilityHeading2D = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN_2D,
             y: viewportHeight,
@@ -636,6 +666,7 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(windowHeading2D);
         Overlays.deleteOverlay(scrollbarBackground2D);
         Overlays.deleteOverlay(scrollbarBar2D);
+        Overlays.deleteOverlay(friendsButton2D);
         Overlays.deleteOverlay(visibilityHeading2D);
         for (i = 0; i <= visibilityControls2D.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls2D[i].textOverlay);
