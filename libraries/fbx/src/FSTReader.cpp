@@ -74,7 +74,7 @@ void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) {
         }
         buffer.write("\n");
     }
-};
+}
 
 QByteArray writeMapping(const QVariantHash& mapping) {
     static const QStringList PREFERED_ORDER = QStringList() << NAME_FIELD << SCALE_FIELD << FILENAME_FIELD
