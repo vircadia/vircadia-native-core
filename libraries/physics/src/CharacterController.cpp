@@ -232,6 +232,7 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _isOnGround = false;
     _isJumping = false;
     _isHovering = true;
+    _jumpToHoverStart = 0;
     setMaxSlope(btRadians(45.0f));
     _lastStepUp = 0.0f;
     _pendingFlags = 0;
@@ -678,6 +679,20 @@ bool CharacterController::canJump() const {
 
 void CharacterController::jump() {
     _pendingFlags |= PENDING_FLAG_JUMP;
+
+    // check for case where user is holding down "jump" key...
+    // we'll eventually tansition to "hover"
+    if (!_isHovering) {
+        if (!_isJumping) {
+            _jumpToHoverStart = usecTimestampNow();
+        } else {
+            quint64 now = usecTimestampNow();
+            const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
+            if (now - _jumpToHoverStart < JUMP_TO_HOVER_PERIOD) {
+                _isHovering = true;
+            }
+        }
+    }
 }
 
 void CharacterController::setGravity(btScalar gravity) {
