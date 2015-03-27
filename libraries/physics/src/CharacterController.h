@@ -72,6 +72,7 @@ protected:
     btVector3 _currentPosition;
     btQuaternion _currentRotation;
     btVector3 _targetPosition;
+    glm::vec3 _lastPosition;
     btScalar  _lastStepUp;
 
     ///keep track of the contact manifolds
@@ -81,10 +82,11 @@ protected:
     btVector3 _floorNormal; // points from object to character
 
     bool _enabled;
-    bool _wasOnGround;
-    bool _wasJumping;
+    bool _isOnGround;
+    bool _isJumping;
     bool _isHovering;
     btScalar _velocityTimeInterval;
+    btScalar _stepDt;
     uint32_t _pendingFlags;
 
     glm::vec3 _shapeLocalOffset;

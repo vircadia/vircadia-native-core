@@ -231,8 +231,8 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _gravity = 5.0f; // slower than Earth's
     _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
     _jumpSpeed = 5.0f;
-    _wasOnGround = false;
-    _wasJumping = false;
+    _isOnGround = false;
+    _isJumping = false;
     _isHovering = true;
     setMaxSlope(btRadians(45.0f));
     _lastStepUp = 0.0f;
@@ -450,12 +450,12 @@ void CharacterController::stepForward(btCollisionWorld* collisionWorld, const bt
     btScalar margin = _convexShape->getMargin();
     _convexShape->setMargin(margin + _addedMargin);
 
-    const btScalar MIN_STEP_DISTANCE = 0.0001f;
+    const btScalar MIN_STEP_DISTANCE_SQUARED = 1.0e-6f;
     btVector3 step = _targetPosition - _currentPosition;
     btScalar stepLength2 = step.length2();
     int maxIter = 10;
 
-    while (stepLength2 > MIN_STEP_DISTANCE && maxIter-- > 0) {
+    while (stepLength2 > MIN_STEP_DISTANCE_SQUARED && maxIter-- > 0) {
         start.setOrigin(_currentPosition);
         end.setOrigin(_targetPosition);
 
@@ -516,12 +516,14 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
     end.setOrigin(_targetPosition);
     _ghostObject->convexSweepTest(_convexShape, start, end, callback, collisionWorld->getDispatchInfo().m_allowedCcdPenetration);
 
+    _isOnGround = false;
     if (callback.hasHit()) {
         _currentPosition += callback.m_closestHitFraction * step;
         _verticalVelocity = 0.0f;
         _verticalOffset = 0.0f;
-        _wasJumping = false;
-    } else if (!_wasJumping) {
+        _isJumping = false;
+        _isOnGround = true;
+    } else if (!_isJumping) {
         // sweep again for floor within downStep threshold
         step = -_stepDownHeight * up;
         StepDownConvexResultCallback callback2 (_ghostObject,
@@ -545,9 +547,10 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _currentPosition += callback2.m_closestHitFraction * step;
             _verticalVelocity = 0.0f;
             _verticalOffset = 0.0f;
-            _wasJumping = false;
+            _isJumping = false;
+            _isOnGround = true;
         } else {
-            // nothing to step down on, so remove the stepUp effect
+            // nothing to step down on
             _lastStepUp = 0.0f;
         }
     } else {
@@ -571,8 +574,8 @@ void CharacterController::setVelocityForTimeInterval(const btVector3& velocity, 
 void CharacterController::reset(btCollisionWorld* collisionWorld) {
     _verticalVelocity = 0.0;
     _verticalOffset = 0.0;
-    _wasOnGround = false;
-    _wasJumping = false;
+    _isOnGround = false;
+    _isJumping = false;
     _walkDirection.setValue(0,0,0);
     _velocityTimeInterval = 0.0;
 
@@ -620,11 +623,9 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
     // Update fall velocity.
     if (_isHovering) {
-        _wasOnGround = false;
         const btScalar HOVER_RELAXATION_TIMESCALE = 1.0f;
         _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
     } else {
-        _wasOnGround = onGround();
         _verticalVelocity -= _gravity * dt;
         if (_verticalVelocity > _jumpSpeed) {
             _verticalVelocity = _jumpSpeed;
@@ -649,6 +650,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     // compute substep and decrement total interval
     btScalar dtMoving = (dt < _velocityTimeInterval) ? dt : _velocityTimeInterval;
     _velocityTimeInterval -= dt;
+    _stepDt += dt;
 
     // stepForward substep
     btVector3 move = _walkDirection * dtMoving;
@@ -673,7 +675,7 @@ void CharacterController::setMaxJumpHeight(btScalar maxJumpHeight) {
 }
 
 bool CharacterController::canJump() const {
-    return onGround();
+    return _isOnGround;
 }
 
 void CharacterController::jump() {
@@ -698,7 +700,7 @@ btScalar CharacterController::getMaxSlope() const {
 }
 
 bool CharacterController::onGround() const {
-    return _enabled && _verticalVelocity == 0.0f && _verticalOffset == 0.0f;
+    return _isOnGround;
 }
 
 void CharacterController::debugDraw(btIDebugDraw* debugDrawer) {
@@ -761,6 +763,7 @@ void CharacterController::setEnabled(bool enabled) {
             // it was previously set by something else (e.g. an UPDATE_SHAPE event).
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
+            _isOnGround = false;
         }
         _enabled = enabled;
     }
@@ -842,9 +845,12 @@ void CharacterController::preSimulation(btScalar timeStep) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (canJump()) {
                 _verticalVelocity = _jumpSpeed;
-                _wasJumping = true;
+                _isJumping = true;
             }
         }
+        // remember last position so we can throttle the total motion from the next step
+        _lastPosition = position;
+        _stepDt = 0.0f;
     }
 }
 
@@ -852,9 +858,24 @@ void CharacterController::postSimulation() {
     if (_enabled) {
         const btTransform& avatarTransform = _ghostObject->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
-        glm::vec3 offset = rotation * _shapeLocalOffset;
+        glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
+
+        // cap the velocity of the step so that the character doesn't POP! so hard on steps
+        glm::vec3 finalStep = position - _lastPosition;
+        btVector3 finalVelocity = _walkDirection;
+        btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
+        finalVelocity += _verticalVelocity * up;
+        const btScalar MAX_RESOLUTION_SPEED = 5.0f; // m/sec
+        btScalar maxStepLength = glm::max(MAX_RESOLUTION_SPEED, 2.0f * finalVelocity.length()) * _stepDt;
+        btScalar stepLength = glm::length(finalStep);
+        if (stepLength > maxStepLength) {
+            position = _lastPosition + (maxStepLength / stepLength) * finalStep;
+            // NOTE: we don't need to move ghostObject to throttled position unless 
+            // we want to support do async ray-traces/collision-queries against character
+        }
+
         _avatarData->setOrientation(rotation);
-        _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()) - offset);
+        _avatarData->setPosition(position - rotation * _shapeLocalOffset);
     }
 }
 
