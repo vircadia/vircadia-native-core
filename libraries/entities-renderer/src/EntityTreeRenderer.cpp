@@ -277,7 +277,6 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
-        _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -286,6 +285,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
+            _tree->lockForRead(); // don't let someone else change our tree while we search
             static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
@@ -294,6 +294,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }
+            _tree->unlock();
+            
+            // Note: at this point we don't need to worry about the tree being locked, because we only deal with
+            // EntityItemIDs from here. The loadEntityScript() method is robust against attempting to load scripts
+            // for entity IDs that no longer exist. 
 
             // for all of our previous containing entities, if they are no longer containing then send them a leave event
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
@@ -322,14 +327,12 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
         }
-        _tree->unlock();
     }
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
     if (_tree && !_shuttingDown) {
-        _tree->lockForWrite(); // so that our scripts can do edits if they want
-        
+
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
         foreach(const EntityItemID& entityID, _currentEntitiesInside) {
             emit leaveEntity(entityID);
@@ -344,7 +347,6 @@ void EntityTreeRenderer::leaveAllEntities() {
         // make sure our "last avatar position" is something other than our current position, so that on our
         // first chance, we'll check for enter/leave entity events.    
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
-        _tree->unlock();
     }
 }
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {

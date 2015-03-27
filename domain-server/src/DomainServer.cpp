@@ -814,8 +814,9 @@ void DomainServer::requestUserPublicKey(const QString& username) {
     
     qDebug() << "Requesting public key for user" << username;
     
-    AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
-                                                         QNetworkAccessManager::GetOperation, callbackParams);
+    AccountManager::getInstance().sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
+                                              AccountManagerAuth::None,
+                                              QNetworkAccessManager::GetOperation, callbackParams);
 }
 
 QUrl DomainServer::oauthRedirectURL() {
@@ -1116,8 +1117,10 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager.authenticatedRequest("api/v1/transactions", QNetworkAccessManager::PostOperation,
-                                                transactionCallbackParams, i.value()->postJson().toJson());
+            accountManager.sendRequest("api/v1/transactions",
+                                       AccountManagerAuth::Required,
+                                       QNetworkAccessManager::PostOperation,
+                                       transactionCallbackParams, i.value()->postJson().toJson());
 
             // set this transaction to finalized so we don't add additional credits to it
             i.value()->setIsFinalized(true);
@@ -1240,10 +1243,11 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
     
-    AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
-                                                       QNetworkAccessManager::PutOperation,
-                                                       JSONCallbackParameters(),
-                                                       domainUpdateJSON.toUtf8());
+    AccountManager::getInstance().sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+                                              AccountManagerAuth::Required,
+                                              QNetworkAccessManager::PutOperation,
+                                              JSONCallbackParameters(),
+                                              domainUpdateJSON.toUtf8());
 }
 
 // todo: have data-web respond with ice-server hostname to use

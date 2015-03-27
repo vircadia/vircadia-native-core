@@ -37,6 +37,16 @@ public:
     QString updateSlot;
 };
 
+namespace AccountManagerAuth {
+    enum Type {
+        None,
+        Required,
+        Optional
+    };
+}
+
+Q_DECLARE_METATYPE(AccountManagerAuth::Type);
+
 const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 
 class AccountManager : public QObject {
@@ -44,19 +54,13 @@ class AccountManager : public QObject {
 public:
     static AccountManager& getInstance(bool forceReset = false);
 
-    void authenticatedRequest(const QString& path,
-                              QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
-                              const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
-                              const QByteArray& dataByteArray = QByteArray(),
-                              QHttpMultiPart* dataMultiPart = NULL,
-                              const QVariantMap& propertyMap = QVariantMap());
-    
-    void unauthenticatedRequest(const QString& path,
-                                QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
-                                const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
-                                const QByteArray& dataByteArray = QByteArray(),
-                                QHttpMultiPart* dataMultiPart = NULL,
-                                const QVariantMap& propertyMap = QVariantMap()) ;
+    Q_INVOKABLE void sendRequest(const QString& path,
+                                 AccountManagerAuth::Type authType,
+                                 QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
+                                 const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
+                                 const QByteArray& dataByteArray = QByteArray(),
+                                 QHttpMultiPart* dataMultiPart = NULL,
+                                 const QVariantMap& propertyMap = QVariantMap());
 
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -106,14 +110,6 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
-
-    Q_INVOKABLE void invokedRequest(const QString& path,
-                                    bool requiresAuthentication,
-                                    QNetworkAccessManager::Operation operation,
-                                    const JSONCallbackParameters& callbackParams,
-                                    const QByteArray& dataByteArray,
-                                    QHttpMultiPart* dataMultiPart,
-                                    const QVariantMap& propertyMap);
 
     QUrl _authURL;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;

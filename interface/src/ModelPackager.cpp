@@ -14,6 +14,8 @@
 #include <QMessageBox>
 #include <QTemporaryDir>
 
+#include <FSTReader.h>
+
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
 
