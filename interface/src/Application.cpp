@@ -3656,17 +3656,56 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         msgBox.exec();
         return false;
     }
-
-    QString message = "Would you like to use this model for part of avatar:\n" + url;
+    
+    // Download the FST file, to attempt to determine it's model type
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    qDebug() << "Downloading avatar file at " << url;
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    QByteArray fstContents = reply->readAll();
+    delete reply;
+    QVariantHash fstMapping = FSTReader::readMapping(fstContents);
+    
+    FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
+    
     QMessageBox msgBox;
-
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setWindowTitle("Set Avatar");
-    msgBox.setText(message);
+    QPushButton* headButton = NULL;
+    QPushButton* bodyButton = NULL;
+    QPushButton* bodyAndHeadButton = NULL;
+    
+    QString message;
+    QString typeInfo;
+    switch (modelType) {
+        case FSTReader::HEAD_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar head?");
+            headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
 
-    QPushButton* headButton = msgBox.addButton(tr("Head"), QMessageBox::ActionRole);
-    QPushButton* bodyButton = msgBox.addButton(tr("Body"), QMessageBox::ActionRole);
-    QPushButton* bodyAndHeadButton = msgBox.addButton(tr("Body + Head"), QMessageBox::ActionRole);
+        case FSTReader::BODY_ONLY_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar body?");
+            bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
+
+        case FSTReader::HEAD_AND_BODY_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar?");
+            bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
+        
+        default:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for some part of your avatar head?");
+            headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
+            bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
+            bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
+        break;
+    }
+
+    msgBox.setText(message);
     msgBox.addButton(QMessageBox::Cancel);
 
     msgBox.exec();

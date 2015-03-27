@@ -49,8 +49,6 @@ public:
     /// Predicts the type of model by examining the mapping 
     static ModelType predictModelType(const QVariantHash& mapping);
 
-    static QString getTypeName(ModelType modelType);
-
     static QString getNameFromType(ModelType modelType);
     static FSTReader::ModelType getTypeFromName(const QString& name);
 
