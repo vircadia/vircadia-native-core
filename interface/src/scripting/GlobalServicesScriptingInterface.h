@@ -45,6 +45,7 @@ public:
 public slots:
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
+    void editFriends();
 
 private slots:
     void loggedOut();

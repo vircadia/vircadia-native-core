@@ -123,3 +123,7 @@ void GlobalServicesScriptingInterface::checkDownloadInfo() {
 void GlobalServicesScriptingInterface::updateDownloadInfo() {
     emit downloadInfoChanged(getDownloadInfo());
 }
+
+void GlobalServicesScriptingInterface::editFriends() {
+    QMetaObject::invokeMethod(Application::getInstance(), "showEditFriendsDialog");
+}

@@ -152,6 +152,8 @@ Menu::Menu() {
     
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
+                                  qApp, SLOT(showEditFriendsDialog()));
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ToolWindow,

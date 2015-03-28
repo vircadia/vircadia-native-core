@@ -129,6 +129,7 @@
 #endif
 
 #include "ui/DataWebDialog.h"
+#include "ui/DataWebPage.h"
 #include "ui/DialogsManager.h"
 #include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
@@ -155,6 +156,8 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+
+const QString EDIT_FRIENDS_DIALOG_URL = "https://metaverse.highfidelity.com/user/friends";
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -297,7 +300,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
         _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false)
+        _notifiedPacketVersionMismatchThisDomain(false),
+        _editFriendsDialog(nullptr)
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -3934,6 +3938,32 @@ void Application::loadScriptURLDialog() {
         }
         loadScript(newScript);
     }
+}
+
+void Application::showEditFriendsDialog() {
+    if (!_editFriendsDialog) {
+        _editFriendsDialog = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
+        _editFriendsDialog->setWindowTitle("Add/Remove Friends");
+        _editFriendsDialog->setAttribute(Qt::WA_DeleteOnClose);
+
+        auto layout = new QVBoxLayout(_editFriendsDialog);
+        layout->setContentsMargins(0, 0, 0, 0);
+        _editFriendsDialog->setLayout(layout);
+
+        QWebView* webView = new QWebView(_editFriendsDialog);
+        layout->addWidget(webView);
+        webView->setPage(new DataWebPage());
+        webView->setUrl(EDIT_FRIENDS_DIALOG_URL);
+
+        connect(_editFriendsDialog, &QWidget::destroyed, this, &Application::editFriendsDialogDestroyed);
+    }
+
+    QMetaObject::invokeMethod(_editFriendsDialog, "setVisible", Qt::AutoConnection, Q_ARG(bool, true));
+    QMetaObject::invokeMethod(_editFriendsDialog, "showNormal", Qt::AutoConnection);
+}
+
+void Application::editFriendsDialogDestroyed() {
+    _editFriendsDialog = nullptr;
 }
 
 QString Application::getScriptsLocation() {
