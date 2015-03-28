@@ -26,6 +26,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setProjectionTransform),
 
     (&::gpu::GLBackend::do_setPipeline),
+    (&::gpu::GLBackend::do_setStateBlendFactor),
+
     (&::gpu::GLBackend::do_setUniformBuffer),
     (&::gpu::GLBackend::do_setUniformTexture),
 
@@ -55,15 +57,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
-    (&::gpu::GLBackend::do_glDrawArrays),
-    (&::gpu::GLBackend::do_glDrawRangeElements),
-
-    (&::gpu::GLBackend::do_glColorPointer),
-    (&::gpu::GLBackend::do_glNormalPointer),
-    (&::gpu::GLBackend::do_glTexCoordPointer),
-    (&::gpu::GLBackend::do_glVertexPointer),
-
-    (&::gpu::GLBackend::do_glVertexAttribPointer),
     (&::gpu::GLBackend::do_glEnableVertexAttribArray),
     (&::gpu::GLBackend::do_glDisableVertexAttribArray),
 
@@ -280,7 +273,7 @@ void GLBackend::do_glDepthMask(Batch& batch, uint32 paramOffset) {
     CHECK_GL_ERROR();
 }
 
-void Batch::_glDepthRange(GLclampd zNear, GLclampd zFar) {
+void Batch::_glDepthRange(GLfloat zNear, GLfloat zFar) {
     ADD_COMMAND_GL(glDepthRange);
 
     _params.push_back(zFar);
@@ -290,8 +283,8 @@ void Batch::_glDepthRange(GLclampd zNear, GLclampd zFar) {
 }
 void GLBackend::do_glDepthRange(Batch& batch, uint32 paramOffset) {
     glDepthRange(
-        batch._params[paramOffset + 1]._double,
-        batch._params[paramOffset + 0]._double);
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
     CHECK_GL_ERROR();
 }
 
@@ -440,144 +433,6 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    ADD_COMMAND_GL(glDrawArrays);
-
-    _params.push_back(count);
-    _params.push_back(first);
-    _params.push_back(mode);
-
-    DO_IT_NOW(_glDrawArrays, 3);
-}
-void GLBackend::do_glDrawArrays(Batch& batch, uint32 paramOffset) {
-    glDrawArrays(
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch._params[paramOffset + 0]._int);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
-    ADD_COMMAND_GL(glDrawRangeElements);
-
-    _params.push_back(cacheResource(indices));
-    _params.push_back(type);
-    _params.push_back(count);
-    _params.push_back(end);
-    _params.push_back(start);
-    _params.push_back(mode);
-
-    DO_IT_NOW(_glDrawRangeElements, 6);
-}
-void GLBackend::do_glDrawRangeElements(Batch& batch, uint32 paramOffset) {
-    glDrawRangeElements(
-        batch._params[paramOffset + 5]._uint,
-        batch._params[paramOffset + 4]._uint,
-        batch._params[paramOffset + 3]._uint,
-        batch._params[paramOffset + 2]._int,
-        batch._params[paramOffset + 1]._uint,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND_GL(glColorPointer);
-
-    _params.push_back(cacheResource(pointer));
-    _params.push_back(stride);
-    _params.push_back(type);
-    _params.push_back(size);
-
-    DO_IT_NOW(_glColorPointer, 4);
-}
-void GLBackend::do_glColorPointer(Batch& batch, uint32 paramOffset) {
-    glColorPointer(
-        batch._params[paramOffset + 3]._int,
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glNormalPointer(GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND_GL(glNormalPointer);
-
-    _params.push_back(cacheResource(pointer));
-    _params.push_back(stride);
-    _params.push_back(type);
-
-    DO_IT_NOW(_glNormalPointer, 3);
-}
-void GLBackend::do_glNormalPointer(Batch& batch, uint32 paramOffset) {
-    glNormalPointer(
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND_GL(glTexCoordPointer);
-
-    _params.push_back(cacheResource(pointer));
-    _params.push_back(stride);
-    _params.push_back(type);
-    _params.push_back(size);
-
-    DO_IT_NOW(_glTexCoordPointer, 4);
-}
-void GLBackend::do_glTexCoordPointer(Batch& batch, uint32 paramOffset) {
-    glTexCoordPointer(
-        batch._params[paramOffset + 3]._int,
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
-    CHECK_GL_ERROR();
-}
-
-void Batch::_glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND_GL(glVertexPointer);
-
-    _params.push_back(cacheResource(pointer));
-    _params.push_back(stride);
-    _params.push_back(type);
-    _params.push_back(size);
-
-    DO_IT_NOW(_glVertexPointer, 4);
-}
-void GLBackend::do_glVertexPointer(Batch& batch, uint32 paramOffset) {
-    glVertexPointer(
-        batch._params[paramOffset + 3]._int,
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
-    CHECK_GL_ERROR();
-}
-
-
-void Batch::_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer) {
-    ADD_COMMAND_GL(glVertexAttribPointer);
-
-    _params.push_back(cacheResource(pointer));
-    _params.push_back(stride);
-    _params.push_back(normalized);
-    _params.push_back(type);
-    _params.push_back(size);
-    _params.push_back(index);
-
-    DO_IT_NOW(_glVertexAttribPointer, 6);
-}
-void GLBackend::do_glVertexAttribPointer(Batch& batch, uint32 paramOffset) {
-    glVertexAttribPointer(
-        batch._params[paramOffset + 5]._uint,
-        batch._params[paramOffset + 4]._int,
-        batch._params[paramOffset + 3]._uint,
-        batch._params[paramOffset + 2]._uint,
-        batch._params[paramOffset + 1]._int,
-        batch.editResource(batch._params[paramOffset + 0]._uint)->_pointer);
     CHECK_GL_ERROR();
 }
 

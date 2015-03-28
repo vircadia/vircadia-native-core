@@ -19,3 +19,5 @@ State::State() {
 
 State::~State() {
 }
+
+const State::Cache State::DEFAULT = State::Cache();

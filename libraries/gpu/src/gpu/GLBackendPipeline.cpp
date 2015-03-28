@@ -60,32 +60,75 @@ GLBackend::GLPipeline* GLBackend::syncGPUObject(const Pipeline& pipeline) {
 void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     PipelinePointer pipeline = batch._pipelines.get(batch._params[paramOffset + 0]._uint);
 
-    if (pipeline == _pipeline._pipeline) {
+    if (_pipeline._pipeline == pipeline) {
         return;
     }
    
-    auto pipelineObject = syncGPUObject((*pipeline));
-    if (!pipelineObject) {
-        return;
-    }
-    
-    _pipeline._pipeline = pipeline;
+    // null pipeline == reset
+    if (!pipeline) {
+        _pipeline._pipeline.reset();
 
-
-    if (_pipeline._program != pipelineObject->_program->_program) {
-        _pipeline._program = pipelineObject->_program->_program;
+        _pipeline._program = 0;
         _pipeline._invalidProgram = true;
+
+        _pipeline._state = nullptr;
+        _pipeline._invalidState = true;
+    } else {
+        auto pipelineObject = syncGPUObject((*pipeline));
+        if (!pipelineObject) {
+            return;
+        }
+
+        // check the program cache
+        if (_pipeline._program != pipelineObject->_program->_program) {
+            _pipeline._program = pipelineObject->_program->_program;
+            _pipeline._invalidProgram = true;
+        }
+
+        // Now for the state
+        if (_pipeline._state != pipelineObject->_state) {
+            _pipeline._state = pipelineObject->_state;
+            _pipeline._invalidState = true;
+        }
+
+        // Remember the new pipeline
+        _pipeline._pipeline = pipeline;
     }
-
-    _pipeline._stateCommands = pipelineObject->_state->_commands;
-    _pipeline._invalidState = true;
-
 
     // THis should be done on Pipeline::update...
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
         CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
+    }
+}
+
+void GLBackend::updatePipeline() {
+    if (_pipeline._invalidProgram) {
+        // doing it here is aproblem for calls to glUniform.... so will do it on assing...
+        glUseProgram(_pipeline._program);
+        CHECK_GL_ERROR();
+        _pipeline._invalidProgram = false;
+    }
+
+    if (_pipeline._invalidState) {
+        if (_pipeline._state) {
+            // first reset to default what should be
+            // the fields which were not to default and are default now
+            resetPipelineState(_pipeline._state->_signature);
+            
+            // Update the signature cache with what's going to be touched
+            _pipeline._stateSignatureCache |= _pipeline._state->_signature;
+
+            // And perform
+            for (auto command: _pipeline._state->_commands) {
+                command->run(this);
+            }
+        } else {
+            // No state ? anyway just reset everything
+            resetPipelineState(0);
+        }
+        _pipeline._invalidState = false;
     }
 }
 
@@ -118,23 +161,5 @@ void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
     glBindTexture(GL_TEXTURE_2D, to);
 
     CHECK_GL_ERROR();
-}
-
-
-void GLBackend::updatePipeline() {
-    if (_pipeline._invalidProgram) {
-        // doing it here is aproblem for calls to glUniform.... so will do it on assing...
-        glUseProgram(_pipeline._program);
-        CHECK_GL_ERROR();
-        _pipeline._invalidProgram = false;
-    }
-
-    if (_pipeline._invalidState) {
-        for (auto command: _pipeline._stateCommands) {
-            command->run(this);
-        }
-        CHECK_GL_ERROR();
-        _pipeline._invalidState = false;
-    }
 }
 

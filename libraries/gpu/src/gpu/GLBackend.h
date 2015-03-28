@@ -118,9 +118,14 @@ public:
 
         Commands _commands;
         Stamp _stamp;
+        State::Signature _signature;
 
         GLState();
         ~GLState();
+
+        // The state commands to reset to default,
+        // WARNING depending on the order of the State::Field enum
+        static const Commands _resetStateCommands;
 
         friend class GLBackend;
     };
@@ -145,20 +150,23 @@ public:
     // The State setters called by the GLState::Commands when a new state is assigned
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
-    void do_setStateFrontClockwise(int32 isFrontClockwise);
-    void do_setStateDepthClipEnable(int32 enable);
-    void do_setStateScissorEnable(int32 enable);
-    void do_setStateMultisampleEnable(int32 enable);
-    void do_setStateAntialiasedLineEnable(int32 enable);
+    void do_setStateFrontFaceClockwise(bool isClockwise);
+    void do_setStateDepthClipEnable(bool enable);
+    void do_setStateScissorEnable(bool enable);
+    void do_setStateMultisampleEnable(bool enable);
+    void do_setStateAntialiasedLineEnable(bool enable);
 
+    void do_setStateDepthBias(Vec2 bias);
     void do_setStateDepthTest(State::DepthTest test);
 
     void do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest);
 
-    void do_setStateAlphaToCoverageEnable(int32 enable);
+    void do_setStateAlphaToCoverageEnable(bool enable);
+    void do_setStateSampleMask(uint32 mask);
 
-    void do_setStateBlend(State::BlendFunction blendFunction, Vec4 blendFactor);
-    void do_setStateColorWriteMask(int32 mask);
+    void do_setStateBlend(State::BlendFunction blendFunction);
+
+    void do_setStateColorWriteMask(uint32 mask);
 
 protected:
 
@@ -242,25 +250,34 @@ protected:
 
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
+
+    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
  
     void updatePipeline();
+    void resetPipelineState(State::Signature toBeReset);
     struct PipelineStageState {
 
         PipelinePointer _pipeline;
+
         GLuint _program;
         bool _invalidProgram;
 
-        State _state;
-        GLState::Commands _stateCommands;
+        State::Cache _stateCache;
+        State::Signature _stateSignatureCache;
+
+        GLState* _state;
         bool _invalidState;
 
         PipelineStageState() :
             _pipeline(),
             _program(0),
             _invalidProgram(false),
-            _state(),
+            _stateSignatureCache(0),
+            _stateCache(State::DEFAULT),
+            _state(nullptr),
             _invalidState(false)
              {}
     } _pipeline;
@@ -294,15 +311,6 @@ protected:
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
-    void do_glDrawArrays(Batch& batch, uint32 paramOffset);
-    void do_glDrawRangeElements(Batch& batch, uint32 paramOffset);
-
-    void do_glColorPointer(Batch& batch, uint32 paramOffset);
-    void do_glNormalPointer(Batch& batch, uint32 paramOffset);
-    void do_glTexCoordPointer(Batch& batch, uint32 paramOffset);
-    void do_glVertexPointer(Batch& batch, uint32 paramOffset);
-
-    void do_glVertexAttribPointer(Batch& batch, uint32 paramOffset);
     void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);
     void do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset);
 

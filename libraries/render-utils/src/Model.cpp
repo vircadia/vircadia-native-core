@@ -785,6 +785,9 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args, true);
     }
 
+    // try that
+    batch.setPipeline(gpu::PipelinePointer());
+
     GLBATCH(glDepthMask)(true);
     GLBATCH(glDepthFunc)(GL_LESS);
     GLBATCH(glDisable)(GL_CULL_FACE);
@@ -2428,7 +2431,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         }
 
         if (mesh.colors.isEmpty()) {
-            GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+            GLBATCH(glColor4f)(0.0f, 1.0f, 0.0f, 1.0f);
         }
 
         qint64 offset = 0;
