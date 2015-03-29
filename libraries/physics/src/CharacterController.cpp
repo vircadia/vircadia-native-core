@@ -235,7 +235,9 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _jumpToHoverStart = 0;
     setMaxSlope(btRadians(45.0f));
     _lastStepUp = 0.0f;
-    _pendingFlags = 0;
+
+    _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
+    updateShapeIfNecessary();
 }
 
 CharacterController::~CharacterController() {
