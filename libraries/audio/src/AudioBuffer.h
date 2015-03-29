@@ -90,7 +90,7 @@ void AudioFrameBuffer< T >::deallocateFrames() {
         for (uint32_t i = 0; i < _channelCountMax; ++i) {
             delete _frameBuffer[i];
         }
-        delete _frameBuffer;
+        delete[] _frameBuffer;
     }
     _frameBuffer = NULL;
 }
