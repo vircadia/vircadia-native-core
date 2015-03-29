@@ -125,8 +125,8 @@ public:
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         DepthTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator== (const DepthTest& right) { return getRaw() == right.getRaw(); } 
-        bool operator!= (const DepthTest& right) { return getRaw() != right.getRaw(); } 
+        bool operator== (const DepthTest& right) const { return getRaw() == right.getRaw(); } 
+        bool operator!= (const DepthTest& right) const { return getRaw() != right.getRaw(); } 
    };
 
      class StencilTest {
@@ -157,8 +157,8 @@ public:
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         StencilTest(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator== (const StencilTest& right) { return getRaw() == right.getRaw(); } 
-        bool operator!= (const StencilTest& right) { return getRaw() != right.getRaw(); } 
+        bool operator== (const StencilTest& right) const { return getRaw() == right.getRaw(); } 
+        bool operator!= (const StencilTest& right) const { return getRaw() != right.getRaw(); } 
      };
 
      class StencilActivation {
@@ -176,8 +176,8 @@ public:
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         StencilActivation(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator== (const StencilActivation& right) { return getRaw() == right.getRaw(); } 
-        bool operator!= (const StencilActivation& right) { return getRaw() != right.getRaw(); } 
+        bool operator== (const StencilActivation& right) const { return getRaw() == right.getRaw(); } 
+        bool operator!= (const StencilActivation& right) const { return getRaw() != right.getRaw(); } 
     };
 
     class BlendFunction {
@@ -217,8 +217,8 @@ public:
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }
         BlendFunction(int32 raw) { *(reinterpret_cast<int32*>(this)) = raw; }
-        bool operator== (const BlendFunction& right) { return getRaw() == right.getRaw(); } 
-        bool operator!= (const BlendFunction& right) { return getRaw() != right.getRaw(); } 
+        bool operator== (const BlendFunction& right) const { return getRaw() == right.getRaw(); } 
+        bool operator!= (const BlendFunction& right) const { return getRaw() != right.getRaw(); } 
     };
 
     // The Cache class is the full explicit description of the State class fields value.
@@ -399,6 +399,8 @@ public:
     typedef std::bitset<NUM_FIELDS> Signature;
 
     Signature getSignature() const { return _signature; }
+
+    static Signature evalSignature(const Cache& state);
 
 protected:
     State(const State& state);

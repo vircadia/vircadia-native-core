@@ -256,8 +256,13 @@ protected:
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
  
+    // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
+    // Force to reset all the state fields indicated by the 'toBeReset" signature
     void resetPipelineState(State::Signature toBeReset);
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncPipelineStateCache();
+
     struct PipelineStageState {
 
         PipelinePointer _pipeline;
@@ -270,6 +275,7 @@ protected:
 
         GLState* _state;
         bool _invalidState;
+        bool _needStateSync;
 
         PipelineStageState() :
             _pipeline(),
@@ -278,7 +284,8 @@ protected:
             _stateSignatureCache(0),
             _stateCache(State::DEFAULT),
             _state(nullptr),
-            _invalidState(false)
+            _invalidState(false),
+            _needStateSync(true)
              {}
     } _pipeline;
 
