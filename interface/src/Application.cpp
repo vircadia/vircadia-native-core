@@ -3707,6 +3707,11 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     } else if (msgBox.clickedButton() == bodyButton) {
         qDebug() << "Chose to use for body: " << url;
         _myAvatar->setSkeletonModelURL(url);
+        // if the head is empty, reset it to the default head.
+        if (_myAvatar->getFaceModelURLString().isEmpty()) {
+            _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
+            UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
+        }
         UserActivityLogger::getInstance().changedModel("skeleton", url);
         _myAvatar->sendIdentityPacket();
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
