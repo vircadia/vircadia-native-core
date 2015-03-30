@@ -456,9 +456,12 @@ border-radius: 4px; padding-top: 1px;</string>
            </property>
            <property name="text">
             <string>&lt;style type=&quot;text/css&quot;&gt;
-	a { text-decoration: none; color: #267077;}
+a { text-decoration: none; color: #267077; margin:0;padding:0;}
+#create {font-weight:bold;}
+p {margin:5px 0;}
 &lt;/style&gt;
-&lt;a href=&quot;https://metaverse.highfidelity.com/password/new&quot;&gt;Recover password?&lt;/a&gt;</string>
+&lt;p&gt;&lt;a id=&quot;create&quot; href=&quot;https://metaverse.highfidelity.com/users/new&quot;&gt;Create account&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://metaverse.highfidelity.com/users/password/new&quot;&gt;Recover password&lt;/a&gt;&lt;/p&gt;</string>
            </property>
            <property name="openExternalLinks">
             <bool>true</bool>
