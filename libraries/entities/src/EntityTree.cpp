@@ -148,6 +148,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
+        QString entityScriptBefore = entity->getScript();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -166,6 +167,11 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 entity->clearDirtyFlags();
             }
         }
+        
+        QString entityScriptAfter = entity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        }        
     }
     
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
