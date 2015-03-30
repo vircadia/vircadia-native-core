@@ -280,35 +280,12 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
-            /*
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-            connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
-            */
             bool isPending;
             auto scriptCache = DependencyManager::get<ScriptCache>();
             scriptCache->getScript(url, this, isPending);
             
         }
     }
-}
-
-void ScriptEngine::handleScriptDownload() {
-    /*
-    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-    
-    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-        _scriptContents = reply->readAll();
-        emit scriptLoaded(_fileNameString);
-    } else {
-        qDebug() << "ERROR Loading file:" << reply->url().toString();
-        emit errorLoadingScript(_fileNameString);
-    }
-    
-    reply->deleteLater();
-    */
 }
 
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {

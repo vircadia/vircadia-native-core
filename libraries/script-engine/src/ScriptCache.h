@@ -13,7 +13,6 @@
 #define hifi_ScriptCache_h
 
 #include <ResourceCache.h>
-#include "Script.h"
 
 class ScriptUser {
 public:
@@ -27,22 +26,16 @@ class ScriptCache : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending); // asynchronous
-
-
-    //QString getScript(const QUrl& url); // blocking call
+    QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending);
     
 private slots:
     void scriptDownloaded();
-    //void scriptDownloadedSyncronously();
-
     
 private:
     ScriptCache(QObject* parent = NULL);
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;
-    QSet<QUrl> _blockingScriptsPending;
 };
 
 #endif // hifi_ScriptCache_h

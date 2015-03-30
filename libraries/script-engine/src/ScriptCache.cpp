@@ -24,8 +24,6 @@ ScriptCache::ScriptCache(QObject* parent) {
     // nothing to do here...
 }
 
-// QHash<QUrl, QString> _scriptCache;
-
 QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending) {
     QString scriptContents;
     if (_scriptCache.contains(url)) {
@@ -52,8 +50,7 @@ void ScriptCache::scriptDownloaded() {
     
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
         _scriptCache[url] = reply->readAll();
-        qDebug() << "_scriptCache.size:" << _scriptCache.size();
-        
+
         foreach(ScriptUser* user, scriptUsers) {
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
@@ -66,90 +63,4 @@ void ScriptCache::scriptDownloaded() {
     reply->deleteLater();
 }
 
-
-#if 0
-QString ScriptCache::getScript(const QUrl& url) {
-    qDebug() << "Script requested: " << url.toString();
-    QString scriptContents;
-    if (_scriptCache.contains(url)) {
-        qDebug() << "Script found in cache: " << url.toString();
-        scriptContents = _scriptCache[url];
-    } else {
-        qDebug() << "Script not found in cache: " << url.toString();
-        
-        if (_blockingScriptsPending.contains(url)) {
-            // if we're already downloading this script, wait for it to complete...
-            qDebug() << "Already downloading script: " << url.toString();
-            while (_blockingScriptsPending.contains(url)) {
-                QEventLoop loop;
-                qDebug() << "about to call loop.processEvents()....";
-                loop.processEvents(QEventLoop::AllEvents, 1);
-                qDebug() << "AFTER loop.processEvents()....";
-            }
-            qDebug() << "Done waiting on downloading script: " << url.toString();
-            scriptContents = _scriptCache[url];
-        } else {
-            _blockingScriptsPending.insert(url);
-            qDebug() << "_blockingScriptsPending: " << _blockingScriptsPending;
-            
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-
-
-            connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloadedSyncronously);
-            qDebug() << "Downloading script at" << url.toString();
-            //QEventLoop loop;
-            //QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            //qDebug() << "starting loop....";
-            //loop.exec();
-            //qDebug() << "after loop....";
-
-            /*
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                scriptContents = reply->readAll();
-                _scriptCache[url] = scriptContents;
-                qDebug() << "_scriptCache.size:" << _scriptCache.size();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
-            }
-            delete reply;
-            _blockingScriptsPending.remove(url);
-            qDebug() << "_blockingScriptsPending: " << _blockingScriptsPending;
-            */
-            while (_blockingScriptsPending.contains(url)) {
-                QEventLoop loop;
-                qDebug() << "about to call loop.processEvents()....";
-                loop.processEvents(QEventLoop::AllEvents, 1);
-                qDebug() << "AFTER loop.processEvents()....";
-            }
-            qDebug() << "Done waiting on downloading script: " << url.toString();
-            scriptContents = _scriptCache[url];
-        }
-    }
-    return scriptContents;
-}
-
-void ScriptCache::scriptDownloadedSyncronously() {
-
-    qDebug() << "ScriptCache::scriptDownloadedSyncronously()....";
-    
-    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-    QUrl url = reply->url();
-    
-    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-        _scriptCache[url] = reply->readAll();
-        qDebug() << "_scriptCache.size:" << _scriptCache.size();
-    } else {
-        qDebug() << "ERROR Loading file:" << reply->url().toString();
-    }
-    
-    reply->deleteLater();
-
-    _blockingScriptsPending.remove(url);
-    qDebug() << "_blockingScriptsPending: " << _blockingScriptsPending;
-}
-
-#endif
     

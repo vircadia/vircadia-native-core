@@ -164,8 +164,6 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
-private slots:
-    void handleScriptDownload();
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;

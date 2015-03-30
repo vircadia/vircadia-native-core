@@ -165,22 +165,6 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
                 qDebug() << "ERROR Loading file:" << fileName;
             }
         } else {
-            /*
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-            qDebug() << "Downloading script at" << url;
-            QEventLoop loop;
-            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            loop.exec();
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                scriptContents = reply->readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
-            }
-            delete reply;
-            */
             auto scriptCache = DependencyManager::get<ScriptCache>();
             scriptContents = scriptCache->getScript(url, this, isPending);
         }
