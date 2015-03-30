@@ -61,21 +61,13 @@ typedef unsigned long long quint64;
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
-const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY = 1U << 2;
-const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY = 1U << 3;
-const quint32 AVATAR_MOTION_STAND_ON_NEARBY_FLOORS = 1U << 4;
-
 const quint32 AVATAR_MOTION_DEFAULTS = 
         AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
 const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | 
-        AVATAR_MOTION_OBEY_LOCAL_GRAVITY | 
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 
 // Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
@@ -365,8 +357,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
-    QUrl _faceModelURL = DEFAULT_HEAD_MODEL_URL;
-    QUrl _skeletonModelURL = DEFAULT_BODY_MODEL_URL;
+    QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
+    QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 

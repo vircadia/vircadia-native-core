@@ -249,7 +249,20 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             } else if (indices.count() == 4) {
                 meshPart.quadIndices << indices;
             } else {
-                qDebug() << "no support for more than 4 vertices on a face in OBJ files";
+                // some obj writers (maya) will write a face with lots of points.
+                for (int i = 1; i < indices.count() - 1; i++) {
+                    // break the face into triangles
+                    meshPart.triangleIndices.append(indices[0]);
+                    meshPart.triangleIndices.append(indices[i]);
+                    meshPart.triangleIndices.append(indices[i+1]);
+                }
+                if (indices.count() == normalIndices.count()) {
+                    for (int i = 1; i < normalIndices.count() - 1; i++) {
+                        faceNormalIndexes.append(normalIndices[0]);
+                        faceNormalIndexes.append(normalIndices[i]);
+                        faceNormalIndexes.append(normalIndices[i+1]);
+                    }
+                }
             }
         } else {
             // something we don't (yet) care about

@@ -282,7 +282,7 @@ void AccountManager::processReply() {
     } else {
         passErrorToCallback(requestReply);
     }
-    delete requestReply;
+    requestReply->deleteLater();
 }
 
 void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {

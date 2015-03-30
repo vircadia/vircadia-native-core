@@ -94,11 +94,11 @@ enum EntityPropertyList {
     PROP_PARTICLE_RADIUS,
     
     PROP_COLLISION_MODEL_URL,
-    PROP_ATTRIBUTION,
+    PROP_MARKETPLACE_ID,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_ATTRIBUTION,
+    PROP_LAST_ITEM = PROP_MARKETPLACE_ID,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -205,7 +205,7 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_STRENGTH, EmitStrength, emitStrength, float);
     DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
-    DEFINE_PROPERTY_REF(PROP_ATTRIBUTION, Attribution, attribution, QString);
+    DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -333,7 +333,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitStrength, emitStrength, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Attribution, attribution, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";
