@@ -53,17 +53,21 @@ private slots:
     
     QString getFindableBy() const;
     void setFindableBy(const QString& discoverabilityMode);
+    void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
 signals:
     void connected();
     void disconnected(const QString& reason);
     void myUsernameChanged(const QString& username);
     void downloadInfoChanged(DownloadInfoResult info);
+    void findableByChanged(const QString& discoverabilityMode);
 
 private:
     GlobalServicesScriptingInterface();
     ~GlobalServicesScriptingInterface();
     
+    QString findableByString(Discoverability::Mode discoverabilityMode) const;
+
     bool _downloading;
 };
 

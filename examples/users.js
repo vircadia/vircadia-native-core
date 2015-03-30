@@ -68,8 +68,6 @@ var usersWindow = (function () {
 
         myVisibility,
         VISIBILITY_VALUES = ["all", "friends", "none"],
-        visibilityInterval,
-        VISIBILITY_POLL_INTERVAL = 5000,                    // ms = 5s
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
@@ -298,15 +296,6 @@ var usersWindow = (function () {
         usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
     };
 
-    function pollVisibility() {
-        var currentVisibility = myVisibility;
-
-        myVisibility = GlobalServices.findableBy;
-        if (myVisibility !== currentVisibility) {
-            updateVisibilityControls();
-        }
-    }
-
     function setVisible(visible) {
         var i;
 
@@ -339,6 +328,16 @@ var usersWindow = (function () {
         }
     }
 
+    function onFindableByChanged(event) {
+        var i;
+
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            visibilityControls2D[i].selected = event === VISIBILITY_VALUES[i];
+        }
+
+        updateVisibilityControls();
+    }
+
     function onMousePressEvent(event) {
         var clickedOverlay,
             numLinesBefore,
@@ -349,7 +348,6 @@ var usersWindow = (function () {
             lineClicked,
             userClicked,
             i,
-            visibilityChanged,
             delta;
 
         if (!isVisible) {
@@ -381,20 +379,11 @@ var usersWindow = (function () {
             }
         }
 
-        visibilityChanged = false;
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             // Don't need to test radioOverlay if it us under textOverlay.
             if (clickedOverlay === visibilityControls2D[i].textOverlay && event.x <= visibilityControls2D[i].optionWidth) {
                 GlobalServices.findableBy = VISIBILITY_VALUES[i];
-                visibilityChanged = true;
             }
-        }
-        if (visibilityChanged) {
-            for (i = 0; i < visibilityControls2D.length; i += 1) {
-                // Don't need to handle radioOverlay if it us under textOverlay.
-                visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].textOverlay;
-            }
-            updateVisibilityControls();
         }
 
         if (clickedOverlay === scrollbarBar2D) {
@@ -651,9 +640,9 @@ var usersWindow = (function () {
         });
         Menu.menuItemEvent.connect(onMenuItemEvent);
 
-        Script.update.connect(onScriptUpdate);
+        GlobalServices.findableByChanged.connect(onFindableByChanged);
 
-        visibilityInterval = Script.setInterval(pollVisibility, VISIBILITY_POLL_INTERVAL);
+        Script.update.connect(onScriptUpdate);
 
         pollUsers();
 
@@ -664,7 +653,6 @@ var usersWindow = (function () {
 
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
-        Script.clearInterval(visibilityInterval);
         Script.clearTimeout(usersTimer);
         Overlays.deleteOverlay(windowPane2D);
         Overlays.deleteOverlay(windowHeading2D);

@@ -21,6 +21,8 @@
 
 #include <MenuItemProperties.h>
 
+#include "DiscoverabilityManager.h"
+
 class Settings;
 
 class Menu : public QMenuBar {
@@ -64,6 +66,9 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
+private slots:
+    void setVisibility();
+
 private:
     static Menu* _instance;
     Menu();
@@ -94,6 +99,7 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     
+    void visibilityChanged(Discoverability::Mode discoverabilityMode);
     
     QHash<QString, QAction*> _actionHash;
 };
@@ -249,6 +255,9 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString PackageModel = "Package Model";
     const QString Visage = "Visage";
+    const QString VisibleToEveryone = "Everyone";
+    const QString VisibleToFriends = "Friends";
+    const QString VisibleToNoOne = "No one";
     const QString Wireframe = "Wireframe";
 }
 
