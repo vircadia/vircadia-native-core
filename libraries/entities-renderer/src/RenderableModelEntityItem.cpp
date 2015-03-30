@@ -366,6 +366,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // multiply each point by scale before handing the point-set off to the physics engine
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
+                // compensate for registraion
+                _points[i][j] += _model->getOffset();
+                // scale so the collision points match the model points
                 _points[i][j] *= scale;
             }
         }
