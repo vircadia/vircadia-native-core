@@ -152,20 +152,11 @@
             
             // max 20 per second
             Script.setTimeout(addHouses, 50);
+        } else {
+            Script.stop();
         }
     };
     
     addHouses();
     
-    function cleanup() {
-        while (houses.length > 0) {
-            if (!houses[0].isKnownID) {
-                houses[0] = Entities.identifyEntity(houses[0]);
-            }
-            Entities.deleteEntity(houses.shift());
-            Script.setTimeout(addHouses, 50);
-         }
-    }
-
-    Script.scriptEnding.connect(cleanup);
 })();
