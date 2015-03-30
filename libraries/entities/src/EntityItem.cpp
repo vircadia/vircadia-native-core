@@ -57,7 +57,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
     _locked = ENTITY_ITEM_DEFAULT_LOCKED;
     _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
-    _attribution = ENTITY_ITEM_DEFAULT_ATTRIBUTION;
+    _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -117,7 +117,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
-    requestedProperties += PROP_ATTRIBUTION;
+    requestedProperties += PROP_MARKETPLACE_ID;
     
     return requestedProperties;
 }
@@ -240,7 +240,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_ATTRIBUTION, appendValue, getAttribution());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -555,8 +555,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_ATTRIBUTION) {
-            READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
+            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
         }
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
@@ -568,8 +568,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // by doing this parsing here... but it's not likely going to fully recover the content.
         //
         // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
-        if (args.bitstreamVersion == VERSION_ENTITIES_HAS_ATTRIBUTION_DAMAGED) {
-            READ_ENTITY_PROPERTY_STRING(PROP_ATTRIBUTION, setAttribution);
+        if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
+            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
         }
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
@@ -838,7 +838,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(attribution, getAttribution);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
 
     properties._defaultSettings = false;
     
@@ -867,7 +867,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(attribution, setAttribution);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
