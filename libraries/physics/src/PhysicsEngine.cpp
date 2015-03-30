@@ -33,7 +33,7 @@ PhysicsEngine::~PhysicsEngine() {
     delete _collisionDispatcher;
     delete _broadphaseFilter;
     delete _constraintSolver;
-    delete _dynamicsWorld;
+    // delete _dynamicsWorld;
     // delete _ghostPairCallback;
 }
 
