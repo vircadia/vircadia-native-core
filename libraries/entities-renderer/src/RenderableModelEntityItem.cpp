@@ -282,7 +282,7 @@ bool RenderableModelEntityItem::hasCollisionModel() const {
 }
 
 const QString& RenderableModelEntityItem::getCollisionModelURL() const {
-    assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
+    // assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
     return _collisionModelURL;
 }
 

@@ -608,6 +608,7 @@ Application::~Application() {
 
     Menu::getInstance()->deleteLater();
 
+    _physicsEngine.setCharacterController(NULL);
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
