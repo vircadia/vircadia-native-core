@@ -297,7 +297,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
         _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false)
+        _notifiedPacketVersionMismatchThisDomain(false),
+        _domainConnectionRefusals(QList<QString>())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -3278,6 +3279,14 @@ void Application::clearDomainOctreeDetails() {
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
+    _domainConnectionRefusals.clear();
+}
+
+void Application::domainConnectionDenied(const QString& reason) {
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
 }
 
 void Application::connectedToDomain(const QString& hostname) {
