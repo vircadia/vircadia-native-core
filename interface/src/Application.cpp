@@ -345,6 +345,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
+    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // downloads.
+    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
+    ResourceCache *geometryCache = geometryCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
+
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
 
@@ -1557,6 +1564,9 @@ void Application::idle() {
             idleTimer->start(2);
         }
     }
+
+    // check for any requested background downloads.
+    emit checkBackgroundDownloads();
 }
 
 void Application::setFullscreen(bool fullscreen) {

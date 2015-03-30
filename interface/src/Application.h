@@ -333,6 +333,7 @@ signals:
 
     void svoImportRequested(const QString& url);
 
+    void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
 public slots:

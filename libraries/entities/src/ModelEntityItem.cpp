@@ -281,6 +281,13 @@ void ModelEntityItem::updateShapeType(ShapeType type) {
     }
 }
 
+void ModelEntityItem::setCollisionModelURL(const QString& url) {
+    if (_collisionModelURL != url) {
+        _collisionModelURL = url;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+    }
+}
+
 void ModelEntityItem::setAnimationURL(const QString& url) { 
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
     _animationURL = url; 
