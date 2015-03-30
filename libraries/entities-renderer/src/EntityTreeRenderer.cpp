@@ -148,6 +148,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
                 qDebug() << "ERROR Loading file:" << fileName;
             }
         } else {
+            /*
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -162,6 +163,10 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
                 qDebug() << "ERROR Loading file:" << url.toString();
             }
             delete reply;
+            */
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            scriptContents = scriptCache->getScript(url);
+            
         }
     }
     

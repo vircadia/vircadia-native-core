@@ -34,6 +34,7 @@
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
+#include "ScriptCache.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
@@ -279,16 +280,22 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
+            /*
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
+            */
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            scriptCache->getScript(url, this);
+            
         }
     }
 }
 
 void ScriptEngine::handleScriptDownload() {
+    /*
     QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
     
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
@@ -300,6 +307,17 @@ void ScriptEngine::handleScriptDownload() {
     }
     
     reply->deleteLater();
+    */
+}
+
+void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
+    _scriptContents = scriptContents;
+    emit scriptLoaded(_fileNameString);
+}
+
+void ScriptEngine::errorInLoadingScript(const QUrl& url) {
+    qDebug() << "ERROR Loading file:" << url.toString();
+    emit errorLoadingScript(_fileNameString); // ??
 }
 
 void ScriptEngine::init() {

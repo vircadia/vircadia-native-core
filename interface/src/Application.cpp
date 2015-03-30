@@ -76,7 +76,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
-//#include <ScriptCache.h>
+#include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
@@ -221,7 +221,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
-    //auto scriptCache = DependencyManager::set<ScriptCache>();
+    auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -612,7 +612,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
-    //DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
