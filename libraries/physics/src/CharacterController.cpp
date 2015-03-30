@@ -241,6 +241,12 @@ CharacterController::CharacterController(AvatarData* avatarData) {
 }
 
 CharacterController::~CharacterController() {
+    delete _ghostObject;
+    _ghostObject = NULL;
+    delete _convexShape;
+    _convexShape = NULL;
+    // make sure you remove this Character from its DynamicsWorld before reaching this spot
+    assert(_dynamicsWorld == NULL);
 }
 
 btPairCachingGhostObject* CharacterController::getGhostObject() {
