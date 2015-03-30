@@ -29,6 +29,12 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
 
 PhysicsEngine::~PhysicsEngine() {
     // TODO: delete engine components... if we ever plan to create more than one instance
+    delete _collisionConfig;
+    delete _collisionDispatcher;
+    delete _broadphaseFilter;
+    delete _constraintSolver;
+    delete _dynamicsWorld;
+    // delete _ghostPairCallback;
 }
 
 // begin EntitySimulation overrides
