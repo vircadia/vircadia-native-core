@@ -65,7 +65,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     }
    
     if (_pipeline._needStateSync) {
-        syncPipelineStateCache();
+    //    syncPipelineStateCache();
         _pipeline._needStateSync = false;
     }
 

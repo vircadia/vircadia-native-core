@@ -227,7 +227,7 @@ public:
     public:
         FillMode fillMode = FILL_FACE;
         CullMode cullMode = CULL_NONE;
-        bool frontFaceClockwise = true;
+        bool frontFaceClockwise = false;
         bool depthClipEnable = false;
         bool scissorEnable = false;
         bool multisampleEnable = false;
