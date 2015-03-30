@@ -88,7 +88,7 @@ template< typename T >
 void AudioFrameBuffer< T >::deallocateFrames() {
     if (_frameBuffer) {
         for (uint32_t i = 0; i < _channelCountMax; ++i) {
-            delete _frameBuffer[i];
+            delete[] _frameBuffer[i];
         }
         delete[] _frameBuffer;
     }
