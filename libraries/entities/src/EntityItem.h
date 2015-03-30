@@ -251,6 +251,9 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
+    const QString& getMarketplaceID() const { return _marketplaceID; }
+    void setMarketplaceID(const QString& value) { _marketplaceID = value; }
+    
     // TODO: get rid of users of getRadius()... 
     float getRadius() const;
     
@@ -339,6 +342,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+    QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

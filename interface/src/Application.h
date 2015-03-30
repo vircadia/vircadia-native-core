@@ -95,6 +95,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
+static const QString SVO_JSON_EXTENSION  = ".svo.json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 
@@ -113,7 +114,7 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_HELP_PATH = "html/interface-welcome.html";
-static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
+static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES = 
@@ -332,6 +333,9 @@ signals:
 
     void svoImportRequested(const QString& url);
 
+    void checkBackgroundDownloads();
+    void domainConnectionRefused(const QString& reason);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -381,6 +385,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void setActiveFaceTracker();
+
+    void domainConnectionDenied(const QString& reason);
 
 private slots:
     void clearDomainOctreeDetails();
@@ -606,6 +612,8 @@ private:
     int _menuBarHeight;
     
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
+
+    QList<QString> _domainConnectionRefusals;
 };
 
 #endif // hifi_Application_h

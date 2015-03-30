@@ -20,6 +20,8 @@
 // translates between ShapeInfo and btShape
 
 namespace ShapeInfoUtil {
+
+    // XXX is collectInfoFromShape no longer strictly needed?
     void collectInfoFromShape(const btCollisionShape* shape, ShapeInfo& info);
 
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);

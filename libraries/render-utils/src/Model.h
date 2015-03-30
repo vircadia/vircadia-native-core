@@ -109,7 +109,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // Set the model to use for collisions
-    Q_INVOKABLE void setCollisionModelURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
+    Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
     
     /// Sets the distance parameter used for LOD computations.
@@ -134,7 +134,7 @@ public:
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
 
     /// Returns a reference to the shared collision geometry.
-    const QSharedPointer<NetworkGeometry> getCollisionGeometry() {return _collisionGeometry; }
+    const QSharedPointer<NetworkGeometry> getCollisionGeometry(bool delayLoad = true);
     
     /// Returns the number of joint states in the model.
     int getJointStateCount() const { return _jointStates.size(); }
@@ -318,31 +318,27 @@ private:
     int _blendNumber;
     int _appliedBlendNumber;
 
+    static gpu::ShaderPointer _program;
+    static gpu::ShaderPointer _normalMapProgram;
+    static gpu::ShaderPointer _specularMapProgram;
+    static gpu::ShaderPointer _normalSpecularMapProgram;
+    static gpu::ShaderPointer _translucentProgram;
 
-    static ProgramObject _program;
-    static ProgramObject _normalMapProgram;
-    static ProgramObject _specularMapProgram;
-    static ProgramObject _normalSpecularMapProgram;
-    static ProgramObject _translucentProgram;
+    static gpu::ShaderPointer _lightmapProgram;
+    static gpu::ShaderPointer _lightmapNormalMapProgram;
+    static gpu::ShaderPointer _lightmapSpecularMapProgram;
+    static gpu::ShaderPointer _lightmapNormalSpecularMapProgram;
 
-    static ProgramObject _lightmapProgram;
-    static ProgramObject _lightmapNormalMapProgram;
-    static ProgramObject _lightmapSpecularMapProgram;
-    static ProgramObject _lightmapNormalSpecularMapProgram;
-
-    static ProgramObject _shadowProgram;
+    static gpu::ShaderPointer _shadowProgram;
     
-    static ProgramObject _skinProgram;
-    static ProgramObject _skinNormalMapProgram;
-    static ProgramObject _skinSpecularMapProgram;
-    static ProgramObject _skinNormalSpecularMapProgram;
-    static ProgramObject _skinTranslucentProgram;
+    static gpu::ShaderPointer _skinProgram;
+    static gpu::ShaderPointer _skinNormalMapProgram;
+    static gpu::ShaderPointer _skinSpecularMapProgram;
+    static gpu::ShaderPointer _skinNormalSpecularMapProgram;
+    static gpu::ShaderPointer _skinTranslucentProgram;
 
-    static ProgramObject _skinShadowProgram;
+    static gpu::ShaderPointer _skinShadowProgram;
 
-    static int _normalMapTangentLocation;
-    static int _normalSpecularMapTangentLocation;
-    
     class Locations {
     public:
         int tangent;
@@ -365,8 +361,9 @@ private:
     static Locations _lightmapNormalMapLocations;
     static Locations _lightmapSpecularMapLocations;
     static Locations _lightmapNormalSpecularMapLocations;
-    
+
     static void initProgram(ProgramObject& program, Locations& locations, bool link = true);
+    static void initProgram(gpu::ShaderPointer& program, Locations& locations);
         
     class SkinLocations : public Locations {
     public:
@@ -383,6 +380,7 @@ private:
     static SkinLocations _skinTranslucentLocations;
 
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
+    static void initSkinProgram(gpu::ShaderPointer& program, SkinLocations& locations);
 
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
@@ -446,6 +444,9 @@ private:
     QVector<int> _meshesOpaqueLightmapTangentsSpecular;
     QVector<int> _meshesOpaqueLightmapSpecular;
 
+    // debug rendering support
+    void renderDebugMeshBoxes();
+    int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // Scene rendering support
     static QVector<Model*> _modelsInScene;
@@ -458,12 +459,15 @@ private:
     void renderSetup(RenderArgs* args);
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
+                        bool forceRenderSomeMeshes = false);
+                        
     void setupBatchTransform(gpu::Batch& batch);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations);
+                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations, 
+                                        bool forceRenderSomeMeshes = false);
 
     static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,

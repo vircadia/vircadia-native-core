@@ -8,8 +8,8 @@ if (ANDROID)
       
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150209oss_src.tgz
-    URL_MD5 f09c9abe8ec74e6558c1f89cebbe2893
+    URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150316oss_src.tgz
+    URL_MD5 bf090eaa86cf89ea014b7b462786a440
     BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
@@ -20,19 +20,20 @@ if (ANDROID)
   )
 else ()
   if (APPLE)
-    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_osx.tgz)
-    set(DOWNLOAD_MD5 3e683c19792582b61382e0d760ea5db2)
+    set(DOWNLOAD_URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150316oss_osx.tgz)
+    set(DOWNLOAD_MD5 25a36ebff070ff801760ec658079f6aa)
   elseif (WIN32)
-    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_win.zip)
-    set(DOWNLOAD_MD5 e19c184f2bb0e944fc5f397f1e34ca84)
+    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150316oss_win.zip)
+    set(DOWNLOAD_MD5 d250d40bb93b255f75bcbb19e976a440)
   else () 
-    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150209oss_lin.tgz)
-    set(DOWNLOAD_MD5 d9c2a6f7807df364be44a8c3c05e8457)
+    set(DOWNLOAD_URL http://s3.amazonaws.com/hifi-public/dependencies/tbb43_20150316oss_lin.tgz)
+    set(DOWNLOAD_MD5 7830ba2bc62438325fba2ec0c95367a5)
   endif ()
   
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL ${DOWNLOAD_URL}
+    URL_MD5 ${DOWNLOAD_MD5}
     BUILD_COMMAND ""
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ""
@@ -94,9 +95,15 @@ elseif (UNIX)
 endif () 
 
 if (DEFINED _TBB_LIB_DIR)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb_debug.${_LIB_EXT} CACHE FILEPATH "TBB debug library location")
+  if (NOT APPLE)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb_debug.${_LIB_EXT} CACHE FILEPATH "TBB debug library location")
+    set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc_debug.${_LIB_EXT} CACHE FILEPATH "TBB malloc debug library location")
+  else ()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "TBB debug library location")
+    set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG "" CACHE FILEPATH "TBB malloc debug library location")
+  endif ()
+  
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbb.${_LIB_EXT} CACHE FILEPATH "TBB release library location")
-  set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_DEBUG ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc_debug.${_LIB_EXT} CACHE FILEPATH "TBB malloc debug library location")
   set(${EXTERNAL_NAME_UPPER}_MALLOC_LIBRARY_RELEASE ${_TBB_LIB_DIR}/${_LIB_PREFIX}tbbmalloc.${_LIB_EXT} CACHE FILEPATH "TBB malloc release library location")
 endif ()
 

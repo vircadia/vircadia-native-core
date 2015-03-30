@@ -23,19 +23,6 @@ class QComboBox;
 class QCheckBox;
 class QVBoxLayout;
 
-static const QString NAME_FIELD = "name";
-static const QString FILENAME_FIELD = "filename";
-static const QString TEXDIR_FIELD = "texdir";
-static const QString LOD_FIELD = "lod";
-static const QString JOINT_INDEX_FIELD = "jointIndex";
-static const QString SCALE_FIELD = "scale";
-static const QString TRANSLATION_X_FIELD = "tx";
-static const QString TRANSLATION_Y_FIELD = "ty";
-static const QString TRANSLATION_Z_FIELD = "tz";
-static const QString JOINT_FIELD = "joint";
-static const QString FREE_JOINT_FIELD = "freeJoint";
-static const QString BLENDSHAPE_FIELD = "bs";
-
 /// A dialog that allows customization of various model properties.
 class ModelPropertiesDialog : public QDialog {
     Q_OBJECT

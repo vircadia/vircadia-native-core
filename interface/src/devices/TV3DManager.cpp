@@ -104,7 +104,6 @@ void TV3DManager::display(Camera& whichCamera) {
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
     applicationOverlay.renderOverlay(true);
-    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
     DependencyManager::get<GlowEffect>()->prepare();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -135,9 +134,7 @@ void TV3DManager::display(Camera& whichCamera) {
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
-        if (displayOverlays) {
-            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
-        }
+        applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         _activeEye = NULL;
     }
     glPopMatrix();
@@ -166,9 +163,7 @@ void TV3DManager::display(Camera& whichCamera) {
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
-        if (displayOverlays) {
-            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
-        }
+        applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         _activeEye = NULL;
     }
     glPopMatrix();

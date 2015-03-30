@@ -458,41 +458,6 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
-QVariantHash parseMapping(QIODevice* device) {
-    QVariantHash properties;
-
-    QByteArray line;
-    while (!(line = device->readLine()).isEmpty()) {
-        if ((line = line.trimmed()).startsWith('#')) {
-            continue; // comment
-        }
-        QList<QByteArray> sections = line.split('=');
-        if (sections.size() < 2) {
-            continue;
-        }
-        QByteArray name = sections.at(0).trimmed();
-        if (sections.size() == 2) {
-            properties.insertMulti(name, sections.at(1).trimmed());
-
-        } else if (sections.size() == 3) {
-            QVariantHash heading = properties.value(name).toHash();
-            heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
-            properties.insert(name, heading);
-
-        } else if (sections.size() >= 4) {
-            QVariantHash heading = properties.value(name).toHash();
-            QVariantList contents;
-            for (int i = 2; i < sections.size(); i++) {
-                contents.append(sections.at(i).trimmed());
-            }
-            heading.insertMulti(sections.at(1).trimmed(), contents);
-            properties.insert(name, heading);
-        }
-    }
-
-    return properties;
-}
-
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
@@ -2471,39 +2436,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     }
     
     return geometry;
-}
-
-QVariantHash readMapping(const QByteArray& data) {
-    QBuffer buffer(const_cast<QByteArray*>(&data));
-    buffer.open(QIODevice::ReadOnly);
-    return parseMapping(&buffer);
-}
-
-QByteArray writeMapping(const QVariantHash& mapping) {
-    QBuffer buffer;
-    buffer.open(QIODevice::WriteOnly);
-    for (QVariantHash::const_iterator first = mapping.constBegin(); first != mapping.constEnd(); first++) {
-        QByteArray key = first.key().toUtf8() + " = ";
-        QVariantHash hashValue = first.value().toHash();
-        if (hashValue.isEmpty()) {
-            buffer.write(key + first.value().toByteArray() + "\n");
-            continue;
-        }
-        for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
-            QByteArray extendedKey = key + second.key().toUtf8();
-            QVariantList listValue = second.value().toList();
-            if (listValue.isEmpty()) {
-                buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
-                continue;
-            }
-            buffer.write(extendedKey);
-            for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
-                buffer.write(" = " + third->toByteArray());
-            }
-            buffer.write("\n");
-        }
-    }
-    return buffer.data();
 }
 
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {

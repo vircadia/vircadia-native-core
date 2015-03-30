@@ -297,7 +297,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
         _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false)
+        _notifiedPacketVersionMismatchThisDomain(false),
+        _domainConnectionRefusals(QList<QString>())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -344,6 +345,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
+    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // downloads.
+    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
+    ResourceCache *geometryCache = geometryCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
+
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
 
@@ -382,6 +390,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
     locationUpdateTimer->start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
+    
+    // if we get a domain change, immediately attempt update location in metaverse server
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -781,7 +793,7 @@ void Application::paintGL() {
 
         DependencyManager::get<GlowEffect>()->render();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
+        {
             PerformanceTimer perfTimer("renderOverlay");
             _applicationOverlay.renderOverlay(true);
             _applicationOverlay.displayOverlayTexture();
@@ -979,12 +991,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 resetSensors();
                 break;
 
-            case Qt::Key_G:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::ObeyEnvironmentalGravity);
-                }
-                break;
-
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
@@ -1119,13 +1125,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
                 }
                 break;
-            case Qt::Key_Slash:
-                Menu::getInstance()->triggerOption(MenuOption::UserInterface);
-                break;
             case Qt::Key_P:
                  Menu::getInstance()->triggerOption(MenuOption::FirstPerson);
                  break;
-            case Qt::Key_Percent:
+            case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
             case Qt::Key_Plus:
@@ -1160,10 +1163,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_Comma: {
-                _myAvatar->togglePhysicsEnabled();
-            }
-            
             default:
                 event->ignore();
                 break;
@@ -1561,6 +1560,9 @@ void Application::idle() {
             idleTimer->start(2);
         }
     }
+
+    // check for any requested background downloads.
+    emit checkBackgroundDownloads();
 }
 
 void Application::setFullscreen(bool fullscreen) {
@@ -1747,7 +1749,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree.addEntity(entityItem->getEntityItemID(), properties);
     }
 
-    exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
+    exportTree.writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
     _window->activateWindow();
@@ -1782,6 +1784,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 void Application::loadSettings() {
 
     DependencyManager::get<AudioClient>()->loadSettings();
+    DependencyManager::get<LODManager>()->loadSettings();
 
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
@@ -1789,6 +1792,7 @@ void Application::loadSettings() {
 
 void Application::saveSettings() {
     DependencyManager::get<AudioClient>()->saveSettings();
+    DependencyManager::get<LODManager>()->saveSettings();
 
     Menu::getInstance()->saveSettings();
     _myAvatar->saveData();
@@ -1899,8 +1903,6 @@ void Application::init() {
     _physicsEngine.init(&_entityEditSender);
 
 
-    _physicsEngine.setAvatarData(_myAvatar);
-
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
@@ -1965,7 +1967,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
 void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableAutoAdjustLOD) && !isThrottleRendering()) {
+    if (!isThrottleRendering()) {
         DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -3010,8 +3012,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         _nodeBoundsDisplay.draw();
     
         //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
-                Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
+        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
         }
@@ -3131,7 +3132,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    bool eyeRelativeCamera = false;
+    // bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
@@ -3284,6 +3285,14 @@ void Application::clearDomainOctreeDetails() {
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
+    _domainConnectionRefusals.clear();
+}
+
+void Application::domainConnectionDenied(const QString& reason) {
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3291,11 +3300,6 @@ void Application::connectedToDomain(const QString& hostname) {
     const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
     
     if (accountManager.isLoggedIn() && !domainID.isNull()) {
-        // update our data-server with the domain-server we're logged in with
-        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
-        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), domainPutJsonString.toUtf8());
-
         _notifiedPacketVersionMismatchThisDomain = false;
     }
 }
@@ -3595,6 +3599,7 @@ void Application::initializeAcceptedFiles() {
     if (_acceptedExtensions.size() == 0) {
         _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
         _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
+        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
         _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
         _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
     }
@@ -4203,7 +4208,7 @@ void Application::checkSkeleton() {
         _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
         _myAvatar->sendIdentityPacket();
     } else {
-        _myAvatar->updateLocalAABox();
-        _physicsEngine.setAvatarData(_myAvatar);
+        _myAvatar->updateCharacterController();
+        _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }

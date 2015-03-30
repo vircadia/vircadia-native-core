@@ -93,16 +93,18 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     
     int bytesRead = 0;
     const unsigned char* dataAt = data;
-
+    
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
         setCollisionModelURL("");
+    } else if (args.bitstreamVersion == VERSION_ENTITIES_HAS_COLLISION_MODEL) {
+        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL_OLD_VERSION, setCollisionModelURL);
     } else {
         READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
     }
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
-
+    
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
     // order that allows AnimationLoop to preserve the correct frame rate.
@@ -275,6 +277,13 @@ void ModelEntityItem::debugDump() const {
 void ModelEntityItem::updateShapeType(ShapeType type) {
     if (type != _shapeType) {
         _shapeType = type;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+    }
+}
+
+void ModelEntityItem::setCollisionModelURL(const QString& url) {
+    if (_collisionModelURL != url) {
+        _collisionModelURL = url;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
 }

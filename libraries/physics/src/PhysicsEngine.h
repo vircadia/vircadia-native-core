@@ -17,9 +17,7 @@
 #include <QSet>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
-//#include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 
-#include <AvatarData.h>
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 
@@ -86,7 +84,7 @@ public:
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
-    void setAvatarData(AvatarData *avatarData);
+    void setCharacterController(CharacterController* character);
 
 private:
     /// \param motionState pointer to Object's MotionState
@@ -123,9 +121,6 @@ private:
 
     /// character collisions
     CharacterController* _characterController = NULL;
-    class btPairCachingGhostObject* _avatarGhostObject = NULL;
-    AvatarData* _avatarData = NULL;
-    glm::vec3 _avatarShapeLocalOffset;
 };
 
 #endif // hifi_PhysicsEngine_h

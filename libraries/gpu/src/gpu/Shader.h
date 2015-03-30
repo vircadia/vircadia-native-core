@@ -41,31 +41,58 @@ public:
         Language _lang = GLSL;
     };
 
+    static const int32 INVALID_LOCATION = -1;
+
     class Slot {
     public:
 
         std::string _name;
-        uint32 _location;
+        int32 _location{INVALID_LOCATION};
         Element _element;
-        uint16 _resourceType;
+        uint16 _resourceType{Resource::BUFFER};
  
-        Slot(const std::string& name, uint16 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
+        Slot(const Slot& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
+        Slot(Slot&& s) : _name(s._name), _location(s._location), _element(s._element), _resourceType(s._resourceType) {}
+        Slot(const std::string& name, int32 location, const Element& element, uint16 resourceType = Resource::BUFFER) :
              _name(name), _location(location), _element(element), _resourceType(resourceType) {}
-
+        Slot(const std::string& name) : _name(name) {}
+        
+        Slot& operator= (const Slot& s) {
+            _name = s._name;
+            _location = s._location;
+            _element = s._element;
+            _resourceType = s._resourceType;
+            return (*this); }
     };
 
     class Binding {
     public:
         std::string _name;
-        uint32 _location;
-        Binding(const std::string&& name, uint32 loc = 0) : _name(name), _location(loc) {}
+        int32 _location;
+        Binding(const std::string& name, int32 loc = INVALID_LOCATION) : _name(name), _location(loc) {}
     };
 
     template <typename T> class Less {
     public:
         bool operator() (const T& x, const T& y) const { return x._name < y._name; }
     };
-    typedef std::set<Slot, Less<Slot>> SlotSet;
+
+    class SlotSet : public std::set<Slot, Less<Slot>> {
+    public:
+        Slot findSlot(const std::string& name) const {
+            auto key = Slot(name);
+            auto found = static_cast<const std::set<Slot, Less<Slot>>*>(this)->find(key);
+            if (found != end()) {
+                return (*found);
+            }
+            return key;
+        }
+        int32 findLocation(const std::string& name) const {
+            return findSlot(name)._location;
+        }
+    protected:
+    };
+    
     typedef std::set<Binding, Less<Binding>> BindingSet;
 
 
