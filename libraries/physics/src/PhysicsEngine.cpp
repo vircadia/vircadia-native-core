@@ -624,11 +624,9 @@ void PhysicsEngine::setCharacterController(CharacterController* character) {
             _characterController->setDynamicsWorld(NULL);
             _characterController = NULL;
         }
+        // the character will be added to the DynamicsWorld later
+        _characterController = character;
         unlock();
-        if (character) {
-            // the character will be added to the DynamicsWorld later
-            _characterController = character;
-        }
     }
 }
 
