@@ -936,7 +936,7 @@ void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {
         // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(entityID);
+        QScriptValue entityScript = loadEntityScript(entityID, true); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("preload").call(entityScript, entityArgs);
