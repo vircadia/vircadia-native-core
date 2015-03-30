@@ -136,28 +136,32 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
         }
         break;
         case SHAPE_TYPE_CONVEX_HULL: {
-            shape = new btConvexHullShape();
+            auto hull = new btConvexHullShape();
             const QVector<QVector<glm::vec3>>& points = info.getPoints();
             foreach (glm::vec3 point, points[0]) {
                 btVector3 btPoint(point[0], point[1], point[2]);
-                static_cast<btConvexHullShape*>(shape)->addPoint(btPoint);
+                hull->addPoint(btPoint, false);
             }
+            hull->recalcLocalAabb();
+            shape = hull;
         }
         break;
         case SHAPE_TYPE_COMPOUND: {
-            shape = new btCompoundShape();
+            auto compound = new btCompoundShape();
             const QVector<QVector<glm::vec3>>& points = info.getPoints();
 
-            foreach (QVector<glm::vec3> hullPoints, info.getPoints()) {
+            btTransform trans;
+            trans.setIdentity();
+            foreach (QVector<glm::vec3> hullPoints, points) {
                 auto hull = new btConvexHullShape();
                 foreach (glm::vec3 point, hullPoints) {
                     btVector3 btPoint(point[0], point[1], point[2]);
-                    hull->addPoint(btPoint);
+                    hull->addPoint(btPoint, false);
                 }
-                btTransform trans;
-                trans.setIdentity();
-                static_cast<btCompoundShape*>(shape)->addChildShape (trans, hull);
+                hull->recalcLocalAabb();
+                compound->addChildShape (trans, hull);
             }
+            shape = compound;
         }
         break;
     }
