@@ -287,8 +287,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
             */
+            bool isPending;
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->getScript(url, this);
+            scriptCache->getScript(url, this, isPending);
             
         }
     }

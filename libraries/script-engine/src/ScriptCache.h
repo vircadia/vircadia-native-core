@@ -27,12 +27,14 @@ class ScriptCache : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void getScript(const QUrl& url, ScriptUser* scriptUser); // asynchronous
-    QString getScript(const QUrl& url); // blocking call
+    QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending); // asynchronous
+
+
+    //QString getScript(const QUrl& url); // blocking call
     
 private slots:
     void scriptDownloaded();
-    void scriptDownloadedSyncronously();
+    //void scriptDownloadedSyncronously();
 
     
 private:

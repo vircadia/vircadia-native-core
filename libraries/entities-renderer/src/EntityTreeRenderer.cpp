@@ -110,14 +110,30 @@ void EntityTreeRenderer::shutdown() {
     _shuttingDown = true;
 }
 
+void EntityTreeRenderer::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
+    if (_waitingOnPreload.contains(url)) {
+        QList<EntityItemID> entityIDs = _waitingOnPreload.values(url);
+        _waitingOnPreload.remove(url);
+        foreach(EntityItemID entityID, entityIDs) {
+            checkAndCallPreload(entityID);
+        } 
+    }
+}
 
-QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
+void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
+    if (_waitingOnPreload.contains(url)) {
+        _waitingOnPreload.remove(url);
+    }
+}
+
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
     EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return loadEntityScript(entity);
+    return loadEntityScript(entity, isPreload);
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut) {
+    isPending = false;
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
@@ -126,6 +142,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
         return scriptMaybeURLorText;
     }
     isURL = true;
+    urlOut = url;
 
     QString scriptContents; // assume empty
     
@@ -165,8 +182,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             delete reply;
             */
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptContents = scriptCache->getScript(url);
-            
+            scriptContents = scriptCache->getScript(url, this, isPending);
         }
     }
     
@@ -174,7 +190,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPreload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -208,7 +224,18 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     }
     
     bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
-    QString scriptContents = loadScriptContents(entityScript, isURL);
+    bool isPending = false;
+    QUrl url;
+    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url);
+    
+    if (isPending && isPreload && isURL) {
+        _waitingOnPreload.insert(url, entityID);
+        
+    }
+    
+    if (scriptContents.isEmpty()) {
+        return QScriptValue(); // no script contents...
+    }
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {

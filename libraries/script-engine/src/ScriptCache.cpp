@@ -26,17 +26,22 @@ ScriptCache::ScriptCache(QObject* parent) {
 
 // QHash<QUrl, QString> _scriptCache;
 
-void ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser) {
+QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending) {
+    QString scriptContents;
     if (_scriptCache.contains(url)) {
-        scriptUser->scriptContentsAvailable(url, _scriptCache[url]);
-        return;
+        scriptContents = _scriptCache[url];
+        scriptUser->scriptContentsAvailable(url, scriptContents);
+        isPending = false;
+    } else {
+        isPending = true;
+        _scriptUsers.insert(url, scriptUser);
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest networkRequest = QNetworkRequest(url);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(networkRequest);
+        connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
     }
-    _scriptUsers.insert(url, scriptUser);
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest networkRequest = QNetworkRequest(url);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
+    return scriptContents;
 }
 
 void ScriptCache::scriptDownloaded() {
@@ -61,6 +66,8 @@ void ScriptCache::scriptDownloaded() {
     reply->deleteLater();
 }
 
+
+#if 0
 QString ScriptCache::getScript(const QUrl& url) {
     qDebug() << "Script requested: " << url.toString();
     QString scriptContents;
@@ -143,4 +150,6 @@ void ScriptCache::scriptDownloadedSyncronously() {
     _blockingScriptsPending.remove(url);
     qDebug() << "_blockingScriptsPending: " << _blockingScriptsPending;
 }
+
+#endif
     
