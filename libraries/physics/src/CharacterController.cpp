@@ -786,14 +786,17 @@ void CharacterController::setEnabled(bool enabled) {
 
 void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld != world) {
-        if (_dynamicsWorld) {
-            _dynamicsWorld->removeCollisionObject(getGhostObject());
-            _dynamicsWorld->removeAction(this);
+        if (_dynamicsWorld) { 
+            if (_ghostObject) {
+                _dynamicsWorld->removeCollisionObject(_ghostObject);
+                _dynamicsWorld->removeAction(this);
+            }
+            _dynamicsWorld = NULL;
         }
-        _dynamicsWorld = world;
-        if (_dynamicsWorld) {
+        if (world && _ghostObject) {
+            _dynamicsWorld = world;
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addCollisionObject(getGhostObject(),
+            _dynamicsWorld->addCollisionObject(_ghostObject,
                     btBroadphaseProxy::CharacterFilter,
                     btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
             _dynamicsWorld->addAction(this);
@@ -876,7 +879,7 @@ void CharacterController::preSimulation(btScalar timeStep) {
 }
 
 void CharacterController::postSimulation() {
-    if (_enabled) {
+    if (_enabled && _ghostObject) {
         const btTransform& avatarTransform = _ghostObject->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
