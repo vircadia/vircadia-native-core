@@ -297,7 +297,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
         _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false)
+        _notifiedPacketVersionMismatchThisDomain(false),
+        _domainConnectionRefusals(QList<QString>())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -343,6 +344,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
+
+    // geometry background downloads need to happen on the Datagram Processor Thread.  The idle loop will
+    // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
+    // downloads.
+    QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
+    ResourceCache *geometryCache = geometryCacheP.data();
+    connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
@@ -1556,6 +1564,9 @@ void Application::idle() {
             idleTimer->start(2);
         }
     }
+
+    // check for any requested background downloads.
+    emit checkBackgroundDownloads();
 }
 
 void Application::setFullscreen(bool fullscreen) {
@@ -3125,7 +3136,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    bool eyeRelativeCamera = false;
+    // bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
@@ -3278,6 +3289,14 @@ void Application::clearDomainOctreeDetails() {
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
+    _domainConnectionRefusals.clear();
+}
+
+void Application::domainConnectionDenied(const QString& reason) {
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
 }
 
 void Application::connectedToDomain(const QString& hostname) {

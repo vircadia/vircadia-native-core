@@ -62,6 +62,7 @@ signals:
     void inlineButtonClicked(const QString& name);
     void nonBlockingFormClosed();
     void svoImportRequested(const QString& url);
+    void domainConnectionRefused(const QString& reason);
 
 private slots:
     QScriptValue showAlert(const QString& message);

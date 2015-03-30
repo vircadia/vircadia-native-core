@@ -718,13 +718,8 @@ function mouseClickEvent(event) {
         var result = findClickedEntity(event);
         if (result) {
             var properties = Entities.getEntityProperties(result.entityID);
-            var data = {};
-            try {
-                data = JSON.parse(properties.attribution);
-            } catch (e) {
-            }
-            if (data.marketplaceID) {
-                propertyMenu.marketplaceID = data.marketplaceID;
+            if (properties.marketplaceID) {
+                propertyMenu.marketplaceID = properties.marketplaceID;
                 propertyMenu.updateMenuItemText(showMenuItem, "Show in Marketplace");
             } else {
                 propertyMenu.marketplaceID = null;

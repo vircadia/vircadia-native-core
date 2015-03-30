@@ -18,6 +18,7 @@
 #include <QTimer>
 
 #include <SharedUtil.h>
+#include <assert.h>
 
 #include "NetworkAccessManager.h"
 #include "ResourceCache.h"
@@ -48,32 +49,40 @@ void ResourceCache::refresh(const QUrl& url) {
     }
 }
 
+void ResourceCache::getResourceAsynchronously(const QUrl& url) {
+    qDebug() << "ResourceCache::getResourceAsynchronously" << url.toString();
+    _resourcesToBeGottenLock.lockForWrite();
+    _resourcesToBeGotten.enqueue(QUrl(url));
+    _resourcesToBeGottenLock.unlock();
+}
+
+void ResourceCache::checkAsynchronousGets() {
+    assert(QThread::currentThread() == thread());
+    if (!_resourcesToBeGotten.isEmpty()) {
+        _resourcesToBeGottenLock.lockForWrite();
+        QUrl url = _resourcesToBeGotten.dequeue();
+        _resourcesToBeGottenLock.unlock();
+        getResource(url);
+    }
+}
+
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
-                                                    bool delayLoad, void* extra, bool block) {
+                                                    bool delayLoad, void* extra) {
+    QSharedPointer<Resource> resource = _resources.value(url);
+    if (!resource.isNull()) {
+        return resource;
+    }
+
     if (QThread::currentThread() != thread()) {
-        // This will re-call this method in the main thread.  If block is true and the main thread
-        // is waiting on a lock, we'll deadlock here.
-        if (block) {
-            QSharedPointer<Resource> result;
-            QMetaObject::invokeMethod(this, "getResource", Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(QSharedPointer<Resource>, result), Q_ARG(const QUrl&, url),
-                                      Q_ARG(const QUrl&, fallback), Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
-            return result;
-        } else {
-            // Queue the re-invocation of this method, but if the main thread is blocked, don't wait.  The
-            // return value may be NULL -- it's expected that this will be called again later, in order
-            // to receive the actual Resource.
-            QMetaObject::invokeMethod(this, "getResource", Qt::QueuedConnection,
-                                      Q_ARG(const QUrl&, url),
-                                      Q_ARG(const QUrl&, fallback), Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
-            return _resources.value(url);
-        }
+        assert(delayLoad);
+        getResourceAsynchronously(url);
+        return QSharedPointer<Resource>();
     }
 
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
     }
-    QSharedPointer<Resource> resource = _resources.value(url);
+
     if (resource.isNull()) {
         resource = createResource(url, fallback.isValid() ?
             getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);

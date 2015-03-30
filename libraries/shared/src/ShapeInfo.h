@@ -44,14 +44,14 @@ public:
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setEllipsoid(const glm::vec3& halfExtents);
-    void setConvexHull(const QVector<glm::vec3>& points);
+    void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
     void setCapsuleY(float radius, float halfHeight);
 
     const int getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
 
-    const QVector<glm::vec3>& getPoints() const { return _points; }
+    const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
 
     void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
@@ -64,8 +64,8 @@ protected:
     ShapeType _type = SHAPE_TYPE_NONE;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
-    QVector<glm::vec3> _points; // points for convex collision hull
-    QUrl _url; // url for model of convex collision hull
+    QVector<QVector<glm::vec3>> _points; // points for convex collision hulls
+    QUrl _url; // url for model of convex collision hulls
 };
 
 #endif // hifi_ShapeInfo_h
