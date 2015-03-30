@@ -21,6 +21,7 @@
 #include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
+#include <FSTReader.h>
 #include <SharedUtil.h>
 
 #include "TextureCache.h"
@@ -1770,8 +1771,8 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
 }
 
 
-QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad, bool block) {
-    return getResource(url, fallback, delayLoad, NULL, block).staticCast<NetworkGeometry>();
+QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    return getResource(url, fallback, delayLoad, NULL).staticCast<NetworkGeometry>();
 }
 
 QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,

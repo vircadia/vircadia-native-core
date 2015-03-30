@@ -652,7 +652,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
     clickedButton.attr('disabled', 'disabled')
     
     // get a list of user domains from data-web
-    data_web_domains_url = "https://metaverse.highfidelity.io/api/v1/domains?access_token="
+    data_web_domains_url = "https://metaverse.highfidelity.com/api/v1/domains?access_token="
     $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
       
       modal_buttons = {
@@ -682,7 +682,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://metaverse.highfidelity.io/user/domains", '_blank');
+            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 

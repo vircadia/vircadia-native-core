@@ -1,6 +1,7 @@
 /*
 Bullet Continuous Collision Detection and Physics Library
 Copyright (c) 2003-2008 Erwin Coumans  http://bulletphysics.com
+2015.03.25 -- modified by Andrew Meadows andrew@highfidelity.io
 
 This software is provided 'as-is', without any express or implied warranty.
 In no event will the authors be held liable for any damages arising from the use of this software.
@@ -37,65 +38,69 @@ class btPairCachingGhostObject;
 ///It uses a ghost object and convex sweep test to test for upcoming collisions. This is combined with discrete collision detection to recover from penetrations.
 ///Interaction between btKinematicCharacterController and dynamic rigid bodies needs to be explicity implemented by the user.
 
+
 ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInterface
 {
 protected:
 
-    AvatarData* m_avatarData = NULL;
-    btPairCachingGhostObject* m_ghostObject;
-    glm::vec3 m_shapeLocalOffset;
+    AvatarData* _avatarData = NULL;
+    btPairCachingGhostObject* _ghostObject;
 
-    btConvexShape* m_convexShape;//is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
-    btScalar m_radius;
-    btScalar m_halfHeight;
+    btConvexShape* _convexShape;//is also in _ghostObject, but it needs to be convex, so we store it here to avoid upcast
+    btScalar _radius;
+    btScalar _halfHeight;
 
-    btScalar m_verticalVelocity;
-    btScalar m_verticalOffset; // fall distance from velocity this frame
-    btScalar m_maxFallSpeed;
-    btScalar m_jumpSpeed;
-    btScalar m_maxJumpHeight;
-    btScalar m_maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
-    btScalar m_maxSlopeCosine;  // Cosine equivalent of m_maxSlopeRadians (calculated once when set, for optimization)
-    btScalar m_gravity;
+    btScalar _verticalVelocity;
+    btScalar _verticalOffset; // fall distance from velocity this frame
+    btScalar _maxFallSpeed;
+    btScalar _jumpSpeed;
+    btScalar _maxJumpHeight;
+    btScalar _maxSlopeRadians; // Slope angle that is set (used for returning the exact value)
+    btScalar _maxSlopeCosine;  // Cosine equivalent of _maxSlopeRadians (calculated once when set, for optimization)
+    btScalar _gravity;
 
-    btScalar m_turnAngle;
+    btScalar _stepUpHeight; // height of stepUp prior to stepForward
+    btScalar _stepDownHeight; // height of stepDown
 
-    btScalar m_stepHeight; // height of stepUp prior to stepForward
-
-    btScalar m_addedMargin;//@todo: remove this and fix the code
+    btScalar _addedMargin;//@todo: remove this and fix the code
 
     ///this is the desired walk direction, set by the user
-    btVector3 m_walkDirection;
-    btVector3 m_normalizedDirection;
+    btVector3 _walkDirection;
+    btVector3 _normalizedDirection;
 
     //some internal variables
-    btVector3 m_currentPosition;
-    btVector3 m_targetPosition;
-    btScalar  m_lastStepUp;
+    btVector3 _currentPosition;
+    btQuaternion _currentRotation;
+    btVector3 _targetPosition;
+    glm::vec3 _lastPosition;
+    btScalar  _lastStepUp;
 
     ///keep track of the contact manifolds
-    btManifoldArray m_manifoldArray;
+    btManifoldArray _manifoldArray;
 
-    bool m_touchingContact;
-    btVector3 m_floorNormal; // points from object to character
+    bool _touchingContact;
+    btVector3 _floorNormal; // points from object to character
 
-    bool m_enabled;
-    bool m_wasOnGround;
-    bool m_wasJumping;
-    bool m_useWalkDirection;
-    btScalar m_velocityTimeInterval;
-    int m_upAxis;
+    bool _enabled;
+    bool _isOnGround;
+    bool _isJumping;
+    bool _isHovering;
+    quint64 _jumpToHoverStart;
+    btScalar _velocityTimeInterval;
+    btScalar _stepDt;
+    uint32_t _pendingFlags;
 
-    static btVector3* getUpAxisDirections();
-    bool  m_interpolateUp;
-    bool  full_drop;
-    bool  bounce_fix;
+    glm::vec3 _shapeLocalOffset;
+    glm::vec3 _boxScale; // used to compute capsule shape
+
+    btDynamicsWorld* _dynamicsWorld = NULL;
 
     btVector3 computeReflectionDirection(const btVector3& direction, const btVector3& normal);
     btVector3 parallelComponent(const btVector3& direction, const btVector3& normal);
     btVector3 perpindicularComponent(const btVector3& direction, const btVector3& normal);
 
     bool recoverFromPenetration(btCollisionWorld* collisionWorld);
+    void scanDown(btCollisionWorld* collisionWorld);
     void stepUp(btCollisionWorld* collisionWorld);
     void updateTargetPositionBasedOnCollision(const btVector3& hit_normal, btScalar tangentMag = btScalar(0.0), btScalar normalMag = btScalar(1.0));
     void stepForward(btCollisionWorld* collisionWorld, const btVector3& walkMove);
@@ -118,14 +123,6 @@ public:
     ///btActionInterface interface
     void debugDraw(btIDebugDraw* debugDrawer);
 
-    void setUpAxis(int axis) {
-        if (axis < 0)
-            axis = 0;
-        if (axis > 2)
-            axis = 2;
-        m_upAxis = axis;
-    }
-
     /// This should probably be called setPositionIncrementPerSimulatorStep.
     /// This is neither a direction nor a velocity, but the amount to
     /// increment the position each simulation iteration, regardless
@@ -141,18 +138,19 @@ public:
     virtual void setVelocityForTimeInterval(const btVector3& velocity,
             btScalar timeInterval);
 
-    void reset(btCollisionWorld* collisionWorld );
-    void warp(const btVector3& origin);
+    virtual void reset(btCollisionWorld* collisionWorld );
+    virtual void warp(const btVector3& origin);
 
-    void preStep(btCollisionWorld* collisionWorld);
-    void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
+    virtual void preStep(btCollisionWorld* collisionWorld);
+    virtual void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
+
+    virtual bool canJump() const;
+    virtual void jump();
+    virtual bool onGround() const;
 
     void setMaxFallSpeed(btScalar speed);
     void setJumpSpeed(btScalar jumpSpeed);
     void setMaxJumpHeight(btScalar maxJumpHeight);
-    bool canJump() const;
-
-    void jump();
 
     void setGravity(btScalar gravity);
     btScalar getGravity() const;
@@ -164,11 +162,17 @@ public:
 
     btPairCachingGhostObject* getGhostObject();
 
-    bool onGround() const;
     void setUpInterpolate(bool value);
 
-    bool needsShapeUpdate();
-    void updateShape();
+    bool needsRemoval() const;
+    bool needsAddition() const;
+    void setEnabled(bool enabled);
+    bool isEnabled() const { return _enabled; }
+    void setDynamicsWorld(btDynamicsWorld* world);
+
+    void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
+    bool needsShapeUpdate() const;
+    void updateShapeIfNecessary();
 
     void preSimulation(btScalar timeStep);
     void postSimulation();

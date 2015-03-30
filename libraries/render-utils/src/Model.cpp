@@ -325,6 +325,8 @@ void Model::init() {
         _skinTranslucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelTranslucentPixel));
         makeResult = gpu::Shader::makeProgram(*_skinTranslucentProgram, slotBindings);
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
+
+        (void) makeResult; // quiet compiler
     }
 }
 
@@ -1032,12 +1034,22 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     }
 }
 
-void Model::setCollisionModelURL(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+
+const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad)
+{
+    if (_collisionGeometry.isNull() && !_collisionUrl.isEmpty()) {
+        _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
+    }
+
+    return _collisionGeometry;
+}
+
+void Model::setCollisionModelURL(const QUrl& url) {
     if (_collisionUrl == url) {
         return;
     }
     _collisionUrl = url;
-    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
+    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, QUrl(), true);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {

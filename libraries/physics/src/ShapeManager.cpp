@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDebug>
+
 #include <glm/gtx/norm.hpp>
 
 #include "ShapeInfoUtil.h"
@@ -35,6 +37,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
     const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e4f;  // 100 m cube
     if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED || diagonal > MAX_SHAPE_DIAGONAL_SQUARED) {
+        // qDebug() << "ShapeManager::getShape -- not making shape due to size" << diagonal;
         return NULL;
     }
     DoubleHashKey key = info.getHash();

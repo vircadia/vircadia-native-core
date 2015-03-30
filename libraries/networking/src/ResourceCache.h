@@ -21,6 +21,8 @@
 #include <QSharedPointer>
 #include <QUrl>
 #include <QWeakPointer>
+#include <QReadWriteLock>
+#include <QQueue>
 
 #include <DependencyManager.h>
 
@@ -79,6 +81,9 @@ public:
 
     void refresh(const QUrl& url);
 
+public slots:
+    void checkAsynchronousGets();
+
 protected:
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
     qint64 _unusedResourcesSize = 0;
@@ -89,7 +94,7 @@ protected:
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
     Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-                                                     bool delayLoad = false, void* extra = NULL, bool block = true);
+                                                     bool delayLoad = false, void* extra = NULL);
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -109,6 +114,11 @@ private:
     int _lastLRUKey = 0;
     
     static int _requestLimit;
+
+    void getResourceAsynchronously(const QUrl& url);
+    QReadWriteLock _resourcesToBeGottenLock;
+    QQueue<QUrl> _resourcesToBeGotten;
+
 };
 
 /// Base class for resources.

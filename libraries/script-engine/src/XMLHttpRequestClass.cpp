@@ -22,6 +22,8 @@
 #include "XMLHttpRequestClass.h"
 #include "ScriptEngine.h"
 
+const QString METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/";
+
 Q_DECLARE_METATYPE(QByteArray*)
 
 XMLHttpRequestClass::XMLHttpRequestClass(QScriptEngine* engine) :
@@ -207,7 +209,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
                 notImplemented();
             }
         } else {
-            if (url.toLower().left(33) == "https://metaverse.highfidelity.io/api/") {
+            if (url.toLower().left(METAVERSE_API_URL.length()) == METAVERSE_API_URL) {
                 AccountManager& accountManager = AccountManager::getInstance();
                 
                 if (accountManager.hasValidAccessToken()) {

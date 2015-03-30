@@ -61,21 +61,13 @@ typedef unsigned long long quint64;
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
-const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY = 1U << 2;
-const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY = 1U << 3;
-const quint32 AVATAR_MOTION_STAND_ON_NEARBY_FLOORS = 1U << 4;
-
 const quint32 AVATAR_MOTION_DEFAULTS = 
         AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
 const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | 
-        AVATAR_MOTION_OBEY_LOCAL_GRAVITY | 
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 
 // Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
@@ -300,16 +292,6 @@ public:
     const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
 
-    void togglePhysicsEnabled() { _enablePhysics = !_enablePhysics; }
-    bool isPhysicsEnabled() { return _enablePhysics; }
-    void setPhysicsEnabled(bool enablePhysics) { _enablePhysics = enablePhysics; }
-
-    void lockForRead() { _lock.lockForRead(); }
-    bool tryLockForRead() { return _lock.tryLockForRead(); }
-    void lockForWrite() { _lock.lockForWrite(); }
-    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
-    void unlock() { _lock.unlock(); }
-
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
 
@@ -375,8 +357,8 @@ protected:
     HeadData* _headData;
     HandData* _handData;
 
-    QUrl _faceModelURL = DEFAULT_HEAD_MODEL_URL;
-    QUrl _skeletonModelURL = DEFAULT_BODY_MODEL_URL;
+    QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
+    QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
@@ -409,9 +391,6 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
-
-    QReadWriteLock _lock;
-    bool _enablePhysics = false;
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
