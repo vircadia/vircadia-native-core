@@ -3126,7 +3126,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    bool eyeRelativeCamera = false;
+    // bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +

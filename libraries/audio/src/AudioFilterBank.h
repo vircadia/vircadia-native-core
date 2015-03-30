@@ -88,7 +88,7 @@ public:
     }
 
     void loadProfile(int profileIndex) {
-        if (profileIndex >= 0 && profileIndex < _profileCount) {
+        if (profileIndex >= 0 && profileIndex < (int)_profileCount) {
             
             for (uint32_t i = 0; i < _filterCount; ++i) {
                 FilterParameter p = _profiles[profileIndex][i];

@@ -14,6 +14,7 @@
 
 SimpleMovingAverage::SimpleMovingAverage(int numSamplesToAverage) :
     _numSamples(0),
+    _lastEventTimestamp(0),
     _average(0.0f),
     _eventDeltaAverage(0.0f),
     WEIGHTING(1.0f / numSamplesToAverage),
