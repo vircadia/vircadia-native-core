@@ -65,7 +65,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     }
    
     if (_pipeline._needStateSync) {
-    //    syncPipelineStateCache();
+        syncPipelineStateCache();
         _pipeline._needStateSync = false;
     }
 
@@ -109,6 +109,14 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::updatePipeline() {
+#ifdef DEBUG_GLSTATE
+    if (_pipeline._needStateSync) {
+         State::Cache state;
+         getCurrentGLState(state);
+         State::Signature signature = State::evalSignature(state);
+    }
+#endif
+
     if (_pipeline._invalidProgram) {
         // doing it here is aproblem for calls to glUniform.... so will do it on assing...
         glUseProgram(_pipeline._program);

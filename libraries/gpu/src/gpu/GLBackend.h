@@ -262,6 +262,8 @@ protected:
     void resetPipelineState(State::Signature toBeReset);
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncPipelineStateCache();
+    // Grab the actual gl state into it's gpu::State equivalent. THis is used by the above call syncPipleineStateCache() 
+    void getCurrentGLState(State::Cache& state);
 
     struct PipelineStageState {
 

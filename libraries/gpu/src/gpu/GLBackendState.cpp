@@ -331,9 +331,7 @@ State::BlendArg blendArgFromGL(GLenum blendArg) {
     return State::ONE;
 }
 
-
-void GLBackend::syncPipelineStateCache() {
-    State::Cache state;
+void GLBackend::getCurrentGLState(State::Cache& state) {
     {
         GLint modes[2];
         glGetIntegerv(GL_POLYGON_MODE, modes);
@@ -418,8 +416,11 @@ void GLBackend::syncPipelineStateCache() {
         state.stencilTestBack = State::StencilTest(backRef, backReadMask, comparisonFuncFromGL(backFunc), stencilOpFromGL(backFail), stencilOpFromGL(backDepthFail), stencilOpFromGL(backPass));
     }
     {
-        GLint mask;
-        glGetIntegerv(GL_SAMPLE_COVERAGE, &mask);
+        GLint mask = 0xFFFFFFFF;
+        if (glIsEnabled(GL_SAMPLE_MASK)) {
+            glGetIntegerv(GL_SAMPLE_MASK, &mask);
+            state.sampleMask = mask;
+        }
         state.sampleMask = mask;
     }
     {
@@ -441,7 +442,7 @@ void GLBackend::syncPipelineStateCache() {
         glGetIntegerv(GL_BLEND_EQUATION_RGB, &opRGB);
         glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &opA);
 
-        state.blendFunction = State::BlendFunction(false,
+        state.blendFunction = State::BlendFunction(isEnabled,
             blendArgFromGL(srcRGB), blendOpFromGL(opRGB), blendArgFromGL(dstRGB),
             blendArgFromGL(srcA), blendOpFromGL(opA), blendArgFromGL(dstA));
     }
@@ -455,7 +456,12 @@ void GLBackend::syncPipelineStateCache() {
     }
 
     CHECK_GL_ERROR();
+}
 
+void GLBackend::syncPipelineStateCache() {
+    State::Cache state;
+
+    getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
     
     _pipeline._stateCache = state;
@@ -645,7 +651,12 @@ void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
 
 void GLBackend::do_setStateSampleMask(uint32 mask) {
     if (_pipeline._stateCache.sampleMask != mask) {
-    // TODO
+        if (mask == 0xFFFFFFFF) {
+            glDisable(GL_SAMPLE_MASK);
+        } else {
+            glEnable(GL_SAMPLE_MASK);
+            glSampleMaski(0, mask);
+        }
         _pipeline._stateCache.sampleMask = mask;
     }
 }
