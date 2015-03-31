@@ -11,7 +11,9 @@
 
 var usersWindow = (function () {
 
-    var WINDOW_WIDTH_2D = 160,
+    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+
+        WINDOW_WIDTH_2D = 160,
         WINDOW_MARGIN_2D = 12,
         WINDOW_FONT_2D = { size: 12 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
@@ -22,6 +24,14 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA_2D = 0.7,
         windowPane2D,
         windowHeading2D,
+        MINIMIZE_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MINIMIZE_BUTTON_SVG_WIDTH = 17.1,
+        MINIMIZE_BUTTON_SVG_HEIGHT = 32.5,
+        MINIMIZE_BUTTON_WIDTH_2D = 14,
+        MINIMIZE_BUTTON_HEIGHT_2D = MINIMIZE_BUTTON_WIDTH_2D,
+        MINIMIZE_BUTTON_COLOR_2D = { red: 255, green: 255, blue: 255 },
+        MINIMIZE_BUTTON_ALPHA_2D = 0.9,
+        minimizeButton2D,
         SCROLLBAR_BACKGROUND_WIDTH_2D = 12,
         SCROLLBAR_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
         SCROLLBAR_BACKGROUND_ALPHA_2D = 0.8,
@@ -77,7 +87,6 @@ var usersWindow = (function () {
         scrollbarBarClickedAt,                              // 0.0 .. 1.0
         scrollbarValue = 0.0,                               // 0.0 .. 1.0
 
-        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
         RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
         RADIO_BUTTON_SVG_DIAMETER = 14,
         RADIO_BUTTON_DISPLAY_SCALE = 0.7,                   // 1.0 = windowTextHeight
@@ -121,6 +130,10 @@ var usersWindow = (function () {
         });
         Overlays.editOverlay(windowHeading2D, {
             y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
+        });
+
+        Overlays.editOverlay(minimizeButton2D, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D / 2
         });
 
         scrollbarBackgroundPosition.y = viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight;
@@ -305,6 +318,7 @@ var usersWindow = (function () {
 
         Overlays.editOverlay(windowPane2D, { visible: isVisible });
         Overlays.editOverlay(windowHeading2D, { visible: isVisible });
+        Overlays.editOverlay(minimizeButton2D, { visible: isVisible });
         Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars });
         Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
@@ -495,6 +509,17 @@ var usersWindow = (function () {
             visible: isVisible
         });
 
+        minimizeButton2D = Overlays.addOverlay("image", {
+            x: WINDOW_WIDTH_2D - WINDOW_MARGIN_2D / 2 - MINIMIZE_BUTTON_WIDTH_2D,
+            y: viewportHeight,
+            width: MINIMIZE_BUTTON_WIDTH_2D,
+            height: MINIMIZE_BUTTON_HEIGHT_2D,
+            imageURL: MINIMIZE_BUTTON_SVG,
+            subImage: { x: 0, y: 0, width: MINIMIZE_BUTTON_SVG_WIDTH, height: MINIMIZE_BUTTON_SVG_HEIGHT / 2 },
+            color: MINIMIZE_BUTTON_COLOR_2D,
+            alpha: MINIMIZE_BUTTON_ALPHA_2D
+        });
+
         scrollbarBackgroundPosition = {
             x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D,
             y: viewportHeight
@@ -634,6 +659,7 @@ var usersWindow = (function () {
         Script.clearTimeout(usersTimer);
         Overlays.deleteOverlay(windowPane2D);
         Overlays.deleteOverlay(windowHeading2D);
+        Overlays.deleteOverlay(minimizeButton2D);
         Overlays.deleteOverlay(scrollbarBackground2D);
         Overlays.deleteOverlay(scrollbarBar2D);
         Overlays.deleteOverlay(visibilityHeading2D);
