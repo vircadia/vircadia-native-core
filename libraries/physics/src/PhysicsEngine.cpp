@@ -28,6 +28,9 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
 }
 
 PhysicsEngine::~PhysicsEngine() {
+    if (_characterController) {
+        _characterController->setDynamicsWorld(NULL);
+    }
     // TODO: delete engine components... if we ever plan to create more than one instance
     delete _collisionConfig;
     delete _collisionDispatcher;
@@ -614,8 +617,14 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
 }
 
 void PhysicsEngine::setCharacterController(CharacterController* character) {
-    if (!_characterController) {
+    if (_characterController != character) {
         lock();
+        if (_characterController) {
+            // remove the character from the DynamicsWorld immediately
+            _characterController->setDynamicsWorld(NULL);
+            _characterController = NULL;
+        }
+        // the character will be added to the DynamicsWorld later
         _characterController = character;
         unlock();
     }

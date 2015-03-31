@@ -46,7 +46,7 @@ var diceButton = Overlays.addOverlay("image", {
 var GRAVITY = -3.5;
 var LIFETIME = 300;
 // NOTE: angularVelocity is in radians/sec
-var maxAngularSpeed = Math.PI;
+var MAX_ANGULAR_SPEED = Math.PI;
 
 function shootDice(position, velocity) {
     for (var i = 0; i < NUMBER_OF_DICE; i++) {
@@ -56,7 +56,7 @@ function shootDice(position, velocity) {
           position: position,  
           velocity: velocity, 
           rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
-          angularVelocity: { x: Math.random() * maxAngularSpeed, y: Math.random() * maxAngularSpeed, z: Math.random() * maxAngularSpeed },
+          angularVelocity: { x: Math.random() * MAX_ANGULAR_SPEED, y: Math.random() * MAX_ANGULAR_SPEED, z: Math.random() * MAX_ANGULAR_SPEED },
           lifetime: LIFETIME,
           gravity: {  x: 0, y: GRAVITY, z: 0 },
           shapeType: "box",
