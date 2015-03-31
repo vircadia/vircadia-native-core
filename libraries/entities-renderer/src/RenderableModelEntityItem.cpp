@@ -61,7 +61,7 @@ void RenderableModelEntityItem::remapTextures() {
     }
     
     if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded it's default textures
+        return; // nothing to do if the model has not yet loaded its default textures
     }
     
     if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
@@ -220,7 +220,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     // if we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
     
-        // if we have a previously allocated model, but it's URL doesn't match
+        // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
             result = _model = _myRenderer->updateModel(_model, getModelURL(), getCollisionModelURL());
@@ -387,7 +387,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         // We expect that the collision model will have the same units and will be displaced
-        // from it's origin in the same way the visual model is.  The visual model has
+        // from its origin in the same way the visual model is.  The visual model has
         // been centered and probably scaled.  We take the scaling and offset which were applied
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
