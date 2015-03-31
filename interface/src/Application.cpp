@@ -76,7 +76,7 @@
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
-//#include <ScriptCache.h>
+#include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
@@ -221,7 +221,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     auto geometryCache = DependencyManager::set<GeometryCache>();
-    //auto scriptCache = DependencyManager::set<ScriptCache>();
+    auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
@@ -608,6 +608,7 @@ Application::~Application() {
 
     Menu::getInstance()->deleteLater();
 
+    _physicsEngine.setCharacterController(NULL);
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
@@ -619,7 +620,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
-    //DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
@@ -1519,7 +1520,7 @@ void Application::idle() {
     }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
-    // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
+    // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
@@ -2535,7 +2536,7 @@ bool Application::isHMDMode() const {
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
     
-    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // If our parent window is on the HMD, then don't use its geometry, instead use
     // the "main screen" geometry.
     HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
     if (hmdTools && hmdTools->hasHMDScreen()) {
@@ -3371,7 +3372,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
 void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
-    // Attempt to identify the sender from it's address.
+    // Attempt to identify the sender from its address.
     if (sendingNode) {
         QUuid nodeUUID = sendingNode->getUUID();
 
@@ -3440,7 +3441,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         }
         // store jurisdiction details for later use
         // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
+        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
         // details from the OctreeSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
@@ -3660,17 +3661,56 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         msgBox.exec();
         return false;
     }
-
-    QString message = "Would you like to use this model for part of avatar:\n" + url;
+    
+    // Download the FST file, to attempt to determine its model type
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    qDebug() << "Downloading avatar file at " << url;
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    QByteArray fstContents = reply->readAll();
+    delete reply;
+    QVariantHash fstMapping = FSTReader::readMapping(fstContents);
+    
+    FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
+    
     QMessageBox msgBox;
-
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setWindowTitle("Set Avatar");
-    msgBox.setText(message);
+    QPushButton* headButton = NULL;
+    QPushButton* bodyButton = NULL;
+    QPushButton* bodyAndHeadButton = NULL;
+    
+    QString message;
+    QString typeInfo;
+    switch (modelType) {
+        case FSTReader::HEAD_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar head?");
+            headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
 
-    QPushButton* headButton = msgBox.addButton(tr("Head"), QMessageBox::ActionRole);
-    QPushButton* bodyButton = msgBox.addButton(tr("Body"), QMessageBox::ActionRole);
-    QPushButton* bodyAndHeadButton = msgBox.addButton(tr("Body + Head"), QMessageBox::ActionRole);
+        case FSTReader::BODY_ONLY_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar body?");
+            bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
+
+        case FSTReader::HEAD_AND_BODY_MODEL:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar?");
+            bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+        break;
+        
+        default:
+            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for some part of your avatar head?");
+            headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
+            bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
+            bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
+        break;
+    }
+
+    msgBox.setText(message);
     msgBox.addButton(QMessageBox::Cancel);
 
     msgBox.exec();
@@ -3683,6 +3723,11 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     } else if (msgBox.clickedButton() == bodyButton) {
         qDebug() << "Chose to use for body: " << url;
         _myAvatar->setSkeletonModelURL(url);
+        // if the head is empty, reset it to the default head.
+        if (_myAvatar->getFaceModelURLString().isEmpty()) {
+            _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
+            UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
+        }
         UserActivityLogger::getInstance().changedModel("skeleton", url);
         _myAvatar->sendIdentityPacket();
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {

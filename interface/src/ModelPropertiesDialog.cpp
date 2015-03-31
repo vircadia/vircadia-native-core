@@ -25,7 +25,7 @@
 #include "ModelPropertiesDialog.h"
 
 
-ModelPropertiesDialog::ModelPropertiesDialog(ModelType modelType, const QVariantHash& originalMapping,
+ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
                                              const QString& basePath, const FBXGeometry& geometry) :
 _modelType(modelType),
 _originalMapping(originalMapping),
@@ -46,8 +46,8 @@ _geometry(geometry)
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
     
-    if (_modelType != ENTITY_MODEL) {
-        if (_modelType == ATTACHMENT_MODEL) {
+    if (_modelType != FSTReader::ENTITY_MODEL) {
+        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
             QHBoxLayout* translation = new QHBoxLayout();
             form->addRow("Translation:", translation);
             translation->addWidget(_translationX = createTranslationBox());
@@ -63,7 +63,7 @@ _geometry(geometry)
             form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
             form->addRow("Neck Joint:", _neckJoint = createJointBox());
         }
-        if (_modelType == SKELETON_MODEL) {
+        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
             form->addRow("Root Joint:", _rootJoint = createJointBox());
             form->addRow("Lean Joint:", _leanJoint = createJointBox());
             form->addRow("Head Joint:", _headJoint = createJointBox());
@@ -89,8 +89,14 @@ _geometry(geometry)
     reset();
 }
 
+
+QString ModelPropertiesDialog::getType() const {
+    return FSTReader::getNameFromType(_modelType);
+}
+
 QVariantHash ModelPropertiesDialog::getMapping() const {
     QVariantHash mapping = _originalMapping;
+    mapping.insert(TYPE_FIELD, getType());
     mapping.insert(NAME_FIELD, _name->text());
     mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
     mapping.insert(SCALE_FIELD, QString::number(_scale->value()));
@@ -102,9 +108,9 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
     
-    if (_modelType != ENTITY_MODEL) {
+    if (_modelType != FSTReader::ENTITY_MODEL) {
         QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-        if (_modelType == ATTACHMENT_MODEL) {
+        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
             glm::vec3 pivot;
             if (_pivotAboutCenter->isChecked()) {
                 pivot = (_geometry.meshExtents.minimum + _geometry.meshExtents.maximum) * 0.5f;
@@ -121,7 +127,9 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
             insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
             insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
         }
-        if (_modelType == SKELETON_MODEL) {
+        
+        
+        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
             insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
             insertJointMapping(joints, "jointLean", _leanJoint->currentText());
             insertJointMapping(joints, "jointHead", _headJoint->currentText());
@@ -151,8 +159,8 @@ void ModelPropertiesDialog::reset() {
     
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
     
-    if (_modelType != ENTITY_MODEL) {
-        if (_modelType == ATTACHMENT_MODEL) {
+    if (_modelType != FSTReader::ENTITY_MODEL) {
+        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
             _translationX->setValue(_originalMapping.value(TRANSLATION_X_FIELD).toDouble());
             _translationY->setValue(_originalMapping.value(TRANSLATION_Y_FIELD).toDouble());
             _translationZ->setValue(_originalMapping.value(TRANSLATION_Z_FIELD).toDouble());
@@ -164,7 +172,8 @@ void ModelPropertiesDialog::reset() {
             setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
             setJointText(_neckJoint, jointHash.value("jointNeck").toString());
         }
-        if (_modelType == SKELETON_MODEL) {
+        
+        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
             setJointText(_rootJoint, jointHash.value("jointRoot").toString());
             setJointText(_leanJoint, jointHash.value("jointLean").toString());
             setJointText(_headJoint, jointHash.value("jointHead").toString());
