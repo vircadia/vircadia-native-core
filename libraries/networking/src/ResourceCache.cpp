@@ -134,7 +134,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestLimit <= 0) {
         // wait until a slot becomes available
         sharedItems->_pendingRequests.append(resource);
@@ -147,7 +147,7 @@ void ResourceCache::attemptRequest(Resource* resource) {
 
 void ResourceCache::requestCompleted(Resource* resource) {
     
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
     _requestLimit++;
     
