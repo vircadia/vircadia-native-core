@@ -24,12 +24,17 @@ if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/LibOVR/Lib/Win32/VS2013/libovrd.lib  CACHE TYPE INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS setupapi winmm ws2_32)
 
+  select_library_configurations(${EXTERNAL_NAME_UPPER})
+
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
+
 elseif(APPLE)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/ovr_sdk_macos_0.4.4.tar.gz 
-    URL_MD5 3cf8576d225798608a2aa7219b7ea11e
+    URL http://static.oculus.com/sdk-downloads/ovr_sdk_macos_0.5.0.1.tar.gz 
+    URL_MD5 0a0785a04fb285f64f62267388344ad6
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -37,47 +42,49 @@ elseif(APPLE)
   )
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+  # In theory we should use the Headers path inside the framework, as seen here
+  # but unfortunately Oculus doesn't seem to have figured out automated testing
+  # so they released a framework with missing headers.
+  #set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/LibOVR.framework/Headers/ CACHE TYPE INTERNAL)
 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/libovr.a CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/LibOVR/Lib/Mac/Debug/libovr.a  CACHE TYPE INTERNAL)
+  # Work around the broken framework by using a different path for the headers. 
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/LibOVR.framework/LibOVR CACHE TYPE INTERNAL)
 
-  find_library(COCOA_LIBRARY Cocoa)
-  find_library(IOKIT_LIBRARY IOKit)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS ${COCOA_LIBRARY} ${IOKIT_LIBRARY})
+
 
 elseif(NOT ANDROID)
 
-	# http://static.oculus.com/sdk-downloads/ovr_sdk_linux_0.4.4.tar.xz
-	# ec3bd8cff4a1461b4e21210e7feb0572
-	ExternalProject_Add(
-	  ${EXTERNAL_NAME}
-	  PREFIX ${EXTERNAL_NAME}
-	  GIT_REPOSITORY https://github.com/jherico/OculusSDK.git
-	  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-	  LOG_DOWNLOAD ON
-	)
-	
-	
-    ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
-    ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+  # http://static.oculus.com/sdk-downloads/ovr_sdk_linux_0.4.4.tar.xz
+  # ec3bd8cff4a1461b4e21210e7feb0572
+  ExternalProject_Add(
+    ${EXTERNAL_NAME}
+    PREFIX ${EXTERNAL_NAME}
+    GIT_REPOSITORY https://github.com/jherico/OculusSDK.git
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+    LOG_DOWNLOAD ON
+  )
+  
+  ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+  ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
     
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libovr.a CACHE TYPE INTERNAL)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libovr.a CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE TYPE INTERNAL)
     
-    find_package(Threads REQUIRED)
-    find_package(X11 REQUIRED)
+  find_package(Threads REQUIRED)
+  find_package(X11 REQUIRED)
 
-    # Check for XRandR (modern resolution switching and gamma control)
-    if (NOT X11_Xrandr_FOUND)
-        message(FATAL_ERROR "The RandR library and headers were not found")
-    endif()
+  # Check for XRandR (modern resolution switching and gamma control)
+  if (NOT X11_Xrandr_FOUND)
+      message(FATAL_ERROR "The RandR library and headers were not found")
+  endif()
 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS rt udev ${CMAKE_THREAD_LIBS_INIT} ${X11_X11_LIB} ${X11_Xrandr_LIB})
-	
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS rt udev ${CMAKE_THREAD_LIBS_INIT} ${X11_X11_LIB} ${X11_Xrandr_LIB})
+
+  select_library_configurations(${EXTERNAL_NAME_UPPER})
+  
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
 endif()
 
-select_library_configurations(${EXTERNAL_NAME_UPPER})
-
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
-set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
 

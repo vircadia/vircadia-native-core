@@ -13,7 +13,6 @@
 #ifndef hifi_OculusManager_h
 #define hifi_OculusManager_h
 
-#include <OVR_Version.h>
 #include <OVR_CAPI.h>
 
 #include <ProgramObject.h>

@@ -18,7 +18,7 @@
 #include <QDesktopWidget>
 #include <QGuiApplication>
 #include <QOpenGLFramebufferObject>
-#include <QScreen>
+#include <QScreen>	
 
 #include <glm/glm.hpp>
 
@@ -29,7 +29,6 @@
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
-#include <Kernel/OVR_Types.h>
 #include <OVR_CAPI_GL.h>
 
 #include "Application.h"
@@ -125,7 +124,6 @@ void OculusManager::connect() {
         cfg.OGL.Header.Multisample = 1;
 
         int distortionCaps = 0
-            | ovrDistortionCap_Chromatic
             | ovrDistortionCap_Vignette
             | ovrDistortionCap_Overdrive
             | ovrDistortionCap_TimeWarp;
