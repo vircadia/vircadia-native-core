@@ -166,7 +166,10 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             }
         } else {
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptContents = scriptCache->getScript(url, this, isPending);
+            
+            if (!scriptCache->isInBadScriptList(url)) {
+                scriptContents = scriptCache->getScript(url, this, isPending);
+            }
         }
     }
     
@@ -216,6 +219,12 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
         _waitingOnPreload.insert(url, entityID);
         
     }
+
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+
+    if (isURL && scriptCache->isInBadScriptList(url)) {
+        return QScriptValue(); // no script contents...
+    }
     
     if (scriptContents.isEmpty()) {
         return QScriptValue(); // no script contents...
@@ -227,6 +236,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
         qDebug() << "   " << syntaxCheck.errorMessage() << ":"
                           << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
         qDebug() << "    SCRIPT:" << entityScript;
+
+        scriptCache->addScriptToBadScriptList(url);
+        
         return QScriptValue(); // invalid script
     }
     
@@ -239,6 +251,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
         qDebug() << "    SCRIPT:" << entityScript;
+
+        scriptCache->addScriptToBadScriptList(url);
+
         return QScriptValue(); // invalid script
     } else {
         entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);

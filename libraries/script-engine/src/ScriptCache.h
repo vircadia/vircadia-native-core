@@ -27,6 +27,8 @@ class ScriptCache : public QObject, public Dependency {
 
 public:
     QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending);
+    void addScriptToBadScriptList(const QUrl& url) { _badScripts.insert(url); }
+    bool isInBadScriptList(const QUrl& url) { return _badScripts.contains(url); }
     
 private slots:
     void scriptDownloaded();
@@ -36,6 +38,7 @@ private:
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;
+    QSet<QUrl> _badScripts;
 };
 
 #endif // hifi_ScriptCache_h
