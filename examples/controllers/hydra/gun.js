@@ -282,7 +282,7 @@ function makePlatform(gravity, scale, size) {
                                   z: pos.z - (separation * size / 2.0) + z * separation },
                       dimensions: dimensions, 
                       color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
-                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      velocity: {  x: 0, y: 0.05, z: 0 }, 
                       gravity: {  x: 0, y: gravity, z: 0 }, 
                       lifetime: TARGET_LIFE,
                       damping: 0.1,
@@ -297,7 +297,7 @@ function makePlatform(gravity, scale, size) {
         type: "Box",
         position: { x: pos.x, y: pos.y - separation / 2.0, z: pos.z }, 
         dimensions: { x: 2.0 * separation * size, y: separation / 2.0, z: 2.0 * separation * size },
-        color: { red: 128, green: 128, blue: 128 },
+        color: { red: 100, green: 100, blue: 100 },
         lifetime: TARGET_LIFE
     });
 

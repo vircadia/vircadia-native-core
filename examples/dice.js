@@ -92,7 +92,7 @@ function mousePressEvent(event) {
     var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay == offButton) {
-        deleteDice();
+        Script.stop();
     } else if (clickedOverlay == diceButton) {
         var HOW_HARD = 2.0;
         var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
