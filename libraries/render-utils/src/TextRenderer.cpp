@@ -359,8 +359,12 @@ void Font::setupGL() {
 // FIXME there has to be a cleaner way of doing this
 QStringList Font::tokenizeForWrapping(const QString & str) const {
     QStringList result;
-    foreach(const QString & token1, str.split(" ", QString::SkipEmptyParts)) {
+    foreach(const QString & token1, str.split(" ")) {
         bool lineFeed = false;
+        if (token1.isEmpty()) {
+            result << token1;
+            continue;
+        }
         foreach(const QString & token2, token1.split("\n")) {
             if (lineFeed) {
                 result << "\n";

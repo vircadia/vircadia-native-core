@@ -61,7 +61,7 @@ void RenderableModelEntityItem::remapTextures() {
     }
     
     if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded it's default textures
+        return; // nothing to do if the model has not yet loaded its default textures
     }
     
     if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
@@ -220,7 +220,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     // if we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
     
-        // if we have a previously allocated model, but it's URL doesn't match
+        // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
             result = _model = _myRenderer->updateModel(_model, getModelURL(), getCollisionModelURL());
@@ -266,6 +266,26 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
+    ModelEntityItem::setCollisionModelURL(url);
+    if (_model) {
+        _model->setCollisionModelURL(QUrl(url));
+    }
+}
+
+bool RenderableModelEntityItem::hasCollisionModel() const {
+    if (_model) {
+        return ! _model->getCollisionURL().isEmpty();
+    } else {
+        return !_collisionModelURL.isEmpty();
+    }
+}
+
+const QString& RenderableModelEntityItem::getCollisionModelURL() const {
+    // assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
+    return _collisionModelURL;
+}
+
 bool RenderableModelEntityItem::isReadyToComputeShape() {
 
     if (!_model) {
@@ -273,7 +293,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     }
 
     if (_model->getCollisionURL().isEmpty()) {
-        // no model url, so we're ready to compute a shape.
+        // no collision-model url, so we're ready to compute a shape (of type None).
         return true;
     }
 
@@ -292,15 +312,100 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const FBXGeometry& fbxGeometry = collisionNetworkGeometry->getFBXGeometry();
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+        const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
 
         _points.clear();
-        foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
-            _points << mesh.vertices;
+        unsigned int i = 0;
+
+        // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
+        // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
+        foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
+            // each meshPart is a convex hull
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                QVector<glm::vec3> pointsInPart;
+
+                // run through all the triangles and (uniquely) add each point to the hull
+                unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+                for (unsigned int j = 0; j < triangleCount; j++) {
+                    unsigned int p0Index = meshPart.triangleIndices[j*3];
+                    unsigned int p1Index = meshPart.triangleIndices[j*3+1];
+                    unsigned int p2Index = meshPart.triangleIndices[j*3+2];
+                    glm::vec3 p0 = mesh.vertices[p0Index];
+                    glm::vec3 p1 = mesh.vertices[p1Index];
+                    glm::vec3 p2 = mesh.vertices[p2Index];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                }
+
+                // run through all the quads and (uniquely) add each point to the hull
+                unsigned int quadCount = meshPart.quadIndices.size() / 4;
+                assert((unsigned int)meshPart.quadIndices.size() == quadCount*4);
+                for (unsigned int j = 0; j < quadCount; j++) {
+                    unsigned int p0Index = meshPart.quadIndices[j*4];
+                    unsigned int p1Index = meshPart.quadIndices[j*4+1];
+                    unsigned int p2Index = meshPart.quadIndices[j*4+2];
+                    unsigned int p3Index = meshPart.quadIndices[j*4+3];
+                    glm::vec3 p0 = mesh.vertices[p0Index];
+                    glm::vec3 p1 = mesh.vertices[p1Index];
+                    glm::vec3 p2 = mesh.vertices[p2Index];
+                    glm::vec3 p3 = mesh.vertices[p3Index];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                    if (!pointsInPart.contains(p3)) {
+                        pointsInPart << p3;
+                    }
+                }
+
+                if (pointsInPart.size() == 0) {
+                    qDebug() << "Warning -- meshPart has no faces";
+                    continue;
+                }
+
+                // add next convex hull
+                QVector<glm::vec3> newMeshPoints;
+                _points << newMeshPoints;
+                // add points to the new convex hull
+                _points[i++] << pointsInPart;
+            }
         }
 
-        info.setParams(getShapeType(), 0.5f * getDimensions(), _collisionModelURL);
-        info.setConvexHull(_points);
+        // We expect that the collision model will have the same units and will be displaced
+        // from its origin in the same way the visual model is.  The visual model has
+        // been centered and probably scaled.  We take the scaling and offset which were applied
+        // to the visual model and apply them to the collision model (without regard for the
+        // collision model's extents).
+
+        glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
+
+        // multiply each point by scale before handing the point-set off to the physics engine
+        for (int i = 0; i < _points.size(); i++) {
+            for (int j = 0; j < _points[i].size(); j++) {
+                // compensate for registraion
+                _points[i][j] += _model->getOffset();
+                // scale so the collision points match the model points
+                _points[i][j] *= scale;
+            }
+        }
+
+        info.setParams(getShapeType(), _dimensions, _collisionModelURL);
+        info.setConvexHulls(_points);
     }
 }
 
@@ -308,7 +413,9 @@ ShapeType RenderableModelEntityItem::getShapeType() const {
     // XXX make hull an option in edit.js ?
     if (!_model || _model->getCollisionURL().isEmpty()) {
         return _shapeType;
-    } else {
+    } else if (_points.size() == 1) {
         return SHAPE_TYPE_CONVEX_HULL;
+    } else {
+        return SHAPE_TYPE_COMPOUND;
     }
 }

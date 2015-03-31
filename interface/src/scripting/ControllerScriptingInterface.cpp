@@ -353,7 +353,7 @@ void InputController::update() {
     // TODO for now the InputController is only supporting a JointTracker from a MotionTracker
     MotionTracker* motionTracker = dynamic_cast< MotionTracker*> (DeviceTracker::getDevice(_deviceTrackerId));
     if (motionTracker) {
-        if (_subTrackerId < motionTracker->numJointTrackers()) {
+        if ((int)_subTrackerId < motionTracker->numJointTrackers()) {
             const MotionTracker::JointTracker* joint = motionTracker->getJointTracker(_subTrackerId);
 
             if (joint->isActive()) {
