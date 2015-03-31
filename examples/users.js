@@ -15,6 +15,7 @@ var usersWindow = (function () {
 
         WINDOW_WIDTH_2D = 160,
         WINDOW_MARGIN_2D = 12,
+        WINDOW_BASE_MARGIN_2D = 6,                          // A little less is needed in order look correct
         WINDOW_FONT_2D = { size: 12 },
         WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA_2D = 0.9,
@@ -75,6 +76,7 @@ var usersWindow = (function () {
         MENU_ITEM_AFTER = "Chat...",
 
         isVisible = true,
+        isMinimized = false,
 
         viewportHeight,
         isMirrorDisplay = false,
@@ -98,9 +100,15 @@ var usersWindow = (function () {
             nonUsersHeight,
             maxWindowHeight;
 
+        if (isMinimized) {
+            windowHeight = windowTextHeight + WINDOW_MARGIN_2D + WINDOW_BASE_MARGIN_2D;
+            return;
+        }
+
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
-        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + 2 * WINDOW_MARGIN_2D;
+        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + WINDOW_MARGIN_2D
+            + WINDOW_BASE_MARGIN_2D;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight + nonUsersHeight;
@@ -111,7 +119,7 @@ var usersWindow = (function () {
         windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
 
         // Corresponding number of users to actually display
-        numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
+        numUsersToDisplay = Math.max(Math.floor((windowHeight - nonUsersHeight) / windowLineHeight), 0);
         isUsingScrollbars = 0 < numUsersToDisplay && numUsersToDisplay < linesOfUsers.length;
         if (isUsingScrollbars) {
             firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
@@ -146,10 +154,10 @@ var usersWindow = (function () {
             y: scrollbarBarPosition.y
         });
         Overlays.editOverlay(visibilityHeading2D, {
-            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D
+            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D
         });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
-            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_MARGIN_2D;
+            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D;
             Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { y: y });
             Overlays.editOverlay(visibilityControls2D[i].textOverlay, { y: y });
         }
@@ -179,29 +187,43 @@ var usersWindow = (function () {
             reducedTextWidth,
             i;
 
-        maxTextWidth = WINDOW_WIDTH_2D - (isUsingScrollbars ? SCROLLBAR_BACKGROUND_WIDTH_2D : 0) - 2 * WINDOW_MARGIN_2D;
-        ellipsisWidth = Overlays.textSize(windowPane2D, "...").width;
-        reducedTextWidth = maxTextWidth - ellipsisWidth;
+        if (!isMinimized) {
+            maxTextWidth = WINDOW_WIDTH_2D - (isUsingScrollbars ? SCROLLBAR_BACKGROUND_WIDTH_2D : 0) - 2 * WINDOW_MARGIN_2D;
+            ellipsisWidth = Overlays.textSize(windowPane2D, "...").width;
+            reducedTextWidth = maxTextWidth - ellipsisWidth;
 
-        for (i = 0; i < numUsersToDisplay; i += 1) {
-            user = usersOnline[linesOfUsers[firstUserToDisplay + i]];
-            userText = user.text;
-            textWidth = user.textWidth;
+            for (i = 0; i < numUsersToDisplay; i += 1) {
+                user = usersOnline[linesOfUsers[firstUserToDisplay + i]];
+                userText = user.text;
+                textWidth = user.textWidth;
 
-            if (textWidth > maxTextWidth) {
-                // Trim and append "..." to fit window width
-                maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
-                while (textWidth > reducedTextWidth) {
-                    userText = userText.slice(0, -1);
-                    textWidth = Overlays.textSize(windowPane2D, userText).width;
+                if (textWidth > maxTextWidth) {
+                    // Trim and append "..." to fit window width
+                    maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
+                    while (textWidth > reducedTextWidth) {
+                        userText = userText.slice(0, -1);
+                        textWidth = Overlays.textSize(windowPane2D, userText).width;
+                    }
+                    userText += "...";
                 }
-                userText += "...";
+
+                displayText += "\n" + userText;
             }
 
-            displayText += "\n" + userText;
-        }
+            displayText = displayText.slice(1);  // Remove leading "\n".
 
-        displayText = displayText.slice(1);  // Remove leading "\n".
+            scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
+            Overlays.editOverlay(scrollbarBackground2D, {
+                height: scrollbarBackgroundHeight,
+                visible: isUsingScrollbars
+            });
+            scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight,
+                SCROLLBAR_BAR_MIN_HEIGHT);
+            Overlays.editOverlay(scrollbarBar2D, {
+                height: scrollbarBarHeight,
+                visible: isUsingScrollbars
+            });
+        }
 
         Overlays.editOverlay(windowPane2D, {
             height: windowHeight,
@@ -211,20 +233,6 @@ var usersWindow = (function () {
         Overlays.editOverlay(windowHeading2D, {
             text: linesOfUsers.length > 0 ? "Users online" : "No users online"
         });
-
-        scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
-        Overlays.editOverlay(scrollbarBackground2D, {
-            height: scrollbarBackgroundHeight,
-            visible: isUsingScrollbars
-        });
-        scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight,
-            SCROLLBAR_BAR_MIN_HEIGHT);
-        Overlays.editOverlay(scrollbarBar2D, {
-            height: scrollbarBarHeight,
-            visible: isUsingScrollbars
-        });
-
-        updateOverlayPositions();
     }
 
     function pollUsers() {
@@ -277,6 +285,7 @@ var usersWindow = (function () {
 
                 calculateWindowHeight();
                 updateUsersDisplay();
+                updateOverlayPositions();
 
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
@@ -302,9 +311,22 @@ var usersWindow = (function () {
         }
     }
 
-    function setVisible(visible) {
+    function updateOverlayVisibility() {
         var i;
 
+        Overlays.editOverlay(windowPane2D, { visible: isVisible });
+        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
+        Overlays.editOverlay(minimizeButton2D, { visible: isVisible });
+        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
+        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
+        Overlays.editOverlay(visibilityHeading2D, { visible: isVisible && !isMinimized });
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible && !isMinimized });
+            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { visible: isVisible && !isMinimized });
+        }
+    }
+
+    function setVisible(visible) {
         isVisible = visible;
 
         if (isVisible) {
@@ -316,16 +338,15 @@ var usersWindow = (function () {
             usersTimer = null;
         }
 
-        Overlays.editOverlay(windowPane2D, { visible: isVisible });
-        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
-        Overlays.editOverlay(minimizeButton2D, { visible: isVisible });
-        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars });
-        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars });
-        Overlays.editOverlay(visibilityHeading2D, { visible: isVisible });
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
-            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible });
-            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { visible: isVisible });
-        }
+        updateOverlayVisibility();
+    }
+
+    function setMinimized(minimized) {
+        isMinimized = minimized;
+        Overlays.editOverlay(minimizeButton2D, {
+            subImage: { y: isMinimized ? MINIMIZE_BUTTON_SVG_HEIGHT / 2 : 0 }
+        });
+        updateOverlayVisibility();
     }
 
     function onMenuItemEvent(event) {
@@ -374,6 +395,8 @@ var usersWindow = (function () {
                 //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
+
+            return;
         }
 
         visibilityChanged = false;
@@ -390,6 +413,15 @@ var usersWindow = (function () {
                 visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].textOverlay;
             }
             updateVisibilityControls();
+            return;
+        }
+
+        if (clickedOverlay === minimizeButton2D) {
+            setMinimized(!isMinimized);
+            calculateWindowHeight();
+            updateOverlayPositions();
+            updateUsersDisplay();
+            return;
         }
 
         if (clickedOverlay === scrollbarBar2D) {
@@ -398,6 +430,7 @@ var usersWindow = (function () {
                 backgroundAlpha: SCROLLBAR_BAR_SELECTED_ALPHA_2D
             });
             isMovingScrollbar = true;
+            return;
         }
 
         if (clickedOverlay === scrollbarBackground2D) {
@@ -412,6 +445,7 @@ var usersWindow = (function () {
             firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
             updateOverlayPositions();
             updateUsersDisplay();
+            return;
         }
     }
 
@@ -506,7 +540,7 @@ var usersWindow = (function () {
             backgroundAlpha: 0.0,
             text: "No users online",
             font: WINDOW_FONT_2D,
-            visible: isVisible
+            visible: isVisible && !isMinimized
         });
 
         minimizeButton2D = Overlays.addOverlay("image", {
@@ -517,7 +551,8 @@ var usersWindow = (function () {
             imageURL: MINIMIZE_BUTTON_SVG,
             subImage: { x: 0, y: 0, width: MINIMIZE_BUTTON_SVG_WIDTH, height: MINIMIZE_BUTTON_SVG_HEIGHT / 2 },
             color: MINIMIZE_BUTTON_COLOR_2D,
-            alpha: MINIMIZE_BUTTON_ALPHA_2D
+            alpha: MINIMIZE_BUTTON_ALPHA_2D,
+            visible:  isVisible && !isMinimized
         });
 
         scrollbarBackgroundPosition = {
@@ -532,7 +567,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BACKGROUND_COLOR_2D,
             backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA_2D,
             text: "",
-            visible: isVisible && isUsingScrollbars
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
 
         scrollbarBarPosition = {
@@ -547,7 +582,7 @@ var usersWindow = (function () {
             backgroundColor: SCROLLBAR_BAR_COLOR_2D,
             backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D,
             text: "",
-            visible: isVisible && isUsingScrollbars
+            visible: isVisible && isUsingScrollbars && !isMinimized
         });
 
         visibilityHeading2D = Overlays.addOverlay("text", {
@@ -562,7 +597,7 @@ var usersWindow = (function () {
             backgroundAlpha: 0.0,
             text: "I am visible to:",
             font: WINDOW_FONT_2D,
-            visible: isVisible
+            visible: isVisible && !isMinimized
         });
 
         myVisibility = GlobalServices.findableBy;
@@ -586,7 +621,8 @@ var usersWindow = (function () {
                     height: RADIO_BUTTON_SVG_DIAMETER
                 },
                 color: WINDOW_HEADING_COLOR_2D,
-                alpha: WINDOW_FOREGROUND_ALPHA_2D
+                alpha: WINDOW_FOREGROUND_ALPHA_2D,
+                visible: isVisible && !isMinimized
             }),
             textOverlay: Overlays.addOverlay("text", {
                 x: WINDOW_MARGIN_2D,
@@ -600,7 +636,7 @@ var usersWindow = (function () {
                 backgroundAlpha: 0.0,
                 text: optionText,
                 font: WINDOW_FONT_2D,
-                visible: isVisible
+                visible: isVisible && !isMinimized
             }),
             selected: myVisibility === VISIBILITY_VALUES[0]
         }];
