@@ -864,7 +864,7 @@ void CharacterController::updateShapeIfNecessary() {
 void CharacterController::preSimulation(btScalar timeStep) {
     if (_enabled && _dynamicsWorld) {
         glm::quat rotation = _avatarData->getOrientation();
-        btVector3 _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
+        _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
         glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
         btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
 
