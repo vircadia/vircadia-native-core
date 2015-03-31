@@ -260,11 +260,11 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
         (1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius())) / 0.25f);
     program->setUniformValue(locations[G_LOCATION], -0.990f);
     program->setUniformValue(locations[G2_LOCATION], -0.990f * -0.990f);
-    
-    glFrontFace(GL_CCW);
+
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
     DependencyManager::get<GeometryCache>()->renderSphere(1.0f, 100, 50, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     

@@ -108,6 +108,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     }
 }
 
+#define DEBUG_GLSTATE
 void GLBackend::updatePipeline() {
 #ifdef DEBUG_GLSTATE
     if (_pipeline._needStateSync) {
