@@ -241,7 +241,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
-    auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
+    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
     auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
