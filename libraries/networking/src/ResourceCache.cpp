@@ -70,6 +70,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
                                                     bool delayLoad, void* extra) {
     QSharedPointer<Resource> resource = _resources.value(url);
     if (!resource.isNull()) {
+        removeUnusedResource(resource);
         return resource;
     }
 
@@ -83,16 +84,14 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         return getResource(fallback, QUrl(), delayLoad);
     }
 
-    if (resource.isNull()) {
-        resource = createResource(url, fallback.isValid() ?
-            getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
-        resource->setSelf(resource);
-        resource->setCache(this);
-        _resources.insert(url, resource);
-        
-    } else {
-        removeUnusedResource(resource);
-    }
+    resource = createResource(url, fallback.isValid() ?
+                              getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+    resource->setSelf(resource);
+    resource->setCache(this);
+    _resources.insert(url, resource);
+    removeUnusedResource(resource);
+    resource->ensureLoading();
+
     return resource;
 }
 
