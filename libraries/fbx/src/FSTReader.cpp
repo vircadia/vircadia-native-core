@@ -10,7 +10,6 @@
 //
 
 #include <QBuffer>
-#include <QDebug>
 
 #include "FSTReader.h"
 
