@@ -16,7 +16,6 @@
 
 namespace Setting {
     Manager::~Manager() {
-        
         // Cleanup timer
         stopTimer();
         disconnect(_saveTimer, 0, 0, 0);
