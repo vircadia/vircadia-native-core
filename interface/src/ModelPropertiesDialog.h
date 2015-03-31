@@ -15,6 +15,7 @@
 #include <QDialog>
 
 #include <FBXReader.h>
+#include <FSTReader.h>
 
 #include "ui/ModelsBrowser.h"
 
@@ -28,7 +29,7 @@ class ModelPropertiesDialog : public QDialog {
     Q_OBJECT
     
 public:
-    ModelPropertiesDialog(ModelType modelType, const QVariantHash& originalMapping,
+    ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
                           const QString& basePath, const FBXGeometry& geometry);
     
     QVariantHash getMapping() const;
@@ -43,8 +44,9 @@ private:
     QComboBox* createJointBox(bool withNone = true) const;
     QDoubleSpinBox* createTranslationBox() const;
     void insertJointMapping(QVariantHash& joints, const QString& joint, const QString& name) const;
+    QString getType() const;
     
-    ModelType _modelType;
+    FSTReader::ModelType _modelType;
     QVariantHash _originalMapping;
     QString _basePath;
     FBXGeometry _geometry;
