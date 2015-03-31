@@ -42,8 +42,6 @@ const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
-extern const QUrl DEFAULT_NODE_AUTH_URL;
-
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";

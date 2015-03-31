@@ -27,6 +27,7 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
+#include <NetworkingConstants.h>
 #include <PacketHeaders.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
@@ -181,7 +182,7 @@ bool DomainServer::optionallySetupOAuth() {
     
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
-        _oauthProviderURL = DEFAULT_NODE_AUTH_URL;
+        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
     }
     
     AccountManager& accountManager = AccountManager::getInstance();
