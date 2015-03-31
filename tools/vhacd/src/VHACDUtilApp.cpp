@@ -98,6 +98,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption outputFilenameOption("o", "output file", "filename.obj");
     parser.addOption(outputFilenameOption);
 
+    const QCommandLineOption startMeshIndexOption("s", "start-mesh index", "0");
+    parser.addOption(startMeshIndexOption);
+
+    const QCommandLineOption endMeshIndexOption("e", "end-mesh index", "0");
+    parser.addOption(endMeshIndexOption);
+
+    const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh size to consider", "0");
+    parser.addOption(minimumMeshSizeOption);
+
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -138,13 +147,31 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
+    int startMeshIndex = -1;
+    // check for an assignment pool passed on the command line or in the config
+    if (parser.isSet(startMeshIndexOption)) {
+        startMeshIndex = parser.value(startMeshIndexOption).toInt();
+    }
+
+    int endMeshIndex = -1;
+    // check for an assignment pool passed on the command line or in the config
+    if (parser.isSet(endMeshIndexOption)) {
+        endMeshIndex = parser.value(endMeshIndexOption).toInt();
+    }
+
+    float minimumMeshSize = 0.0f;
+    // check for an assignment pool passed on the command line or in the config
+    if (parser.isSet(minimumMeshSizeOption)) {
+        minimumMeshSize = parser.value(minimumMeshSizeOption).toFloat();
+    }
+
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
     params.m_resolution = 100000; // 100000
     params.m_depth = 20; // 20
     params.m_concavity = 0.001; // 0.001
-    params.m_delta = 0.01; // 0.05
+    params.m_delta = 0.05; // 0.05
     params.m_planeDownsampling = 4; // 4
     params.m_convexhullDownsampling = 4; // 4
     params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
@@ -153,7 +180,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
     params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
     params.m_maxNumVerticesPerCH = 64; // 64
-    params.m_minVolumePerCH = 0.00001; // 0.0001
+    params.m_minVolumePerCH = 0.0001; // 0.0001
     params.m_callback = 0; // 0
     params.m_logger = 0; // 0
     params.m_convexhullApproximation = true; // true
@@ -172,7 +199,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     begin = std::chrono::high_resolution_clock::now();
 
 
-    if (!vUtil.computeVHACD(&fbx, params, &results)){
+    if (!vUtil.computeVHACD(&fbx, params, &results, startMeshIndex, endMeshIndex, minimumMeshSize)) {
         cout << "Compute Failed...";
     }
     end = std::chrono::high_resolution_clock::now();
