@@ -329,7 +329,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 // run through all the triangles and (uniquely) add each point to the hull
                 unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-                assert((unsigned int)meshPart.triangleIndices.size() == triangleCount*3);
                 for (unsigned int j = 0; j < triangleCount; j++) {
                     unsigned int p0Index = meshPart.triangleIndices[j*3];
                     unsigned int p1Index = meshPart.triangleIndices[j*3+1];
