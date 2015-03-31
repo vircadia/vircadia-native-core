@@ -23,7 +23,23 @@
 class Camera;
 class PalmData;
 class Text3DOverlay;
-// #define CLIENT_DISTORTION 1
+
+// Uncomment this to enable client side distortion.  NOT recommended since
+// the Oculus SDK will ideally provide the best practices for distortion in
+// in terms of performance and quality, and by using it we will get updated
+// best practices for free with new runtime releases.
+// #define OVR_CLIENT_DISTORTION 1
+
+
+// On Win32 platforms, enabling Direct HMD requires that the SDK be
+// initialized before the GL context is set up, but this breaks v-sync
+// for any application that has a Direct mode enable Rift connected
+// but is not rendering to it.  For the time being I'm setting this as
+// a macro enabled mechanism which changes where the SDK is initialized.
+// To enable Direct HMD mode, you can un-comment this, but with the
+// caveat that it will break v-sync in NON-VR mode if you have an Oculus
+// Rift connect and in Direct mode
+// #define OVR_DIRECT_MODE 1
 
 
 /// Handles interaction with the Oculus Rift.
@@ -58,7 +74,9 @@ public:
     static int getHMDScreen();
     
 private:
-#ifdef CLIENT_DISTORTION
+    static void initSdk();
+    static void shutdownSdk();
+#ifdef OVR_CLIENT_DISTORTION
     static void generateDistortionMesh();
     static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
     struct DistortionVertex {
@@ -108,6 +126,7 @@ private:
     static bool _frameTimingActive;
     static Camera* _camera;
     static ovrEyeType _activeEye;
+    static bool _hswDismissed;
 
     static void calibrate(const glm::vec3 position, const glm::quat orientation);
     enum CalibrationState {

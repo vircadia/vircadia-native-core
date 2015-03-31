@@ -50,7 +50,7 @@ void for_each_eye(const ovrHmd & hmd, Function function) {
     }
 }
 
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
 ProgramObject OculusManager::_program;
 int OculusManager::_textureLocation;
 int OculusManager::_eyeToSourceUVScaleLocation;
@@ -82,6 +82,7 @@ unsigned int OculusManager::_frameIndex = 0;
 bool OculusManager::_frameTimingActive = false;
 Camera* OculusManager::_camera = NULL;
 ovrEyeType OculusManager::_activeEye = ovrEye_Count;
+bool OculusManager::_hswDismissed = false;
 
 float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
@@ -96,7 +97,7 @@ quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = NULL;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 
-void OculusManager::init() {
+void OculusManager::initSdk() {
     ovr_Initialize();
     _ovrHmd = ovrHmd_Create(0);
     if (!_ovrHmd) {
@@ -104,7 +105,21 @@ void OculusManager::init() {
     }
 }
 
+void OculusManager::shutdownSdk() {
+    ovrHmd_Destroy(_ovrHmd);
+    ovr_Shutdown();
+}
+
+void OculusManager::init() {
+#ifdef OVR_DIRECT_MODE
+	initSdk();
+#endif
+}
+
 void OculusManager::connect() {
+#ifndef OVR_DIRECT_MODE
+	initSdk();
+#endif
     _calibrationState = UNCALIBRATED;
     qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
     if (_ovrHmd) {
@@ -157,7 +172,7 @@ void OculusManager::connect() {
             _camera = new Camera;
             configureCamera(*_camera, 0, 0); // no need to use screen dimensions; they're ignored
         }
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
         if (!_programInitialized) {
             // Shader program
             _programInitialized = true;
@@ -195,11 +210,15 @@ void OculusManager::connect() {
 void OculusManager::disconnect() {
     if (_isConnected) {
         _isConnected = false;
-        //ovrHmd_Destroy(_ovrHmd);
-        //ovr_Shutdown();
+        // Prepare to potentially have to dismiss the HSW again
+        // if the user re-enables VR
+        _hswDismissed = false;
+#ifndef OVR_DIRECT_MODE
+        shutdownSdk();
+#endif
 
+#ifdef OVR_CLIENT_DISTORTION
         //Free the distortion mesh data
-#ifdef CLIENT_DISTORTION
         for (int i = 0; i < ovrEye_Count; i++) {
             if (_vertices[i] != 0) {
                 glDeleteBuffers(1, &(_vertices[i]));
@@ -330,7 +349,7 @@ void OculusManager::abandonCalibration() {
     }
 }
 
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
 void OculusManager::generateDistortionMesh() {
 
     //Check if we already have the distortion mesh
@@ -399,14 +418,14 @@ void OculusManager::beginFrameTiming() {
         printf("WARNING: Called OculusManager::beginFrameTiming() twice in a row, need to call OculusManager::endFrameTiming().");
     }
 
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
     _hmdFrameTiming = ovrHmd_BeginFrameTiming(_ovrHmd, _frameIndex);
 #endif
    _frameTimingActive = true;
 }
 
 bool OculusManager::allowSwap() {
-#ifdef CLIENT_DISTORTION 
+#ifdef OVR_CLIENT_DISTORTION
     return true;
 #else
     return false;
@@ -415,7 +434,7 @@ bool OculusManager::allowSwap() {
 }
 //Ends frame timing
 void OculusManager::endFrameTiming() {
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
     ovrHmd_EndFrameTiming(_ovrHmd);
 #endif
     _frameIndex++;
@@ -432,6 +451,7 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
     auto glCanvas = Application::getInstance()->getGLWidget();
 
+#ifdef OVR_DIRECT_MODE
     static bool attached = false;
     if (!attached) {
         attached = true;
@@ -440,6 +460,25 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
             ovrHmd_AttachToWindow(_ovrHmd, nativeWindowHandle, nullptr, nullptr);
         }
     }
+#endif
+    
+#ifndef OVR_CLIENT_DISTORTION
+    // FIXME:  we need a better way of responding to the HSW.  In particular
+    // we need to ensure that it's only displayed once per session, rather than
+    // every time the user toggles VR mode, and we need to hook it up to actual
+    // keyboard input.  OVR claim they are refactoring HSW
+    // https://forums.oculus.com/viewtopic.php?f=20&t=21720#p258599
+    static ovrHSWDisplayState hasWarningState;
+    if (!_hswDismissed) {
+        ovrHmd_GetHSWDisplayState(_ovrHmd, &hasWarningState);
+        if (hasWarningState.Displayed) {
+            ovrHmd_DismissHSWDisplay(_ovrHmd);
+        } else {
+            _hswDismissed = true;
+        }
+    }
+#endif
+    
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -554,7 +593,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // restore our normal viewport
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
 
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
     //Wait till time-warp to reduce latency
     ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
 
@@ -579,7 +618,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #endif
 }
 
-#ifdef CLIENT_DISTORTION
+#ifdef OVR_CLIENT_DISTORTION
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
