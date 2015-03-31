@@ -97,7 +97,7 @@ Model::~Model() {
 Model::RenderPipelineLib Model::_renderPipelineLib;
 const GLint MATERIAL_GPU_SLOT = 3;
 
-void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey& key,
+void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     gpu::ShaderPointer& vertexShader,
     gpu::ShaderPointer& pixelShader ) {
 
@@ -133,12 +133,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey& key,
     state->setBlendFunction(key.isTranslucent(),
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-    auto it = insert(value_type(key.getRaw(),
-        RenderPipeline(
-            gpu::PipelinePointer( gpu::Pipeline::create(program, state) ),
-            std::shared_ptr<Locations>(locations)
-        )));
+    auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    auto it = insert(value_type(key.getRaw(), RenderPipeline(pipeline, std::shared_ptr<Locations>(locations))));
 
 }
 

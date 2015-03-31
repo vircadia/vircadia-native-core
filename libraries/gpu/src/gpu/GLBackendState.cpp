@@ -94,7 +94,7 @@ void generateDepthBias(GLBackend::GLState::Commands& commands, const State& stat
      commands.push_back(CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(state.getDepthBias(), state.getDepthBiasSlopeScale()))));
 }
 
-void generateDepthTest(GLBackend::GLState::Commands& commands, State::DepthTest& test) {
+void generateDepthTest(GLBackend::GLState::Commands& commands, const State::DepthTest& test) {
     commands.push_back(CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, int32(test.getRaw()))));
 }
 
@@ -142,6 +142,76 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
     bool blendState = false;
 
     // go thorugh the list of state fields in the State and record the corresponding gl command
+    for (int i = 0; i < State::NUM_FIELDS; i++) {
+        if (state.getSignature()[i]) {
+            switch(i) {
+                case State::FILL_MODE: {
+                    generateFillMode(object->_commands, state.getFillMode());
+                    break;
+                }
+                case State::CULL_MODE: {
+                    generateCullMode(object->_commands, state.getCullMode());
+                    break;
+                }
+                case State::DEPTH_BIAS:
+                case State::DEPTH_BIAS_SLOPE_SCALE: {
+                    depthBias = true;
+                    break;
+                }
+                case State::FRONT_FACE_CLOCKWISE: {
+                    generateFrontFaceClockwise(object->_commands, state.isFrontFaceClockwise());
+                    break;
+                }
+                case State::DEPTH_CLIP_ENABLE: {
+                    generateDepthClipEnable(object->_commands, state.isDepthClipEnable());
+                    break;
+                }
+                case State::SCISSOR_ENABLE: {
+                    generateScissorEnable(object->_commands, state.isScissorEnable());
+                    break;
+                }
+                case State::MULTISAMPLE_ENABLE: {
+                    generateMultisampleEnable(object->_commands, state.isMultisampleEnable());
+                    break;
+                }
+                case State::ANTIALISED_LINE_ENABLE: {
+                    generateAntialiasedLineEnable(object->_commands, state.isAntialiasedLineEnable());
+                    break;
+                }
+                case State::DEPTH_TEST: {
+                    generateDepthTest(object->_commands, state.getDepthTest());
+                    break;
+                }
+                    
+                case State::STENCIL_ACTIVATION:
+                case State::STENCIL_TEST_FRONT:
+                case State::STENCIL_TEST_BACK: {
+                    stencilState = true;
+                    break;
+                }
+                    
+                case State::SAMPLE_MASK: {
+                    generateSampleMask(object->_commands, state.getSampleMask());
+                    break;
+                }
+                case State::ALPHA_TO_COVERAGE_ENABLE: {
+                    generateAlphaToCoverageEnable(object->_commands, state.isAlphaToCoverageEnabled());
+                    break;
+                }
+                    
+                case State::BLEND_FUNCTION: {
+                    generateBlend(object->_commands, state);
+                    break;
+                }
+                    
+                case State::COLOR_WRITE_MASK: {
+                    generateColorWriteMask(object->_commands, state.getColorWriteMask());
+                    break;
+                }
+            }
+        }
+    }
+/*
     for (auto field: state.getFields()) {
         switch(field.first) {
         case State::FILL_MODE: {
@@ -210,7 +280,7 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
 
         }
     }
-
+*/
     if (depthBias) {
         generateDepthBias(object->_commands, state);
     }
@@ -417,10 +487,13 @@ void GLBackend::getCurrentGLState(State::Cache& state) {
     }
     {
         GLint mask = 0xFFFFFFFF;
+        
+#ifdef GPU_PROFILE_CORE
         if (glIsEnabled(GL_SAMPLE_MASK)) {
             glGetIntegerv(GL_SAMPLE_MASK, &mask);
             state.sampleMask = mask;
         }
+#endif
         state.sampleMask = mask;
     }
     {
@@ -651,12 +724,14 @@ void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
 
 void GLBackend::do_setStateSampleMask(uint32 mask) {
     if (_pipeline._stateCache.sampleMask != mask) {
+#ifdef GPU_CORE_PROFILE
         if (mask == 0xFFFFFFFF) {
             glDisable(GL_SAMPLE_MASK);
         } else {
             glEnable(GL_SAMPLE_MASK);
             glSampleMaski(0, mask);
         }
+#endif
         _pipeline._stateCache.sampleMask = mask;
     }
 }

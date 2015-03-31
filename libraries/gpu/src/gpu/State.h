@@ -1,5 +1,5 @@
 //
-//  Pipeline.h
+//  State
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 3/8/2015.
@@ -14,6 +14,7 @@
 #include "Format.h"
 
 #include <memory>
+#include <vector>
 #include <unordered_map>
 #include <bitset>
  
@@ -144,8 +145,9 @@ public:
      public:
 
         StencilTest(uint8 reference = 0, uint8 readMask =0xFF, ComparisonFunction func = ALWAYS, StencilOp failOp = STENCIL_OP_KEEP, StencilOp depthFailOp = STENCIL_OP_KEEP, StencilOp passOp = STENCIL_OP_KEEP) :
-            _reference(reference), _readMask(readMask),
-            _functionAndOperations(func | (failOp << FAIL_OP_OFFSET) | (depthFailOp << DEPTH_FAIL_OP_OFFSET) | (passOp << PASS_OP_OFFSET)) {}
+             _functionAndOperations(func | (failOp << FAIL_OP_OFFSET) | (depthFailOp << DEPTH_FAIL_OP_OFFSET) | (passOp << PASS_OP_OFFSET)),
+            _reference(reference), _readMask(readMask)
+            {}
 
         ComparisonFunction getFunction() const { return ComparisonFunction(_functionAndOperations & FUNC_MASK); }
         StencilOp getFailOp() const { return StencilOp((_functionAndOperations & FAIL_OP_MASK) >> FAIL_OP_OFFSET); }
@@ -252,7 +254,82 @@ public:
 
     // The unique default values for all the fields
     static const Cache DEFAULT;
-
+    void setFillMode(FillMode fill) { set(FILL_MODE, DEFAULT.fillMode, fill, _values.fillMode); }
+    FillMode getFillMode() const { return _values.fillMode; }
+    
+    void setCullMode(CullMode cull)  { set(CULL_MODE, DEFAULT.cullMode, cull, _values.cullMode); }
+    CullMode getCullMode() const { return _values.cullMode; }
+    
+    void setFrontFaceClockwise(bool isClockwise) { set(FRONT_FACE_CLOCKWISE, DEFAULT.frontFaceClockwise, isClockwise, _values.frontFaceClockwise); }
+    bool isFrontFaceClockwise() const { return _values.frontFaceClockwise; }
+    
+    void setDepthClipEnable(bool enable) { set(DEPTH_CLIP_ENABLE, DEFAULT.depthClipEnable, enable, _values.depthClipEnable); }
+    bool isDepthClipEnable() const { return _values.depthClipEnable; }
+    
+    void setScissorEnable(bool enable) { set(SCISSOR_ENABLE, DEFAULT.scissorEnable, enable, _values.scissorEnable); }
+    bool isScissorEnable() const { return _values.scissorEnable; }
+    
+    void setMultisampleEnable(bool enable) { set(MULTISAMPLE_ENABLE, DEFAULT.multisampleEnable, enable, _values.multisampleEnable); }
+    bool isMultisampleEnable() const { return _values.multisampleEnable; }
+    
+    void setAntialiasedLineEnable(bool enable) { set(ANTIALISED_LINE_ENABLE, DEFAULT.antialisedLineEnable, enable, _values.antialisedLineEnable); }
+    bool isAntialiasedLineEnable() const { return _values.antialisedLineEnable; }
+    
+    // Depth Bias
+    void setDepthBias(float bias) { set(DEPTH_BIAS, DEFAULT.depthBias, bias, _values.depthBias); }
+    float getDepthBias() const { return _values.depthBias; }
+    
+    void setDepthBiasSlopeScale(float scale) { set(DEPTH_BIAS_SLOPE_SCALE, DEFAULT.depthBiasSlopeScale, scale, _values.depthBiasSlopeScale); }
+    float getDepthBiasSlopeScale() const { return _values.depthBiasSlopeScale; }
+    
+    // Depth Test
+    void setDepthTest(DepthTest depthTest) { set(DEPTH_TEST, DEFAULT.depthTest, depthTest, _values.depthTest); }
+    void setDepthTest(bool enable, bool writeMask, ComparisonFunction func) { setDepthTest(DepthTest(enable, writeMask, func)); }
+    DepthTest getDepthTest() const { return _values.depthTest; }
+    
+    bool isDepthTestEnabled() const { return getDepthTest().isEnabled(); }
+    bool getDepthTestWriteMask() const { return getDepthTest().getWriteMask(); }
+    ComparisonFunction getDepthTestFunc() const { return getDepthTest().getFunction(); }
+    
+    // Stencil test
+    void setStencilTest(bool enabled, uint8 frontWriteMask, StencilTest frontTest, uint8 backWriteMask, StencilTest backTest) {
+        set(STENCIL_ACTIVATION, DEFAULT.stencilActivation, StencilActivation(enabled, frontWriteMask, backWriteMask), _values.stencilActivation);
+        set(STENCIL_TEST_FRONT, DEFAULT.stencilTestFront, frontTest, _values.stencilTestFront);
+        set(STENCIL_TEST_BACK, DEFAULT.stencilTestBack, backTest, _values.stencilTestBack); }
+    void setStencilTest(bool enabled, uint8 frontWriteMask, StencilTest frontTest) {
+        setStencilTest(enabled, frontWriteMask, frontTest, frontWriteMask, frontTest); }
+    
+    StencilActivation getStencilActivation() const { return _values.stencilActivation; }
+    StencilTest getStencilTestFront() const { return _values.stencilTestFront; }
+    StencilTest getStencilTestBack() const { return _values.stencilTestBack; }
+    
+    bool isStencilEnabled() const { return getStencilActivation().isEnabled(); }
+    uint8 getStencilWriteMaskFront() const { return getStencilActivation().getWriteMaskFront(); }
+    uint8 getStencilWriteMaskBack() const { return getStencilActivation().getWriteMaskBack(); }
+    
+    // Alpha to coverage
+    void setAlphaToCoverageEnable(bool enable) { set(ALPHA_TO_COVERAGE_ENABLE, DEFAULT.alphaToCoverageEnable, enable, _values.alphaToCoverageEnable); }
+    bool isAlphaToCoverageEnabled() const { return _values.alphaToCoverageEnable; }
+    
+    // Sample mask
+    void setSampleMask(uint32 mask) { set(SAMPLE_MASK, DEFAULT.sampleMask, mask, _values.sampleMask); }
+    uint32 getSampleMask() const { return _values.sampleMask; }
+    
+    // Blend Function
+    void setBlendFunction(BlendFunction function) { set(BLEND_FUNCTION, DEFAULT.blendFunction, function, _values.blendFunction); }
+    BlendFunction getBlendFunction() const { return _values.blendFunction; }
+    
+    void setBlendFunction(bool enabled, BlendArg sourceColor, BlendOp operationColor, BlendArg destinationColor, BlendArg sourceAlpha, BlendOp operationAlpha, BlendArg destinationAlpha) {
+        setBlendFunction(BlendFunction(enabled, sourceColor, operationColor, destinationColor, sourceAlpha, operationAlpha, destinationAlpha)); }
+    void setBlendFunction(bool enabled, BlendArg source, BlendOp operation, BlendArg destination) {
+        setBlendFunction(BlendFunction(enabled, source, operation, destination)); }
+    
+    bool isBlendEnabled() const { return getBlendFunction().isEnabled(); }
+    
+    // Color write mask
+    void setColorWriteMask(int32 mask) { set<uint32>(COLOR_WRITE_MASK, DEFAULT.colorWriteMask, mask, _values.colorWriteMask); }
+    uint32 getColorWriteMask() const { return _values.colorWriteMask; }
+/*
     void setFillMode(FillMode fill) { set(FILL_MODE, DEFAULT.fillMode, fill); }
     FillMode getFillMode() const { return get(FILL_MODE, DEFAULT.fillMode); }
  
@@ -328,7 +405,7 @@ public:
     // Color write mask
     void setColorWriteMask(int32 mask) { set<uint32>(COLOR_WRITE_MASK, DEFAULT.colorWriteMask, mask); }
     uint32 getColorWriteMask() const { return get<uint32>(COLOR_WRITE_MASK, DEFAULT.colorWriteMask); }
-
+*/
     // The state values are stored in a Map called FieldMap
     // only the fields with non default value are saved
     
@@ -371,26 +448,12 @@ public:
         };
 
         template <typename T> void uncast(T v) { _integer = v; }
-        template <> void State::Value::uncast<int>(int v)  { _integer = v; }
-        template <> void State::Value::uncast<float>(float v)  { _float = v; }
-        template <> void State::Value::uncast<unsigned int>(unsigned int v)  { _unsigned_integer = v; }
-        template <> void State::Value::uncast<DepthTest>(DepthTest v) { _integer = v.getRaw(); }
-        template <> void State::Value::uncast<StencilActivation>(StencilActivation v) { _integer = v.getRaw(); }
-        template <> void State::Value::uncast<StencilTest>(StencilTest v) { _integer = v.getRaw(); }
-        template <> void State::Value::uncast<BlendFunction>(BlendFunction v) { _integer = v.getRaw(); }
 
-        template <typename T> T cast() const;
-        template <> int State::Value::cast<int>() const { return _integer; }
-        template <> float State::Value::cast<float>() const { return _float; }
-        template <> unsigned int State::Value::cast<unsigned int>() const { return _unsigned_integer; }
-        template <> DepthTest State::Value::cast<DepthTest>() const { return DepthTest(_integer); }
-        template <> StencilActivation State::Value::cast<StencilActivation>() const { return StencilActivation(_integer); }
-        template <> StencilTest State::Value::cast<StencilTest>() const { return StencilTest(_integer); }
-        template <> BlendFunction State::Value::cast<BlendFunction>() const { return BlendFunction(_integer); }
+        template <typename T> T cast() const { return T(_integer); }
     };
 
     // The field map type
-    typedef std::unordered_map<Field, Value> FieldMap; 
+    typedef std::unordered_map<int32, Value> FieldMap;
 
     const FieldMap& getFields() const { return _fields; }
 
@@ -405,8 +468,20 @@ public:
 protected:
     State(const State& state);
     State& operator=(const State& state);
+    
+    template <typename T> void set(Field field, T defaultValue, T value, T& dest) {
+        dest = value;
+        if (value == defaultValue) {
+            //_fields.erase(field);
+            _signature.reset(field);
+        } else {
+            //_fields[field].uncast(value);
+            _signature.set(field);
+        }
+        _stamp++;
+    }
 
-    template <class T> void set(Field field, T defaultValue, T value) {
+    template <typename T> void set(Field field, T defaultValue, T value) {
         if (value == defaultValue) {
             _fields.erase(field);
             _signature.reset(field);
@@ -417,7 +492,7 @@ protected:
         _stamp++;
     }
 
-    template <class T> T get(Field field, T defaultValue) const {
+    template <typename T> T get(Field field, T defaultValue) const {
         auto found = _fields.find(field);
         if (found != _fields.end()) {
             return (*found).second.cast<T>();
@@ -426,6 +501,7 @@ protected:
     }
 
     FieldMap _fields;
+    Cache _values;
     Signature _signature{0};
     Stamp _stamp{0};
 
@@ -436,7 +512,22 @@ protected:
     friend class Backend;
 };
 
+    template <> void State::Value::uncast<int>(int v)  { _integer = v; }
+    template <> void State::Value::uncast<float>(float v)  { _float = v; }
+    template <> void State::Value::uncast<unsigned int>(unsigned int v)  { _unsigned_integer = v; }
+    template <> void State::Value::uncast<State::DepthTest>(State::DepthTest v) { _integer = v.getRaw(); }
+    template <> void State::Value::uncast<State::StencilActivation>(State::StencilActivation v) { _integer = v.getRaw(); }
+    template <> void State::Value::uncast<State::StencilTest>(State::StencilTest v) { _integer = v.getRaw(); }
+    template <> void State::Value::uncast<State::BlendFunction>(State::BlendFunction v) { _integer = v.getRaw(); }
 
+    template <> int State::Value::cast<int>() const { return _integer; }
+    template <> float State::Value::cast<float>() const { return _float; }
+    template <> unsigned int State::Value::cast<unsigned int>() const { return _unsigned_integer; }
+    template <> State::DepthTest State::Value::cast<State::DepthTest>() const { return DepthTest(_integer); }
+    template <> State::StencilActivation State::Value::cast<State::StencilActivation>() const { return StencilActivation(_integer); }
+    template <> State::StencilTest State::Value::cast<State::StencilTest>() const { return StencilTest(_integer); }
+    template <> State::BlendFunction State::Value::cast<State::BlendFunction>() const { return BlendFunction(_integer); }
+ 
 typedef std::shared_ptr< State > StatePointer;
 typedef std::vector< StatePointer > States;
 

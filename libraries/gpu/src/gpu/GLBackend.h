@@ -86,7 +86,7 @@ public:
 
         template <class T> class Command1 : public Command {
         public:
-            typedef void (GLBackend::*GLFunction)(typename T);
+            typedef void (GLBackend::*GLFunction)(T);
             void run(GLBackend* backend) { (backend->*(_func))(_param); }
             Command1(GLFunction func, T param) : _func(func), _param(param) {};
             GLFunction _func;
@@ -94,7 +94,7 @@ public:
         };
         template <class T, class U> class Command2 : public Command {
         public:
-            typedef void (GLBackend::*GLFunction)(typename T, typename U);
+            typedef void (GLBackend::*GLFunction)(T, U);
             void run(GLBackend* backend) { (backend->*(_func))(_param0, _param1); }
             Command2(GLFunction func, T param0, U param1) : _func(func), _param0(param0), _param1(param1) {};
             GLFunction _func;
@@ -104,7 +104,7 @@ public:
 
         template <class T, class U, class V> class Command3 : public Command {
         public:
-            typedef void (GLBackend::*GLFunction)(typename T, typename U, typename V);
+            typedef void (GLBackend::*GLFunction)(T, U, V);
             void run(GLBackend* backend) { (backend->*(_func))(_param0, _param1, _param2); }
             Command3(GLFunction func, T param0, U param1, V param2) : _func(func), _param0(param0), _param1(param1), _param2(param2) {};
             GLFunction _func;
@@ -283,8 +283,8 @@ protected:
             _pipeline(),
             _program(0),
             _invalidProgram(false),
-            _stateSignatureCache(0),
             _stateCache(State::DEFAULT),
+            _stateSignatureCache(0),
             _state(nullptr),
             _invalidState(false),
             _needStateSync(true)

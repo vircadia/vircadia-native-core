@@ -505,7 +505,7 @@ private:
     public:
         gpu::PipelinePointer _pipeline;
         std::shared_ptr<Locations> _locations;
-        RenderPipeline(gpu::PipelinePointer& pipeline, std::shared_ptr<Locations>& locations) :
+        RenderPipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
             _pipeline(pipeline), _locations(locations) {}
     };
 
@@ -515,7 +515,7 @@ private:
         typedef RenderKey Key;
 
         
-        void addRenderPipeline(Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+        void addRenderPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
 
         void initLocations(gpu::ShaderPointer& program, Locations& locations);
     };
