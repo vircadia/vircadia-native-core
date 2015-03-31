@@ -48,14 +48,14 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 // ResourceCache derived classes. Since we can't count on the ordering of
 // static members destruction, we need to use this Dependency manager implemented
 // object instead
-class ResouceCacheSharedItems : public Dependency  {
+class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 public:
     QList<QPointer<Resource> > _pendingRequests;
     QList<Resource*> _loadingRequests;
 private:
-    ResouceCacheSharedItems() { }
-    virtual ~ResouceCacheSharedItems() { }
+    ResourceCacheSharedItems() { }
+    virtual ~ResourceCacheSharedItems() { }
 };
 
 
@@ -71,10 +71,10 @@ public:
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
     static const QList<Resource*>& getLoadingRequests() 
-        { return DependencyManager::get<ResouceCacheSharedItems>()->_loadingRequests; }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->_loadingRequests; }
 
     static int getPendingRequestCount() 
-        { return DependencyManager::get<ResouceCacheSharedItems>()->_pendingRequests.size(); }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->_pendingRequests.size(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();

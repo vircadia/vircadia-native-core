@@ -45,7 +45,7 @@ Agent::Agent(const QByteArray& packet) :
     
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    DependencyManager::set<ResouceCacheSharedItems>();
+    DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 }
 
