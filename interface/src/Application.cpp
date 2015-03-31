@@ -1515,7 +1515,7 @@ void Application::idle() {
     }
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
-    // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing
+    // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
@@ -2528,7 +2528,7 @@ bool Application::isHMDMode() const {
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
     
-    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // If our parent window is on the HMD, then don't use its geometry, instead use
     // the "main screen" geometry.
     HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
     if (hmdTools && hmdTools->hasHMDScreen()) {
@@ -3356,7 +3356,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
 void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
 
-    // Attempt to identify the sender from it's address.
+    // Attempt to identify the sender from its address.
     if (sendingNode) {
         QUuid nodeUUID = sendingNode->getUUID();
 
@@ -3425,7 +3425,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         }
         // store jurisdiction details for later use
         // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
+        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
         // details from the OctreeSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
@@ -3646,7 +3646,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         return false;
     }
     
-    // Download the FST file, to attempt to determine it's model type
+    // Download the FST file, to attempt to determine its model type
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
