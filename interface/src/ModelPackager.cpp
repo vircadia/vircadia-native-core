@@ -85,7 +85,7 @@ bool ModelPackager::loadModel() {
             return false;
         }
         qDebug() << "Reading FST file : " << _modelFile.filePath();
-        _mapping = readMapping(fst.readAll());
+        _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
         
         _fbxInfo = QFileInfo(_modelFile.path() + "/" + _mapping.value(FILENAME_FIELD).toString());
@@ -119,21 +119,23 @@ bool ModelPackager::editProperties() {
         return false;
     }
     _mapping = properties.getMapping();
-    
-    // Make sure that a mapping for the root joint has been specified
-    QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
-    if (!joints.contains("jointRoot")) {
-        qWarning() << QString("%1 root joint not configured for skeleton.").arg(_modelFile.fileName());
+
+    if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
+        // Make sure that a mapping for the root joint has been specified
+        QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
+        if (!joints.contains("jointRoot")) {
+            qWarning() << QString("%1 root joint not configured for skeleton.").arg(_modelFile.fileName());
         
-        QString message = "Your did not configure a root joint for your skeleton model.\n\nThe upload will be canceled.";
-        QMessageBox msgBox;
-        msgBox.setWindowTitle("Model Upload");
-        msgBox.setText(message);
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.exec();
+            QString message = "Your did not configure a root joint for your skeleton model.\n\nPackaging will be canceled.";
+            QMessageBox msgBox;
+            msgBox.setWindowTitle("Model Packager");
+            msgBox.setText(message);
+            msgBox.setStandardButtons(QMessageBox::Ok);
+            msgBox.setIcon(QMessageBox::Warning);
+            msgBox.exec();
         
-        return false;
+            return false;
+        }
     }
     
     return true;
@@ -183,7 +185,7 @@ bool ModelPackager::zipModel() {
     // Copy FST
     QFile fst(tempDir.path() + "/" + nameField + ".fst");
     if (fst.open(QIODevice::WriteOnly)) {
-        fst.write(writeMapping(_mapping));
+        fst.write(FSTReader::writeMapping(_mapping));
         fst.close();
     } else {
         qDebug() << "Couldn't write FST file" << fst.fileName();
@@ -204,6 +206,18 @@ bool ModelPackager::zipModel() {
 }
 
 void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename, const FBXGeometry& geometry) {
+
+    bool isBodyType = _modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL;
+
+    // mixamo files - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
+    // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
+    bool likelyMixamoFile = geometry.applicationName == "mixamo.com" ||
+                            (geometry.blendshapeChannelNames.contains("BrowsDown_Right") &&
+                             geometry.blendshapeChannelNames.contains("MouthOpen") &&
+                             geometry.blendshapeChannelNames.contains("Blink_Left") &&
+                             geometry.blendshapeChannelNames.contains("Blink_Right") &&
+                             geometry.blendshapeChannelNames.contains("Squint_Right"));
+    
     if (!mapping.contains(NAME_FIELD)) {
         mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
     }
@@ -232,39 +246,40 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", geometry.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
-    if (!joints.contains("jointRoot")) {
-        joints.insert("jointRoot", "Hips");
+    
+    if (isBodyType) {
+        if (!joints.contains("jointRoot")) {
+            joints.insert("jointRoot", "Hips");
+        }
+        if (!joints.contains("jointLean")) {
+            joints.insert("jointLean", "Spine");
+        }
+        if (!joints.contains("jointLeftHand")) {
+            joints.insert("jointLeftHand", "LeftHand");
+        }
+        if (!joints.contains("jointRightHand")) {
+            joints.insert("jointRightHand", "RightHand");
+        }
     }
-    if (!joints.contains("jointLean")) {
-        joints.insert("jointLean", "Spine");
-    }
+    
     if (!joints.contains("jointHead")) {
-        const char* topName = (geometry.applicationName == "mixamo.com") ? "HeadTop_End" : "HeadEnd";
+        const char* topName = likelyMixamoFile ? "HeadTop_End" : "HeadEnd";
         joints.insert("jointHead", geometry.jointIndices.contains(topName) ? topName : "Head");
     }
-    if (!joints.contains("jointLeftHand")) {
-        joints.insert("jointLeftHand", "LeftHand");
-    }
-    if (!joints.contains("jointRightHand")) {
-        joints.insert("jointRightHand", "RightHand");
-    }
+
     mapping.insert(JOINT_FIELD, joints);
-    if (!mapping.contains(FREE_JOINT_FIELD)) {
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+
+    if (isBodyType) {
+        if (!mapping.contains(FREE_JOINT_FIELD)) {
+            mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
+            mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+        }
     }
     
-    // mixamo blendshapes - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will
-    // be rewritten, so we detect the existence of several different blendshapes which indicate we're likely a mixamo file
-    bool likelyMixamoFile = geometry.applicationName == "mixamo.com" ||
-    (geometry.blendshapeChannelNames.contains("BrowsDown_Right") &&
-     geometry.blendshapeChannelNames.contains("MouthOpen") &&
-     geometry.blendshapeChannelNames.contains("Blink_Left") &&
-     geometry.blendshapeChannelNames.contains("Blink_Right") &&
-     geometry.blendshapeChannelNames.contains("Squint_Right"));
-    
+    // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
+    // then we can add the default mixamo to "faceshift" mappings
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
