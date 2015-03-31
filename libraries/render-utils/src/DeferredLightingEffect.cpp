@@ -535,10 +535,13 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= -1) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
         light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+    } else {
+        // force to preset 0
+        setAmbientLightMode(0);
     }
 }
 
