@@ -276,7 +276,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
                 _scriptContents = in.readAll();
                 emit scriptLoaded(_fileNameString);
             } else {
-                qDebug() << "ERROR Loading file:" << _fileNameString;
+                qDebug() << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
@@ -294,7 +294,7 @@ void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scrip
 }
 
 void ScriptEngine::errorInLoadingScript(const QUrl& url) {
-    qDebug() << "ERROR Loading file:" << url.toString();
+    qDebug() << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
     emit errorLoadingScript(_fileNameString); // ??
 }
 
@@ -761,7 +761,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
-                qDebug() << "Error loading file: " << url;
+                qDebug() << "Error loading file: " << url << "line:" << __LINE__;
             } else {
                 QScriptValue result = evaluate(contents, url.toString());
             }
