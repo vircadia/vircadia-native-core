@@ -70,6 +70,7 @@
     var rotOdd = Quat.fromPitchYawRollDegrees(0, 90.0 + MyAvatar.bodyYaw, 0.0);
     var housePos = Vec3.sum(MyAvatar.position, Quat.getFront(Camera.getOrientation()));
 
+    var housePositions = []
     for (var j = 0; j < measures.rows; j++) {
 
         var posX1 = 0 - (xRange / 2);
@@ -87,11 +88,8 @@
                 y: 0,
                 z: dd
             };
-
-            print("House nr.:" + (houses.length + 1));
-            houses.push(
-                addHouseAt(Vec3.sum(housePos, posShift), (j % 2 == 0) ? rotEven : rotOdd)
-            );
+            
+            housePositions.push(Vec3.sum(housePos, posShift));
             posX1 += measures.parcelWidth;
         }
     }
@@ -144,14 +142,21 @@
         };
     }
 
-    function cleanup() {
-        while (houses.length > 0) {
-            if (!houses[0].isKnownID) {
-                houses[0] = Entities.identifyEntity(houses[0]);
-            }
-            Entities.deleteEntity(houses.shift());
+    var addHouses = function() {
+        if (housePositions.length > 0) {
+            position = housePositions.pop();
+            print("House nr.:" + (houses.length + 1));
+            houses.push(
+                addHouseAt(position, (housePositions.length % 2 == 0) ? rotEven : rotOdd)
+            );
+            
+            // max 20 per second
+            Script.setTimeout(addHouses, 50);
+        } else {
+            Script.stop();
         }
-    }
-
-    Script.scriptEnding.connect(cleanup);
+    };
+    
+    addHouses();
+    
 })();

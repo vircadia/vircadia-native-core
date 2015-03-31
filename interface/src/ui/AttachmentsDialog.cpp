@@ -164,7 +164,7 @@ AttachmentData AttachmentPanel::getAttachmentData() const {
 }
 
 void AttachmentPanel::chooseModelURL() {
-    ModelsBrowser modelBrowser(ATTACHMENT_MODEL, this);
+    ModelsBrowser modelBrowser(FSTReader::ATTACHMENT_MODEL, this);
     connect(&modelBrowser, SIGNAL(selected(QString)), SLOT(setModelURL(const QString&)));
     modelBrowser.browse();
 }

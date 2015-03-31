@@ -143,4 +143,12 @@ QDebug& operator<<(QDebug& dbg, const glm::mat4& m) {
     return dbg << " ]}";
 }
 
+QDebug& operator<<(QDebug& dbg, const QVariantHash& v) {
+    dbg.nospace() << "[";
+    for (QVariantHash::const_iterator it = v.constBegin(); it != v.constEnd(); it++) {
+        dbg << it.key() << ":" << it.value();
+    }
+    return dbg << " ]";
+}
+
 #endif // QT_NO_DEBUG_STREAM
