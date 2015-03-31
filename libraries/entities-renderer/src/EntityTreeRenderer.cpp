@@ -101,7 +101,7 @@ void EntityTreeRenderer::init() {
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
     connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
@@ -193,7 +193,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     // can accomplish all we need to here with just the script "text" and the ID.
     EntityItemID entityID = entity->getEntityItemID();
     QString entityScript = entity->getScript();
-    
+
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
@@ -217,7 +217,6 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     
     if (isPending && isPreload && isURL) {
         _waitingOnPreload.insert(url, entityID);
-        
     }
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -939,6 +938,10 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
+}
+
+void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
+    checkAndCallPreload(entityID);
 }
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
