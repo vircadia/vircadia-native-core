@@ -21,9 +21,12 @@
 #include "Shape.h"
 
 
+QHash<QString, float> COMMENT_SCALE_HINTS;
+
+
 class OBJTokenizer {
 public:
-    OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
+    OBJTokenizer(QIODevice* device);
     enum SpecialToken {
         NO_TOKEN = -1,
         NO_PUSHBACKED_TOKEN = -1,
@@ -46,6 +49,15 @@ private:
 };
 
 
+OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
+    // This is a list of comments that exports use to hint at scaling
+    if (COMMENT_SCALE_HINTS.isEmpty()) {
+        COMMENT_SCALE_HINTS["This file uses centimeters as units"] = 1.0f / 100.0f;
+        COMMENT_SCALE_HINTS["This file uses millimeters as units"] = 1.0f / 1000.0f;
+    }
+}
+
+
 int OBJTokenizer::nextToken() {
     if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
         int token = _pushedBackToken;
@@ -60,7 +72,7 @@ int OBJTokenizer::nextToken() {
         }
         switch (ch) {
             case '#': {
-                _comment = _device->readLine(); // skip the comment
+                _comment = _device->readLine(); // stash comment for a future call to getComment
                 qDebug() << "COMMENT:" << _comment;
                 return COMMENT_TOKEN;
             }
@@ -136,11 +148,15 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
     while (true) {
         int tokenType = tokenizer.nextToken();
         if (tokenType == OBJTokenizer::COMMENT_TOKEN) {
-            if (tokenizer.getComment().contains("This file uses centimeters as units")) {
-                scaleGuess = 1.0f / 100.0f;
-            }
-            if (tokenizer.getComment().contains("This file uses millimeters as units")) {
-                scaleGuess = 1.0f / 1000.0f;
+            // loop through the list of known comments which suggest a scaling factor.
+            // if we find one, save the scaling hint into scaleGuess
+            QString comment = tokenizer.getComment();
+            QHashIterator<QString, float> i(COMMENT_SCALE_HINTS);
+            while (i.hasNext()) {
+                i.next();
+                if (comment.contains(i.key())) {
+                    scaleGuess = i.value();
+                }
             }
             continue;
         }
