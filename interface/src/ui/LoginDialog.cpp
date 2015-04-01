@@ -24,7 +24,7 @@
 #include "LoginDialog.h"
 #include "UIUtil.h"
 
-const QString CREATE_ACCOUNT_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/create";
+const QString CREATE_ACCOUNT_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/signup";
 const QString FORGOT_PASSWORD_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
