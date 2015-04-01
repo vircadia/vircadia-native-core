@@ -96,6 +96,12 @@ glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = NULL;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
+// TODO expose this as a developer toggle
+bool OculusManager::_eyePerFrameMode = false;
+ovrEyeType OculusManager::_lastEyeRendered = ovrEye_Count;
+ovrSizei OculusManager::_recommendedTexSize = { 0, 0 };
+float OculusManager::_offscreenRenderScale = 1.0;
+
 
 void OculusManager::initSdk() {
     ovr_Initialize();
@@ -148,20 +154,16 @@ void OculusManager::connect() {
         assert(configResult);
 
 
-        _renderTargetSize = { 0, 0 };
+        _recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left, _eyeFov[ovrEye_Left], 1.0f);
+        _renderTargetSize = { _recommendedTexSize.w * 2, _recommendedTexSize.h };
         for_each_eye([&](ovrEyeType eye) {
             //Get texture size
-            ovrSizei recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, eye, _eyeFov[eye], 1.0f);
             _eyeTextures[eye].Header.API = ovrRenderAPI_OpenGL;
-            _eyeTextures[eye].Header.RenderViewport.Pos = { _renderTargetSize.w, 0 };
-            _eyeTextures[eye].Header.RenderViewport.Size = recommendedTexSize;
-            _renderTargetSize.w += recommendedTexSize.w;
-            _renderTargetSize.h = std::max(recommendedTexSize.h, _renderTargetSize.h);
-        });
-        for_each_eye([&](ovrEyeType eye) {
             _eyeTextures[eye].Header.TextureSize = _renderTargetSize;
+            _eyeTextures[eye].Header.RenderViewport.Pos = { 0, 0 };
         });
-      
+        _eyeTextures[ovrEye_Right].Header.RenderViewport.Pos.x = _recommendedTexSize.w;
+
         ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
 
         ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
@@ -362,9 +364,6 @@ void OculusManager::generateDistortionMesh() {
         // Allocate and generate distortion mesh vertices
         ovrDistortionMesh meshData;
         ovrHmd_CreateDistortionMesh(_ovrHmd, _eyeRenderDesc[eyeNum].Eye, _eyeRenderDesc[eyeNum].Fov, _ovrHmd->DistortionCaps, &meshData);
-        
-        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeTextures[eyeNum].Header.RenderViewport,
-                                       _UVScaleOffset[eyeNum]);
 
         // Parse the vertex data and create a render ready vertex buffer
         DistortionVertex* pVBVerts = new DistortionVertex[meshData.VertexCount];
@@ -523,12 +522,20 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     trackerPosition = bodyOrientation * trackerPosition;
     static ovrVector3f eyeOffsets[2] = { { 0, 0, 0 }, { 0, 0, 0 } };
-    ovrPosef eyeRenderPose[ovrEye_Count];
-    ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyeRenderPose, nullptr);
+    ovrPosef eyePoses[ovrEye_Count];
+    ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyePoses, nullptr);
     ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
+    static ovrPosef eyeRenderPose[ovrEye_Count];
     //Render each eye into an fbo
     for_each_eye(_ovrHmd, [&](ovrEyeType eye){
-        _activeEye = eye;
+        // If we're in eye-per-frame mode, only render one eye
+        // per call to display, and allow timewarp to correct for
+        // the other eye.  Poor man's perf improvement
+        if (_eyePerFrameMode && eye == _lastEyeRendered) {
+            return;
+        }
+        _lastEyeRendered = _activeEye = eye;
+        eyeRenderPose[eye] = eyePoses[eye];
         // Set the camera rotation for this eye
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
@@ -558,7 +565,10 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glFrustum(-nearClip * port.LeftTan, nearClip * port.RightTan, -nearClip * port.DownTan,
             nearClip * port.UpTan, nearClip, farClip);
 
-        const ovrRecti & vp = _eyeTextures[eye].Header.RenderViewport;
+        ovrRecti & vp = _eyeTextures[eye].Header.RenderViewport;
+        vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
+        vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
+        
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         glMatrixMode(GL_MODELVIEW);
@@ -602,7 +612,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glClear(GL_COLOR_BUFFER_BIT);
 
     glBindTexture(GL_TEXTURE_2D, finalFbo->texture());
-
+    
     //Renders the distorted mesh onto the screen
     renderDistortionMesh(eyeRenderPose);
 
@@ -612,6 +622,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = finalFbo->texture();
+        
     });
 
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
@@ -639,9 +650,13 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     //Render the distortion meshes for each eye
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
+        
+        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeTextures[eyeNum].Header.RenderViewport,
+                                       _UVScaleOffset[eyeNum]);
+
         GLfloat uvScale[2] = { _UVScaleOffset[eyeNum][0].x, _UVScaleOffset[eyeNum][0].y };
         _program.setUniformValueArray(_eyeToSourceUVScaleLocation, uvScale, 1, 2);
-        GLfloat uvOffset[2] = { _UVScaleOffset[eyeNum][1].x, _UVScaleOffset[eyeNum][1].y };
+        GLfloat uvOffset[2] = { _UVScaleOffset[eyeNum][1].x, 1.0f - _UVScaleOffset[eyeNum][1].y };
         _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
 
         ovrMatrix4f timeWarpMatrices[2];

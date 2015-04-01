@@ -28,7 +28,7 @@ class Text3DOverlay;
 // the Oculus SDK will ideally provide the best practices for distortion in
 // in terms of performance and quality, and by using it we will get updated
 // best practices for free with new runtime releases.
-// #define OVR_CLIENT_DISTORTION 1
+#define OVR_CLIENT_DISTORTION 1
 
 
 // On Win32 platforms, enabling Direct HMD requires that the SDK be
@@ -148,7 +148,11 @@ private:
     static glm::quat _calibrationOrientation;
     static quint64 _calibrationStartTime;
     static int _calibrationMessage;
-
+    // TODO drop this variable and use the existing 'Developer | Render | Scale Resolution' value
+    static ovrSizei _recommendedTexSize;
+    static float _offscreenRenderScale;
+    static bool _eyePerFrameMode;
+    static ovrEyeType _lastEyeRendered;
 };
 
 
