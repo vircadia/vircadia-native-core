@@ -2766,7 +2766,7 @@ void Application::updateShadowMap() {
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
+const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
 
 const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
 
