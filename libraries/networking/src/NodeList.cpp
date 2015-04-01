@@ -403,6 +403,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     bool thisNodeCanAdjustLocks;
     packetStream >> thisNodeCanAdjustLocks;
     setThisNodeCanAdjustLocks(thisNodeCanAdjustLocks);
+
+    bool thisNodeCanRez;
+    packetStream >> thisNodeCanRez;
+    setThisNodeCanRez(thisNodeCanRez);
     
     // pull each node in the packet
     while(packetStream.device()->pos() < packet.size()) {
@@ -411,8 +415,9 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         QUuid nodeUUID, connectionUUID;
         HifiSockAddr nodePublicSocket, nodeLocalSocket;
         bool canAdjustLocks;
+        bool canRez;
 
-        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks;
+        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
 
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
@@ -420,7 +425,8 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
             nodePublicSocket.setAddress(_domainHandler.getIP());
         }
 
-        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket, canAdjustLocks);
+        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
+                                                 nodeLocalSocket, canAdjustLocks, canRez);
         
         packetStream >> connectionUUID;
         node->setConnectionSecret(connectionUUID);

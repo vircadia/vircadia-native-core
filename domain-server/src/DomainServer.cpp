@@ -47,6 +47,7 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
+const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
 
 
 DomainServer::DomainServer(int argc, char* argv[]) :
@@ -646,9 +647,23 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
         bool canAdjustLocks = allowedEditors.isEmpty() || allowedEditors.contains(username);
 
+        const QVariant* editorsAreRezzersVariant =
+            valueForKeyPath(_settingsManager.getSettingsMap(), EDITORS_ARE_REZZERS_KEYPATH);
+        
+        bool onlyEditorsAreRezzers = false;
+        if (editorsAreRezzersVariant) {
+            onlyEditorsAreRezzers = editorsAreRezzersVariant->toBool();
+        }
+
+        bool canRez = true;
+        if (onlyEditorsAreRezzers) {
+            canRez = canAdjustLocks;
+        }
+
         SharedNodePointer newNode =
             DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                       publicSockAddr, localSockAddr, canAdjustLocks);
+                                                                       publicSockAddr, localSockAddr,
+                                                                       canAdjustLocks, canRez);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -903,6 +918,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
     broadcastDataStream << node->getUUID();
     broadcastDataStream << node->getCanAdjustLocks();
+    broadcastDataStream << node->getCanRez();
 
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 
