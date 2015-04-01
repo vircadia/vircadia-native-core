@@ -39,7 +39,7 @@ class Text3DOverlay;
 // To enable Direct HMD mode, you can un-comment this, but with the
 // caveat that it will break v-sync in NON-VR mode if you have an Oculus
 // Rift connect and in Direct mode
-// #define OVR_DIRECT_MODE 1
+#define OVR_DIRECT_MODE 1
 
 
 /// Handles interaction with the Oculus Rift.

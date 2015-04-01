@@ -19,6 +19,7 @@
 #include <QGuiApplication>
 #include <QOpenGLFramebufferObject>
 #include <QScreen>	
+#include <QOpenGLTimerQuery>
 
 #include <glm/glm.hpp>
 
@@ -424,13 +425,9 @@ void OculusManager::beginFrameTiming() {
 }
 
 bool OculusManager::allowSwap() {
-#ifdef OVR_CLIENT_DISTORTION
-    return true;
-#else
     return false;
-#endif
-
 }
+
 //Ends frame timing
 void OculusManager::endFrameTiming() {
 #ifdef OVR_CLIENT_DISTORTION
@@ -446,9 +443,18 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 }
 
+static bool timerActive = false;
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
     auto glCanvas = Application::getInstance()->getGLWidget();
+    static QOpenGLTimerQuery timerQuery;
+    if (!timerQuery.isCreated()) {
+        timerQuery.create();
+    }
+    if (timerActive && timerQuery.isResultAvailable()) {
+        qDebug() << timerQuery.waitForResult();
+        timerActive = false;
+    }
 
 #ifdef OVR_DIRECT_MODE
     static bool attached = false;
@@ -602,8 +608,13 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     // restore our normal viewport
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
-
+    
+    if (!timerActive) {
+        timerQuery.begin();
+    }
+    
 #ifdef OVR_CLIENT_DISTORTION
+    
     //Wait till time-warp to reduce latency
     ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
 
@@ -617,8 +628,10 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     renderDistortionMesh(eyeRenderPose);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    glCanvas->swapBuffers();
 
 #else
+
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = finalFbo->texture();
@@ -626,7 +639,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     });
 
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
+
 #endif
+    if (!timerActive) {
+        timerQuery.end();
+        timerActive = true;
+    }
 }
 
 #ifdef OVR_CLIENT_DISTORTION
