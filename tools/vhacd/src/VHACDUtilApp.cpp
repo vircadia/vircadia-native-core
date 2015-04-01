@@ -92,6 +92,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption outputOneMeshOption("1", "output hulls as single mesh");
     parser.addOption(outputOneMeshOption);
 
+    const QCommandLineOption fattenFacesOption("f", "fatten faces");
+    parser.addOption(fattenFacesOption);
+
     const QCommandLineOption inputFilenameOption("i", "input file", "filename.fbx");
     parser.addOption(inputFilenameOption);
 
@@ -119,17 +122,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-
+    bool fattenFaces = parser.isSet(fattenFacesOption);
     bool outputOneMesh = parser.isSet(outputOneMeshOption);
 
     QString inputFilename;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(inputFilenameOption)) {
         inputFilename = parser.value(inputFilenameOption);
     }
 
     QString outputFilename;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(outputFilenameOption)) {
         outputFilename = parser.value(outputFilenameOption);
     }
@@ -148,19 +149,16 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     }
 
     int startMeshIndex = -1;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(startMeshIndexOption)) {
         startMeshIndex = parser.value(startMeshIndexOption).toInt();
     }
 
     int endMeshIndex = -1;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(endMeshIndexOption)) {
         endMeshIndex = parser.value(endMeshIndexOption).toInt();
     }
 
     float minimumMeshSize = 0.0f;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(minimumMeshSizeOption)) {
         minimumMeshSize = parser.value(minimumMeshSizeOption).toFloat();
     }
@@ -198,8 +196,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     //perform vhacd computation
     begin = std::chrono::high_resolution_clock::now();
 
-
-    if (!vUtil.computeVHACD(&fbx, params, &results, startMeshIndex, endMeshIndex, minimumMeshSize)) {
+    if (!vUtil.computeVHACD(&fbx, params, &results, startMeshIndex, endMeshIndex, minimumMeshSize, fattenFaces)) {
         cout << "Compute Failed...";
     }
     end = std::chrono::high_resolution_clock::now();
