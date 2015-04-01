@@ -275,3 +275,36 @@ td {
     font-weight: bold;
     font-style: italic;
 }
+
+input[type="number"] {
+    position: relative;
+}
+
+/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
+    width: 0.9em;
+    height: 4px;
+    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-inner-spin-button:active{
+    opacity: .8;
+}
+
+/* Override browser form filling */
+input:-webkit-autofill {
+    background: black;
+    color: red;
+}
+
