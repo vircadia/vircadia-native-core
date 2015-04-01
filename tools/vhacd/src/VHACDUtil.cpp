@@ -13,7 +13,7 @@
 #include "VHACDUtil.h"
 
 
-//Read all the meshes from provided FBX file
+// Read all the meshes from provided FBX file
 bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
     // open the fbx file
@@ -36,37 +36,6 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
     return true;
 }
-
-
-// void vhacd::VHACDUtil::combineMeshes(FBXGeometryvhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
-//     float largestDimension = 0;
-//     int indexStart = 0;
-
-//     QVector<glm::vec3> emptyVertices;
-//     QVector<int> emptyTriangles;
-//     results->perMeshVertices.append(emptyVertices);
-//     results->perMeshTriangleIndices.append(emptyTriangles);
-//     results->perMeshLargestDimension.append(largestDimension);
-
-//     for (int i = 0; i < meshes->meshCount; i++) {
-//         QVector<glm::vec3> vertices = meshes->perMeshVertices.at(i);
-//         QVector<int> triangles = meshes->perMeshTriangleIndices.at(i);
-//         const float largestDimension = meshes->perMeshLargestDimension.at(i);
-
-//         for (int j = 0; j < triangles.size(); j++) {
-//             triangles[ j ] += indexStart;
-//         }
-//         indexStart += vertices.size();
-
-//         results->perMeshVertices[0] << vertices;
-//         results->perMeshTriangleIndices[0] << triangles;
-//         if (results->perMeshLargestDimension[0] < largestDimension) {
-//             results->perMeshLargestDimension[0] = largestDimension;
-//         }
-//     }
-
-//     results->meshCount = 1;
-// }
 
 
 // void vhacd::VHACDUtil::fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
@@ -113,26 +82,12 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                                     int startMeshIndex,
                                     int endMeshIndex, float minimumMeshSize,
                                     bool fattenFaces) {
-
-    // vhacd::LoadFBXResults *meshes = new vhacd::LoadFBXResults;
-    // combineMeshes(inMeshes, meshes);
-
-    // vhacd::LoadFBXResults *meshes = new vhacd::LoadFBXResults;
-
-    // if (fattenFaces) {
-    //     fattenMeshes(inMeshes, meshes);
-    // } else {
-    //     meshes = inMeshes;
-    // }
-
-
     // count the mesh-parts
     QVector<FBXMeshPart> meshParts;
     int meshCount = 0;
     foreach (FBXMesh mesh, geometry.meshes) {
         meshCount += mesh.parts.size();
     }
-
 
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 
@@ -142,12 +97,6 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
     if (endMeshIndex < 0) {
         endMeshIndex = meshCount;
     }
-
-    // for (int i = 0; i < meshCount; i++) {
-    //     std::cout << meshes->perMeshTriangleIndices.at(i).size() << " ";
-    // }
-    // std::cout << "\n";
-
 
     std::cout << "Performing V-HACD computation on " << endMeshIndex - startMeshIndex << " meshes ..... " << std::endl;
 
@@ -200,6 +149,8 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
             // only process meshes with triangles
             if (triangles.size() <= 0) {
+                qDebug() << " Skipping (no triangles)...";
+                count++;
                 continue;
             }
 
@@ -210,7 +161,8 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                      << "size =" << largestDimension;
 
             if (largestDimension < minimumMeshSize /* || largestDimension > 1000 */) {
-                qDebug() << " Skipping...";
+                qDebug() << " Skipping (too small)...";
+                count++;
                 continue;
             }
 
@@ -218,6 +170,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, triangleCount, params);
             if (!res){
                 qDebug() << "V-HACD computation failed for Mesh : " << count;
+                count++;
                 continue;
             }
 
@@ -228,14 +181,11 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             for (unsigned int j = 0; j < nConvexHulls; j++) {
                 VHACD::IVHACD::ConvexHull hull;
                 interfaceVHACD->GetConvexHull(j, hull);
-                // each convex-hull is a mesh-part
+
                 resultMesh.parts.append(FBXMeshPart());
                 FBXMeshPart &resultMeshPart = resultMesh.parts.last();
 
                 int hullIndexStart = resultMesh.vertices.size();
-
-                qDebug() << "j =" << j << "points =" << hull.m_nPoints << "tris ="  << hull.m_nTriangles;
-
                 for (unsigned int i = 0; i < hull.m_nPoints; i++) {
                     float x = hull.m_points[i * 3];
                     float y = hull.m_points[i * 3 + 1];
@@ -274,8 +224,11 @@ vhacd::VHACDUtil:: ~VHACDUtil(){
 }
 
 //ProgressClaback implementation
-void vhacd::ProgressCallback::Update(const double  overallProgress, const double  stageProgress, const double operationProgress,
-    const char * const stage, const char * const operation){
+void vhacd::ProgressCallback::Update(const double overallProgress,
+                                     const double stageProgress,
+                                     const double operationProgress,
+                                     const char* const stage,
+                                     const char* const operation) {
     int progress = (int)(overallProgress + 0.5);
 
     if (progress < 10){
@@ -287,9 +240,9 @@ void vhacd::ProgressCallback::Update(const double  overallProgress, const double
 
     std::cout << progress << "%";
 
-	if (progress >= 100){
-		std::cout << std::endl;
-	}
+    if (progress >= 100){
+        std::cout << std::endl;
+    }
 }
 
 vhacd::ProgressCallback::ProgressCallback(void){}
