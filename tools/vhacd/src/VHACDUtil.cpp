@@ -38,6 +38,15 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     }
 
 
+    std::cout << "-------------------\n";
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        foreach (const FBXMeshPart &meshPart, mesh.parts) {
+            std::cout << meshPart.triangleIndices.size() << " ";
+        }
+    }
+    std::cout << "\n";
+
+
     //results->meshCount = geometry.meshes.count();
     // qDebug() << "read in" << geometry.meshes.count() << "meshes";
 
@@ -52,7 +61,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
             vertices.append(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
         }
 
-        //get the triangle indices for each mesh
+        // get the triangle indices for each mesh
         QVector<int> triangles;
         foreach(FBXMeshPart meshPart, mesh.parts){
             QVector<int> indices = meshPart.triangleIndices;
@@ -60,10 +69,10 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
 
             unsigned int quadCount = meshPart.quadIndices.size() / 4;
             for (unsigned int i = 0; i < quadCount; i++) {
-                unsigned int p0Index = meshPart.quadIndices[i*4];
-                unsigned int p1Index = meshPart.quadIndices[i*4+1];
-                unsigned int p2Index = meshPart.quadIndices[i*4+2];
-                unsigned int p3Index = meshPart.quadIndices[i*4+3];
+                unsigned int p0Index = meshPart.quadIndices[i * 4];
+                unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
+                unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
+                unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
                 // split each quad into two triangles
                 triangles.append(p0Index);
                 triangles.append(p1Index);
@@ -74,7 +83,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
             }
         }
 
-        //only read meshes with triangles
+        // only read meshes with triangles
         if (triangles.count() <= 0){
             continue;
         }           
@@ -146,15 +155,16 @@ void vhacd::VHACDUtil::fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFB
             auto d1 = p2 - p0;
 
             auto cp = glm::cross(d0, d1);
-            cp = 5.0f * glm::normalize(cp);
+            cp = -2.0f * glm::normalize(cp);
 
             auto p3 = p0 + cp;
-            auto p4 = p1 + cp;
-            auto p5 = p2 + cp;
             
             auto n = results->perMeshVertices.size();
-            results->perMeshVertices[i] << p3 << p4 << p5;
-            results->perMeshTriangleIndices[i] << n << n+1 << n+2;
+            results->perMeshVertices[i] << p3;
+
+            results->perMeshTriangleIndices[i] << triangles[j] << n << triangles[j + 1];
+            results->perMeshTriangleIndices[i] << triangles[j + 1] << n << triangles[j + 2];
+            results->perMeshTriangleIndices[i] << triangles[j + 2] << n << triangles[j];
         }
 
         results->meshCount++;
@@ -190,6 +200,12 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *inMeshes, VHACD::IVHA
     if (endMeshIndex < 0) {
         endMeshIndex = meshCount;
     }
+
+    for (int i = 0; i < meshCount; i++) {
+        std::cout << meshes->perMeshTriangleIndices.at(i).size() << " ";
+    }
+    std::cout << "\n";
+
 
     std::cout << "Performing V-HACD computation on " << endMeshIndex - startMeshIndex << " meshes ..... " << std::endl;
 
