@@ -312,7 +312,7 @@
                                 }
 
                                 elTextText.value = properties.text;
-                                elTextLineHeight.value = properties.lineHeight;
+                                elTextLineHeight.value = properties.lineHeight.toFixed(4);
                                 elTextTextColorRed.value = properties.textColor.red;
                                 elTextTextColorGreen.value = properties.textColor.green;
                                 elTextTextColorBlue.value = properties.textColor.blue;
@@ -723,7 +723,7 @@
         <div class="text-section property">
             <div class="label">Line Height</div>
             <div class="value">
-                <input class="coord" type='number' id="property-text-line-height"></input>
+                <input class="coord" type='number' id="property-text-line-height" min="0" step="0.005"></input>
             </div>
         </div>
         <div class="text-section property">
