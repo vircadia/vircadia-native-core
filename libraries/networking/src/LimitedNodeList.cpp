@@ -49,7 +49,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
     _packetStatTimer(),
-    _thisNodeCanAdjustLocks(false)
+    _thisNodeCanAdjustLocks(false),
+    _thisNodeCanRez(true)
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -105,6 +106,13 @@ void LimitedNodeList::setThisNodeCanAdjustLocks(bool canAdjustLocks) {
     if (_thisNodeCanAdjustLocks != canAdjustLocks) {
         _thisNodeCanAdjustLocks = canAdjustLocks;
         emit canAdjustLocksChanged(canAdjustLocks);
+    }
+}
+
+void LimitedNodeList::setThisNodeCanRez(bool canRez) {
+    if (_thisNodeCanRez != canRez) {
+        _thisNodeCanRez = canRez;
+        emit canRezChanged(canRez);
     }
 }
 
@@ -417,7 +425,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   bool canAdjustLocks) {
+                                                   bool canAdjustLocks, bool canRez) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
     
     if (it != _nodeHash.end()) {
@@ -426,11 +434,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setCanAdjustLocks(canAdjustLocks);
+        matchingNode->setCanRez(canRez);
         
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks, canRez);
         SharedNodePointer newNodePointer(newNode);
         
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));

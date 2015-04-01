@@ -180,7 +180,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                         senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
                         if (!packetUUID.isNull()) {
                             matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-                                (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false);
+                                (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
                             AssignmentClientChildData *childData = new AssignmentClientChildData("unknown");
                             matchingNode->setLinkedData(childData);
                         } else {

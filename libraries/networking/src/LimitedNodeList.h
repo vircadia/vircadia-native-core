@@ -86,6 +86,9 @@ public:
 
     bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
     void setThisNodeCanAdjustLocks(bool canAdjustLocks);
+
+    bool getThisNodeCanRez() const { return _thisNodeCanRez; }
+    void setThisNodeCanRez(bool canRez);
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -116,7 +119,8 @@ public:
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                      bool canAdjustLocks, bool canRez);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -208,6 +212,7 @@ signals:
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
+    void canRezChanged(bool canRez);
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);
@@ -243,6 +248,7 @@ protected:
 
     QElapsedTimer _packetStatTimer;
     bool _thisNodeCanAdjustLocks;
+    bool _thisNodeCanRez;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {
