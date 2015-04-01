@@ -14,6 +14,7 @@
 #include <QPushButton>
 #include <QPixmap>
 
+#include <NetworkingConstants.h>
 #include <PathUtils.h>
 
 #include "Application.h"
@@ -23,7 +24,7 @@
 #include "LoginDialog.h"
 #include "UIUtil.h"
 
-const QString FORGOT_PASSWORD_URL = "https://metaverse.highfidelity.com/users/password/new";
+const QString FORGOT_PASSWORD_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
     FramelessDialog(parent, 0, FramelessDialog::POSITION_TOP),

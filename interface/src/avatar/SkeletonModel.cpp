@@ -685,6 +685,10 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
                 * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
         }
 
+        // Each joint contributes its point to the bounding box
+        glm::vec3 jointPosition = extractTranslation(transforms[i]);
+        totalExtents.addPoint(jointPosition);
+
         Shape* shape = _shapes[i];
         if (!shape) {
             continue;
@@ -694,8 +698,6 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
         // that contains the sphere centered at the end of the joint with radius of the bone.
 
         // TODO: skip hand and arm shapes for bounding box calculation
-        glm::vec3 jointPosition = extractTranslation(transforms[i]);
-
         int type = shape->getType();
         if (type == CAPSULE_SHAPE) {
             // add the two furthest surface points of the capsule
