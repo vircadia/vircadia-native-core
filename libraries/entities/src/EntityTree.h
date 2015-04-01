@@ -195,6 +195,7 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
     

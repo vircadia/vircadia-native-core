@@ -136,6 +136,13 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 
+// ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
+#if defined(Q_OS_WIN)
+extern "C" {
+ _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+}
+#endif
+
 using namespace std;
 
 //  Starfield information
@@ -241,7 +248,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
     auto dialogsManager = DependencyManager::set<DialogsManager>();
     auto bandwidthRecorder = DependencyManager::set<BandwidthRecorder>();
-    auto resouceCacheSharedItems = DependencyManager::set<ResouceCacheSharedItems>();
+    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
     auto windowScriptingInterface = DependencyManager::set<WindowScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -645,6 +652,11 @@ void Application::initializeGL() {
         isInitialized = true;
     }
     #endif
+
+    qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
     #ifdef WIN32
     GLenum err = glewInit();

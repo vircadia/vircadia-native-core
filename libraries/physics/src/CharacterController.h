@@ -42,9 +42,22 @@ class btPairCachingGhostObject;
 ATTRIBUTE_ALIGNED16(class) CharacterController : public btCharacterControllerInterface
 {
 protected:
+    ///this is the desired walk direction, set by the user
+    btVector3 _walkDirection;
+    btVector3 _normalizedDirection;
+
+    //some internal variables
+    btVector3 _currentPosition;
+    btVector3 _currentUp;
+    btVector3 _targetPosition;
+    glm::vec3 _lastPosition;
+    btVector3 _floorNormal; // points from object to character
+
+    glm::vec3 _shapeLocalOffset;
+    glm::vec3 _boxScale; // used to compute capsule shape
 
     AvatarData* _avatarData = NULL;
-    btPairCachingGhostObject* _ghostObject;
+    btPairCachingGhostObject* _ghostObject = NULL;
 
     btConvexShape* _convexShape;//is also in _ghostObject, but it needs to be convex, so we store it here to avoid upcast
     btScalar _radius;
@@ -64,22 +77,12 @@ protected:
 
     btScalar _addedMargin;//@todo: remove this and fix the code
 
-    ///this is the desired walk direction, set by the user
-    btVector3 _walkDirection;
-    btVector3 _normalizedDirection;
-
-    //some internal variables
-    btVector3 _currentPosition;
-    btQuaternion _currentRotation;
-    btVector3 _targetPosition;
-    glm::vec3 _lastPosition;
     btScalar  _lastStepUp;
 
     ///keep track of the contact manifolds
     btManifoldArray _manifoldArray;
 
     bool _touchingContact;
-    btVector3 _floorNormal; // points from object to character
 
     bool _enabled;
     bool _isOnGround;
@@ -89,9 +92,6 @@ protected:
     btScalar _velocityTimeInterval;
     btScalar _stepDt;
     uint32_t _pendingFlags;
-
-    glm::vec3 _shapeLocalOffset;
-    glm::vec3 _boxScale; // used to compute capsule shape
 
     btDynamicsWorld* _dynamicsWorld = NULL;
 
