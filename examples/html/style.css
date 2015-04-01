@@ -301,10 +301,3 @@ input[type="number"]::-webkit-inner-spin-button:hover,
 input[type="number"]::-webkit-inner-spin-button:active{
     opacity: .8;
 }
-
-/* Override browser form filling */
-input:-webkit-autofill {
-    background: black;
-    color: red;
-}
-
