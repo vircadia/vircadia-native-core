@@ -392,8 +392,9 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         
         _nodeMutex.unlock();
         
-        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeMutex.lockForWrite();
         _nodeHash.unsafe_erase(it);
+        _nodeMutex.unlock();
         
         handleNodeKill(matchingNode);
     } else {
