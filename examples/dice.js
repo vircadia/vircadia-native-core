@@ -23,7 +23,7 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var rollSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/dice/diceRoll.wav");
 
-var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new Objects."
+var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new objects."
 
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
