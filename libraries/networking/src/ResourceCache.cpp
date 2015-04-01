@@ -70,6 +70,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
                                                     bool delayLoad, void* extra) {
     QSharedPointer<Resource> resource = _resources.value(url);
     if (!resource.isNull()) {
+        removeUnusedResource(resource);
         return resource;
     }
 
@@ -83,16 +84,14 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         return getResource(fallback, QUrl(), delayLoad);
     }
 
-    if (resource.isNull()) {
-        resource = createResource(url, fallback.isValid() ?
-            getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
-        resource->setSelf(resource);
-        resource->setCache(this);
-        _resources.insert(url, resource);
-        
-    } else {
-        removeUnusedResource(resource);
-    }
+    resource = createResource(url, fallback.isValid() ?
+                              getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+    resource->setSelf(resource);
+    resource->setCache(this);
+    _resources.insert(url, resource);
+    removeUnusedResource(resource);
+    resource->ensureLoading();
+
     return resource;
 }
 
@@ -134,7 +133,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestLimit <= 0) {
         // wait until a slot becomes available
         sharedItems->_pendingRequests.append(resource);
@@ -147,7 +146,7 @@ void ResourceCache::attemptRequest(Resource* resource) {
 
 void ResourceCache::requestCompleted(Resource* resource) {
     
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
     _requestLimit++;
     

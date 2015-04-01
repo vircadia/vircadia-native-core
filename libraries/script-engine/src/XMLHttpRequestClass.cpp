@@ -17,12 +17,13 @@
 #include <qurlquery.h>
 
 #include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
 
 #include <AccountManager.h>
 #include "XMLHttpRequestClass.h"
 #include "ScriptEngine.h"
 
-const QString METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/";
+const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/";
 
 Q_DECLARE_METATYPE(QByteArray*)
 

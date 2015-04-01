@@ -20,6 +20,7 @@
 #include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <LogHandler.h>
+#include <NetworkingConstants.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"
@@ -252,7 +253,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     
     // make sure the AccountManager has an Auth URL for payment redemptions
     
-    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {

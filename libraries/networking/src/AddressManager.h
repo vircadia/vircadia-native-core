@@ -95,8 +95,6 @@ private:
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
-
-    QSharedMemory* _localDSPortSharedMem; // memory shared with domain server
 };
 
 #endif // hifi_AddressManager_h
