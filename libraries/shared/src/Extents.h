@@ -14,6 +14,7 @@
 #define hifi_Extents_h
 
 #include <glm/glm.hpp>
+#include <glm/gtx/extented_min_max.hpp>
 
 #include <QDebug>
 #include "StreamUtils.h"
@@ -45,6 +46,9 @@ public:
     
     /// rotate the extents around orign by rotation
     void rotate(const glm::quat& rotation);
+
+    glm::vec3 size() const { return maximum - minimum; }
+    float largestDimension() const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }
 
     /// \return new Extents which is original rotated around orign by rotation
     Extents getRotated(const glm::quat& rotation) const {

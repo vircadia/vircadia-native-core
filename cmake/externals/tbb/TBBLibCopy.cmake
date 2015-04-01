@@ -1,5 +1,5 @@
 # 
-#  AndroidTBBLibCopy.cmake
+#  TBBLibCopy.cmake
 #  cmake/externals/tbb
 # 
 #  Copyright 2015 High Fidelity, Inc.
@@ -10,7 +10,7 @@
 #
 
 # first find the so files in the source dir
-file(GLOB_RECURSE _TBB_LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/build/*.so")
+file(GLOB_RECURSE _TBB_LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/build/*.${TBB_LIBS_SUFFIX}")
 
 # raise an error if we found none
 if (NOT _TBB_LIBRARIES)

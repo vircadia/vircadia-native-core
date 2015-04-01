@@ -277,6 +277,23 @@ void NodeList::sendDomainServerCheckIn() {
         
         if (!_domainHandler.isConnected()) {
             qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+            
+            // is this our localhost domain-server?
+            // if so we need to make sure we have an up-to-date local port in case it restarted
+            
+            if (_domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
+                || _domainHandler.getHostname() == "localhost") {
+                
+                static QSharedMemory* localDSPortSharedMem = NULL;
+                
+                quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+                getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
+                                                   localDSPortSharedMem,
+                                                   domainPort);
+                qDebug() << "Local domain-server port read from shared memory (or default) is" << domainPort;
+                _domainHandler.setPort(domainPort);
+            }
+            
         }
         
         // construct the DS check in packet

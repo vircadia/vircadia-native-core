@@ -35,7 +35,7 @@ private:
     
     QFileInfo _modelFile;
     QFileInfo _fbxInfo;
-    ModelType _modelType;
+    FSTReader::ModelType _modelType;
     QString _texDir;
 
     QVariantHash _mapping;

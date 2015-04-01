@@ -44,7 +44,13 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     int count = 0;
     foreach(FBXMesh mesh, geometry.meshes) {
         //get vertices for each mesh		
-        QVector<glm::vec3> vertices = mesh.vertices;
+        // QVector<glm::vec3> vertices = mesh.vertices;
+
+
+        QVector<glm::vec3> vertices;
+        foreach (glm::vec3 vertex, mesh.vertices) {
+            vertices.append(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
+        }
 
         //get the triangle indices for each mesh
         QVector<int> triangles;
@@ -57,8 +63,15 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
         if (triangles.count() <= 0){
             continue;
         }           
+
+        AABox aaBox;
+        foreach (glm::vec3 p, vertices) {
+            aaBox += p;
+        }
+
         results->perMeshVertices.append(vertices);
         results->perMeshTriangleIndices.append(triangles);
+        results->perMeshLargestDimension.append(aaBox.getLargestDimension());
         count++;
     }
 
@@ -66,23 +79,117 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, vhacd::LoadFBXResults *re
     return true;
 }
 
-bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const{
+
+void vhacd::VHACDUtil::combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
+    float largestDimension = 0;
+    int indexStart = 0;
+
+    QVector<glm::vec3> emptyVertices;
+    QVector<int> emptyTriangles;
+    results->perMeshVertices.append(emptyVertices);
+    results->perMeshTriangleIndices.append(emptyTriangles);
+    results->perMeshLargestDimension.append(largestDimension);
+
+    for (int i = 0; i < meshes->meshCount; i++) {
+        QVector<glm::vec3> vertices = meshes->perMeshVertices.at(i);
+        QVector<int> triangles = meshes->perMeshTriangleIndices.at(i);
+        const float largestDimension = meshes->perMeshLargestDimension.at(i);
+
+        for (int j = 0; j < triangles.size(); j++) {
+            triangles[ j ] += indexStart;
+        }
+        indexStart += vertices.size();
+
+        results->perMeshVertices[0] << vertices;
+        results->perMeshTriangleIndices[0] << triangles;
+        if (results->perMeshLargestDimension[0] < largestDimension) {
+            results->perMeshLargestDimension[0] = largestDimension;
+        }
+    }
+
+    results->meshCount = 1;
+}
+
+
+void vhacd::VHACDUtil::fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
+
+    for (int i = 0; i < meshes->meshCount; i++) {
+        QVector<glm::vec3> vertices = meshes->perMeshVertices.at(i);
+        QVector<int> triangles = meshes->perMeshTriangleIndices.at(i);
+        const float largestDimension = meshes->perMeshLargestDimension.at(i);
+
+        results->perMeshVertices.append(vertices);
+        results->perMeshTriangleIndices.append(triangles);
+        results->perMeshLargestDimension.append(largestDimension);
+
+        for (int j = 0; j < triangles.size(); j += 3) {
+            auto p0 = vertices[triangles[j]];
+            auto p1 = vertices[triangles[j+1]];
+            auto p2 = vertices[triangles[j+2]];
+
+            auto d0 = p1 - p0;
+            auto d1 = p2 - p0;
+
+            auto cp = glm::cross(d0, d1);
+            cp = 5.0f * glm::normalize(cp);
+
+            auto p3 = p0 + cp;
+            auto p4 = p1 + cp;
+            auto p5 = p2 + cp;
+            
+            auto n = results->perMeshVertices.size();
+            results->perMeshVertices[i] << p3 << p4 << p5;
+            results->perMeshTriangleIndices[i] << n << n+1 << n+2;
+        }
+
+        results->meshCount++;
+    }
+}
+
+
+
+bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params,
+                                    vhacd::ComputeResults *results,
+                                    int startMeshIndex, int endMeshIndex, float minimumMeshSize) const {
+
+    // vhacd::LoadFBXResults *meshes = new vhacd::LoadFBXResults;
+    // combineMeshes(inMeshes, meshes);
+
+    // vhacd::LoadFBXResults *meshes = new vhacd::LoadFBXResults;
+    // fattenMeshes(inMeshes, meshes);
+
+
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
     int meshCount = meshes->meshCount;
     int count = 0;
     std::cout << "Performing V-HACD computation on " << meshCount << " meshes ..... " << std::endl;
 
-    for (int i = 0; i < meshCount; i++){
+    if (startMeshIndex < 0) {
+        startMeshIndex = 0;
+    }
+    if (endMeshIndex < 0) {
+        endMeshIndex = meshCount;
+    }
 
+    for (int i = startMeshIndex; i < endMeshIndex; i++){
+        qDebug() << "--------------------";
         std::vector<glm::vec3> vertices = meshes->perMeshVertices.at(i).toStdVector();
         std::vector<int> triangles = meshes->perMeshTriangleIndices.at(i).toStdVector();
         int nPoints = (unsigned int)vertices.size();
         int nTriangles = (unsigned int)triangles.size() / 3;
-        std::cout << "Mesh " << i + 1 << " :    ";
+        const float largestDimension = meshes->perMeshLargestDimension.at(i);
+
+        qDebug() << "Mesh " << i << " -- " << nPoints << " points, " << nTriangles << " triangles, "
+                 << "size =" << largestDimension;
+
+        if (largestDimension < minimumMeshSize /* || largestDimension > 1000 */) {
+            qDebug() << " Skipping...";
+            continue;
+        }
         // compute approximate convex decomposition
         bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, nTriangles, params);
         if (!res){
-            std::cout << "V-HACD computation failed for Mesh : " << i + 1 << std::endl;
+            qDebug() << "V-HACD computation failed for Mesh : " << i;
             continue;
         }
         count++; //For counting number of successfull computations
@@ -111,8 +218,6 @@ bool vhacd::VHACDUtil::computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD
                 m_triangles_copy[ i ] = hull.m_triangles[ i ];
             }
             hull.m_triangles = m_triangles_copy;
-
-
             convexHulls.append(hull);
         }
         results->convexHullList.append(convexHulls);

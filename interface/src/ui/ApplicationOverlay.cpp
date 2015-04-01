@@ -139,6 +139,7 @@ ApplicationOverlay::ApplicationOverlay() :
     _magnifier(true),
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
+    _trailingAudioLoudness(0.0f),
     _crosshairTexture(0),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),

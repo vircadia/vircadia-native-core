@@ -47,6 +47,7 @@ public:
     void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
     
     unsigned short getPort() const { return _sockAddr.getPort(); }
+    void setPort(quint16 port) { _sockAddr.setPort(port); }
     
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }

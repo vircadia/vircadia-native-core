@@ -95,7 +95,6 @@ public:
 
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
-    void removeEntityFromSimulation(EntityItem* entity);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
@@ -196,6 +195,7 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
     

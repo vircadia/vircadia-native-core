@@ -16,6 +16,7 @@
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
+#include <ScriptCache.h>
 
 class Model;
 class ScriptEngine;
@@ -31,7 +32,7 @@ public:
 };
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
+class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public ScriptUser {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -84,6 +85,9 @@ public:
     /// hovering over, and entering entities
     void connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface);
 
+    virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
+    virtual void errorInLoadingScript(const QUrl& url);
+
 signals:
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
@@ -101,6 +105,7 @@ signals:
     void leaveEntity(const EntityItemID& entityItemID);
 
 public slots:
+    void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
@@ -138,10 +143,10 @@ private:
     ScriptEngine* _entitiesScriptEngine;
     ScriptEngine* _sandboxScriptEngine;
 
-    QScriptValue loadEntityScript(EntityItem* entity);
-    QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    QScriptValue loadEntityScript(EntityItem* entity, bool isPreload = false);
+    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL);
+    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
@@ -157,6 +162,8 @@ private:
     bool _dontDoPrecisionPicking;
     
     bool _shuttingDown = false;
+
+    QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
     
 };
 
