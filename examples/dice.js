@@ -24,20 +24,24 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var rollSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/dice/diceRoll.wav");
 
 var screenSize = Controller.getViewportDimensions();
+
+var BUTTON_SIZE = 32;
+var PADDING = 3;
+
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 96,
-                    width: 32,
-                    height: 32,
+                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    y: screenSize.y- (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
 var diceButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 130,
-                    width: 32,
-                    height: 32,
+                    x: screenSize.x / 2 + PADDING,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/die.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
@@ -47,6 +51,7 @@ var GRAVITY = -3.5;
 var LIFETIME = 300;
 // NOTE: angularVelocity is in radians/sec
 var MAX_ANGULAR_SPEED = Math.PI;
+
 
 function shootDice(position, velocity) {
     for (var i = 0; i < NUMBER_OF_DICE; i++) {

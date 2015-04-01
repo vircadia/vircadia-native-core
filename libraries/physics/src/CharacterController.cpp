@@ -212,9 +212,9 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 }
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
-const float DEFAULT_GRAVITY = 3.5f;
+const float DEFAULT_GRAVITY = 5.0f;
 const float TERMINAL_VELOCITY = 55.0f;
-const float JUMP_SPEED = 2.5f;
+const float JUMP_SPEED = 5.0f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
