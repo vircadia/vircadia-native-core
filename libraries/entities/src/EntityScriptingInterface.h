@@ -66,6 +66,9 @@ public slots:
     // returns true if the DomainServer will allow this Node/Avatar to make changes
     Q_INVOKABLE bool canAdjustLocks();
 
+    // returns true if the DomainServer will allow this Node/Avatar to rez new entities
+    Q_INVOKABLE bool canRez();
+
     /// adds a model with the specific properties
     Q_INVOKABLE EntityItemID addEntity(const EntityItemProperties& properties);
 
@@ -117,6 +120,7 @@ signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
+    void canRezChanged(bool canRez);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);

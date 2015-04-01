@@ -336,6 +336,9 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
+    void faceURLChanged(const QString& newValue);
+    void skeletonURLChanged(const QString& newValue);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();

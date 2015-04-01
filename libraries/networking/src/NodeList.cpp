@@ -277,6 +277,23 @@ void NodeList::sendDomainServerCheckIn() {
         
         if (!_domainHandler.isConnected()) {
             qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+            
+            // is this our localhost domain-server?
+            // if so we need to make sure we have an up-to-date local port in case it restarted
+            
+            if (_domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
+                || _domainHandler.getHostname() == "localhost") {
+                
+                static QSharedMemory* localDSPortSharedMem = NULL;
+                
+                quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+                getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
+                                                   localDSPortSharedMem,
+                                                   domainPort);
+                qDebug() << "Local domain-server port read from shared memory (or default) is" << domainPort;
+                _domainHandler.setPort(domainPort);
+            }
+            
         }
         
         // construct the DS check in packet
@@ -386,6 +403,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     bool thisNodeCanAdjustLocks;
     packetStream >> thisNodeCanAdjustLocks;
     setThisNodeCanAdjustLocks(thisNodeCanAdjustLocks);
+
+    bool thisNodeCanRez;
+    packetStream >> thisNodeCanRez;
+    setThisNodeCanRez(thisNodeCanRez);
     
     // pull each node in the packet
     while(packetStream.device()->pos() < packet.size()) {
@@ -394,8 +415,9 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         QUuid nodeUUID, connectionUUID;
         HifiSockAddr nodePublicSocket, nodeLocalSocket;
         bool canAdjustLocks;
+        bool canRez;
 
-        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks;
+        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
 
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
@@ -403,7 +425,8 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
             nodePublicSocket.setAddress(_domainHandler.getIP());
         }
 
-        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket, canAdjustLocks);
+        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
+                                                 nodeLocalSocket, canAdjustLocks, canRez);
         
         packetStream >> connectionUUID;
         node->setConnectionSecret(connectionUUID);

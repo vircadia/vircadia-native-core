@@ -17,6 +17,8 @@
 #include <QDialog>
 #include <QString>
 
+#include "scripting/WebWindowClass.h"
+
 class PreferencesDialog : public QDialog {
     Q_OBJECT
     
@@ -36,6 +38,8 @@ private:
     QString _faceURLString;
     QString _skeletonURLString;
     QString _displayNameString;
+    
+    WebWindowClass* _marketplaceWindow = NULL;
 
 private slots:
     void accept();
@@ -43,6 +47,8 @@ private slots:
     void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
+    void faceURLChanged(const QString& newValue);
+    void skeletonURLChanged(const QString& newValue);
     
 };
 
