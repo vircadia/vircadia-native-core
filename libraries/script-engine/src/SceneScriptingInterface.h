@@ -24,12 +24,21 @@ class SceneScriptingInterface : public QObject, public Dependency {
 
 public:
     Q_INVOKABLE void setStageOrientation(const glm::quat& orientation);
+
     Q_INVOKABLE void setStageLocation(float longitude, float latitude, float altitude);
+    Q_INVOKABLE float getStageLocationLongitude() const;
+    Q_INVOKABLE float getStageLocationLatitude() const;
+    Q_INVOKABLE float getStageLocationAltitude() const;
+
     Q_INVOKABLE void setStageDayTime(float hour);
+    Q_INVOKABLE float getStageDayTime() const;
     Q_INVOKABLE void setStageYearTime(int day);
+    Q_INVOKABLE int getStageYearTime() const;
 
     Q_INVOKABLE void setSunColor(const glm::vec3& color);
+    Q_INVOKABLE const glm::vec3& getSunColor() const;
     Q_INVOKABLE void setSunIntensity(float intensity);
+    Q_INVOKABLE float getSunIntensity() const;
 
     model::SunSkyStagePointer getSkyStage() const;
 
