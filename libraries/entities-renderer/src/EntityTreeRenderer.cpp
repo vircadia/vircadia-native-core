@@ -2,7 +2,7 @@
 //  EntityTreeRenderer.cpp
 //  interface/src
 //
-//  Created by Brad Hefta>Gaub on 12/6/13.
+//  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
