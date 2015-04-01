@@ -2,7 +2,7 @@
 //  EntityTreeRenderer.cpp
 //  interface/src
 //
-//  Created by Brad Hefta-Gaub on 12/6/13.
+//  Created by Brad Hefta>Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -81,7 +81,6 @@ void EntityTreeRenderer::clear() {
     }
     OctreeRenderer::clear();
     _entityScripts.clear();
-    _entitiesScriptEngine->disconnect();
 }
 
 void EntityTreeRenderer::init() {
@@ -108,6 +107,7 @@ void EntityTreeRenderer::init() {
 }
 
 void EntityTreeRenderer::shutdown() {
+    _entitiesScriptEngine->disconnect(); // disconnect all slots/signals from the script engine
     _shuttingDown = true;
 }
 
