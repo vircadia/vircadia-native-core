@@ -16,6 +16,7 @@
 #include <avatar/AvatarManager.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
+#include <NetworkingConstants.h>
 
 #include "Application.h"
 #include "MainWindow.h"
@@ -82,17 +83,21 @@ void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
-    auto MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace?category=avatars";
+    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    auto WIDTH = 900;
+    auto HEIGHT = 700;
     if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, 900, 700, false);
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
     }
     _marketplaceWindow->setVisible(true);
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    auto MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace?category=avatars";
+    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    auto WIDTH = 900;
+    auto HEIGHT = 700;
     if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, 900, 700, false);
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
     }
     _marketplaceWindow->setVisible(true);
 }
@@ -211,11 +216,13 @@ void PreferencesDialog::savePreferences() {
         UserActivityLogger::getInstance().changedDisplayName(displayNameStr);
         shouldDispatchIdentityPacket = true;
     }
+
+    auto AVATAR_FILE_EXTENSION = ".fst";
     
     QUrl faceModelURL(ui.faceURLEdit->text());
     QString faceModelURLString = faceModelURL.toString();
     if (faceModelURLString != _faceURLString) {
-        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().contains(".fst")) {
+        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
             myAvatar->setFaceModelURL(faceModelURL);
             UserActivityLogger::getInstance().changedModel("head", faceModelURLString);
@@ -228,7 +235,7 @@ void PreferencesDialog::savePreferences() {
     QUrl skeletonModelURL(ui.skeletonURLEdit->text());
     QString skeletonModelURLString = skeletonModelURL.toString();
     if (skeletonModelURLString != _skeletonURLString) {
-        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().contains(".fst")) {
+        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
             myAvatar->setSkeletonModelURL(skeletonModelURL);
             UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURLString);
