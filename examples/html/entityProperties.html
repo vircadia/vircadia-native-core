@@ -477,6 +477,28 @@
                 ev.initEvent("change", true, true);
                 document.activeElement.dispatchEvent(ev);
             }
+
+            // For input and textarea elements, select all of the text on focus
+            // WebKit-based browsers, such as is used with QWebView, have a quirk
+            // where the mouseup event comes after the focus event, causing the
+            // text to be deselected immediately after selecting all of the text.
+            // To make this work we block the first mouseup event after the elements
+            // received focus.  If we block all mouseup events the user will not
+            // be able to click within the selected text.
+            var els = document.querySelectorAll("input, textarea");
+            for (var i = 0; i < els.length; i++) {
+                var clicked = false;
+                els[i].onfocus = function() {
+                    this.select();
+                    clicked = false;
+                };
+                els[i].onmouseup = function(e) {
+                    if (!clicked) {
+                        e.preventDefault();
+                        clicked = true;
+                    }
+                };
+            }
         }
     </script>
 </head>
