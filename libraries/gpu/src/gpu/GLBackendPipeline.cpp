@@ -112,7 +112,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 void GLBackend::updatePipeline() {
 #ifdef DEBUG_GLSTATE
     if (_pipeline._needStateSync) {
-         State::Cache state;
+         State::Data state;
          getCurrentGLState(state);
          State::Signature signature = State::evalSignature(state);
     }

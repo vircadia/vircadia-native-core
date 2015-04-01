@@ -401,7 +401,7 @@ State::BlendArg blendArgFromGL(GLenum blendArg) {
     return State::ONE;
 }
 
-void GLBackend::getCurrentGLState(State::Cache& state) {
+void GLBackend::getCurrentGLState(State::Data& state) {
     {
         GLint modes[2];
         glGetIntegerv(GL_POLYGON_MODE, modes);
@@ -532,7 +532,7 @@ void GLBackend::getCurrentGLState(State::Cache& state) {
 }
 
 void GLBackend::syncPipelineStateCache() {
-    State::Cache state;
+    State::Data state;
 
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);

@@ -18,6 +18,9 @@
 #include <unordered_map>
 #include <bitset>
 
+// Why a macro and not a fancy template you will ask me ? 
+// Because some of the fields are bool packed tightly in the State::Cache class
+// and it s just not good anymore for template T& variable manipulation...
 #define SET_FIELD(field, defaultValue, value, dest) {\
     dest = value;\
     if (value == defaultValue) {\
@@ -39,7 +42,7 @@ public:
     virtual ~State();
 
     const Stamp getStamp() const { return _stamp; }
-
+    
     enum ComparisonFunction {
         NEVER = 0,
         LESS,
@@ -233,9 +236,9 @@ public:
         bool operator!= (const BlendFunction& right) const { return getRaw() != right.getRaw(); } 
     };
 
-    // The Cache class is the full explicit description of the State class fields value.
+    // The Data class is the full explicit description of the State class fields value.
     // Useful for having one const static called Default for reference or for the gpu::Backend to keep track of the current value
-    class Cache {
+    class Data {
     public:
         float depthBias = 0.0f;
         float depthBiasSlopeScale = 0.0f;
@@ -262,7 +265,7 @@ public:
         bool antialisedLineEnable : 1;
         bool alphaToCoverageEnable : 1;
 
-        Cache() :
+        Data() :
             frontFaceClockwise(false),
             depthClipEnable(false),
             scissorEnable(false),
@@ -273,7 +276,7 @@ public:
     };
 
     // The unique default values for all the fields
-    static const Cache DEFAULT;
+    static const Data DEFAULT;
     void setFillMode(FillMode fill) { SET_FIELD(FILL_MODE, DEFAULT.fillMode, fill, _values.fillMode); }
     FillMode getFillMode() const { return FillMode(_values.fillMode); }
     
@@ -385,13 +388,17 @@ public:
 
     Signature getSignature() const { return _signature; }
 
-    static Signature evalSignature(const Cache& state);
+    static Signature evalSignature(const Data& state);
 
+    // For convenience, create a State from the values directly
+    State(const Data& values);
+    const Data& getValues() const { return _values; }
+ 
 protected:
     State(const State& state);
     State& operator=(const State& state);
  
-    Cache _values;
+    Data _values;
     Signature _signature{0};
     Stamp _stamp{0};
 

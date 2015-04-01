@@ -20,9 +20,9 @@ State::State() {
 State::~State() {
 }
 
-const State::Cache State::DEFAULT = State::Cache();
+const State::Data State::DEFAULT = State::Data();
 
-State::Signature State::evalSignature(const Cache& state) {
+State::Signature State::evalSignature(const Data& state) {
     Signature signature(0);
 
     if (state.fillMode != State::DEFAULT.fillMode) {
@@ -78,4 +78,9 @@ State::Signature State::evalSignature(const Cache& state) {
     }
 
     return signature;
+}
+
+State::State(const Data& values) :
+    _values(values) {
+    _signature = evalSignature(_values);
 }

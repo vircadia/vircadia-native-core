@@ -37,7 +37,7 @@ public:
     
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
+    void renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
     
@@ -55,7 +55,7 @@ private:
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
+    void renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode);
     
     AvatarSharedPointer newSharedAvatar();
     

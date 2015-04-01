@@ -364,7 +364,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
         _tree->recurseTreeWithOperation(renderOperation, &args);
 
         Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
-                                            ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+                                            ? RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    

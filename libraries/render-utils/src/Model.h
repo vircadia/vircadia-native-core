@@ -51,6 +51,8 @@ class Model : public QObject, public PhysicsEntity {
     
 public:
 
+    typedef RenderArgs::RenderMode RenderMode;
+
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
@@ -94,15 +96,13 @@ public:
     void init();
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
-    
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+
+    bool render(float alpha = 1.0f, RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
     bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endScene(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -410,28 +410,28 @@ private:
     static QVector<Model*> _modelsInScene;
     static gpu::Batch _sceneRenderBatch;
 
-    static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endSceneSimple(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     // helper functions used by render() or renderInScene()
     void renderSetup(RenderArgs* args);
-    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
-    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
+    bool renderCore(float alpha, RenderArgs::RenderMode mode, RenderArgs* args);
+    int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
                         bool forceRenderSomeMeshes = false);
                         
     void setupBatchTransform(gpu::Batch& batch);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
-    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                                         RenderArgs* args, Locations* locations, 
                                         bool forceRenderSomeMeshes = false);
 
-    static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+    static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
                             Locations*& locations);
 
-    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
 
@@ -449,6 +449,7 @@ private:
             IS_STEREO_FLAG,
             IS_DEPTH_ONLY_FLAG,
             IS_SHADOW_FLAG,
+            IS_MIRROR_FLAG, //THis means that the mesh is rendered mirrored, not the same as "Rear view mirror"
 
             NUM_FLAGS,
         };
@@ -463,6 +464,7 @@ private:
             IS_STEREO = (1 << IS_STEREO_FLAG),
             IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
             IS_SHADOW = (1 << IS_SHADOW_FLAG),
+            IS_MIRROR = (1 << IS_MIRROR_FLAG),
 
         };
         typedef unsigned short Flags;
@@ -480,22 +482,25 @@ private:
         bool isStereo() const { return isFlag(IS_STEREO); }
         bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
         bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
+        bool isMirror() const { return isFlag(IS_MIRROR); }
 
         Flags _flags = 0;
         short _spare = 0;
 
         int getRaw() { return *reinterpret_cast<int*>(this); }
 
-        RenderKey(RenderMode mode,
+        RenderKey(RenderArgs::RenderMode mode,
             bool translucent, float alphaThreshold, bool hasLightmap,
             bool hasTangents, bool hasSpecular, bool isSkinned) :
-            RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
-                      | (hasLightmap && (mode != SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
-                      | (hasTangents && (mode != SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
-                      | (hasSpecular && (mode != SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
+            RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
+                      | (hasLightmap && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
+                      | (hasTangents && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
+                      | (hasSpecular && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
                       | (isSkinned ? IS_SKINNED : 0)
-                      | ((mode == SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
-                      | ((mode == SHADOW_RENDER_MODE) ? IS_SHADOW : 0)) {}
+                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
+                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_SHADOW : 0)
+                      | ((mode == RenderArgs::MIRROR_RENDER_MODE) ? IS_MIRROR :0)
+                     ) {}
 
         RenderKey(int bitmask) : _flags(bitmask) {}
     };

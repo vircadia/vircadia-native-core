@@ -263,7 +263,7 @@ protected:
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncPipelineStateCache();
     // Grab the actual gl state into it's gpu::State equivalent. THis is used by the above call syncPipleineStateCache() 
-    void getCurrentGLState(State::Cache& state);
+    void getCurrentGLState(State::Data& state);
 
     struct PipelineStageState {
 
@@ -272,7 +272,7 @@ protected:
         GLuint _program;
         bool _invalidProgram;
 
-        State::Cache _stateCache;
+        State::Data _stateCache;
         State::Signature _stateSignatureCache;
 
         GLState* _state;
