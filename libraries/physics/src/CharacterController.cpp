@@ -696,7 +696,7 @@ void CharacterController::jump() {
         } else {
             quint64 now = usecTimestampNow();
             const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
-            if (now - _jumpToHoverStart < JUMP_TO_HOVER_PERIOD) {
+            if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
                 _isHovering = true;
             }
         }
