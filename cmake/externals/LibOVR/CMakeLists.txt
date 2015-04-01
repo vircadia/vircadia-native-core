@@ -9,8 +9,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.4.4.zip
-    URL_MD5 bcc9f41346ce13bd4334a8bc94875728
+    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.5.0.1.zip
+    URL_MD5 d3fc4c02db9be5ff08af4ef4c97b32f9
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -20,14 +20,8 @@ if (WIN32)
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
   # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/LibOVR/Lib/Win32/VS2013/libovr.lib CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/LibOVR/Lib/Win32/VS2013/libovrd.lib  CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS setupapi winmm ws2_32)
-
-  select_library_configurations(${EXTERNAL_NAME_UPPER})
-
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/Win32/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
 
 elseif(APPLE)
 
