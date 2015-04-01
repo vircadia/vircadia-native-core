@@ -21,6 +21,7 @@
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
+#include "FriendsWindow.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
@@ -169,4 +170,10 @@ void DialogsManager::showIRCLink() {
     }
     
     _ircInfoBox->raise();
+}
+
+void DialogsManager::showFriendsWindow() {
+    maybeCreateDialog(_friendsWindow);
+    _friendsWindow->show();
+    _friendsWindow->raise();
 }

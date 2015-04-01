@@ -27,6 +27,7 @@ class AttachmentsDialog;
 class BandwidthDialog;
 class CachesSizeDialog;
 class DiskCacheEditor;
+class FriendsWindow;
 class LodToolsDialog;
 class LoginDialog;
 class OctreeStatsDialog;
@@ -59,6 +60,7 @@ public slots:
     void hmdTools(bool showTools);
     void showScriptEditor();
     void showIRCLink();
+    void showFriendsWindow();
 
 private slots:
     void toggleToolWindow();
@@ -87,6 +89,7 @@ private:
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<DiskCacheEditor> _diskCacheEditor;
+    QPointer<FriendsWindow> _friendsWindow;
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;

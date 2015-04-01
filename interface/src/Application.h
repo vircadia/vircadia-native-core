@@ -364,8 +364,6 @@ public slots:
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
-    void showEditFriendsDialog();
-    void editFriendsDialogDestroyed();
 
     void packageModel();
     
@@ -572,7 +570,6 @@ private:
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
-    QWidget*_editFriendsDialog;
 
     FileLogger* _logger;
 
