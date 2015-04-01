@@ -970,7 +970,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_E:
             case Qt::Key_PageUp:
-                _myAvatar->jump();
                 _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
@@ -2205,6 +2204,7 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
+        _myAvatar->relayDriveKeysToCharacterController();
         _physicsEngine.stepSimulation();
     }
 

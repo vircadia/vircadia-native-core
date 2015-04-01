@@ -26,6 +26,7 @@ const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
+const uint32_t PENDING_FLAG_STOP_HOVER = 1U << 4;
 
 // static helper method
 static btVector3 getNormalizedVector(const btVector3& v) {
@@ -214,7 +215,7 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = 5.0f;
 const float TERMINAL_VELOCITY = 55.0f;
-const float JUMP_SPEED = 5.0f;
+const float JUMP_SPEED = 4.0f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
@@ -229,8 +230,8 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
-    _gravity = DEFAULT_GRAVITY; // slower than Earth's
-    _maxFallSpeed = TERMINAL_VELOCITY; // Terminal velocity of a sky diver in m/s.
+    _gravity = DEFAULT_GRAVITY;
+    _maxFallSpeed = TERMINAL_VELOCITY;
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
@@ -362,15 +363,18 @@ void CharacterController::scanDown(btCollisionWorld* world) {
 
     btVector3 start = _currentPosition;
     const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight + _radius; // closest possible floor for disabling hover
-    const btScalar MIN_HOVER_HEIGHT = 3.0f + _halfHeight + _radius; // distance to floor for enabling hover
+    const btScalar MIN_HOVER_HEIGHT = 2.0f + _halfHeight + _radius; // distance to floor for enabling hover
     btVector3 end = start - MAX_SCAN_HEIGHT * _currentUp;
 
     world->rayTest(start, end, callback);
     if (!callback.hasHit()) {
         _isHovering = true;
-    } else if (_isHovering && callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT) {
+    } else if (_isHovering && 
+            callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT && 
+            (_pendingFlags & PENDING_FLAG_STOP_HOVER)) {
         _isHovering = false;
     }
+    _pendingFlags &= ~ PENDING_FLAG_STOP_HOVER;
 }
 
 void CharacterController::stepUp(btCollisionWorld* world) {
@@ -529,6 +533,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _verticalVelocity = 0.0f;
         _verticalOffset = 0.0f;
         _isJumping = false;
+        _isHovering = false;
         _isOnGround = true;
     } else if (!_isJumping) {
         // sweep again for floor within downStep threshold
@@ -555,6 +560,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _verticalVelocity = 0.0f;
             _verticalOffset = 0.0f;
             _isJumping = false;
+            _isHovering = false;
             _isOnGround = true;
         } else {
             // nothing to step down on
@@ -583,6 +589,7 @@ void CharacterController::reset(btCollisionWorld* collisionWorld) {
     _verticalOffset = 0.0;
     _isOnGround = false;
     _isJumping = false;
+    _isHovering = true;
     _walkDirection.setValue(0,0,0);
     _velocityTimeInterval = 0.0;
 
@@ -698,9 +705,14 @@ void CharacterController::jump() {
             const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
             if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
                 _isHovering = true;
+                _verticalVelocity = 0.0f;
             }
         }
     }
+}
+
+void CharacterController::stopHover() {
+    _pendingFlags |= PENDING_FLAG_STOP_HOVER;
 }
 
 void CharacterController::setGravity(btScalar gravity) {
@@ -781,6 +793,7 @@ void CharacterController::setEnabled(bool enabled) {
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
             _isHovering = true;
+            _verticalVelocity = 0.0f;
         } else {
             if (_dynamicsWorld) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
