@@ -36,8 +36,6 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://metaverse.highfidelity.com");
-
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
     linkedDataCreateCallback(NULL),
     _sessionUUID(),
@@ -392,8 +390,9 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         
         _nodeMutex.unlock();
         
-        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeMutex.lockForWrite();
         _nodeHash.unsafe_erase(it);
+        _nodeMutex.unlock();
         
         handleNodeKill(matchingNode);
     } else {

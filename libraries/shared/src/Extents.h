@@ -48,7 +48,7 @@ public:
     void rotate(const glm::quat& rotation);
 
     glm::vec3 size() const { return maximum - minimum; }
-    float largestDimension () const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }
+    float largestDimension() const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }
 
     /// \return new Extents which is original rotated around orign by rotation
     Extents getRotated(const glm::quat& rotation) const {

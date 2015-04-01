@@ -15,6 +15,7 @@
 
 #include "AccountManager.h"
 #include "LimitedNodeList.h"
+#include "NetworkingConstants.h"
 #include "SharedUtil.h"
 
 #include "OAuthNetworkAccessManager.h"
@@ -33,7 +34,8 @@ QNetworkReply* OAuthNetworkAccessManager::createRequest(QNetworkAccessManager::O
                                                         QIODevice* outgoingData) {
     AccountManager& accountManager = AccountManager::getInstance();
     
-    if (accountManager.hasValidAccessToken() && req.url().host() == DEFAULT_NODE_AUTH_URL.host()) {
+    if (accountManager.hasValidAccessToken()
+        && req.url().host() == NetworkingConstants::METAVERSE_SERVER_URL.host()) {
         QNetworkRequest authenticatedRequest(req);
         authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         authenticatedRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,

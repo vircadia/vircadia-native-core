@@ -26,6 +26,7 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG") 
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
