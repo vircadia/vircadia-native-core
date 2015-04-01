@@ -97,7 +97,6 @@ private:
     void connectToReply(QNetworkReply* reply);
     void disconnectFromReply(QNetworkReply* reply);
     void abortRequest();
-    void notImplemented();
 
     QScriptEngine* _engine;
     bool _async;
@@ -113,7 +112,6 @@ private:
     QScriptValue _onReadyStateChange;
     ReadyState _readyState;
     QNetworkReply::NetworkError _errorCode;
-    QFile* _file;
     int _timeout;
     QTimer _timer;
     int _numRedirects;
