@@ -21,6 +21,10 @@
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+    
+    Q_PROPERTY(bool shouldRenderAvatars READ shouldRenderAvatars WRITE setShouldRenderAvatars)
+    Q_PROPERTY(bool shouldRenderEntities READ shouldRenderEntities WRITE setShouldRenderEntities)
+    Q_PROPERTY(bool shouldRenderOverlays READ shouldRenderOverlays WRITE setShouldRenderOverlays)
 
 public:
     Q_INVOKABLE void setStageOrientation(const glm::quat& orientation);
@@ -41,12 +45,25 @@ public:
     Q_INVOKABLE float getSunIntensity() const;
 
     model::SunSkyStagePointer getSkyStage() const;
+    
+    Q_INVOKABLE void setShouldRenderAvatars(bool shouldRenderAvatars) { _shouldRenderAvatars = shouldRenderAvatars; }
+    Q_INVOKABLE bool shouldRenderAvatars() const { return _shouldRenderAvatars; }
+    
+    Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities) { _shouldRenderEntities = shouldRenderEntities; }
+    Q_INVOKABLE bool shouldRenderEntities() const { return _shouldRenderEntities; }
+    
+    Q_INVOKABLE void setShouldRenderOverlays(bool shouldRenderOverlays) { _shouldRenderOverlays = shouldRenderOverlays; }
+    Q_INVOKABLE bool shouldRenderOverlays() const { return _shouldRenderOverlays; }
 
 protected:
     SceneScriptingInterface() {};
     ~SceneScriptingInterface() {};
 
     model::SunSkyStagePointer _skyStage = model::SunSkyStagePointer(new model::SunSkyStage());
+    
+    bool _shouldRenderAvatars = true;
+    bool _shouldRenderEntities = true;
+    bool _shouldRenderOverlays = true;
 };
 
 #endif // hifi_SceneScriptingInterface_h
