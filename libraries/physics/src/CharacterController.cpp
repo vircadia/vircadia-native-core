@@ -212,6 +212,9 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 }
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
+const float DEFAULT_GRAVITY = 5.0f;
+const float TERMINAL_VELOCITY = 55.0f;
+const float JUMP_SPEED = 5.0f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
@@ -226,9 +229,9 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
-    _gravity = 5.0f; // slower than Earth's
-    _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
-    _jumpSpeed = 5.0f;
+    _gravity = DEFAULT_GRAVITY; // slower than Earth's
+    _maxFallSpeed = TERMINAL_VELOCITY; // Terminal velocity of a sky diver in m/s.
+    _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
     _isHovering = true;
@@ -349,6 +352,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     _ghostObject->setWorldTransform(newTrans);
     return penetration;
 }
+
 
 void CharacterController::scanDown(btCollisionWorld* world) {
     // we test with downward raycast and if we don't find floor close enough then turn on "hover"
