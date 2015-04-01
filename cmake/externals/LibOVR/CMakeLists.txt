@@ -55,6 +55,7 @@ elseif(NOT ANDROID)
     ${EXTERNAL_NAME}
     PREFIX ${EXTERNAL_NAME}
     GIT_REPOSITORY https://github.com/jherico/OculusSDK.git
+    GIT_TAG ed26cbafdd1d1d7cac0bc809147af15d161306ad
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     LOG_DOWNLOAD ON
   )
