@@ -165,7 +165,7 @@ void OculusManager::connect() {
         });
         _eyeTextures[ovrEye_Right].Header.RenderViewport.Pos.x = _recommendedTexSize.w;
 
-        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence);
+        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
 
         ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
                                  ovrTrackingCap_MagYawCorrection,
@@ -447,12 +447,27 @@ static bool timerActive = false;
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
     auto glCanvas = Application::getInstance()->getGLWidget();
+
+#ifdef DEBUG
+    // Ensure the frame counter always increments by exactly 1
+    static int oldFrameIndex = -1;
+    assert(oldFrameIndex == -1 || oldFrameIndex == _frameIndex - 1);
+    oldFrameIndex = _frameIndex;
+#endif
+
+    // Every so often do some additional timing calculations and debug output
+    bool debugFrame = 0 == _frameIndex % 400;
+    
+    // Try to measure the amount of time taken to do the distortion
+    // (does not seem to work on OSX with SDK based distortion)
     static QOpenGLTimerQuery timerQuery;
     if (!timerQuery.isCreated()) {
         timerQuery.create();
     }
+    
     if (timerActive && timerQuery.isResultAvailable()) {
-        qDebug() << timerQuery.waitForResult();
+        auto result = timerQuery.waitForResult();
+        if (result) { qDebug() << "Distortion took "  << result << "ns"; };
         timerActive = false;
     }
 
@@ -609,7 +624,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // restore our normal viewport
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
     
-    if (!timerActive) {
+    if (debugFrame && !timerActive) {
         timerQuery.begin();
     }
     
@@ -641,10 +656,31 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
 
 #endif
-    if (!timerActive) {
+    if (debugFrame && !timerActive) {
         timerQuery.end();
         timerActive = true;
     }
+    
+    // No DK2, no message.
+    char latency2Text[128] = "";
+    {
+        float latencies[5] = {};
+        if (debugFrame && ovrHmd_GetFloatArray(_ovrHmd, "DK2Latency", latencies, 5) == 5)
+        {
+            bool nonZero = false;
+            for (int i = 0; i < 5; ++i)
+            {
+                nonZero |= (latencies[i] != 0.f);
+            }
+
+            if (nonZero)
+            {
+                qDebug() << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
+                                             latencies[0], latencies[1], latencies[2], latencies[3], latencies[4]);
+            }
+        }
+    }
+    
 }
 
 #ifdef OVR_CLIENT_DISTORTION
