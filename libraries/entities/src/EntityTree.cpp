@@ -659,12 +659,14 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
                 } else {
-                    // this is a new entity... assign a new entityID
-                    entityItemID = assignEntityID(entityItemID);
-                    EntityItem* newEntity = addEntity(entityItemID, properties);
-                    if (newEntity) {
-                        newEntity->markAsChangedOnServer();
-                        notifyNewlyCreatedEntity(*newEntity, senderNode);
+                    if (senderNode->getCanRez()) {
+                        // this is a new entity... assign a new entityID
+                        entityItemID = assignEntityID(entityItemID);
+                        EntityItem* newEntity = addEntity(entityItemID, properties);
+                        if (newEntity) {
+                            newEntity->markAsChangedOnServer();
+                            notifyNewlyCreatedEntity(*newEntity, senderNode);
+                        }
                     }
                 }
             }
