@@ -26,20 +26,24 @@ var rollSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/dice/diceRoll.w
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new objects."
 
 var screenSize = Controller.getViewportDimensions();
+
+var BUTTON_SIZE = 32;
+var PADDING = 3;
+
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 96,
-                    width: 32,
-                    height: 32,
+                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    y: screenSize.y- (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
 var diceButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 130,
-                    width: 32,
-                    height: 32,
+                    x: screenSize.x / 2 + PADDING,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/die.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
@@ -49,6 +53,7 @@ var GRAVITY = -3.5;
 var LIFETIME = 300;
 // NOTE: angularVelocity is in radians/sec
 var MAX_ANGULAR_SPEED = Math.PI;
+
 
 function shootDice(position, velocity) {
     if (!Entities.canRez()) {
@@ -100,7 +105,7 @@ function mousePressEvent(event) {
     var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay == offButton) {
-        deleteDice();
+        Script.stop();
     } else if (clickedOverlay == diceButton) {
         var HOW_HARD = 2.0;
         var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));

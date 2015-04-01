@@ -35,7 +35,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     // Very small or large objects are not supported.
     float diagonal = 4.0f * glm::length2(info.getHalfExtents());
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
-    const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e4f;  // 100 m cube
+    const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e6f;  // 1000 m cube
     if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED || diagonal > MAX_SHAPE_DIAGONAL_SQUARED) {
         // qDebug() << "ShapeManager::getShape -- not making shape due to size" << diagonal;
         return NULL;

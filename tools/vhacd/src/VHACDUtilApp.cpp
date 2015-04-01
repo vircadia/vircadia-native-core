@@ -92,6 +92,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption outputOneMeshOption("1", "output hulls as single mesh");
     parser.addOption(outputOneMeshOption);
 
+    const QCommandLineOption fattenFacesOption("f", "fatten faces");
+    parser.addOption(fattenFacesOption);
+
     const QCommandLineOption inputFilenameOption("i", "input file", "filename.fbx");
     parser.addOption(inputFilenameOption);
 
@@ -107,6 +110,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh size to consider", "0");
     parser.addOption(minimumMeshSizeOption);
 
+    const QCommandLineOption vHacdResolutionOption("resolution", "v-hacd resolution", "100000");
+    parser.addOption(vHacdResolutionOption);
+
+    const QCommandLineOption vHacdDepthOption("depth", "v-hacd depth", "20");
+    parser.addOption(vHacdDepthOption);
+
+    const QCommandLineOption vHacdDeltaOption("delta", "v-hacd delta", "0.05");
+    parser.addOption(vHacdDeltaOption);
+
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -119,17 +131,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-
+    bool fattenFaces = parser.isSet(fattenFacesOption);
     bool outputOneMesh = parser.isSet(outputOneMeshOption);
 
     QString inputFilename;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(inputFilenameOption)) {
         inputFilename = parser.value(inputFilenameOption);
     }
 
     QString outputFilename;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(outputFilenameOption)) {
         outputFilename = parser.value(outputFilenameOption);
     }
@@ -148,30 +158,43 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     }
 
     int startMeshIndex = -1;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(startMeshIndexOption)) {
         startMeshIndex = parser.value(startMeshIndexOption).toInt();
     }
 
     int endMeshIndex = -1;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(endMeshIndexOption)) {
         endMeshIndex = parser.value(endMeshIndexOption).toInt();
     }
 
     float minimumMeshSize = 0.0f;
-    // check for an assignment pool passed on the command line or in the config
     if (parser.isSet(minimumMeshSizeOption)) {
         minimumMeshSize = parser.value(minimumMeshSizeOption).toFloat();
     }
 
+    int vHacdResolution = 100000;
+    if (parser.isSet(vHacdResolutionOption)) {
+        vHacdResolution = parser.value(vHacdResolutionOption).toInt();
+    }
+
+    int vHacdDepth = 20;
+    if (parser.isSet(vHacdDepthOption)) {
+        vHacdDepth = parser.value(vHacdDepthOption).toInt();
+    }
+
+    float vHacdDelta = 0.05;
+    if (parser.isSet(vHacdDeltaOption)) {
+        vHacdDelta = parser.value(vHacdDeltaOption).toFloat();
+    }
+
+
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
-    params.m_resolution = 100000; // 100000
-    params.m_depth = 20; // 20
+    params.m_resolution = vHacdResolution; // 100000
+    params.m_depth = vHacdDepth; // 20
     params.m_concavity = 0.001; // 0.001
-    params.m_delta = 0.05; // 0.05
+    params.m_delta = vHacdDelta; // 0.05
     params.m_planeDownsampling = 4; // 4
     params.m_convexhullDownsampling = 4; // 4
     params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
@@ -198,8 +221,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     //perform vhacd computation
     begin = std::chrono::high_resolution_clock::now();
 
-
-    if (!vUtil.computeVHACD(&fbx, params, &results, startMeshIndex, endMeshIndex, minimumMeshSize)) {
+    if (!vUtil.computeVHACD(&fbx, params, &results, startMeshIndex, endMeshIndex, minimumMeshSize, fattenFaces)) {
         cout << "Compute Failed...";
     }
     end = std::chrono::high_resolution_clock::now();

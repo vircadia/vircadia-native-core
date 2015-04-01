@@ -256,7 +256,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
-    
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     return true;
 }
 
@@ -3587,6 +3588,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
+    scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
@@ -3738,22 +3741,27 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         _myAvatar->setFaceModelURL(url);
         UserActivityLogger::getInstance().changedModel("head", url);
         _myAvatar->sendIdentityPacket();
+        emit faceURLChanged(url);
     } else if (msgBox.clickedButton() == bodyButton) {
         qDebug() << "Chose to use for body: " << url;
         _myAvatar->setSkeletonModelURL(url);
         // if the head is empty, reset it to the default head.
         if (_myAvatar->getFaceModelURLString().isEmpty()) {
             _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
+            emit faceURLChanged(DEFAULT_HEAD_MODEL_URL.toString());
             UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
         }
         UserActivityLogger::getInstance().changedModel("skeleton", url);
         _myAvatar->sendIdentityPacket();
+        emit skeletonURLChanged(url);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
         qDebug() << "Chose to use for body + head: " << url;
         _myAvatar->setFaceModelURL(QString());
         _myAvatar->setSkeletonModelURL(url);
         UserActivityLogger::getInstance().changedModel("skeleton", url);
         _myAvatar->sendIdentityPacket();
+        emit faceURLChanged(QString());
+        emit skeletonURLChanged(url);
     } else {
         qDebug() << "Declined to use the avatar: " << url;
     }
