@@ -969,6 +969,10 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("unload").call(entityScript, entityArgs);
         }
+        
+        // In the event that the entity script connected to any of our signals
+        // we want to disconnect it so we don't have anything dangling
+        _entitiesScriptEngine->disconnect(entityScript.toQObject());
     }
 }
 
