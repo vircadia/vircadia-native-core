@@ -458,8 +458,11 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // Every so often do some additional timing calculations and debug output
     bool debugFrame = 0 == _frameIndex % 400;
     
+#if 0
     // Try to measure the amount of time taken to do the distortion
     // (does not seem to work on OSX with SDK based distortion)
+    // FIXME can't use a static object here, because it will cause a crash when the
+    // query attempts deconstruct after the GL context is gone.
     static QOpenGLTimerQuery timerQuery;
     if (!timerQuery.isCreated()) {
         timerQuery.create();
@@ -470,7 +473,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         if (result) { qDebug() << "Distortion took "  << result << "ns"; };
         timerActive = false;
     }
-
+#endif
+    
 #ifdef OVR_DIRECT_MODE
     static bool attached = false;
     if (!attached) {
@@ -623,11 +627,13 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     // restore our normal viewport
     glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
-    
+
+#if 0
     if (debugFrame && !timerActive) {
         timerQuery.begin();
     }
-    
+#endif
+
 #ifdef OVR_CLIENT_DISTORTION
     
     //Wait till time-warp to reduce latency
@@ -656,11 +662,14 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
 
 #endif
+
+#if 0
     if (debugFrame && !timerActive) {
         timerQuery.end();
         timerActive = true;
     }
-    
+#endif
+
     // No DK2, no message.
     char latency2Text[128] = "";
     {
