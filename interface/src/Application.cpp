@@ -256,7 +256,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
-    
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     return true;
 }
 
@@ -3585,6 +3586,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
+
+    scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
