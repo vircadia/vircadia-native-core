@@ -43,7 +43,8 @@ namespace vhacd {
         void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
         void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
         bool computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params,
-                          vhacd::ComputeResults *results, int startMeshIndex, int endMeshIndex, float minimumMeshSize) const;
+                          vhacd::ComputeResults *results, int startMeshIndex, int endMeshIndex, float minimumMeshSize,
+                          bool fattenFaces) const;
         ~VHACDUtil();
     };
 

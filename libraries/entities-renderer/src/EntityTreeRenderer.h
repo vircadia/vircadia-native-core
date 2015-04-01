@@ -105,6 +105,7 @@ signals:
     void leaveEntity(const EntityItemID& entityItemID);
 
 public slots:
+    void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);

@@ -21,13 +21,17 @@
 #include "Shape.h"
 
 
+QHash<QString, float> COMMENT_SCALE_HINTS;
+
+
 class OBJTokenizer {
 public:
-    OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
+    OBJTokenizer(QIODevice* device);
     enum SpecialToken {
         NO_TOKEN = -1,
         NO_PUSHBACKED_TOKEN = -1,
-        DATUM_TOKEN = 0x100
+        DATUM_TOKEN = 0x100,
+        COMMENT_TOKEN = 0x101
     };
     int nextToken();
     const QByteArray& getDatum() const { return _datum; }
@@ -35,12 +39,23 @@ public:
     void skipLine() { _device->readLine(); }
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
+    const QString getComment() const { return _comment; }
 
 private:
     QIODevice* _device;
     QByteArray _datum;
     int _pushedBackToken;
+    QString _comment;
 };
+
+
+OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
+    // This is a list of comments that exports use to hint at scaling
+    if (COMMENT_SCALE_HINTS.isEmpty()) {
+        COMMENT_SCALE_HINTS["This file uses centimeters as units"] = 1.0f / 100.0f;
+        COMMENT_SCALE_HINTS["This file uses millimeters as units"] = 1.0f / 1000.0f;
+    }
+}
 
 
 int OBJTokenizer::nextToken() {
@@ -56,9 +71,11 @@ int OBJTokenizer::nextToken() {
             continue; // skip whitespace
         }
         switch (ch) {
-            case '#':
-                _device->readLine(); // skip the comment
-                break;
+            case '#': {
+                _comment = _device->readLine(); // stash comment for a future call to getComment
+                qDebug() << "COMMENT:" << _comment;
+                return COMMENT_TOKEN;
+            }
 
             case '\"':
                 _datum = "";
@@ -104,7 +121,8 @@ bool OBJTokenizer::isNextTokenFloat() {
 }
 
 bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
-                   FBXGeometry &geometry, QVector<glm::vec3>& faceNormals, QVector<int>& faceNormalIndexes) {
+                   FBXGeometry &geometry, QVector<glm::vec3>& faceNormals, QVector<int>& faceNormalIndexes,
+                   float& scaleGuess) {
     FBXMesh &mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
     FBXMeshPart &meshPart = mesh.parts.last();
@@ -128,7 +146,21 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
     meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
 
     while (true) {
-        if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+        int tokenType = tokenizer.nextToken();
+        if (tokenType == OBJTokenizer::COMMENT_TOKEN) {
+            // loop through the list of known comments which suggest a scaling factor.
+            // if we find one, save the scaling hint into scaleGuess
+            QString comment = tokenizer.getComment();
+            QHashIterator<QString, float> i(COMMENT_SCALE_HINTS);
+            while (i.hasNext()) {
+                i.next();
+                if (comment.contains(i.key())) {
+                    scaleGuess = i.value();
+                }
+            }
+            continue;
+        }
+        if (tokenType != OBJTokenizer::DATUM_TOKEN) {
             result = false;
             break;
         }
@@ -192,6 +224,7 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             while (true) {
                 if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                     if (indices.count() == 0) {
+                        // nonsense, bail out.
                         goto done;
                     }
                     break;
@@ -266,19 +299,19 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             }
         } else {
             // something we don't (yet) care about
-            qDebug() << "OBJ parser is skipping a line with" << token;
+            // qDebug() << "OBJ parser is skipping a line with" << token;
             tokenizer.skipLine();
         }
     }
 
  done:
+
+    if (meshPart.triangleIndices.size() == 0 && meshPart.quadIndices.size() == 0) {
+        // empty mesh?
+        mesh.parts.pop_back();
+    }
+
     return result;
-}
-
-
-FBXGeometry extractOBJGeometry(const FBXNode& node, const QVariantHash& mapping) {
-    FBXGeometry geometry;
-    return geometry;
 }
 
 
@@ -294,23 +327,29 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
     OBJTokenizer tokenizer(device);
     QVector<int> faceNormalIndexes;
     QVector<glm::vec3> faceNormals;
+    float scaleGuess = 1.0f;
 
     faceNormalIndexes.clear();
 
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
 
-
-
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
         bool success = true;
         while (success) {
-            success = parseOBJGroup(tokenizer, mapping, geometry, faceNormals, faceNormalIndexes);
+            success = parseOBJGroup(tokenizer, mapping, geometry, faceNormals, faceNormalIndexes, scaleGuess);
         }
 
         FBXMesh &mesh = geometry.meshes[0];
+
+        // if we got a hint about units, scale all the points
+        if (scaleGuess != 1.0f) {
+            for (int i = 0; i < mesh.vertices.size(); i++) {
+                mesh.vertices[i] *= scaleGuess;
+            }
+        }
 
         mesh.meshExtents.reset();
         foreach (const glm::vec3& vertex, mesh.vertices) {

@@ -95,6 +95,13 @@
             "can_set": true
           }
         ]
+      },
+      {
+        "name": "editors_are_rezzers",
+        "type": "checkbox",
+        "label": "Only editors can create new entities",
+        "help": "When checked, only those who can edit the domain can create new entites.",
+        "default": false
       }
     ]
   },
