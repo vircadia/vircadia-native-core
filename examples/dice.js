@@ -23,6 +23,8 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var rollSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/dice/diceRoll.wav");
 
+var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new objects."
+
 var screenSize = Controller.getViewportDimensions();
 var offButton = Overlays.addOverlay("image", {
                     x: screenSize.x - 48,
@@ -45,23 +47,30 @@ var diceButton = Overlays.addOverlay("image", {
 
 var GRAVITY = -3.5;
 var LIFETIME = 300;
+// NOTE: angularVelocity is in radians/sec
+var MAX_ANGULAR_SPEED = Math.PI;
+
 function shootDice(position, velocity) {
-    for (var i = 0; i < NUMBER_OF_DICE; i++) {
-        dice.push(Entities.addEntity(
-        { type: "Model",
-          modelURL: HIFI_PUBLIC_BUCKET + "models/props/Dice/goldDie.fbx",
-          position: position,  
-          velocity: velocity, 
-          rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
-          // NOTE: angularVelocity is in radians/sec
-          var maxAngularSpeed = Math.PI;
-          angularVelocity: { x: Math.random() * maxAngularSpeed, y: Math.random() * maxAngularSpeed, z: Math.random() * maxAngularSpeed },
-          lifetime: LIFETIME,
-          gravity: {  x: 0, y: GRAVITY, z: 0 },
-          shapeType: "box",
-          collisionsWillMove: true
-      }));
-      position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));
+    if (!Entities.canRez()) {
+        Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
+    } else {
+        for (var i = 0; i < NUMBER_OF_DICE; i++) {
+            dice.push(Entities.addEntity(
+                { type: "Model",
+                  modelURL: HIFI_PUBLIC_BUCKET + "models/props/Dice/goldDie.fbx",
+                  position: position,  
+                  velocity: velocity, 
+                  rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
+                  angularVelocity: { x: Math.random() * MAX_ANGULAR_SPEED,
+                                     y: Math.random() * MAX_ANGULAR_SPEED,
+                                     z: Math.random() * MAX_ANGULAR_SPEED },
+                  lifetime: LIFETIME,
+                  gravity: {  x: 0, y: GRAVITY, z: 0 },
+                  shapeType: "box",
+                  collisionsWillMove: true
+                }));
+            position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));
+        }
     }
 }
 

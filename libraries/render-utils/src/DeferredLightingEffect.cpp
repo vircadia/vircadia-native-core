@@ -134,7 +134,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(model::LightPointer(new model::Light()));
     }
@@ -535,10 +535,13 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= -1) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
         light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+    } else {
+        // force to preset 0
+        setAmbientLightMode(0);
     }
 }
 

@@ -34,12 +34,16 @@ namespace vhacd {
         int meshCount;
         QVector<QVector<glm::vec3>> perMeshVertices;
         QVector<QVector<int>> perMeshTriangleIndices;
+        QVector<float> perMeshLargestDimension;
     } LoadFBXResults;
 
     class VHACDUtil {
     public:
         bool loadFBX(const QString filename, vhacd::LoadFBXResults *results);
-        bool computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params, vhacd::ComputeResults *results)const;
+        void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+        void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+        bool computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params,
+                          vhacd::ComputeResults *results, int startMeshIndex, int endMeshIndex, float minimumMeshSize) const;
         ~VHACDUtil();
     };
 

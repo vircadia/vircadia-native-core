@@ -148,6 +148,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
+        QString entityScriptBefore = entity->getScript();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -166,6 +167,11 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 entity->clearDirtyFlags();
             }
         }
+        
+        QString entityScriptAfter = entity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        }        
     }
     
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
@@ -398,7 +404,8 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItem* foundEntity = NULL;
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
-
+    
+    _changedEntityIDs[creatorTokenVersion] = knownIDVersion;
 
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
@@ -586,6 +593,9 @@ EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         foundEntity = containingElement->getEntityWithEntityItemID(entityID);
+        if (!foundEntity && _changedEntityIDs.contains(entityID)) {
+            foundEntity = containingElement->getEntityWithEntityItemID(_changedEntityIDs[entityID]);
+        }
     }
     return foundEntity;
 }
@@ -649,12 +659,14 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
                 } else {
-                    // this is a new entity... assign a new entityID
-                    entityItemID = assignEntityID(entityItemID);
-                    EntityItem* newEntity = addEntity(entityItemID, properties);
-                    if (newEntity) {
-                        newEntity->markAsChangedOnServer();
-                        notifyNewlyCreatedEntity(*newEntity, senderNode);
+                    if (senderNode->getCanRez()) {
+                        // this is a new entity... assign a new entityID
+                        entityItemID = assignEntityID(entityItemID);
+                        EntityItem* newEntity = addEntity(entityItemID, properties);
+                        if (newEntity) {
+                            newEntity->markAsChangedOnServer();
+                            notifyNewlyCreatedEntity(*newEntity, senderNode);
+                        }
                     }
                 }
             }
@@ -952,6 +964,12 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
         creatorTokenOnly.isKnownID = false;
         element = _entityToElementMap.value(creatorTokenOnly);
     }
+    
+    // If we still didn't find the entity, but the ID was in our changed entityIDs, search for the new ID version
+    if (!element && _changedEntityIDs.contains(entityItemID)) {
+        element = getContainingElement(_changedEntityIDs[entityItemID]);
+    }
+    
     return element;
 }
 

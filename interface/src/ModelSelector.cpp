@@ -18,8 +18,9 @@
 
 #include "ModelSelector.h"
 
-static const QString AVATAR_HEAD_STRING = "Avatar Head";
-static const QString AVATAR_BODY_STRING = "Avatar Body";
+static const QString AVATAR_HEAD_STRING = "Avatar Head Only";
+static const QString AVATAR_BODY_STRING = "Avatar Body Only";
+static const QString AVATAR_HEAD_AND_BODY_STRING = "Avatar Body with Head";
 static const QString AVATAR_ATTACHEMENT_STRING = "Avatar Attachment";
 static const QString ENTITY_MODEL_STRING = "Entity Model";
 
@@ -36,6 +37,7 @@ ModelSelector::ModelSelector() {
     _modelType = new QComboBox(this);
     _modelType->addItem(AVATAR_HEAD_STRING);
     _modelType->addItem(AVATAR_BODY_STRING);
+    _modelType->addItem(AVATAR_HEAD_AND_BODY_STRING);
     _modelType->addItem(AVATAR_ATTACHEMENT_STRING);
     _modelType->addItem(ENTITY_MODEL_STRING);
     form->addRow("Model Type:", _modelType);
@@ -50,17 +52,19 @@ QFileInfo ModelSelector::getFileInfo() const {
     return _modelFile;
 }
 
-ModelType ModelSelector::getModelType() const {
+FSTReader::ModelType ModelSelector::getModelType() const {
     QString text = _modelType->currentText();
     
     if (text == AVATAR_HEAD_STRING) {
-        return HEAD_MODEL;
+        return FSTReader::HEAD_MODEL;
     } else if (text == AVATAR_BODY_STRING) {
-        return SKELETON_MODEL;
+        return FSTReader::BODY_ONLY_MODEL;
+    } else if (text == AVATAR_HEAD_AND_BODY_STRING) {
+        return FSTReader::HEAD_AND_BODY_MODEL;
     } else if (text == AVATAR_ATTACHEMENT_STRING) {
-        return ATTACHMENT_MODEL;
+        return FSTReader::ATTACHMENT_MODEL;
     } else if (text == ENTITY_MODEL_STRING) {
-        return ENTITY_MODEL;
+        return FSTReader::ENTITY_MODEL;
     } else {
         Q_UNREACHABLE();
     }

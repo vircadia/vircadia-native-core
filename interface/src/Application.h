@@ -333,6 +333,9 @@ signals:
 
     void svoImportRequested(const QString& url);
 
+    void checkBackgroundDownloads();
+    void domainConnectionRefused(const QString& reason);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -384,6 +387,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void setActiveFaceTracker();
+
+    void domainConnectionDenied(const QString& reason);
 
 private slots:
     void clearDomainOctreeDetails();
@@ -610,6 +615,8 @@ private:
     int _menuBarHeight;
     
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
+
+    QList<QString> _domainConnectionRefusals;
 };
 
 #endif // hifi_Application_h

@@ -109,7 +109,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // Set the model to use for collisions
-    Q_INVOKABLE void setCollisionModelURL(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
+    Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
     
     /// Sets the distance parameter used for LOD computations.
@@ -134,7 +134,7 @@ public:
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
 
     /// Returns a reference to the shared collision geometry.
-    const QSharedPointer<NetworkGeometry> getCollisionGeometry() {return _collisionGeometry; }
+    const QSharedPointer<NetworkGeometry> getCollisionGeometry(bool delayLoad = true);
     
     /// Returns the number of joint states in the model.
     int getJointStateCount() const { return _jointStates.size(); }
@@ -460,14 +460,14 @@ private:
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
-                        bool forceRenderSomeMeshes = false);
+                        bool forceRenderMeshes = false);
                         
     void setupBatchTransform(gpu::Batch& batch);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                                         RenderArgs* args, Locations* locations, SkinLocations* skinLocations, 
-                                        bool forceRenderSomeMeshes = false);
+                                        bool forceRenderMeshes = false);
 
     static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,

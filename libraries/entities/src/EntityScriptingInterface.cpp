@@ -23,6 +23,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
+    connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -30,12 +31,15 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
-
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanAdjustLocks();
 }
 
+bool EntityScriptingInterface::canRez() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRez();
+}
 
 void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     if (_entityTree) {
