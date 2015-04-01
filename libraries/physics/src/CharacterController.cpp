@@ -212,6 +212,9 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 }
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
+const float DEFAULT_GRAVITY = 5.0f;
+const float TERMINAL_VELOCITY = 55.0f;
+const float JUMP_SPEED = 5.0f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
@@ -226,9 +229,9 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
-    _gravity = 5.0f; // slower than Earth's
-    _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
-    _jumpSpeed = 5.0f;
+    _gravity = DEFAULT_GRAVITY; // slower than Earth's
+    _maxFallSpeed = TERMINAL_VELOCITY; // Terminal velocity of a sky diver in m/s.
+    _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
     _isHovering = true;
@@ -274,7 +277,6 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     collisionWorld->getDispatcher()->dispatchAllCollisionPairs(_ghostObject->getOverlappingPairCache(), collisionWorld->getDispatchInfo(), collisionWorld->getDispatcher());
 
     _currentPosition = _ghostObject->getWorldTransform().getOrigin();
-    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
 
     btVector3 currentPosition = _currentPosition;
 
@@ -308,7 +310,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
                     btVector3 normal = pt.m_normalWorldOnB;
                     normal *= directionSign; // always points from object to character
 
-                    btScalar normalDotUp = normal.dot(up);
+                    btScalar normalDotUp = normal.dot(_currentUp);
                     if (normalDotUp < _maxSlopeCosine) {
                         // this contact has a non-vertical normal... might need to ignored
                         btVector3 collisionPoint;
@@ -319,9 +321,9 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
                         }
 
                         // we do math in frame where character base is origin
-                        btVector3 characterBase = currentPosition - (_radius + _halfHeight) * up;
+                        btVector3 characterBase = currentPosition - (_radius + _halfHeight) * _currentUp;
                         collisionPoint -= characterBase;
-                        btScalar collisionHeight = collisionPoint.dot(up);
+                        btScalar collisionHeight = collisionPoint.dot(_currentUp);
 
                         if (collisionHeight < _lastStepUp) {
                             // This contact is below the lastStepUp, so we ignore it for penetration resolution,
@@ -351,17 +353,17 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     return penetration;
 }
 
+
 void CharacterController::scanDown(btCollisionWorld* world) {
     // we test with downward raycast and if we don't find floor close enough then turn on "hover"
     btKinematicClosestNotMeRayResultCallback callback(_ghostObject);
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
     callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
 
-    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
     btVector3 start = _currentPosition;
     const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight + _radius; // closest possible floor for disabling hover
     const btScalar MIN_HOVER_HEIGHT = 3.0f + _halfHeight + _radius; // distance to floor for enabling hover
-    btVector3 end = start - MAX_SCAN_HEIGHT * up;
+    btVector3 end = start - MAX_SCAN_HEIGHT * _currentUp;
 
     world->rayTest(start, end, callback);
     if (!callback.hasHit()) {
@@ -377,15 +379,14 @@ void CharacterController::stepUp(btCollisionWorld* world) {
     // compute start and end
     btTransform start, end;
     start.setIdentity();
-    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
-    start.setOrigin(_currentPosition + up * (_convexShape->getMargin() + _addedMargin));
+    start.setOrigin(_currentPosition + _currentUp * (_convexShape->getMargin() + _addedMargin));
 
-    _targetPosition = _currentPosition + up * _stepUpHeight;
+    _targetPosition = _currentPosition + _currentUp * _stepUpHeight;
     end.setIdentity();
     end.setOrigin(_targetPosition);
 
     // sweep up
-    btVector3 sweepDirNegative = - up;
+    btVector3 sweepDirNegative = - _currentUp;
     btKinematicClosestNotMeConvexResultCallback callback(_ghostObject, sweepDirNegative, btScalar(0.7071));
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
     callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
@@ -397,7 +398,7 @@ void CharacterController::stepUp(btCollisionWorld* world) {
         _verticalOffset = 0.0f;
 
         // Only modify the position if the hit was a slope and not a wall or ceiling.
-        if (callback.m_hitNormalWorld.dot(up) > 0.0f) {
+        if (callback.m_hitNormalWorld.dot(_currentUp) > 0.0f) {
             _lastStepUp = _stepUpHeight * callback.m_closestHitFraction;
             _currentPosition.setInterpolate3(_currentPosition, _targetPosition, callback.m_closestHitFraction);
         } else {
@@ -469,8 +470,8 @@ void CharacterController::stepForward(btCollisionWorld* collisionWorld, const bt
         // sweep forward
         btVector3 sweepDirNegative(_currentPosition - _targetPosition);
         btKinematicClosestNotMeConvexResultCallback callback(_ghostObject, sweepDirNegative, btScalar(0.0));
-        callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
-        callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
+        callback.m_collisionFilterGroup = _ghostObject->getBroadphaseHandle()->m_collisionFilterGroup;
+        callback.m_collisionFilterMask = _ghostObject->getBroadphaseHandle()->m_collisionFilterMask;
         _ghostObject->convexSweepTest(_convexShape, start, end, callback, collisionWorld->getDispatchInfo().m_allowedCcdPenetration);
 
         if (callback.hasHit()) {
@@ -502,17 +503,16 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
     // reach of the character's feet.
 
     // first sweep for ledge
-    btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
-    btVector3 step = (_verticalVelocity * dt - _lastStepUp) * up;
+    btVector3 step = (_verticalVelocity * dt - _lastStepUp) * _currentUp;
 
     StepDownConvexResultCallback callback(_ghostObject,
-            up,
+            _currentUp,
             _currentPosition, step,
             _walkDirection,
             _maxSlopeCosine,
             _radius, _halfHeight);
-    callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
-    callback.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
+    callback.m_collisionFilterGroup = _ghostObject->getBroadphaseHandle()->m_collisionFilterGroup;
+    callback.m_collisionFilterMask = _ghostObject->getBroadphaseHandle()->m_collisionFilterMask;
 
     btTransform start, end;
     start.setIdentity();
@@ -532,16 +532,16 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _isOnGround = true;
     } else if (!_isJumping) {
         // sweep again for floor within downStep threshold
-        step = -_stepDownHeight * up;
+        step = -_stepDownHeight * _currentUp;
         StepDownConvexResultCallback callback2 (_ghostObject,
-                up,
+                _currentUp,
                 _currentPosition, step,
                 _walkDirection,
                 _maxSlopeCosine,
                 _radius, _halfHeight);
 
-        callback2.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
-        callback2.m_collisionFilterMask = getGhostObject()->getBroadphaseHandle()->m_collisionFilterMask;
+        callback2.m_collisionFilterGroup = _ghostObject->getBroadphaseHandle()->m_collisionFilterGroup;
+        callback2.m_collisionFilterMask = _ghostObject->getBroadphaseHandle()->m_collisionFilterMask;
 
         _currentPosition = _targetPosition;
         _targetPosition = _currentPosition + step;
@@ -617,10 +617,10 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
         }
     }
 
+    // the CharacterController algorithm can only change the position, 
+    // so we don't bother to pull the rotation out of the transform
     const btTransform& transform = _ghostObject->getWorldTransform();
-    _currentRotation = transform.getRotation();
     _currentPosition = transform.getOrigin();
-    _targetPosition = _currentPosition;
 }
 
 void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar dt) {
@@ -868,6 +868,7 @@ void CharacterController::updateShapeIfNecessary() {
 void CharacterController::preSimulation(btScalar timeStep) {
     if (_enabled && _dynamicsWorld) {
         glm::quat rotation = _avatarData->getOrientation();
+        _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
         glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
         btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
 
@@ -895,8 +896,7 @@ void CharacterController::postSimulation() {
         // cap the velocity of the step so that the character doesn't POP! so hard on steps
         glm::vec3 finalStep = position - _lastPosition;
         btVector3 finalVelocity = _walkDirection;
-        btVector3 up = quatRotate(_currentRotation, LOCAL_UP_AXIS);
-        finalVelocity += _verticalVelocity * up;
+        finalVelocity += _verticalVelocity * _currentUp;
         const btScalar MAX_RESOLUTION_SPEED = 5.0f; // m/sec
         btScalar maxStepLength = glm::max(MAX_RESOLUTION_SPEED, 2.0f * finalVelocity.length()) * _stepDt;
         btScalar stepLength = glm::length(finalStep);

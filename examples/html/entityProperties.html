@@ -210,6 +210,9 @@
 
                             disableChildren(document.getElementById("properties-list"), 'input');
                         } else {
+                            var activeElement = document.activeElement;
+                            var selected = activeElement.selectionStart == 0 && activeElement.selectionEnd == activeElement.value.length;
+
                             var properties = data.selections[0].properties;
 
                             elID.innerHTML = properties.id;
@@ -334,6 +337,11 @@
                                 elLightIntensity.value = properties.intensity;
                                 elLightExponent.value = properties.exponent;
                                 elLightCutoff.value = properties.cutoff;
+                            }
+
+                            if (selected) {
+                                activeElement.focus();
+                                activeElement.select();
                             }
                         }
                     }

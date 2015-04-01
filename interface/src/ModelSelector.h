@@ -29,7 +29,7 @@ public:
     ModelSelector();
     
     QFileInfo getFileInfo() const;
-    ModelType getModelType() const;
+    FSTReader::ModelType getModelType() const;
     
     public slots:
     virtual void accept();

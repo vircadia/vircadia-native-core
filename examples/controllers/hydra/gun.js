@@ -91,44 +91,49 @@ var score = 0;
 var bulletID = false;
 var targetID = false;
 
-//  Create a reticle image in center of screen 
+//  Create overlay buttons and reticle 
+
+var BUTTON_SIZE = 32;
+var PADDING = 3;
+var NUM_BUTTONS = 3;
+
 var screenSize = Controller.getViewportDimensions();
+var startX = screenSize.x / 2 - (NUM_BUTTONS * (BUTTON_SIZE + PADDING)) / 2;
 var reticle = Overlays.addOverlay("image", {
-                    x: screenSize.x / 2 - 16,
-                    y: screenSize.y / 2 - 16,
-                    width: 32,
-                    height: 32,
+                    x: screenSize.x / 2 - (BUTTON_SIZE / 2),
+                    y: screenSize.y / 2 - (BUTTON_SIZE / 2),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/crosshairs.svg",
-                    color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
 
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 96,
-                    width: 32,
-                    height: 32,
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
-                    color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
 
+startX += BUTTON_SIZE + PADDING;
 var platformButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 130,
-                    width: 32,
-                    height: 32,
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/platform-targets.svg",
-                    color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
+
+startX += BUTTON_SIZE + PADDING;
 var gridButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 164,
-                    width: 32,
-                    height: 32,
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/floating-targets.svg",
-                    color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
 
@@ -284,7 +289,7 @@ function makePlatform(gravity, scale, size) {
                                   z: pos.z - (separation * size / 2.0) + z * separation },
                       dimensions: dimensions, 
                       color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
-                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      velocity: {  x: 0, y: 0.05, z: 0 }, 
                       gravity: {  x: 0, y: gravity, z: 0 }, 
                       lifetime: TARGET_LIFE,
                       damping: 0.1,
@@ -299,7 +304,7 @@ function makePlatform(gravity, scale, size) {
         type: "Box",
         position: { x: pos.x, y: pos.y - separation / 2.0, z: pos.z }, 
         dimensions: { x: 2.0 * separation * size, y: separation / 2.0, z: 2.0 * separation * size },
-        color: { red: 128, green: 128, blue: 128 },
+        color: { red: 100, green: 100, blue: 100 },
         lifetime: TARGET_LIFE
     });
 

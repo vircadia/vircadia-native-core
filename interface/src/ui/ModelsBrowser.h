@@ -16,21 +16,16 @@
 #include <QStandardItemModel>
 #include <QTreeView>
 
-class QNetworkReply;
+#include <FSTReader.h>
 
-enum ModelType {
-    ENTITY_MODEL,
-    HEAD_MODEL,
-    SKELETON_MODEL,
-    ATTACHMENT_MODEL
-};
+class QNetworkReply;
 
 extern const char* MODEL_TYPE_NAMES[];
 
 class ModelHandler : public QObject {
     Q_OBJECT
 public:
-    ModelHandler(ModelType modelsType, QWidget* parent = NULL);
+    ModelHandler(FSTReader::ModelType modelsType, QWidget* parent = NULL);
     
     void lockModel() { _lock.lockForRead(); }
     QStandardItemModel* getModel() { return &_model; }
@@ -51,7 +46,7 @@ private slots:
     
 private:
     bool _initiateExit;
-    ModelType _type;
+    FSTReader::ModelType _type;
     QReadWriteLock _lock;
     QStandardItemModel _model;
     QString _nameFilter;
@@ -66,7 +61,7 @@ class ModelsBrowser : public QWidget {
     Q_OBJECT
 public:
     
-    ModelsBrowser(ModelType modelsType, QWidget* parent = NULL);
+    ModelsBrowser(FSTReader::ModelType modelsType, QWidget* parent = NULL);
     QString getSelectedFile() { return _selectedFile; }
     
 signals:

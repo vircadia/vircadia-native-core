@@ -404,7 +404,8 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItem* foundEntity = NULL;
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
-
+    
+    _changedEntityIDs[creatorTokenVersion] = knownIDVersion;
 
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
@@ -592,6 +593,9 @@ EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         foundEntity = containingElement->getEntityWithEntityItemID(entityID);
+        if (!foundEntity && _changedEntityIDs.contains(entityID)) {
+            foundEntity = containingElement->getEntityWithEntityItemID(_changedEntityIDs[entityID]);
+        }
     }
     return foundEntity;
 }
@@ -958,6 +962,12 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
         creatorTokenOnly.isKnownID = false;
         element = _entityToElementMap.value(creatorTokenOnly);
     }
+    
+    // If we still didn't find the entity, but the ID was in our changed entityIDs, search for the new ID version
+    if (!element && _changedEntityIDs.contains(entityItemID)) {
+        element = getContainingElement(_changedEntityIDs[entityItemID]);
+    }
+    
     return element;
 }
 

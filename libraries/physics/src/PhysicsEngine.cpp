@@ -36,8 +36,8 @@ PhysicsEngine::~PhysicsEngine() {
     delete _collisionDispatcher;
     delete _broadphaseFilter;
     delete _constraintSolver;
-    // delete _dynamicsWorld;
-    // delete _ghostPairCallback;
+    delete _dynamicsWorld;
+    delete _ghostPairCallback;
 }
 
 // begin EntitySimulation overrides
