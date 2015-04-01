@@ -216,8 +216,8 @@ Panel = function(x, y) {
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
 
         // If the user clicked any of the slider background then...
-        for (i in this.items) {
-            widget = this.items[i].widget;
+        for (var i in this.items) {
+            var widget = this.items[i].widget;
 
             if (clickedOverlay == widget.background) {
                 this.activeWidget = widget;
@@ -253,7 +253,7 @@ Panel = function(x, y) {
     };
 
     this.destroy = function() {
-        for (i in this.items) {
+        for (var i in this.items) {
             this.items[i].destroy();  
         } 
     }
