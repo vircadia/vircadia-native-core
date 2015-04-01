@@ -2372,7 +2372,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
 
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args, 
-                            bool forceRenderSomeMeshes) {
+                            bool forceRenderMeshes) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
@@ -2395,7 +2395,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, 
                                 args, locations, skinLocations);
     meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
-                                args, locations, skinLocations, forceRenderSomeMeshes);
+                                args, locations, skinLocations, forceRenderMeshes);
     GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
@@ -2403,7 +2403,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
 
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        Locations* locations, SkinLocations* skinLocations, bool forceRenderSomeMeshes) {
+                                        Locations* locations, SkinLocations* skinLocations, bool forceRenderMeshes) {
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2439,21 +2439,14 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         // if we got here, then check to see if this mesh is in view
         if (args) {
             bool shouldRender = true;
-            bool forceRender = false;
             args->_meshesConsidered++;
 
             if (args->_viewFrustum) {
             
-                // NOTE: This is a hack to address the fact that for avatar meshes, the _calculatedMeshBoxes can be wrong
-                // for some meshes. Those meshes where the mesh's modelTransform is the identity matrix, and will have
-                // incorrectly calculated mesh boxes. In this case, we will ignore the box and assume it's visible.
-                if (forceRenderSomeMeshes && (geometry.meshes.at(i).modelTransform == glm::mat4())) {
-                    forceRender = true;
-                }
-                
-                shouldRender = forceRender || args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                shouldRender = forceRenderMeshes || 
+                                    args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
             
-                if (shouldRender && !forceRender) {
+                if (shouldRender && !forceRenderMeshes) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);

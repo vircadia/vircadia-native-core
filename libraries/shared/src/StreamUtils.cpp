@@ -66,7 +66,9 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
 }
 
 // less common utils can be enabled with DEBUG
-#ifdef DEBUG
+// FIXME, remove the second defined clause once these compile, or remove the
+// functions.
+#if defined(DEBUG) && defined(FIXED_STREAMS)
 
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c) {
     s << "{penetration=" << c._penetration 
