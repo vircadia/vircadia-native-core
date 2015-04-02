@@ -567,6 +567,9 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+
+    _entities.clear(); // this will allow entity scripts to properly shutdown
+
     _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
