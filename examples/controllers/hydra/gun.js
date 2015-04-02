@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14
+//  Modified by Thijs Wenker on 3/31/15
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a entity gun.
@@ -66,7 +67,7 @@ var impactSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletIm
 var targetHitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
 var targetLaunchSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 
-var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
+var gunModel = "https://s3.amazonaws.com/hifi-public/cozza13/gun/m1911-handgun+1.fbx?v=4";
 
 var audioOptions = {
   volume: 0.9
@@ -103,7 +104,7 @@ var reticle = Overlays.addOverlay("image", {
                     y: screenSize.y / 2 - (BUTTON_SIZE / 2),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/crosshairs.svg",
                     alpha: 1
                 });
 
@@ -112,8 +113,8 @@ var offButton = Overlays.addOverlay("image", {
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",  
-                    alpha: 1 
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
+                    alpha: 1
                 });
 
 startX += BUTTON_SIZE + PADDING;
@@ -122,7 +123,7 @@ var platformButton = Overlays.addOverlay("image", {
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/city.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/platform-targets.svg",
                     alpha: 1
                 });
 
@@ -132,7 +133,7 @@ var gridButton = Overlays.addOverlay("image", {
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/blocks.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/floating-targets.svg",
                     alpha: 1
                 });
 
@@ -168,7 +169,7 @@ function shootBullet(position, velocity, grenade) {
         { type: "Sphere",
           position: position, 
           dimensions: { x: bSize, y: bSize, z: bSize }, 
-          color: {  red: 255, green: 0, blue: 0 },  
+          color: {  red: 0, green: 0, blue: 0 },  
           velocity: bVelocity, 
           lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: bGravity, z: 0 },
@@ -265,6 +266,7 @@ function makeGrid(type, scale, size) {
         }
     }
 }
+
 function makePlatform(gravity, scale, size) {
     var separation = scale * 2; 
     var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
@@ -377,8 +379,8 @@ function takeFiringPose() {
     }
 }
 
-MyAvatar.attach(gunModel, "RightHand", {x:0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(-0, -160, -79), 0.20);
-MyAvatar.attach(gunModel, "LeftHand", {x:-0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(0, 0, 79), 0.20);
+MyAvatar.attach(gunModel, "RightHand", {x:0.04, y: 0.22, z: 0.02}, Quat.fromPitchYawRollDegrees(-172, -85, 79), 0.40);
+MyAvatar.attach(gunModel, "LeftHand", {x:-0.04, y: 0.22, z: 0.02}, Quat.fromPitchYawRollDegrees(-172, 85, -79), 0.40);
 
 //  Give a bit of time to load before playing sound
 Script.setTimeout(playLoadSound, 2000); 

@@ -66,9 +66,13 @@ void GLCanvas::paintGL() {
         }
 
         Application::getInstance()->paintGL();
-        swapBuffers();
-
-        if (OculusManager::isConnected()) {
+        
+        if (!OculusManager::isConnected()) {
+            swapBuffers();
+        } else {
+            if (OculusManager::allowSwap()) {
+                swapBuffers();
+            }
             OculusManager::endFrameTiming();
         }
     }

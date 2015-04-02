@@ -258,7 +258,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
-    
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     return true;
 }
 
@@ -568,6 +569,9 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+
+    _entities.clear(); // this will allow entity scripts to properly shutdown
+
     _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
@@ -775,10 +779,6 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        //Clear the color buffer to ensure that there isnt any residual color
-        //Left over from when OR was not connected.
-        glClear(GL_COLOR_BUFFER_BIT);
-        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
@@ -2771,7 +2771,7 @@ void Application::updateShadowMap() {
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
+const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
 
 const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
 
@@ -3595,6 +3595,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
+
+    scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
