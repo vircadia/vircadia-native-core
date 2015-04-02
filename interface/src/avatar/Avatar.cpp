@@ -364,9 +364,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
         // render body
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(frustum, renderMode, postLighting, glowLevel);
-        }
+        renderBody(frustum, renderMode, postLighting, glowLevel);
 
         if (!postLighting && renderMode != SHADOW_RENDER_MODE) {
             // add local lights
