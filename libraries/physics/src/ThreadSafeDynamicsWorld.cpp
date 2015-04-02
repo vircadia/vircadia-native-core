@@ -15,6 +15,8 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
+#include <LinearMath/btQuickprof.h>
+
 #include "ThreadSafeDynamicsWorld.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
@@ -26,6 +28,7 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
 }
 
 int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
+    BT_PROFILE("stepSimulation");
 	int subSteps = 0;
 	if (maxSubSteps) {
 		//fixed timestep with interpolation
