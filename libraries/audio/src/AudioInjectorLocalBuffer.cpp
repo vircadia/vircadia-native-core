@@ -59,6 +59,8 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
         if (!_shouldLoop && bytesRead == bytesToEnd) {
             // we hit the end of the buffer, emit a signal
             emit bufferEmpty();
+        } else if (_shouldLoop && _currentOffset == _rawAudioArray.size()) {
+            _currentOffset = 0;
         }
         
         return bytesRead;
@@ -80,7 +82,7 @@ qint64 AudioInjectorLocalBuffer::recursiveReadFromFront(char* data, qint64 maxSi
     
     // check if we need to call ourselves again and pull from the front again
     if (bytesRead < maxSize) {
-        return bytesRead + recursiveReadFromFront(data, maxSize);
+        return bytesRead + recursiveReadFromFront(data, maxSize - bytesRead);
     } else {
         _currentOffset = bytesRead;
         return bytesRead;

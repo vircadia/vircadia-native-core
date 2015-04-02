@@ -77,7 +77,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
             // since it's raw the only way for us to know that is if the file was called .stereo.raw
             if (reply->url().fileName().toLower().endsWith("stereo.raw")) {
                 _isStereo = true;
-                qDebug() << "Processing sound from" << reply->url() << "as stereo audio file.";
+                qDebug() << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << reply->url() << "as stereo audio file.";
             }
             
             // Process as RAW file
@@ -102,12 +102,11 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
     int numSourceSamples = rawAudioByteArray.size() / sizeof(int16_t);
     
     int numDestinationBytes = rawAudioByteArray.size() / 2;
-    if (_isStereo && numSourceSamples % 4 != 0) {
-        numDestinationBytes += 1;
+    if (_isStereo && numSourceSamples % 2 != 0) {
+        numDestinationBytes += sizeof(int16_t);
     }
     
     _byteArray.resize(numDestinationBytes);
-
     
     int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
     int16_t* destinationSamples = (int16_t*) _byteArray.data();
@@ -121,7 +120,6 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
                 destinationSamples[i / 2] = (sourceSamples[i] + sourceSamples[i + 2]) / 2;
                 destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] + sourceSamples[i + 3]) / 2;
             }
-            
         }
     } else {
         for (int i = 1; i < numSourceSamples; i += 2) {
