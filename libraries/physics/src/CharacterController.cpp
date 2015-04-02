@@ -214,7 +214,7 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = 5.0f;
 const float TERMINAL_VELOCITY = 55.0f;
-const float JUMP_SPEED = 4.0f;
+const float JUMP_SPEED = 3.5f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
@@ -633,8 +633,13 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
     // Update fall velocity.
     if (_isHovering) {
-        const btScalar HOVER_RELAXATION_TIMESCALE = 1.0f;
-        _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
+        const btScalar MIN_HOVER_VERTICAL_VELOCITY = 0.1f;
+        if (fabsf(_verticalVelocity) < MIN_HOVER_VERTICAL_VELOCITY) {
+            _verticalVelocity = 0.0f;
+        } else {
+            const btScalar HOVER_RELAXATION_TIMESCALE = 0.8f;
+            _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
+        }
     } else {
         _verticalVelocity -= _gravity * dt;
         if (_verticalVelocity > _jumpSpeed) {
@@ -701,7 +706,6 @@ void CharacterController::jump() {
             const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
             if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
                 _isHovering = true;
-                _verticalVelocity = 0.0f;
             }
         }
     }
