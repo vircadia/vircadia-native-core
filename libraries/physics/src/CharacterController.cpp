@@ -26,7 +26,6 @@ const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
-const uint32_t PENDING_FLAG_STOP_HOVER = 1U << 4;
 
 // static helper method
 static btVector3 getNormalizedVector(const btVector3& v) {
@@ -363,18 +362,15 @@ void CharacterController::scanDown(btCollisionWorld* world) {
 
     btVector3 start = _currentPosition;
     const btScalar MAX_SCAN_HEIGHT = 20.0f + _halfHeight + _radius; // closest possible floor for disabling hover
-    const btScalar MIN_HOVER_HEIGHT = 2.0f + _halfHeight + _radius; // distance to floor for enabling hover
+    const btScalar MIN_HOVER_HEIGHT = 3.0f + _halfHeight + _radius; // distance to floor for enabling hover
     btVector3 end = start - MAX_SCAN_HEIGHT * _currentUp;
 
     world->rayTest(start, end, callback);
     if (!callback.hasHit()) {
         _isHovering = true;
-    } else if (_isHovering && 
-            callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT && 
-            (_pendingFlags & PENDING_FLAG_STOP_HOVER)) {
+    } else if (_isHovering && callback.m_closestHitFraction * MAX_SCAN_HEIGHT < MIN_HOVER_HEIGHT) {
         _isHovering = false;
     }
-    _pendingFlags &= ~ PENDING_FLAG_STOP_HOVER;
 }
 
 void CharacterController::stepUp(btCollisionWorld* world) {
@@ -709,10 +705,6 @@ void CharacterController::jump() {
             }
         }
     }
-}
-
-void CharacterController::stopHover() {
-    _pendingFlags |= PENDING_FLAG_STOP_HOVER;
 }
 
 void CharacterController::setGravity(btScalar gravity) {

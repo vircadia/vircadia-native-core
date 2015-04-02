@@ -148,8 +148,6 @@ public:
     virtual void jump();
     virtual bool onGround() const;
 
-    void stopHover();
-
     void setMaxFallSpeed(btScalar speed);
     void setJumpSpeed(btScalar jumpSpeed);
     void setMaxJumpHeight(btScalar maxJumpHeight);

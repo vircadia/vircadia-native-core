@@ -1457,7 +1457,4 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     if (_driveKeys[UP] > 0.0f) {
         _characterController.jump(); 
     }
-    if (_driveKeys[DOWN] > 0.0f) {
-        _characterController.stopHover();
-    }
 }
