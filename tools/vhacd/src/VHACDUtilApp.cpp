@@ -123,6 +123,25 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                                                           " the \"best\" clipping plane (range=1-16)", "4");
     parser.addOption(vHacdPlanedownsamplingOption);
 
+    const QCommandLineOption vHacdConvexhulldownsamplingOption("convexhulldownsampling", "Controls the precision of the "
+                                                               "convex-hull generation process during the clipping "
+                                                               "plane selection stage (range=1-16)", "4");
+    parser.addOption(vHacdConvexhulldownsamplingOption);
+
+    // alpha
+    // beta
+    // gamma
+    // delta
+    // pca
+    // mode
+
+    const QCommandLineOption vHacdMaxVerticesPerCHOption("maxvertices", "Controls the maximum number of triangles per "
+                                                         "convex-hull (range=4-1024)", "64");
+    parser.addOption(vHacdMaxVerticesPerCHOption);
+
+    // minVolumePerCH
+
+    // convexhullApproximation
 
 
     if (!parser.parse(QCoreApplication::arguments())) {
@@ -201,21 +220,32 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vHacdPlanedownsampling = parser.value(vHacdPlanedownsamplingOption).toInt();
     }
 
+    int vHacdConvexhulldownsampling = 4;
+    if (parser.isSet(vHacdConvexhulldownsamplingOption)) {
+        vHacdConvexhulldownsampling = parser.value(vHacdConvexhulldownsamplingOption).toInt();
+    }
+
+    int vHacdMaxVerticesPerCH = 64;
+    if (parser.isSet(vHacdMaxVerticesPerCHOption)) {
+        vHacdMaxVerticesPerCH = parser.value(vHacdMaxVerticesPerCHOption).toInt();
+    }
+
+
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
-    params.m_resolution = vHacdResolution; // 100000
-    params.m_depth = vHacdDepth; // 20
-    params.m_concavity = vHacdConcavity; // 0.001
-    params.m_delta = vHacdDelta; // 0.05
-    params.m_planeDownsampling = vHacdPlanedownsampling; // 4
-    params.m_convexhullDownsampling = 4; // 4
+    params.m_resolution = vHacdResolution;
+    params.m_depth = vHacdDepth;
+    params.m_concavity = vHacdConcavity;
+    params.m_delta = vHacdDelta;
+    params.m_planeDownsampling = vHacdPlanedownsampling;
+    params.m_convexhullDownsampling = vHacdConvexhulldownsampling;
     params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
     params.m_beta = 0.05; // 0.05
     params.m_gamma = 0.0005; // 0.0005
     params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
     params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
-    params.m_maxNumVerticesPerCH = 64; // 64
+    params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
     params.m_minVolumePerCH = 0.0001; // 0.0001
     params.m_callback = 0; // 0
     params.m_logger = 0; // 0
