@@ -13,6 +13,16 @@
 #include "VHACDUtil.h"
 
 
+// FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
+// them back in the order in which they appeared in the file.
+bool FBXGeometryLessThan(const FBXMesh& e1, const FBXMesh& e2) {
+    return e1.meshIndex < e2.meshIndex;
+}
+void reSortFBXGeometryMeshes(FBXGeometry& geometry) {
+    qSort(geometry.meshes.begin(), geometry.meshes.end(), FBXGeometryLessThan);
+}
+
+
 // Read all the meshes from provided FBX file
 bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
@@ -34,8 +44,11 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
         return false;
     }
 
+    reSortFBXGeometryMeshes(result);
+
     return true;
 }
+
 
 
 // void vhacd::VHACDUtil::fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
@@ -85,9 +98,6 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
     // count the mesh-parts
     QVector<FBXMeshPart> meshParts;
     int meshCount = 0;
-    foreach (FBXMesh mesh, geometry.meshes) {
-        meshCount += mesh.parts.size();
-    }
 
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 
@@ -106,9 +116,22 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
     int count = 0;
     foreach (const FBXMesh& mesh, geometry.meshes) {
+
+        // each mesh has its own transform to move it to model-space
+        std::vector<glm::vec3> vertices;
+        foreach (glm::vec3 vertex, mesh.vertices) {
+            vertices.push_back(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
+        }
+
         foreach (const FBXMeshPart &meshPart, mesh.parts) {
+
+            if (count < startMeshIndex || count >= endMeshIndex) {
+                count ++;
+                continue;
+            }
+
             qDebug() << "--------------------";
-            std::vector<glm::vec3> vertices = mesh.vertices.toStdVector();
+
             std::vector<int> triangles = meshPart.triangleIndices.toStdVector();
 
             AABox aaBox;
