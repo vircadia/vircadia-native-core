@@ -232,6 +232,8 @@ function playRandomMuzak() {
 }
 
 function cleanupLobby() {
+  toggleEnvironmentRendering(true);
+  
   // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
   var panelTexturesReset = {};
   panelTexturesReset["textures"] = {};
@@ -249,13 +251,18 @@ function cleanupLobby() {
   panelWall = false;
   orbShell = false;
   
-  currentDrone.stop();
-  currentMuzakInjector.stop();
+  if (currentDrone) {
+    currentDrone.stop();
+    currentDrone = null
+  }
   
-  currentMuzakInjector = null;
+  if (currentMuzakInjector) {
+    currentMuzakInjector.stop();
+    currentMuzakInjector = null;
+  }
   
   places = {};
-  toggleEnvironmentRendering(true);
+  
 }
 
 function actionStartEvent(event) {
