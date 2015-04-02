@@ -13,8 +13,6 @@
 set(_TBB_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 file(GLOB_RECURSE _TBB_LIBRARIES "${_TBB_LIBRARY_DIR}/*.dylib")
 
-message(${_TBB_LIBRARIES})
-
 # raise an error if we found none
 if (NOT _TBB_LIBRARIES)
   message(FATAL_ERROR "Did not find any TBB libraries")

@@ -21,6 +21,9 @@
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+    
+    Q_PROPERTY(bool shouldRenderAvatars READ shouldRenderAvatars WRITE setShouldRenderAvatars)
+    Q_PROPERTY(bool shouldRenderEntities READ shouldRenderEntities WRITE setShouldRenderEntities)
 
 public:
     Q_INVOKABLE void setStageOrientation(const glm::quat& orientation);
@@ -41,12 +44,24 @@ public:
     Q_INVOKABLE float getSunIntensity() const;
 
     model::SunSkyStagePointer getSkyStage() const;
-
+    
+    Q_INVOKABLE void setShouldRenderAvatars(bool shouldRenderAvatars);
+    Q_INVOKABLE bool shouldRenderAvatars() const { return _shouldRenderAvatars; }
+    
+    Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities);
+    Q_INVOKABLE bool shouldRenderEntities() const { return _shouldRenderEntities; }
+    
+signals:
+    void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
+    void shouldRenderEntitiesChanged(bool shouldRenderEntities);
 protected:
     SceneScriptingInterface() {};
     ~SceneScriptingInterface() {};
 
     model::SunSkyStagePointer _skyStage = model::SunSkyStagePointer(new model::SunSkyStage());
+    
+    bool _shouldRenderAvatars = true;
+    bool _shouldRenderEntities = true;
 };
 
 #endif // hifi_SceneScriptingInterface_h
