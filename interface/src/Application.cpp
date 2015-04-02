@@ -307,8 +307,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>())
-        //_editFriendsDialog(nullptr)
+        _domainConnectionRefusals(QList<QString>()),
+        _friendsWindow(NULL)
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -4282,4 +4282,22 @@ void Application::checkSkeleton() {
         _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
+}
+
+void Application::showFriendsWindow() {
+    const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
+    const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
+    const int FRIENDS_WINDOW_WIDTH = 290;
+    const int FRIENDS_WINDOW_HEIGHT = 500;
+    if (!_friendsWindow) {
+        _friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH, 
+            FRIENDS_WINDOW_HEIGHT, false);
+        connect(_friendsWindow, &WebWindowClass::closed, this, &Application::friendsWindowClosed);
+    }
+    _friendsWindow->setVisible(true);
+}
+
+void Application::friendsWindowClosed() {
+    delete _friendsWindow;
+    _friendsWindow = NULL;
 }

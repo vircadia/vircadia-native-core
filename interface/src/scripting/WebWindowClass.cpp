@@ -54,25 +54,26 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
         _windowWidget = dockWidget;
     } else {
+        auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
+        dialogWidget->setWindowTitle(title);
+        dialogWidget->setMinimumSize(width, height);
+        connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
 
-        _windowWidget = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
-        _windowWidget->setWindowTitle(title);
-        _windowWidget->setMinimumSize(width, height);
-
-        auto layout = new QVBoxLayout(_windowWidget);
+        auto layout = new QVBoxLayout(dialogWidget);
         layout->setContentsMargins(0, 0, 0, 0);
-        _windowWidget->setLayout(layout);
+        dialogWidget->setLayout(layout);
 
-        _webView = new QWebView(_windowWidget);
+        _webView = new QWebView(dialogWidget);
 
         layout->addWidget(_webView);
 
         addEventBridgeToWindowObject();
+
+        _windowWidget = dialogWidget;
     }
 
     _webView->setPage(new DataWebPage());
     _webView->setUrl(url);
-
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
     connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
@@ -80,6 +81,10 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 }
 
 WebWindowClass::~WebWindowClass() {
+}
+
+void WebWindowClass::hasClosed() {
+    emit closed();
 }
 
 void WebWindowClass::addEventBridgeToWindowObject() {

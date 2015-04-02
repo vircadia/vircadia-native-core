@@ -153,7 +153,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
-                                  dialogsManager.data(), SLOT(showFriendsWindow()));
+                                  qApp, SLOT(showFriendsWindow()));
 
     QMenu* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
     {

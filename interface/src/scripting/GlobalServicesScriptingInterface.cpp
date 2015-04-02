@@ -11,7 +11,6 @@
 
 #include "AccountManager.h"
 #include "Application.h"
-#include "ui/DialogsManager.h"
 #include "DiscoverabilityManager.h"
 #include "ResourceCache.h"
 
@@ -142,6 +141,5 @@ void GlobalServicesScriptingInterface::updateDownloadInfo() {
 }
 
 void GlobalServicesScriptingInterface::editFriends() {
-    auto dialogsManager = DependencyManager::get<DialogsManager>();
-    QMetaObject::invokeMethod(dialogsManager.data(), "showFriendsWindow");
+    QMetaObject::invokeMethod(Application::getInstance(), "showFriendsWindow");
 }
