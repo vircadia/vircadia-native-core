@@ -65,3 +65,17 @@ float SceneScriptingInterface::getSunIntensity() const {
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
 }
+
+void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
+    if (shouldRenderAvatars != _shouldRenderAvatars) {
+        _shouldRenderAvatars = shouldRenderAvatars;
+        emit shouldRenderAvatarsChanged(_shouldRenderAvatars);
+    }
+}
+
+void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities) {
+    if (shouldRenderEntities != _shouldRenderEntities) {
+        _shouldRenderEntities = shouldRenderEntities;
+        emit shouldRenderEntitiesChanged(_shouldRenderEntities);
+    }
+}

@@ -2997,7 +2997,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
     
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+    {
         PerformanceTimer perfTimer("avatars");
         DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
                                                                false, selfAvatarOnly);

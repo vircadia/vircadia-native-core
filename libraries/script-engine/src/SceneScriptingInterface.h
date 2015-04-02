@@ -45,12 +45,15 @@ public:
 
     model::SunSkyStagePointer getSkyStage() const;
     
-    Q_INVOKABLE void setShouldRenderAvatars(bool shouldRenderAvatars) { _shouldRenderAvatars = shouldRenderAvatars; }
+    Q_INVOKABLE void setShouldRenderAvatars(bool shouldRenderAvatars);
     Q_INVOKABLE bool shouldRenderAvatars() const { return _shouldRenderAvatars; }
     
-    Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities) { _shouldRenderEntities = shouldRenderEntities; }
+    Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities);
     Q_INVOKABLE bool shouldRenderEntities() const { return _shouldRenderEntities; }
-
+    
+signals:
+    void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
+    void shouldRenderEntitiesChanged(bool shouldRenderEntities);
 protected:
     SceneScriptingInterface() {};
     ~SceneScriptingInterface() {};

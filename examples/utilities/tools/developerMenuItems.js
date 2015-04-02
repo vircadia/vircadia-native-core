@@ -70,10 +70,13 @@ Menu.menuItemEvent.connect(function (menuItem) {
     }
 });
 
-setupMenus();
+Scene.shouldRenderAvatarsChanged.connect(function(shouldRenderAvatars) {
+    Menu.setIsOptionChecked(AVATARS_ITEM, shouldRenderAvatars)
+});
 
-// register our scriptEnding callback
-Script.scriptEnding.connect(scriptEnding);
+Scene.shouldRenderEntitiesChanged.connect(function(shouldRenderEntities) {
+    Menu.setIsOptionChecked(ENTITIES_ITEM, shouldRenderEntities)
+});
 
 function scriptEnding() {
     Menu.removeMenu(ENTITIES_MENU);
