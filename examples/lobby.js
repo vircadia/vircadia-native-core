@@ -311,10 +311,8 @@ function maybeCleanupLobby() {
 }
 
 function toggleEnvironmentRendering(shouldRender) {
-  Menu.setIsOptionChecked("Voxels", shouldRender);
-  Menu.setIsOptionChecked("Entities", shouldRender);
-  Menu.setIsOptionChecked("Metavoxels", shouldRender);
-  Menu.setIsOptionChecked("Avatars", shouldRender);
+  Scene.shouldRenderAvatars = shouldRender;
+  Scene.shouldRenderEntities = shouldRender;
 }
 
 function handleLookAt(pickRay) {
