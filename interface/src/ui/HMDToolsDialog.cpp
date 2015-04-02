@@ -184,8 +184,8 @@ void HMDToolsDialog::leaveHDMMode() {
         _switchModeButton->setText("Enter HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
-        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->setEnableVRMode(false);
+        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->getWindow()->activateWindow();
 
         if (_wasMoved) {
