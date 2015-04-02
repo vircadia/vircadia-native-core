@@ -1916,8 +1916,10 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
     device->ungetChar(firstChar);
 
     if (firstChar == (char) PacketTypeEntityData) {
+        qDebug() << "Reading from SVO Stream length:" << streamLength;
         return readSVOFromStream(streamLength, inputStream);
     } else {
+        qDebug() << "Reading from JSON Stream length:" << streamLength;
         return readJSONFromStream(streamLength, inputStream);
     }
 }
@@ -2053,12 +2055,14 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 }
 
 bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
-    char *rawData = new char[streamLength];
+    char* rawData = new char[streamLength + 1]; // allocate enough room to null terminate
     inputStream.readRawData(rawData, streamLength);
-    QJsonDocument d = QJsonDocument::fromJson(rawData);
-    QVariant v = d.toVariant();
-    QVariantMap m = v.toMap();
-    readFromMap(m);
+    rawData[streamLength] = 0; // make sure we null terminate this string
+
+    QJsonDocument asDocument = QJsonDocument::fromJson(rawData);
+    QVariant asVariant = asDocument.toVariant();
+    QVariantMap asMap = asVariant.toMap();
+    readFromMap(asMap);
     delete rawData;
     return true;
 }
