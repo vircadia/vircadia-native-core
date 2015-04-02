@@ -1585,6 +1585,10 @@ void Application::setFullscreen(bool fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
     }
 
+// The following code block is useful on platforms that can have a visible
+// app menu in a fullscreen window.  However the OSX mechanism hides the
+// application menu for fullscreen apps, so the check is not required.
+#ifndef Q_OS_MAC
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
@@ -1607,6 +1611,7 @@ void Application::setFullscreen(bool fullscreen) {
             _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
         }
     }
+#endif
 
     // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
     // https://bugreports.qt.io/browse/QTBUG-41883
