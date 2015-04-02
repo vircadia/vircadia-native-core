@@ -99,11 +99,11 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
     
-    int numSourceSamples = rawAudioByteArray.size() / sizeof(int16_t);
+    int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
     
-    int numDestinationBytes = rawAudioByteArray.size() / 2;
+    int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
     if (_isStereo && numSourceSamples % 2 != 0) {
-        numDestinationBytes += sizeof(int16_t);
+        numDestinationBytes += sizeof(AudioConstants::AudioSample);
     }
     
     _byteArray.resize(numDestinationBytes);
