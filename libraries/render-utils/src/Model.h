@@ -111,7 +111,6 @@ public:
     // Set the model to use for collisions
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
-    void setCollisionGeometryScale(glm::vec3 newScale) { _collisionGeometryScale = newScale; }
     
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
@@ -482,7 +481,6 @@ private:
     static AbstractViewStateInterface* _viewState;
 
     bool _renderCollisionHull;
-    glm::vec3 _collisionGeometryScale;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
