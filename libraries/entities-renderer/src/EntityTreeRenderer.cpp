@@ -107,6 +107,7 @@ void EntityTreeRenderer::init() {
 }
 
 void EntityTreeRenderer::shutdown() {
+    _entitiesScriptEngine->disconnect(); // disconnect all slots/signals from the script engine
     _shuttingDown = true;
 }
 
