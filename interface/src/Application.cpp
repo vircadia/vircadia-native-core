@@ -774,10 +774,6 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        //Clear the color buffer to ensure that there isnt any residual color
-        //Left over from when OR was not connected.
-        glClear(GL_COLOR_BUFFER_BIT);
-        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
