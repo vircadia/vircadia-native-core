@@ -2265,7 +2265,7 @@ void Application::update(float deltaTime) {
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+            if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
             }
             _lastQueriedViewFrustum = _viewFrustum;
@@ -2978,7 +2978,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         
         // render models...
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
@@ -3003,16 +3003,14 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
-
-
-
+    
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
+    
     {
         PerformanceTimer perfTimer("avatars");
         DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
-            false, selfAvatarOnly);   
+                                                               false, selfAvatarOnly);
     }
-
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());

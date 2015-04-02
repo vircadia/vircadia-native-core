@@ -119,7 +119,6 @@ namespace MenuOption {
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
-    const QString Avatars = "Avatars";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -156,7 +155,6 @@ namespace MenuOption {
     const QString EnableCharacterController = "Enable avatar collisions";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
-    const QString Entities = "Entities";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
