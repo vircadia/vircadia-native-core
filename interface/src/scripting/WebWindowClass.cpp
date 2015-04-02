@@ -97,6 +97,7 @@ void WebWindowClass::setVisible(bool visible) {
             QMetaObject::invokeMethod(
                 Application::getInstance()->getToolWindow(), "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
         } else {
+            QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
             QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);
         }
     }
@@ -112,6 +113,7 @@ void WebWindowClass::setURL(const QString& url) {
 }
 
 void WebWindowClass::raise() {
+    QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
     QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);
 }
 
