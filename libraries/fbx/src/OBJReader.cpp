@@ -343,6 +343,7 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
         }
 
         FBXMesh &mesh = geometry.meshes[0];
+        mesh.meshIndex = 0;
 
         // if we got a hint about units, scale all the points
         if (scaleGuess != 1.0f) {

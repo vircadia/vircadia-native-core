@@ -164,6 +164,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
+bool renderCollisionHulls = false;
+
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -1176,6 +1178,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 
                 break;
+            }
+
+            case Qt::Key_Comma: {
+                renderCollisionHulls = !renderCollisionHulls;
             }
 
             default:
@@ -2974,7 +2980,11 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+            if (renderCollisionHulls) {
+                _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
+            } else {
+                _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+            }
         }
 
         // render JS/scriptable overlays
