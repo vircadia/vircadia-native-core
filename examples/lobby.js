@@ -45,8 +45,6 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
-var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
-
 var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
 var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
 var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
@@ -136,9 +134,6 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
     descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
-      
-    // add an attachment on this avatar so other people see them in the lobby
-    MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     if (droneSound.downloaded) {
       // start the drone sound
@@ -261,8 +256,6 @@ function cleanupLobby() {
   
   places = {};
   toggleEnvironmentRendering(true);
-  
-  MyAvatar.detachOne(HELMET_ATTACHMENT_URL);
 }
 
 function actionStartEvent(event) {
