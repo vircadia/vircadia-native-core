@@ -101,17 +101,28 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption endMeshIndexOption("e", "end-mesh index", "0");
     parser.addOption(endMeshIndexOption);
 
-    const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh size to consider", "0");
+    const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh (diagonal) size to consider", "0");
     parser.addOption(minimumMeshSizeOption);
 
-    const QCommandLineOption vHacdResolutionOption("resolution", "v-hacd resolution", "100000");
+    const QCommandLineOption vHacdResolutionOption("resolution", "Maximum number of voxels generated during the "
+                                                   "voxelization stage (range=10,000-16,000,000)", "100000");
     parser.addOption(vHacdResolutionOption);
 
-    const QCommandLineOption vHacdDepthOption("depth", "v-hacd depth", "20");
+    const QCommandLineOption vHacdDepthOption("depth", "Maximum number of clipping stages. During each split stage, parts "
+                                              "with a concavity higher than the user defined threshold are clipped "
+                                              "according the \"best\" clipping plane (range=1-32)", "20");
     parser.addOption(vHacdDepthOption);
 
-    const QCommandLineOption vHacdDeltaOption("delta", "v-hacd delta", "0.05");
+    const QCommandLineOption vHacdDeltaOption("delta", "Controls the bias toward maximaxing local concavity (range=0.0-1.0)", "0.05");
     parser.addOption(vHacdDeltaOption);
+
+    const QCommandLineOption vHacdConcavityOption("concavity", "Maximum allowed concavity (range=0.0-1.0)", "0.0025");
+    parser.addOption(vHacdConcavityOption);
+
+    const QCommandLineOption vHacdPlanedownsamplingOption("planedownsampling", "Controls the granularity of the search for"
+                                                          " the \"best\" clipping plane (range=1-16)", "4");
+    parser.addOption(vHacdPlanedownsamplingOption);
+
 
 
     if (!parser.parse(QCoreApplication::arguments())) {
@@ -180,15 +191,24 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vHacdDelta = parser.value(vHacdDeltaOption).toFloat();
     }
 
+    float vHacdConcavity = 0.0025;
+    if (parser.isSet(vHacdConcavityOption)) {
+        vHacdConcavity = parser.value(vHacdConcavityOption).toFloat();
+    }
+
+    int vHacdPlanedownsampling = 4;
+    if (parser.isSet(vHacdPlanedownsamplingOption)) {
+        vHacdPlanedownsampling = parser.value(vHacdPlanedownsamplingOption).toInt();
+    }
 
 
     //set parameters for V-HACD
     params.m_callback = &pCallBack; //progress callback
     params.m_resolution = vHacdResolution; // 100000
     params.m_depth = vHacdDepth; // 20
-    params.m_concavity = 0.001; // 0.001
+    params.m_concavity = vHacdConcavity; // 0.001
     params.m_delta = vHacdDelta; // 0.05
-    params.m_planeDownsampling = 4; // 4
+    params.m_planeDownsampling = vHacdPlanedownsampling; // 4
     params.m_convexhullDownsampling = 4; // 4
     params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
     params.m_beta = 0.05; // 0.05
