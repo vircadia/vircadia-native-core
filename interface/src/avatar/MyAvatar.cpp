@@ -1452,3 +1452,9 @@ void MyAvatar::clearDriveKeys() {
         _driveKeys[i] = 0.0f;
     }
 }
+
+void MyAvatar::relayDriveKeysToCharacterController() { 
+    if (_driveKeys[UP] > 0.0f) {
+        _characterController.jump(); 
+    }
+}
