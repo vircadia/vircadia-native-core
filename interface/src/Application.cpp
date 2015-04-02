@@ -1182,6 +1182,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Comma: {
                 renderCollisionHulls = !renderCollisionHulls;
+                break;
             }
 
             default:
