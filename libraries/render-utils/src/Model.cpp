@@ -82,7 +82,8 @@ Model::Model(QObject* parent) :
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
-    _meshGroupsKnown(false) {
+    _meshGroupsKnown(false),
+    _renderCollisionHull(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -712,13 +713,13 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     {
         GLenum buffers[3];
         int bufferCount = 0;
-        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
         }
-        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
         }
-        if (mode == DEFAULT_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
         }
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
@@ -777,7 +778,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
     }
 
-    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args, true);
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args, true);
@@ -1778,13 +1779,13 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         {
             GLenum buffers[3];
             int bufferCount = 0;
-            if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
             }
-            if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
             }
-            if (mode == DEFAULT_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
             }
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
@@ -1843,7 +1844,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
         }
     
-        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
@@ -1919,6 +1920,23 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
     if (_meshStates.isEmpty()) {
         return false;
     }
+
+    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+        // turning collision hull rendering on
+        _renderCollisionHull = true;
+        _nextGeometry = _collisionGeometry;
+        _saveNonCollisionGeometry = _geometry;
+        updateGeometry();
+        simulate(0.0, true);
+    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+        // turning collision hull rendering off
+        _renderCollisionHull = false;
+        _nextGeometry = _saveNonCollisionGeometry;
+        _saveNonCollisionGeometry.clear();
+        updateGeometry();
+        simulate(0.0, true);
+    }
+
     renderSetup(args);
     _modelsInScene.push_back(this);
     return true;
@@ -2402,8 +2420,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 }
 
 
-int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        Locations* locations, SkinLocations* skinLocations, bool forceRenderMeshes) {
+int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent,
+                                float alphaThreshold, RenderArgs* args, Locations* locations, SkinLocations* skinLocations,
+                                bool forceRenderMeshes) {
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();

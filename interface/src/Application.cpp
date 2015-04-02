@@ -164,6 +164,8 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
+bool renderCollisionHulls = false;
+
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -256,7 +258,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto speechRecognizer = DependencyManager::set<SpeechRecognizer>();
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
-    
+    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+
     return true;
 }
 
@@ -566,6 +569,9 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+
+    _entities.clear(); // this will allow entity scripts to properly shutdown
+
     _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
@@ -773,10 +779,6 @@ void Application::paintGL() {
     }
 
     if (OculusManager::isConnected()) {
-        //Clear the color buffer to ensure that there isnt any residual color
-        //Left over from when OR was not connected.
-        glClear(GL_COLOR_BUFFER_BIT);
-        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
@@ -970,9 +972,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_E:
             case Qt::Key_PageUp:
-               if (!_myAvatar->getDriveKeys(UP)) {
-                    _myAvatar->jump();
-                }
                 _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
@@ -1179,6 +1178,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 
                 break;
+            }
+
+            case Qt::Key_Comma: {
+                renderCollisionHulls = !renderCollisionHulls;
             }
 
             default:
@@ -2207,6 +2210,7 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
+        _myAvatar->relayDriveKeysToCharacterController();
         _physicsEngine.stepSimulation();
     }
 
@@ -2259,7 +2263,7 @@ void Application::update(float deltaTime) {
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+            if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
             }
             _lastQueriedViewFrustum = _viewFrustum;
@@ -2765,7 +2769,7 @@ void Application::updateShadowMap() {
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
+const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
 
 const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
 
@@ -2972,11 +2976,15 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         
         // render models...
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+            if (renderCollisionHulls) {
+                _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
+            } else {
+                _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+            }
         }
 
         // render JS/scriptable overlays
@@ -2993,16 +3001,14 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
-
-
-
+    
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
+    
     {
         PerformanceTimer perfTimer("avatars");
         DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
-            false, selfAvatarOnly);   
+                                                               false, selfAvatarOnly);
     }
-
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
@@ -3585,6 +3591,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     QScriptValue hmdInterface = scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
+
+    scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

@@ -152,6 +152,8 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
+
+    unsigned int meshIndex; // the order the meshes appeared in the object file
 };
 
 /// A single animation frame extracted from an FBX document.
