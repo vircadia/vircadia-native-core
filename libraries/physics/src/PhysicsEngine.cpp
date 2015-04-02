@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AABox.h> 
+
 #include "PhysicsEngine.h"
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
-#include "AvatarData.h"
 
 static uint32_t _numSubsteps;
 
@@ -23,10 +24,20 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    :  _originOffset(offset) {
+    : _originOffset(offset) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
+    if (_characterController) {
+        _characterController->setDynamicsWorld(NULL);
+    }
+    // TODO: delete engine components... if we ever plan to create more than one instance
+    delete _collisionConfig;
+    delete _collisionDispatcher;
+    delete _broadphaseFilter;
+    delete _constraintSolver;
+    delete _dynamicsWorld;
+    delete _ghostPairCallback;
 }
 
 // begin EntitySimulation overrides
@@ -60,23 +71,25 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        ShapeInfo shapeInfo;
-        entity->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
-        if (shape) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
-            addObject(shapeInfo, shape, motionState);
-        } else if (entity->isMoving()) {
-            EntityMotionState* motionState = new EntityMotionState(entity);
-            entity->setPhysicsInfo(static_cast<void*>(motionState));
-            _entityMotionStates.insert(motionState);
+        if (entity->isReadyToComputeShape()) {
+            ShapeInfo shapeInfo;
+            entity->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
+            if (shape) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
+                addObject(shapeInfo, shape, motionState);
+            } else if (entity->isMoving()) {
+                EntityMotionState* motionState = new EntityMotionState(entity);
+                entity->setPhysicsInfo(static_cast<void*>(motionState));
+                _entityMotionStates.insert(motionState);
 
-            motionState->setKinematic(true, _numSubsteps);
-            _nonPhysicalKinematicObjects.insert(motionState);
-            // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-            //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+                motionState->setKinematic(true, _numSubsteps);
+                _nonPhysicalKinematicObjects.insert(motionState);
+                // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
+                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+            }
         }
     }
 }
@@ -260,6 +273,9 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 
+        _ghostPairCallback = new btGhostPairCallback();
+        _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(_ghostPairCallback);
+
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
@@ -273,12 +289,12 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 void PhysicsEngine::stepSimulation() {
     lock();
     // NOTE: the grand order of operations is:
-    // (1) relay incoming changes
+    // (1) pull incoming changes
     // (2) step simulation
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-    // This is step (1).
+    // This is step (1) pull incoming changes
     relayIncomingChangesToSimulation();
 
     const int MAX_NUM_SUBSTEPS = 4;
@@ -287,26 +303,25 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    if (_avatarData->isPhysicsEnabled()) {
-        _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                          glmToBullet(_avatarData->getPosition())));
-        // WORKAROUND: there is a bug in the debug Bullet-2.82 libs where a zero length walk velocity will trigger
-        // an assert when the getNormalizedVector() helper function in btKinematicCharacterController.cpp tries to
-        // first normalize a vector before checking its length.  Here we workaround the problem by checking the
-        // length first.  NOTE: the character's velocity is reset to zero after each step, so when we DON'T set
-        // the velocity for this time interval it is the same thing as setting its velocity to zero.
-        btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
-        if (walkVelocity.length2() > FLT_EPSILON * FLT_EPSILON) {
-            _characterController->setVelocityForTimeInterval(walkVelocity, timeStep);
+    // TODO: move character->preSimulation() into relayIncomingChanges
+    if (_characterController) {
+        if (_characterController->needsRemoval()) {
+            _characterController->setDynamicsWorld(NULL);
         }
+        _characterController->updateShapeIfNecessary();
+        if (_characterController->needsAddition()) {
+            _characterController->setDynamicsWorld(_dynamicsWorld);
+        }
+        _characterController->preSimulation(timeStep);
     }
 
-    // This is step (2).
+    // This is step (2) step simulation
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     _numSubsteps += (uint32_t)numSubsteps;
     stepNonPhysicalKinematics(usecTimestampNow());
     unlock();
 
+    // TODO: make all of this harvest stuff into one function: relayOutgoingChanges()
     if (numSubsteps > 0) {
         // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
         //
@@ -317,18 +332,14 @@ void PhysicsEngine::stepSimulation() {
         //
         // TODO: untangle these lock sequences.
         _entityTree->lockForWrite();
-        _avatarData->lockForWrite();
         lock();
         _dynamicsWorld->synchronizeMotionStates();
 
-        if (_avatarData->isPhysicsEnabled()) {
-            const btTransform& avatarTransform = _avatarGhostObject->getWorldTransform();
-            _avatarData->setOrientation(bulletToGLM(avatarTransform.getRotation()));
-            _avatarData->setPosition(bulletToGLM(avatarTransform.getOrigin()));
+        if (_characterController) {
+            _characterController->postSimulation();
         }
 
         unlock();
-        _avatarData->unlock();
         _entityTree->unlock();
     
         computeCollisionEvents();
@@ -491,10 +502,8 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
-        ShapeInfo shapeInfo;
-        ShapeInfoUtil::collectInfoFromShape(shape, shapeInfo);
         _dynamicsWorld->removeRigidBody(body);
-        _shapeManager.releaseShape(shapeInfo);
+        _shapeManager.releaseShape(shape);
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         motionState->setRigidBody(NULL);
         delete body;
@@ -607,31 +616,17 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     return true;
 }
 
-
-
-void PhysicsEngine::setAvatarData(AvatarData *avatarData) {
-    _avatarData = avatarData;
-    _avatarGhostObject = new btPairCachingGhostObject();
-    _avatarGhostObject->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                      glmToBullet(_avatarData->getPosition())));
-
-    // XXX these values should be computed from the character model.
-    btScalar characterRadius = 0.3;
-    btScalar characterHeight = 1.75 - 2.0f * characterRadius;
-    btScalar stepHeight = btScalar(0.35);
-
-    btConvexShape* capsule = new btCapsuleShape(characterRadius, characterHeight);
-    _avatarGhostObject->setCollisionShape(capsule);
-    _avatarGhostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
-
-    _characterController = new btKinematicCharacterController(_avatarGhostObject, capsule, stepHeight);
-
-    _dynamicsWorld->addCollisionObject(_avatarGhostObject, btBroadphaseProxy::CharacterFilter,
-                                       btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
-    _dynamicsWorld->addAction(_characterController);
-    _characterController->reset (_dynamicsWorld);
-    // _characterController->warp (btVector3(10.210001,-2.0306311,16.576973));
-
-    btGhostPairCallback* ghostPairCallback = new btGhostPairCallback();
-    _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(ghostPairCallback);
+void PhysicsEngine::setCharacterController(CharacterController* character) {
+    if (_characterController != character) {
+        lock();
+        if (_characterController) {
+            // remove the character from the DynamicsWorld immediately
+            _characterController->setDynamicsWorld(NULL);
+            _characterController = NULL;
+        }
+        // the character will be added to the DynamicsWorld later
+        _characterController = character;
+        unlock();
+    }
 }
+

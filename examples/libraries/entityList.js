@@ -2,7 +2,7 @@ EntityListTool = function(opts) {
     var that = {};
 
     var url = Script.resolvePath('html/entityList.html');
-    var webView = new WebWindow('Entities', url, 200, 280);
+    var webView = new WebWindow('Entities', url, 200, 280, true);
 
     var visible = false;
 

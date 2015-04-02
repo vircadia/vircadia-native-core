@@ -31,6 +31,7 @@ class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem) = 0;    
+    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem) = 0;
 };
 
 
@@ -92,9 +93,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange);
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
-    void removeEntityFromSimulation(EntityItem* entity);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
@@ -111,12 +111,18 @@ public:
     /// \param foundEntities[out] vector of const EntityItem*
     /// \remark Side effect: any initial contents in foundEntities will be lost
     void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
-
+    
     /// finds all entities that touch a cube
     /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
+    
+    /// finds all entities that touch a box
+    /// \param box the query box in world-frame (meters)
+    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \remark Side effect: any initial contents in entities will be lost
+    void findEntities(const AABox& box, QVector<EntityItem*>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -158,11 +164,15 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
+    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element);
+    bool readFromMap(QVariantMap& entityDescription);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void clearingEntities();
 
 private:
 
@@ -172,6 +182,7 @@ private:
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
+    static bool findInBoxOperation(OctreeElement* element, void* extraData);
     static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
@@ -184,6 +195,7 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
     

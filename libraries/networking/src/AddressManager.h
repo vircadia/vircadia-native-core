@@ -23,7 +23,7 @@
 #include "AccountManager.h"
 
 const QString HIFI_URL_SCHEME = "hifi";
-const QString DEFAULT_HIFI_ADDRESS = "hifi://sandbox";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
 
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
@@ -95,8 +95,6 @@ private:
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
-
-    QSharedMemory* _localDSPortSharedMem; // memory shared with domain server
 };
 
 #endif // hifi_AddressManager_h

@@ -10,3 +10,14 @@
 //
 #include "Context.h"
 
+// this include should disappear! as soon as the gpu::Context is in place
+#include "GLBackend.h"
+
+using namespace gpu;
+
+bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+    if (shader.isProgram()) {
+        return GLBackend::makeProgram(shader, bindings);
+    }
+    return false;
+}

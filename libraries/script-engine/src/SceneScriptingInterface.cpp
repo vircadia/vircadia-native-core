@@ -20,21 +20,62 @@ void SceneScriptingInterface::setStageLocation(float longitude, float latitude, 
     _skyStage->setOriginLocation(longitude, latitude, altitude);
 }
 
+float SceneScriptingInterface::getStageLocationLongitude() const {
+    return _skyStage->getOriginLongitude();
+}
+float SceneScriptingInterface::getStageLocationLatitude() const {
+    return _skyStage->getOriginLatitude();
+}
+float SceneScriptingInterface::getStageLocationAltitude() const {
+    return _skyStage->getOriginSurfaceAltitude();
+}
+
 void SceneScriptingInterface::setStageDayTime(float hour) {
     _skyStage->setDayTime(hour);
 }
+
+float SceneScriptingInterface::getStageDayTime() const {
+    return _skyStage->getDayTime();
+}
+
 void SceneScriptingInterface::setStageYearTime(int day) {
     _skyStage->setYearTime(day);
+}
+
+int SceneScriptingInterface::getStageYearTime() const {
+    return _skyStage->getYearTime();
 }
 
 void SceneScriptingInterface::setSunColor(const glm::vec3& color) {
     _skyStage->setSunColor(color);
 }
+
+const glm::vec3& SceneScriptingInterface::getSunColor() const {
+    return _skyStage->getSunColor();
+}
+
 void SceneScriptingInterface::setSunIntensity(float intensity) {
     _skyStage->setSunIntensity(intensity);
 }
 
+float SceneScriptingInterface::getSunIntensity() const {
+    return _skyStage->getSunIntensity();
+}
 
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
+}
+
+void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
+    if (shouldRenderAvatars != _shouldRenderAvatars) {
+        _shouldRenderAvatars = shouldRenderAvatars;
+        emit shouldRenderAvatarsChanged(_shouldRenderAvatars);
+    }
+}
+
+void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities) {
+    if (shouldRenderEntities != _shouldRenderEntities) {
+        _shouldRenderEntities = shouldRenderEntities;
+        emit shouldRenderEntitiesChanged(_shouldRenderEntities);
+    }
 }

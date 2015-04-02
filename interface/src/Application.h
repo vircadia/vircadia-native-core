@@ -52,6 +52,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
@@ -68,8 +69,6 @@
 #include "ui/ToolWindow.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
-
-
 #include "UndoStackScriptingInterface.h"
 
 
@@ -94,6 +93,10 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
+static const QString SVO_EXTENSION  = ".svo";
+static const QString SVO_JSON_EXTENSION  = ".svo.json";
+static const QString JS_EXTENSION  = ".js";
+static const QString FST_EXTENSION  = ".fst";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -110,7 +113,7 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_HELP_PATH = "html/interface-welcome.html";
-static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
+static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES = 
@@ -124,6 +127,8 @@ class Application;
 #undef qApp
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
+typedef bool (Application::* AcceptURLMethod)(const QString &);
 
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
@@ -173,8 +178,12 @@ public:
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
 
     Camera* getCamera() { return &_myCamera; }
-    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
-    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
+    // Represents the current view frustum of the avatar.  
+    ViewFrustum* getViewFrustum();
+    // Represents the view frustum of the current rendering pass, 
+    // which might be different from the viewFrustum, i.e. shadowmap 
+    // passes, mirror window passes, etc
+    ViewFrustum* getDisplayViewFrustum();
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
@@ -214,6 +223,8 @@ public:
     
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
+
+    bool importSVOFromURL(const QString& urlString);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
@@ -298,6 +309,10 @@ public:
     
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
+    
+    void initializeAcceptedFiles();
+    bool canAcceptURL(const QString& url);
+    bool acceptURL(const QString& url);
 
 signals:
 
@@ -315,6 +330,14 @@ signals:
     
     void scriptLocationChanged(const QString& newPath);
 
+    void svoImportRequested(const QString& url);
+
+    void checkBackgroundDownloads();
+    void domainConnectionRefused(const QString& reason);
+
+    void faceURLChanged(const QString& newValue);
+    void skeletonURLChanged(const QString& newValue);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -325,12 +348,15 @@ public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
-    bool importEntities(const QString& filename);
+    bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
+    bool acceptSnapshot(const QString& urlString);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
@@ -340,11 +366,10 @@ public slots:
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
+    void showFriendsWindow();
+    void friendsWindowClosed();
 
-    void uploadHead();
-    void uploadSkeleton();
-    void uploadAttachment();
-    void uploadEntity();
+    void packageModel();
     
     void openUrl(const QUrl& url);
 
@@ -364,6 +389,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void setActiveFaceTracker();
+
+    void domainConnectionDenied(const QString& reason);
 
 private slots:
     void clearDomainOctreeDetails();
@@ -445,10 +472,9 @@ private:
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
-
-
-    QThread* _nodeThread;
-    DatagramProcessor _datagramProcessor;
+    WebWindowClass* _friendsWindow;
+    
+    DatagramProcessor* _datagramProcessor;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -586,6 +612,13 @@ private:
     GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
 
     void checkSkeleton();
+
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
+    
+    QHash<QString, AcceptURLMethod> _acceptedExtensions;
+
+    QList<QString> _domainConnectionRefusals;
 };
 
 #endif // hifi_Application_h

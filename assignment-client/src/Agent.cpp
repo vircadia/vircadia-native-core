@@ -12,7 +12,6 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -46,7 +45,7 @@ Agent::Agent(const QByteArray& packet) :
     
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    DependencyManager::set<ResouceCacheSharedItems>();
+    DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 }
 

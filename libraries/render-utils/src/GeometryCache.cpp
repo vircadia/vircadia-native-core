@@ -21,6 +21,7 @@
 #include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 
+#include <FSTReader.h>
 #include <SharedUtil.h>
 
 #include "TextureCache.h"
@@ -1771,13 +1772,13 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
 
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
-    return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
+    return getResource(url, fallback, delayLoad, NULL).staticCast<NetworkGeometry>();
 }
 
-QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+                                                       bool delayLoad, const void* extra) {
     QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url, fallback.staticCast<NetworkGeometry>(), delayLoad),
-        &Resource::allReferencesCleared);
+                                             &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
     return geometry.staticCast<Resource>();
 }
@@ -2131,7 +2132,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
     QUrl url = reply->url();
     if (url.path().toLower().endsWith(".fst")) {
         // it's a mapping file; parse it and get the mesh filename
-        _mapping = readMapping(reply->readAll());
+        _mapping = FSTReader::readMapping(reply->readAll());
         reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {

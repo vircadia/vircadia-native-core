@@ -16,15 +16,17 @@
 #include <avatar/AvatarManager.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
+#include <NetworkingConstants.h>
 
 #include "Application.h"
 #include "MainWindow.h"
+#include "LODManager.h"
 #include "Menu.h"
-#include "ModelsBrowser.h"
 #include "PreferencesDialog.h"
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
 #include "UIUtil.h"
+
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
 
@@ -45,6 +47,11 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDefaultScripts);
+
+
+    connect(Application::getInstance(), &Application::faceURLChanged, this, &PreferencesDialog::faceURLChanged);
+    connect(Application::getInstance(), &Application::skeletonURLChanged, this, &PreferencesDialog::skeletonURLChanged);
+
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
@@ -52,9 +59,19 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     UIUtil::scaleWidgetFontSizes(this);
 }
 
+void PreferencesDialog::faceURLChanged(const QString& newValue) {
+    ui.faceURLEdit->setText(newValue);
+}
+
+void PreferencesDialog::skeletonURLChanged(const QString& newValue) {
+    ui.skeletonURLEdit->setText(newValue);
+}
+
 void PreferencesDialog::accept() {
     savePreferences();
     close();
+    delete _marketplaceWindow;
+    _marketplaceWindow = NULL;
 }
 
 void PreferencesDialog::setHeadUrl(QString modelUrl) {
@@ -66,15 +83,23 @@ void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
-    ModelsBrowser modelBrowser(HEAD_MODEL);
-    connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setHeadUrl);
-    modelBrowser.browse();
+    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    auto WIDTH = 900;
+    auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
 }
 
 void PreferencesDialog::openBodyModelBrowser() {
-    ModelsBrowser modelBrowser(SKELETON_MODEL);
-    connect(&modelBrowser, &ModelsBrowser::selected, this, &PreferencesDialog::setSkeletonUrl);
-    modelBrowser.browse();
+    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    auto WIDTH = 900;
+    auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
@@ -174,6 +199,10 @@ void PreferencesDialog::loadPreferences() {
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
+    // LOD items
+    auto lodManager = DependencyManager::get<LODManager>();
+    ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
+    ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
 }
 
 void PreferencesDialog::savePreferences() {
@@ -187,11 +216,13 @@ void PreferencesDialog::savePreferences() {
         UserActivityLogger::getInstance().changedDisplayName(displayNameStr);
         shouldDispatchIdentityPacket = true;
     }
+
+    auto AVATAR_FILE_EXTENSION = ".fst";
     
     QUrl faceModelURL(ui.faceURLEdit->text());
     QString faceModelURLString = faceModelURL.toString();
     if (faceModelURLString != _faceURLString) {
-        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().endsWith(".fst")) {
+        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
             // change the faceModelURL in the profile, it will also update this user's BlendFace
             myAvatar->setFaceModelURL(faceModelURL);
             UserActivityLogger::getInstance().changedModel("head", faceModelURLString);
@@ -204,7 +235,7 @@ void PreferencesDialog::savePreferences() {
     QUrl skeletonModelURL(ui.skeletonURLEdit->text());
     QString skeletonModelURLString = skeletonModelURL.toString();
     if (skeletonModelURLString != _skeletonURLString) {
-        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().endsWith(".fst")) {
+        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
             // change the skeletonModelURL in the profile, it will also update this user's Body
             myAvatar->setSkeletonModelURL(skeletonModelURL);
             UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURLString);
@@ -275,4 +306,9 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
     Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+
+    // LOD items
+    auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
+    lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
 }

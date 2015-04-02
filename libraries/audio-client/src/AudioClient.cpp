@@ -320,6 +320,7 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 #ifdef Q_OS_ANDROID
         adjustedAudioFormat.setSampleRate(FORTY_FOUR);
 #else
+        
         const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
         
         if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
@@ -397,18 +398,24 @@ soxr_error_t possibleResampling(soxr_t resampler,
                                         numSourceSamples,
                                         sourceAudioFormat, destinationAudioFormat);
                 
-                qDebug() << "resample from" << sourceAudioFormat << "to" << destinationAudioFormat
-                    << "from" << numChannelCoversionSamples << "to" << numDestinationSamples;
-                
                 resampleError = soxr_process(resampler,
                                              channelConversionSamples, numChannelCoversionSamples, NULL,
                                              destinationSamples, numDestinationSamples, NULL);
                 
                 delete[] channelConversionSamples;
             } else {
+                
+                unsigned int numAdjustedSourceSamples = numSourceSamples;
+                unsigned int numAdjustedDestinationSamples = numDestinationSamples;
+                
+                if (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 2) {
+                    numAdjustedSourceSamples /= 2;
+                    numAdjustedDestinationSamples /= 2;
+                }
+                
                 resampleError = soxr_process(resampler,
-                                             sourceSamples, numSourceSamples, NULL,
-                                             destinationSamples, numDestinationSamples, NULL);
+                                             sourceSamples, numAdjustedSourceSamples, NULL,
+                                             destinationSamples, numAdjustedDestinationSamples, NULL);
             }
             
             return resampleError;
@@ -429,9 +436,12 @@ soxr_t soxrResamplerFromInputFormatToOutputFormat(const QAudioFormat& sourceAudi
     // setup soxr_quality_spec_t for quality options
     soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
     
+    int channelCount = (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 2)
+        ? 2 : 1;
+    
     soxr_t newResampler = soxr_create(sourceAudioFormat.sampleRate(),
                                       destinationAudioFormat.sampleRate(),
-                                      1,
+                                      channelCount,
                                       &soxrError, &inputToNetworkSpec, &qualitySpec, 0);
     
     if (soxrError) {
@@ -802,7 +812,7 @@ void AudioClient::handleAudioInput() {
             }
             
             emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
-                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL));
+                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(AudioConstants::AudioSample)));
 
         } else {
             // our input loudness is 0, since we're muted
@@ -1136,7 +1146,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     if (!outputDeviceInfo.isNull()) {
         qDebug() << "The audio output device " << outputDeviceInfo.deviceName() << "is available.";
         _outputAudioDeviceName = outputDeviceInfo.deviceName().trimmed();
-
+        
         if (adjustedFormatForAudioDevice(outputDeviceInfo, _desiredOutputFormat, _outputFormat)) {
             qDebug() << "The format to be used for audio output is" << _outputFormat;
             

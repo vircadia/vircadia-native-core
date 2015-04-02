@@ -34,6 +34,7 @@
 #include "EventTypes.h"
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
+#include "ScriptCache.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
@@ -275,31 +276,26 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
                 _scriptContents = in.readAll();
                 emit scriptLoaded(_fileNameString);
             } else {
-                qDebug() << "ERROR Loading file:" << _fileNameString;
+                qDebug() << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-            connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
+            bool isPending;
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            scriptCache->getScript(url, this, isPending);
+            
         }
     }
 }
 
-void ScriptEngine::handleScriptDownload() {
-    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-    
-    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-        _scriptContents = reply->readAll();
-        emit scriptLoaded(_fileNameString);
-    } else {
-        qDebug() << "ERROR Loading file:" << reply->url().toString();
-        emit errorLoadingScript(_fileNameString);
-    }
-    
-    reply->deleteLater();
+void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
+    _scriptContents = scriptContents;
+    emit scriptLoaded(_fileNameString);
+}
+
+void ScriptEngine::errorInLoadingScript(const QUrl& url) {
+    qDebug() << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
+    emit errorLoadingScript(_fileNameString); // ??
 }
 
 void ScriptEngine::init() {
@@ -308,8 +304,6 @@ void ScriptEngine::init() {
     }
     
     _isInitialized = true;
-
-    auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
@@ -354,16 +348,11 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
-
-    globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
-    globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
-
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -769,7 +758,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
-                qDebug() << "Error loading file: " << url;
+                qDebug() << "Error loading file: " << url << "line:" << __LINE__;
             } else {
                 QScriptValue result = evaluate(contents, url.toString());
             }

@@ -74,7 +74,6 @@ Avatar::Avatar() :
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
-    _collisionGroups(0),
     _initialized(false),
     _shouldRenderBillboard(true),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
@@ -339,7 +338,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getViewFrustum();
+        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
@@ -365,9 +364,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
         // render body
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(frustum, renderMode, postLighting, glowLevel);
-        }
+        renderBody(frustum, renderMode, postLighting, glowLevel);
 
         if (!postLighting && renderMode != SHADOW_RENDER_MODE) {
             // add local lights
@@ -999,16 +996,6 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
 }
 
-void Avatar::updateCollisionGroups() {
-    _collisionGroups = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithEnvironment)) {
-        _collisionGroups |= COLLISION_GROUP_ENVIRONMENT;
-    }
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideWithAvatars)) {
-        _collisionGroups |= COLLISION_GROUP_AVATARS;
-    }
-}
-
 void Avatar::setScale(float scale) {
     _scale = scale;
 
@@ -1024,22 +1011,19 @@ float Avatar::getSkeletonHeight() const {
 }
 
 float Avatar::getHeadHeight() const {
-    Extents extents = getHead()->getFaceModel().getBindExtents();
+    Extents extents = getHead()->getFaceModel().getMeshExtents();
     if (!extents.isEmpty()) {
         return extents.maximum.y - extents.minimum.y;
     }
-    glm::vec3 neckPosition;
-    glm::vec3 headPosition;
-    if (_skeletonModel.getNeckPosition(neckPosition) && _skeletonModel.getHeadPosition(headPosition)) {
-        return glm::distance(neckPosition, headPosition);
-    }
-    const float DEFAULT_HEAD_HEIGHT = 0.1f;
-    return DEFAULT_HEAD_HEIGHT;
-}
 
-float Avatar::getBoundingRadius() const {
-    // TODO: also use head model when computing the avatar's bounding radius
-    return _skeletonModel.getBoundingRadius();
+    extents = _skeletonModel.getMeshExtents();
+    glm::vec3 neckPosition;
+    if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
+        return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
+    }
+
+    const float DEFAULT_HEAD_HEIGHT = 0.25f;
+    return DEFAULT_HEAD_HEIGHT;
 }
 
 float Avatar::getPelvisFloatingHeight() const {

@@ -32,6 +32,9 @@ quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
 
+const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
+const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
+
 AvatarData::AvatarData() :
     _sessionUUID(),
     _position(0.0f),
@@ -43,7 +46,6 @@ AvatarData::AvatarData() :
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
-    _isChatCirclingEnabled(false),
     _forceFaceTrackerConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
@@ -56,9 +58,9 @@ AvatarData::AvatarData() :
     _errorLogExpiry(0),
     _owningAvatarMixer(),
     _lastUpdateTimer(),
-    _velocity(0.0f)
+    _velocity(0.0f),
+    _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
-    
 }
 
 AvatarData::~AvatarData() {
@@ -194,9 +196,6 @@ QByteArray AvatarData::toByteArray() {
     // faceshift state
     if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-    }
-    if (_isChatCirclingEnabled) {
-        setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
     }
     if (_referential != NULL && _referential->isValid()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
@@ -419,7 +418,6 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-        _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
         
         // Referential

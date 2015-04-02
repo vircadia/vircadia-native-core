@@ -152,6 +152,8 @@ public:
     
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
+
+    unsigned int meshIndex; // the order the meshes appeared in the object file
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -260,12 +262,6 @@ public:
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
-
-/// Reads an FST mapping from the supplied data.
-QVariantHash readMapping(const QByteArray& data);
-
-/// Writes an FST mapping to a byte array.
-QByteArray writeMapping(const QVariantHash& mapping);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing

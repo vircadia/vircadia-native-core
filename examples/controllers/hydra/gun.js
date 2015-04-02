@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Modified by Philip on 3/3/14
+//  Modified by Thijs Wenker on 3/31/15
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a entity gun.
@@ -66,7 +67,7 @@ var impactSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletIm
 var targetHitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
 var targetLaunchSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 
-var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
+var gunModel = "https://s3.amazonaws.com/hifi-public/cozza13/gun/m1911-handgun+1.fbx?v=4";
 
 var audioOptions = {
   volume: 0.9
@@ -90,44 +91,49 @@ var score = 0;
 var bulletID = false;
 var targetID = false;
 
-//  Create a reticle image in center of screen 
+//  Create overlay buttons and reticle 
+
+var BUTTON_SIZE = 32;
+var PADDING = 3;
+var NUM_BUTTONS = 3;
+
 var screenSize = Controller.getViewportDimensions();
+var startX = screenSize.x / 2 - (NUM_BUTTONS * (BUTTON_SIZE + PADDING)) / 2;
 var reticle = Overlays.addOverlay("image", {
-                    x: screenSize.x / 2 - 16,
-                    y: screenSize.y / 2 - 16,
-                    width: 32,
-                    height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    x: screenSize.x / 2 - (BUTTON_SIZE / 2),
+                    y: screenSize.y / 2 - (BUTTON_SIZE / 2),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/crosshairs.svg",
                     alpha: 1
                 });
 
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 96,
-                    width: 32,
-                    height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
                     alpha: 1
                 });
 
+startX += BUTTON_SIZE + PADDING;
 var platformButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 130,
-                    width: 32,
-                    height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/city.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/platform-targets.svg",
                     alpha: 1
                 });
+
+startX += BUTTON_SIZE + PADDING;
 var gridButton = Overlays.addOverlay("image", {
-                    x: screenSize.x - 48,
-                    y: 164,
-                    width: 32,
-                    height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/blocks.png",
-                    color: { red: 255, green: 255, blue: 255},
+                    x: startX,
+                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/floating-targets.svg",
                     alpha: 1
                 });
 
@@ -163,7 +169,7 @@ function shootBullet(position, velocity, grenade) {
         { type: "Sphere",
           position: position, 
           dimensions: { x: bSize, y: bSize, z: bSize }, 
-          color: {  red: 255, green: 0, blue: 0 },  
+          color: {  red: 0, green: 0, blue: 0 },  
           velocity: bVelocity, 
           lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: bGravity, z: 0 },
@@ -260,6 +266,7 @@ function makeGrid(type, scale, size) {
         }
     }
 }
+
 function makePlatform(gravity, scale, size) {
     var separation = scale * 2; 
     var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
@@ -282,7 +289,7 @@ function makePlatform(gravity, scale, size) {
                                   z: pos.z - (separation * size / 2.0) + z * separation },
                       dimensions: dimensions, 
                       color: {  red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },  
-                      velocity: {  x: 0, y: 0, z: 0 }, 
+                      velocity: {  x: 0, y: 0.05, z: 0 }, 
                       gravity: {  x: 0, y: gravity, z: 0 }, 
                       lifetime: TARGET_LIFE,
                       damping: 0.1,
@@ -297,7 +304,7 @@ function makePlatform(gravity, scale, size) {
         type: "Box",
         position: { x: pos.x, y: pos.y - separation / 2.0, z: pos.z }, 
         dimensions: { x: 2.0 * separation * size, y: separation / 2.0, z: 2.0 * separation * size },
-        color: { red: 128, green: 128, blue: 128 },
+        color: { red: 100, green: 100, blue: 100 },
         lifetime: TARGET_LIFE
     });
 
@@ -372,8 +379,8 @@ function takeFiringPose() {
     }
 }
 
-MyAvatar.attach(gunModel, "RightHand", {x:0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(-0, -160, -79), 0.20);
-MyAvatar.attach(gunModel, "LeftHand", {x:-0.02, y: 0.11, z: 0.04}, Quat.fromPitchYawRollDegrees(0, 0, 79), 0.20);
+MyAvatar.attach(gunModel, "RightHand", {x:0.04, y: 0.22, z: 0.02}, Quat.fromPitchYawRollDegrees(-172, -85, 79), 0.40);
+MyAvatar.attach(gunModel, "LeftHand", {x:-0.04, y: 0.22, z: 0.02}, Quat.fromPitchYawRollDegrees(-172, 85, -79), 0.40);
 
 //  Give a bit of time to load before playing sound
 Script.setTimeout(playLoadSound, 2000); 

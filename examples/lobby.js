@@ -45,8 +45,6 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
-var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
-
 var LOBBY_PANEL_WALL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/PanelWallForInterface.fbx";
 var LOBBY_BLANK_PANEL_TEXTURE_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Texture.jpg";
 var LOBBY_SHELL_URL = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyShellForInterface.fbx";
@@ -136,9 +134,6 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
     descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
-      
-    // add an attachment on this avatar so other people see them in the lobby
-    MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     if (droneSound.downloaded) {
       // start the drone sound
@@ -158,7 +153,7 @@ var places = {};
 
 function changeLobbyTextures() {
   var req = new XMLHttpRequest();
-  req.open("GET", "https://metaverse.highfidelity.io/api/v1/places?limit=21", false);
+  req.open("GET", "https://metaverse.highfidelity.com/api/v1/places?limit=21", false);
   req.send();
 
   places = JSON.parse(req.responseText).data.places;
@@ -237,6 +232,8 @@ function playRandomMuzak() {
 }
 
 function cleanupLobby() {
+  toggleEnvironmentRendering(true);
+  
   // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
   var panelTexturesReset = {};
   panelTexturesReset["textures"] = {};
@@ -254,15 +251,18 @@ function cleanupLobby() {
   panelWall = false;
   orbShell = false;
   
-  currentDrone.stop();
-  currentMuzakInjector.stop();
+  if (currentDrone) {
+    currentDrone.stop();
+    currentDrone = null
+  }
   
-  currentMuzakInjector = null;
+  if (currentMuzakInjector) {
+    currentMuzakInjector.stop();
+    currentMuzakInjector = null;
+  }
   
   places = {};
-  toggleEnvironmentRendering(true);
   
-  MyAvatar.detachOne(HELMET_ATTACHMENT_URL);
 }
 
 function actionStartEvent(event) {
@@ -311,10 +311,8 @@ function maybeCleanupLobby() {
 }
 
 function toggleEnvironmentRendering(shouldRender) {
-  Menu.setIsOptionChecked("Voxels", shouldRender);
-  Menu.setIsOptionChecked("Entities", shouldRender);
-  Menu.setIsOptionChecked("Metavoxels", shouldRender);
-  Menu.setIsOptionChecked("Avatars", shouldRender);
+  Scene.shouldRenderAvatars = shouldRender;
+  Scene.shouldRenderEntities = shouldRender;
 }
 
 function handleLookAt(pickRay) {

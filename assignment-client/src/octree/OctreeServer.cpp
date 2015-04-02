@@ -20,6 +20,7 @@
 #include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <LogHandler.h>
+#include <NetworkingConstants.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"
@@ -252,7 +253,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     
     // make sure the AccountManager has an Auth URL for payment redemptions
     
-    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {
@@ -1036,6 +1037,13 @@ void OctreeServer::readConfiguration() {
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
 
+        QString persistAsFileType;
+        if (!readOptionString(QString("persistAsFileType"), settingsSectionObject, persistAsFileType)) {
+            persistAsFileType = "svo";
+        }
+        _persistAsFileType = persistAsFileType;
+        qDebug() << "persistAsFileType=" << _persistAsFileType;
+
         _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
         readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
         qDebug() << "persistInterval=" << _persistInterval;
@@ -1131,7 +1139,7 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _settings, _debugTimestampNow);
+                                                 _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         if (_persistThread) {
             _persistThread->initialize(true);
         }

@@ -27,15 +27,13 @@
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
-Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address");
-
+Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
 AddressManager::AddressManager() :
     _rootPlaceName(),
     _rootPlaceID(),
     _positionGetter(NULL),
-    _orientationGetter(NULL),
-    _localDSPortSharedMem(NULL)
+    _orientationGetter(NULL)
 {
     connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
@@ -295,12 +293,11 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
         requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
     }
     
-    AccountManager::getInstance().unauthenticatedRequest(GET_PLACE.arg(placeName),
-                                                         QNetworkAccessManager::GetOperation,
-                                                         apiCallbackParameters(),
-                                                         QByteArray(),
-                                                         NULL,
-                                                         requestParams);
+    AccountManager::getInstance().sendRequest(GET_PLACE.arg(placeName),
+                                              AccountManagerAuth::None,
+                                              QNetworkAccessManager::GetOperation,
+                                              apiCallbackParameters(),
+                                              QByteArray(), NULL, requestParams);
 }
 
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
@@ -332,13 +329,6 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         QString domainHostname = hostnameRegex.cap(1);
         
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
-        
-        if (domainHostname == "localhost") {
-            auto nodeList = DependencyManager::get<NodeList>();
-            nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
-                                                         _localDSPortSharedMem,
-                                                         domainPort);
-        }
         
         if (!hostnameRegex.cap(2).isEmpty()) {
             domainPort = (qint16) hostnameRegex.cap(2).toInt();
@@ -440,9 +430,10 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
 void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
     // this is a username - pull the captured name and lookup that user's location
-    AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
-                                                         QNetworkAccessManager::GetOperation,
-                                                         apiCallbackParameters());
+    AccountManager::getInstance().sendRequest(GET_USER_LOCATION.arg(formattedUsername),
+                                              AccountManagerAuth::Optional,
+                                              QNetworkAccessManager::GetOperation,
+                                              apiCallbackParameters());
 }
 
 void AddressManager::copyAddress() {

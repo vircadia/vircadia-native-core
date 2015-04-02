@@ -16,9 +16,7 @@
 
 #include <QObject>
 #include <QElapsedTimer>
-#include <QTimer>
 #include "DependencyManager.h"
-#include "Node.h"
 #include "SimpleMovingAverage.h"
 
 

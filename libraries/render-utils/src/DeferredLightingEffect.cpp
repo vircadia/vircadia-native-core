@@ -134,7 +134,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(model::LightPointer(new model::Light()));
     }
@@ -268,6 +268,12 @@ void DeferredLightingEffect::render() {
         if (locations->lightBufferUnit >= 0) {
             gpu::Batch batch;
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
+            gpu::GLBackend::renderBatch(batch);
+        }
+        
+        if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
+            gpu::Batch batch;
+            batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
             gpu::GLBackend::renderBatch(batch);
         }
         glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
@@ -488,18 +494,13 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.invViewMat = program.uniformLocation("invViewMat");
 
     GLint loc = -1;
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("lightBuffer");
-    if (loc >= 0) {
-        locations.lightBufferUnit = loc;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint LIGHT_GPU_SLOT = 3;
     loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 0);
-        locations.lightBufferUnit = 0;
+        glUniformBlockBinding(program.programId(), loc, LIGHT_GPU_SLOT);
+        locations.lightBufferUnit = LIGHT_GPU_SLOT;
     } else {
         locations.lightBufferUnit = -1;
     }
@@ -511,14 +512,36 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
         locations.lightBufferUnit = -1;
     }
 #endif
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint ATMOSPHERE_GPU_SLOT = 4;
+    loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, ATMOSPHERE_GPU_SLOT);
+        locations.atmosphereBufferUnit = ATMOSPHERE_GPU_SLOT;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("atmosphereBufferUnit");
+    if (loc >= 0) {
+        locations.atmosphereBufferUnit = loc;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#endif
+
     program.release();
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= -1) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
         light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+    } else {
+        // force to preset 0
+        setAmbientLightMode(0);
     }
 }
 

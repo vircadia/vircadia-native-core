@@ -57,6 +57,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
     _locked = ENTITY_ITEM_DEFAULT_LOCKED;
     _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
+    _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -116,6 +117,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_MARKETPLACE_ID;
     
     return requestedProperties;
 }
@@ -238,6 +240,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -550,9 +553,24 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
         READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
-        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
+        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
+
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
+            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+        }
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+
+        ////////////////////////////////////
+        // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
+        //
+        // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
+        // by doing this parsing here... but it's not likely going to fully recover the content.
+        //
+        // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
+        if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
+            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+        }
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
             // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
@@ -820,6 +838,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
 
     properties._defaultSettings = false;
     
@@ -848,6 +867,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
@@ -1002,7 +1022,7 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
-void EntityItem::computeShapeInfo(ShapeInfo& info) const {
+void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 

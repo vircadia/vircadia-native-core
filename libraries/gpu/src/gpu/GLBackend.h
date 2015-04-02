@@ -33,6 +33,7 @@ public:
 
     static void checkGLError();
 
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
 
     class GLBuffer : public GPUObject {
@@ -44,7 +45,7 @@ public:
         GLBuffer();
         ~GLBuffer();
     };
-    static void syncGPUObject(const Buffer& buffer);
+    static GLBuffer* syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
 
     class GLTexture : public GPUObject {
@@ -57,8 +58,32 @@ public:
         GLTexture();
         ~GLTexture();
     };
-    static void syncGPUObject(const Texture& texture);
+    static GLTexture* syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture);
+
+    class GLShader : public GPUObject {
+    public:
+        GLuint _shader;
+        GLuint _program;
+
+        GLuint _transformCameraSlot = -1;
+        GLuint _transformObjectSlot = -1;
+
+        GLShader();
+        ~GLShader();
+    };
+    static GLShader* syncGPUObject(const Shader& shader);
+    static GLuint getShaderID(const ShaderPointer& shader);
+
+
+    class GLPipeline : public GPUObject {
+    public:
+        GLShader* _program;
+
+        GLPipeline();
+        ~GLPipeline();
+    };
+    static GLPipeline* syncGPUObject(const Pipeline& pipeline);
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -145,18 +170,24 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
-    // Shader Stage
+    // Pipeline Stage
+    void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
  
-    void updateShader();
-    struct ShaderStageState {
+    void updatePipeline();
+    struct PipelineStageState {
 
+        PipelinePointer _pipeline;
         GLuint _program;
+        bool _invalidProgram;
 
-        ShaderStageState() :
-            _program(0) {}
-    } _shader;
+        PipelineStageState() :
+            _pipeline(),
+            _program(0),
+            _invalidProgram(false)
+             {}
+    } _pipeline;
 
  
     // TODO: As long as we have gl calls explicitely issued from interface

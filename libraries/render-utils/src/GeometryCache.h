@@ -21,8 +21,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <FBXReader.h>
-#include <OBJReader.h>
+#include "FBXReader.h"
+#include "OBJReader.h"
 
 #include <AnimationCache.h>
 

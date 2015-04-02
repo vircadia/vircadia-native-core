@@ -458,41 +458,6 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
-QVariantHash parseMapping(QIODevice* device) {
-    QVariantHash properties;
-
-    QByteArray line;
-    while (!(line = device->readLine()).isEmpty()) {
-        if ((line = line.trimmed()).startsWith('#')) {
-            continue; // comment
-        }
-        QList<QByteArray> sections = line.split('=');
-        if (sections.size() < 2) {
-            continue;
-        }
-        QByteArray name = sections.at(0).trimmed();
-        if (sections.size() == 2) {
-            properties.insertMulti(name, sections.at(1).trimmed());
-
-        } else if (sections.size() == 3) {
-            QVariantHash heading = properties.value(name).toHash();
-            heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
-            properties.insert(name, heading);
-
-        } else if (sections.size() >= 4) {
-            QVariantHash heading = properties.value(name).toHash();
-            QVariantList contents;
-            for (int i = 2; i < sections.size(); i++) {
-                contents.append(sections.at(i).trimmed());
-            }
-            heading.insertMulti(sections.at(1).trimmed(), contents);
-            properties.insert(name, heading);
-        }
-    }
-
-    return properties;
-}
-
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
@@ -854,8 +819,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 }
 
-ExtractedMesh extractMesh(const FBXNode& object) {
+ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
     MeshData data;
+    data.extracted.mesh.meshIndex = meshIndex++;
     QVector<int> materials;
     QVector<int> textures;
     foreach (const FBXNode& child, object.children) {
@@ -1296,6 +1262,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
+    unsigned int meshIndex = 0;
     foreach (const FBXNode& child, node.children) {
     
         if (child.name == "FBXHeaderExtension") {
@@ -1340,7 +1307,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        meshes.insert(getID(object.properties), extractMesh(object));
+                        meshes.insert(getID(object.properties), extractMesh(object, meshIndex));
                     } else { // object.properties.at(2) == "Shape"
                         ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
                         blendshapes.append(extracted);
@@ -1475,7 +1442,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         } else if (subobject.name == "Vertices") {
                             // it's a mesh as well as a model
                             mesh = &meshes[getID(object.properties)];
-                            *mesh = extractMesh(object);
+                            *mesh = extractMesh(object, meshIndex);
                              
                         } else if (subobject.name == "Shape") {
                             ExtractedBlendshape blendshape =  { subobject.properties.at(0).toString(),
@@ -2015,7 +1982,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(materials, textureFilenames, childMap);
-    
+
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
         
@@ -2471,39 +2438,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     }
     
     return geometry;
-}
-
-QVariantHash readMapping(const QByteArray& data) {
-    QBuffer buffer(const_cast<QByteArray*>(&data));
-    buffer.open(QIODevice::ReadOnly);
-    return parseMapping(&buffer);
-}
-
-QByteArray writeMapping(const QVariantHash& mapping) {
-    QBuffer buffer;
-    buffer.open(QIODevice::WriteOnly);
-    for (QVariantHash::const_iterator first = mapping.constBegin(); first != mapping.constEnd(); first++) {
-        QByteArray key = first.key().toUtf8() + " = ";
-        QVariantHash hashValue = first.value().toHash();
-        if (hashValue.isEmpty()) {
-            buffer.write(key + first.value().toByteArray() + "\n");
-            continue;
-        }
-        for (QVariantHash::const_iterator second = hashValue.constBegin(); second != hashValue.constEnd(); second++) {
-            QByteArray extendedKey = key + second.key().toUtf8();
-            QVariantList listValue = second.value().toList();
-            if (listValue.isEmpty()) {
-                buffer.write(extendedKey + " = " + second.value().toByteArray() + "\n");
-                continue;
-            }
-            buffer.write(extendedKey);
-            for (QVariantList::const_iterator third = listValue.constBegin(); third != listValue.constEnd(); third++) {
-                buffer.write(" = " + third->toByteArray());
-            }
-            buffer.write("\n");
-        }
-    }
-    return buffer.data();
 }
 
 FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {

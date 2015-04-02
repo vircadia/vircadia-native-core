@@ -24,7 +24,7 @@
 #include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <PhysicsEntity.h>
+#include "PhysicsEntity.h"
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
@@ -82,7 +82,8 @@ Model::Model(QObject* parent) :
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
-    _meshGroupsKnown(false) {
+    _meshGroupsKnown(false),
+    _renderCollisionHull(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -94,26 +95,26 @@ Model::~Model() {
     deleteGeometry();
 }
 
-ProgramObject Model::_program;
-ProgramObject Model::_normalMapProgram;
-ProgramObject Model::_specularMapProgram;
-ProgramObject Model::_normalSpecularMapProgram;
-ProgramObject Model::_translucentProgram;
+gpu::ShaderPointer Model::_program;
+gpu::ShaderPointer Model::_normalMapProgram;
+gpu::ShaderPointer Model::_specularMapProgram;
+gpu::ShaderPointer Model::_normalSpecularMapProgram;
+gpu::ShaderPointer Model::_translucentProgram;
 
-ProgramObject Model::_lightmapProgram;
-ProgramObject Model::_lightmapNormalMapProgram;
-ProgramObject Model::_lightmapSpecularMapProgram;
-ProgramObject Model::_lightmapNormalSpecularMapProgram;
+gpu::ShaderPointer Model::_lightmapProgram;
+gpu::ShaderPointer Model::_lightmapNormalMapProgram;
+gpu::ShaderPointer Model::_lightmapSpecularMapProgram;
+gpu::ShaderPointer Model::_lightmapNormalSpecularMapProgram;
 
-ProgramObject Model::_shadowProgram;
+gpu::ShaderPointer Model::_shadowProgram;
 
-ProgramObject Model::_skinProgram;
-ProgramObject Model::_skinNormalMapProgram;
-ProgramObject Model::_skinSpecularMapProgram;
-ProgramObject Model::_skinNormalSpecularMapProgram;
-ProgramObject Model::_skinTranslucentProgram;
+gpu::ShaderPointer Model::_skinProgram;
+gpu::ShaderPointer Model::_skinNormalMapProgram;
+gpu::ShaderPointer Model::_skinSpecularMapProgram;
+gpu::ShaderPointer Model::_skinNormalSpecularMapProgram;
+gpu::ShaderPointer Model::_skinTranslucentProgram;
 
-ProgramObject Model::_skinShadowProgram;
+gpu::ShaderPointer Model::_skinShadowProgram;
 
 Model::Locations Model::_locations;
 Model::Locations Model::_normalMapLocations;
@@ -134,6 +135,8 @@ Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
 
 AbstractViewStateInterface* Model::_viewState = NULL;
+
+const GLint MATERIAL_GPU_SLOT = 3;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -165,104 +168,31 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false; 
 }
 
-void Model::initProgram(ProgramObject& program, Model::Locations& locations, bool link) {
-    if (link) {
-        program.bindAttributeLocation("tangent", gpu::Stream::TANGENT);
-        program.bindAttributeLocation("texcoord1", gpu::Stream::TEXCOORD1);
-        program.link();
-    }
-    program.bind();
+void Model::initProgram(gpu::ShaderPointer& program, Model::Locations& locations) {
+    locations.alphaThreshold = program->getUniforms().findLocation("alphaThreshold");
+    locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
+    locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
+    locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
 
-    locations.tangent = program.attributeLocation("tangent");
+    locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
+    locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
-    locations.alphaThreshold = program.uniformLocation("alphaThreshold");
-    locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
-    locations.emissiveParams = program.uniformLocation("emissiveParams");
-    locations.glowIntensity = program.uniformLocation("glowIntensity");
-    program.setUniformValue("diffuseMap", 0);
-    program.setUniformValue("normalMap", 1);
-
-    int loc = program.uniformLocation("specularMap");
-    if (loc >= 0) {
-        program.setUniformValue("specularMap", 2);
-        locations.specularTextureUnit = 2;
-    } else {
-        locations.specularTextureUnit = -1;
-    }
-    
-    loc = program.uniformLocation("emissiveMap");
-    if (loc >= 0) {
-        program.setUniformValue("emissiveMap", 3);
-        locations.emissiveTextureUnit = 3;
-    } else {
-        locations.emissiveTextureUnit = -1;
-    }
-
-    // bindable uniform version
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("materialBuffer");
-    if (loc >= 0) {
-        locations.materialBufferUnit = loc;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
-    loc = glGetUniformBlockIndex(program.programId(), "materialBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 1);
-        locations.materialBufferUnit = 1;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
 #else
-    loc = program.uniformLocation("materialBuffer");
-    if (loc >= 0) {
-        locations.materialBufferUnit = loc;
-    } else {
-        locations.materialBufferUnit = -1;
-    }
+    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
 #endif
 
-#if defined(Q_OS_WIN)
-    loc = glGetUniformBlockIndex(program.programId(), "transformObjectBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_OBJECT_SLOT);
-       // locations.materialBufferUnit = 1;
-    }
-#endif
-
-#if defined(Q_OS_WIN)
-    loc = glGetUniformBlockIndex(program.programId(), "transformCameraBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, gpu::TRANSFORM_CAMERA_SLOT);
-       // locations.materialBufferUnit = 1;
-    }
-#endif
-
-    //program.link();
-    if (!program.isLinked()) {
-        program.release();
-    }
-
-    program.release();
 }
 
-void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
-    program.bindAttributeLocation("tangent", gpu::Stream::TANGENT);
-    program.bindAttributeLocation("texcoord1", gpu::Stream::TEXCOORD1);
-    program.bindAttributeLocation("clusterIndices", gpu::Stream::SKIN_CLUSTER_INDEX);
-    program.bindAttributeLocation("clusterWeights", gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    program.link();
+void Model::initSkinProgram(gpu::ShaderPointer& program, Model::SkinLocations& locations) {
     
-    initProgram(program, locations, false);
+    initProgram(program, locations);
 
-    program.bind();
+    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
-    locations.clusterMatrices = program.uniformLocation("clusterMatrices");    
-    locations.clusterIndices = program.attributeLocation("clusterIndices");
-    locations.clusterWeights = program.attributeLocation("clusterWeights");
-
-    program.release();
+    locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
+    locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
 }
 
 QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
@@ -298,76 +228,106 @@ void Model::initJointTransforms() {
 }
 
 void Model::init() {
-    if (!_program.isLinked()) {
-        _program.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _program.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
-        initProgram(_program, _locations);
-        
-        _normalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
-        _normalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
-        initProgram(_normalMapProgram, _normalMapLocations);
-        
-        _specularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _specularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
-        initProgram(_specularMapProgram, _specularMapLocations);
-        
-        _normalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_normal_map_vert);
-        _normalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
-        initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
-        
-        _translucentProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _translucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
-        initProgram(_translucentProgram, _translucentLocations);
+    if (_program.isNull()) {
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
+        slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
-        // Lightmap
-        _lightmapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
-        _lightmapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_frag);
+        // Vertex shaders
+        auto modelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert)));
+        auto modelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_normal_map_vert)));
+        auto modelLightmapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_vert)));
+        auto modelLightmapNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert)));
+        auto modelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_shadow_vert)));
+        auto skinModelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_vert)));
+        auto skinModelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_normal_map_vert)));
+        auto skinModelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_shadow_vert)));
+
+        // Pixel shaders
+        auto modelPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)));
+        auto modelNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_map_frag)));
+        auto modelSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_specular_map_frag)));
+        auto modelNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_specular_map_frag)));
+        auto modelTranslucentPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_translucent_frag)));
+        auto modelShadowPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_shadow_frag)));
+        auto modelLightmapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_frag)));
+        auto modelLightmapNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag)));
+        auto modelLightmapSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag)));
+        auto modelLightmapNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag)));
+
+
+        bool makeResult = false;
+
+        // Programs
+        _program = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelPixel));
+        makeResult = gpu::Shader::makeProgram(*_program, slotBindings);
+        initProgram(_program, _locations);
+
+        _normalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_normalMapProgram, slotBindings);
+        initProgram(_normalMapProgram, _normalMapLocations);
+
+        _specularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_specularMapProgram, slotBindings);
+        initProgram(_specularMapProgram, _specularMapLocations);
+
+        _normalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelNormalMapVertex, modelNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_normalSpecularMapProgram, slotBindings);
+        initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations);
+
+        _translucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelVertex, modelTranslucentPixel));
+        makeResult = gpu::Shader::makeProgram(*_translucentProgram, slotBindings);
+        initProgram(_translucentProgram, _translucentLocations);
+        
+        _shadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelShadowVertex, modelShadowPixel));
+        makeResult = gpu::Shader::makeProgram(*_shadowProgram, slotBindings);
+        Model::Locations tempShadowLoc;
+        initProgram(_shadowProgram, tempShadowLoc);
+
+        _lightmapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapPixel));
+        makeResult = gpu::Shader::makeProgram(*_lightmapProgram, slotBindings);
         initProgram(_lightmapProgram, _lightmapLocations);
 
-        _lightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
-        _lightmapNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_map_frag);
+        _lightmapNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_lightmapNormalMapProgram, slotBindings);
         initProgram(_lightmapNormalMapProgram, _lightmapNormalMapLocations);
-        
-        _lightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_vert);
-        _lightmapSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_specular_map_frag);
+
+        _lightmapSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_lightmapSpecularMapProgram, slotBindings);
         initProgram(_lightmapSpecularMapProgram, _lightmapSpecularMapLocations);
-        
-        _lightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_lightmap_normal_map_vert);
-        _lightmapNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_lightmap_normal_specular_map_frag);
+
+        _lightmapNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_lightmapNormalSpecularMapProgram, slotBindings);
         initProgram(_lightmapNormalSpecularMapProgram, _lightmapNormalSpecularMapLocations);
-        // end lightmap
 
-        
-        _shadowProgram.addShaderFromSourceCode(QGLShader::Vertex, model_shadow_vert);
-        _shadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
-        // Shadow program uses the same locations as standard rendering path but we still need to set the bindings
-        Model::Locations tempLoc;
-        initProgram(_shadowProgram, tempLoc);
-
-        _skinProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
-        _skinProgram.addShaderFromSourceCode(QGLShader::Fragment, model_frag);
+        _skinProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinProgram, slotBindings);
         initSkinProgram(_skinProgram, _skinLocations);
-        
-        _skinNormalMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
-        _skinNormalMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_map_frag);
+
+        _skinNormalMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinNormalMapProgram, slotBindings);
         initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
-        
-        _skinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, model_vert);
-        _skinSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_specular_map_frag);
+
+        _skinSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinSpecularMapProgram, slotBindings);
         initSkinProgram(_skinSpecularMapProgram, _skinSpecularMapLocations);
-        
-        _skinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_normal_map_vert);
-        _skinNormalSpecularMapProgram.addShaderFromSourceCode(QGLShader::Fragment, model_normal_specular_map_frag);
+
+        _skinNormalSpecularMapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelNormalMapVertex, modelNormalSpecularMapPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinNormalSpecularMapProgram, slotBindings);
         initSkinProgram(_skinNormalSpecularMapProgram, _skinNormalSpecularMapLocations);
         
-        _skinShadowProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_shadow_vert);
-        _skinShadowProgram.addShaderFromSourceCode(QGLShader::Fragment, model_shadow_frag);
+        _skinShadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelShadowVertex, modelShadowPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinShadowProgram, slotBindings);
         initSkinProgram(_skinShadowProgram, _skinShadowLocations);
         
-
-        _skinTranslucentProgram.addShaderFromSourceCode(QGLShader::Vertex, skin_model_vert);
-        _skinTranslucentProgram.addShaderFromSourceCode(QGLShader::Fragment, model_translucent_frag);
+        _skinTranslucentProgram = gpu::ShaderPointer(gpu::Shader::createProgram(skinModelVertex, modelTranslucentPixel));
+        makeResult = gpu::Shader::makeProgram(*_skinTranslucentProgram, slotBindings);
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
+
+        (void) makeResult; // quiet compiler
     }
 }
 
@@ -753,13 +713,13 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     {
         GLenum buffers[3];
         int bufferCount = 0;
-        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
         }
-        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
         }
-        if (mode == DEFAULT_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
         }
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
@@ -768,21 +728,21 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
     
 
-    //renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, book isSkinned, args);
+    //renderMeshes(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, forceRenderMeshes);
     int opaqueMeshPartsRendered = 0;
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args, true);
 
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args, true);
 
     // render translucent meshes afterwards
     //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
@@ -796,14 +756,14 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     int translucentMeshPartsRendered = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args, true);
 
     GLBATCH(glDisable)(GL_ALPHA_TEST);
     GLBATCH(glEnable)(GL_BLEND);
@@ -818,16 +778,16 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
     }
 
-    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args, true);
     }
 
     GLBATCH(glDepthMask)(true);
@@ -885,8 +845,65 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
         args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
     }
-
+    
+    #ifdef WANT_DEBUG_MESHBOXES
+    renderDebugMeshBoxes();
+    #endif
+    
     return true;
+}
+
+void Model::renderDebugMeshBoxes() {
+    int colorNdx = 0;
+    foreach(AABox box, _calculatedMeshBoxes) {
+        if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
+            _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
+        }
+        QVector<glm::vec3> points;
+        
+        glm::vec3 brn = box.getCorner();
+        glm::vec3 bln = brn + glm::vec3(box.getDimensions().x, 0, 0);
+        glm::vec3 brf = brn + glm::vec3(0, 0, box.getDimensions().z);
+        glm::vec3 blf = brn + glm::vec3(box.getDimensions().x, 0, box.getDimensions().z);
+
+        glm::vec3 trn = brn + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 tln = bln + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 trf = brf + glm::vec3(0, box.getDimensions().y, 0);
+        glm::vec3 tlf = blf + glm::vec3(0, box.getDimensions().y, 0);
+
+        points << brn << bln;
+        points << brf << blf;
+        points << brn << brf;
+        points << bln << blf;
+
+        points << trn << tln;
+        points << trf << tlf;
+        points << trn << trf;
+        points << tln << tlf;
+
+        points << brn << trn;
+        points << brf << trf;
+        points << bln << tln;
+        points << blf << tlf;
+
+        glm::vec4 color[] = {
+            { 1.0f, 0.0f, 0.0f, 1.0f }, // red
+            { 0.0f, 1.0f, 0.0f, 1.0f }, // green
+            { 0.0f, 0.0f, 1.0f, 1.0f }, // blue
+            { 1.0f, 0.0f, 1.0f, 1.0f }, // purple
+            { 1.0f, 1.0f, 0.0f, 1.0f }, // yellow
+            { 0.0f, 1.0f, 1.0f, 1.0f }, // cyan
+            { 1.0f, 1.0f, 1.0f, 1.0f }, // white
+            { 0.0f, 0.5f, 0.0f, 1.0f }, 
+            { 0.0f, 0.0f, 0.5f, 1.0f }, 
+            { 0.5f, 0.0f, 0.5f, 1.0f }, 
+            { 0.5f, 0.5f, 0.0f, 1.0f }, 
+            { 0.0f, 0.5f, 0.5f, 1.0f } };
+            
+        DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
+        DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
+        colorNdx++;
+    }
 }
 
 Extents Model::getBindExtents() const {
@@ -1016,6 +1033,24 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
         applyNextGeometry();
     }
+}
+
+
+const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad)
+{
+    if (_collisionGeometry.isNull() && !_collisionUrl.isEmpty()) {
+        _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
+    }
+
+    return _collisionGeometry;
+}
+
+void Model::setCollisionModelURL(const QUrl& url) {
+    if (_collisionUrl == url) {
+        return;
+    }
+    _collisionUrl = url;
+    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, QUrl(), true);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -1341,8 +1376,11 @@ void Model::updateJointState(int index) {
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
         state.computeTransform(parentTransform);
     } else {
-        const JointState& parentState = _jointStates.at(parentIndex);
-        state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
+        // guard against out-of-bounds access to _jointStates
+        if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
+            const JointState& parentState = _jointStates.at(parentIndex);
+            state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
+        }
     }
 }
 
@@ -1741,13 +1779,13 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         {
             GLenum buffers[3];
             int bufferCount = 0;
-            if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
             }
-            if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
             }
-            if (mode == DEFAULT_RENDER_MODE) {
+            if (mode == DEFAULT_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
             }
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
@@ -1806,7 +1844,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
         }
     
-        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE || mode == DEBUG_RENDER_MODE) {
             const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
@@ -1882,6 +1920,23 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
     if (_meshStates.isEmpty()) {
         return false;
     }
+
+    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+        // turning collision hull rendering on
+        _renderCollisionHull = true;
+        _nextGeometry = _collisionGeometry;
+        _saveNonCollisionGeometry = _geometry;
+        updateGeometry();
+        simulate(0.0, true);
+    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+        // turning collision hull rendering off
+        _renderCollisionHull = false;
+        _nextGeometry = _saveNonCollisionGeometry;
+        _saveNonCollisionGeometry.clear();
+        updateGeometry();
+        simulate(0.0, true);
+    }
+
     renderSetup(args);
     _modelsInScene.push_back(this);
     return true;
@@ -2225,67 +2280,66 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
                             Locations*& locations, SkinLocations*& skinLocations) {
-                            
-    ProgramObject* program = &_program;
+    gpu::ShaderPointer program = _program;
     locations = &_locations;
-    ProgramObject* skinProgram = &_skinProgram;
+    gpu::ShaderPointer skinProgram = _skinProgram;
     skinLocations = &_skinLocations;
     if (mode == SHADOW_RENDER_MODE) {
-        program = &_shadowProgram;
-        skinProgram = &_skinShadowProgram;
+        program = _shadowProgram;
+        skinProgram = _skinShadowProgram;
         skinLocations = &_skinShadowLocations;
     } else if (translucent && alphaThreshold == 0.0f) {
-        program = &_translucentProgram;
+        program = _translucentProgram;
         locations = &_translucentLocations;
-        skinProgram = &_skinTranslucentProgram;
+        skinProgram = _skinTranslucentProgram;
         skinLocations = &_skinTranslucentLocations;
         
     } else if (hasLightmap) {
         if (hasTangents) {
             if (hasSpecular) {
-                program = &_lightmapNormalSpecularMapProgram;
+                program = _lightmapNormalSpecularMapProgram;
                 locations = &_lightmapNormalSpecularMapLocations;
-                skinProgram = NULL;
+                skinProgram.reset();
                 skinLocations = NULL;
             } else {
-                program = &_lightmapNormalMapProgram;
+                program = _lightmapNormalMapProgram;
                 locations = &_lightmapNormalMapLocations;
-                skinProgram = NULL;
+                skinProgram.reset();
                 skinLocations = NULL;
             }
         } else if (hasSpecular) {
-            program = &_lightmapSpecularMapProgram;
+            program = _lightmapSpecularMapProgram;
             locations = &_lightmapSpecularMapLocations;
-            skinProgram = NULL;
+            skinProgram.reset();
             skinLocations = NULL;
         } else {
-            program = &_lightmapProgram;
+            program = _lightmapProgram;
             locations = &_lightmapLocations;
-            skinProgram = NULL;
+            skinProgram.reset();
             skinLocations = NULL;
         }
     } else {
         if (hasTangents) {
             if (hasSpecular) {
-                program = &_normalSpecularMapProgram;
+                program = _normalSpecularMapProgram;
                 locations = &_normalSpecularMapLocations;
-                skinProgram = &_skinNormalSpecularMapProgram;
+                skinProgram = _skinNormalSpecularMapProgram;
                 skinLocations = &_skinNormalSpecularMapLocations;
             } else {
-                program = &_normalMapProgram;
+                program = _normalMapProgram;
                 locations = &_normalMapLocations;
-                skinProgram = &_skinNormalMapProgram;
+                skinProgram = _skinNormalMapProgram;
                 skinLocations = &_skinNormalMapLocations;
             }
         } else if (hasSpecular) {
-            program = &_specularMapProgram;
+            program = _specularMapProgram;
             locations = &_specularMapLocations;
-            skinProgram = &_skinSpecularMapProgram;
+            skinProgram = _skinSpecularMapProgram;
             skinLocations = &_skinSpecularMapLocations;
         }
     } 
 
-    ProgramObject* activeProgram = program;
+    gpu::ShaderPointer activeProgram = program;
     Locations* activeLocations = locations;
 
     if (isSkinned) {
@@ -2293,12 +2347,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
         activeLocations = skinLocations;
         locations = skinLocations;
     }
-    // This code replace the "bind()" on the QGLProgram
-    if (!activeProgram->isLinked()) {
-        activeProgram->link();
-    }
+
+    GLuint glprogram = gpu::GLBackend::getShaderID(activeProgram);
+    GLBATCH(glUseProgram)(glprogram);
     
-    GLBATCH(glUseProgram)(activeProgram->programId());
 
     if ((activeLocations->alphaThreshold > -1) && (mode != SHADOW_RENDER_MODE)) {
         GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
@@ -2337,7 +2389,8 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
 }
 
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args, 
+                            bool forceRenderMeshes) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
@@ -2357,16 +2410,19 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
     Locations* locations;
     SkinLocations* skinLocations;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations, skinLocations);
-    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, 
+                                args, locations, skinLocations);
+    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
+                                args, locations, skinLocations, forceRenderMeshes);
     GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
 }
 
 
-int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        Locations* locations, SkinLocations* skinLocations) {
+int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent,
+                                float alphaThreshold, RenderArgs* args, Locations* locations, SkinLocations* skinLocations,
+                                bool forceRenderMeshes) {
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2405,8 +2461,11 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             args->_meshesConsidered++;
 
             if (args->_viewFrustum) {
-                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
-                if (shouldRender) {
+            
+                shouldRender = forceRenderMeshes || 
+                                    args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+            
+                if (shouldRender && !forceRenderMeshes) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);

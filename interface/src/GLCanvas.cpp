@@ -31,6 +31,10 @@ GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
 #endif
 }
 
+void GLCanvas::stopFrameTimer() {
+    _frameTimer.stop();
+}
+
 bool GLCanvas::isThrottleRendering() const {
     return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
 }
@@ -62,9 +66,13 @@ void GLCanvas::paintGL() {
         }
 
         Application::getInstance()->paintGL();
-        swapBuffers();
-
-        if (OculusManager::isConnected()) {
+        
+        if (!OculusManager::isConnected()) {
+            swapBuffers();
+        } else {
+            if (OculusManager::allowSwap()) {
+                swapBuffers();
+            }
             OculusManager::endFrameTiming();
         }
     }
@@ -164,9 +172,10 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 }
 
 void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
-    const QMimeData *mimeData = event->mimeData();
+    const QMimeData* mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
-        if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
+        auto urlString = url.toString();
+        if (Application::getInstance()->canAcceptURL(urlString)) {
             event->acceptProposedAction();
             break;
         }

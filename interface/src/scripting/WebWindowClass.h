@@ -34,21 +34,32 @@ signals:
 class WebWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* eventBridge READ getEventBridge)
+    Q_PROPERTY(QString url READ getURL)
 public:
-    WebWindowClass(const QString& title, const QString& url, int width, int height);
+    WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow = false);
     ~WebWindowClass();
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
     void setVisible(bool visible);
+    QString getURL() const { return _webView->url().url(); }
+    void setURL(const QString& url);
+    void raise();
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
 
+signals:
+    void closed();
+
+private slots:
+    void hasClosed();
+
 private:
-    QDockWidget* _dockWidget;
+    QWidget* _windowWidget;
     QWebView* _webView;
     ScriptEventBridge* _eventBridge;
+    bool _isToolWindow;
 };
 
 #endif

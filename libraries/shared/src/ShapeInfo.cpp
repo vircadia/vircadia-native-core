@@ -19,11 +19,11 @@ void ShapeInfo::clear() {
     _type = SHAPE_TYPE_NONE;
     _halfExtents = glm::vec3(0.0f);
     _doubleHashKey.clear();
-    _externalData = NULL;
 }
 
-void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<glm::vec3>* data) {
+void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
     _type = type;
+    _points.clear();
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
@@ -37,33 +37,61 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QVector<
             _halfExtents = glm::vec3(radius);
             break;
         }
+        case SHAPE_TYPE_CONVEX_HULL:
+            _url = QUrl(url);
+            // halfExtents aren't used by convex-hull or compound convex-hull except as part of
+            // the generation of the key for the ShapeManager.
+            _halfExtents = halfExtents;
+            break;
+        case SHAPE_TYPE_COMPOUND:
+            _url = QUrl(url);
+            _halfExtents = halfExtents;
+            break;
         default:
             _halfExtents = halfExtents;
+            break;
     }
-    _externalData = data;
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
+    _url = "";
     _type = SHAPE_TYPE_BOX;
     _halfExtents = halfExtents;
+    _points.clear();
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setSphere(float radius) {
+    _url = "";
     _type = SHAPE_TYPE_SPHERE;
     _halfExtents = glm::vec3(radius, radius, radius);
+    _points.clear();
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
+    _url = "";
     _type = SHAPE_TYPE_ELLIPSOID;
     _halfExtents = halfExtents;
+    _points.clear();
+    _doubleHashKey.clear();
+}
+
+void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
+    if (points.size() == 1) {
+        _type = SHAPE_TYPE_CONVEX_HULL;
+    } else {
+        _type = SHAPE_TYPE_COMPOUND;
+    }
+    _points = points;
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
+    _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
     _halfExtents = glm::vec3(radius, halfHeight, radius);
+    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -99,82 +127,53 @@ float ShapeInfo::computeVolume() const {
 }
 
 const DoubleHashKey& ShapeInfo::getHash() const {
-    // NOTE: we cache the hash so we only ever need to compute it once for any valid ShapeInfo instance.
+    // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_doubleHashKey.isNull() && _type != SHAPE_TYPE_NONE) {
-        // cast this to non-const pointer so we can do our dirty work
+        // The key is not yet cached therefore we must compute it!  To this end we bypass the const-ness
+        // of this method by grabbing a non-const pointer to "this" and a non-const reference to _doubleHashKey.
         ShapeInfo* thisPtr = const_cast<ShapeInfo*>(this);
+        DoubleHashKey& key = thisPtr->_doubleHashKey;
+
         // compute hash1
         // TODO?: provide lookup table for hash/hash2 of _type rather than recompute?
         uint32_t primeIndex = 0;
-        thisPtr->_doubleHashKey.computeHash((uint32_t)_type, primeIndex++);
+        key.computeHash((uint32_t)_type, primeIndex++);
     
-        const QVector<glm::vec3>* data = getData();
-        if (data) {
-            // if externalData exists we use it to continue the hash
+        // compute hash1 
+        uint32_t hash = key.getHash();
+        for (int j = 0; j < 3; ++j) {
+            // NOTE: 0.49f is used to bump the float up almost half a millimeter
+            // so the cast to int produces a round() effect rather than a floor()
+            uint32_t floatHash =
+                DoubleHashKey::hashFunction((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), primeIndex++);
+            hash ^= floatHash;
+        }
+        key.setHash(hash);
+    
+        // compute hash2
+        hash = key.getHash2();
+        for (int j = 0; j < 3; ++j) {
+            // NOTE: 0.49f is used to bump the float up almost half a millimeter
+            // so the cast to int produces a round() effect rather than a floor()
+            uint32_t floatHash =
+                DoubleHashKey::hashFunction2((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f));
+            hash += ~(floatHash << 17);
+            hash ^=  (floatHash >> 11);
+            hash +=  (floatHash << 4);
+            hash ^=  (floatHash >> 7);
+            hash += ~(floatHash << 10);
+            hash = (hash << 16) | (hash >> 16);
+        }
+        key.setHash2(hash);
 
-            // compute hash
-            uint32_t hash = _doubleHashKey.getHash();
-    
-            glm::vec3 tmpData;
-            int numData = data->size();
-            for (int i = 0; i < numData; ++i) {
-                tmpData = (*data)[i];
-                for (int j = 0; j < 3; ++j) {
-                    // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                    // so the cast to int produces a round() effect rather than a floor()
-                    uint32_t floatHash =
-                        DoubleHashKey::hashFunction((uint32_t)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f), primeIndex++);
-                    hash ^= floatHash;
-                }
-            }
-            thisPtr->_doubleHashKey.setHash(hash);
-        
-            // compute hash2
-            hash = _doubleHashKey.getHash2();
-            for (int i = 0; i < numData; ++i) {
-                tmpData = (*data)[i];
-                for (int j = 0; j < 3; ++j) {
-                    // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                    // so the cast to int produces a round() effect rather than a floor()
-                    uint32_t floatHash =
-                        DoubleHashKey::hashFunction2((uint32_t)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f));
-                    hash += ~(floatHash << 17);
-                    hash ^=  (floatHash >> 11);
-                    hash +=  (floatHash << 4);
-                    hash ^=  (floatHash >> 7);
-                    hash += ~(floatHash << 10);
-                    hash = (hash << 16) | (hash >> 16);
-                }
-            }
-            thisPtr->_doubleHashKey.setHash2(hash);
-        } else {
-            // this shape info has no external data so type+extents should be enough to generate a unique hash
-            // compute hash1
-            uint32_t hash = _doubleHashKey.getHash();
-            for (int j = 0; j < 3; ++j) {
-                // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                // so the cast to int produces a round() effect rather than a floor()
-                uint32_t floatHash =
-                    DoubleHashKey::hashFunction((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), primeIndex++);
-                hash ^= floatHash;
-            }
-            thisPtr->_doubleHashKey.setHash(hash);
-        
-            // compute hash2
-            hash = _doubleHashKey.getHash2();
-            for (int j = 0; j < 3; ++j) {
-                // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                // so the cast to int produces a round() effect rather than a floor()
-                uint32_t floatHash =
-                    DoubleHashKey::hashFunction2((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f));
-                hash += ~(floatHash << 17);
-                hash ^=  (floatHash >> 11);
-                hash +=  (floatHash << 4);
-                hash ^=  (floatHash >> 7);
-                hash += ~(floatHash << 10);
-                hash = (hash << 16) | (hash >> 16);
-            }
-            thisPtr->_doubleHashKey.setHash2(hash);
+        QString url = _url.toString();
+        if (!url.isEmpty()) {
+            // fold the urlHash into both parts
+            QByteArray baUrl = url.toLocal8Bit();
+            const char *cUrl = baUrl.data();
+            uint32_t urlHash = qChecksum(cUrl, baUrl.count());
+            key.setHash(key.getHash() ^ urlHash);
+            key.setHash2(key.getHash2() ^ urlHash);
         }
     }
     return _doubleHashKey;

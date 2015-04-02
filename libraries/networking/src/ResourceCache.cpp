@@ -18,6 +18,7 @@
 #include <QTimer>
 
 #include <SharedUtil.h>
+#include <assert.h>
 
 #include "NetworkAccessManager.h"
 #include "ResourceCache.h"
@@ -48,30 +49,49 @@ void ResourceCache::refresh(const QUrl& url) {
     }
 }
 
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, bool delayLoad, void* extra) {
+void ResourceCache::getResourceAsynchronously(const QUrl& url) {
+    qDebug() << "ResourceCache::getResourceAsynchronously" << url.toString();
+    _resourcesToBeGottenLock.lockForWrite();
+    _resourcesToBeGotten.enqueue(QUrl(url));
+    _resourcesToBeGottenLock.unlock();
+}
+
+void ResourceCache::checkAsynchronousGets() {
+    assert(QThread::currentThread() == thread());
+    if (!_resourcesToBeGotten.isEmpty()) {
+        _resourcesToBeGottenLock.lockForWrite();
+        QUrl url = _resourcesToBeGotten.dequeue();
+        _resourcesToBeGottenLock.unlock();
+        getResource(url);
+    }
+}
+
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
+                                                    bool delayLoad, void* extra) {
+    QSharedPointer<Resource> resource = _resources.value(url);
+    if (!resource.isNull()) {
+        removeUnusedResource(resource);
+        return resource;
+    }
 
     if (QThread::currentThread() != thread()) {
-        QSharedPointer<Resource> result;
-        QMetaObject::invokeMethod(this, "getResource", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QSharedPointer<Resource>, result), Q_ARG(const QUrl&, url), Q_ARG(const QUrl&, fallback),
-                                  Q_ARG(bool, delayLoad), Q_ARG(void*, extra));
-        return result;
+        assert(delayLoad);
+        getResourceAsynchronously(url);
+        return QSharedPointer<Resource>();
     }
 
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl(), delayLoad);
     }
-    QSharedPointer<Resource> resource = _resources.value(url);
-    if (resource.isNull()) {
-        resource = createResource(url, fallback.isValid() ?
-            getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
-        resource->setSelf(resource);
-        resource->setCache(this);
-        _resources.insert(url, resource);
-        
-    } else {
-        removeUnusedResource(resource);
-    }
+
+    resource = createResource(url, fallback.isValid() ?
+                              getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+    resource->setSelf(resource);
+    resource->setCache(this);
+    _resources.insert(url, resource);
+    removeUnusedResource(resource);
+    resource->ensureLoading();
+
     return resource;
 }
 
@@ -113,7 +133,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
 }
 
 void ResourceCache::attemptRequest(Resource* resource) {
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     if (_requestLimit <= 0) {
         // wait until a slot becomes available
         sharedItems->_pendingRequests.append(resource);
@@ -126,7 +146,7 @@ void ResourceCache::attemptRequest(Resource* resource) {
 
 void ResourceCache::requestCompleted(Resource* resource) {
     
-    auto sharedItems = DependencyManager::get<ResouceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->_loadingRequests.removeOne(resource);
     _requestLimit++;
     
@@ -224,8 +244,12 @@ void Resource::refresh() {
     }
     if (_reply) {
         ResourceCache::requestCompleted(this);
-        delete _reply;
+        _reply->disconnect(this);
+        _replyTimer->disconnect(this);
+        _reply->deleteLater();
         _reply = nullptr;
+        _replyTimer->deleteLater();
+        _replyTimer = nullptr;
     }
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
@@ -296,9 +320,9 @@ void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
         return;
     }
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     QNetworkReply* reply = _reply;
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);
@@ -328,6 +352,10 @@ void Resource::maybeRefresh() {
                 // We don't need to update, return
                 return;
             }
+        } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
+                   !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
+            qDebug() << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
+            return;
         }
         qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
         refresh();
@@ -351,10 +379,19 @@ void Resource::makeRequest() {
     } else {
         if (Q_LIKELY(NetworkAccessManager::getInstance().cache())) {
             QNetworkCacheMetaData metaData = NetworkAccessManager::getInstance().cache()->metaData(_url);
+            bool needUpdate = false;
             if (metaData.expirationDate().isNull() || metaData.expirationDate() <= QDateTime::currentDateTime()) {
                 // If the expiration date is NULL or in the past,
                 // put one far enough away that it won't be an issue.
                 metaData.setExpirationDate(QDateTime::currentDateTime().addYears(100));
+                needUpdate = true;
+            }
+            if (metaData.lastModified().isNull()) {
+                // If the lastModified date is NULL, set it to now.
+                metaData.setLastModified(QDateTime::currentDateTime());
+                needUpdate = true;
+            }
+            if (needUpdate) {
                 NetworkAccessManager::getInstance().cache()->updateMetaData(metaData);
             }
         }
@@ -369,9 +406,9 @@ void Resource::makeRequest() {
 
 void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug) {
     _reply->disconnect(this);
+    _replyTimer->disconnect(this);
     _reply->deleteLater();
     _reply = nullptr;
-    _replyTimer->disconnect(this);
     _replyTimer->deleteLater();
     _replyTimer = nullptr;
     ResourceCache::requestCompleted(this);

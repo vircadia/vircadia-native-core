@@ -114,7 +114,7 @@ private:
     quint64 _lastMouseMove;
     bool _magnifier;
 
-    float _alpha;
+    float _alpha = 1.0f;
     float _oculusUIRadius;
     float _trailingAudioLoudness;
 

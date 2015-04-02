@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <VariantMapToScriptValue.h>
+
 #include "EntityScriptingInterface.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
@@ -21,6 +23,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
+    connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -28,10 +31,32 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
-
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanAdjustLocks();
+}
+
+bool EntityScriptingInterface::canRez() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRez();
+}
+
+void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
+    if (_entityTree) {
+        disconnect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        disconnect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        disconnect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        disconnect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
+
+    _entityTree = modelTree;
+
+    if (_entityTree) {
+        connect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        connect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        connect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        connect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
 }
 
 
@@ -185,8 +210,7 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result.id = closestEntity->getID();
-            result.isKnownID = true;
+            result = closestEntity->getEntityItemID();
         }
     }
     return result;
@@ -208,10 +232,25 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         QVector<const EntityItem*> entities;
         _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
-
+        
         foreach (const EntityItem* entity, entities) {
-            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
-            result << thisEntityItemID;
+            result << entity->getEntityItemID();
+        }
+    }
+    return result;
+}
+
+QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<EntityItemID> result;
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        AABox box(corner, dimensions);
+        QVector<EntityItem*> entities;
+        _entityTree->findEntities(box, entities);
+        _entityTree->unlock();
+        
+        foreach (const EntityItem* entity, entities) {
+            result << entity->getEntityItemID();
         }
     }
     return result;

@@ -12,8 +12,8 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
-#include <PhysicsSimulation.h>
 #include <SettingHandle.h>
+#include <CharacterController.h>
 
 #include "Avatar.h"
 
@@ -25,7 +25,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
-    Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
+    //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
 	MyAvatar();
@@ -44,13 +44,11 @@ public:
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
-    void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    glm::vec3 getGravity() const { return _gravity; }
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
@@ -89,8 +87,9 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    void jump() { _shouldJump = true; };
     
+    void relayDriveKeysToCharacterController();
+
     bool isMyAvatar() { return true; }
     
     bool isLookingAtLeftEye();
@@ -122,6 +121,9 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     virtual glm::vec3 getSkeletonPosition() const;
+    void updateLocalAABox();
+    CharacterController* getCharacterController() { return &_characterController; }
+    void updateCharacterController();
     
     void clearJointAnimationPriorities();
 
@@ -139,10 +141,6 @@ public:
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
         
-    virtual void setCollisionGroups(quint32 collisionGroups);
-
-    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
-
     /// Renders a laser pointer for UI picking
     void renderLaserPointers();
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
@@ -165,7 +163,6 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
@@ -190,9 +187,7 @@ protected:
 private:
     float _turningKeyPressTime;
     glm::vec3 _gravity;
-    float _distanceToNearestAvatar; // How close is the nearest avatar?
 
-    bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
@@ -208,6 +203,8 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
+    CharacterController _characterController;
+
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -215,7 +212,6 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    PhysicsSimulation _physicsSimulation;
     
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
@@ -231,15 +227,8 @@ private:
     glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    void updatePositionWithPhysics(float deltaTime);
-    void updateCollisionWithAvatars(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime, float radius);
-    void updateCollisionWithVoxels(float deltaTime, float radius);
-    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
-    void setGravity(const glm::vec3& gravity);
 };
 
 #endif // hifi_MyAvatar_h

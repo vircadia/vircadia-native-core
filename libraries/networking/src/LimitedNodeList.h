@@ -42,8 +42,6 @@ const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
 
-extern const QUrl DEFAULT_NODE_AUTH_URL;
-
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
@@ -86,6 +84,9 @@ public:
 
     bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
     void setThisNodeCanAdjustLocks(bool canAdjustLocks);
+
+    bool getThisNodeCanRez() const { return _thisNodeCanRez; }
+    void setThisNodeCanRez(bool canRez);
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -116,7 +117,8 @@ public:
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                      bool canAdjustLocks, bool canRez);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -151,7 +153,18 @@ public:
             functor(it->second);
         }
     }
-    
+
+    template<typename PredLambda, typename NodeLambda>
+    void eachMatchingNode(PredLambda predicate, NodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (predicate(it->second)) {
+                functor(it->second);
+            }
+        }
+    }
+
     template<typename BreakableNodeLambda>
     void eachNodeBreakable(BreakableNodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -197,6 +210,7 @@ signals:
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
+    void canRezChanged(bool canRez);
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);
@@ -223,6 +237,8 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+    
+    QTimer* _silentNodeTimer;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;
@@ -230,6 +246,7 @@ protected:
 
     QElapsedTimer _packetStatTimer;
     bool _thisNodeCanAdjustLocks;
+    bool _thisNodeCanRez;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {

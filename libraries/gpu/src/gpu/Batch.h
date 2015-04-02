@@ -21,6 +21,8 @@
 #include "Stream.h"
 #include "Texture.h"
 
+#include "Pipeline.h"
+
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
     class ProfileRange {
@@ -54,8 +56,11 @@ enum Primitive {
 };
 
 enum ReservedSlot {
-    TRANSFORM_OBJECT_SLOT = 6,
+/*    TRANSFORM_OBJECT_SLOT = 6,
     TRANSFORM_CAMERA_SLOT = 7,
+    */
+    TRANSFORM_OBJECT_SLOT = 1,
+    TRANSFORM_CAMERA_SLOT = 2,
 };
 
 class Batch {
@@ -96,7 +101,9 @@ public:
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
 
-    // Shader Stage
+    // Pipeline Stage
+    void setPipeline(const PipelinePointer& pipeline);
+
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
@@ -164,6 +171,7 @@ public:
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
 
+        COMMAND_setPipeline,
         COMMAND_setUniformBuffer,
         COMMAND_setUniformTexture,
 
@@ -281,6 +289,7 @@ public:
     typedef Cache<TexturePointer>::Vector TextureCaches;
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
+    typedef Cache<PipelinePointer>::Vector PipelineCaches;
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
@@ -320,6 +329,7 @@ public:
     TextureCaches _textures;
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
+    PipelineCaches _pipelines;
 
 protected:
 };

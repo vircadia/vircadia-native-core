@@ -21,6 +21,8 @@
 
 #include <MenuItemProperties.h>
 
+#include "DiscoverabilityManager.h"
+
 class Settings;
 
 class Menu : public QMenuBar {
@@ -64,6 +66,9 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
+private slots:
+    void setVisibility();
+
 private:
     static Menu* _instance;
     Menu();
@@ -94,12 +99,14 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     
+    void visibilityChanged(Discoverability::Mode discoverabilityMode);
     
     QHash<QString, QAction*> _actionHash;
 };
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
@@ -119,7 +126,6 @@ namespace MenuOption {
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
-    const QString Avatars = "Avatars";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -127,10 +133,6 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString Chat = "Chat...";
-    const QString ChatCircling = "Chat Circling";
-    const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
-    const QString CollideWithAvatars = "Collide With Other Avatars";
-    const QString CollideWithEnvironment = "Collide With World Boundaries";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
@@ -140,7 +142,6 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
-    const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
@@ -158,9 +159,9 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableCharacterController = "Enable avatar collisions";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
-    const QString Entities = "Entities";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -189,12 +190,9 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
-    const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NoFaceTracking = "None";
-    const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
-    const QString OctreeStats = "Voxel and Entity Statistics";
+    const QString OctreeStats = "Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
-    const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString Pair = "Pair";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
@@ -238,29 +236,26 @@ namespace MenuOption {
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString SixenseLasers = "Enable Sixense UI Lasers";
-    const QString StandOnNearbyFloors = "Stand on nearby floors";
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
-    const QString StereoAudio = "Stereo Audio";
+    const QString StereoAudio = "Stereo Audio (disables spatial sound)";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
-    const QString UploadAttachment = "Upload Attachment Model";
-    const QString UploadEntity = "Upload Entity Model";
-    const QString UploadHead = "Upload Head Model";
-    const QString UploadSkeleton = "Upload Skeleton Model";
-    const QString UserInterface = "User Interface";
+    const QString PackageModel = "Package Model...";
     const QString Visage = "Visage";
+    const QString VisibleToEveryone = "Everyone";
+    const QString VisibleToFriends = "Friends";
+    const QString VisibleToNoOne = "No one";
     const QString Wireframe = "Wireframe";
 }
 

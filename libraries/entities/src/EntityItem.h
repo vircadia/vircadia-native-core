@@ -43,7 +43,7 @@ class EntityTreeElementExtraEncodeData;
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem  {
+class EntityItem {
     friend class EntityTreeElement;
 public:
     enum EntityDirtyFlags {
@@ -251,12 +251,17 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
+    const QString& getMarketplaceID() const { return _marketplaceID; }
+    void setMarketplaceID(const QString& value) { _marketplaceID = value; }
+    
     // TODO: get rid of users of getRadius()... 
     float getRadius() const;
     
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
-    virtual void computeShapeInfo(ShapeInfo& info) const;
+
+    virtual bool isReadyToComputeShape() { return true; }
+    virtual void computeShapeInfo(ShapeInfo& info);
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -294,7 +299,6 @@ public:
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
-
 
 protected:
 
@@ -338,6 +342,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+    QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

@@ -6,7 +6,7 @@
       {
         "name": "access_token",
         "label": "Access Token",
-        "help": "This is an access token generated on the <a href='https://metaverse.highfidelity.io/user/security' target='_blank'>My Security</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
+        "help": "This is an access token generated on the <a href='https://metaverse.highfidelity.com/user/security' target='_blank'>My Security</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
       },
       {
         "name": "id",
@@ -30,7 +30,7 @@
           },
           {
             "value": "disabled",
-            "label": "None: use the network information I have entered for this domain at metaverse.highfidelity.io"
+            "label": "None: use the network information I have entered for this domain at metaverse.highfidelity.com"
           }
         ]
       },
@@ -75,6 +75,14 @@
         ]
       },
       {
+        "name": "maximum_user_capacity",
+        "label": "Maximum User Capacity",
+        "help": "The limit on how many avatars can be connected at once.  0 means no limit.",
+        "placeholder": "0",
+        "default": "0",
+        "advanced": false
+      },
+      {
         "name": "allowed_editors",
         "type": "table",
         "label": "Allowed Editors",
@@ -87,6 +95,13 @@
             "can_set": true
           }
         ]
+      },
+      {
+        "name": "editors_are_rezzers",
+        "type": "checkbox",
+        "label": "Only editors can create new entities",
+        "help": "When checked, only those who can edit the domain can create new entites.",
+        "default": false
       }
     ]
   },
@@ -323,6 +338,24 @@
         "help": "the path to the file entities are stored in. Make sure the path exists.",
         "placeholder": "resources/models.svo",
         "default": "resources/models.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistAsFileType",
+        "label": "File format for entity server's persistent data",
+        "help": "This defines how the entity server will save entities to disk.",
+        "default": "svo",
+        "type": "select",
+        "options": [
+          {
+            "value": "svo",
+            "label": "Entity server persists data as SVO"
+          },
+          {
+            "value": "json",
+            "label": "Entity server persists data as JSON"
+          }
+        ],
         "advanced": true
       },
       {

@@ -136,7 +136,7 @@
             <string>&lt;style type=&quot;text/css&quot;&gt;
 	a { text-decoration: none; color: #267077;}
 &lt;/style&gt;
-Invalid username or password. &lt;a href=&quot;https://metaverse.highfidelity.io/password/new&quot;&gt;Recover?&lt;/a&gt;</string>
+Invalid username or password. &lt;a href=&quot;https://metaverse.highfidelity.com/password/new&quot;&gt;Recover?&lt;/a&gt;</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -447,7 +447,7 @@ border-radius: 4px; padding-top: 1px;</string>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label">
+          <widget class="QLabel" name="accountLabel">
            <property name="font">
             <font>
              <family>Helvetica,Arial,sans-serif</family>
@@ -456,9 +456,12 @@ border-radius: 4px; padding-top: 1px;</string>
            </property>
            <property name="text">
             <string>&lt;style type=&quot;text/css&quot;&gt;
-	a { text-decoration: none; color: #267077;}
+a { text-decoration: none; color: #267077; margin:0;padding:0;}
+#create {font-weight:bold;}
+p {margin:5px 0;}
 &lt;/style&gt;
-&lt;a href=&quot;https://metaverse.highfidelity.io/password/new&quot;&gt;Recover password?&lt;/a&gt;</string>
+&lt;p&gt;&lt;a id=&quot;create&quot; href=&quot;%1&quot;&gt;Create account&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;Recover password&lt;/a&gt;&lt;/p&gt;</string>
            </property>
            <property name="openExternalLinks">
             <bool>true</bool>

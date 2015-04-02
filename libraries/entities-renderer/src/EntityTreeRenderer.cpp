@@ -101,23 +101,40 @@ void EntityTreeRenderer::init() {
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
     connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 void EntityTreeRenderer::shutdown() {
+    _entitiesScriptEngine->disconnect(); // disconnect all slots/signals from the script engine
     _shuttingDown = true;
 }
 
+void EntityTreeRenderer::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
+    if (_waitingOnPreload.contains(url)) {
+        QList<EntityItemID> entityIDs = _waitingOnPreload.values(url);
+        _waitingOnPreload.remove(url);
+        foreach(EntityItemID entityID, entityIDs) {
+            checkAndCallPreload(entityID);
+        } 
+    }
+}
 
-QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
+void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
+    if (_waitingOnPreload.contains(url)) {
+        _waitingOnPreload.remove(url);
+    }
+}
+
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
     EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return loadEntityScript(entity);
+    return loadEntityScript(entity, isPreload);
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut) {
+    isPending = false;
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
@@ -126,6 +143,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
         return scriptMaybeURLorText;
     }
     isURL = true;
+    urlOut = url;
 
     QString scriptContents; // assume empty
     
@@ -148,20 +166,11 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
                 qDebug() << "ERROR Loading file:" << fileName;
             }
         } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest = QNetworkRequest(url);
-            networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = networkAccessManager.get(networkRequest);
-            qDebug() << "Downloading script at" << url;
-            QEventLoop loop;
-            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            loop.exec();
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                scriptContents = reply->readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            
+            if (!scriptCache->isInBadScriptList(url)) {
+                scriptContents = scriptCache->getScript(url, this, isPending);
             }
-            delete reply;
         }
     }
     
@@ -169,7 +178,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPreload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -185,7 +194,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     // can accomplish all we need to here with just the script "text" and the ID.
     EntityItemID entityID = entity->getEntityItemID();
     QString entityScript = entity->getScript();
-    
+
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
@@ -203,7 +212,23 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     }
     
     bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
-    QString scriptContents = loadScriptContents(entityScript, isURL);
+    bool isPending = false;
+    QUrl url;
+    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url);
+    
+    if (isPending && isPreload && isURL) {
+        _waitingOnPreload.insert(url, entityID);
+    }
+
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+
+    if (isURL && scriptCache->isInBadScriptList(url)) {
+        return QScriptValue(); // no script contents...
+    }
+    
+    if (scriptContents.isEmpty()) {
+        return QScriptValue(); // no script contents...
+    }
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
@@ -211,6 +236,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         qDebug() << "   " << syntaxCheck.errorMessage() << ":"
                           << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
         qDebug() << "    SCRIPT:" << entityScript;
+
+        scriptCache->addScriptToBadScriptList(url);
+        
         return QScriptValue(); // invalid script
     }
     
@@ -223,6 +251,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
         qDebug() << "    SCRIPT:" << entityScript;
+
+        scriptCache->addScriptToBadScriptList(url);
+
         return QScriptValue(); // invalid script
     } else {
         entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
@@ -277,7 +308,6 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
-        _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -286,6 +316,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
+            _tree->lockForRead(); // don't let someone else change our tree while we search
             static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
@@ -294,6 +325,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }
+            _tree->unlock();
+            
+            // Note: at this point we don't need to worry about the tree being locked, because we only deal with
+            // EntityItemIDs from here. The loadEntityScript() method is robust against attempting to load scripts
+            // for entity IDs that no longer exist. 
 
             // for all of our previous containing entities, if they are no longer containing then send them a leave event
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
@@ -322,14 +358,12 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
         }
-        _tree->unlock();
     }
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
     if (_tree && !_shuttingDown) {
-        _tree->lockForWrite(); // so that our scripts can do edits if they want
-        
+
         // for all of our previous containing entities, if they are no longer containing then send them a leave event
         foreach(const EntityItemID& entityID, _currentEntitiesInside) {
             emit leaveEntity(entityID);
@@ -344,7 +378,6 @@ void EntityTreeRenderer::leaveAllEntities() {
         // make sure our "last avatar position" is something other than our current position, so that on our
         // first chance, we'll check for enter/leave entity events.    
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
-        _tree->unlock();
     }
 }
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
@@ -410,9 +443,26 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
     if (entityItem->getType() == EntityTypes::Model) {
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
         RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
-        assert(modelEntityItem); // we need this!!!
-    
         result = modelEntityItem->getModel(this);
+    }
+    return result;
+}
+
+const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const EntityItem* entityItem) {
+    const FBXGeometry* result = NULL;
+    
+    if (entityItem->getType() == EntityTypes::Model) {
+        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
+        if (constModelEntityItem->hasCollisionModel()) {
+            RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+            Model* model = modelEntityItem->getModel(this);
+            if (model) {
+                const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
+                if (!collisionNetworkGeometry.isNull()) {
+                    result = &collisionNetworkGeometry->getFBXGeometry();
+                }
+            }
+        }
     }
     return result;
 }
@@ -591,7 +641,7 @@ void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, co
     static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
 }
 
-Model* EntityTreeRenderer::allocateModel(const QString& url) {
+Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
     Model* model = NULL;
     // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
@@ -604,10 +654,11 @@ Model* EntityTreeRenderer::allocateModel(const QString& url) {
     model = new Model();
     model->init();
     model->setURL(QUrl(url));
+    model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 
-Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl) {
+Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, const QString& collisionUrl) {
     Model* model = NULL;
 
     // The caller shouldn't call us if the URL doesn't need to change. But if they
@@ -636,6 +687,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl) {
     model = new Model();
     model->init();
     model->setURL(QUrl(newUrl));
+    model->setCollisionModelURL(QUrl(collisionUrl));
         
     return model;
 }
@@ -889,6 +941,10 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
 }
 
+void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
+    checkAndCallPreload(entityID);
+}
+
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {
         checkAndCallUnload(entityID);
@@ -899,7 +955,7 @@ void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {
         // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(entityID);
+        QScriptValue entityScript = loadEntityScript(entityID, true); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("preload").call(entityScript, entityArgs);

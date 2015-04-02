@@ -14,6 +14,7 @@
 #include <QPushButton>
 #include <QPixmap>
 
+#include <NetworkingConstants.h>
 #include <PathUtils.h>
 
 #include "Application.h"
@@ -23,7 +24,8 @@
 #include "LoginDialog.h"
 #include "UIUtil.h"
 
-const QString FORGOT_PASSWORD_URL = "https://metaverse.highfidelity.io/users/password/new";
+const QString CREATE_ACCOUNT_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/signup";
+const QString FORGOT_PASSWORD_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
     FramelessDialog(parent, 0, FramelessDialog::POSITION_TOP),
@@ -44,6 +46,7 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::close);
 
     UIUtil::scaleWidgetFontSizes(this);
+    _ui->accountLabel->setText(_ui->accountLabel->text().arg(CREATE_ACCOUNT_URL, FORGOT_PASSWORD_URL));
 
     // Initialize toggle connection
     toggleQAction();
@@ -58,6 +61,7 @@ void LoginDialog::reset() {
     _ui->emailLineEdit->setFocus();
     _ui->logoLabel->setPixmap(QPixmap(PathUtils::resourcesPath() + "images/hifi-logo.svg"));
     _ui->loginButton->setIcon(QIcon(PathUtils::resourcesPath() + "images/login.svg"));
+    _ui->closeButton->setIcon(QIcon(PathUtils::resourcesPath() + "images/close.svg"));
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(false);
     
