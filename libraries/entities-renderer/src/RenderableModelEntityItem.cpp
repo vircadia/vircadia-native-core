@@ -393,9 +393,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // collision model's extents).
 
         glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
-        // save the scale we've used into the model for when we want to render the collision hulls
-        _model->setCollisionGeometryScale(scale);
-
         // multiply each point by scale before handing the point-set off to the physics engine
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
