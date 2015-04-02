@@ -49,6 +49,12 @@ public slots:
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
 
+signals:
+    void closed();
+
+private slots:
+    void hasClosed();
+
 private:
     QWidget* _windowWidget;
     QWebView* _webView;

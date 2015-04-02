@@ -24,6 +24,10 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     _downloading = false;
     connect(Application::getInstance(), &Application::renderingInWorldInterface, 
             this, &GlobalServicesScriptingInterface::checkDownloadInfo);
+
+    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
+    connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
+            this, &GlobalServicesScriptingInterface::discoverabilityModeChanged);
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
@@ -45,16 +49,24 @@ void GlobalServicesScriptingInterface::loggedOut() {
     emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
 }
 
+
+QString GlobalServicesScriptingInterface::findableByString(Discoverability::Mode discoverabilityMode) const {
+    if (discoverabilityMode == Discoverability::None) {
+        return "none";
+    } else if (discoverabilityMode == Discoverability::Friends) {
+        return "friends";
+    } else if (discoverabilityMode == Discoverability::All) {
+        return "all";
+    } else {
+        qDebug() << "GlobalServices findableByString called with an unrecognized value.";
+        return "";
+    }
+}
+
+
 QString GlobalServicesScriptingInterface::getFindableBy() const {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-    
-    if (discoverabilityManager->getDiscoverabilityMode() == Discoverability::None) {
-        return "none";
-    } else if (discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends) {
-        return "friends";
-    } else {
-        return "all";
-    }
+    return findableByString(discoverabilityManager->getDiscoverabilityMode());
 }
 
 void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabilityMode) {
@@ -69,6 +81,10 @@ void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabil
     } else {
         qDebug() << "GlobalServices setFindableBy called with an unrecognized value. Did not change discoverability.";
     }
+}
+
+void GlobalServicesScriptingInterface::discoverabilityModeChanged(Discoverability::Mode discoverabilityMode) {
+    emit findableByChanged(findableByString(discoverabilityMode));
 }
 
 DownloadInfoResult::DownloadInfoResult() :
@@ -122,4 +138,8 @@ void GlobalServicesScriptingInterface::checkDownloadInfo() {
 
 void GlobalServicesScriptingInterface::updateDownloadInfo() {
     emit downloadInfoChanged(getDownloadInfo());
+}
+
+void GlobalServicesScriptingInterface::editFriends() {
+    QMetaObject::invokeMethod(Application::getInstance(), "showFriendsWindow");
 }
