@@ -662,11 +662,23 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         entityItemID = assignEntityID(entityItemID);
+                        if (wantEditLogging()) {
+                            qDebug() << "User [" << senderNode->getUUID() << "] adding entity.";
+                            qDebug() << "   properties:" << properties;
+                        }
                         EntityItem* newEntity = addEntity(entityItemID, properties);
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
+                            if (wantEditLogging()) {
+                                qDebug() << "User [" << senderNode->getUUID() << "] added entity. ID:" 
+                                                << newEntity->getEntityItemID();
+                                qDebug() << "   properties:" << properties;
+                            }
+
                         }
+                    } else {
+                        qDebug() << "User without 'rez rights' [" << senderNode->getUUID() << "] attempted to add an entity.";
                     }
                 }
             }
