@@ -82,7 +82,7 @@ qint64 AudioInjectorLocalBuffer::recursiveReadFromFront(char* data, qint64 maxSi
     
     // check if we need to call ourselves again and pull from the front again
     if (bytesRead < maxSize) {
-        return bytesRead + recursiveReadFromFront(data, maxSize - bytesRead);
+        return bytesRead + recursiveReadFromFront(data + bytesRead, maxSize - bytesRead);
     } else {
         _currentOffset = bytesRead;
         return bytesRead;
