@@ -2716,6 +2716,10 @@ void Application::updateShadowMap() {
         glLoadIdentity();
         glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
 
+        glm::mat4 projAgain;
+        glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&projAgain);
+
+
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();

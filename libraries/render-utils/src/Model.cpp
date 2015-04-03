@@ -673,7 +673,11 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Setup the projection matrix
     if (args && args->_viewFrustum) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         batch.setProjectionTransform(proj);
     }
 
@@ -1759,7 +1763,11 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     if (args) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         gpu::Batch batch;
         batch.setProjectionTransform(proj);
         backend.render(batch);
