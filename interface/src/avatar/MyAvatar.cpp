@@ -31,6 +31,7 @@
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -604,9 +605,11 @@ void MyAvatar::saveData() {
 
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
-    
-    settings.setValue("faceModelURL", _faceModelURL);
-    settings.setValue("skeletonModelURL", _skeletonModelURL);
+
+    settings.setValue("useFullAvatar", _useFullAvatar);
+    settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
+    settings.setValue("faceModelURL", _headURLFromPreferences);
+    settings.setValue("skeletonModelURL", _skeletonURLFromPreferences);
     
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
@@ -667,9 +670,26 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
+
+
+    // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls 
+    // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
+    // the head URL is empty, then we will assume they are using a full url...
+    _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
     
-    setFaceModelURL(settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
-    setSkeletonModelURL(settings.value("skeletonModelURL").toUrl());
+    bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
+
+    _useFullAvatar = settings.value("useFullAvatar", assumeFullAvatar).toBool();
+    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL").toUrl();
+    _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+    
+    if (_useFullAvatar) {
+        setFaceModelURL(QUrl());
+        setSkeletonModelURL(_fullAvatarURLFromPreferences);
+    } else {
+        setFaceModelURL(_headURLFromPreferences);
+        setSkeletonModelURL(_skeletonURLFromPreferences);
+    }
     
     QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
@@ -901,6 +921,47 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _billboardValid = false;
 }
+
+void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL) {
+    _useFullAvatar = true;
+    _fullAvatarURLFromPreferences = fullAvatarURL;
+
+    if (!getFaceModelURLString().isEmpty()) {
+        setFaceModelURL(QString());
+    }
+
+    if (fullAvatarURL != getSkeletonModelURL()) {
+        setSkeletonModelURL(fullAvatarURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", fullAvatarURL.toString());
+    }
+    sendIdentityPacket();
+}
+
+void MyAvatar::useHeadURL(const QUrl& headURL) {
+    useHeadAndBodyURLs(headURL, _skeletonURLFromPreferences);
+}
+
+void MyAvatar::useBodyURL(const QUrl& bodyURL) {
+    useHeadAndBodyURLs(_headURLFromPreferences, bodyURL);
+}
+
+void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL) {
+    _useFullAvatar = false;
+    _headURLFromPreferences = headURL;
+    _skeletonURLFromPreferences = bodyURL;
+
+    if (headURL != getFaceModelURL()) {
+        setFaceModelURL(headURL);
+        UserActivityLogger::getInstance().changedModel("head", headURL.toString());
+    }
+
+    if (bodyURL != getSkeletonModelURL()) {
+        setSkeletonModelURL(bodyURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", bodyURL.toString());
+    }
+    sendIdentityPacket();
+}
+
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     Avatar::setAttachmentData(attachmentData);

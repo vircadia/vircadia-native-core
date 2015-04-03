@@ -43,28 +43,71 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
     connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
+    connect(ui.buttonBrowseFullAvatar, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
+
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
-    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked,
-            Application::getInstance(), &Application::loadDefaultScripts);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-
-    connect(Application::getInstance(), &Application::faceURLChanged, this, &PreferencesDialog::faceURLChanged);
-    connect(Application::getInstance(), &Application::skeletonURLChanged, this, &PreferencesDialog::skeletonURLChanged);
+    connect(ui.useSeparateBodyAndHead, &QRadioButton::clicked, this, &PreferencesDialog::useSeparateBodyAndHead);
+    connect(ui.useFullAvatar, &QRadioButton::clicked, this, &PreferencesDialog::useFullAvatar);
+    
+    
+    connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
+    connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
+    connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
+
+    ui.bodyNameLabel->setText("Body - name of model here");
+    ui.headNameLabel->setText("Head - name of model here");
+    ui.fullAvatarNameLabel->setText("Full Avatar - name of model here");
+
+
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-void PreferencesDialog::faceURLChanged(const QString& newValue) {
-    ui.faceURLEdit->setText(newValue);
+void PreferencesDialog::useSeparateBodyAndHead(bool checked) {
+    setUseFullAvatar(!checked);
+
+    QUrl headURL(ui.faceURLEdit->text());
+    QUrl bodyURL(ui.skeletonURLEdit->text());
+    
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useHeadAndBodyURLs(headURL, bodyURL);
 }
 
-void PreferencesDialog::skeletonURLChanged(const QString& newValue) {
+void PreferencesDialog::useFullAvatar(bool checked) {
+    setUseFullAvatar(checked);
+    QUrl fullAvatarURL(ui.fullAvatarURLEdit->text());
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(fullAvatarURL);
+}
+
+void PreferencesDialog::setUseFullAvatar(bool useFullAvatar) {
+    _useFullAvatar = useFullAvatar;
+    ui.faceURLEdit->setEnabled(!_useFullAvatar);
+    ui.skeletonURLEdit->setEnabled(!_useFullAvatar);
+    ui.fullAvatarURLEdit->setEnabled(_useFullAvatar);
+    
+    ui.useFullAvatar->setChecked(_useFullAvatar);
+    ui.useSeparateBodyAndHead->setChecked(!_useFullAvatar);
+}
+
+void PreferencesDialog::headURLChanged(const QString& newValue) {
+    ui.faceURLEdit->setText(newValue);
+    setUseFullAvatar(false);
+}
+
+void PreferencesDialog::bodyURLChanged(const QString& newValue) {
     ui.skeletonURLEdit->setText(newValue);
+    setUseFullAvatar(false);
+}
+
+void PreferencesDialog::fullAvatarURLChanged(const QString& newValue) {
+    ui.fullAvatarURLEdit->setText(newValue);
+    setUseFullAvatar(true);
 }
 
 void PreferencesDialog::accept() {
@@ -80,6 +123,16 @@ void PreferencesDialog::setHeadUrl(QString modelUrl) {
 
 void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
     ui.skeletonURLEdit->setText(modelUrl);
+}
+
+void PreferencesDialog::openFullAvatarModelBrowser() {
+    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
+    auto WIDTH = 900;
+    auto HEIGHT = 700;
+    if (!_marketplaceWindow) {
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+    }
+    _marketplaceWindow->setVisible(true);
 }
 
 void PreferencesDialog::openHeadModelBrowser() {
@@ -143,11 +196,18 @@ void PreferencesDialog::loadPreferences() {
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
 
-    _faceURLString = myAvatar->getHead()->getFaceModel().getURL().toString();
-    ui.faceURLEdit->setText(_faceURLString);
 
-    _skeletonURLString = myAvatar->getSkeletonModel().getURL().toString();
-    ui.skeletonURLEdit->setText(_skeletonURLString);
+    _useFullAvatar = myAvatar->getUseFullAvatar();
+    _fullAvatarURLString = myAvatar->getFullAvatarURLFromPreferences().toString();
+    _headURLString = myAvatar->getHeadURLFromPreferences().toString();
+    _bodyURLString = myAvatar->getBodyURLFromPreferences().toString();
+
+    ui.fullAvatarURLEdit->setText(_fullAvatarURLString);
+    ui.faceURLEdit->setText(_headURLString);
+    ui.skeletonURLEdit->setText(_bodyURLString);
+    setUseFullAvatar(_useFullAvatar);
+    
+    // TODO: load the names for the models.
     
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
@@ -217,31 +277,26 @@ void PreferencesDialog::savePreferences() {
         shouldDispatchIdentityPacket = true;
     }
 
-    auto AVATAR_FILE_EXTENSION = ".fst";
-    
-    QUrl faceModelURL(ui.faceURLEdit->text());
-    QString faceModelURLString = faceModelURL.toString();
-    if (faceModelURLString != _faceURLString) {
-        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
-            // change the faceModelURL in the profile, it will also update this user's BlendFace
-            myAvatar->setFaceModelURL(faceModelURL);
-            UserActivityLogger::getInstance().changedModel("head", faceModelURLString);
-            shouldDispatchIdentityPacket = true;
-        } else {
-            qDebug() << "ERROR: Head model not FST or blank - " << faceModelURLString;
-        }
-    }
+    QUrl headURL(ui.faceURLEdit->text());
+    QString headURLString = headURL.toString();
 
-    QUrl skeletonModelURL(ui.skeletonURLEdit->text());
-    QString skeletonModelURLString = skeletonModelURL.toString();
-    if (skeletonModelURLString != _skeletonURLString) {
-        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().contains(AVATAR_FILE_EXTENSION)) {
-            // change the skeletonModelURL in the profile, it will also update this user's Body
-            myAvatar->setSkeletonModelURL(skeletonModelURL);
-            UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURLString);
-            shouldDispatchIdentityPacket = true;
+    QUrl bodyURL(ui.skeletonURLEdit->text());
+    QString bodyURLString = bodyURL.toString();
+
+    QUrl fullAvatarURL(ui.fullAvatarURLEdit->text());
+    QString fullAvatarURLString = fullAvatarURL.toString();
+
+    bool somethingChanged = 
+        _useFullAvatar != myAvatar->getUseFullAvatar() ||
+        fullAvatarURLString != myAvatar->getFullAvatarURLFromPreferences().toString() ||
+        headURLString != myAvatar->getHeadURLFromPreferences().toString() || 
+        bodyURLString != myAvatar->getBodyURLFromPreferences().toString();
+        
+    if (somethingChanged) {
+        if (_useFullAvatar) {
+            myAvatar->useFullAvatarURL(fullAvatarURL);
         } else {
-            qDebug() << "ERROR: Skeleton model not FST or blank - " << skeletonModelURLString;
+            myAvatar->useHeadAndBodyURLs(headURL, bodyURL);
         }
     }
     

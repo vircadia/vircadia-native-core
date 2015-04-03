@@ -3743,30 +3743,16 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     if (msgBox.clickedButton() == headButton) {
         qDebug() << "Chose to use for head: " << url;
-        _myAvatar->setFaceModelURL(url);
-        UserActivityLogger::getInstance().changedModel("head", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(url);
+        _myAvatar->useHeadURL(url);
+        emit headURLChanged(url);
     } else if (msgBox.clickedButton() == bodyButton) {
         qDebug() << "Chose to use for body: " << url;
-        _myAvatar->setSkeletonModelURL(url);
-        // if the head is empty, reset it to the default head.
-        if (_myAvatar->getFaceModelURLString().isEmpty()) {
-            _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
-            emit faceURLChanged(DEFAULT_HEAD_MODEL_URL.toString());
-            UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
-        }
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit skeletonURLChanged(url);
+        _myAvatar->useBodyURL(url);
+        emit bodyURLChanged(url);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
         qDebug() << "Chose to use for body + head: " << url;
-        _myAvatar->setFaceModelURL(QString());
-        _myAvatar->setSkeletonModelURL(url);
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(QString());
-        emit skeletonURLChanged(url);
+        _myAvatar->useFullAvatarURL(url);
+        emit fullAvatarURLChanged(url);
     } else {
         qDebug() << "Declined to use the avatar: " << url;
     }
@@ -4281,8 +4267,7 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
         
-        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
-        _myAvatar->sendIdentityPacket();
+        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL);
     } else {
         _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());

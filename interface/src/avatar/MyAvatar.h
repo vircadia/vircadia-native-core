@@ -116,8 +116,17 @@ public:
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
     virtual void clearJointsData();
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    void useFullAvatarURL(const QUrl& fullAvatarURL);
+    void useHeadURL(const QUrl& headURL);
+    void useBodyURL(const QUrl& bodyURL);
+    void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL);
+
+    bool getUseFullAvatar() const { return _useFullAvatar; }
+    const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
+    const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
+    const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
+
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     virtual glm::vec3 getSkeletonPosition() const;
@@ -185,6 +194,11 @@ protected:
     virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
     
 private:
+
+    // These are made private for MyAvatar so that you will use the "use" methods instead
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
     float _turningKeyPressTime;
     glm::vec3 _gravity;
 
@@ -229,6 +243,12 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
+    
+    // Avatar Preferences
+    bool _useFullAvatar = false;
+    QUrl _fullAvatarURLFromPreferences;
+    QUrl _headURLFromPreferences;
+    QUrl _skeletonURLFromPreferences;
 };
 
 #endif // hifi_MyAvatar_h

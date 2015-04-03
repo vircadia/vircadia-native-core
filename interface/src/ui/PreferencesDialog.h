@@ -33,10 +33,17 @@ private:
     void savePreferences();
     void openHeadModelBrowser();
     void openBodyModelBrowser();
+    void openFullAvatarModelBrowser();
+    void setUseFullAvatar(bool useFullAvatar);
 
     Ui_PreferencesDialog ui;
-    QString _faceURLString;
-    QString _skeletonURLString;
+
+    bool _useFullAvatar;
+    QString _headURLString;
+    QString _bodyURLString;
+    QString _fullAvatarURLString;
+    
+    
     QString _displayNameString;
     
     WebWindowClass* _marketplaceWindow = NULL;
@@ -47,8 +54,11 @@ private slots:
     void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    void faceURLChanged(const QString& newValue);
-    void skeletonURLChanged(const QString& newValue);
+    void headURLChanged(const QString& newValue);
+    void bodyURLChanged(const QString& newValue);
+    void fullAvatarURLChanged(const QString& newValue);
+    void useSeparateBodyAndHead(bool checked);
+    void useFullAvatar(bool checked);
     
 };
 
