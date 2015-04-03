@@ -920,6 +920,11 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
+
+            if (wantEditLogging()) {
+                qDebug() << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            }
+
         }
         deleteEntities(entityItemIDsToDelete, true, true);
     }
@@ -959,6 +964,11 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
+
+            if (wantEditLogging()) {
+                qDebug() << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            }
+
         }
         deleteEntities(entityItemIDsToDelete, true, true);
     }
