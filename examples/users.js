@@ -44,7 +44,16 @@ var usersWindow = (function () {
         scrollbarBar2D,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        VISIBILITY_SPACER_2D = 12,                          // Space between list of users and visibility controls
+        FRIENDS_BUTTON_SPACER_2D = 12,                      // Space before add/remove friends button
+        FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG_WIDTH = 107,
+        FRIENDS_BUTTON_SVG_HEIGHT = 27,
+        FRIENDS_BUTTON_WIDTH_2D = FRIENDS_BUTTON_SVG_WIDTH,
+        FRIENDS_BUTTON_HEIGHT_2D = FRIENDS_BUTTON_SVG_HEIGHT,
+        FRIENDS_BUTTON_COLOR_2D = { red: 255, green: 255, blue: 255 },
+        FRIENDS_BUTTON_ALPHA_2D = 0.9,
+        friendsButton2D,
+        VISIBILITY_SPACER_2D = 12,                          // Space between before visibility controls
         visibilityHeading2D,
         VISIBILITY_RADIO_SPACE = 16,
         visibilityControls2D,
@@ -68,8 +77,6 @@ var usersWindow = (function () {
 
         myVisibility,
         VISIBILITY_VALUES = ["all", "friends", "none"],
-        visibilityInterval,
-        VISIBILITY_POLL_INTERVAL = 5000,                    // ms = 5s
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
@@ -107,11 +114,12 @@ var usersWindow = (function () {
 
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
-        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing + VISIBILITY_SPACER_2D + WINDOW_MARGIN_2D
-            + WINDOW_BASE_MARGIN_2D;
+        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing
+            + FRIENDS_BUTTON_SPACER_2D + FRIENDS_BUTTON_HEIGHT_2D
+            + VISIBILITY_SPACER_2D + WINDOW_MARGIN_2D + WINDOW_BASE_MARGIN_2D;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
-        windowHeight = linesOfUsers.length * windowLineHeight + nonUsersHeight;
+        windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;  // DJRTODO: - windowLineSpacing or not?
         maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
@@ -119,7 +127,7 @@ var usersWindow = (function () {
         windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
 
         // Corresponding number of users to actually display
-        numUsersToDisplay = Math.max(Math.floor((windowHeight - nonUsersHeight) / windowLineHeight), 0);
+        numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);  // DJRTODO: .floor or .round?
         isUsingScrollbars = 0 < numUsersToDisplay && numUsersToDisplay < linesOfUsers.length;
         if (isUsingScrollbars) {
             firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
@@ -153,6 +161,12 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBar2D, {
             y: scrollbarBarPosition.y
         });
+
+        Overlays.editOverlay(friendsButton2D, {
+            y: viewportHeight - FRIENDS_BUTTON_HEIGHT_2D - VISIBILITY_SPACER_2D
+                - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D
+        });
+
         Overlays.editOverlay(visibilityHeading2D, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D
         });
@@ -302,15 +316,6 @@ var usersWindow = (function () {
         usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
     };
 
-    function pollVisibility() {
-        var currentVisibility = myVisibility;
-
-        myVisibility = GlobalServices.findableBy;
-        if (myVisibility !== currentVisibility) {
-            updateVisibilityControls();
-        }
-    }
-
     function updateOverlayVisibility() {
         var i;
 
@@ -319,6 +324,7 @@ var usersWindow = (function () {
         Overlays.editOverlay(minimizeButton2D, { visible: isVisible });
         Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
+        Overlays.editOverlay(friendsButton2D, { visible: isVisible && !isMinimized });
         Overlays.editOverlay(visibilityHeading2D, { visible: isVisible && !isMinimized });
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible && !isMinimized });
@@ -339,6 +345,7 @@ var usersWindow = (function () {
         }
 
         updateOverlayVisibility();
+
     }
 
     function setMinimized(minimized) {
@@ -355,6 +362,16 @@ var usersWindow = (function () {
         }
     }
 
+    function onFindableByChanged(event) {
+        var i;
+
+        for (i = 0; i < visibilityControls2D.length; i += 1) {
+            visibilityControls2D[i].selected = event === VISIBILITY_VALUES[i];
+        }
+
+        updateVisibilityControls();
+    }
+
     function onMousePressEvent(event) {
         var clickedOverlay,
             numLinesBefore,
@@ -365,7 +382,6 @@ var usersWindow = (function () {
             lineClicked,
             userClicked,
             i,
-            visibilityChanged,
             delta;
 
         if (!isVisible) {
@@ -399,21 +415,12 @@ var usersWindow = (function () {
             return;
         }
 
-        visibilityChanged = false;
         for (i = 0; i < visibilityControls2D.length; i += 1) {
             // Don't need to test radioOverlay if it us under textOverlay.
             if (clickedOverlay === visibilityControls2D[i].textOverlay && event.x <= visibilityControls2D[i].optionWidth) {
                 GlobalServices.findableBy = VISIBILITY_VALUES[i];
-                visibilityChanged = true;
+                return;
             }
-        }
-        if (visibilityChanged) {
-            for (i = 0; i < visibilityControls2D.length; i += 1) {
-                // Don't need to handle radioOverlay if it us under textOverlay.
-                visibilityControls2D[i].selected = clickedOverlay === visibilityControls2D[i].textOverlay;
-            }
-            updateVisibilityControls();
-            return;
         }
 
         if (clickedOverlay === minimizeButton2D) {
@@ -446,6 +453,10 @@ var usersWindow = (function () {
             updateOverlayPositions();
             updateUsersDisplay();
             return;
+        }
+
+        if (clickedOverlay === friendsButton2D) {
+            GlobalServices.editFriends();
         }
     }
 
@@ -585,6 +596,17 @@ var usersWindow = (function () {
             visible: isVisible && isUsingScrollbars && !isMinimized
         });
 
+        friendsButton2D = Overlays.addOverlay("image", {
+            x: WINDOW_MARGIN_2D,
+            y: viewportHeight,
+            width: FRIENDS_BUTTON_WIDTH_2D,
+            height: FRIENDS_BUTTON_HEIGHT_2D,
+            imageURL: FRIENDS_BUTTON_SVG,
+            subImage: { x: 0, y: 0, width: FRIENDS_BUTTON_SVG_WIDTH, height: FRIENDS_BUTTON_SVG_HEIGHT },
+            color: FRIENDS_BUTTON_COLOR_2D,
+            alpha: FRIENDS_BUTTON_ALPHA_2D
+        });
+
         visibilityHeading2D = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN_2D,
             y: viewportHeight,
@@ -678,9 +700,9 @@ var usersWindow = (function () {
         });
         Menu.menuItemEvent.connect(onMenuItemEvent);
 
-        Script.update.connect(onScriptUpdate);
+        GlobalServices.findableByChanged.connect(onFindableByChanged);
 
-        visibilityInterval = Script.setInterval(pollVisibility, VISIBILITY_POLL_INTERVAL);
+        Script.update.connect(onScriptUpdate);
 
         pollUsers();
 
@@ -691,13 +713,13 @@ var usersWindow = (function () {
 
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
-        Script.clearInterval(visibilityInterval);
         Script.clearTimeout(usersTimer);
         Overlays.deleteOverlay(windowPane2D);
         Overlays.deleteOverlay(windowHeading2D);
         Overlays.deleteOverlay(minimizeButton2D);
         Overlays.deleteOverlay(scrollbarBackground2D);
         Overlays.deleteOverlay(scrollbarBar2D);
+        Overlays.deleteOverlay(friendsButton2D);
         Overlays.deleteOverlay(visibilityHeading2D);
         for (i = 0; i <= visibilityControls2D.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls2D[i].textOverlay);
