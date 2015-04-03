@@ -16,6 +16,7 @@
 #include <qdebug.h>
 
 #include "RSAKeypairGenerator.h"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
     QObject(parent)

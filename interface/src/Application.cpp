@@ -268,6 +268,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
+        _friendsWindow(NULL),
         _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
@@ -309,8 +310,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>()),
-        _friendsWindow(NULL)
+        _domainConnectionRefusals(QList<QString>())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
