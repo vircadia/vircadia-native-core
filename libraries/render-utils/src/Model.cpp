@@ -684,12 +684,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         _transforms.push_back(Transform());
     }
 
-    if (args && args->_viewFrustum) {
-        _transforms[0].setTranslation(args->_viewFrustum->getPosition());
-        _transforms[0].setRotation(args->_viewFrustum->getOrientation());
-    } else {
-        _transforms[0] = _viewState->getViewTransform();
-    }
+    _transforms[0] = _viewState->getViewTransform();
 
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
@@ -1729,12 +1724,7 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
         _transforms.push_back(Transform());
     }
 
-    if (args && args->_viewFrustum) {
-        _transforms[0].setTranslation(args->_viewFrustum->getPosition());
-        _transforms[0].setRotation(args->_viewFrustum->getOrientation());
-    } else {
-        _transforms[0] = _viewState->getViewTransform();
-    }
+    _transforms[0] = _viewState->getViewTransform();
 
     _transforms[0].preTranslate(-_translation);
 
