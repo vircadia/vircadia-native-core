@@ -1281,6 +1281,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 }
 
 void AudioClient::checkDevices() {
+#   ifdef Q_OS_LINUX
+    // on linux, this makes the audio stream hiccup
+#   else
     QVector<QString> inputDevices = getDeviceNames(QAudio::AudioInput);
     QVector<QString> outputDevices = getDeviceNames(QAudio::AudioOutput);
 
@@ -1290,6 +1293,7 @@ void AudioClient::checkDevices() {
 
         emit deviceChanged();
     }
+#   endif
 }
 
 void AudioClient::loadSettings() {
