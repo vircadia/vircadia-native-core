@@ -12,6 +12,10 @@
 #ifndef hifi_DdeFaceTracker_h
 #define hifi_DdeFaceTracker_h
 
+#if defined(Q_OS_WIN) || defined(Q_OS_OSX)
+    #define HAVE_DDE
+#endif
+
 #include <QUdpSocket>
 
 #include <DependencyManager.h>

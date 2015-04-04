@@ -370,12 +370,12 @@ Menu::Menu() {
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
-
+#ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
             0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
-
+#endif
 #ifdef HAVE_VISAGE
         QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
             0, false,
