@@ -4258,7 +4258,7 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
         
-        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL);
+        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
     } else {
         _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
