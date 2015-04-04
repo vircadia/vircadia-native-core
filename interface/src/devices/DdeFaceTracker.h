@@ -16,6 +16,7 @@
     #define HAVE_DDE
 #endif
 
+#include <QProcess>
 #include <QUdpSocket>
 
 #include <DependencyManager.h>
@@ -61,6 +62,8 @@ private:
     DdeFaceTracker();
     DdeFaceTracker(const QHostAddress& host, quint16 port);
     ~DdeFaceTracker();
+
+    QProcess* _ddeProcess;
 
     QHostAddress _host;
     quint16 _port;

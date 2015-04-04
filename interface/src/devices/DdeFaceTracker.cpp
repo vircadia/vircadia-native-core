@@ -11,6 +11,7 @@
 
 #include <SharedUtil.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -19,6 +20,13 @@
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 
+#if defined(Q_OS_WIN)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
+static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:5555 --headless";
+#elif defined(Q_OS_MAC)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde";
+static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:5555 --headless";
+#endif
 static const QHostAddress DDE_FEATURE_POINT_SERVER_ADDR("127.0.0.1");
 static const quint16 DDE_FEATURE_POINT_SERVER_PORT = 5555;
 
@@ -125,6 +133,7 @@ DdeFaceTracker::DdeFaceTracker() :
 }
 
 DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+    _ddeProcess(NULL),
     _host(host),
     _port(port),
     _lastReceiveTimestamp(0),
@@ -161,11 +170,25 @@ DdeFaceTracker::~DdeFaceTracker() {
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {
+#ifdef HAVE_DDE
+    if (enabled && !_ddeProcess) {
+        qDebug() << "[Info] DDE Face Tracker Starting";
+        _ddeProcess = new QProcess(qApp);
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS.split(" "));
+    }
+
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
         _udpSocket.bind(_host, _port);
     }
+
+    if (!enabled && _ddeProcess) {
+        _ddeProcess->kill();
+        _ddeProcess = NULL;
+        qDebug() << "[Info] DDE Face Tracker Stopped";
+    }
+#endif
 }
 
 bool DdeFaceTracker::isActive() const {
