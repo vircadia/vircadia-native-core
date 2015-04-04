@@ -976,6 +976,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
+            case Qt::Key_F: {
+                _physicsEngine.dumpNextStats();
+                break;
+            }
+
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
@@ -1183,6 +1188,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Comma: {
                 renderCollisionHulls = !renderCollisionHulls;
+                break;
             }
 
             default:
