@@ -658,8 +658,6 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     return renderCore(alpha, mode, args);
 }
 
-#define WANT_DEBUG_MESHBOXES
-
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
