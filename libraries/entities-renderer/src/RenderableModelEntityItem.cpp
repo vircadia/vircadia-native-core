@@ -169,8 +169,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     PerformanceTimer perfTimer("model->render");
                     // filter out if not needed to render
                     if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
-                       // if (movingOrAnimating) {
-                        {
+                        if (movingOrAnimating) {
                             _model->renderInScene(alpha, args);
                         }
                     } else {
