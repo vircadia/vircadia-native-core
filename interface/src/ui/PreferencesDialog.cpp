@@ -271,6 +271,7 @@ void PreferencesDialog::loadPreferences() {
 void PreferencesDialog::savePreferences() {
     
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
     bool shouldDispatchIdentityPacket = false;
     
     QString displayNameStr(ui.displayNameEdit->text());

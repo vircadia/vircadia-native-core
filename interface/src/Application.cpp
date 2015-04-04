@@ -3747,6 +3747,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     } else {
         qDebug() << "Declined to use the avatar: " << url;
     }
+    
     return true;
 }
 
