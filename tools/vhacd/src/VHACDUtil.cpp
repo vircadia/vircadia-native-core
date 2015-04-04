@@ -89,15 +89,51 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
 
 
+AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
+    AABox aaBox;
+    unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+    for (unsigned int i = 0; i < triangleCount; i++) {
+        glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[i * 3]];
+        glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
+        glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
+        aaBox += p0;
+        aaBox += p1;
+        aaBox += p2;
+    }
+
+    unsigned int quadCount = meshPart.quadIndices.size() / 4;
+    for (unsigned int i = 0; i < quadCount; i++) {
+        unsigned int p0Index = meshPart.quadIndices[i * 4];
+        unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
+        unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
+        unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
+        glm::vec3 p0 = mesh.vertices[p0Index];
+        glm::vec3 p1 = mesh.vertices[p1Index + 1];
+        glm::vec3 p2 = mesh.vertices[p2Index + 2];
+        glm::vec3 p3 = mesh.vertices[p3Index + 3];
+        aaBox += p0;
+        aaBox += p1;
+        aaBox += p2;
+        aaBox += p3;
+    }
+
+    return aaBox;
+}
+
+
+
 bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                                     VHACD::IVHACD::Parameters params,
                                     FBXGeometry& result,
                                     int startMeshIndex,
-                                    int endMeshIndex, float minimumMeshSize,
+                                    int endMeshIndex,
+                                    float minimumMeshSize, float maximumMeshSize,
                                     bool fattenFaces) {
     // count the mesh-parts
-    QVector<FBXMeshPart> meshParts;
     int meshCount = 0;
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        meshCount += mesh.parts.size();
+    }
 
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 
@@ -134,32 +170,16 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
             std::vector<int> triangles = meshPart.triangleIndices.toStdVector();
 
-            AABox aaBox;
-            unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-            for (unsigned int i = 0; i < triangleCount; i++) {
-                glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[i * 3]];
-                glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
-                glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
-                aaBox += p0;
-                aaBox += p1;
-                aaBox += p2;
-            }
+            AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
 
             // convert quads to triangles
+            unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
             unsigned int quadCount = meshPart.quadIndices.size() / 4;
             for (unsigned int i = 0; i < quadCount; i++) {
                 unsigned int p0Index = meshPart.quadIndices[i * 4];
                 unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
                 unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
                 unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
-                glm::vec3 p0 = mesh.vertices[p0Index];
-                glm::vec3 p1 = mesh.vertices[p1Index + 1];
-                glm::vec3 p2 = mesh.vertices[p2Index + 2];
-                glm::vec3 p3 = mesh.vertices[p3Index + 3];
-                aaBox += p0;
-                aaBox += p1;
-                aaBox += p2;
-                aaBox += p3;
                 // split each quad into two triangles
                 triangles.push_back(p0Index);
                 triangles.push_back(p1Index);
@@ -183,11 +203,18 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             qDebug() << "Mesh " << count << " -- " << nPoints << " points, " << triangleCount << " triangles, "
                      << "size =" << largestDimension;
 
-            if (largestDimension < minimumMeshSize /* || largestDimension > 1000 */) {
+            if (largestDimension < minimumMeshSize) {
                 qDebug() << " Skipping (too small)...";
                 count++;
                 continue;
             }
+
+            if (maximumMeshSize > 0.0 && largestDimension > maximumMeshSize) {
+                qDebug() << " Skipping (too large)...";
+                count++;
+                continue;
+            }
+
 
             // compute approximate convex decomposition
             bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, triangleCount, params);
