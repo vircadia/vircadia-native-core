@@ -61,11 +61,11 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-
-    ui.bodyNameLabel->setText("Body - name of model here");
-    ui.headNameLabel->setText("Head - name of model here");
-    ui.fullAvatarNameLabel->setText("Full Avatar - name of model here");
-
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    
+    ui.bodyNameLabel->setText("Body - " + myAvatar->getBodyModelName());
+    ui.headNameLabel->setText("Head - " + myAvatar->getHeadModelName());
+    ui.fullAvatarNameLabel->setText("Full Avatar - " + myAvatar->getFullAvartarModelName());
 
     UIUtil::scaleWidgetFontSizes(this);
 }
@@ -95,19 +95,22 @@ void PreferencesDialog::setUseFullAvatar(bool useFullAvatar) {
     ui.useSeparateBodyAndHead->setChecked(!_useFullAvatar);
 }
 
-void PreferencesDialog::headURLChanged(const QString& newValue) {
+void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
     ui.faceURLEdit->setText(newValue);
     setUseFullAvatar(false);
+    ui.headNameLabel->setText("Head - " + modelName);
 }
 
-void PreferencesDialog::bodyURLChanged(const QString& newValue) {
+void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
     ui.skeletonURLEdit->setText(newValue);
     setUseFullAvatar(false);
+    ui.bodyNameLabel->setText("Body - " + modelName);
 }
 
-void PreferencesDialog::fullAvatarURLChanged(const QString& newValue) {
+void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
     ui.fullAvatarURLEdit->setText(newValue);
     setUseFullAvatar(true);
+    ui.fullAvatarNameLabel->setText("Full Avatar - " + modelName);
 }
 
 void PreferencesDialog::accept() {

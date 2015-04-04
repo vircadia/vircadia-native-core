@@ -117,15 +117,19 @@ public:
     virtual void clearJointData(int index);
     virtual void clearJointsData();
 
-    void useFullAvatarURL(const QUrl& fullAvatarURL);
-    void useHeadURL(const QUrl& headURL);
-    void useBodyURL(const QUrl& bodyURL);
-    void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL);
+    void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
+    void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
+    void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
+    void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName = QString(), const QString& bodyName = QString());
 
     bool getUseFullAvatar() const { return _useFullAvatar; }
     const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
     const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
+
+    const QString& getHeadModelName() const { return _headModelName; }
+    const QString& getBodyModelName() const { return _bodyModelName; }
+    const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
@@ -249,6 +253,10 @@ private:
     QUrl _fullAvatarURLFromPreferences;
     QUrl _headURLFromPreferences;
     QUrl _skeletonURLFromPreferences;
+    
+    QString _headModelName;
+    QString _bodyModelName;
+    QString _fullAvatarModelName;
 };
 
 #endif // hifi_MyAvatar_h

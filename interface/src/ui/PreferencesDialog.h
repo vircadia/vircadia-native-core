@@ -54,9 +54,9 @@ private slots:
     void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    void headURLChanged(const QString& newValue);
-    void bodyURLChanged(const QString& newValue);
-    void fullAvatarURLChanged(const QString& newValue);
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
     void useSeparateBodyAndHead(bool checked);
     void useFullAvatar(bool checked);
     

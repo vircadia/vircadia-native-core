@@ -610,7 +610,10 @@ void MyAvatar::saveData() {
     settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
     settings.setValue("faceModelURL", _headURLFromPreferences);
     settings.setValue("skeletonModelURL", _skeletonURLFromPreferences);
-    
+    settings.setValue("headModelName", _headModelName);
+    settings.setValue("bodyModelName", _bodyModelName);
+    settings.setValue("fullAvatarModelName", _fullAvatarModelName);
+
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
         settings.setArrayIndex(i);
@@ -675,20 +678,48 @@ void MyAvatar::loadData() {
     // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls 
     // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
     // the head URL is empty, then we will assume they are using a full url...
-    _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
-    
-    bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
+    bool isOldSettings = !(settings.contains("useFullAvatar") || settings.contains("fullAvatarURL"));
 
-    _useFullAvatar = settings.value("useFullAvatar", assumeFullAvatar).toBool();
+    _useFullAvatar = settings.value("useFullAvatar").toBool();
+    _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL").toUrl();
     _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
-    
+    _headModelName = settings.value("headModelName").toString();
+    _bodyModelName = settings.value("bodyModelName").toString();
+    _fullAvatarModelName = settings.value("fullAvatarModelName").toString();;
+
+    if (isOldSettings) {
+        bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
+        _useFullAvatar = assumeFullAvatar;
+
+        if (_useFullAvatar) {
+            _fullAvatarURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+            _headURLFromPreferences = DEFAULT_HEAD_MODEL_URL;
+            _skeletonURLFromPreferences = DEFAULT_BODY_MODEL_URL;
+
+            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
+
+            _headModelName = "Default";
+            _bodyModelName = "Default";
+            _fullAvatarModelName = fullAvatarFST["name"].toString();
+
+        } else {
+            _fullAvatarURLFromPreferences = DEFAULT_FULL_AVATAR_MODEL_URL;
+            _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+
+            QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
+            QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
+
+            _headModelName = headFST["name"].toString();
+            _bodyModelName = bodyFST["name"].toString();
+            _fullAvatarModelName = "Default";
+        }
+    }
+
     if (_useFullAvatar) {
-        setFaceModelURL(QUrl());
-        setSkeletonModelURL(_fullAvatarURLFromPreferences);
+        useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
     } else {
-        setFaceModelURL(_headURLFromPreferences);
-        setSkeletonModelURL(_skeletonURLFromPreferences);
+        useHeadAndBodyURLs(_headURLFromPreferences, _skeletonURLFromPreferences, _headModelName, _bodyModelName);
     }
     
     QVector<AttachmentData> attachmentData;
@@ -922,9 +953,10 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _billboardValid = false;
 }
 
-void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL) {
+void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
     _useFullAvatar = true;
     _fullAvatarURLFromPreferences = fullAvatarURL;
+    _fullAvatarModelName = modelName;
 
     if (!getFaceModelURLString().isEmpty()) {
         setFaceModelURL(QString());
@@ -937,18 +969,20 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL) {
     sendIdentityPacket();
 }
 
-void MyAvatar::useHeadURL(const QUrl& headURL) {
-    useHeadAndBodyURLs(headURL, _skeletonURLFromPreferences);
+void MyAvatar::useHeadURL(const QUrl& headURL, const QString& modelName) {
+    useHeadAndBodyURLs(headURL, _skeletonURLFromPreferences, modelName, _bodyModelName);
 }
 
-void MyAvatar::useBodyURL(const QUrl& bodyURL) {
-    useHeadAndBodyURLs(_headURLFromPreferences, bodyURL);
+void MyAvatar::useBodyURL(const QUrl& bodyURL, const QString& modelName) {
+    useHeadAndBodyURLs(_headURLFromPreferences, bodyURL, _headModelName, modelName);
 }
 
-void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL) {
+void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName, const QString& bodyName) {
     _useFullAvatar = false;
     _headURLFromPreferences = headURL;
     _skeletonURLFromPreferences = bodyURL;
+    _headModelName = headName;
+    _bodyModelName = bodyName;
 
     if (headURL != getFaceModelURL()) {
         setFaceModelURL(headURL);
