@@ -708,20 +708,12 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
             GLBATCH(glCullFace)(GL_FRONT);
         }
     }
-    GLBATCH(glEnable)(GL_DEPTH_TEST);
-    GLBATCH(glDepthFunc)(GL_LEQUAL);
-    if (mode == SHADOW_RENDER_MODE) {
-        GLBATCH(glDepthFunc)(GL_ALWAYS);
-    }
-    GLBATCH(glDepthMask)(true);
     
     // render opaque meshes with alpha testing
 
     GLBATCH(glDisable)(GL_BLEND);
     GLBATCH(glEnable)(GL_ALPHA_TEST);
-    if (mode == SHADOW_RENDER_MODE) {
-        GLBATCH(glDisable)(GL_ALPHA_TEST);
-    }  
+ 
     if (mode == SHADOW_RENDER_MODE) {
         GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
     }
@@ -1796,7 +1788,6 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         }
     
         // render opaque meshes with alpha testing
-        GLBATCH(glDepthMask)(true);
 
         GLBATCH(glDisable)(GL_BLEND);
         GLBATCH(glEnable)(GL_ALPHA_TEST);
