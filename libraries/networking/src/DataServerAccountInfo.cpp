@@ -15,6 +15,7 @@
 #include <QtCore/QDebug>
 
 #include "DataServerAccountInfo.h"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
