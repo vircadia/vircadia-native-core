@@ -166,9 +166,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
 }
 
 DdeFaceTracker::~DdeFaceTracker() {
-    if (_udpSocket.isOpen()) {
-        _udpSocket.close();
-    }
+    setEnabled(false);
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {
