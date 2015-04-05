@@ -611,7 +611,9 @@ void Application::cleanupBeforeQuit() {
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
 
+#ifdef HAVE_DDE
     DependencyManager::destroy<DdeFaceTracker>();
+#endif
 }
 
 Application::~Application() {    
