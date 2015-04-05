@@ -266,7 +266,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Compute relative translation
-        float LEAN_DAMPING_FACTOR = 200.0f;
+        float LEAN_DAMPING_FACTOR = 75.0f;
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
