@@ -22,13 +22,14 @@
 
 #if defined(Q_OS_WIN)
 static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
-static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:5555 --headless";
+static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
 #elif defined(Q_OS_MAC)
 static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde";
-static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:5555 --headless";
+static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
 #endif
-static const QHostAddress DDE_FEATURE_POINT_SERVER_ADDR("127.0.0.1");
-static const quint16 DDE_FEATURE_POINT_SERVER_PORT = 5555;
+static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
+static const quint16 DDE_SERVER_PORT = 64204;
+static const quint16 DDE_CONTROL_PORT = 64205;
 
 static const int NUM_EXPRESSIONS = 46;
 static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSIONS) * sizeof(float) + sizeof(int);
@@ -127,15 +128,16 @@ struct Packet {
 };
 
 DdeFaceTracker::DdeFaceTracker() :
-    DdeFaceTracker(QHostAddress::Any, DDE_FEATURE_POINT_SERVER_PORT)
+    DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
 
 }
 
-DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort) :
     _ddeProcess(NULL),
     _host(host),
-    _port(port),
+    _serverPort(serverPort),
+    _controlPort(controlPort),
     _lastReceiveTimestamp(0),
     _reset(false),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
@@ -180,7 +182,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
-        _udpSocket.bind(_host, _port);
+        _udpSocket.bind(_host, _serverPort);
     }
 
     if (!enabled && _ddeProcess) {
@@ -189,6 +191,12 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         qDebug() << "[Info] DDE Face Tracker Stopped";
     }
 #endif
+}
+
+void DdeFaceTracker::resetTracking() {
+    qDebug() << "[Info] Reset DDE Tracking";
+    const char* DDE_RESET_COMMAND = "reset";
+    _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
 }
 
 bool DdeFaceTracker::isActive() const {

@@ -50,6 +50,7 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
+    void resetTracking();
 
 private slots:
     
@@ -60,13 +61,14 @@ private slots:
     
 private:
     DdeFaceTracker();
-    DdeFaceTracker(const QHostAddress& host, quint16 port);
+    DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort);
     ~DdeFaceTracker();
 
     QProcess* _ddeProcess;
 
     QHostAddress _host;
-    quint16 _port;
+    quint16 _serverPort;
+    quint16 _controlPort;
     
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);

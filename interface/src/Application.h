@@ -210,6 +210,8 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+    void setActiveFaceTracker();
+
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -387,8 +389,6 @@ public slots:
     void saveSettings();
 
     void notifyPacketVersionMismatch();
-
-    void setActiveFaceTracker();
 
     void domainConnectionDenied(const QString& reason);
 
