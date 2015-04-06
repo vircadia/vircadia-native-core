@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GPULogging.h"
 #include "GLBackendShared.h"
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -109,25 +110,25 @@ void GLBackend::checkGLError() {
     else {
         switch (error) {
         case GL_INVALID_ENUM:
-            qDebug() << "An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
+            qCDebug(gpulogging) << "An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
             break;
         case GL_INVALID_VALUE:
-            qDebug() << "A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
+            qCDebug(gpulogging) << "A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
             break;
         case GL_INVALID_OPERATION:
-            qDebug() << "The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
+            qCDebug(gpulogging) << "The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
             break;
         case GL_INVALID_FRAMEBUFFER_OPERATION:
-            qDebug() << "The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
+            qCDebug(gpulogging) << "The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
             break;
         case GL_OUT_OF_MEMORY:
-            qDebug() << "There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
+            qCDebug(gpulogging) << "There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
             break;
         case GL_STACK_UNDERFLOW:
-            qDebug() << "An attempt has been made to perform an operation that would cause an internal stack to underflow.";
+            qCDebug(gpulogging) << "An attempt has been made to perform an operation that would cause an internal stack to underflow.";
             break;
         case GL_STACK_OVERFLOW:
-            qDebug() << "An attempt has been made to perform an operation that would cause an internal stack to overflow.";
+            qCDebug(gpulogging) << "An attempt has been made to perform an operation that would cause an internal stack to overflow.";
             break;
         }
     }
