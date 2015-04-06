@@ -28,21 +28,23 @@ struct SphericalHarmonics {
 
 vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 
+    vec3 dir = direction.xzy; // we don;t understand why yet but we need to use z as vertical axis?
+
     const float C1 = 0.429043;
     const float C2 = 0.511664;
     const float C3 = 0.743125;
     const float C4 = 0.886227;
     const float C5 = 0.247708;
 
-    vec4 value = C1 * sh.L22 * (direction.x * direction.x - direction.y * direction.y) + 
-                        C3 * sh.L20 * direction.z * direction.z + 
+    vec4 value = C1 * sh.L22 * (dir.x * dir.x - dir.y * dir.y) + 
+                        C3 * sh.L20 * dir.z * dir.z + 
                         C4 * sh.L00 - C5 * sh.L20 + 
-                        2.0 * C1 * (   sh.L2m2 * direction.x * direction.y + 
-                                    sh.L21  * direction.x * direction.z + 
-                                    sh.L2m1 * direction.y * direction.z ) + 
-                        2.0 * C2 * (   sh.L11  * direction.x + 
-                                    sh.L1m1 * direction.y + 
-                                    sh.L10  * direction.z ) ; 
+                        2.0 * C1 * (   sh.L2m2 * dir.x * dir.y + 
+                                    sh.L21  * dir.x * dir.z + 
+                                    sh.L2m1 * dir.y * dir.z ) + 
+                        2.0 * C2 * (   sh.L11  * dir.x + 
+                                    sh.L1m1 * dir.y + 
+                                    sh.L10  * dir.z ) ; 
     return value;
 }
 
@@ -75,23 +77,19 @@ vec3 evalAmbienGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
 vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
-
-    vec3 fragNormal = vec3(invViewMat * vec4(normal, 0.0));
+    
+    vec3 fragNormal = normalize(vec3(invViewMat * vec4(normal, 0.0)));
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
-
-    // TODO: The world space normal doesn;t seem to work properly with the current SH definitions
-    // FoOr now, we use the normal in view space
-    vec3 ambientNormal = fragNormal.xzy;
-
-    vec3 color = /* diffuse.rgb * 0.5 */ evalSphericalLight(ambientSphere, ambientNormal).xyz;
+    
+    vec3 ambientNormal = fragNormal.xyz;
+    vec3 color = diffuse.rgb * 0.5 * evalSphericalLight(ambientSphere, ambientNormal).xyz;
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-  //  color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
-    //return color;
-    return fragNormal;
+    return color;
 }
 
 vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
