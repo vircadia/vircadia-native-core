@@ -31,6 +31,10 @@ class Text3DOverlay;
 #define OVR_CLIENT_DISTORTION 1
 
 
+// Direct HMD mode is currently only supported on windows and some linux systems will
+// misbehave if we try to enable the Oculus SDK at all, so isolate support for Direct
+// mode only to windows for now
+#ifdef Q_OS_WIN
 // On Win32 platforms, enabling Direct HMD requires that the SDK be
 // initialized before the GL context is set up, but this breaks v-sync
 // for any application that has a Direct mode enable Rift connected
@@ -40,6 +44,7 @@ class Text3DOverlay;
 // caveat that it will break v-sync in NON-VR mode if you have an Oculus
 // Rift connect and in Direct mode
 #define OVR_DIRECT_MODE 1
+#endif
 
 
 /// Handles interaction with the Oculus Rift.

@@ -681,6 +681,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Setup the projection matrix
     if (args && args->_viewFrustum) {
         glm::mat4 proj;
+        // If for easier debug depending on the pass
         if (mode == RenderArgs::SHADOW_RENDER_MODE) {
             args->_viewFrustum->evalProjectionMatrix(proj); 
         } else {
@@ -1744,6 +1745,8 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
         _transforms.push_back(Transform());
     }
 
+    // We should be able to use the Frustum viewpoint onstead of the "viewTransform"
+    // but it s still buggy in some cases, so let's s wait and fix it...
     _transforms[0] = _viewState->getViewTransform();
 
     _transforms[0].preTranslate(-_translation);
@@ -1771,6 +1774,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     if (args) {
         glm::mat4 proj;
+        // If for easier debug depending on the pass
         if (mode == RenderArgs::SHADOW_RENDER_MODE) {
             args->_viewFrustum->evalProjectionMatrix(proj); 
         } else {
