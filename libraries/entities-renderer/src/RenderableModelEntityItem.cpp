@@ -20,6 +20,7 @@
 #include <PerfStat.h>
 
 #include "EntityTreeRenderer.h"
+#include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
 
 EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -92,7 +93,7 @@ void RenderableModelEntityItem::remapTextures() {
         // contain this texture, then remove it by setting the URL to null
         if (!textureMap.contains(key)) {
             QUrl noURL;
-            qDebug() << "Removing texture named" << key << "by replacing it with no URL";
+            qCDebug(entitiesrenderer) << "Removing texture named" << key << "by replacing it with no URL";
             _model->setTextureWithNameToURL(key, noURL);
         }
     }
@@ -100,7 +101,7 @@ void RenderableModelEntityItem::remapTextures() {
     // here's where we remap any textures if needed...
     foreach(const QString& key, textureMap.keys()) {
         QUrl newTextureURL = textureMap[key].toUrl();
-        qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+        qCDebug(entitiesrenderer) << "Updating texture named" << key << "to texture at URL" << newTextureURL;
         _model->setTextureWithNameToURL(key, newTextureURL);
     }
     
@@ -260,7 +261,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     if (!_model) {
         return true;
     }
-    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
+    //qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
     
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
@@ -374,7 +375,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 }
 
                 if (pointsInPart.size() == 0) {
-                    qDebug() << "Warning -- meshPart has no faces";
+                    qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
                     continue;
                 }
 
