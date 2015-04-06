@@ -104,7 +104,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
+        shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
 #endif
 }

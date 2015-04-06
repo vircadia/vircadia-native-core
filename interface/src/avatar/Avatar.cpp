@@ -337,8 +337,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
+
+    ViewFrustum* frustum = nullptr;
+    if (renderMode == Avatar::SHADOW_RENDER_MODE) {
+        frustum = Application::getInstance()->getShadowViewFrustum();
+    } else {
+        frustum = Application::getInstance()->getDisplayViewFrustum();
+    }
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
