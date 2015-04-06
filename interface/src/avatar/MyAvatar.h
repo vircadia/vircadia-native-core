@@ -13,7 +13,7 @@
 #define hifi_MyAvatar_h
 
 #include <SettingHandle.h>
-#include <CharacterController.h>
+#include <DynamicCharacterController.h>
 
 #include "Avatar.h"
 
@@ -122,7 +122,7 @@ public:
 
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
-    CharacterController* getCharacterController() { return &_characterController; }
+    DynamicCharacterController* getCharacterController() { return &_characterController; }
     void updateCharacterController();
     
     void clearJointAnimationPriorities();
@@ -203,7 +203,7 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
-    CharacterController _characterController;
+    DynamicCharacterController _characterController;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
