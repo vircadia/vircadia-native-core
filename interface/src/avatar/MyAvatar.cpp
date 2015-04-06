@@ -1401,12 +1401,12 @@ void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* 
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
-    RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-        RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+ //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
+            _attachmentModels.at(i)->render(1.0f, renderMode, args);        
         }
     }
 }

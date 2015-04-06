@@ -528,10 +528,10 @@ void Avatar::simulateAttachments(float deltaTime) {
 }
 
 void Avatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
-    RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-        RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+ //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode, args);
+        model->render(1.0f, renderMode, args);
     }
 }
 

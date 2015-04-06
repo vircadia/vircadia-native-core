@@ -2996,6 +2996,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 "Application::displaySide() ... entities...");
             if (renderCollisionHulls) {
                 _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
+            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
             } else {
                 _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
             }

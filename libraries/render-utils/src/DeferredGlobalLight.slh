@@ -82,15 +82,16 @@ vec3 evalAmbienSphereGlobalColor(float shadowAttenuation, vec3 position, vec3 no
 
     // TODO: The world space normal doesn;t seem to work properly with the current SH definitions
     // FoOr now, we use the normal in view space
-    vec3 ambientNormal = normal;
+    vec3 ambientNormal = fragNormal.xzy;
 
-    vec3 color = diffuse.rgb * 0.5 * evalSphericalLight(ambientSphere, ambientNormal).xyz;
+    vec3 color = /* diffuse.rgb * 0.5 */ evalSphericalLight(ambientSphere, ambientNormal).xyz;
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+  //  color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
-    return color;
+    //return color;
+    return fragNormal;
 }
 
 vec3 evalLightmappedColor(float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {

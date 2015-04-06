@@ -814,9 +814,6 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args, true);
     }
 
-    // try that
-    batch.setPipeline(gpu::PipelinePointer());
-
     GLBATCH(glDepthMask)(true);
     GLBATCH(glDepthFunc)(GL_LESS);
     GLBATCH(glDisable)(GL_CULL_FACE);
