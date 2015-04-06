@@ -17,6 +17,7 @@
 #include "EntityItemID.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 #include "LightEntityItem.h"
 
 bool LightEntityItem::_lightsArePickable = false;
@@ -107,7 +108,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());

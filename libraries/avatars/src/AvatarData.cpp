@@ -26,6 +26,7 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 
+#include "AvatarLogging.h"
 #include "AvatarData.h"
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
@@ -118,7 +119,7 @@ void AvatarData::setClampedTargetScale(float targetScale, bool overideReferentia
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     
     setTargetScale(targetScale, overideReferential);
-    qDebug() << "Changed scale to " << _targetScale;
+    qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
@@ -304,7 +305,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     int maxAvailableSize = packet.size() - offset;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet at the start; "
+            qCDebug(avatars) << "Malformed AvatarData packet at the start; "
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -321,7 +322,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -334,7 +335,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &roll);
         if (glm::isnan(yaw) || glm::isnan(pitch) || glm::isnan(roll)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -350,7 +351,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, scale);
         if (glm::isnan(scale)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -365,7 +366,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
         if (glm::isnan(headYaw) || glm::isnan(headPitch) || glm::isnan(headRoll)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -380,7 +381,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += sizeof(lookAt);
         if (glm::isnan(lookAt.x) || glm::isnan(lookAt.y) || glm::isnan(lookAt.z)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -394,7 +395,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += sizeof(float);
         if (glm::isnan(audioLoudness)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
          }
@@ -441,7 +442,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             minPossibleSize++; // one byte for blendDataSize
             if (minPossibleSize > maxAvailableSize) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Malformed AvatarData packet after BitItems;"
+                    qCDebug(avatars) << "Malformed AvatarData packet after BitItems;"
                         << " displayName = '" << _displayName << "'"
                         << " minPossibleSize = " << minPossibleSize 
                         << " maxAvailableSize = " << maxAvailableSize;
@@ -464,7 +465,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             if (glm::isnan(leftEyeBlink) || glm::isnan(rightEyeBlink) 
                     || glm::isnan(averageLoudness) || glm::isnan(browAudioLift)) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
+                    qCDebug(avatars) << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
                 }
                 return maxAvailableSize;
             }
@@ -478,7 +479,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             minPossibleSize += blendDataSize;
             if (minPossibleSize > maxAvailableSize) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Malformed AvatarData packet after Blendshapes;"
+                    qCDebug(avatars) << "Malformed AvatarData packet after Blendshapes;"
                         << " displayName = '" << _displayName << "'"
                         << " minPossibleSize = " << minPossibleSize 
                         << " maxAvailableSize = " << maxAvailableSize;
@@ -504,7 +505,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     minPossibleSize += bytesOfValidity;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet after JointValidityBits;"
+            qCDebug(avatars) << "Malformed AvatarData packet after JointValidityBits;"
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -535,7 +536,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     minPossibleSize += numValidJoints * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet after JointData;"
+            qCDebug(avatars) << "Malformed AvatarData packet after JointData;"
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -915,13 +916,13 @@ bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL;
     
-    qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
+    qCDebug(avatars) << "Changing face model for avatar to" << _faceModelURL.toString();
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
     
-    qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
     
     updateJointMappings();
 }
@@ -929,7 +930,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
 
-    qDebug() << "Changing display name for avatar to" << displayName;
+    qCDebug(avatars) << "Changing display name for avatar to" << displayName;
 }
 
 QVector<AttachmentData> AvatarData::getAttachmentData() const {
@@ -1010,14 +1011,14 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 void AvatarData::setBillboard(const QByteArray& billboard) {
     _billboard = billboard;
     
-    qDebug() << "Changing billboard for avatar.";
+    qCDebug(avatars) << "Changing billboard for avatar.";
 }
 
 void AvatarData::setBillboardFromURL(const QString &billboardURL) {
     _billboardURL = billboardURL;
     
     
-    qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+    qCDebug(avatars) << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
     
     QNetworkRequest billboardRequest;
     billboardRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
