@@ -564,8 +564,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 void Application::aboutToQuit() {
-    _aboutToQuit = true;
+    emit beforeAboutToQuit();
     
+    _aboutToQuit = true;
     cleanupBeforeQuit();
 }
 
