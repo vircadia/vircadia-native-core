@@ -477,8 +477,8 @@ private:
         bool isTranslucent() const { return isFlag(IS_TRANSLUCENT); }
         bool hasLightmap() const { return isFlag(HAS_LIGHTMAP); }
         bool hasTangents() const { return isFlag(HAS_TANGENTS); }
-        bool HasSpecular() const { return isFlag(HAS_SPECULAR); }
-        bool HasEmissive() const { return isFlag(HAS_EMISSIVE); }
+        bool hasSpecular() const { return isFlag(HAS_SPECULAR); }
+        bool hasEmissive() const { return isFlag(HAS_EMISSIVE); }
         bool isSkinned() const { return isFlag(IS_SKINNED); }
         bool isStereo() const { return isFlag(IS_STEREO); }
         bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
