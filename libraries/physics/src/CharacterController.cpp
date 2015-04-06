@@ -257,6 +257,7 @@ btPairCachingGhostObject* CharacterController::getGhostObject() {
 }
 
 bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorld) {
+    BT_PROFILE("recoverFromPenetration");
     // Here we must refresh the overlapping paircache as the penetrating movement itself or the
     // previous recovery iteration might have used setWorldTransform and pushed us into an object
     // that is not in the previous cache contents from the last timestep, as will happen if we
@@ -355,6 +356,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
 
 
 void CharacterController::scanDown(btCollisionWorld* world) {
+    BT_PROFILE("scanDown");
     // we test with downward raycast and if we don't find floor close enough then turn on "hover"
     btKinematicClosestNotMeRayResultCallback callback(_ghostObject);
     callback.m_collisionFilterGroup = getGhostObject()->getBroadphaseHandle()->m_collisionFilterGroup;
@@ -374,6 +376,7 @@ void CharacterController::scanDown(btCollisionWorld* world) {
 }
 
 void CharacterController::stepUp(btCollisionWorld* world) {
+    BT_PROFILE("stepUp");
     // phase 1: up
 
     // compute start and end
@@ -440,6 +443,7 @@ void CharacterController::updateTargetPositionBasedOnCollision(const btVector3& 
 }
 
 void CharacterController::stepForward(btCollisionWorld* collisionWorld, const btVector3& movement) {
+    BT_PROFILE("stepForward");
     // phase 2: forward
     _targetPosition = _currentPosition + movement;
 
@@ -496,6 +500,7 @@ void CharacterController::stepForward(btCollisionWorld* collisionWorld, const bt
 }
 
 void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt) {
+    BT_PROFILE("stepDown");
     // phase 3: down
     //
     // The "stepDown" phase first makes a normal sweep down that cancels the lift from the "stepUp" phase.
@@ -607,6 +612,7 @@ void CharacterController::warp(const btVector3& origin) {
 
 
 void CharacterController::preStep(btCollisionWorld* collisionWorld) {
+    BT_PROFILE("preStep");
     if (!_enabled) {
         return;
     }
@@ -627,6 +633,7 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
 }
 
 void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar dt) {
+    BT_PROFILE("playerStep");
     if (!_enabled) {
         return; // no motion
     }
@@ -875,6 +882,7 @@ void CharacterController::updateShapeIfNecessary() {
 }
 
 void CharacterController::preSimulation(btScalar timeStep) {
+    BT_PROFILE("preSimulation");
     if (_enabled && _dynamicsWorld) {
         glm::quat rotation = _avatarData->getOrientation();
         _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
@@ -897,6 +905,7 @@ void CharacterController::preSimulation(btScalar timeStep) {
 }
 
 void CharacterController::postSimulation() {
+    BT_PROFILE("postSimulation");
     if (_enabled && _ghostObject) {
         const btTransform& avatarTransform = _ghostObject->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());

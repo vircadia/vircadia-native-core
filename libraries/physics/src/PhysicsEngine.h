@@ -86,6 +86,8 @@ public:
 
     void setCharacterController(CharacterController* character);
 
+    void dumpNextStats() { _dumpNextStats = true; }
+
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
@@ -121,6 +123,8 @@ private:
 
     /// character collisions
     CharacterController* _characterController = NULL;
+
+    bool _dumpNextStats = false;
 };
 
 #endif // hifi_PhysicsEngine_h
