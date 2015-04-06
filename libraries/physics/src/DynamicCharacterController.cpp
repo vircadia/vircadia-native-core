@@ -20,7 +20,6 @@ DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _rayLambda[0] = 1.0f;
     _rayLambda[1] = 1.0f;
     _halfHeight = 1.0f;
-    //_turnVelocity = 1.0f; // radians/sec
     _shape = NULL;
     _rigidBody = NULL;
 
@@ -30,7 +29,6 @@ DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _enabled = false;
 
     _walkVelocity.setValue(0.0f,0.0f,0.0f);
-    //_verticalVelocity = 0.0f;
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
@@ -46,48 +44,6 @@ DynamicCharacterController::~DynamicCharacterController() {
 // virtual 
 void DynamicCharacterController::setWalkDirection(const btVector3& walkDirection) {
     _walkVelocity = walkDirection;
-}
-
-/*
-void DynamicCharacterController::setup(btScalar height, btScalar width, btScalar stepHeight) {
-    btVector3 spherePositions[2];
-    btScalar sphereRadii[2];
-    
-    sphereRadii[0] = width;
-    sphereRadii[1] = width;
-    spherePositions[0] = btVector3 (0.0f, (height/btScalar(2.0f) - width), 0.0f);
-    spherePositions[1] = btVector3 (0.0f, (-height/btScalar(2.0f) + width), 0.0f);
-
-    _halfHeight = height/btScalar(2.0f);
-
-    _shape = new btMultiSphereShape(&spherePositions[0], &sphereRadii[0], 2);
-
-    btTransform startTransform;
-    startTransform.setIdentity();
-    startTransform.setOrigin(btVector3(0.0f, 2.0f, 0.0f));
-    btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-    btRigidBody::btRigidBodyConstructionInfo cInfo(1.0f, myMotionState, _shape);
-    _rigidBody = new btRigidBody(cInfo);
-    // kinematic vs. static doesn't work
-    //_rigidBody->setCollisionFlags( _rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-    _rigidBody->setSleepingThresholds(0.0f, 0.0f);
-    _rigidBody->setAngularFactor(0.0f);
-}
-
-void DynamicCharacterController::destroy() {
-    if (_shape) {
-        delete _shape;
-    }
-
-    if (_rigidBody) {
-        delete _rigidBody;
-        _rigidBody = NULL;
-    }
-}
-*/
-
-btCollisionObject* DynamicCharacterController::getCollisionObject() {
-    return _rigidBody;
 }
 
 void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
@@ -136,16 +92,6 @@ void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
 }
 
 void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar dt) {
-    /* Handle turning 
-    const btTransform& xform = _rigidBody->getCenterOfMassTransform();
-    if (left)
-        _turnAngle -= dt * _turnVelocity;
-    if (right)
-        _turnAngle += dt * _turnVelocity;
-
-    xform.setRotation(btQuaternion(btVector3(0.0, 1.0, 0.0), _turnAngle));
-    */
-
     btVector3 currentVelocity = _rigidBody->getLinearVelocity();
     btScalar currentSpeed = currentVelocity.length();
 
@@ -169,16 +115,10 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar
         }
         _rigidBody->setLinearVelocity(currentVelocity - tau * (currentVelocity - desiredVelocity));
     }
-
-    /*
-    _rigidBody->getMotionState()->setWorldTransform(xform);
-    _rigidBody->setCenterOfMassTransform(xform);
-    */
 }
 
 bool DynamicCharacterController::canJump() const {
-    return false; // temporarily disabled
-    //return onGround();
+    return onGround();
 }
 
 void DynamicCharacterController::jump() {
@@ -197,24 +137,6 @@ void DynamicCharacterController::jump() {
 
 bool DynamicCharacterController::onGround() const {
     return _rayLambda[0] < btScalar(1.0);
-}
-
-void DynamicCharacterController::debugDraw(btIDebugDraw* debugDrawer) {
-}
-
-void DynamicCharacterController::setUpInterpolate(bool value) {
-    // This method is required by btCharacterControllerInterface, but it does nothing.
-    // What it used to do was determine whether stepUp() would: stop where it hit the ceiling
-    // (interpolate = true, and now default behavior) or happily penetrate objects above the avatar.
-}
-
-void DynamicCharacterController::warp(const btVector3& origin) {
-}
-
-void DynamicCharacterController::reset(btCollisionWorld* foo) {
-}
-
-void DynamicCharacterController::registerPairCacheAndDispatcher(btOverlappingPairCache* pairCache, btCollisionDispatcher* dispatcher) {
 }
 
 void DynamicCharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
@@ -289,11 +211,8 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld = world;
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             _dynamicsWorld->addRigidBody(_rigidBody);
-//            _dynamicsWorld->addCollisionObject(_rigidBody,
-//                    btBroadphaseProxy::CharacterFilter,
-//                    btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter);
             _dynamicsWorld->addAction(this);
-//            reset(_dynamicsWorld);
+            //reset(_dynamicsWorld);
         }
     }
     if (_dynamicsWorld) {
@@ -314,7 +233,7 @@ void DynamicCharacterController::updateShapeIfNecessary() {
         // (don't want to delete _rigidBody out from under the simulation)
         assert(!(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION));
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
-        // delete shape and GhostObject
+        // delete shape and RigidBody
         delete _rigidBody;
         _rigidBody = NULL;
         delete _shape;
@@ -343,10 +262,6 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             _rigidBody->setAngularFactor (0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                             glmToBullet(_avatarData->getPosition())));
-            // stepHeight affects the heights of ledges that the character can ascend
-            //_stepUpHeight = _radius + 0.25f * _halfHeight + 0.1f;
-            //_stepDownHeight = _radius;
-
             //_rigidBody->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
         } else {
             // TODO: handle this failure case
@@ -365,17 +280,14 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
 
         _rigidBody->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
         _rigidBody->setLinearVelocity(walkVelocity);
-        //setVelocityForTimeInterval(walkVelocity, timeStep);
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (canJump()) {
+                // TODO: make jump work
                 //_verticalVelocity = _jumpSpeed;
                 _isJumping = true;
             }
         }
-        // remember last position so we can throttle the total motion from the next step
-//        _lastPosition = position;
-//        _stepDt = 0.0f;
 
         // the rotation is determined by AvatarData
         btTransform xform = _rigidBody->getCenterOfMassTransform();
@@ -389,20 +301,6 @@ void DynamicCharacterController::postSimulation() {
         const btTransform& avatarTransform = _rigidBody->getCenterOfMassTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
-
-        /*
-        // cap the velocity of the step so that the character doesn't POP! so hard on steps
-        glm::vec3 finalStep = position - _lastPosition;
-        btVector3 finalVelocity = _walkVelocity + _verticalVelocity * _currentUp;;
-        const btScalar MAX_RESOLUTION_SPEED = 5.0f; // m/sec
-        btScalar maxStepLength = glm::max(MAX_RESOLUTION_SPEED, 2.0f * finalVelocity.length()) * _stepDt;
-        btScalar stepLength = glm::length(finalStep);
-        if (stepLength > maxStepLength) {
-            position = _lastPosition + (maxStepLength / stepLength) * finalStep;
-            // NOTE: we don't need to move ghostObject to throttled position unless 
-            // we want to support do async ray-traces/collision-queries against character
-        }
-        */
 
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(position - rotation * _shapeLocalOffset);

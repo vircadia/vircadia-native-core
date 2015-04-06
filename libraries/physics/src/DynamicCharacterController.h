@@ -49,27 +49,22 @@ public:
     DynamicCharacterController(AvatarData* avatarData);
     ~DynamicCharacterController ();
 
-//    void setup(btScalar height = 2.0, btScalar width = 0.25, btScalar stepHeight = 0.25);
-//    void destroy ();
-
     virtual void setWalkDirection(const btVector3& walkDirection);
     virtual void setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval) { assert(false); }
 
-    virtual void reset(btCollisionWorld* collisionWorld);
-    virtual void warp(const btVector3& origin);
-    virtual void registerPairCacheAndDispatcher(btOverlappingPairCache* pairCache, btCollisionDispatcher* dispatcher);
+    // TODO: implement these when needed
+    virtual void reset(btCollisionWorld* collisionWorld) { }
+    virtual void warp(const btVector3& origin) { }
+    virtual void debugDraw(btIDebugDraw* debugDrawer) { }
+    virtual void setUpInterpolate(bool value) { }
 
-    btCollisionObject* getCollisionObject();
+    btCollisionObject* getCollisionObject() { return _rigidBody; }
 
     ///btActionInterface interface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) {
         preStep(collisionWorld);
         playerStep(collisionWorld, deltaTime);
     }
-
-    virtual void debugDraw(btIDebugDraw* debugDrawer);
-
-    void setUpInterpolate(bool value);
 
     virtual void preStep(btCollisionWorld* collisionWorld);
     virtual void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
@@ -91,15 +86,5 @@ public:
     void preSimulation(btScalar timeStep);
     void postSimulation();
 };
-
-//virtual void    setWalkDirectio(const btVector3 &walkDirection)=0
-//virtual void    setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval)=0
-//virtual void    reset()=0
-//virtual void    warp(const btVector3 &origin)=0
-//virtual void    preStep(btCollisionWorld *collisionWorld)=0
-//virtual void    playerStep(btCollisionWorld *collisionWorld, btScalar dt)=0
-//virtual bool    canJump() const =0
-//virtual void    jump()=0
-//virtual bool    onGround() const =0
 
 #endif // hifi_DynamicCharacterController_h
