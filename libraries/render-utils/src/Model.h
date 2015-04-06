@@ -357,6 +357,7 @@ private:
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
     static Locations _translucentLocations;
+    static Locations _shadowLocations;
 
     static Locations _lightmapLocations;
     static Locations _lightmapNormalMapLocations;
@@ -377,8 +378,9 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;    
-    static SkinLocations _skinShadowLocations;
     static SkinLocations _skinTranslucentLocations;
+    static SkinLocations _skinShadowLocations;
+
 
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
     static void initSkinProgram(gpu::ShaderPointer& program, SkinLocations& locations);
@@ -463,7 +465,7 @@ private:
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
                         bool forceRenderMeshes = false);
                         
-    void setupBatchTransform(gpu::Batch& batch);
+    void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
