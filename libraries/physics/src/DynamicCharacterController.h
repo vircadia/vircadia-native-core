@@ -36,9 +36,6 @@ protected:
     bool _isOnGround;
     bool _isJumping;
     bool _isHovering;
-//    quint64 _jumpToHoverStart;
-//    btScalar _velocityTimeInterval;
-//    btScalar _stepDt;
     uint32_t _pendingFlags;
 
     btDynamicsWorld* _dynamicsWorld = NULL;
