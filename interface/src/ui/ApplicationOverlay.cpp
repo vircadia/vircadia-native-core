@@ -428,15 +428,18 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
 }
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
+    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const float pitch = (0.5f - y) * MOUSE_PITCH_RANGE;
     const float yaw = (0.5f - x) * MOUSE_YAW_RANGE;
     const glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
     const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
-    //Rotate the UI pick ray by the avatar orientation
-    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    origin = myAvatar->getDefaultEyePosition();
-    direction = myAvatar->getOrientation() * localDirection;
+    // Get cursor position
+    const glm::vec3 cursorPos = myAvatar->getDefaultEyePosition() + myAvatar->getOrientation() * localDirection;
+
+    // Ray start where the eye position is and stop where the cursor is
+    origin = myAvatar->getEyePosition();
+    direction = cursorPos - origin;
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
