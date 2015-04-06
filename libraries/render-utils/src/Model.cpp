@@ -121,18 +121,20 @@ Model::Locations Model::_normalMapLocations;
 Model::Locations Model::_specularMapLocations;
 Model::Locations Model::_normalSpecularMapLocations;
 Model::Locations Model::_translucentLocations;
+Model::Locations Model::_shadowLocations;
 
 Model::Locations Model::_lightmapLocations;
 Model::Locations Model::_lightmapNormalMapLocations;
 Model::Locations Model::_lightmapSpecularMapLocations;
 Model::Locations Model::_lightmapNormalSpecularMapLocations;
 
+
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
-Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
+Model::SkinLocations Model::_skinShadowLocations;
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
@@ -284,8 +286,7 @@ void Model::init() {
         
         _shadowProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelShadowVertex, modelShadowPixel));
         makeResult = gpu::Shader::makeProgram(*_shadowProgram, slotBindings);
-        Model::Locations tempShadowLoc;
-        initProgram(_shadowProgram, tempShadowLoc);
+        initProgram(_shadowProgram, _shadowLocations);
 
         _lightmapProgram = gpu::ShaderPointer(gpu::Shader::createProgram(modelLightmapVertex, modelLightmapPixel));
         makeResult = gpu::Shader::makeProgram(*_lightmapProgram, slotBindings);
@@ -656,7 +657,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     renderSetup(args);
     return renderCore(alpha, mode, args);
 }
-    
+
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
@@ -670,7 +671,12 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Setup the projection matrix
     if (args && args->_viewFrustum) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        // If for easier debug depending on the pass
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         batch.setProjectionTransform(proj);
     }
 
@@ -678,7 +684,9 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
+
     _transforms[0] = _viewState->getViewTransform();
+
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
 
@@ -699,7 +707,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     GLBATCH(glDisable)(GL_BLEND);
     GLBATCH(glEnable)(GL_ALPHA_TEST);
-    
+ 
     if (mode == SHADOW_RENDER_MODE) {
         GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
     }
@@ -1710,14 +1718,19 @@ void Model::startScene(RenderArgs::RenderSide renderSide) {
     }
 }
 
-void Model::setupBatchTransform(gpu::Batch& batch) {
+void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
+
+    // We should be able to use the Frustum viewpoint onstead of the "viewTransform"
+    // but it s still buggy in some cases, so let's s wait and fix it...
     _transforms[0] = _viewState->getViewTransform();
+
     _transforms[0].preTranslate(-_translation);
+
     batch.setViewTransform(_transforms[0]);
 }
 
@@ -1738,7 +1751,12 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     if (args) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        // If for easier debug depending on the pass
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         gpu::Batch batch;
         batch.setProjectionTransform(proj);
         backend.render(batch);
@@ -2286,6 +2304,7 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     skinLocations = &_skinLocations;
     if (mode == SHADOW_RENDER_MODE) {
         program = _shadowProgram;
+        locations = &_shadowLocations;
         skinProgram = _skinShadowProgram;
         skinLocations = &_skinShadowLocations;
     } else if (translucent && alphaThreshold == 0.0f) {
@@ -2376,7 +2395,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
                     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations, skinLocations);
                     pickProgramsNeeded = false;
                 }
-                model->setupBatchTransform(batch);
+                model->setupBatchTransform(batch, args);
                 meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
             }
         }
