@@ -121,6 +121,7 @@
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
+#include "scripting/ScriptsScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
@@ -3594,6 +3595,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction(hmdInterface, "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+
+    QScriptValue scriptsScriptingInterface = scriptEngine->registerGlobalObject("Scripts", ScriptsScriptingInterface::getInstance());
+    scriptEngine->registerFunction(scriptsScriptingInterface, "getPublic", ScriptsScriptingInterface::getPublic, 0);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
