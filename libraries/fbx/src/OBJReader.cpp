@@ -21,7 +21,8 @@
 #include "Shape.h"
 
 
-QHash<QString, float> COMMENT_SCALE_HINTS;
+QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
+                                             {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
 
 class OBJTokenizer {
@@ -50,11 +51,6 @@ private:
 
 
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
-    // This is a list of comments that exports use to hint at scaling
-    if (COMMENT_SCALE_HINTS.isEmpty()) {
-        COMMENT_SCALE_HINTS["This file uses centimeters as units"] = 1.0f / 100.0f;
-        COMMENT_SCALE_HINTS["This file uses millimeters as units"] = 1.0f / 1000.0f;
-    }
 }
 
 

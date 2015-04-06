@@ -1,6 +1,6 @@
 //
-//  NetworkLogging.cpp
-//  libraries/networking/src
+//  AudioLogging.h
+//  libraries/audio/src
 //
 //  Created by Seth Alves on 4/6/15.
 //  Copyright 2014 High Fidelity, Inc.
@@ -9,6 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "NetworkLogging.h"
+#include "AudioLogging.h"
 
-Q_LOGGING_CATEGORY(networking, "hifi.networking")
+Q_LOGGING_CATEGORY(audio, "hifi.audio")

@@ -10,7 +10,7 @@
 //
 
 #include "ScriptAudioInjector.h"
-
+#include "ScriptEngineLogging.h"
 #include "AudioScriptingInterface.h"
 
 void registerAudioMetaTypes(QScriptEngine* engine) {
@@ -65,7 +65,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
         return new ScriptAudioInjector(injector);
 
     } else {
-        qDebug() << "AudioScriptingInterface::playSound called with null Sound object.";
+        qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";
         return NULL;
     }
 }
