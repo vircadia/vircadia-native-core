@@ -73,7 +73,6 @@ int OBJTokenizer::nextToken() {
         switch (ch) {
             case '#': {
                 _comment = _device->readLine(); // stash comment for a future call to getComment
-                qDebug() << "COMMENT:" << _comment;
                 return COMMENT_TOKEN;
             }
 
