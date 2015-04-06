@@ -269,6 +269,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
+        _friendsWindow(NULL),
         _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
@@ -310,8 +311,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>()),
-        _friendsWindow(NULL)
+        _domainConnectionRefusals(QList<QString>())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -977,6 +977,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
+            case Qt::Key_F: {
+                _physicsEngine.dumpNextStats();
+                break;
+            }
+
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
@@ -1184,6 +1189,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Comma: {
                 renderCollisionHulls = !renderCollisionHulls;
+                break;
             }
 
             default:
@@ -2617,7 +2623,12 @@ glm::vec3 Application::getSunDirection() {
     return skyStage->getSunLight()->getDirection();
 }
 
+// FIXME, preprocessor guard this check to occur only in DEBUG builds
+static QThread * activeRenderingThread = nullptr;
+
 void Application::updateShadowMap() {
+    activeRenderingThread = QThread::currentThread();
+
     PerformanceTimer perfTimer("shadowMap");
     QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
     fbo->bind();
@@ -2712,6 +2723,10 @@ void Application::updateShadowMap() {
         glLoadIdentity();
         glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
 
+        glm::mat4 projAgain;
+        glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&projAgain);
+
+
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
@@ -2767,6 +2782,7 @@ void Application::updateShadowMap() {
     fbo->release();
     
     glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    activeRenderingThread = nullptr;
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2826,9 +2842,6 @@ QImage Application::renderAvatarBillboard() {
 
     return image;
 }
-
-// FIXME, preprocessor guard this check to occur only in DEBUG builds
-static QThread * activeRenderingThread = nullptr;
 
 ViewFrustum* Application::getViewFrustum() {
 #ifdef DEBUG

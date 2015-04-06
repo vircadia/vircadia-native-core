@@ -443,7 +443,6 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 }
 
-static bool timerActive = false;
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
     auto glCanvas = Application::getInstance()->getGLWidget();
@@ -463,6 +462,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // (does not seem to work on OSX with SDK based distortion)
     // FIXME can't use a static object here, because it will cause a crash when the
     // query attempts deconstruct after the GL context is gone.
+    static bool timerActive = false;
     static QOpenGLTimerQuery timerQuery;
     if (!timerQuery.isCreated()) {
         timerQuery.create();
@@ -671,7 +671,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #endif
 
     // No DK2, no message.
-    char latency2Text[128] = "";
     {
         float latencies[5] = {};
         if (debugFrame && ovrHmd_GetFloatArray(_ovrHmd, "DK2Latency", latencies, 5) == 5)
