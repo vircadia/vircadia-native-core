@@ -312,7 +312,7 @@
                                 }
 
                                 elTextText.value = properties.text;
-                                elTextLineHeight.value = properties.lineHeight;
+                                elTextLineHeight.value = properties.lineHeight.toFixed(4);
                                 elTextTextColorRed.value = properties.textColor.red;
                                 elTextTextColorGreen.value = properties.textColor.green;
                                 elTextTextColorBlue.value = properties.textColor.blue;
@@ -476,6 +476,28 @@
                 var ev = document.createEvent("HTMLEvents");
                 ev.initEvent("change", true, true);
                 document.activeElement.dispatchEvent(ev);
+            }
+
+            // For input and textarea elements, select all of the text on focus
+            // WebKit-based browsers, such as is used with QWebView, have a quirk
+            // where the mouseup event comes after the focus event, causing the
+            // text to be deselected immediately after selecting all of the text.
+            // To make this work we block the first mouseup event after the elements
+            // received focus.  If we block all mouseup events the user will not
+            // be able to click within the selected text.
+            var els = document.querySelectorAll("input, textarea");
+            for (var i = 0; i < els.length; i++) {
+                var clicked = false;
+                els[i].onfocus = function() {
+                    this.select();
+                    clicked = false;
+                };
+                els[i].onmouseup = function(e) {
+                    if (!clicked) {
+                        e.preventDefault();
+                        clicked = true;
+                    }
+                };
             }
         }
     </script>
@@ -723,7 +745,7 @@
         <div class="text-section property">
             <div class="label">Line Height</div>
             <div class="value">
-                <input class="coord" type='number' id="property-text-line-height"></input>
+                <input class="coord" type='number' id="property-text-line-height" min="0" step="0.005"></input>
             </div>
         </div>
         <div class="text-section property">

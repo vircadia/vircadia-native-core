@@ -524,9 +524,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         } else {
             if (useMeters) {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensions);
+                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensions);
             } else {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensionsInDomainUnits);
+                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
             }
         }
         

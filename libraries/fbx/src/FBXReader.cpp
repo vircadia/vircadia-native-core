@@ -819,8 +819,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 }
 
-ExtractedMesh extractMesh(const FBXNode& object) {
+ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
     MeshData data;
+    data.extracted.mesh.meshIndex = meshIndex++;
     QVector<int> materials;
     QVector<int> textures;
     foreach (const FBXNode& child, object.children) {
@@ -1261,6 +1262,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
+    unsigned int meshIndex = 0;
     foreach (const FBXNode& child, node.children) {
     
         if (child.name == "FBXHeaderExtension") {
@@ -1305,7 +1307,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        meshes.insert(getID(object.properties), extractMesh(object));
+                        meshes.insert(getID(object.properties), extractMesh(object, meshIndex));
                     } else { // object.properties.at(2) == "Shape"
                         ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
                         blendshapes.append(extracted);
@@ -1440,7 +1442,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         } else if (subobject.name == "Vertices") {
                             // it's a mesh as well as a model
                             mesh = &meshes[getID(object.properties)];
-                            *mesh = extractMesh(object);
+                            *mesh = extractMesh(object, meshIndex);
                              
                         } else if (subobject.name == "Shape") {
                             ExtractedBlendshape blendshape =  { subobject.properties.at(0).toString(),
@@ -1980,7 +1982,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(materials, textureFilenames, childMap);
-    
+
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
         

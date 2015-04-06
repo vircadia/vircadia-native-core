@@ -162,6 +162,7 @@ option(GET_GLM "Get GLM library automatically as external project" 1)
 option(GET_GVERB "Get Gverb library automatically as external project" 1)
 option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
+option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
 if (WIN32)

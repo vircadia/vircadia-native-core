@@ -92,8 +92,8 @@ void EarthSunModel::setSurfaceOrientation(const Quat& orientation) {
 double moduloRange(double val, double minVal, double maxVal) {
     double range = maxVal - minVal;
     double rval = (val - minVal) / range;
-    double intval;
-    return modf(rval, &intval) * range + minVal;
+    rval =  rval - floor(rval);
+    return rval * range + minVal;
 }
 
 const float MAX_LONGITUDE = 180.0f;

@@ -25,6 +25,7 @@
 #include "AvatarManager.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "SceneScriptingInterface.h"
 
 // 70 times per second - target is 60hz, but this helps account for any small deviations
 // in the update loop
@@ -122,15 +123,17 @@ void AvatarManager::renderAvatars(RenderArgs::RenderMode renderMode, bool postLi
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
 
     if (!selfAvatarOnly) {
-        foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
-            Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
-            if (!avatar->isInitialized()) {
-                continue;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+            foreach (const AvatarSharedPointer& avatarPointer, _avatarHash) {
+                Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+                if (!avatar->isInitialized()) {
+                    continue;
+                }
+                avatar->render(cameraPosition, renderMode, postLighting);
+                avatar->setDisplayingLookatVectors(renderLookAtVectors);
             }
-            avatar->render(cameraPosition, renderMode, postLighting);
-            avatar->setDisplayingLookatVectors(renderLookAtVectors);
+            renderAvatarFades(cameraPosition, renderMode);
         }
-        renderAvatarFades(cameraPosition, renderMode);
     } else {
         // just render myAvatar
         _myAvatar->render(cameraPosition, renderMode, postLighting);

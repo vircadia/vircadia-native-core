@@ -24,6 +24,7 @@
 #include "LoginDialog.h"
 #include "UIUtil.h"
 
+const QString CREATE_ACCOUNT_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/signup";
 const QString FORGOT_PASSWORD_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
@@ -45,6 +46,7 @@ LoginDialog::LoginDialog(QWidget* parent) :
             this, &LoginDialog::close);
 
     UIUtil::scaleWidgetFontSizes(this);
+    _ui->accountLabel->setText(_ui->accountLabel->text().arg(CREATE_ACCOUNT_URL, FORGOT_PASSWORD_URL));
 
     // Initialize toggle connection
     toggleQAction();

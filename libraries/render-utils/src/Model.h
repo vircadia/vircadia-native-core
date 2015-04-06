@@ -299,6 +299,7 @@ private:
     float _nextLODHysteresis;
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
+    QSharedPointer<NetworkGeometry> _saveNonCollisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
@@ -420,7 +421,7 @@ private:
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
                         bool forceRenderMeshes = false);
                         
-    void setupBatchTransform(gpu::Batch& batch);
+    void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
     QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
@@ -526,6 +527,7 @@ private:
     };
     static RenderPipelineLib _renderPipelineLib;
 
+    bool _renderCollisionHull;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

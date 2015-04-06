@@ -54,24 +54,26 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
         _windowWidget = dockWidget;
     } else {
-        _windowWidget = new QWidget(Application::getInstance()->getWindow(), Qt::Window);
-        _windowWidget->setWindowTitle(title);
-        _windowWidget->setMinimumSize(width, height);
+        auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
+        dialogWidget->setWindowTitle(title);
+        dialogWidget->setMinimumSize(width, height);
+        connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
 
-        auto layout = new QVBoxLayout(_windowWidget);
+        auto layout = new QVBoxLayout(dialogWidget);
         layout->setContentsMargins(0, 0, 0, 0);
-        _windowWidget->setLayout(layout);
+        dialogWidget->setLayout(layout);
 
-        _webView = new QWebView(_windowWidget);
+        _webView = new QWebView(dialogWidget);
 
         layout->addWidget(_webView);
 
         addEventBridgeToWindowObject();
+
+        _windowWidget = dialogWidget;
     }
 
     _webView->setPage(new DataWebPage());
     _webView->setUrl(url);
-
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
     connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
@@ -79,6 +81,10 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 }
 
 WebWindowClass::~WebWindowClass() {
+}
+
+void WebWindowClass::hasClosed() {
+    emit closed();
 }
 
 void WebWindowClass::addEventBridgeToWindowObject() {
@@ -89,24 +95,26 @@ void WebWindowClass::setVisible(bool visible) {
     if (visible) {
         if (_isToolWindow) {
             QMetaObject::invokeMethod(
-                Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+                Application::getInstance()->getToolWindow(), "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
         } else {
-            QMetaObject::invokeMethod(_windowWidget, "raise", Qt::BlockingQueuedConnection);
+            QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
+            QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);
         }
     }
-    QMetaObject::invokeMethod(_windowWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    QMetaObject::invokeMethod(_windowWidget, "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
 }
 
 void WebWindowClass::setURL(const QString& url) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setURL", Qt::BlockingQueuedConnection, Q_ARG(QString, url));
+        QMetaObject::invokeMethod(this, "setURL", Qt::AutoConnection, Q_ARG(QString, url));
         return;
     }
     _webView->setUrl(url);
 }
 
 void WebWindowClass::raise() {
-    QMetaObject::invokeMethod(_windowWidget, "raise", Qt::BlockingQueuedConnection);
+    QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
+    QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);
 }
 
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {

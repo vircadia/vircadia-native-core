@@ -1005,22 +1005,25 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
 
-    // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
-    if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
-        renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
-    } else {
-        float clipDistance = _skeletonModel.getHeadClipDistance();
-        if (OculusManager::isConnected()) {
-            // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
-            glm::vec3 cameraToAvatar = _position - cameraPos;
-            cameraToAvatar.y = 0.0f;
-            glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
-            float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
-            if (headOffset > 0) {
-                clipDistance += headOffset;
+    // Only tweak the frustum near far if it's not shadow
+    if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+        // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
+        if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
+            renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
+        } else {
+            float clipDistance = _skeletonModel.getHeadClipDistance();
+            if (OculusManager::isConnected()) {
+                // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
+                glm::vec3 cameraToAvatar = _position - cameraPos;
+                cameraToAvatar.y = 0.0f;
+                glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
+                float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
+                if (headOffset > 0) {
+                    clipDistance += headOffset;
+                }
             }
+            renderFrustum->setNearClip(clipDistance);
         }
-        renderFrustum->setNearClip(clipDistance);
     }
 
     //  Render the body's voxels and head
@@ -1449,5 +1452,11 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 void MyAvatar::clearDriveKeys() {
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
         _driveKeys[i] = 0.0f;
+    }
+}
+
+void MyAvatar::relayDriveKeysToCharacterController() { 
+    if (_driveKeys[UP] > 0.0f) {
+        _characterController.jump(); 
     }
 }

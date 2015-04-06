@@ -337,8 +337,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
     
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
+    ViewFrustum* frustum = nullptr;
+    if (renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+        frustum = Application::getInstance()->getShadowViewFrustum();
+    } else {
+        frustum = Application::getInstance()->getDisplayViewFrustum();
+    }
+
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
@@ -364,9 +369,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
         // render body
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-            renderBody(frustum, renderMode, postLighting, glowLevel);
-        }
+        renderBody(frustum, renderMode, postLighting, glowLevel);
 
         if (!postLighting && renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights

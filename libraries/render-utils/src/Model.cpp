@@ -82,7 +82,8 @@ Model::Model(QObject* parent) :
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
-    _meshGroupsKnown(false) {
+    _meshGroupsKnown(false),
+    _renderCollisionHull(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -664,7 +665,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     renderSetup(args);
     return renderCore(alpha, mode, args);
 }
-    
+
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
@@ -680,7 +681,11 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     // Setup the projection matrix
     if (args && args->_viewFrustum) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         batch.setProjectionTransform(proj);
     }
 
@@ -688,7 +693,9 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
+
     _transforms[0] = _viewState->getViewTransform();
+
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
 
@@ -725,6 +732,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     {
         GLenum buffers[3];
         int bufferCount = 0;
+
        // if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
         if (mode != RenderArgs::SHADOW_RENDER_MODE) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
@@ -1732,14 +1740,17 @@ void Model::startScene(RenderArgs::RenderSide renderSide) {
     }
 }
 
-void Model::setupBatchTransform(gpu::Batch& batch) {
+void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
     }
+
     _transforms[0] = _viewState->getViewTransform();
+
     _transforms[0].preTranslate(-_translation);
+
     batch.setViewTransform(_transforms[0]);
 }
 
@@ -1763,7 +1774,11 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     if (args) {
         glm::mat4 proj;
-        args->_viewFrustum->evalProjectionMatrix(proj); 
+        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        } else {
+            args->_viewFrustum->evalProjectionMatrix(proj); 
+        }
         gpu::Batch batch;
         batch.setProjectionTransform(proj);
         backend.render(batch);
@@ -1953,6 +1968,23 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
     if (_meshStates.isEmpty()) {
         return false;
     }
+
+    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+        // turning collision hull rendering on
+        _renderCollisionHull = true;
+        _nextGeometry = _collisionGeometry;
+        _saveNonCollisionGeometry = _geometry;
+        updateGeometry();
+        simulate(0.0, true);
+    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+        // turning collision hull rendering off
+        _renderCollisionHull = false;
+        _nextGeometry = _saveNonCollisionGeometry;
+        _saveNonCollisionGeometry.clear();
+        updateGeometry();
+        simulate(0.0, true);
+    }
+
     renderSetup(args);
     _modelsInScene.push_back(this);
     return true;
@@ -2343,7 +2375,8 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
                     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations);
                     pickProgramsNeeded = false;
                 }
-                model->setupBatchTransform(batch);
+
+                model->setupBatchTransform(batch, args);
                 meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations);
             }
         }
@@ -2388,7 +2421,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
 
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        Locations* locations, bool forceRenderSomeMeshes) {
+                                        Locations* locations, bool forceRenderMeshes) {
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2428,10 +2461,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
             if (args->_viewFrustum) {
             
-                shouldRender = forceRenderSomeMeshes || 
+                shouldRender = forceRenderMeshes || 
                                     args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
             
-                if (shouldRender && !forceRenderSomeMeshes) {
+                if (shouldRender && !forceRenderMeshes) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);

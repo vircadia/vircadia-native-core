@@ -87,8 +87,9 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    void jump() { _characterController.jump(); }
     
+    void relayDriveKeysToCharacterController();
+
     bool isMyAvatar() { return true; }
     
     bool isLookingAtLeftEye();

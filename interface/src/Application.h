@@ -52,6 +52,7 @@
 #include "avatar/MyAvatar.h"
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
@@ -68,8 +69,6 @@
 #include "ui/ToolWindow.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
-
-
 #include "UndoStackScriptingInterface.h"
 
 
@@ -336,6 +335,9 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
+    void faceURLChanged(const QString& newValue);
+    void skeletonURLChanged(const QString& newValue);
+
 public slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -364,7 +366,9 @@ public slots:
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
-    
+    void showFriendsWindow();
+    void friendsWindowClosed();
+
     void packageModel();
     
     void openUrl(const QUrl& url);
@@ -468,6 +472,7 @@ private:
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
+    WebWindowClass* _friendsWindow;
     
     DatagramProcessor* _datagramProcessor;
 

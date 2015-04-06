@@ -23,27 +23,17 @@
 #include <VHACD.h>
 
 namespace vhacd {
-
-    typedef struct {
-        int meshCount;
-        QVector<int> convexHullsCountList;
-        QVector<QVector<VHACD::IVHACD::ConvexHull>> convexHullList;
-    } ComputeResults;
-
-    typedef struct {
-        int meshCount;
-        QVector<QVector<glm::vec3>> perMeshVertices;
-        QVector<QVector<int>> perMeshTriangleIndices;
-        QVector<float> perMeshLargestDimension;
-    } LoadFBXResults;
-
     class VHACDUtil {
     public:
-        bool loadFBX(const QString filename, vhacd::LoadFBXResults *results);
-        void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
-        void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
-        bool computeVHACD(vhacd::LoadFBXResults *meshes, VHACD::IVHACD::Parameters params,
-                          vhacd::ComputeResults *results, int startMeshIndex, int endMeshIndex, float minimumMeshSize) const;
+        bool loadFBX(const QString filename, FBXGeometry& result);
+        // void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+        // void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+        bool computeVHACD(FBXGeometry& geometry,
+                          VHACD::IVHACD::Parameters params,
+                          FBXGeometry& result,
+                          int startMeshIndex, int endMeshIndex,
+                          float minimumMeshSize,
+                          bool fattenFaces);
         ~VHACDUtil();
     };
 
@@ -52,7 +42,7 @@ namespace vhacd {
         ProgressCallback(void);
         ~ProgressCallback();
 
-        //Couldn't follow coding guideline here due to virtual function declared in IUserCallback
+        // Couldn't follow coding guideline here due to virtual function declared in IUserCallback
         void Update(const double overallProgress, const double stageProgress, const double operationProgress, 
 		    const char * const stage, const char * const operation);
     };

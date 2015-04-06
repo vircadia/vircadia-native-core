@@ -21,6 +21,8 @@
 
 #include <MenuItemProperties.h>
 
+#include "DiscoverabilityManager.h"
+
 class Settings;
 
 class Menu : public QMenuBar {
@@ -64,6 +66,9 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
+private slots:
+    void setVisibility();
+
 private:
     static Menu* _instance;
     Menu();
@@ -94,12 +99,14 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     
+    void visibilityChanged(Discoverability::Mode discoverabilityMode);
     
     QHash<QString, QAction*> _actionHash;
 };
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
@@ -119,7 +126,6 @@ namespace MenuOption {
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
-    const QString Avatars = "Avatars";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -156,7 +162,6 @@ namespace MenuOption {
     const QString EnableCharacterController = "Enable avatar collisions";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
-    const QString Entities = "Entities";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -248,6 +253,9 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString PackageModel = "Package Model...";
     const QString Visage = "Visage";
+    const QString VisibleToEveryone = "Everyone";
+    const QString VisibleToFriends = "Friends";
+    const QString VisibleToNoOne = "No one";
     const QString Wireframe = "Wireframe";
 }
 

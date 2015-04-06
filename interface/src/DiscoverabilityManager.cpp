@@ -24,7 +24,7 @@ const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::All;
 DiscoverabilityManager::DiscoverabilityManager() :
     _mode("discoverabilityMode", DEFAULT_DISCOVERABILITY_MODE)
 {
-    
+    qRegisterMetaType<Discoverability::Mode>("Discoverability::Mode");
 }
 
 const QString API_USER_LOCATION_PATH = "/api/v1/user/location";
@@ -93,5 +93,7 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
             // if we just got set to no discoverability, make sure that we delete our location in DB
             removeLocation();
         }
+
+        emit discoverabilityModeChanged(discoverabilityMode);
     }
 }

@@ -212,6 +212,9 @@ btVector3 CharacterController::perpindicularComponent(const btVector3& direction
 }
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
+const float DEFAULT_GRAVITY = 5.0f;
+const float TERMINAL_VELOCITY = 55.0f;
+const float JUMP_SPEED = 3.5f;
 
 CharacterController::CharacterController(AvatarData* avatarData) {
     assert(avatarData);
@@ -226,9 +229,9 @@ CharacterController::CharacterController(AvatarData* avatarData) {
     _velocityTimeInterval = 0.0f;
     _verticalVelocity = 0.0f;
     _verticalOffset = 0.0f;
-    _gravity = 5.0f; // slower than Earth's
-    _maxFallSpeed = 55.0f; // Terminal velocity of a sky diver in m/s.
-    _jumpSpeed = 5.0f;
+    _gravity = DEFAULT_GRAVITY;
+    _maxFallSpeed = TERMINAL_VELOCITY;
+    _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
     _isHovering = true;
@@ -349,6 +352,7 @@ bool CharacterController::recoverFromPenetration(btCollisionWorld* collisionWorl
     _ghostObject->setWorldTransform(newTrans);
     return penetration;
 }
+
 
 void CharacterController::scanDown(btCollisionWorld* world) {
     // we test with downward raycast and if we don't find floor close enough then turn on "hover"
@@ -525,6 +529,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
         _verticalVelocity = 0.0f;
         _verticalOffset = 0.0f;
         _isJumping = false;
+        _isHovering = false;
         _isOnGround = true;
     } else if (!_isJumping) {
         // sweep again for floor within downStep threshold
@@ -551,6 +556,7 @@ void CharacterController::stepDown(btCollisionWorld* collisionWorld, btScalar dt
             _verticalVelocity = 0.0f;
             _verticalOffset = 0.0f;
             _isJumping = false;
+            _isHovering = false;
             _isOnGround = true;
         } else {
             // nothing to step down on
@@ -579,6 +585,7 @@ void CharacterController::reset(btCollisionWorld* collisionWorld) {
     _verticalOffset = 0.0;
     _isOnGround = false;
     _isJumping = false;
+    _isHovering = true;
     _walkDirection.setValue(0,0,0);
     _velocityTimeInterval = 0.0;
 
@@ -626,8 +633,13 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
     // Update fall velocity.
     if (_isHovering) {
-        const btScalar HOVER_RELAXATION_TIMESCALE = 1.0f;
-        _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
+        const btScalar MIN_HOVER_VERTICAL_VELOCITY = 0.1f;
+        if (fabsf(_verticalVelocity) < MIN_HOVER_VERTICAL_VELOCITY) {
+            _verticalVelocity = 0.0f;
+        } else {
+            const btScalar HOVER_RELAXATION_TIMESCALE = 0.8f;
+            _verticalVelocity *= (1.0f - dt / HOVER_RELAXATION_TIMESCALE);
+        }
     } else {
         _verticalVelocity -= _gravity * dt;
         if (_verticalVelocity > _jumpSpeed) {
@@ -692,7 +704,7 @@ void CharacterController::jump() {
         } else {
             quint64 now = usecTimestampNow();
             const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
-            if (now - _jumpToHoverStart < JUMP_TO_HOVER_PERIOD) {
+            if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
                 _isHovering = true;
             }
         }
@@ -777,6 +789,7 @@ void CharacterController::setEnabled(bool enabled) {
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
             _isHovering = true;
+            _verticalVelocity = 0.0f;
         } else {
             if (_dynamicsWorld) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;

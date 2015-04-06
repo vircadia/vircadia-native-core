@@ -212,11 +212,7 @@
 
     this.preload = function(entityID) {
         this.preOperation(entityID);
-    };
-    this.unload = function(){
-        Entities.deleteEntity(this.lightID);
     }
-    
     
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
         this.preOperation(entityID);
