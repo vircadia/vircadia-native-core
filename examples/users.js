@@ -9,6 +9,177 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var PopUpMenu = function (prompt, value, values, properties) {
+    var promptOverlay,
+        valueOverlay,
+        buttonOverlay,
+        optionOverlays = [],
+        isDisplayingOptions = false,
+        OPTION_MARGIN = 4,
+        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
+        MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
+        MIN_MAX_BUTTON_WIDTH = 14,
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
+
+    function positionDisplayOptions() {
+        var y,
+            i;
+
+        y = properties.y - (values.length - 1) * properties.lineHeight;
+
+        for (i = 0; i < values.length; i += 1) {
+            Overlays.editOverlay(optionOverlays[i], { y: y });
+            y += properties.lineHeight;
+        }
+    }
+
+    function showDisplayOptions() {
+        var i,
+            yOffScreen = Controller.getViewportDimensions().y;
+
+        for (i = 0; i < values.length; i += 1) {
+            optionOverlays[i] = Overlays.addOverlay("text", {
+                x: properties.x + properties.promptWidth,
+                y: yOffScreen,
+                width: properties.width - properties.promptWidth,
+                height: properties.textHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+                topMargin: OPTION_MARGIN,
+                leftMargin: OPTION_MARGIN,
+                color: properties.optionColor,
+                alpha: properties.optionAlpha,
+                backgroundColor: properties.popupBackgroundColor,
+                backgroundAlpha: properties.popupBackgroundAlpha,
+                text: values[i],
+                font: properties.font,
+                visible: true
+            });
+        }
+
+        positionDisplayOptions();
+
+        isDisplayingOptions = true;
+    }
+
+    function deleteDisplayOptions() {
+        var i;
+
+        for (i = 0; i < optionOverlays.length; i += 1) {
+            Overlays.deleteOverlay(optionOverlays[i]);
+        }
+
+        isDisplayingOptions = false;
+    }
+
+    function handleClick(overlay) {
+        var clicked = false,
+            i;
+
+        if (overlay === valueOverlay || overlay === buttonOverlay) {
+            showDisplayOptions();
+            return true;
+        }
+
+        if (isDisplayingOptions) {
+            for (i = 0; i < optionOverlays.length; i += 1) {
+                if (overlay === optionOverlays[i]) {
+                    value = values[i];
+                    Overlays.editOverlay(valueOverlay, { text: value });
+                    clicked = true;
+                }
+            }
+
+            deleteDisplayOptions();
+        }
+
+        return clicked;
+    }
+
+    function updatePosition(x, y) {
+        properties.x = x;
+        properties.y = y;
+        Overlays.editOverlay(promptOverlay, { x: x, y: y });
+        Overlays.editOverlay(valueOverlay, { x: x + properties.promptWidth, y: y - OPTION_MARGIN });
+        Overlays.editOverlay(buttonOverlay,
+            { x: x + properties.width - MIN_MAX_BUTTON_WIDTH - 1, y: y - OPTION_MARGIN + 1 });
+        if (isDisplayingOptions) {
+            positionDisplayOptions();
+        }
+    }
+
+    function setVisible(visible) {
+        Overlays.editOverlay(promptOverlay, { visible: visible });
+        Overlays.editOverlay(valueOverlay, { visible: visible });
+        Overlays.editOverlay(buttonOverlay, { visible: visible });
+    }
+
+    function tearDown() {
+        Overlays.deleteOverlay(promptOverlay);
+        Overlays.deleteOverlay(valueOverlay);
+        Overlays.deleteOverlay(buttonOverlay);
+        if (isDisplayingOptions) {
+            deleteDisplayOptions();
+        }
+    }
+
+    function getValue() {
+        return value;
+    }
+
+    promptOverlay = Overlays.addOverlay("text", {
+        x: properties.x,
+        y: properties.y,
+        width: properties.promptWidth,
+        height: properties.textHeight,
+        topMargin: 0,
+        leftMargin: 0,
+        color: properties.promptColor,
+        alpha: properties.promptAlpha,
+        backgroundColor: properties.promptBackgroundColor,
+        backgroundAlpha: properties.promptBackgroundAlpha,
+        text: prompt,
+        font: properties.font,
+        visible: properties.visible
+    });
+
+    valueOverlay = Overlays.addOverlay("text", {
+        x: properties.x + properties.promptWidth,
+        y: properties.y,
+        width: properties.width - properties.promptWidth,
+        height: properties.textHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+        topMargin: OPTION_MARGIN,
+        leftMargin: OPTION_MARGIN,
+        color: properties.optionColor,
+        alpha: properties.optionAlpha,
+        backgroundColor: properties.optionBackgroundColor,
+        backgroundAlpha: properties.optionBackgroundAlpha,
+        text: value,
+        font: properties.font,
+        visible: properties.visible
+    });
+
+    buttonOverlay = Overlays.addOverlay("image", {
+        x: properties.x + properties.width - MIN_MAX_BUTTON_WIDTH - 1,
+        y: properties.y,
+        width: MIN_MAX_BUTTON_WIDTH,
+        height: MIN_MAX_BUTTON_HEIGHT,
+        imageURL: MIN_MAX_BUTTON_SVG,
+        subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
+        color: properties.buttonColor,
+        alpha: properties.buttonAlpha,
+        visible: properties.visible
+    });
+
+    return {
+        updatePosition: updatePosition,
+        setVisible: setVisible,
+        handleClick: handleClick,
+        tearDown: tearDown,
+        value: getValue
+    };
+};
+
 var usersWindow = (function () {
 
     var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
@@ -56,18 +227,15 @@ var usersWindow = (function () {
 
         OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
         OPTION_BACKGROUND_ALPHA = 0.8,
-        OPTION_MARGIN = 4,
         DISPLAY_SPACER = 12,                                // Space before display control
-        DISPLAY_PROMPT_TEXT = "Show me:",
+        DISPLAY_PROMPT = "Show me:",
         DISPLAY_PROMPT_WIDTH = 60,
         DISPLAY_EVERYONE_TEXT = "everyone",
         DISPLAY_FRIENDS_TEXT = "friends",
-        displayValues = [DISPLAY_EVERYONE_TEXT, DISPLAY_FRIENDS_TEXT],
-        displayControl,
+        DISPLAY_VALUES = [DISPLAY_EVERYONE_TEXT, DISPLAY_FRIENDS_TEXT],
         DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 40, green: 40, blue: 40 },
         DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.95,
-        displayOptions = [],
-        isShowingDisplayOptions = false,
+        displayControl,
 
         VISIBILITY_SPACER = 6,                             // Space before visibility controls
         visibilityHeading,
@@ -154,56 +322,6 @@ var usersWindow = (function () {
         }
     }
 
-    function deleteDisplayOptions() {
-        var i;
-
-        for (i = 0; i < displayOptions.length; i += 1) {
-            Overlays.deleteOverlay(displayOptions[i]);
-        }
-
-        isShowingDisplayOptions = false;
-    }
-
-    function positionDisplayOptions() {
-        var y,
-            i;
-
-        y = viewportHeight
-                - windowTextHeight
-                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
-                - (displayValues.length - 1) * windowLineHeight;
-        for (i = 0; i < displayValues.length; i += 1) {
-            Overlays.editOverlay(displayOptions[i], { y: y });
-            y += windowLineHeight;
-        }
-    }
-
-    function showDisplayOptions() {
-        var i;
-
-        for (i = 0; i < displayValues.length; i += 1) {
-            displayOptions[i] = Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN + DISPLAY_PROMPT_WIDTH,
-                y: viewportHeight,
-                width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN - DISPLAY_PROMPT_WIDTH,
-                height: windowTextHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
-                topMargin: OPTION_MARGIN,
-                leftMargin: OPTION_MARGIN,
-                color: WINDOW_FOREGROUND_COLOR,
-                alpha: WINDOW_FOREGROUND_ALPHA,
-                backgroundColor: DISPLAY_OPTIONS_BACKGROUND_COLOR,
-                backgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
-                text: displayValues[i],
-                font: WINDOW_FONT,
-                visible: true
-            });
-        }
-
-        positionDisplayOptions();
-
-        isShowingDisplayOptions = true;
-    }
-
     function updateOverlayPositions() {
         var i,
             y;
@@ -238,13 +356,7 @@ var usersWindow = (function () {
         y = viewportHeight
                 - windowTextHeight
                 - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN;
-        Overlays.editOverlay(displayControl.promptOverlay, { y: y });
-        Overlays.editOverlay(displayControl.valueOverlay, { y: y - OPTION_MARGIN });
-        Overlays.editOverlay(displayControl.buttonOverlay, { y: y - OPTION_MARGIN + 1 });
-
-        if (isShowingDisplayOptions) {
-            positionDisplayOptions();
-        }
+        displayControl.updatePosition(WINDOW_MARGIN, y);
 
         Overlays.editOverlay(visibilityHeading, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
@@ -331,7 +443,7 @@ var usersWindow = (function () {
     function pollUsers() {
         var url = API_URL;
 
-        if (displayControl.value === DISPLAY_FRIENDS_TEXT) {
+        if (displayControl.value() === DISPLAY_FRIENDS_TEXT) {
             url += API_FRIENDS_FILTER;
         }
 
@@ -410,9 +522,7 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBackground, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(scrollbarBar, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(friendsButton, { visible: isVisible && !isMinimized });
-        Overlays.editOverlay(displayControl.promptOverlay, { visible: isVisible && !isMinimized });
-        Overlays.editOverlay(displayControl.valueOverlay, { visible: isVisible && !isMinimized });
-        Overlays.editOverlay(displayControl.buttonOverlay, { visible: isVisible && !isMinimized });
+        displayControl.setVisible(isVisible && !isMinimized);
         Overlays.editOverlay(visibilityHeading, { visible: isVisible && !isMinimized });
         for (i = 0; i < visibilityControls.length; i += 1) {
             Overlays.editOverlay(visibilityControls[i].radioOverlay, { visible: isVisible && !isMinimized });
@@ -478,26 +588,13 @@ var usersWindow = (function () {
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-        if (isShowingDisplayOptions) {
-            userClicked = false;
-            for (i = 0; i < displayOptions.length; i += 1) {
-                if (clickedOverlay === displayOptions[i]) {
-                    displayControl.value = displayValues[i];
-                    Overlays.editOverlay(displayControl.valueOverlay, { text: displayValues[i] });
-                    userClicked = true;
-                }
+        if (displayControl.handleClick(clickedOverlay)) {
+            if (usersTimer !== null) {
+                Script.clearTimeout(usersTimer);
+                usersTimer = null;
             }
-
-            deleteDisplayOptions();
-
-            if (userClicked) {
-                if (usersTimer !== null) {
-                    Script.clearTimeout(usersTimer);
-                    usersTimer = null;
-                }
-                pollUsers();
-                return;
-            }
+            pollUsers();
+            return;
         }
 
         if (clickedOverlay === windowPane) {
@@ -522,11 +619,6 @@ var usersWindow = (function () {
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
 
-            return;
-        }
-
-        if (clickedOverlay === displayControl.valueOverlay || clickedOverlay === displayControl.buttonOverlay) {
-            showDisplayOptions();
             return;
         }
 
@@ -722,49 +814,28 @@ var usersWindow = (function () {
             alpha: FRIENDS_BUTTON_ALPHA
         });
 
-        displayControl = {
-            value: displayValues[0],
-            promptOverlay: Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN,
-                y: viewportHeight,
-                width: DISPLAY_PROMPT_WIDTH,
-                height: windowTextHeight,
-                topMargin: 0,
-                leftMargin: 0,
-                color: WINDOW_HEADING_COLOR,
-                alpha: WINDOW_HEADING_ALPHA,
-                backgroundAlpha: 0.0,
-                text: DISPLAY_PROMPT_TEXT,
-                font: WINDOW_FONT,
-                visible: isVisible && !isMinimized
-            }),
-            valueOverlay: Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN + DISPLAY_PROMPT_WIDTH,
-                y: viewportHeight,
-                width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN - DISPLAY_PROMPT_WIDTH,
-                height: windowTextHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
-                topMargin: OPTION_MARGIN,
-                leftMargin: OPTION_MARGIN,
-                color: WINDOW_FOREGROUND_COLOR,
-                alpha: WINDOW_FOREGROUND_ALPHA,
-                backgroundColor: OPTION_BACKGROUND_COLOR,
-                backgroundAlpha: OPTION_BACKGROUND_ALPHA,
-                text: displayValues[0],
-                font: WINDOW_FONT,
-                visible: isVisible && !isMinimized
-            }),
-            buttonOverlay: Overlays.addOverlay("image", {
-                x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH - 1,
-                y: viewportHeight,
-                width: MIN_MAX_BUTTON_WIDTH,
-                height: MIN_MAX_BUTTON_HEIGHT,
-                imageURL: MIN_MAX_BUTTON_SVG,
-                subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
-                color: MIN_MAX_BUTTON_COLOR,
-                alpha: MIN_MAX_BUTTON_ALPHA,
-                visible: isVisible && !isMinimized
-            })
-        };
+        displayControl = new PopUpMenu(DISPLAY_PROMPT, DISPLAY_VALUES[0], DISPLAY_VALUES, {
+            x: WINDOW_MARGIN,
+            y: viewportHeight,
+            width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
+            promptWidth: DISPLAY_PROMPT_WIDTH,
+            lineHeight: windowLineHeight,
+            textHeight: windowTextHeight,
+            font: WINDOW_FONT,
+            promptColor: WINDOW_HEADING_COLOR,
+            promptAlpha: WINDOW_HEADING_ALPHA,
+            promptBackgroundColor: WINDOW_BACKGROUND_COLOR,
+            promptBackgroundAlpha: 0.0,
+            optionColor: WINDOW_FOREGROUND_COLOR,
+            optionAlpha: WINDOW_FOREGROUND_ALPHA,
+            optionBackgroundColor: OPTION_BACKGROUND_COLOR,
+            optionBackgroundAlpha: OPTION_BACKGROUND_ALPHA,
+            popupBackgroundColor: DISPLAY_OPTIONS_BACKGROUND_COLOR,
+            popupBackgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
+            buttonColor: MIN_MAX_BUTTON_COLOR,
+            buttonAlpha: MIN_MAX_BUTTON_ALPHA,
+            visible: isVisible && !isMinimized
+        });
 
         visibilityHeading = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN,
@@ -879,13 +950,7 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(scrollbarBackground);
         Overlays.deleteOverlay(scrollbarBar);
         Overlays.deleteOverlay(friendsButton);
-        Overlays.deleteOverlay(displayControl.promptOverlay);
-        Overlays.deleteOverlay(displayControl.valueOverlay);
-        Overlays.deleteOverlay(displayControl.buttonOverlay);
-        print("isShowingDisplayOptions = " + isShowingDisplayOptions);
-        if (isShowingDisplayOptions) {
-            deleteDisplayOptions();
-        }
+        displayControl.tearDown();
         Overlays.deleteOverlay(visibilityHeading);
         for (i = 0; i <= visibilityControls.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls[i].textOverlay);
