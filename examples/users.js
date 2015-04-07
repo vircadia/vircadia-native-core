@@ -60,7 +60,9 @@ var usersWindow = (function () {
         DISPLAY_SPACER = 12,                                // Space before display control
         DISPLAY_PROMPT_TEXT = "Show me:",
         DISPLAY_PROMPT_WIDTH = 60,
-        displayValues = ["everyone", "friends"],
+        DISPLAY_EVERYONE_TEXT = "everyone",
+        DISPLAY_FRIENDS_TEXT = "friends",
+        displayValues = [DISPLAY_EVERYONE_TEXT, DISPLAY_FRIENDS_TEXT],
         displayControl,
         DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 40, green: 40, blue: 40 },
         DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.95,
@@ -82,6 +84,7 @@ var usersWindow = (function () {
         firstUserToDisplay = 0,
 
         API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online",
+        API_FRIENDS_FILTER = "&filter=friends",
         HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
         usersRequest,
         processUsers,
@@ -326,8 +329,14 @@ var usersWindow = (function () {
     }
 
     function pollUsers() {
+        var url = API_URL;
+
+        if (displayControl.value === DISPLAY_FRIENDS_TEXT) {
+            url += API_FRIENDS_FILTER;
+        }
+
         usersRequest = new XMLHttpRequest();
-        usersRequest.open("GET", API_URL, true);
+        usersRequest.open("GET", url, true);
         usersRequest.timeout = HTTP_GET_TIMEOUT;
         usersRequest.ontimeout = pollUsersTimedOut;
         usersRequest.onreadystatechange = processUsers;
@@ -482,6 +491,11 @@ var usersWindow = (function () {
             deleteDisplayOptions();
 
             if (userClicked) {
+                if (usersTimer !== null) {
+                    Script.clearTimeout(usersTimer);
+                    usersTimer = null;
+                }
+                pollUsers();
                 return;
             }
         }
