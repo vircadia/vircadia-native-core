@@ -19,6 +19,7 @@
 uniform sampler2D diffuseMap;
 
 // the interpolated normal
+varying vec3 vertexColor;
 varying vec4 normal;
 
 void main(void) {
@@ -30,7 +31,7 @@ void main(void) {
     packDeferredFragment(
         normalize(normal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialDiffuse(mat) * diffuse.rgb * vertexColor,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

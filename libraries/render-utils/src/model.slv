@@ -21,12 +21,13 @@ uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
 
 // the interpolated normal
+varying vec3 vertexColor;
 varying vec4 normal;
 
 void main(void) {
     
     // pass along the diffuse color
-    gl_FrontColor = gl_Color;
+    vertexColor = gl_Color.xyz;
     
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
