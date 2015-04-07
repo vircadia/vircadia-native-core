@@ -28,8 +28,6 @@
 #include "Util.h"
 #include "ui/Stats.h"
 
-// Used to fade the UI
-const float FADE_SPEED = 0.08f;
 // Used to animate the magnification windows
 const float MAG_SPEED = 0.08f;
 
