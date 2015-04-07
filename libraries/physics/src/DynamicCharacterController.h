@@ -37,6 +37,7 @@ protected:
     bool _isJumping;
     bool _isFalling;
     bool _isHovering;
+    bool _isPushingUp;
     quint64 _jumpToHoverStart;
     uint32_t _pendingFlags;
 
@@ -68,8 +69,8 @@ public:
     virtual void preStep(btCollisionWorld* collisionWorld);
     virtual void playerStep(btCollisionWorld* collisionWorld, btScalar dt);
 
-    virtual bool canJump() const;
-    virtual void jump();
+    virtual bool canJump() const { assert(false); return false; } // never call this
+    virtual void jump(); // call this every frame the jump button is pressed
     virtual bool onGround() const;
     bool isHovering() const { return _isHovering; }
     void setHovering(bool enabled);

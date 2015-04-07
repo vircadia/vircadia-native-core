@@ -59,6 +59,7 @@ DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _isJumping = false;
     _isFalling = false;
     _isHovering = true;
+    _isPushingUp = false;
     _jumpToHoverStart = 0;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
@@ -102,8 +103,12 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar
     btVector3 desiredVelocity = _walkVelocity;
     btScalar desiredSpeed = desiredVelocity.length();
 
-    const btScalar MIN_SPEED = 0.001f;
+    const btScalar MIN_UP_PUSH = 0.1f;
+    if (desiredVelocity.dot(_currentUp) < MIN_UP_PUSH) {
+        _isPushingUp = false;
+    }
 
+    const btScalar MIN_SPEED = 0.001f;
     if (_isHovering) {
         if (desiredSpeed < MIN_SPEED) {
             if (actualSpeed < MIN_SPEED) {
@@ -139,35 +144,36 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar
                 _rigidBody->setLinearVelocity(actualVelocity + velocityCorrection);
             }
         } else {
-            // falling or jumping
-            const btScalar FALL_ACCELERATION_TIMESCALE = 2.0f;
-            btScalar tau = dt / FALL_ACCELERATION_TIMESCALE;
-            btVector3 velocityCorrection = tau * (desiredVelocity - actualVelocity);
-            // subtract vertical component
-            velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
-            _rigidBody->setLinearVelocity(actualVelocity + velocityCorrection);
+            // transitioning to flying
+            btVector3 velocityCorrection = desiredVelocity - actualVelocity;
+            const btScalar FLY_ACCELERATION_TIMESCALE = 0.2f;
+            btScalar tau = dt / FLY_ACCELERATION_TIMESCALE;
+            if (!_isPushingUp) {
+                // actually falling --> compute a different velocity attenuation factor
+                const btScalar FALL_ACCELERATION_TIMESCALE = 2.0f;
+                tau = dt / FALL_ACCELERATION_TIMESCALE;
+                // zero vertical component
+                velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
+            }
+            _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
         } 
     }
 }
 
-bool DynamicCharacterController::canJump() const {
-    return onGround() && !_isJumping;
-}
-
 void DynamicCharacterController::jump() {
-    _pendingFlags |= PENDING_FLAG_JUMP;
-
     // check for case where user is holding down "jump" key...
     // we'll eventually tansition to "hover"
-    if (!_isHovering) {
-        if (!_isJumping) {
+    if (!_isJumping) {
+        if (!_isHovering) {
             _jumpToHoverStart = usecTimestampNow();
-        } else {
-            quint64 now = usecTimestampNow();
-            const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
-            if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
-                _isHovering = true;
-            }
+            _pendingFlags |= PENDING_FLAG_JUMP;
+        }
+    } else {
+        quint64 now = usecTimestampNow();
+        const quint64 JUMP_TO_HOVER_PERIOD = 75 * (USECS_PER_SECOND / 100);
+        if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
+            _isPushingUp = true;
+            setHovering(true);
         }
     }
 }
@@ -188,7 +194,6 @@ void DynamicCharacterController::setHovering(bool hover) {
             } else {
                 _rigidBody->setGravity(DEFAULT_GRAVITY * _currentUp);
             }
-            btVector3 g = _rigidBody->getGravity();
         }
     }
 }
@@ -368,7 +373,7 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
         if (rayCallback.hasHit()) {
             _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
             const btScalar MIN_HOVER_HEIGHT = 3.0f;
-            if (_isHovering && _floorDistance < MIN_HOVER_HEIGHT) {
+            if (_isHovering && _floorDistance < MIN_HOVER_HEIGHT && !_isPushingUp) {
                 setHovering(false);
             } 
             // TODO: use collision events rather than ray-trace test to disable jumping
@@ -385,9 +390,7 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
 
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            if (canJump()) {
-                // TODO: make jump work
-                //_verticalVelocity = _jumpSpeed;
+            if (onGround()) {
                 _isJumping = true;
                 btVector3 velocity = _rigidBody->getLinearVelocity();
                 velocity += _jumpSpeed * _currentUp;
