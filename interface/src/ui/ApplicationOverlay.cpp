@@ -540,12 +540,23 @@ void ApplicationOverlay::renderPointers() {
         if (_reticlePosition[MOUSE] != position) {
             _lastMouseMove = usecTimestampNow();
         } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
-            float pitch, yaw, roll;
+            float pitch = 0.0f, yaw = 0.0f, roll = 0.0f; // radians
             OculusManager::getEulerAngles(yaw, pitch, roll);
-            glm::vec2 screenPos = sphericalToScreen(glm::vec2(yaw, -pitch));
+            glm::quat orientation(glm::vec3(pitch, yaw, roll));
+            glm::vec3 result;
             
-            position = QPoint(screenPos.x, screenPos.y);
-            glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            if (calculateRayUICollisionPoint(myAvatar->getEyePosition(),
+                                             myAvatar->getOrientation() * orientation * IDENTITY_FRONT,
+                                             result)) {
+                glm::vec3 lookAtDirection = glm::inverse(myAvatar->getOrientation()) * (result - myAvatar->getDefaultEyePosition());
+                glm::vec2 spericalPos = directionToSpherical(glm::normalize(lookAtDirection));
+                glm::vec2 screenPos = sphericalToScreen(spericalPos);
+                position = QPoint(screenPos.x, screenPos.y);
+                glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
+            } else {
+                qDebug() << "No collision point";
+            }
         }
         
         _reticlePosition[MOUSE] = position;
