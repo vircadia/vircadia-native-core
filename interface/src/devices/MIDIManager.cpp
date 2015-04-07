@@ -11,6 +11,7 @@
 
 #include <QtCore/QDebug>
 
+#include "InterfaceLogging.h"
 #include "MIDIManager.h"
 
 MIDIManager& MIDIManager::getInstance() {
@@ -54,7 +55,7 @@ void MIDIManager::openDefaultPort() {
         _midiInput = new RtMidiIn();
         
         if (_midiInput->getPortCount() > 0) {
-            qDebug() << "MIDIManager opening port" << DEFAULT_MIDI_PORT;
+            qCDebug(interfaceapp) << "MIDIManager opening port" << DEFAULT_MIDI_PORT;
             
             _midiInput->openPort(DEFAULT_MIDI_PORT);
             
@@ -63,7 +64,7 @@ void MIDIManager::openDefaultPort() {
             
             _midiInput->setCallback(&MIDIManager::midiCallback);
         } else {
-            qDebug() << "MIDIManager openDefaultPort called but there are no ports available.";
+            qCDebug(interfaceapp) << "MIDIManager openDefaultPort called but there are no ports available.";
             delete _midiInput;
             _midiInput = NULL;
         }

@@ -23,6 +23,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
+#include "RenderUtilsLogging.h"
 #include "TextureCache.h"
 
 #include "gpu/GLBackend.h"
@@ -467,7 +468,7 @@ void ImageReader::run() {
         float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
         int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
         int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
-        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height() <<
+        qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
             " scaled to:" << resizeWidth << resizeHeight;
         image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
         imageArea = image.width() * image.height();
@@ -519,7 +520,7 @@ void ImageReader::run() {
         }
     }
     if (opaquePixels == imageArea) {
-        qDebug() << "Image with alpha channel is completely opaque:" << _url;
+        qCDebug(renderutils) << "Image with alpha channel is completely opaque:" << _url;
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),

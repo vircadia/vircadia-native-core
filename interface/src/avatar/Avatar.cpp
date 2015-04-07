@@ -46,6 +46,7 @@
 #include "Util.h"
 #include "world.h"
 #include "devices/OculusManager.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -138,7 +139,7 @@ void Avatar::simulate(float deltaTime) {
                                                         this);
                     break;
                 default:
-                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    qCDebug(interfaceapp) << "[WARNING] Avatar::simulate(): Unknown referential type.";
                     break;
             }
         }
@@ -337,8 +338,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
+
+    ViewFrustum* frustum = nullptr;
+    if (renderMode == Avatar::SHADOW_RENDER_MODE) {
+        frustum = Application::getInstance()->getShadowViewFrustum();
+    } else {
+        frustum = Application::getInstance()->getDisplayViewFrustum();
+    }
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }

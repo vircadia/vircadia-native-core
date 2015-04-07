@@ -32,6 +32,7 @@
 
 #include "GLMHelpers.h"
 #include "MatrixStack.h"
+#include "RenderUtilsLogging.h"
 #include "TextRenderer.h"
 
 #include "sdf_text_vert.h"
@@ -180,7 +181,7 @@ Font* loadFont(const QString& family) {
             QFile fontFile(loadFilename);
             fontFile.open(QIODevice::ReadOnly);
             
-            qDebug() << "Loaded font" << loadFilename << "from Qt Resource System.";
+            qCDebug(renderutils) << "Loaded font" << loadFilename << "from Qt Resource System.";
             
             LOADED_FONTS[family] = loadFont(fontFile);
         }

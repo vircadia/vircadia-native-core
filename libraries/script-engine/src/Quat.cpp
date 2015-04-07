@@ -15,6 +15,7 @@
 
 #include <OctreeConstants.h>
 #include <GLMHelpers.h>
+#include "ScriptEngineLogging.h"
 #include "Quat.h"
 
 
@@ -81,7 +82,7 @@ float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
 }
 
 void Quat::print(const QString& lable, const glm::quat& q) {
-    qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
+    qCDebug(scriptengine) << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
 
 bool Quat::equal(const glm::vec3& q1, const glm::vec3& q2) {

@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GPULogging.h"
 #include "GLBackendShared.h"
-
 #include "Format.h"
 
 using namespace gpu;
@@ -88,7 +88,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
     if (!linked) {
-        qDebug() << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+        qCDebug(gpulogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
     }
 
     // now assign the ubo binding, then DON't relink!
@@ -104,7 +104,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
+        shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
 #endif
 }
@@ -113,7 +113,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
     if (shaderSource.empty()) {
-        qDebug() << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
+        qCDebug(gpulogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
         return nullptr;
     }
 
@@ -124,7 +124,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // Create the shader object
     GLuint glshader = glCreateShader(shaderDomain);
     if (!glshader) {
-        qDebug() << "GLShader::compileShader - failed to create the gl shader object";
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader object";
         return nullptr;
     }
 
@@ -156,8 +156,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileShader - failed to compile the gl shader object:";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -177,7 +177,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qDebug() << "GLShader::compileShader - failed to create the gl shader & gl program object";
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
         return nullptr;
     }
 
@@ -205,8 +205,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileShader -  failed to LINK the gl program object :";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -243,7 +243,7 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
     for (auto subShader : program.getShaders()) {
         GLuint so = GLBackend::getShaderID(subShader);
         if (!so) {
-            qDebug() << "GLShader::compileProgram - One of the shaders of the program is not compiled?";
+            qCDebug(gpulogging) << "GLShader::compileProgram - One of the shaders of the program is not compiled?";
             return nullptr;
         }
         shaderObjects.push_back(so);
@@ -252,7 +252,7 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qDebug() << "GLShader::compileProgram - failed to create the gl program object";
+        qCDebug(gpulogging) << "GLShader::compileProgram - failed to create the gl program object";
         return nullptr;
     }
 
@@ -285,8 +285,8 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
         char* temp = new char[infoLength] ;
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileProgram -  failed to LINK the gl program object :";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");

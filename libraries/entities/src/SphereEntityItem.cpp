@@ -19,6 +19,7 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 #include "SphereEntityItem.h"
 
 
@@ -51,7 +52,7 @@ bool SphereEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
@@ -120,10 +121,10 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
 
 void SphereEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qDebug() << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qDebug() << "            position:" << debugTreeVector(_position);
-    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
-    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "            position:" << debugTreeVector(_position);
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

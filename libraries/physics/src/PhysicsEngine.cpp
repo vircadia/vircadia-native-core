@@ -88,7 +88,7 @@ void PhysicsEngine::addEntityInternal(EntityItem* entity) {
                 motionState->setKinematic(true, _numSubsteps);
                 _nonPhysicalKinematicObjects.insert(motionState);
                 // We failed to add the entity to the simulation.  Probably because we couldn't create a shape for it.
-                //qDebug() << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
+                //qCDebug(physics) << "failed to add entity " << entity->getEntityItemID() << " to physics engine";
             }
         }
     }
