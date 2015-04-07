@@ -28,7 +28,7 @@ var PopUpMenu = function (properties) {
         var y,
             i;
 
-        y = properties.y - (properties.values.length - 1) * properties.lineHeight;
+        y = properties.y - (properties.values.length - 1) * properties.lineHeight - OPTION_MARGIN;
 
         for (i = 0; i < properties.values.length; i += 1) {
             Overlays.editOverlay(optionOverlays[i], { y: y });
@@ -52,7 +52,7 @@ var PopUpMenu = function (properties) {
                 alpha: properties.optionAlpha,
                 backgroundColor: properties.popupBackgroundColor,
                 backgroundAlpha: properties.popupBackgroundAlpha,
-                text: properties.values[i],
+                text: properties.displayValues[i],
                 font: properties.font,
                 visible: true
             });
@@ -86,7 +86,7 @@ var PopUpMenu = function (properties) {
             for (i = 0; i < optionOverlays.length; i += 1) {
                 if (overlay === optionOverlays[i]) {
                     value = properties.values[i];
-                    Overlays.editOverlay(valueOverlay, { text: value });
+                    Overlays.editOverlay(valueOverlay, { text: properties.displayValues[i] });
                     clicked = true;
                 }
             }
@@ -128,6 +128,16 @@ var PopUpMenu = function (properties) {
         return value;
     }
 
+    function setValue(newValue) {
+        var index;
+
+        index = properties.values.indexOf(newValue);
+        if (index !== -1) {
+            value = newValue;
+            Overlays.editOverlay(valueOverlay, { text: properties.displayValues[index] });
+        }
+    }
+
     promptOverlay = Overlays.addOverlay("text", {
         x: properties.x,
         y: properties.y,
@@ -155,7 +165,7 @@ var PopUpMenu = function (properties) {
         alpha: properties.optionAlpha,
         backgroundColor: properties.optionBackgroundColor,
         backgroundAlpha: properties.optionBackgroundAlpha,
-        text: value,
+        text: properties.displayValues[properties.values.indexOf(value)],
         font: properties.font,
         visible: properties.visible
     });
@@ -177,7 +187,8 @@ var PopUpMenu = function (properties) {
         setVisible: setVisible,
         handleClick: handleClick,
         tearDown: tearDown,
-        value: getValue
+        getValue: getValue,
+        setValue: setValue
     };
 };
 
@@ -216,7 +227,7 @@ var usersWindow = (function () {
         scrollbarBar,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        FRIENDS_BUTTON_SPACER = 12,                         // Space before add/remove friends button
+        FRIENDS_BUTTON_SPACER = 6,                          // Space before add/remove friends button
         FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
@@ -228,20 +239,28 @@ var usersWindow = (function () {
 
         OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
         OPTION_BACKGROUND_ALPHA = 0.8,
+
         DISPLAY_SPACER = 12,                                // Space before display control
         DISPLAY_PROMPT = "Show me:",
         DISPLAY_PROMPT_WIDTH = 60,
-        DISPLAY_EVERYONE_TEXT = "everyone",
-        DISPLAY_FRIENDS_TEXT = "friends",
-        DISPLAY_VALUES = [DISPLAY_EVERYONE_TEXT, DISPLAY_FRIENDS_TEXT],
+        DISPLAY_EVERYONE = "everyone",
+        DISPLAY_FRIENDS = "friends",
+        DISPLAY_VALUES = [DISPLAY_EVERYONE, DISPLAY_FRIENDS],
+        DISPLAY_DISPLAY_VALUES = DISPLAY_VALUES,
         DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 40, green: 40, blue: 40 },
         DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.95,
         displayControl,
 
-        VISIBILITY_SPACER = 6,                             // Space before visibility controls
-        visibilityHeading,
-        VISIBILITY_RADIO_SPACE = 16,
-        visibilityControls,
+        VISIBILITY_SPACER = 6,                             // Space before visibility control
+        VISIBILITY_PROMPT = "Visible to:",
+        VISIBILITY_PROMPT_WIDTH = 60,
+        VISIBILITY_ALL = "all",
+        VISIBILITY_FRIENDS = "friends",
+        VISIBILITY_NONE = "none",
+        VISIBILITY_VALUES = [VISIBILITY_ALL, VISIBILITY_FRIENDS, VISIBILITY_NONE],
+        VISIBILITY_DISPLAY_VALUES = ["everyone", "friends", "no one"],
+        visibilityControl,
+
         windowHeight,
         windowTextHeight,
         windowLineSpacing,
@@ -262,7 +281,6 @@ var usersWindow = (function () {
         USERS_UPDATE_TIMEOUT = 5000,                        // ms = 5s
 
         myVisibility,
-        VISIBILITY_VALUES = ["all", "friends", "none"],
 
         MENU_NAME = "Tools",
         MENU_ITEM = "Users Online",
@@ -280,12 +298,7 @@ var usersWindow = (function () {
         scrollbarBackgroundPosition = {},
         scrollbarBarPosition = {},
         scrollbarBarClickedAt,                              // 0.0 .. 1.0
-        scrollbarValue = 0.0,                               // 0.0 .. 1.0
-
-        RADIO_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/radio-button.svg",
-        RADIO_BUTTON_SVG_DIAMETER = 14,
-        RADIO_BUTTON_DISPLAY_SCALE = 0.7,                   // 1.0 = windowTextHeight
-        radioButtonDiameter;
+        scrollbarValue = 0.0;                               // 0.0 .. 1.0
 
     function calculateWindowHeight() {
         var AUDIO_METER_HEIGHT = 52,
@@ -298,11 +311,11 @@ var usersWindow = (function () {
             return;
         }
 
-        // Reserve 5 lines for window heading plus display and visibility controls
-        // Subtract windowLineSpacing for both end of user list and end of controls
-        nonUsersHeight = 6 * windowLineHeight - 2 * windowLineSpacing
-            + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT
-            + DISPLAY_SPACER + VISIBILITY_SPACER + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
+        // Reserve space for title, friends button, and option controls
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight
+                + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT
+                + DISPLAY_SPACER + windowLineHeight
+                + VISIBILITY_SPACER + windowLineHeight + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
@@ -324,8 +337,7 @@ var usersWindow = (function () {
     }
 
     function updateOverlayPositions() {
-        var i,
-            y;
+        var y;
 
         Overlays.editOverlay(windowPane, {
             y: viewportHeight - windowHeight
@@ -348,39 +360,16 @@ var usersWindow = (function () {
             y: scrollbarBarPosition.y
         });
 
-        Overlays.editOverlay(friendsButton, {
-            y: viewportHeight - FRIENDS_BUTTON_HEIGHT
-                - DISPLAY_SPACER - windowTextHeight
-                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
-        });
+        y = viewportHeight - FRIENDS_BUTTON_HEIGHT
+                - DISPLAY_SPACER - windowLineHeight
+                - VISIBILITY_SPACER - windowLineHeight - WINDOW_BASE_MARGIN;
+        Overlays.editOverlay(friendsButton, { y: y });
 
-        y = viewportHeight
-                - windowTextHeight
-                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN;
+        y += FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER;
         displayControl.updatePosition(WINDOW_MARGIN, y);
 
-        Overlays.editOverlay(visibilityHeading, {
-            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
-        });
-        for (i = 0; i < visibilityControls.length; i += 1) {
-            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN;
-            Overlays.editOverlay(visibilityControls[i].radioOverlay, { y: y });
-            Overlays.editOverlay(visibilityControls[i].textOverlay, { y: y });
-        }
-    }
-
-    function updateVisibilityControls() {
-        var i,
-            color;
-
-        for (i = 0; i < visibilityControls.length; i += 1) {
-            color = visibilityControls[i].selected ? WINDOW_FOREGROUND_COLOR : WINDOW_HEADING_COLOR;
-            Overlays.editOverlay(visibilityControls[i].radioOverlay, {
-                color: color,
-                subImage: { y: visibilityControls[i].selected ? 0 : RADIO_BUTTON_SVG_DIAMETER }
-            });
-            Overlays.editOverlay(visibilityControls[i].textOverlay, { color: color });
-        }
+        y += windowLineHeight + VISIBILITY_SPACER;
+        visibilityControl.updatePosition(WINDOW_MARGIN, y);
     }
 
     function updateUsersDisplay() {
@@ -444,7 +433,7 @@ var usersWindow = (function () {
     function pollUsers() {
         var url = API_URL;
 
-        if (displayControl.value() === DISPLAY_FRIENDS_TEXT) {
+        if (displayControl.getValue() === DISPLAY_FRIENDS) {
             url += API_FRIENDS_FILTER;
         }
 
@@ -515,8 +504,6 @@ var usersWindow = (function () {
     };
 
     function updateOverlayVisibility() {
-        var i;
-
         Overlays.editOverlay(windowPane, { visible: isVisible });
         Overlays.editOverlay(windowHeading, { visible: isVisible });
         Overlays.editOverlay(minimizeButton, { visible: isVisible });
@@ -524,11 +511,7 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBar, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(friendsButton, { visible: isVisible && !isMinimized });
         displayControl.setVisible(isVisible && !isMinimized);
-        Overlays.editOverlay(visibilityHeading, { visible: isVisible && !isMinimized });
-        for (i = 0; i < visibilityControls.length; i += 1) {
-            Overlays.editOverlay(visibilityControls[i].radioOverlay, { visible: isVisible && !isMinimized });
-            Overlays.editOverlay(visibilityControls[i].textOverlay, { visible: isVisible && !isMinimized });
-        }
+        visibilityControl.setVisible(isVisible && !isMinimized);
     }
 
     function setVisible(visible) {
@@ -562,13 +545,11 @@ var usersWindow = (function () {
     }
 
     function onFindableByChanged(event) {
-        var i;
-
-        for (i = 0; i < visibilityControls.length; i += 1) {
-            visibilityControls[i].selected = event === VISIBILITY_VALUES[i];
+        if (VISIBILITY_VALUES.indexOf(event) !== -1) {
+            visibilityControl.setValue(event);
+        } else {
+            print("Error: Unrecognized onFindableByChanged value: " + myVisibility);
         }
-
-        updateVisibilityControls();
     }
 
     function onMousePressEvent(event) {
@@ -580,7 +561,6 @@ var usersWindow = (function () {
             maxY,
             lineClicked,
             userClicked,
-            i,
             delta;
 
         if (!isVisible) {
@@ -595,6 +575,11 @@ var usersWindow = (function () {
                 usersTimer = null;
             }
             pollUsers();
+            return;
+        }
+
+        if (visibilityControl.handleClick(clickedOverlay)) {
+            GlobalServices.findableBy = visibilityControl.getValue();
             return;
         }
 
@@ -621,14 +606,6 @@ var usersWindow = (function () {
             }
 
             return;
-        }
-
-        for (i = 0; i < visibilityControls.length; i += 1) {
-            // Don't need to test radioOverlay if it us under textOverlay.
-            if (clickedOverlay === visibilityControls[i].textOverlay && event.x <= visibilityControls[i].optionWidth) {
-                GlobalServices.findableBy = VISIBILITY_VALUES[i];
-                return;
-            }
         }
 
         if (clickedOverlay === minimizeButton) {
@@ -717,14 +694,12 @@ var usersWindow = (function () {
     }
 
     function setUp() {
-        var textSizeOverlay,
-            optionText;
+        var textSizeOverlay;
 
         textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT, visible: false });
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
-        radioButtonDiameter = RADIO_BUTTON_DISPLAY_SCALE * windowTextHeight;
         Overlays.deleteOverlay(textSizeOverlay);
 
         viewportHeight = Controller.getViewportDimensions().y;
@@ -819,6 +794,7 @@ var usersWindow = (function () {
             prompt: DISPLAY_PROMPT,
             value: DISPLAY_VALUES[0],
             values: DISPLAY_VALUES,
+            displayValues: DISPLAY_DISPLAY_VALUES,
             x: WINDOW_MARGIN,
             y: viewportHeight,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
@@ -841,85 +817,38 @@ var usersWindow = (function () {
             visible: isVisible && !isMinimized
         });
 
-        visibilityHeading = Overlays.addOverlay("text", {
-            x: WINDOW_MARGIN,
-            y: viewportHeight,
-            width: WINDOW_WIDTH - 2 * WINDOW_MARGIN,
-            height: windowTextHeight,
-            topMargin: 0,
-            leftMargin: 0,
-            color: WINDOW_HEADING_COLOR,
-            alpha: WINDOW_HEADING_ALPHA,
-            backgroundAlpha: 0.0,
-            text: "I am visible to:",
-            font: WINDOW_FONT,
-            visible: isVisible && !isMinimized
-        });
-
         myVisibility = GlobalServices.findableBy;
-        if (!/^(all|friends|none)$/.test(myVisibility)) {
-            print("Error: Unrecognized findableBy value");
-            myVisibility = "";
+        if (VISIBILITY_VALUES.indexOf(myVisibility) === -1) {
+            print("Error: Unrecognized findableBy value: " + myVisibility);
+            myVisibility = VISIBILITY_ALL;
         }
 
-        optionText = "everyone";
-        visibilityControls = [{
-            radioOverlay: Overlays.addOverlay("image", {  // Create first so that it is under textOverlay.
-                x: WINDOW_MARGIN,
-                y: viewportHeight,
-                width: radioButtonDiameter,
-                height: radioButtonDiameter,
-                imageURL: RADIO_BUTTON_SVG,
-                subImage: {
-                    x: 0,
-                    y: RADIO_BUTTON_SVG_DIAMETER,  // Off
-                    width: RADIO_BUTTON_SVG_DIAMETER,
-                    height: RADIO_BUTTON_SVG_DIAMETER
-                },
-                color: WINDOW_HEADING_COLOR,
-                alpha: WINDOW_FOREGROUND_ALPHA,
-                visible: isVisible && !isMinimized
-            }),
-            textOverlay: Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN,
-                y: viewportHeight,
-                width: WINDOW_WIDTH - SCROLLBAR_BACKGROUND_WIDTH - 2 * WINDOW_MARGIN,
-                height: windowTextHeight,
-                topMargin: 0,
-                leftMargin: VISIBILITY_RADIO_SPACE,
-                color: WINDOW_HEADING_COLOR,
-                alpha: WINDOW_FOREGROUND_ALPHA,
-                backgroundAlpha: 0.0,
-                text: optionText,
-                font: WINDOW_FONT,
-                visible: isVisible && !isMinimized
-            }),
-            selected: myVisibility === VISIBILITY_VALUES[0]
-        }];
-        visibilityControls[0].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls[0].textOverlay, optionText).width;
-
-        optionText = "my friends";
-        visibilityControls[1] = {
-            radioOverlay: Overlays.cloneOverlay(visibilityControls[0].radioOverlay),
-            textOverlay: Overlays.cloneOverlay(visibilityControls[0].textOverlay),
-            selected: myVisibility === VISIBILITY_VALUES[1]
-        };
-        Overlays.editOverlay(visibilityControls[1].textOverlay, { text: optionText });
-        visibilityControls[1].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls[1].textOverlay, optionText).width;
-
-        optionText = "no one";
-        visibilityControls[2] = {
-            radioOverlay: Overlays.cloneOverlay(visibilityControls[0].radioOverlay),
-            textOverlay: Overlays.cloneOverlay(visibilityControls[0].textOverlay),
-            selected: myVisibility === VISIBILITY_VALUES[2]
-        };
-        Overlays.editOverlay(visibilityControls[2].textOverlay, { text: optionText });
-        visibilityControls[2].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls[2].textOverlay, optionText).width;
-
-        updateVisibilityControls();
+        visibilityControl = new PopUpMenu({
+            prompt: VISIBILITY_PROMPT,
+            value: myVisibility,
+            values: VISIBILITY_VALUES,
+            displayValues: VISIBILITY_DISPLAY_VALUES,
+            x: WINDOW_MARGIN,
+            y: viewportHeight,
+            width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
+            promptWidth: VISIBILITY_PROMPT_WIDTH,
+            lineHeight: windowLineHeight,
+            textHeight: windowTextHeight,
+            font: WINDOW_FONT,
+            promptColor: WINDOW_HEADING_COLOR,
+            promptAlpha: WINDOW_HEADING_ALPHA,
+            promptBackgroundColor: WINDOW_BACKGROUND_COLOR,
+            promptBackgroundAlpha: 0.0,
+            optionColor: WINDOW_FOREGROUND_COLOR,
+            optionAlpha: WINDOW_FOREGROUND_ALPHA,
+            optionBackgroundColor: OPTION_BACKGROUND_COLOR,
+            optionBackgroundAlpha: OPTION_BACKGROUND_ALPHA,
+            popupBackgroundColor: DISPLAY_OPTIONS_BACKGROUND_COLOR,
+            popupBackgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
+            buttonColor: MIN_MAX_BUTTON_COLOR,
+            buttonAlpha: MIN_MAX_BUTTON_ALPHA,
+            visible: isVisible && !isMinimized
+        });
 
         Controller.mousePressEvent.connect(onMousePressEvent);
         Controller.mouseMoveEvent.connect(onMouseMoveEvent);
@@ -943,8 +872,6 @@ var usersWindow = (function () {
     }
 
     function tearDown() {
-        var i;
-
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
@@ -955,11 +882,7 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(scrollbarBar);
         Overlays.deleteOverlay(friendsButton);
         displayControl.tearDown();
-        Overlays.deleteOverlay(visibilityHeading);
-        for (i = 0; i <= visibilityControls.length; i += 1) {
-            Overlays.deleteOverlay(visibilityControls[i].textOverlay);
-            Overlays.deleteOverlay(visibilityControls[i].radioOverlay);
-        }
+        visibilityControl.tearDown();
     }
 
     setUp();
