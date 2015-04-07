@@ -118,7 +118,7 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     QHBoxLayout* maskedJointBox = new QHBoxLayout();
     layout->addRow("Masked Joints:", maskedJointBox);
     maskedJointBox->addWidget(_maskedJoints = new QLineEdit(handle->getMaskedJoints().join(", ")), 1);
-    connect(_maskedJoints, SIGNAL(returnPressed()), SLOT(updateHandle()));
+    connect(_maskedJoints, SIGNAL(editingFinished()), SLOT(updateHandle()));
     maskedJointBox->addWidget(_chooseMaskedJoints = new QPushButton("Choose"));
     connect(_chooseMaskedJoints, SIGNAL(clicked(bool)), SLOT(chooseMaskedJoints()));
     
