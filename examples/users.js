@@ -15,7 +15,7 @@ var usersWindow = (function () {
 
         WINDOW_WIDTH = 160,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6,                          // A little less is needed in order look correct
+        WINDOW_BASE_MARGIN = 6,                             // A little less is needed in order look correct
         WINDOW_FONT = { size: 12 },
         WINDOW_FOREGROUND_COLOR = { red: 240, green: 240, blue: 240 },
         WINDOW_FOREGROUND_ALPHA = 0.9,
@@ -25,26 +25,26 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA = 0.7,
         windowPane,
         windowHeading,
-        MINIMIZE_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
-        MINIMIZE_BUTTON_SVG_WIDTH = 17.1,
-        MINIMIZE_BUTTON_SVG_HEIGHT = 32.5,
-        MINIMIZE_BUTTON_WIDTH = 14,
-        MINIMIZE_BUTTON_HEIGHT = MINIMIZE_BUTTON_WIDTH,
-        MINIMIZE_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
-        MINIMIZE_BUTTON_ALPHA = 0.9,
+        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
+        MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
+        MIN_MAX_BUTTON_WIDTH = 14,
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
+        MIN_MAX_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
+        MIN_MAX_BUTTON_ALPHA = 0.9,
         minimizeButton,
         SCROLLBAR_BACKGROUND_WIDTH = 12,
-        SCROLLBAR_BACKGROUND_COLOR = { red: 80, green: 80, blue: 80 },
+        SCROLLBAR_BACKGROUND_COLOR = { red: 70, green: 70, blue: 70 },
         SCROLLBAR_BACKGROUND_ALPHA = 0.8,
         scrollbarBackground,
         SCROLLBAR_BAR_MIN_HEIGHT = 5,
-        SCROLLBAR_BAR_COLOR = { red: 180, green: 180, blue: 180 },
+        SCROLLBAR_BAR_COLOR = { red: 170, green: 170, blue: 170 },
         SCROLLBAR_BAR_ALPHA = 0.8,
         SCROLLBAR_BAR_SELECTED_ALPHA = 0.9,
         scrollbarBar,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        FRIENDS_BUTTON_SPACER = 12,                      // Space before add/remove friends button
+        FRIENDS_BUTTON_SPACER = 12,                         // Space before add/remove friends button
         FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
@@ -53,7 +53,18 @@ var usersWindow = (function () {
         FRIENDS_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
         FRIENDS_BUTTON_ALPHA = 0.9,
         friendsButton,
-        VISIBILITY_SPACER = 12,                          // Space between before visibility controls
+
+        OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
+        OPTION_BACKGROUND_ALPHA = 0.8,
+        OPTION_MARGIN = 4,
+        DISPLAY_SPACER = 12,                                // Space before display control
+        DISPLAY_PROMPT_TEXT = "Show me:",
+        DISPLAY_PROMPT_WIDTH = 60,
+        displayValues = ["everyone", "friends"],
+        displayControl,
+        isShowingDisplayOptions = false,
+
+        VISIBILITY_SPACER = 6,                             // Space before visibility controls
         visibilityHeading,
         VISIBILITY_RADIO_SPACE = 16,
         visibilityControls,
@@ -112,14 +123,14 @@ var usersWindow = (function () {
             return;
         }
 
-        // Reserve 5 lines for window heading plus visibility heading and controls
+        // Reserve 5 lines for window heading plus display and visibility controls
         // Subtract windowLineSpacing for both end of user list and end of controls
-        nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing
+        nonUsersHeight = 6 * windowLineHeight - 2 * windowLineSpacing
             + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT
-            + VISIBILITY_SPACER + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
+            + DISPLAY_SPACER + VISIBILITY_SPACER + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
-        windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;  // DJRTODO: - windowLineSpacing or not?
+        windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
         maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
@@ -127,7 +138,7 @@ var usersWindow = (function () {
         windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
 
         // Corresponding number of users to actually display
-        numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);  // DJRTODO: .floor or .round?
+        numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
         isUsingScrollbars = 0 < numUsersToDisplay && numUsersToDisplay < linesOfUsers.length;
         if (isUsingScrollbars) {
             firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
@@ -163,9 +174,17 @@ var usersWindow = (function () {
         });
 
         Overlays.editOverlay(friendsButton, {
-            y: viewportHeight - FRIENDS_BUTTON_HEIGHT - VISIBILITY_SPACER
-                - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
+            y: viewportHeight - FRIENDS_BUTTON_HEIGHT
+                - DISPLAY_SPACER - windowTextHeight
+                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
         });
+
+        y = viewportHeight
+                - windowTextHeight
+                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN;
+        Overlays.editOverlay(displayControl.promptOverlay, { y: y });
+        Overlays.editOverlay(displayControl.valueOverlay, { y: y - OPTION_MARGIN });
+        Overlays.editOverlay(displayControl.buttonOverlay, { y: y - OPTION_MARGIN + 1 });
 
         Overlays.editOverlay(visibilityHeading, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
@@ -325,6 +344,9 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBackground, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(scrollbarBar, { visible: isVisible && isUsingScrollbars && !isMinimized });
         Overlays.editOverlay(friendsButton, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(displayControl.promptOverlay, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(displayControl.valueOverlay, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(displayControl.buttonOverlay, { visible: isVisible && !isMinimized });
         Overlays.editOverlay(visibilityHeading, { visible: isVisible && !isMinimized });
         for (i = 0; i < visibilityControls.length; i += 1) {
             Overlays.editOverlay(visibilityControls[i].radioOverlay, { visible: isVisible && !isMinimized });
@@ -351,7 +373,7 @@ var usersWindow = (function () {
     function setMinimized(minimized) {
         isMinimized = minimized;
         Overlays.editOverlay(minimizeButton, {
-            subImage: { y: isMinimized ? MINIMIZE_BUTTON_SVG_HEIGHT / 2 : 0 }
+            subImage: { y: isMinimized ? MIN_MAX_BUTTON_SVG_HEIGHT / 2 : 0 }
         });
         updateOverlayVisibility();
     }
@@ -555,14 +577,14 @@ var usersWindow = (function () {
         });
 
         minimizeButton = Overlays.addOverlay("image", {
-            x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MINIMIZE_BUTTON_WIDTH,
+            x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
             y: viewportHeight,
-            width: MINIMIZE_BUTTON_WIDTH,
-            height: MINIMIZE_BUTTON_HEIGHT,
-            imageURL: MINIMIZE_BUTTON_SVG,
-            subImage: { x: 0, y: 0, width: MINIMIZE_BUTTON_SVG_WIDTH, height: MINIMIZE_BUTTON_SVG_HEIGHT / 2 },
-            color: MINIMIZE_BUTTON_COLOR,
-            alpha: MINIMIZE_BUTTON_ALPHA,
+            width: MIN_MAX_BUTTON_WIDTH,
+            height: MIN_MAX_BUTTON_HEIGHT,
+            imageURL: MIN_MAX_BUTTON_SVG,
+            subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
+            color: MIN_MAX_BUTTON_COLOR,
+            alpha: MIN_MAX_BUTTON_ALPHA,
             visible:  isVisible && !isMinimized
         });
 
@@ -606,6 +628,50 @@ var usersWindow = (function () {
             color: FRIENDS_BUTTON_COLOR,
             alpha: FRIENDS_BUTTON_ALPHA
         });
+
+        displayControl = {
+            value: displayValues[0],
+            promptOverlay: Overlays.addOverlay("text", {
+                x: WINDOW_MARGIN,
+                y: viewportHeight,
+                width: DISPLAY_PROMPT_WIDTH,
+                height: windowTextHeight,
+                topMargin: 0,
+                leftMargin: 0,
+                color: WINDOW_HEADING_COLOR,
+                alpha: WINDOW_HEADING_ALPHA,
+                backgroundAlpha: 0.0,
+                text: DISPLAY_PROMPT_TEXT,
+                font: WINDOW_FONT,
+                visible: isVisible && !isMinimized
+            }),
+            valueOverlay: Overlays.addOverlay("text", {
+                x: WINDOW_MARGIN + DISPLAY_PROMPT_WIDTH,
+                y: viewportHeight,
+                width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN - DISPLAY_PROMPT_WIDTH,
+                height: windowTextHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+                topMargin: OPTION_MARGIN,
+                leftMargin: OPTION_MARGIN,
+                color: WINDOW_FOREGROUND_COLOR,
+                alpha: WINDOW_FOREGROUND_ALPHA,
+                backgroundColor: OPTION_BACKGROUND_COLOR,
+                backgroundAlpha: OPTION_BACKGROUND_ALPHA,
+                text: displayValues[0],
+                font: WINDOW_FONT,
+                visible: isVisible && !isMinimized
+            }),
+            buttonOverlay: Overlays.addOverlay("image", {
+                x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH - 1,
+                y: viewportHeight,
+                width: MIN_MAX_BUTTON_WIDTH,
+                height: MIN_MAX_BUTTON_HEIGHT,
+                imageURL: MIN_MAX_BUTTON_SVG,
+                subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
+                color: MIN_MAX_BUTTON_COLOR,
+                alpha: MIN_MAX_BUTTON_ALPHA,
+                visible: isVisible && !isMinimized
+            })
+        };
 
         visibilityHeading = Overlays.addOverlay("text", {
             x: WINDOW_MARGIN,
@@ -720,6 +786,9 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(scrollbarBackground);
         Overlays.deleteOverlay(scrollbarBar);
         Overlays.deleteOverlay(friendsButton);
+        Overlays.deleteOverlay(displayControl.promptOverlay);
+        Overlays.deleteOverlay(displayControl.valueOverlay);
+        Overlays.deleteOverlay(displayControl.buttonOverlay);
         Overlays.deleteOverlay(visibilityHeading);
         for (i = 0; i <= visibilityControls.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls[i].textOverlay);
