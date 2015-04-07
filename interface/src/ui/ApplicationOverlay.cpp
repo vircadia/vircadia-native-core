@@ -14,6 +14,7 @@
 #include <QOpenGLFramebufferObject>
 
 #include <avatar/AvatarManager.h>
+#include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 
@@ -1125,6 +1126,26 @@ void ApplicationOverlay::TexturedHemisphere::render() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+glm::vec2 ApplicationOverlay::directionToSpherical(glm::vec3 direction) const {
+    glm::vec2 result;
+    // Compute yaw
+    glm::vec3 normalProjection = glm::normalize(glm::vec3(direction.x, 0.0f, direction.z));
+    result.x = glm::acos(glm::dot(IDENTITY_FRONT, normalProjection));
+    if (glm::dot(IDENTITY_RIGHT, normalProjection) > 0.0f) {
+        result.x = -glm::abs(result.x);
+    } else {
+        result.x = glm::abs(result.x);
+    }
+    // Compute pitch
+    result.y = angleBetween(IDENTITY_UP, direction) - PI_OVER_TWO;
+    
+    return result;
+}
+
+glm::vec3 ApplicationOverlay::sphericalToDirection(glm::vec2 sphericalPos) const {
+    glm::quat rotation(glm::vec3(sphericalPos.y, sphericalPos.x, 0.0f));
+    return rotation * IDENTITY_FRONT;
+}
 
 glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
     QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
