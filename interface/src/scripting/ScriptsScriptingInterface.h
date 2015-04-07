@@ -19,9 +19,14 @@ class ScriptsScriptingInterface : public QObject {
 public:
     ScriptsScriptingInterface() {};
     static ScriptsScriptingInterface* getInstance();
-    static QScriptValue getPublic(QScriptContext* context, QScriptEngine* engine);
+
 public slots:
-    QStringList getRunning();
+    QVariantList getRunning();
+    QVariantList getPublic();
+    QVariantList getLocal();
+
+private:
+    QVariantList getPublicChildNodes(TreeNodeFolder* parent);
 };
 
 #endif // hifi_ScriptsScriptingInterface_h

@@ -33,6 +33,8 @@ public:
 
     void setRunningScripts(const QStringList& list);
 
+    const ScriptsModel* getScriptsModel() { return &_scriptsModel; }
+
 signals:
     void stopScriptName(const QString& name);
 

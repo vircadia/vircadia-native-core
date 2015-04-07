@@ -3609,8 +3609,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
-    QScriptValue scriptsScriptingInterface = scriptEngine->registerGlobalObject("Scripts", ScriptsScriptingInterface::getInstance());
-    scriptEngine->registerFunction(scriptsScriptingInterface, "getPublic", ScriptsScriptingInterface::getPublic, 0);
+    scriptEngine->registerGlobalObject("Scripts", ScriptsScriptingInterface::getInstance());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
