@@ -211,76 +211,7 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
             }
         }
     }
-/*
-    for (auto field: state.getFields()) {
-        switch(field.first) {
-        case State::FILL_MODE: {
-            generateFillMode(object->_commands, State::FillMode(field.second._integer));
-            break;
-        }
-        case State::CULL_MODE: {
-            generateCullMode(object->_commands, State::CullMode(field.second._integer));
-            break;
-        }
-        case State::DEPTH_BIAS:
-        case State::DEPTH_BIAS_SLOPE_SCALE: {
-            depthBias = true;
-            break;
-        }
-        case State::FRONT_FACE_CLOCKWISE: {
-            generateFrontFaceClockwise(object->_commands, bool(field.second._integer));
-            break;
-        }
-        case State::DEPTH_CLIP_ENABLE: {
-            generateDepthClipEnable(object->_commands, bool(field.second._integer));
-            break;
-        }
-        case State::SCISSOR_ENABLE: {
-            generateScissorEnable(object->_commands, bool(field.second._integer));
-            break;
-        }
-        case State::MULTISAMPLE_ENABLE: {
-            generateMultisampleEnable(object->_commands, bool(field.second._integer));
-            break;
-        }
-        case State::ANTIALISED_LINE_ENABLE: {
-            generateAntialiasedLineEnable(object->_commands, bool(field.second._integer));
-            break;
-        }
-        case State::DEPTH_TEST: {
-            generateDepthTest(object->_commands, State::DepthTest(field.second._integer));
-            break;
-        }
 
-        case State::STENCIL_ACTIVATION:
-        case State::STENCIL_TEST_FRONT:
-        case State::STENCIL_TEST_BACK: {
-            stencilState = true;
-            break;
-        }
-
-        case State::SAMPLE_MASK: {
-            generateSampleMask(object->_commands, (field.second._unsigned_integer));
-            break;
-        }
-        case State::ALPHA_TO_COVERAGE_ENABLE: {
-            generateAlphaToCoverageEnable(object->_commands, bool(field.second._integer));
-            break;
-        }
-
-        case State::BLEND_FUNCTION: {
-            generateBlend(object->_commands, state);
-            break;
-        }
-
-        case State::COLOR_WRITE_MASK: {
-            generateColorWriteMask(object->_commands, field.second._integer);
-            break;
-        }
-
-        }
-    }
-*/
     if (depthBias) {
         generateDepthBias(object->_commands, state);
     }

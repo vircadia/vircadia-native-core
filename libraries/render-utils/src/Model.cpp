@@ -122,7 +122,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     // Backface on shadow
     if (key.isShadow()) {
         state->setCullMode(gpu::State::CULL_FRONT);
-        state->setDepthBias(1.1f);
+        state->setDepthBias(1.0f);
         state->setDepthBiasSlopeScale(4.0f);
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
