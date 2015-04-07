@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PopUpMenu = function (prompt, value, values, properties) {
-    var promptOverlay,
+var PopUpMenu = function (properties) {
+    var value = properties.value,
+        promptOverlay,
         valueOverlay,
         buttonOverlay,
         optionOverlays = [],
@@ -27,9 +28,9 @@ var PopUpMenu = function (prompt, value, values, properties) {
         var y,
             i;
 
-        y = properties.y - (values.length - 1) * properties.lineHeight;
+        y = properties.y - (properties.values.length - 1) * properties.lineHeight;
 
-        for (i = 0; i < values.length; i += 1) {
+        for (i = 0; i < properties.values.length; i += 1) {
             Overlays.editOverlay(optionOverlays[i], { y: y });
             y += properties.lineHeight;
         }
@@ -39,7 +40,7 @@ var PopUpMenu = function (prompt, value, values, properties) {
         var i,
             yOffScreen = Controller.getViewportDimensions().y;
 
-        for (i = 0; i < values.length; i += 1) {
+        for (i = 0; i < properties.values.length; i += 1) {
             optionOverlays[i] = Overlays.addOverlay("text", {
                 x: properties.x + properties.promptWidth,
                 y: yOffScreen,
@@ -51,7 +52,7 @@ var PopUpMenu = function (prompt, value, values, properties) {
                 alpha: properties.optionAlpha,
                 backgroundColor: properties.popupBackgroundColor,
                 backgroundAlpha: properties.popupBackgroundAlpha,
-                text: values[i],
+                text: properties.values[i],
                 font: properties.font,
                 visible: true
             });
@@ -84,7 +85,7 @@ var PopUpMenu = function (prompt, value, values, properties) {
         if (isDisplayingOptions) {
             for (i = 0; i < optionOverlays.length; i += 1) {
                 if (overlay === optionOverlays[i]) {
-                    value = values[i];
+                    value = properties.values[i];
                     Overlays.editOverlay(valueOverlay, { text: value });
                     clicked = true;
                 }
@@ -138,7 +139,7 @@ var PopUpMenu = function (prompt, value, values, properties) {
         alpha: properties.promptAlpha,
         backgroundColor: properties.promptBackgroundColor,
         backgroundAlpha: properties.promptBackgroundAlpha,
-        text: prompt,
+        text: properties.prompt,
         font: properties.font,
         visible: properties.visible
     });
@@ -814,7 +815,10 @@ var usersWindow = (function () {
             alpha: FRIENDS_BUTTON_ALPHA
         });
 
-        displayControl = new PopUpMenu(DISPLAY_PROMPT, DISPLAY_VALUES[0], DISPLAY_VALUES, {
+        displayControl = new PopUpMenu({
+            prompt: DISPLAY_PROMPT,
+            value: DISPLAY_VALUES[0],
+            values: DISPLAY_VALUES,
             x: WINDOW_MARGIN,
             y: viewportHeight,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
