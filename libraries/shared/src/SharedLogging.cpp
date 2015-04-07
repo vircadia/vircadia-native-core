@@ -1,5 +1,5 @@
 //
-//  SharedLogging.h
+//  SharedLogging.cpp
 //  libraries/shared/src
 //
 //  Created by Seth Alves on 4/6/15.

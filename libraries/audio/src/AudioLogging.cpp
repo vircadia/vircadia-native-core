@@ -1,5 +1,5 @@
 //
-//  AudioLogging.h
+//  AudioLogging.cpp
 //  libraries/audio/src
 //
 //  Created by Seth Alves on 4/6/15.

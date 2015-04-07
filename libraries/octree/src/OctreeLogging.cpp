@@ -1,5 +1,5 @@
 //
-//  OctreeLogging.h
+//  OctreeLogging.cpp
 //  libraries/octree/src
 //
 //  Created by Seth Alves on 4/6/15.

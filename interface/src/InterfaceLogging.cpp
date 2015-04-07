@@ -1,5 +1,5 @@
 //
-//  InterfaceLogging.h
+//  InterfaceLogging.cpp
 //  libraries/interface/src
 //
 //  Created by Seth Alves on 4/6/15.

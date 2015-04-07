@@ -1,5 +1,5 @@
 //
-//  RenderUtilsLogging.h
+//  RenderUtilsLogging.cpp
 //  libraries/render-utils/src
 //
 //  Created by Seth Alves on 4/6/15.

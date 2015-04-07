@@ -1,5 +1,5 @@
 //
-//  PhysicsLogging.h
+//  PhysicsLogging.cpp
 //  libraries/physics/src
 //
 //  Created by Seth Alves on 4/6/15.

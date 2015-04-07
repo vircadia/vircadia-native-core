@@ -1,5 +1,5 @@
 //
-//  ScriptEngineLogging.h
+//  ScriptEngineLogging.cpp
 //  libraries/script-engine/src
 //
 //  Created by Seth Alves on 4/6/15.
