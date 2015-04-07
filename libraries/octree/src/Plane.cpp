@@ -13,6 +13,8 @@
 //
 
 #include "Plane.h"
+#include "OctreeLogging.h"
+
 
 #include <QtCore/QDebug>
 
@@ -63,6 +65,6 @@ float Plane::distance(const glm::vec3 &point) const {
 }
 
 void Plane::print() const {
-    qDebug("Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
+    qCDebug(octree, "Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
         _point.x, _point.y, _point.z, _normal.x, _normal.y, _normal.z, _dCoefficient);
 }
