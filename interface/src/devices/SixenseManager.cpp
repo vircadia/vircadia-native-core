@@ -109,9 +109,9 @@ void SixenseManager::initialize() {
         }
         
         if (_sixenseLibrary->load()){
-            debugLog << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+            qCDebug(interfaceapp) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
         } else {
-            debugLog << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+            qCDebug(interfaceapp) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
                 << "Continuing without hydra support.";
             return;
         }

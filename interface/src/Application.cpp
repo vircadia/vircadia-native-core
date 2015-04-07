@@ -331,7 +331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _applicationStartupTime = startup_time;
 
-    debugLog << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -529,7 +529,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // check first run...
     if (_firstRun.get()) {
-        debugLog << "This is a first run...";
+        qCDebug(interfaceapp) << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
@@ -650,7 +650,7 @@ Application::~Application() {
 }
 
 void Application::initializeGL() {
-    debugLog << "Created Display Window.";
+    qCDebug(interfaceapp) << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -662,10 +662,10 @@ void Application::initializeGL() {
     }
     #endif
 
-    debugLog << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    debugLog << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    debugLog << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    debugLog << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
     #ifdef WIN32
     GLenum err = glewInit();
@@ -1801,7 +1801,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
         }
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
-        debugLog << "No models were selected";
+        qCDebug(interfaceapp) << "No models were selected";
         return false;
     }
 
@@ -1899,7 +1899,7 @@ void Application::init() {
     
     DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     
-    debugLog << "Loaded settings";
+    qCDebug(interfaceapp) << "Loaded settings";
     
 #ifdef __APPLE__
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
@@ -2380,7 +2380,7 @@ int Application::sendNackPackets() {
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
-    //debugLog << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
+    //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
@@ -2483,7 +2483,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
-                    debugLog << "no known jurisdiction for node " << *node << ", assume it's visible.";
+                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", assume it's visible.";
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
@@ -2503,7 +2503,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        debugLog << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
+                        qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }
                 }
             }
@@ -2512,7 +2512,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
-                    debugLog << "no known jurisdiction for node " << *node << ", give it budget of "
+                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
                     << perUnknownServer << " to send us jurisdiction.";
                 }
                 
@@ -2526,11 +2526,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     _octreeQuery.setCameraNearClip(0.1f);
                     _octreeQuery.setCameraFarClip(0.1f);
                     if (wantExtraDebugging) {
-                        debugLog << "Using 'minimal' camera position for node" << *node;
+                        qCDebug(interfaceapp) << "Using 'minimal' camera position for node" << *node;
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        debugLog << "Using regular camera position for node" << *node;
+                        qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
                 _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
@@ -3303,7 +3303,7 @@ void Application::updateWindowTitle(){
 }
 
 void Application::clearDomainOctreeDetails() {
-    debugLog << "Clearing domain octree details...";
+    qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3707,7 +3707,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    debugLog << "Downloading avatar file at " << url;
+    qCDebug(interfaceapp) << "Downloading avatar file at " << url;
     QEventLoop loop;
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
@@ -3756,13 +3756,13 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     msgBox.exec();
 
     if (msgBox.clickedButton() == headButton) {
-        debugLog << "Chose to use for head: " << url;
+        qCDebug(interfaceapp) << "Chose to use for head: " << url;
         _myAvatar->setFaceModelURL(url);
         UserActivityLogger::getInstance().changedModel("head", url);
         _myAvatar->sendIdentityPacket();
         emit faceURLChanged(url);
     } else if (msgBox.clickedButton() == bodyButton) {
-        debugLog << "Chose to use for body: " << url;
+        qCDebug(interfaceapp) << "Chose to use for body: " << url;
         _myAvatar->setSkeletonModelURL(url);
         // if the head is empty, reset it to the default head.
         if (_myAvatar->getFaceModelURLString().isEmpty()) {
@@ -3774,7 +3774,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         _myAvatar->sendIdentityPacket();
         emit skeletonURLChanged(url);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        debugLog << "Chose to use for body + head: " << url;
+        qCDebug(interfaceapp) << "Chose to use for body + head: " << url;
         _myAvatar->setFaceModelURL(QString());
         _myAvatar->setSkeletonModelURL(url);
         UserActivityLogger::getInstance().changedModel("skeleton", url);
@@ -3782,7 +3782,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         emit faceURLChanged(QString());
         emit skeletonURLChanged(url);
     } else {
-        debugLog << "Declined to use the avatar: " << url;
+        qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
     }
     return true;
 }
@@ -3794,10 +3794,10 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        debugLog << "Chose to run the script: " << scriptFilenameOrURL;
+        qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
         loadScript(scriptFilenameOrURL);
     } else {
-        debugLog << "Declined to run the script: " << scriptFilenameOrURL;
+        qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
     }
     return true;
 }
@@ -3855,7 +3855,7 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
 }
 
 void Application::handleScriptLoadError(const QString& scriptFilename) {
-    debugLog << "Application::loadScript(), script failed to load...";
+    qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
@@ -3877,7 +3877,7 @@ void Application::stopAllScripts(bool restart) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
         it.value()->stop();
-        debugLog << "stopping script..." << it.key();
+        qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
     // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
     // whenever a script stops in case it happened to have been setting joint rotations.
@@ -3889,7 +3889,7 @@ void Application::stopScript(const QString &scriptName) {
     const QString& scriptURLString = QUrl(scriptName).toString();
     if (_scriptEnginesHash.contains(scriptURLString)) {
         _scriptEnginesHash.value(scriptURLString)->stop();
-        debugLog << "stopping script..." << scriptName;
+        qCDebug(interfaceapp) << "stopping script..." << scriptName;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
@@ -3987,8 +3987,8 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
         voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
     }
     
-    debugLog << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
-    debugLog << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
+    qCDebug(interfaceapp) << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
+    qCDebug(interfaceapp) << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -4286,7 +4286,7 @@ void Application::notifyPacketVersionMismatch() {
 
 void Application::checkSkeleton() {
     if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
-        debugLog << "MyAvatar model has no skeleton";
+        qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
     
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
         QMessageBox msgBox;

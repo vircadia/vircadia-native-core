@@ -156,7 +156,7 @@ void Faceshift::noteConnected() {
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
     if (!_tcpRetryCount) {
        // Only spam log with fail to connect the first time, so that we can keep waiting for server
-       debugLog << "Faceshift: " << _tcpSocket.errorString();
+       qCDebug(interfaceapp) << "Faceshift: " << _tcpSocket.errorString();
     }
     // retry connection after a 2 second delay
     if (_tcpEnabled) {

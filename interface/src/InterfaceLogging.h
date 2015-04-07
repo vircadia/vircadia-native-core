@@ -9,8 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifndef hifi_InterfaceLogging_h
+#define hifi_InterfaceLogging_h
+
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(interfaceapp)
 
-#define debugLog qCDebug(interfaceapp)
+#endif // hifi_InterfaceLogging_h

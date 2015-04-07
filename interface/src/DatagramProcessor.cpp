@@ -126,8 +126,8 @@ void DatagramProcessor::processDatagrams() {
 
                     // output to the log so the user knows they got a denied connection request
                     // and check and signal for an access token so that we can make sure they are logged in
-                    debugLog << "The domain-server denied a connection request: " << reason;
-                    debugLog << "You may need to re-log to generate a keypair so you can provide a username signature.";
+                    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
+                    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
                     application->domainConnectionDenied(reason);
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;

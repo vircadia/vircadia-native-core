@@ -139,7 +139,7 @@ void Avatar::simulate(float deltaTime) {
                                                         this);
                     break;
                 default:
-                    debugLog << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    qCDebug(interfaceapp) << "[WARNING] Avatar::simulate(): Unknown referential type.";
                     break;
             }
         }

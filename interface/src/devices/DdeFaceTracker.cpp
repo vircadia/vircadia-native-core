@@ -177,7 +177,7 @@ bool DdeFaceTracker::isActive() const {
 
 //private slots and methods
 void DdeFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
-    debugLog << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
+    qCDebug(interfaceapp) << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
 }
 
 void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
@@ -205,7 +205,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    debugLog << "[Info] DDE Face Tracker Socket: " << state;
+    qCDebug(interfaceapp) << "[Info] DDE Face Tracker Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {
@@ -299,7 +299,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
     } else {
-        debugLog << "[Error] DDE Face Tracker Decode Error";
+        qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
 }

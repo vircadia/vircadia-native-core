@@ -448,7 +448,7 @@ void MyAvatar::stopRecording() {
 
 void MyAvatar::saveRecording(QString filename) {
     if (!_recorder) {
-        debugLog << "There is no recording to save";
+        qCDebug(interfaceapp) << "There is no recording to save";
         return;
     }
     if (QThread::currentThread() != thread()) {
@@ -467,7 +467,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_recorder) {
-        debugLog << "There is no recording to load";
+        qCDebug(interfaceapp) << "There is no recording to load";
         return;
     }
     if (!_player) {
@@ -781,7 +781,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
-    debugLog << "Error: ignoring update packet for MyAvatar"
+    qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
         << " packetLength = " << packet.size() 
         << "  offset = " << offset;
     // this packet is just bad, so we pretend that we unpacked it ALL
@@ -1352,13 +1352,13 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
     
-    debugLog.nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
+    qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
     
     glm::vec3 shiftedPosition = newPosition;
     
     if (hasOrientation) {
-        debugLog.nospace() << "MyAvatar goToLocation - new orientation is "
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
             << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
         
         // orient the user to face the target
