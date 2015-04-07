@@ -62,6 +62,9 @@ var usersWindow = (function () {
         DISPLAY_PROMPT_WIDTH = 60,
         displayValues = ["everyone", "friends"],
         displayControl,
+        DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 40, green: 40, blue: 40 },
+        DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.95,
+        displayOptions = [],
         isShowingDisplayOptions = false,
 
         VISIBILITY_SPACER = 6,                             // Space before visibility controls
@@ -148,6 +151,56 @@ var usersWindow = (function () {
         }
     }
 
+    function deleteDisplayOptions() {
+        var i;
+
+        for (i = 0; i < displayOptions.length; i += 1) {
+            Overlays.deleteOverlay(displayOptions[i]);
+        }
+
+        isShowingDisplayOptions = false;
+    }
+
+    function positionDisplayOptions() {
+        var y,
+            i;
+
+        y = viewportHeight
+                - windowTextHeight
+                - VISIBILITY_SPACER - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
+                - (displayValues.length - 1) * windowLineHeight;
+        for (i = 0; i < displayValues.length; i += 1) {
+            Overlays.editOverlay(displayOptions[i], { y: y });
+            y += windowLineHeight;
+        }
+    }
+
+    function showDisplayOptions() {
+        var i;
+
+        for (i = 0; i < displayValues.length; i += 1) {
+            displayOptions[i] = Overlays.addOverlay("text", {
+                x: WINDOW_MARGIN + DISPLAY_PROMPT_WIDTH,
+                y: viewportHeight,
+                width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN - DISPLAY_PROMPT_WIDTH,
+                height: windowTextHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+                topMargin: OPTION_MARGIN,
+                leftMargin: OPTION_MARGIN,
+                color: WINDOW_FOREGROUND_COLOR,
+                alpha: WINDOW_FOREGROUND_ALPHA,
+                backgroundColor: DISPLAY_OPTIONS_BACKGROUND_COLOR,
+                backgroundAlpha: DISPLAY_OPTIONS_BACKGROUND_ALPHA,
+                text: displayValues[i],
+                font: WINDOW_FONT,
+                visible: true
+            });
+        }
+
+        positionDisplayOptions();
+
+        isShowingDisplayOptions = true;
+    }
+
     function updateOverlayPositions() {
         var i,
             y;
@@ -185,6 +238,10 @@ var usersWindow = (function () {
         Overlays.editOverlay(displayControl.promptOverlay, { y: y });
         Overlays.editOverlay(displayControl.valueOverlay, { y: y - OPTION_MARGIN });
         Overlays.editOverlay(displayControl.buttonOverlay, { y: y - OPTION_MARGIN + 1 });
+
+        if (isShowingDisplayOptions) {
+            positionDisplayOptions();
+        }
 
         Overlays.editOverlay(visibilityHeading, {
             y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
@@ -412,6 +469,23 @@ var usersWindow = (function () {
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
+        if (isShowingDisplayOptions) {
+            userClicked = false;
+            for (i = 0; i < displayOptions.length; i += 1) {
+                if (clickedOverlay === displayOptions[i]) {
+                    displayControl.value = displayValues[i];
+                    Overlays.editOverlay(displayControl.valueOverlay, { text: displayValues[i] });
+                    userClicked = true;
+                }
+            }
+
+            deleteDisplayOptions();
+
+            if (userClicked) {
+                return;
+            }
+        }
+
         if (clickedOverlay === windowPane) {
 
             overlayX = event.x - WINDOW_MARGIN;
@@ -434,6 +508,11 @@ var usersWindow = (function () {
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
 
+            return;
+        }
+
+        if (clickedOverlay === displayControl.valueOverlay || clickedOverlay === displayControl.buttonOverlay) {
+            showDisplayOptions();
             return;
         }
 
@@ -789,6 +868,10 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(displayControl.promptOverlay);
         Overlays.deleteOverlay(displayControl.valueOverlay);
         Overlays.deleteOverlay(displayControl.buttonOverlay);
+        print("isShowingDisplayOptions = " + isShowingDisplayOptions);
+        if (isShowingDisplayOptions) {
+            deleteDisplayOptions();
+        }
         Overlays.deleteOverlay(visibilityHeading);
         for (i = 0; i <= visibilityControls.length; i += 1) {
             Overlays.deleteOverlay(visibilityControls[i].textOverlay);
