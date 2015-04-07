@@ -19,6 +19,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "devices/OculusManager.h"
+#include "InterfaceLogging.h"
 
 #ifdef Q_OS_WIN
 static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
@@ -91,7 +92,7 @@ int main(int argc, const char* argv[]) {
     if (clockSkewOption) {
         int clockSkew = atoi(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+        qCDebug(interface, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
@@ -107,7 +108,7 @@ int main(int argc, const char* argv[]) {
         translator.load("interface_en");
         app.installTranslator(&translator);
     
-        qDebug( "Created QT Application.");
+        qCDebug(interface, "Created QT Application.");
         exitCode = app.exec();
     }
 
@@ -115,6 +116,6 @@ int main(int argc, const char* argv[]) {
     ReleaseMutex(mutex);
 #endif
 
-    qDebug("Normal exit.");
+    qCDebug(interface, "Normal exit.");
     return exitCode;
 }   

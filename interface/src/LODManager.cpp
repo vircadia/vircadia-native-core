@@ -14,6 +14,7 @@
 
 #include "Application.h"
 #include "ui/DialogsManager.h"
+#include "InterfaceLogging.h"
 
 #include "LODManager.h"
 
@@ -78,7 +79,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
                 doDownShift = _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS();
                 
                 if (!doDownShift) {
-                    qDebug() << "---- WE APPEAR TO BE DONE DOWN SHIFTING -----";
+                    qCDebug(interface) << "---- WE APPEAR TO BE DONE DOWN SHIFTING -----";
                     _isDownshifting = false;
                     _lastStable = now;
                 }
@@ -102,7 +103,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
             if (changed) {
                 if (_isDownshifting) {
                     // subsequent downshift
-                    qDebug() << "adjusting LOD DOWN..."
+                    qCDebug(interface) << "adjusting LOD DOWN..."
                                 << "average fps for last "<< DOWN_SHIFT_WINDOW_IN_SECS <<"seconds was " 
                                 << _fpsAverageDownWindow.getAverage() 
                                 << "minimum is:" << getLODDecreaseFPS() 
@@ -110,7 +111,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
                 } else {
                     // first downshift
-                    qDebug() << "adjusting LOD DOWN after initial delay..."
+                    qCDebug(interface) << "adjusting LOD DOWN after initial delay..."
                                 << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was " 
                                 << _fpsAverageStartWindow.getAverage() 
                                 << "minimum is:" << getLODDecreaseFPS() 
@@ -145,7 +146,7 @@ void LODManager::autoAdjustLOD(float currentFPS) {
                 }
         
                 if (changed) {
-                    qDebug() << "adjusting LOD UP... average fps for last "<< UP_SHIFT_WINDOW_IN_SECS <<"seconds was " 
+                    qCDebug(interface) << "adjusting LOD UP... average fps for last "<< UP_SHIFT_WINDOW_IN_SECS <<"seconds was " 
                                 << _fpsAverageUpWindow.getAverage()
                                 << "upshift point is:" << getLODIncreaseFPS() 
                                 << "elapsedSinceUpShift:" << elapsedSinceUpShift

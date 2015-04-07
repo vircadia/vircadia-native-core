@@ -46,6 +46,7 @@
 #include "Util.h"
 #include "world.h"
 #include "devices/OculusManager.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -138,7 +139,7 @@ void Avatar::simulate(float deltaTime) {
                                                         this);
                     break;
                 default:
-                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    qCDebug(interface) << "[WARNING] Avatar::simulate(): Unknown referential type.";
                     break;
             }
         }

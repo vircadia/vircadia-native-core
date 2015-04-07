@@ -18,6 +18,7 @@
 #include "avatar/AvatarManager.h"
 #include "AudioClient.h"
 #include "Menu.h"
+#include "InterfaceLogging.h"
 
 #include "DatagramProcessor.h"
 
@@ -125,8 +126,8 @@ void DatagramProcessor::processDatagrams() {
 
                     // output to the log so the user knows they got a denied connection request
                     // and check and signal for an access token so that we can make sure they are logged in
-                    qDebug() << "The domain-server denied a connection request: " << reason;
-                    qDebug() << "You may need to re-log to generate a keypair so you can provide a username signature.";
+                    qCDebug(interface) << "The domain-server denied a connection request: " << reason;
+                    qCDebug(interface) << "You may need to re-log to generate a keypair so you can provide a username signature.";
                     application->domainConnectionDenied(reason);
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
