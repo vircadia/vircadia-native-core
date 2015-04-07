@@ -17,6 +17,8 @@
 
 #include <PacketHeaders.h>
 
+#include "AudioLogging.h"
+
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
@@ -126,7 +128,7 @@ int AudioRingBuffer::writeData(const char* data, int maxSize) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     if (_endOfLastWrite + samplesToCopy <= _buffer + _bufferLength) {
@@ -172,7 +174,7 @@ int AudioRingBuffer::addSilentSamples(int silentSamples) {
     if (silentSamples > samplesRoomFor) {
         // there's not enough room for this write. write as many silent samples as we have room for
         silentSamples = samplesRoomFor;
-        qDebug() << "Dropping some silent samples to prevent ring buffer overflow";
+        qCDebug(audio) << "Dropping some silent samples to prevent ring buffer overflow";
     }
 
     // memset zeroes into the buffer, accomodate a wrap around the end
@@ -236,7 +238,7 @@ int AudioRingBuffer::writeSamples(ConstIterator source, int maxSamples) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;
@@ -257,7 +259,7 @@ int AudioRingBuffer::writeSamplesWithFade(ConstIterator source, int maxSamples, 
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;

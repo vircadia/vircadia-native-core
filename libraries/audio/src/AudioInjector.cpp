@@ -19,6 +19,7 @@
 
 #include "AbstractAudioInterface.h"
 #include "AudioRingBuffer.h"
+#include "AudioLogging.h"
 
 #include "AudioInjector.h"
 
@@ -58,7 +59,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
         
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
-            qDebug() << "AudioInjector triggering delete from setIsFinished";
+            qCDebug(audio) << "AudioInjector triggering delete from setIsFinished";
             QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
         }
     }
@@ -84,12 +85,12 @@ void AudioInjector::injectAudio() {
             injectToMixer();
         }
     } else {
-        qDebug() << "AudioInjector::injectAudio called but already started.";
+        qCDebug(audio) << "AudioInjector::injectAudio called but already started.";
     }    
 }
 
 void AudioInjector::restart() {
-    qDebug() << "Restarting an AudioInjector by stopping and starting over.";
+    qCDebug(audio) << "Restarting an AudioInjector by stopping and starting over.";
     stop();
     setIsFinished(false);
     QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
@@ -114,14 +115,14 @@ void AudioInjector::injectLocally() {
             connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
             
             if (!success) {
-                qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
+                qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
             }
         } else {
-            qDebug() << "AudioInjector::injectLocally called without any data in Sound QByteArray";
+            qCDebug(audio) << "AudioInjector::injectLocally called without any data in Sound QByteArray";
         }
         
     } else {
-        qDebug() << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
+        qCDebug(audio) << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
     
     if (!success) {

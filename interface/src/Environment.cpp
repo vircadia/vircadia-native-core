@@ -24,6 +24,7 @@
 #include "Application.h"
 #include "Camera.h"
 #include "world.h"
+#include "InterfaceLogging.h"
 
 #include "Environment.h"
 
@@ -49,7 +50,7 @@ Environment::~Environment() {
 
 void Environment::init() {
     if (_initialized) {
-        qDebug("[ERROR] Environment is already initialized.");
+        qCDebug(interfaceapp, "[ERROR] Environment is already initialized.");
         return;
     }
 

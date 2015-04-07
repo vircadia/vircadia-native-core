@@ -15,6 +15,7 @@
 
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
+#include "OctreeLogging.h"
 #include "OctreeProjectedPolygon.h"
 
 
@@ -94,7 +95,7 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
 
 
 void BoundingBox::printDebugDetails(const char* label) const {
-    qDebug("%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
+    qCDebug(octree, "%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
            (label ? label : "BoundingBox"),
            debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
 }
@@ -263,12 +264,12 @@ bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVe
 }
  
 void OctreeProjectedPolygon::printDebugDetails() const {
-    qDebug("OctreeProjectedPolygon..."
+    qCDebug(octree, "OctreeProjectedPolygon..."
            "    minX=%f maxX=%f minY=%f maxY=%f", getMinX(), getMaxX(), getMinY(), getMaxY());
-    qDebug("    vertex count=%d distance=%f", getVertexCount(), getDistance());
+    qCDebug(octree, "    vertex count=%d distance=%f", getVertexCount(), getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
-        qDebug("    vertex[%d] = %f, %f ", i, point.x, point.y);
+        qCDebug(octree, "    vertex[%d] = %f, %f ", i, point.x, point.y);
     }
 }
 

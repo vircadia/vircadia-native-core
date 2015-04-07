@@ -43,6 +43,7 @@
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "Util.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -308,7 +309,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 headPosition(getHead()->getEyePosition());
     float torsoToHead = glm::length(headPosition - torsoPosition);
     glm::vec3 position;
-    qDebug("head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
+    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
 
     //  Torso Sphere
     position = torsoPosition;
@@ -447,7 +448,7 @@ void MyAvatar::stopRecording() {
 
 void MyAvatar::saveRecording(QString filename) {
     if (!_recorder) {
-        qDebug() << "There is no recording to save";
+        qCDebug(interfaceapp) << "There is no recording to save";
         return;
     }
     if (QThread::currentThread() != thread()) {
@@ -466,7 +467,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_recorder) {
-        qDebug() << "There is no recording to load";
+        qCDebug(interfaceapp) << "There is no recording to load";
         return;
     }
     if (!_player) {
@@ -780,7 +781,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
-    qDebug() << "Error: ignoring update packet for MyAvatar"
+    qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
         << " packetLength = " << packet.size() 
         << "  offset = " << offset;
     // this packet is just bad, so we pretend that we unpacked it ALL
@@ -1330,33 +1331,33 @@ void MyAvatar::maybeUpdateBillboard() {
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
     }
 }
 
 void MyAvatar::decreaseSize() {
     if (MIN_AVATAR_SCALE < (1.0f - SCALING_RATIO) * _targetScale) {
         _targetScale *= (1.0f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
     }
 }
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
+    qCDebug(interfaceapp, "Reseted scale to %f", _targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
     
-    qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
+    qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
     
     glm::vec3 shiftedPosition = newPosition;
     
     if (hasOrientation) {
-        qDebug().nospace() << "MyAvatar goToLocation - new orientation is "
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
             << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
         
         // orient the user to face the target

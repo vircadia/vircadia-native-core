@@ -23,6 +23,7 @@
 
 #include "MainWindow.h"
 #include "Menu.h"
+#include "InterfaceLogging.h"
 
 #include "Bookmarks.h"
 
@@ -35,7 +36,7 @@ void Bookmarks::insert(const QString& name, const QString& address) {
     _bookmarks.insert(name, address);
 
     if (contains(name)) {
-        qDebug() << "Added bookmark:" << name << "," << address;
+        qCDebug(interfaceapp) << "Added bookmark:" << name << "," << address;
         persistToFile();
     } else {
         qWarning() << "Couldn't add bookmark: " << name << "," << address;
@@ -46,7 +47,7 @@ void Bookmarks::remove(const QString& name) {
     _bookmarks.remove(name);
 
     if (!contains(name)) {
-        qDebug() << "Deleted bookmark:" << name;
+        qCDebug(interfaceapp) << "Deleted bookmark:" << name;
         persistToFile();
     } else {
         qWarning() << "Couldn't delete bookmark:" << name;

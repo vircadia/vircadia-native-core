@@ -29,7 +29,7 @@
 #include <Shape.h>
 
 #include "FBXReader.h"
-
+#include "ModelFormatLogging.h"
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
 //#define DEBUG_FBXREADER
@@ -662,7 +662,7 @@ public:
 void printNode(const FBXNode& node, int indentLevel) {
     int indentLength = 2;
     QByteArray spaces(indentLevel * indentLength, ' ');
-    QDebug nodeDebug = qDebug();
+    QDebug nodeDebug = qDebug(modelformat);
     
     nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
@@ -971,7 +971,7 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                     data.attributes.push_back(attrib);
                 } else {
                     // WTF same names for different UVs?
-                    qDebug() << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
+                    qCDebug(modelformat) << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
@@ -2191,7 +2191,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
                 }
                 if ((part.triangleIndices.size() % 3) != 0){
-                    qDebug() << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
                 }
             }
         }
@@ -2212,7 +2212,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
-                    qDebug() << "Joint not in model list: " << jointID;
+                    qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
@@ -2234,7 +2234,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
-                qDebug() << "Model not in model list: " << modelID;
+                qCDebug(modelformat) << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
