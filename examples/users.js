@@ -13,50 +13,50 @@ var usersWindow = (function () {
 
     var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
 
-        WINDOW_WIDTH_2D = 160,
-        WINDOW_MARGIN_2D = 12,
-        WINDOW_BASE_MARGIN_2D = 6,                          // A little less is needed in order look correct
-        WINDOW_FONT_2D = { size: 12 },
-        WINDOW_FOREGROUND_COLOR_2D = { red: 240, green: 240, blue: 240 },
-        WINDOW_FOREGROUND_ALPHA_2D = 0.9,
-        WINDOW_HEADING_COLOR_2D = { red: 180, green: 180, blue: 180 },
-        WINDOW_HEADING_ALPHA_2D = 0.9,
-        WINDOW_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
-        WINDOW_BACKGROUND_ALPHA_2D = 0.7,
-        windowPane2D,
-        windowHeading2D,
+        WINDOW_WIDTH = 160,
+        WINDOW_MARGIN = 12,
+        WINDOW_BASE_MARGIN = 6,                          // A little less is needed in order look correct
+        WINDOW_FONT = { size: 12 },
+        WINDOW_FOREGROUND_COLOR = { red: 240, green: 240, blue: 240 },
+        WINDOW_FOREGROUND_ALPHA = 0.9,
+        WINDOW_HEADING_COLOR = { red: 180, green: 180, blue: 180 },
+        WINDOW_HEADING_ALPHA = 0.9,
+        WINDOW_BACKGROUND_COLOR = { red: 80, green: 80, blue: 80 },
+        WINDOW_BACKGROUND_ALPHA = 0.7,
+        windowPane,
+        windowHeading,
         MINIMIZE_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
         MINIMIZE_BUTTON_SVG_WIDTH = 17.1,
         MINIMIZE_BUTTON_SVG_HEIGHT = 32.5,
-        MINIMIZE_BUTTON_WIDTH_2D = 14,
-        MINIMIZE_BUTTON_HEIGHT_2D = MINIMIZE_BUTTON_WIDTH_2D,
-        MINIMIZE_BUTTON_COLOR_2D = { red: 255, green: 255, blue: 255 },
-        MINIMIZE_BUTTON_ALPHA_2D = 0.9,
-        minimizeButton2D,
-        SCROLLBAR_BACKGROUND_WIDTH_2D = 12,
-        SCROLLBAR_BACKGROUND_COLOR_2D = { red: 80, green: 80, blue: 80 },
-        SCROLLBAR_BACKGROUND_ALPHA_2D = 0.8,
-        scrollbarBackground2D,
+        MINIMIZE_BUTTON_WIDTH = 14,
+        MINIMIZE_BUTTON_HEIGHT = MINIMIZE_BUTTON_WIDTH,
+        MINIMIZE_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
+        MINIMIZE_BUTTON_ALPHA = 0.9,
+        minimizeButton,
+        SCROLLBAR_BACKGROUND_WIDTH = 12,
+        SCROLLBAR_BACKGROUND_COLOR = { red: 80, green: 80, blue: 80 },
+        SCROLLBAR_BACKGROUND_ALPHA = 0.8,
+        scrollbarBackground,
         SCROLLBAR_BAR_MIN_HEIGHT = 5,
-        SCROLLBAR_BAR_COLOR_2D = { red: 180, green: 180, blue: 180 },
-        SCROLLBAR_BAR_ALPHA_2D = 0.8,
-        SCROLLBAR_BAR_SELECTED_ALPHA_2D = 0.9,
-        scrollbarBar2D,
+        SCROLLBAR_BAR_COLOR = { red: 180, green: 180, blue: 180 },
+        SCROLLBAR_BAR_ALPHA = 0.8,
+        SCROLLBAR_BAR_SELECTED_ALPHA = 0.9,
+        scrollbarBar,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        FRIENDS_BUTTON_SPACER_2D = 12,                      // Space before add/remove friends button
+        FRIENDS_BUTTON_SPACER = 12,                      // Space before add/remove friends button
         FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
-        FRIENDS_BUTTON_WIDTH_2D = FRIENDS_BUTTON_SVG_WIDTH,
-        FRIENDS_BUTTON_HEIGHT_2D = FRIENDS_BUTTON_SVG_HEIGHT,
-        FRIENDS_BUTTON_COLOR_2D = { red: 255, green: 255, blue: 255 },
-        FRIENDS_BUTTON_ALPHA_2D = 0.9,
-        friendsButton2D,
-        VISIBILITY_SPACER_2D = 12,                          // Space between before visibility controls
-        visibilityHeading2D,
+        FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
+        FRIENDS_BUTTON_HEIGHT = FRIENDS_BUTTON_SVG_HEIGHT,
+        FRIENDS_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
+        FRIENDS_BUTTON_ALPHA = 0.9,
+        friendsButton,
+        VISIBILITY_SPACER = 12,                          // Space between before visibility controls
+        visibilityHeading,
         VISIBILITY_RADIO_SPACE = 16,
-        visibilityControls2D,
+        visibilityControls,
         windowHeight,
         windowTextHeight,
         windowLineSpacing,
@@ -108,15 +108,15 @@ var usersWindow = (function () {
             maxWindowHeight;
 
         if (isMinimized) {
-            windowHeight = windowTextHeight + WINDOW_MARGIN_2D + WINDOW_BASE_MARGIN_2D;
+            windowHeight = windowTextHeight + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
             return;
         }
 
         // Reserve 5 lines for window heading plus visibility heading and controls
         // Subtract windowLineSpacing for both end of user list and end of controls
         nonUsersHeight = 5 * windowLineHeight - 2 * windowLineSpacing
-            + FRIENDS_BUTTON_SPACER_2D + FRIENDS_BUTTON_HEIGHT_2D
-            + VISIBILITY_SPACER_2D + WINDOW_MARGIN_2D + WINDOW_BASE_MARGIN_2D;
+            + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT
+            + VISIBILITY_SPACER + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;  // DJRTODO: - windowLineSpacing or not?
@@ -141,39 +141,39 @@ var usersWindow = (function () {
         var i,
             y;
 
-        Overlays.editOverlay(windowPane2D, {
+        Overlays.editOverlay(windowPane, {
             y: viewportHeight - windowHeight
         });
-        Overlays.editOverlay(windowHeading2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D
+        Overlays.editOverlay(windowHeading, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN
         });
 
-        Overlays.editOverlay(minimizeButton2D, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN_2D / 2
+        Overlays.editOverlay(minimizeButton, {
+            y: viewportHeight - windowHeight + WINDOW_MARGIN / 2
         });
 
-        scrollbarBackgroundPosition.y = viewportHeight - windowHeight + WINDOW_MARGIN_2D + windowTextHeight;
-        Overlays.editOverlay(scrollbarBackground2D, {
+        scrollbarBackgroundPosition.y = viewportHeight - windowHeight + WINDOW_MARGIN + windowTextHeight;
+        Overlays.editOverlay(scrollbarBackground, {
             y: scrollbarBackgroundPosition.y
         });
         scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
                 + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
-        Overlays.editOverlay(scrollbarBar2D, {
+        Overlays.editOverlay(scrollbarBar, {
             y: scrollbarBarPosition.y
         });
 
-        Overlays.editOverlay(friendsButton2D, {
-            y: viewportHeight - FRIENDS_BUTTON_HEIGHT_2D - VISIBILITY_SPACER_2D
-                - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D
+        Overlays.editOverlay(friendsButton, {
+            y: viewportHeight - FRIENDS_BUTTON_HEIGHT - VISIBILITY_SPACER
+                - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
         });
 
-        Overlays.editOverlay(visibilityHeading2D, {
-            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D
+        Overlays.editOverlay(visibilityHeading, {
+            y: viewportHeight - 4 * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN
         });
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
-            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN_2D;
-            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { y: y });
-            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { y: y });
+        for (i = 0; i < visibilityControls.length; i += 1) {
+            y = viewportHeight - (3 - i) * windowLineHeight + windowLineSpacing - WINDOW_BASE_MARGIN;
+            Overlays.editOverlay(visibilityControls[i].radioOverlay, { y: y });
+            Overlays.editOverlay(visibilityControls[i].textOverlay, { y: y });
         }
     }
 
@@ -181,13 +181,13 @@ var usersWindow = (function () {
         var i,
             color;
 
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
-            color = visibilityControls2D[i].selected ? WINDOW_FOREGROUND_COLOR_2D : WINDOW_HEADING_COLOR_2D;
-            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, {
+        for (i = 0; i < visibilityControls.length; i += 1) {
+            color = visibilityControls[i].selected ? WINDOW_FOREGROUND_COLOR : WINDOW_HEADING_COLOR;
+            Overlays.editOverlay(visibilityControls[i].radioOverlay, {
                 color: color,
-                subImage: { y: visibilityControls2D[i].selected ? 0 : RADIO_BUTTON_SVG_DIAMETER }
+                subImage: { y: visibilityControls[i].selected ? 0 : RADIO_BUTTON_SVG_DIAMETER }
             });
-            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { color: color });
+            Overlays.editOverlay(visibilityControls[i].textOverlay, { color: color });
         }
     }
 
@@ -202,8 +202,8 @@ var usersWindow = (function () {
             i;
 
         if (!isMinimized) {
-            maxTextWidth = WINDOW_WIDTH_2D - (isUsingScrollbars ? SCROLLBAR_BACKGROUND_WIDTH_2D : 0) - 2 * WINDOW_MARGIN_2D;
-            ellipsisWidth = Overlays.textSize(windowPane2D, "...").width;
+            maxTextWidth = WINDOW_WIDTH - (isUsingScrollbars ? SCROLLBAR_BACKGROUND_WIDTH : 0) - 2 * WINDOW_MARGIN;
+            ellipsisWidth = Overlays.textSize(windowPane, "...").width;
             reducedTextWidth = maxTextWidth - ellipsisWidth;
 
             for (i = 0; i < numUsersToDisplay; i += 1) {
@@ -213,10 +213,10 @@ var usersWindow = (function () {
 
                 if (textWidth > maxTextWidth) {
                     // Trim and append "..." to fit window width
-                    maxTextWidth = maxTextWidth - Overlays.textSize(windowPane2D, "...").width;
+                    maxTextWidth = maxTextWidth - Overlays.textSize(windowPane, "...").width;
                     while (textWidth > reducedTextWidth) {
                         userText = userText.slice(0, -1);
-                        textWidth = Overlays.textSize(windowPane2D, userText).width;
+                        textWidth = Overlays.textSize(windowPane, userText).width;
                     }
                     userText += "...";
                 }
@@ -227,24 +227,24 @@ var usersWindow = (function () {
             displayText = displayText.slice(1);  // Remove leading "\n".
 
             scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
-            Overlays.editOverlay(scrollbarBackground2D, {
+            Overlays.editOverlay(scrollbarBackground, {
                 height: scrollbarBackgroundHeight,
                 visible: isUsingScrollbars
             });
             scrollbarBarHeight = Math.max(numUsersToDisplay / linesOfUsers.length * scrollbarBackgroundHeight,
                 SCROLLBAR_BAR_MIN_HEIGHT);
-            Overlays.editOverlay(scrollbarBar2D, {
+            Overlays.editOverlay(scrollbarBar, {
                 height: scrollbarBarHeight,
                 visible: isUsingScrollbars
             });
         }
 
-        Overlays.editOverlay(windowPane2D, {
+        Overlays.editOverlay(windowPane, {
             height: windowHeight,
             text: displayText
         });
 
-        Overlays.editOverlay(windowHeading2D, {
+        Overlays.editOverlay(windowHeading, {
             text: linesOfUsers.length > 0 ? "Users online" : "No users online"
         });
     }
@@ -291,7 +291,7 @@ var usersWindow = (function () {
                         }
 
                         usersOnline[i].text = userText;
-                        usersOnline[i].textWidth = Overlays.textSize(windowPane2D, userText).width;
+                        usersOnline[i].textWidth = Overlays.textSize(windowPane, userText).width;
 
                         linesOfUsers.push(i);
                     }
@@ -319,16 +319,16 @@ var usersWindow = (function () {
     function updateOverlayVisibility() {
         var i;
 
-        Overlays.editOverlay(windowPane2D, { visible: isVisible });
-        Overlays.editOverlay(windowHeading2D, { visible: isVisible });
-        Overlays.editOverlay(minimizeButton2D, { visible: isVisible });
-        Overlays.editOverlay(scrollbarBackground2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
-        Overlays.editOverlay(scrollbarBar2D, { visible: isVisible && isUsingScrollbars && !isMinimized });
-        Overlays.editOverlay(friendsButton2D, { visible: isVisible && !isMinimized });
-        Overlays.editOverlay(visibilityHeading2D, { visible: isVisible && !isMinimized });
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
-            Overlays.editOverlay(visibilityControls2D[i].radioOverlay, { visible: isVisible && !isMinimized });
-            Overlays.editOverlay(visibilityControls2D[i].textOverlay, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(windowPane, { visible: isVisible });
+        Overlays.editOverlay(windowHeading, { visible: isVisible });
+        Overlays.editOverlay(minimizeButton, { visible: isVisible });
+        Overlays.editOverlay(scrollbarBackground, { visible: isVisible && isUsingScrollbars && !isMinimized });
+        Overlays.editOverlay(scrollbarBar, { visible: isVisible && isUsingScrollbars && !isMinimized });
+        Overlays.editOverlay(friendsButton, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(visibilityHeading, { visible: isVisible && !isMinimized });
+        for (i = 0; i < visibilityControls.length; i += 1) {
+            Overlays.editOverlay(visibilityControls[i].radioOverlay, { visible: isVisible && !isMinimized });
+            Overlays.editOverlay(visibilityControls[i].textOverlay, { visible: isVisible && !isMinimized });
         }
     }
 
@@ -350,7 +350,7 @@ var usersWindow = (function () {
 
     function setMinimized(minimized) {
         isMinimized = minimized;
-        Overlays.editOverlay(minimizeButton2D, {
+        Overlays.editOverlay(minimizeButton, {
             subImage: { y: isMinimized ? MINIMIZE_BUTTON_SVG_HEIGHT / 2 : 0 }
         });
         updateOverlayVisibility();
@@ -365,8 +365,8 @@ var usersWindow = (function () {
     function onFindableByChanged(event) {
         var i;
 
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
-            visibilityControls2D[i].selected = event === VISIBILITY_VALUES[i];
+        for (i = 0; i < visibilityControls.length; i += 1) {
+            visibilityControls[i].selected = event === VISIBILITY_VALUES[i];
         }
 
         updateVisibilityControls();
@@ -390,10 +390,10 @@ var usersWindow = (function () {
 
         clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-        if (clickedOverlay === windowPane2D) {
+        if (clickedOverlay === windowPane) {
 
-            overlayX = event.x - WINDOW_MARGIN_2D;
-            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN_2D - windowLineHeight;
+            overlayX = event.x - WINDOW_MARGIN;
+            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN - windowLineHeight;
 
             numLinesBefore = Math.round(overlayY / windowLineHeight);
             minY = numLinesBefore * windowLineHeight;
@@ -415,15 +415,15 @@ var usersWindow = (function () {
             return;
         }
 
-        for (i = 0; i < visibilityControls2D.length; i += 1) {
+        for (i = 0; i < visibilityControls.length; i += 1) {
             // Don't need to test radioOverlay if it us under textOverlay.
-            if (clickedOverlay === visibilityControls2D[i].textOverlay && event.x <= visibilityControls2D[i].optionWidth) {
+            if (clickedOverlay === visibilityControls[i].textOverlay && event.x <= visibilityControls[i].optionWidth) {
                 GlobalServices.findableBy = VISIBILITY_VALUES[i];
                 return;
             }
         }
 
-        if (clickedOverlay === minimizeButton2D) {
+        if (clickedOverlay === minimizeButton) {
             setMinimized(!isMinimized);
             calculateWindowHeight();
             updateOverlayPositions();
@@ -431,16 +431,16 @@ var usersWindow = (function () {
             return;
         }
 
-        if (clickedOverlay === scrollbarBar2D) {
+        if (clickedOverlay === scrollbarBar) {
             scrollbarBarClickedAt = (event.y - scrollbarBarPosition.y) / scrollbarBarHeight;
-            Overlays.editOverlay(scrollbarBar2D, {
-                backgroundAlpha: SCROLLBAR_BAR_SELECTED_ALPHA_2D
+            Overlays.editOverlay(scrollbarBar, {
+                backgroundAlpha: SCROLLBAR_BAR_SELECTED_ALPHA
             });
             isMovingScrollbar = true;
             return;
         }
 
-        if (clickedOverlay === scrollbarBackground2D) {
+        if (clickedOverlay === scrollbarBackground) {
             delta = scrollbarBarHeight / (scrollbarBackgroundHeight - scrollbarBarHeight);
 
             if (event.y < scrollbarBarPosition.y) {
@@ -455,17 +455,17 @@ var usersWindow = (function () {
             return;
         }
 
-        if (clickedOverlay === friendsButton2D) {
+        if (clickedOverlay === friendsButton) {
             GlobalServices.editFriends();
         }
     }
 
     function onMouseMoveEvent(event) {
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN_2D <= event.x
-                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH_2D + WINDOW_MARGIN_2D
-                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN_2D <= event.y
-                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN_2D) {
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
+                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
+                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
+                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
                 scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
                     / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
@@ -473,8 +473,8 @@ var usersWindow = (function () {
                 updateOverlayPositions();
                 updateUsersDisplay();
             } else {
-                Overlays.editOverlay(scrollbarBar2D, {
-                    backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D
+                Overlays.editOverlay(scrollbarBar, {
+                    backgroundAlpha: SCROLLBAR_BAR_ALPHA
                 });
                 isMovingScrollbar = false;
             }
@@ -482,8 +482,8 @@ var usersWindow = (function () {
     }
 
     function onMouseReleaseEvent() {
-        Overlays.editOverlay(scrollbarBar2D, {
-            backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D
+        Overlays.editOverlay(scrollbarBar, {
+            backgroundAlpha: SCROLLBAR_BAR_ALPHA
         });
         isMovingScrollbar = false;
     }
@@ -512,7 +512,7 @@ var usersWindow = (function () {
         var textSizeOverlay,
             optionText;
 
-        textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT_2D, visible: false });
+        textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT, visible: false });
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
@@ -523,102 +523,102 @@ var usersWindow = (function () {
 
         calculateWindowHeight();
 
-        windowPane2D = Overlays.addOverlay("text", {
+        windowPane = Overlays.addOverlay("text", {
             x: 0,
             y: viewportHeight,  // Start up off-screen
-            width: WINDOW_WIDTH_2D,
+            width: WINDOW_WIDTH,
             height: windowHeight,
-            topMargin: WINDOW_MARGIN_2D + windowLineHeight,
-            leftMargin: WINDOW_MARGIN_2D,
-            color: WINDOW_FOREGROUND_COLOR_2D,
-            alpha: WINDOW_FOREGROUND_ALPHA_2D,
-            backgroundColor: WINDOW_BACKGROUND_COLOR_2D,
-            backgroundAlpha: WINDOW_BACKGROUND_ALPHA_2D,
+            topMargin: WINDOW_MARGIN + windowLineHeight,
+            leftMargin: WINDOW_MARGIN,
+            color: WINDOW_FOREGROUND_COLOR,
+            alpha: WINDOW_FOREGROUND_ALPHA,
+            backgroundColor: WINDOW_BACKGROUND_COLOR,
+            backgroundAlpha: WINDOW_BACKGROUND_ALPHA,
             text: "",
-            font: WINDOW_FONT_2D,
+            font: WINDOW_FONT,
             visible: isVisible
         });
 
-        windowHeading2D = Overlays.addOverlay("text", {
-            x: WINDOW_MARGIN_2D,
+        windowHeading = Overlays.addOverlay("text", {
+            x: WINDOW_MARGIN,
             y: viewportHeight,
-            width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+            width: WINDOW_WIDTH - 2 * WINDOW_MARGIN,
             height: windowTextHeight,
             topMargin: 0,
             leftMargin: 0,
-            color: WINDOW_HEADING_COLOR_2D,
-            alpha: WINDOW_HEADING_ALPHA_2D,
+            color: WINDOW_HEADING_COLOR,
+            alpha: WINDOW_HEADING_ALPHA,
             backgroundAlpha: 0.0,
             text: "No users online",
-            font: WINDOW_FONT_2D,
+            font: WINDOW_FONT,
             visible: isVisible && !isMinimized
         });
 
-        minimizeButton2D = Overlays.addOverlay("image", {
-            x: WINDOW_WIDTH_2D - WINDOW_MARGIN_2D / 2 - MINIMIZE_BUTTON_WIDTH_2D,
+        minimizeButton = Overlays.addOverlay("image", {
+            x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MINIMIZE_BUTTON_WIDTH,
             y: viewportHeight,
-            width: MINIMIZE_BUTTON_WIDTH_2D,
-            height: MINIMIZE_BUTTON_HEIGHT_2D,
+            width: MINIMIZE_BUTTON_WIDTH,
+            height: MINIMIZE_BUTTON_HEIGHT,
             imageURL: MINIMIZE_BUTTON_SVG,
             subImage: { x: 0, y: 0, width: MINIMIZE_BUTTON_SVG_WIDTH, height: MINIMIZE_BUTTON_SVG_HEIGHT / 2 },
-            color: MINIMIZE_BUTTON_COLOR_2D,
-            alpha: MINIMIZE_BUTTON_ALPHA_2D,
+            color: MINIMIZE_BUTTON_COLOR,
+            alpha: MINIMIZE_BUTTON_ALPHA,
             visible:  isVisible && !isMinimized
         });
 
         scrollbarBackgroundPosition = {
-            x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D,
+            x: WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH,
             y: viewportHeight
         };
-        scrollbarBackground2D = Overlays.addOverlay("text", {
+        scrollbarBackground = Overlays.addOverlay("text", {
             x: scrollbarBackgroundPosition.x,
             y: scrollbarBackgroundPosition.y,
-            width: SCROLLBAR_BACKGROUND_WIDTH_2D,
+            width: SCROLLBAR_BACKGROUND_WIDTH,
             height: windowTextHeight,
-            backgroundColor: SCROLLBAR_BACKGROUND_COLOR_2D,
-            backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA_2D,
+            backgroundColor: SCROLLBAR_BACKGROUND_COLOR,
+            backgroundAlpha: SCROLLBAR_BACKGROUND_ALPHA,
             text: "",
             visible: isVisible && isUsingScrollbars && !isMinimized
         });
 
         scrollbarBarPosition = {
-            x: WINDOW_WIDTH_2D - 0.5 * WINDOW_MARGIN_2D - SCROLLBAR_BACKGROUND_WIDTH_2D + 1,
+            x: WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH + 1,
             y: viewportHeight
         };
-        scrollbarBar2D = Overlays.addOverlay("text", {
+        scrollbarBar = Overlays.addOverlay("text", {
             x: scrollbarBarPosition.x,
             y: scrollbarBarPosition.y,
-            width: SCROLLBAR_BACKGROUND_WIDTH_2D - 2,
+            width: SCROLLBAR_BACKGROUND_WIDTH - 2,
             height: windowTextHeight,
-            backgroundColor: SCROLLBAR_BAR_COLOR_2D,
-            backgroundAlpha: SCROLLBAR_BAR_ALPHA_2D,
+            backgroundColor: SCROLLBAR_BAR_COLOR,
+            backgroundAlpha: SCROLLBAR_BAR_ALPHA,
             text: "",
             visible: isVisible && isUsingScrollbars && !isMinimized
         });
 
-        friendsButton2D = Overlays.addOverlay("image", {
-            x: WINDOW_MARGIN_2D,
+        friendsButton = Overlays.addOverlay("image", {
+            x: WINDOW_MARGIN,
             y: viewportHeight,
-            width: FRIENDS_BUTTON_WIDTH_2D,
-            height: FRIENDS_BUTTON_HEIGHT_2D,
+            width: FRIENDS_BUTTON_WIDTH,
+            height: FRIENDS_BUTTON_HEIGHT,
             imageURL: FRIENDS_BUTTON_SVG,
             subImage: { x: 0, y: 0, width: FRIENDS_BUTTON_SVG_WIDTH, height: FRIENDS_BUTTON_SVG_HEIGHT },
-            color: FRIENDS_BUTTON_COLOR_2D,
-            alpha: FRIENDS_BUTTON_ALPHA_2D
+            color: FRIENDS_BUTTON_COLOR,
+            alpha: FRIENDS_BUTTON_ALPHA
         });
 
-        visibilityHeading2D = Overlays.addOverlay("text", {
-            x: WINDOW_MARGIN_2D,
+        visibilityHeading = Overlays.addOverlay("text", {
+            x: WINDOW_MARGIN,
             y: viewportHeight,
-            width: WINDOW_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+            width: WINDOW_WIDTH - 2 * WINDOW_MARGIN,
             height: windowTextHeight,
             topMargin: 0,
             leftMargin: 0,
-            color: WINDOW_HEADING_COLOR_2D,
-            alpha: WINDOW_HEADING_ALPHA_2D,
+            color: WINDOW_HEADING_COLOR,
+            alpha: WINDOW_HEADING_ALPHA,
             backgroundAlpha: 0.0,
             text: "I am visible to:",
-            font: WINDOW_FONT_2D,
+            font: WINDOW_FONT,
             visible: isVisible && !isMinimized
         });
 
@@ -629,9 +629,9 @@ var usersWindow = (function () {
         }
 
         optionText = "everyone";
-        visibilityControls2D = [{
+        visibilityControls = [{
             radioOverlay: Overlays.addOverlay("image", {  // Create first so that it is under textOverlay.
-                x: WINDOW_MARGIN_2D,
+                x: WINDOW_MARGIN,
                 y: viewportHeight,
                 width: radioButtonDiameter,
                 height: radioButtonDiameter,
@@ -642,48 +642,48 @@ var usersWindow = (function () {
                     width: RADIO_BUTTON_SVG_DIAMETER,
                     height: RADIO_BUTTON_SVG_DIAMETER
                 },
-                color: WINDOW_HEADING_COLOR_2D,
-                alpha: WINDOW_FOREGROUND_ALPHA_2D,
+                color: WINDOW_HEADING_COLOR,
+                alpha: WINDOW_FOREGROUND_ALPHA,
                 visible: isVisible && !isMinimized
             }),
             textOverlay: Overlays.addOverlay("text", {
-                x: WINDOW_MARGIN_2D,
+                x: WINDOW_MARGIN,
                 y: viewportHeight,
-                width: WINDOW_WIDTH_2D - SCROLLBAR_BACKGROUND_WIDTH_2D - 2 * WINDOW_MARGIN_2D,
+                width: WINDOW_WIDTH - SCROLLBAR_BACKGROUND_WIDTH - 2 * WINDOW_MARGIN,
                 height: windowTextHeight,
                 topMargin: 0,
                 leftMargin: VISIBILITY_RADIO_SPACE,
-                color: WINDOW_HEADING_COLOR_2D,
-                alpha: WINDOW_FOREGROUND_ALPHA_2D,
+                color: WINDOW_HEADING_COLOR,
+                alpha: WINDOW_FOREGROUND_ALPHA,
                 backgroundAlpha: 0.0,
                 text: optionText,
-                font: WINDOW_FONT_2D,
+                font: WINDOW_FONT,
                 visible: isVisible && !isMinimized
             }),
             selected: myVisibility === VISIBILITY_VALUES[0]
         }];
-        visibilityControls2D[0].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls2D[0].textOverlay, optionText).width;
+        visibilityControls[0].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls[0].textOverlay, optionText).width;
 
         optionText = "my friends";
-        visibilityControls2D[1] = {
-            radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
-            textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
+        visibilityControls[1] = {
+            radioOverlay: Overlays.cloneOverlay(visibilityControls[0].radioOverlay),
+            textOverlay: Overlays.cloneOverlay(visibilityControls[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[1]
         };
-        Overlays.editOverlay(visibilityControls2D[1].textOverlay, { text: optionText });
-        visibilityControls2D[1].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls2D[1].textOverlay, optionText).width;
+        Overlays.editOverlay(visibilityControls[1].textOverlay, { text: optionText });
+        visibilityControls[1].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls[1].textOverlay, optionText).width;
 
         optionText = "no one";
-        visibilityControls2D[2] = {
-            radioOverlay: Overlays.cloneOverlay(visibilityControls2D[0].radioOverlay),
-            textOverlay: Overlays.cloneOverlay(visibilityControls2D[0].textOverlay),
+        visibilityControls[2] = {
+            radioOverlay: Overlays.cloneOverlay(visibilityControls[0].radioOverlay),
+            textOverlay: Overlays.cloneOverlay(visibilityControls[0].textOverlay),
             selected: myVisibility === VISIBILITY_VALUES[2]
         };
-        Overlays.editOverlay(visibilityControls2D[2].textOverlay, { text: optionText });
-        visibilityControls2D[2].optionWidth = WINDOW_MARGIN_2D + VISIBILITY_RADIO_SPACE
-            + Overlays.textSize(visibilityControls2D[2].textOverlay, optionText).width;
+        Overlays.editOverlay(visibilityControls[2].textOverlay, { text: optionText });
+        visibilityControls[2].optionWidth = WINDOW_MARGIN + VISIBILITY_RADIO_SPACE
+            + Overlays.textSize(visibilityControls[2].textOverlay, optionText).width;
 
         updateVisibilityControls();
 
@@ -714,16 +714,16 @@ var usersWindow = (function () {
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
-        Overlays.deleteOverlay(windowPane2D);
-        Overlays.deleteOverlay(windowHeading2D);
-        Overlays.deleteOverlay(minimizeButton2D);
-        Overlays.deleteOverlay(scrollbarBackground2D);
-        Overlays.deleteOverlay(scrollbarBar2D);
-        Overlays.deleteOverlay(friendsButton2D);
-        Overlays.deleteOverlay(visibilityHeading2D);
-        for (i = 0; i <= visibilityControls2D.length; i += 1) {
-            Overlays.deleteOverlay(visibilityControls2D[i].textOverlay);
-            Overlays.deleteOverlay(visibilityControls2D[i].radioOverlay);
+        Overlays.deleteOverlay(windowPane);
+        Overlays.deleteOverlay(windowHeading);
+        Overlays.deleteOverlay(minimizeButton);
+        Overlays.deleteOverlay(scrollbarBackground);
+        Overlays.deleteOverlay(scrollbarBar);
+        Overlays.deleteOverlay(friendsButton);
+        Overlays.deleteOverlay(visibilityHeading);
+        for (i = 0; i <= visibilityControls.length; i += 1) {
+            Overlays.deleteOverlay(visibilityControls[i].textOverlay);
+            Overlays.deleteOverlay(visibilityControls[i].radioOverlay);
         }
     }
 
