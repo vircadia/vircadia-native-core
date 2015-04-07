@@ -55,7 +55,7 @@ void MIDIManager::openDefaultPort() {
         _midiInput = new RtMidiIn();
         
         if (_midiInput->getPortCount() > 0) {
-            qCDebug(interface) << "MIDIManager opening port" << DEFAULT_MIDI_PORT;
+            debugLog << "MIDIManager opening port" << DEFAULT_MIDI_PORT;
             
             _midiInput->openPort(DEFAULT_MIDI_PORT);
             
@@ -64,7 +64,7 @@ void MIDIManager::openDefaultPort() {
             
             _midiInput->setCallback(&MIDIManager::midiCallback);
         } else {
-            qCDebug(interface) << "MIDIManager openDefaultPort called but there are no ports available.";
+            debugLog << "MIDIManager openDefaultPort called but there are no ports available.";
             delete _midiInput;
             _midiInput = NULL;
         }

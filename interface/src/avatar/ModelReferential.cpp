@@ -26,7 +26,7 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
                     referential->getExtraData().size());
     
     if (!isValid()) {
-        qCDebug(interface) << "ModelReferential::copyConstructor(): Not Valid";
+        debugLog << "ModelReferential::copyConstructor(): Not Valid";
         return;
     }
     
@@ -46,7 +46,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
 {
     const EntityItem* item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL) {
-        qCDebug(interface) << "ModelReferential::constructor(): Not Valid";
+        debugLog << "ModelReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -101,7 +101,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
 {
     _type = JOINT;
     if (!isValid()) {
-        qCDebug(interface) << "JointReferential::copyConstructor(): Not Valid";
+        debugLog << "JointReferential::copyConstructor(): Not Valid";
         return;
     }
     
@@ -123,7 +123,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
-        qCDebug(interface) << "JointReferential::constructor(): Not Valid";
+        debugLog << "JointReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }

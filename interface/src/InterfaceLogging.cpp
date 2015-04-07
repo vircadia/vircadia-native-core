@@ -11,4 +11,4 @@
 
 #include "InterfaceLogging.h"
 
-Q_LOGGING_CATEGORY(interface, "hifi.interface")
+Q_LOGGING_CATEGORY(app, "hifi.interface")

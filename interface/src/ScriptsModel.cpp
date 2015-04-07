@@ -182,7 +182,7 @@ void ScriptsModel::downloadFinished() {
         if (!data.isEmpty()) {
             finished = parseXML(data);
         } else {
-            qCDebug(interface) << "Error: Received no data when loading remote scripts";
+            debugLog << "Error: Received no data when loading remote scripts";
         }
     }
 
@@ -231,7 +231,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
 
     // Error handling
     if (xml.hasError()) {
-        qCDebug(interface) << "Error loading remote scripts: " << xml.errorString();
+        debugLog << "Error loading remote scripts: " << xml.errorString();
         return true;
     }
 

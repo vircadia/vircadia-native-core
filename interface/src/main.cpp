@@ -92,7 +92,7 @@ int main(int argc, const char* argv[]) {
     if (clockSkewOption) {
         int clockSkew = atoi(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qCDebug(interface, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+        qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
@@ -108,7 +108,7 @@ int main(int argc, const char* argv[]) {
         translator.load("interface_en");
         app.installTranslator(&translator);
     
-        qCDebug(interface, "Created QT Application.");
+        qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
     }
 
@@ -116,6 +116,6 @@ int main(int argc, const char* argv[]) {
     ReleaseMutex(mutex);
 #endif
 
-    qCDebug(interface, "Normal exit.");
+    qCDebug(interfaceapp, "Normal exit.");
     return exitCode;
 }   

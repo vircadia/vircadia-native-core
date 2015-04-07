@@ -109,9 +109,9 @@ void SixenseManager::initialize() {
         }
         
         if (_sixenseLibrary->load()){
-            qCDebug(interface) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+            debugLog << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
         } else {
-            qCDebug(interface) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+            debugLog << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
                 << "Continuing without hydra support.";
             return;
         }
@@ -207,7 +207,7 @@ void SixenseManager::update(float deltaTime) {
                 hand->getPalms().push_back(newPalm);
                 palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
                 palm->setSixenseID(data->controller_index);
-                qCDebug(interface, "Found new Sixense controller, ID %i", data->controller_index);
+                qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
             }
             
             // Disable the hands (and return to default pose) if both controllers are at base station
@@ -365,11 +365,11 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
                 xAxis = glm::normalize(glm::cross(yAxis, zAxis));
                 _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-                qCDebug(interface, "succeess: sixense calibration");
+                qCDebug(interfaceapp, "succeess: sixense calibration");
             }
             break;
             default:
-                qCDebug(interface, "failed: sixense calibration");
+                qCDebug(interfaceapp, "failed: sixense calibration");
                 break;
         }
 
@@ -388,7 +388,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
         if (reach > 2.0f * MINIMUM_ARM_REACH) {
-            qCDebug(interface, "started: sixense calibration");
+            qCDebug(interfaceapp, "started: sixense calibration");
             _averageLeft = positionLeft;
             _averageRight = positionRight;
             _reachLeft = _averageLeft;
@@ -421,7 +421,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_Y;
-            qCDebug(interface, "success: sixense calibration: left");
+            qCDebug(interfaceapp, "success: sixense calibration: left");
         }
     }
     else if (_calibrationState == CALIBRATION_STATE_Y) {
@@ -440,7 +440,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 _lastDistance = 0.0f;
                 _lockExpiry = now + LOCK_DURATION;
                 _calibrationState = CALIBRATION_STATE_Z;
-                qCDebug(interface, "success: sixense calibration: up");
+                qCDebug(interfaceapp, "success: sixense calibration: up");
             }
         }
     }
@@ -462,7 +462,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             if (fabs(_lastDistance) > 0.05f * MINIMUM_ARM_REACH) {
                 // lock has expired so clamp the data and move on
                 _calibrationState = CALIBRATION_STATE_COMPLETE;
-                qCDebug(interface, "success: sixense calibration: forward");
+                qCDebug(interfaceapp, "success: sixense calibration: forward");
                 // TODO: it is theoretically possible to detect that the controllers have been 
                 // accidentally switched (left hand is holding right controller) and to swap the order.
             }

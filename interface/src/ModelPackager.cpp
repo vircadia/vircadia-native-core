@@ -85,7 +85,7 @@ bool ModelPackager::loadModel() {
             qWarning() << QString("ModelPackager::loadModel(): Could not open FST file %1").arg(_modelFile.filePath());
             return false;
         }
-        qCDebug(interface) << "Reading FST file : " << _modelFile.filePath();
+        debugLog << "Reading FST file : " << _modelFile.filePath();
         _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
         
@@ -104,7 +104,7 @@ bool ModelPackager::loadModel() {
         qWarning() << QString("ModelPackager::loadModel(): Could not open FBX file %1").arg(_fbxInfo.filePath());
         return false;
     }
-    qCDebug(interface) << "Reading FBX file : " << _fbxInfo.filePath();
+    debugLog << "Reading FBX file : " << _fbxInfo.filePath();
     QByteArray fbxContents = fbx.readAll();
     _geometry = readFBX(fbxContents, QVariantHash());
     
@@ -189,7 +189,7 @@ bool ModelPackager::zipModel() {
         fst.write(FSTReader::writeMapping(_mapping));
         fst.close();
     } else {
-        qCDebug(interface) << "Couldn't write FST file" << fst.fileName();
+        debugLog << "Couldn't write FST file" << fst.fileName();
         return false;
     }
     
@@ -197,7 +197,7 @@ bool ModelPackager::zipModel() {
     QString saveDirPath = QFileDialog::getExistingDirectory(nullptr, "Save Model",
                                                         "", QFileDialog::ShowDirsOnly);
     if (saveDirPath.isEmpty()) {
-        qCDebug(interface) << "Invalid directory" << saveDirPath;
+        debugLog << "Invalid directory" << saveDirPath;
         return false;
     }
     
@@ -405,7 +405,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
     if (!errors.isEmpty()) {
         QMessageBox::warning(nullptr, "ModelPackager::copyTextures()",
                              "Missing textures:" + errors);
-        qCDebug(interface) << "ModelPackager::copyTextures():" << errors;
+        debugLog << "ModelPackager::copyTextures():" << errors;
         return false;
     }
     

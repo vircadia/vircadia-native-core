@@ -52,7 +52,7 @@ Menu* Menu::getInstance() {
     menuInstanceMutex.lock();
 
     if (!_instance) {
-        qCDebug(interface, "First call to Menu::getInstance() - initing menu.");
+        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
 
         _instance = new Menu();
     }
@@ -744,7 +744,7 @@ void Menu::triggerOption(const QString& menuOption) {
     if (action) {
         action->trigger();
     } else {
-        qCDebug(interface) << "NULL Action for menuOption '" << menuOption << "'";
+        debugLog << "NULL Action for menuOption '" << menuOption << "'";
     }
 }
 
@@ -988,7 +988,7 @@ void Menu::setVisibility() {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
     } else {
-        qCDebug(interface) << "ERROR Menu::setVisibility() called with unrecognized value.";
+        debugLog << "ERROR Menu::setVisibility() called with unrecognized value.";
     }
 }
 
@@ -1000,6 +1000,6 @@ void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
     } else if (discoverabilityMode == Discoverability::None) {
         setIsOptionChecked(MenuOption::VisibleToNoOne, true);
     } else {
-        qCDebug(interface) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
+        debugLog << "ERROR Menu::visibilityChanged() called with unrecognized value.";
     }
 }

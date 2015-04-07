@@ -140,13 +140,13 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         
         _enabled = SUCCEEDED(hr);
 
-        qCDebug(interface) << "Speech recognition" << (_enabled ? "enabled" : "enable failed");
+        debugLog << "Speech recognition" << (_enabled ? "enabled" : "enable failed");
 
     } else {
         _commandRecognizedNotifier->setEnabled(false);
         static_cast<ISpRecoContext*>(_speechRecognizerContext)->Release();
         static_cast<ISpRecognizer*>(_speechRecognizer)->Release();
-        qCDebug(interface) << "Speech recognition disabled";
+        debugLog << "Speech recognition disabled";
     }
 
     emit enabledUpdated(_enabled);
@@ -208,7 +208,7 @@ void SpeechRecognizer::reloadCommands() {
     }
 
     if (FAILED(hr)) {
-        qCDebug(interface) << "ERROR: Didn't successfully reload speech commands";
+        debugLog << "ERROR: Didn't successfully reload speech commands";
     }
 }
 
