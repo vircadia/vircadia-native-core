@@ -2504,7 +2504,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         }
 
         if (mesh.colors.isEmpty()) {
-            GLBATCH(glColor4f)(0.0f, 1.0f, 0.0f, 1.0f);
+            GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
         }
 
         qint64 offset = 0;
