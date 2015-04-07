@@ -22,6 +22,7 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
+#include "RenderUtilsLogging.h"
 
 
 GlowEffect::GlowEffect()
@@ -64,7 +65,7 @@ static ProgramObject* createProgram(const QString& name) {
 
 void GlowEffect::init(QGLWidget* widget, bool enabled) {
     if (_initialized) {
-        qDebug("[ERROR] GlowEffeect is already initialized.");
+        qCDebug(renderutils, "[ERROR] GlowEffeect is already initialized.");
         return;
     }
     
