@@ -10,6 +10,8 @@ class btCollisionShape;
 class btRigidBody;
 class btCollisionWorld;
 
+const int NUM_CHARACTER_CONTROLLER_RAYS = 2;
+
 ///DynamicCharacterController is obsolete/unsupported at the moment
 class DynamicCharacterController : public btCharacterControllerInterface
 {
@@ -20,13 +22,11 @@ protected:
     btRigidBody* _rigidBody;
 
     btVector3 _currentUp;
-    btVector3 _raySource[2];
-    btVector3 _rayTarget[2];
-    btScalar _rayLambda[2];
-    btVector3 _rayNormal[2];
+
+    btScalar _floorDistance;
 
     btVector3 _walkVelocity;
-    //btScalar _turnVelocity;
+    btScalar _gravity;
 
     glm::vec3 _shapeLocalOffset;
     glm::vec3 _boxScale; // used to compute capsule shape
@@ -35,7 +35,9 @@ protected:
     bool _enabled;
     bool _isOnGround;
     bool _isJumping;
+    bool _isFalling;
     bool _isHovering;
+    quint64 _jumpToHoverStart;
     uint32_t _pendingFlags;
 
     btDynamicsWorld* _dynamicsWorld = NULL;
@@ -69,6 +71,8 @@ public:
     virtual bool canJump() const;
     virtual void jump();
     virtual bool onGround() const;
+    bool isHovering() const { return _isHovering; }
+    void setHovering(bool enabled);
 
     bool needsRemoval() const;
     bool needsAddition() const;
@@ -82,6 +86,9 @@ public:
 
     void preSimulation(btScalar timeStep);
     void postSimulation();
+
+protected:
+    void updateUpAxis(const glm::quat& rotation);
 };
 
 #endif // hifi_DynamicCharacterController_h

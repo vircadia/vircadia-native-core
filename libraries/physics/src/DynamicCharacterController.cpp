@@ -7,18 +7,41 @@
 #include "DynamicCharacterController.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
-const float DEFAULT_GRAVITY = 5.0f;
+const float DEFAULT_GRAVITY = -5.0f;
 const float TERMINAL_VELOCITY = 55.0f;
 const float JUMP_SPEED = 3.5f;
+
+const float MAX_FALL_HEIGHT = 20.0f;
+const float MIN_HOVER_HEIGHT = 3.0f;
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 
+// TODO: improve walking up steps
+// TODO: make avatars able to walk up and down steps/slopes
+// TODO: make avatars stand on steep slope
+// TODO: make avatars not snag on low ceilings
+
+// helper class for simple ray-traces from character
+class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
+public:
+    ClosestNotMe(btRigidBody* me) : btCollisionWorld::ClosestRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
+        _me = me;
+    }
+    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
+        if (rayResult.m_collisionObject == _me) {
+            return 1.0f;
+        }
+        return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace
+    );
+}
+protected:
+    btRigidBody* _me;
+};
+
 DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
-    _rayLambda[0] = 1.0f;
-    _rayLambda[1] = 1.0f;
     _halfHeight = 1.0f;
     _shape = NULL;
     _rigidBody = NULL;
@@ -28,11 +51,15 @@ DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
 
     _enabled = false;
 
+    _floorDistance = MAX_FALL_HEIGHT;
+
     _walkVelocity.setValue(0.0f,0.0f,0.0f);
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
+    _isFalling = false;
     _isHovering = true;
+    _jumpToHoverStart = 0;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
     updateShapeIfNecessary();
@@ -43,100 +70,127 @@ DynamicCharacterController::~DynamicCharacterController() {
 
 // virtual 
 void DynamicCharacterController::setWalkDirection(const btVector3& walkDirection) {
-    _walkVelocity = walkDirection;
+    // do nothing -- walkVelocity is upated in preSimulation()
+    //_walkVelocity = walkDirection;
 }
 
 void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
-    const btTransform& xform = _rigidBody->getCenterOfMassTransform();
+    // trace a ray straight down to see if we're standing on the ground
+    const btTransform& xform = _rigidBody->getWorldTransform();
 
-    btVector3 down = -xform.getBasis()[1];
-    btVector3 forward = xform.getBasis()[2];
-    down.normalize();
-    forward.normalize();
+    // rayStart is at center of bottom sphere
+    btVector3 rayStart = xform.getOrigin() - _halfHeight * _currentUp;
 
-    _raySource[0] = xform.getOrigin();
-    _raySource[1] = xform.getOrigin();
+    // rayEnd is some short distance outside bottom sphere
+    const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
+    btScalar rayLength = _radius + FLOOR_PROXIMITY_THRESHOLD;
+    btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
-    _rayTarget[0] = _raySource[0] + down * _halfHeight * btScalar(1.1f);
-    _rayTarget[1] = _raySource[1] + forward * _halfHeight * btScalar(1.1f);
-
-    class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
-    public:
-        ClosestNotMe(btRigidBody* me) : btCollisionWorld::ClosestRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
-            _me = me;
-        }
-
-        virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
-            if (rayResult.m_collisionObject == _me)
-                return 1.0f;
-
-            return ClosestRayResultCallback::addSingleResult(rayResult, normalInWorldSpace
-        );
-    }
-    protected:
-        btRigidBody* _me;
-    };
-
+    // scan down for nearby floor
     ClosestNotMe rayCallback(_rigidBody);
-
-    int i = 0;
-    for (i = 0; i < 2; i++) {
-        rayCallback.m_closestHitFraction = 1.0f;
-        collisionWorld->rayTest(_raySource[i], _rayTarget[i], rayCallback);
-        if (rayCallback.hasHit()) {
-            _rayLambda[i] = rayCallback.m_closestHitFraction;
-        } else {
-            _rayLambda[i] = 1.0f;
-        }
+    rayCallback.m_closestHitFraction = 1.0f;
+    collisionWorld->rayTest(rayStart, rayEnd, rayCallback);
+    if (rayCallback.hasHit()) {
+        _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
     }
 }
 
 void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar dt) {
-    btVector3 currentVelocity = _rigidBody->getLinearVelocity();
-    btScalar currentSpeed = currentVelocity.length();
+    btVector3 actualVelocity = _rigidBody->getLinearVelocity();
+    btScalar actualSpeed = actualVelocity.length();
 
     btVector3 desiredVelocity = _walkVelocity;
     btScalar desiredSpeed = desiredVelocity.length();
+
     const btScalar MIN_SPEED = 0.001f;
-    if (desiredSpeed < MIN_SPEED) {
-        if (currentSpeed < MIN_SPEED) {
-            _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
+
+    if (_isHovering) {
+        if (desiredSpeed < MIN_SPEED) {
+            if (actualSpeed < MIN_SPEED) {
+                _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
+            } else {
+                const btScalar HOVER_BRAKING_TIMESCALE = 0.1f;
+                btScalar tau = glm::max(dt / HOVER_BRAKING_TIMESCALE, 1.0f);
+                _rigidBody->setLinearVelocity((1.0f - tau) * actualVelocity);
+            }
         } else {
-            const btScalar BRAKING_TIMESCALE = 0.2f;
-            btScalar tau = dt / BRAKING_TIMESCALE;
-            _rigidBody->setLinearVelocity((1.0f - tau) * currentVelocity);
+            const btScalar HOVER_ACCELERATION_TIMESCALE = 0.1f;
+            btScalar tau = dt / HOVER_ACCELERATION_TIMESCALE;
+            _rigidBody->setLinearVelocity(actualVelocity - tau * (actualVelocity - desiredVelocity));
         }
     } else {
-        const btScalar WALKING_TIMESCALE = 0.5f;
-        btScalar tau = dt / WALKING_TIMESCALE;
         if (onGround()) {
+            // walking on ground
+            if (desiredSpeed < MIN_SPEED) {
+                if (actualSpeed < MIN_SPEED) {
+                    _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
+                } else {
+                    const btScalar HOVER_BRAKING_TIMESCALE = 0.1f;
+                    btScalar tau = dt / HOVER_BRAKING_TIMESCALE;
+                    _rigidBody->setLinearVelocity((1.0f - tau) * actualVelocity);
+                }
+            } else {
+                // TODO: modify desiredVelocity using floor normal
+                const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
+                btScalar tau = dt / WALK_ACCELERATION_TIMESCALE;
+                btVector3 velocityCorrection = tau * (desiredVelocity - actualVelocity);
+                // subtract vertical component
+                velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
+                _rigidBody->setLinearVelocity(actualVelocity + velocityCorrection);
+            }
+        } else {
+            // falling or jumping
+            const btScalar FALL_ACCELERATION_TIMESCALE = 2.0f;
+            btScalar tau = dt / FALL_ACCELERATION_TIMESCALE;
+            btVector3 velocityCorrection = tau * (desiredVelocity - actualVelocity);
             // subtract vertical component
-            desiredVelocity = desiredVelocity - desiredVelocity.dot(_currentUp) * _currentUp;
-        }
-        _rigidBody->setLinearVelocity(currentVelocity - tau * (currentVelocity - desiredVelocity));
+            velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
+            _rigidBody->setLinearVelocity(actualVelocity + velocityCorrection);
+        } 
     }
 }
 
 bool DynamicCharacterController::canJump() const {
-    return onGround();
+    return onGround() && !_isJumping;
 }
 
 void DynamicCharacterController::jump() {
-    /*
-    if (!canJump()) {
-        return;
-    }
+    _pendingFlags |= PENDING_FLAG_JUMP;
 
-    btTransform xform = _rigidBody->getCenterOfMassTransform();
-    btVector3 up = xform.getBasis()[1];
-    up.normalize();
-    btScalar magnitude = (btScalar(1.0)/_rigidBody->getInvMass()) * btScalar(8.0);
-    _rigidBody->applyCentralImpulse(up * magnitude);
-    */
+    // check for case where user is holding down "jump" key...
+    // we'll eventually tansition to "hover"
+    if (!_isHovering) {
+        if (!_isJumping) {
+            _jumpToHoverStart = usecTimestampNow();
+        } else {
+            quint64 now = usecTimestampNow();
+            const quint64 JUMP_TO_HOVER_PERIOD = USECS_PER_SECOND;
+            if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
+                _isHovering = true;
+            }
+        }
+    }
 }
 
 bool DynamicCharacterController::onGround() const {
-    return _rayLambda[0] < btScalar(1.0);
+    const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
+    return _floorDistance < FLOOR_PROXIMITY_THRESHOLD;
+}
+
+void DynamicCharacterController::setHovering(bool hover) {
+    if (hover != _isHovering) {
+        _isHovering = hover;
+        _isJumping = false;
+
+        if (_rigidBody) {
+            if (hover) {
+                _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+            } else {
+                _rigidBody->setGravity(DEFAULT_GRAVITY * _currentUp);
+            }
+            btVector3 g = _rigidBody->getGravity();
+        }
+    }
 }
 
 void DynamicCharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
@@ -186,7 +240,7 @@ void DynamicCharacterController::setEnabled(bool enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
-            _isHovering = true;
+            setHovering(true);
         } else {
             if (_dynamicsWorld) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
@@ -262,6 +316,11 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             _rigidBody->setAngularFactor (0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
                                                             glmToBullet(_avatarData->getPosition())));
+            if (_isHovering) {
+                _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+            } else {
+                _rigidBody->setGravity(DEFAULT_GRAVITY * _currentUp);
+            }
             //_rigidBody->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
         } else {
             // TODO: handle this failure case
@@ -269,36 +328,78 @@ void DynamicCharacterController::updateShapeIfNecessary() {
     }
 }
 
+void DynamicCharacterController::updateUpAxis(const glm::quat& rotation) {
+    btVector3 oldUp = _currentUp;
+    _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
+    if (!_isHovering) {
+        const btScalar MIN_UP_ERROR = 0.01f;
+        if (oldUp.distance(_currentUp) > MIN_UP_ERROR) {
+            _rigidBody->setGravity(DEFAULT_GRAVITY * _currentUp);
+        }
+    }
+}
+
 void DynamicCharacterController::preSimulation(btScalar timeStep) {
     if (_enabled && _dynamicsWorld) {
         glm::quat rotation = _avatarData->getOrientation();
-        _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
+
+        // TODO: update gravity if up has changed
+        updateUpAxis(rotation);
+
         glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
-
-        // TODO: get intended WALK velocity from _avatarData, not its actual velocity
-        btVector3 walkVelocity = glmToBullet(_avatarData->getVelocity());
-
         _rigidBody->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
-        _rigidBody->setLinearVelocity(walkVelocity);
+
+        // the rotation is dictated by AvatarData
+        btTransform xform = _rigidBody->getWorldTransform();
+        xform.setRotation(glmToBullet(rotation));
+        _rigidBody->setWorldTransform(xform);
+
+        // scan for distant floor
+        // rayStart is at center of bottom sphere
+        btVector3 rayStart = xform.getOrigin() - _halfHeight * _currentUp;
+    
+        // rayEnd is straight down MAX_FALL_HEIGHT
+        btScalar rayLength = _radius + MAX_FALL_HEIGHT;
+        btVector3 rayEnd = rayStart - rayLength * _currentUp;
+    
+        ClosestNotMe rayCallback(_rigidBody);
+        rayCallback.m_closestHitFraction = 1.0f;
+        _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
+        if (rayCallback.hasHit()) {
+            _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
+            const btScalar MIN_HOVER_HEIGHT = 3.0f;
+            if (_isHovering && _floorDistance < MIN_HOVER_HEIGHT) {
+                setHovering(false);
+            } 
+            // TODO: use collision events rather than ray-trace test to disable jumping
+            const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
+            if (_floorDistance < JUMP_PROXIMITY_THRESHOLD) {
+                _isJumping = false;
+            }
+        } else {
+            _floorDistance = FLT_MAX;
+            setHovering(true);
+        }
+
+        _walkVelocity = glmToBullet(_avatarData->getVelocity());
+
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (canJump()) {
                 // TODO: make jump work
                 //_verticalVelocity = _jumpSpeed;
                 _isJumping = true;
+                btVector3 velocity = _rigidBody->getLinearVelocity();
+                velocity += _jumpSpeed * _currentUp;
+                _rigidBody->setLinearVelocity(velocity);
             }
         }
-
-        // the rotation is determined by AvatarData
-        btTransform xform = _rigidBody->getCenterOfMassTransform();
-        xform.setRotation(glmToBullet(rotation));
-        _rigidBody->setCenterOfMassTransform(xform);
     }
 }
 
 void DynamicCharacterController::postSimulation() {
     if (_enabled && _rigidBody) {
-        const btTransform& avatarTransform = _rigidBody->getCenterOfMassTransform();
+        const btTransform& avatarTransform = _rigidBody->getWorldTransform();
         glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
         glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
 
