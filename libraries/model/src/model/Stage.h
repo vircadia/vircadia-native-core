@@ -160,6 +160,21 @@ protected:
 };
 typedef QSharedPointer< Atmosphere > AtmospherePointer;
 
+
+class Skybox {
+public:
+    Skybox();
+    Skybox& operator= (const Atmosphere& Skybox);
+    virtual ~Skybox() {};
+
+    void setCubemap(const gpu::TexturePointer& cubemap);
+    const gpu::TexturePointer& getCubemap() const { return _cubemap; }
+
+protected:
+    gpu::TexturePointer _cubemap;
+};
+typedef QSharedPointer< Skybox > SkyboxPointer;
+
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
 class SunSkyStage {
@@ -197,9 +212,14 @@ public:
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
  
+    // Skybox
+    void setSkybox(const SkyboxPointer& skybox);
+    const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
+
 protected:
     LightPointer _sunLight;
     AtmospherePointer _atmosphere;
+    SkyboxPointer _skybox;
 
     gpu::PipelinePointer _skyPipeline;
 

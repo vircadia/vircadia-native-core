@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GPULogging.h"
 #include "GLBackendShared.h"
 
 
@@ -48,7 +49,7 @@ public:
                     texel.internalFormat = GL_DEPTH_COMPONENT;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
                 break;
             }
@@ -66,7 +67,7 @@ public:
                     texel.internalFormat = GL_DEPTH_STENCIL;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
 
                 break;
@@ -83,7 +84,7 @@ public:
                     texel.internalFormat = GL_RGB;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
 
                 break;
@@ -120,13 +121,13 @@ public:
                     texel.internalFormat = GL_SRGB_ALPHA;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
                 break;
             }
 
             default:
-                qDebug() << "Unknown combination of texel format";
+                qCDebug(gpulogging) << "Unknown combination of texel format";
             }
             return texel;
         } else {
@@ -146,7 +147,7 @@ public:
                     texel.internalFormat = GL_DEPTH_COMPONENT;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
 
                 break;
@@ -165,7 +166,7 @@ public:
                     texel.internalFormat = GL_DEPTH_STENCIL;
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
 
                 break;
@@ -186,7 +187,7 @@ public:
                     texel.internalFormat = GL_SRGB; // standard 2.2 gamma correction color
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
                 break;
             }
@@ -209,13 +210,13 @@ public:
                     texel.internalFormat = GL_SRGB_ALPHA; // standard 2.2 gamma correction color
                     break;
                 default:
-                    qDebug() << "Unknown combination of texel format";
+                    qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
                 break;
             }
 
             default:
-                qDebug() << "Unknown combination of texel format";
+                qCDebug(gpulogging) << "Unknown combination of texel format";
             }
             return texel;
         }
@@ -317,7 +318,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
         break;
     }
     default:
-        qDebug() << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
+        qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
     }
     CHECK_GL_ERROR();
 

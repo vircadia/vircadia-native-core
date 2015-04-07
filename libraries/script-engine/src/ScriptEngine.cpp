@@ -35,6 +35,7 @@
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptCache.h"
+#include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
@@ -45,7 +46,7 @@
 
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
-    qDebug() << "script:print()<<" << context->argument(0).toString();
+    qCDebug(scriptengine) << "script:print()<<" << context->argument(0).toString();
     QString message = context->argument(0).toString()
         .replace("\\", "\\\\")
         .replace("\n", "\\n")
@@ -271,12 +272,12 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
             _fileNameString = url.toLocalFile();
             QFile scriptFile(_fileNameString);
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "ScriptEngine loading file:" << _fileNameString;
+                qCDebug(scriptengine) << "ScriptEngine loading file:" << _fileNameString;
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
                 emit scriptLoaded(_fileNameString);
             } else {
-                qDebug() << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
+                qCDebug(scriptengine) << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
@@ -294,7 +295,7 @@ void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scrip
 }
 
 void ScriptEngine::errorInLoadingScript(const QUrl& url) {
-    qDebug() << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
+    qCDebug(scriptengine) << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
     emit errorLoadingScript(_fileNameString); // ??
 }
 
@@ -402,7 +403,7 @@ void ScriptEngine::evaluate() {
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
+        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
         clearExceptions();
     }
@@ -417,7 +418,7 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
     QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
+        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
     _evaluatesPending--;
     emit evaluationFinished(result, hasUncaughtException());
@@ -591,7 +592,7 @@ void ScriptEngine::run() {
 
         if (hasUncaughtException()) {
             int line = uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
+            qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
             emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
             clearExceptions();
         }
@@ -684,7 +685,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 
 QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
+        qCDebug(scriptengine) << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -693,7 +694,7 @@ QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS)
 
 QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
+        qCDebug(scriptengine) << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -743,7 +744,7 @@ void ScriptEngine::print(const QString& message) {
 // all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored..."
+        qCDebug(scriptengine) << "Script.include() while shutting down is ignored..."
                  << "includeFiles:" << includeFiles << "parent script:" << getFilename();
         return; // bail early
     }
@@ -758,7 +759,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
-                qDebug() << "Error loading file: " << url << "line:" << __LINE__;
+                qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
             } else {
                 QScriptValue result = evaluate(contents, url.toString());
             }
@@ -787,7 +788,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored... " 
+        qCDebug(scriptengine) << "Script.include() while shutting down is ignored... " 
                  << "includeFile:" << includeFile << "parent script:" << getFilename();
         return; // bail early
     }
@@ -802,7 +803,7 @@ void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
 // the Application or other context will connect to in order to know to actually load the script
 void ScriptEngine::load(const QString& loadFile) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.load() while shutting down is ignored... "
+        qCDebug(scriptengine) << "Script.load() while shutting down is ignored... "
                  << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early
     }

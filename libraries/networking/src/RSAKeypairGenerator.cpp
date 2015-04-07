@@ -15,6 +15,8 @@
 
 #include <qdebug.h>
 
+#include "NetworkLogging.h"
+
 #include "RSAKeypairGenerator.h"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
@@ -38,7 +40,7 @@ void RSAKeypairGenerator::generateKeypair() {
     const int RSA_KEY_BITS = 2048;
     
     if (!RSA_generate_key_ex(keyPair, RSA_KEY_BITS, exponent, NULL)) {
-        qDebug() << "Error generating 2048-bit RSA Keypair -" << ERR_get_error();
+        qCDebug(networking) << "Error generating 2048-bit RSA Keypair -" << ERR_get_error();
         
         emit errorGeneratingKeypair();
         
@@ -58,7 +60,7 @@ void RSAKeypairGenerator::generateKeypair() {
     int privateKeyLength = i2d_RSAPrivateKey(keyPair, &privateKeyDER);
     
     if (publicKeyLength <= 0 || privateKeyLength <= 0) {
-        qDebug() << "Error getting DER public or private key from RSA struct -" << ERR_get_error();
+        qCDebug(networking) << "Error getting DER public or private key from RSA struct -" << ERR_get_error();
         
         emit errorGeneratingKeypair();
         

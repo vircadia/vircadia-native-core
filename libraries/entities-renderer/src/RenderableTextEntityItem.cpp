@@ -37,7 +37,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     float leftMargin = 0.1f;
     float topMargin = 0.1f;
 
-    //qDebug() << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
+    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 
     glPushMatrix(); 
     {

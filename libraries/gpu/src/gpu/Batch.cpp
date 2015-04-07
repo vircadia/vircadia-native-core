@@ -20,7 +20,6 @@ Batch::Batch() :
     _commands(),
     _commandOffsets(),
     _params(),
-    _resources(),
     _data(),
     _buffers(),
     _textures(),
@@ -37,27 +36,12 @@ void Batch::clear() {
     _commands.clear();
     _commandOffsets.clear();
     _params.clear();
-    _resources.clear();
     _data.clear();
     _buffers.clear();
     _textures.clear();
     _streamFormats.clear();
     _transforms.clear();
     _pipelines.clear();    
-}
-
-uint32 Batch::cacheResource(Resource* res) {
-    uint32 offset = _resources.size();
-    _resources.push_back(ResourceCache(res));
-    
-    return offset;
-}
-
-uint32 Batch::cacheResource(const void* pointer) {
-    uint32 offset = _resources.size();
-    _resources.push_back(ResourceCache(pointer));
-
-    return offset;
 }
 
 uint32 Batch::cacheData(uint32 size, const void* data) {
@@ -166,6 +150,16 @@ void Batch::setPipeline(const PipelinePointer& pipeline) {
 
     _params.push_back(_pipelines.cache(pipeline));
 }
+
+void Batch::setStateBlendFactor(const Vec4& factor) {
+    ADD_COMMAND(setStateBlendFactor);
+
+    _params.push_back(factor.x);
+    _params.push_back(factor.y);
+    _params.push_back(factor.z);
+    _params.push_back(factor.w);
+}
+
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
     ADD_COMMAND(setUniformBuffer);

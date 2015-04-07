@@ -15,6 +15,7 @@
 #include <StreamUtils.h>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Recorder.h"
 
 Recorder::Recorder(AvatarData* avatar) :
@@ -37,7 +38,7 @@ qint64 Recorder::elapsed() const {
 }
 
 void Recorder::startRecording() {
-    qDebug() << "Recorder::startRecording()";
+    qCDebug(avatars) << "Recorder::startRecording()";
     _recording->clear();
     
     RecordingContext& context = _recording->getContext();
@@ -55,23 +56,23 @@ void Recorder::startRecording() {
     
     bool wantDebug = false;
     if (wantDebug) {
-        qDebug() << "Recorder::startRecording(): Recording Context";
-        qDebug() << "Global timestamp:" << context.globalTimestamp;
-        qDebug() << "Domain:" << context.domain;
-        qDebug() << "Position:" << context.position;
-        qDebug() << "Orientation:" << context.orientation;
-        qDebug() << "Scale:" << context.scale;
-        qDebug() << "Head URL:" << context.headModel;
-        qDebug() << "Skeleton URL:" << context.skeletonModel;
-        qDebug() << "Display Name:" << context.displayName;
-        qDebug() << "Num Attachments:" << context.attachments.size();
+        qCDebug(avatars) << "Recorder::startRecording(): Recording Context";
+        qCDebug(avatars) << "Global timestamp:" << context.globalTimestamp;
+        qCDebug(avatars) << "Domain:" << context.domain;
+        qCDebug(avatars) << "Position:" << context.position;
+        qCDebug(avatars) << "Orientation:" << context.orientation;
+        qCDebug(avatars) << "Scale:" << context.scale;
+        qCDebug(avatars) << "Head URL:" << context.headModel;
+        qCDebug(avatars) << "Skeleton URL:" << context.skeletonModel;
+        qCDebug(avatars) << "Display Name:" << context.displayName;
+        qCDebug(avatars) << "Num Attachments:" << context.attachments.size();
         
         for (int i = 0; i < context.attachments.size(); ++i) {
-            qDebug() << "Model URL:" << context.attachments[i].modelURL;
-            qDebug() << "Joint Name:" << context.attachments[i].jointName;
-            qDebug() << "Translation:" << context.attachments[i].translation;
-            qDebug() << "Rotation:" << context.attachments[i].rotation;
-            qDebug() << "Scale:" << context.attachments[i].scale;
+            qCDebug(avatars) << "Model URL:" << context.attachments[i].modelURL;
+            qCDebug(avatars) << "Joint Name:" << context.attachments[i].jointName;
+            qCDebug(avatars) << "Translation:" << context.attachments[i].translation;
+            qCDebug(avatars) << "Rotation:" << context.attachments[i].rotation;
+            qCDebug(avatars) << "Scale:" << context.attachments[i].scale;
         }
     }
     
@@ -80,15 +81,15 @@ void Recorder::startRecording() {
 }
 
 void Recorder::stopRecording() {
-    qDebug() << "Recorder::stopRecording()";
+    qCDebug(avatars) << "Recorder::stopRecording()";
     _timer.invalidate();
     
-    qDebug().nospace() << "Recorded " << _recording->getFrameNumber() << " during " << _recording->getLength() << " msec (" << _recording->getFrameNumber() / (_recording->getLength() / 1000.0f) << " fps)";
+    qCDebug(avatars).nospace() << "Recorded " << _recording->getFrameNumber() << " during " << _recording->getLength() << " msec (" << _recording->getFrameNumber() / (_recording->getLength() / 1000.0f) << " fps)";
 }
 
 void Recorder::saveToFile(const QString& file) {
     if (_recording->isEmpty()) {
-        qDebug() << "Cannot save recording to file, recording is empty.";
+        qCDebug(avatars) << "Cannot save recording to file, recording is empty.";
     }
     
     writeRecordingToFile(_recording, file);
@@ -120,16 +121,16 @@ void Recorder::record() {
         
         bool wantDebug = false;
         if (wantDebug) {
-            qDebug() << "Recording frame #" << _recording->getFrameNumber();
-            qDebug() << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
-            qDebug() << "JointRotations:" << frame.getJointRotations().size();
-            qDebug() << "Translation:" << frame.getTranslation();
-            qDebug() << "Rotation:" << frame.getRotation();
-            qDebug() << "Scale:" << frame.getScale();
-            qDebug() << "Head rotation:" << frame.getHeadRotation();
-            qDebug() << "Lean Forward:" << frame.getLeanForward();
-            qDebug() << "Lean Sideways:" << frame.getLeanSideways();
-            qDebug() << "LookAtPosition:" << frame.getLookAtPosition();
+            qCDebug(avatars) << "Recording frame #" << _recording->getFrameNumber();
+            qCDebug(avatars) << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
+            qCDebug(avatars) << "JointRotations:" << frame.getJointRotations().size();
+            qCDebug(avatars) << "Translation:" << frame.getTranslation();
+            qCDebug(avatars) << "Rotation:" << frame.getRotation();
+            qCDebug(avatars) << "Scale:" << frame.getScale();
+            qCDebug(avatars) << "Head rotation:" << frame.getHeadRotation();
+            qCDebug(avatars) << "Lean Forward:" << frame.getLeanForward();
+            qCDebug(avatars) << "Lean Sideways:" << frame.getLeanSideways();
+            qCDebug(avatars) << "LookAtPosition:" << frame.getLookAtPosition();
         }
         
         _recording->addFrame(_timer.elapsed(), frame);
