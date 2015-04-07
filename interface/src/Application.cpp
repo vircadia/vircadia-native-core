@@ -2750,7 +2750,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(Avatar::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         {
@@ -2997,6 +2997,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 "Application::displaySide() ... entities...");
             if (renderCollisionHulls) {
                 _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
+            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
             } else {
                 _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
             }
@@ -3021,8 +3023,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     
     {
         PerformanceTimer perfTimer("avatars");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
-                                                               false, selfAvatarOnly);
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
+            false, selfAvatarOnly);   
     }
 
     {
@@ -3038,7 +3040,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
             true, selfAvatarOnly);   
     }
     

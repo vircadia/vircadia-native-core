@@ -45,11 +45,14 @@ public:
     
     // Converter from one frame of reference to another.
     // Frame of reference:
+    // Direction: Ray that represents the spherical values
     // Screen: Position on the screen (x,y)
     // Spherical: Pitch and yaw that gives the position on the sphere we project on (yaw,pitch)
     // Overlay: Position on the overlay (x,y)
     // (x,y) in Overlay are similar than (x,y) in Screen except they can be outside of the bound of te screen.
     // This allows for picking outside of the screen projection in 3D.
+    glm::vec2 directionToSpherical(glm::vec3 direction) const;
+    glm::vec3 sphericalToDirection(glm::vec2 sphericalPos) const;
     glm::vec2 screenToSpherical(glm::vec2 screenPos) const;
     glm::vec2 sphericalToScreen(glm::vec2 sphericalPos) const;
     glm::vec2 sphericalToOverlay(glm::vec2 sphericalPos) const;
