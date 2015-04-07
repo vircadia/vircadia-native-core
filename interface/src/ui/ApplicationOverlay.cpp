@@ -501,10 +501,10 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
-    glm::quat orientation = myAvatar->getOrientation();
+    glm::quat inverseOrientation = glm::inverse(myAvatar->getOrientation());
 
-    glm::vec3 relativePosition = orientation * (position - myAvatar->getDefaultEyePosition());
-    glm::vec3 relativeDirection = orientation * direction;
+    glm::vec3 relativePosition = inverseOrientation * (position - myAvatar->getDefaultEyePosition());
+    glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
     if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getScale(), &t)){
@@ -514,8 +514,6 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
     return false;
 }
-
-
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
