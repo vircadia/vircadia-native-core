@@ -14,6 +14,7 @@
 #include <QOpenGLFramebufferObject>
 
 #include <avatar/AvatarManager.h>
+#include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 
@@ -28,8 +29,6 @@
 #include "Util.h"
 #include "ui/Stats.h"
 
-// Used to fade the UI
-const float FADE_SPEED = 0.08f;
 // Used to animate the magnification windows
 const float MAG_SPEED = 0.08f;
 
@@ -428,15 +427,18 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
 }
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
+    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const float pitch = (0.5f - y) * MOUSE_PITCH_RANGE;
     const float yaw = (0.5f - x) * MOUSE_YAW_RANGE;
     const glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
     const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
-    //Rotate the UI pick ray by the avatar orientation
-    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    origin = myAvatar->getDefaultEyePosition();
-    direction = myAvatar->getOrientation() * localDirection;
+    // Get cursor position
+    const glm::vec3 cursorPos = myAvatar->getDefaultEyePosition() + myAvatar->getOrientation() * localDirection;
+
+    // Ray start where the eye position is and stop where the cursor is
+    origin = myAvatar->getEyePosition();
+    direction = cursorPos - origin;
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
@@ -500,10 +502,10 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
-    glm::quat orientation = myAvatar->getOrientation();
+    glm::quat inverseOrientation = glm::inverse(myAvatar->getOrientation());
 
-    glm::vec3 relativePosition = orientation * (position - myAvatar->getDefaultEyePosition());
-    glm::vec3 relativeDirection = orientation * direction;
+    glm::vec3 relativePosition = inverseOrientation * (position - myAvatar->getDefaultEyePosition());
+    glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
     if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getScale(), &t)){
@@ -513,8 +515,6 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
     return false;
 }
-
-
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
@@ -540,12 +540,23 @@ void ApplicationOverlay::renderPointers() {
         if (_reticlePosition[MOUSE] != position) {
             _lastMouseMove = usecTimestampNow();
         } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
-            float pitch, yaw, roll;
+            float pitch = 0.0f, yaw = 0.0f, roll = 0.0f; // radians
             OculusManager::getEulerAngles(yaw, pitch, roll);
-            glm::vec2 screenPos = sphericalToScreen(glm::vec2(yaw, -pitch));
+            glm::quat orientation(glm::vec3(pitch, yaw, roll));
+            glm::vec3 result;
             
-            position = QPoint(screenPos.x, screenPos.y);
-            glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            if (calculateRayUICollisionPoint(myAvatar->getEyePosition(),
+                                             myAvatar->getOrientation() * orientation * IDENTITY_FRONT,
+                                             result)) {
+                glm::vec3 lookAtDirection = glm::inverse(myAvatar->getOrientation()) * (result - myAvatar->getDefaultEyePosition());
+                glm::vec2 spericalPos = directionToSpherical(glm::normalize(lookAtDirection));
+                glm::vec2 screenPos = sphericalToScreen(spericalPos);
+                position = QPoint(screenPos.x, screenPos.y);
+                glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
+            } else {
+                qDebug() << "No collision point";
+            }
         }
         
         _reticlePosition[MOUSE] = position;
@@ -1126,6 +1137,26 @@ void ApplicationOverlay::TexturedHemisphere::render() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+glm::vec2 ApplicationOverlay::directionToSpherical(glm::vec3 direction) const {
+    glm::vec2 result;
+    // Compute yaw
+    glm::vec3 normalProjection = glm::normalize(glm::vec3(direction.x, 0.0f, direction.z));
+    result.x = glm::acos(glm::dot(IDENTITY_FRONT, normalProjection));
+    if (glm::dot(IDENTITY_RIGHT, normalProjection) > 0.0f) {
+        result.x = -glm::abs(result.x);
+    } else {
+        result.x = glm::abs(result.x);
+    }
+    // Compute pitch
+    result.y = angleBetween(IDENTITY_UP, direction) - PI_OVER_TWO;
+    
+    return result;
+}
+
+glm::vec3 ApplicationOverlay::sphericalToDirection(glm::vec2 sphericalPos) const {
+    glm::quat rotation(glm::vec3(sphericalPos.y, sphericalPos.x, 0.0f));
+    return rotation * IDENTITY_FRONT;
+}
 
 glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
     QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();

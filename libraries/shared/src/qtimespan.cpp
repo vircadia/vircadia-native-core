@@ -69,6 +69,7 @@
 #include <e32std.h>
 #endif
 
+#include "SharedLogging.h"
 
 
 /*!
@@ -740,7 +741,7 @@ bool QTimeSpan::parts(int *msecondsPtr,
         QDate newStartDate(startDate);
         newStartDate = newStartDate.addYears(*_years);
         newStartDate = newStartDate.addMonths(*_months);
-        //qDebug() << "working with new start date" << newStartDate << "and end date" << endDate;
+        //qCDebug(shared) << "working with new start date" << newStartDate << "and end date" << endDate;
         ts = QDateTime(endDate, ts.endDate().time()) - QDateTime(newStartDate, ts.startDate().time());
         *_months = totalMonths;
 
@@ -756,7 +757,7 @@ bool QTimeSpan::parts(int *msecondsPtr,
     //from here on, we use ts as the time span!
     qint64 intervalLeft = ts.toMSecs();
     qint64 unitFactor;
-    //qDebug() << "intervalLeft" << intervalLeft;
+    //qCDebug(shared) << "intervalLeft" << intervalLeft;
     if (weeksPtr) {
         unitFactor = (7 * 24 * 60 * 60 * 1000);
         CHECK_INT_LIMIT(intervalLeft, unitFactor)
@@ -1089,8 +1090,8 @@ bool QTimeSpan::operator<=(const QTimeSpan &other) const
   \code
   QTimeSpan s1 =  2 * QTimeSpan::Day;
   QTimeSpan s2 = -2 * QTimeSpan::Day;
-  qDebug() << s1.matchesLength(s2); //returns false
-  qDebug() << s1.matchesLength(s2, true); //returns true
+  qCDebug(shared) << s1.matchesLength(s2); //returns false
+  qCDebug(shared) << s1.matchesLength(s2, true); //returns true
   \endcode
 */
 bool QTimeSpan::matchesLength(const QTimeSpan &other, bool normalize) const
@@ -2060,7 +2061,7 @@ QString QTimeSpan::toApproximateString(int suppresSecondUnitLimit, Qt::TimeSpanF
         bool result = partsHash.fill(*this);
 
         if (!result) {
-            qDebug() << "false result from parts function";
+            qCDebug(shared) << "false result from parts function";
             return QString();
         }
 
@@ -2214,7 +2215,7 @@ QTimeSpan QTimeSpan::fromString(const QString &string, const QString &format, co
         it.next();
         if (it.value()) {
             span.d->addUnit(&span, it.key(), *(it.value()));
-            qDebug() << "Added unit" << it.key() << "with value" << *(it.value()) << "new value" << span.d->interval;
+            qCDebug(shared) << "Added unit" << it.key() << "with value" << *(it.value()) << "new value" << span.d->interval;
         }
     }
 

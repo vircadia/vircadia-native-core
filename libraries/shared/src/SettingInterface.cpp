@@ -16,6 +16,7 @@
 #include "PathUtils.h"
 #include "SettingInterface.h"
 #include "SettingManager.h"
+#include "SharedLogging.h"
 
 namespace Setting {
     static Manager* privateInstance = nullptr;
@@ -58,7 +59,7 @@ namespace Setting {
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         privateInstance->moveToThread(thread);
         thread->start();
-        qDebug() << "Settings thread started.";
+        qCDebug(shared) << "Settings thread started.";
         
         // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
         qAddPostRoutine(cleanupPrivateInstance);

@@ -39,6 +39,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
+#include "InterfaceLogging.h"
 
 #include "Menu.h"
 
@@ -51,7 +52,7 @@ Menu* Menu::getInstance() {
     menuInstanceMutex.lock();
 
     if (!_instance) {
-        qDebug("First call to Menu::getInstance() - initing menu.");
+        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
 
         _instance = new Menu();
     }
@@ -152,6 +153,32 @@ Menu::Menu() {
     
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
+                                  qApp, SLOT(showFriendsWindow()));
+
+    QMenu* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
+    {
+        QActionGroup* visibilityGroup = new QActionGroup(toolsMenu);
+        auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
+
+        QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
+            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
+            this, SLOT(setVisibility()));
+        visibilityGroup->addAction(visibleToEveryone);
+
+        QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
+            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
+            this, SLOT(setVisibility()));
+        visibilityGroup->addAction(visibleToFriends);
+
+        QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
+            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
+            this, SLOT(setVisibility()));
+        visibilityGroup->addAction(visibleToNoOne);
+
+        connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
+            this, &Menu::visibilityChanged);
+    }
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ToolWindow,
@@ -717,7 +744,7 @@ void Menu::triggerOption(const QString& menuOption) {
     if (action) {
         action->trigger();
     } else {
-        qDebug() << "NULL Action for menuOption '" << menuOption << "'";
+        qCDebug(interfaceapp) << "NULL Action for menuOption '" << menuOption << "'";
     }
 }
 
@@ -950,3 +977,29 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
+
+void Menu::setVisibility() {
+    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToEveryone)) {
+        discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToFriends)) {
+        discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
+        discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
+    } else {
+        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
+    }
+}
+
+void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
+    if (discoverabilityMode == Discoverability::All) {
+        setIsOptionChecked(MenuOption::VisibleToEveryone, true);
+    } else if (discoverabilityMode == Discoverability::Friends) {
+        setIsOptionChecked(MenuOption::VisibleToFriends, true);
+    } else if (discoverabilityMode == Discoverability::None) {
+        setIsOptionChecked(MenuOption::VisibleToNoOne, true);
+    } else {
+        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
+    }
+}

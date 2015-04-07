@@ -16,6 +16,7 @@
 #include "EntityMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
+#include "PhysicsLogging.h"
 
 
 QSet<EntityItem*>* _outgoingEntityList;
@@ -108,10 +109,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     #ifdef WANT_DEBUG
         quint64 now = usecTimestampNow();
-        qDebug() << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
-        qDebug() << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
-        qDebug() << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
-        qDebug() << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
+        qCDebug(physics) << "EntityMotionState::setWorldTransform()... changed entity:" << _entity->getEntityItemID();
+        qCDebug(physics) << "       last edited:" << _entity->getLastEdited() << formatUsecTime(now - _entity->getLastEdited()) << "ago";
+        qCDebug(physics) << "    last simulated:" << _entity->getLastSimulated() << formatUsecTime(now - _entity->getLastSimulated()) << "ago";
+        qCDebug(physics) << "      last updated:" << _entity->getLastUpdated() << formatUsecTime(now - _entity->getLastUpdated()) << "ago";
     #endif
 }
 
@@ -238,9 +239,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
             #ifdef WANT_DEBUG
                 quint64 now = usecTimestampNow();
-                qDebug() << "EntityMotionState::sendUpdate()";
-                qDebug() << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
-                qDebug() << "       lastSimulated:" << debugTime(lastSimulated, now);
+                qCDebug(physics) << "EntityMotionState::sendUpdate()";
+                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
             #endif //def WANT_DEBUG
 
         } else {
@@ -251,12 +252,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             EntityItemID id(_entity->getID());
             EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
             #ifdef WANT_DEBUG
-                qDebug() << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+                qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG
-                qDebug() << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
+                qCDebug(physics) << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
             #endif
         }
 

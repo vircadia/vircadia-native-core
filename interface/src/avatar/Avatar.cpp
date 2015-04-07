@@ -46,6 +46,7 @@
 #include "Util.h"
 #include "world.h"
 #include "devices/OculusManager.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -138,7 +139,7 @@ void Avatar::simulate(float deltaTime) {
                                                         this);
                     break;
                 default:
-                    qDebug() << "[WARNING] Avatar::simulate(): Unknown referential type.";
+                    qCDebug(interfaceapp) << "[WARNING] Avatar::simulate(): Unknown referential type.";
                     break;
             }
         }
@@ -267,7 +268,7 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool postLighting) {
+void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
     if (_referential) {
         _referential->update();
     }
@@ -337,8 +338,13 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    ViewFrustum* frustum = (renderMode == Avatar::SHADOW_RENDER_MODE) ?
-        Application::getInstance()->getShadowViewFrustum() : Application::getInstance()->getDisplayViewFrustum();
+    ViewFrustum* frustum = nullptr;
+    if (renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+        frustum = Application::getInstance()->getShadowViewFrustum();
+    } else {
+        frustum = Application::getInstance()->getDisplayViewFrustum();
+    }
+
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         return;
     }
@@ -359,14 +365,14 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
         }
             
-        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == NORMAL_RENDER_MODE
+        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == RenderArgs::NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
         // render body
         renderBody(frustum, renderMode, postLighting, glowLevel);
 
-        if (!postLighting && renderMode != SHADOW_RENDER_MODE) {
+        if (!postLighting && renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
             const float LIGHT_EXPONENT = 1.0f;
@@ -430,7 +436,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
             
-            if (renderMode == NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+            if (renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
@@ -449,8 +455,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
-    setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (!postLighting || renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
+    setShowDisplayName(renderMode == RenderArgs::NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
+    if (!postLighting || renderMode != RenderArgs::NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
@@ -473,14 +479,13 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-                            Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+void Avatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
+    Model::RenderMode modelRenderMode = renderMode;
     {
         Glower glower(glowLevel);
         
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-            if (postLighting || renderMode == SHADOW_RENDER_MODE) {
+            if (postLighting || renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
                 renderBillboard();
             }
@@ -499,7 +504,7 @@ void Avatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool 
     getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
 }
 
-bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
     return true;
 }
 
@@ -523,11 +528,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+void Avatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
+ //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode, args);
+        model->render(1.0f, renderMode, args);
     }
 }
 

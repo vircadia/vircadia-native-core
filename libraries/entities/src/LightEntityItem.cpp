@@ -17,6 +17,7 @@
 #include "EntityItemID.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 #include "LightEntityItem.h"
 
 bool LightEntityItem::_lightsArePickable = false;
@@ -41,8 +42,16 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
 }
 
 void LightEntityItem::setDimensions(const glm::vec3& value) {
-    float maxDimension = glm::max(value.x, value.y, value.z);
-    _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension); 
+    if (_isSpotlight) {
+        // If we are a spotlight, treat the z value as our radius or length, and
+        // recalculate the x/y dimensions to properly encapsulate the spotlight.
+        const float length = value.z;
+        const float width = length * glm::tan(glm::radians(_cutoff));
+        _dimensions = glm::vec3(width, width, length);
+    } else {
+        float maxDimension = glm::max(value.x, value.y, value.z);
+        _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+    }
 }
 
 
@@ -56,6 +65,33 @@ EntityItemProperties LightEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
 
     return properties;
+}
+
+void LightEntityItem::setIsSpotlight(bool value) {
+    if (value != _isSpotlight) {
+        _isSpotlight = value;
+
+        if (_isSpotlight) {
+            const float length = _dimensions.z;
+            const float width = length * glm::tan(glm::radians(_cutoff));
+            _dimensions = glm::vec3(width, width, length);
+        } else {
+            float maxDimension = glm::max(_dimensions.x, _dimensions.y, _dimensions.z);
+            _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+        }
+    }
+}
+
+void LightEntityItem::setCutoff(float value) {
+    _cutoff = glm::clamp(value, 0.0f, 90.0f);
+
+    if (_isSpotlight) {
+        // If we are a spotlight, adjusting the cutoff will affect the area we encapsulate,
+        // so update the dimensions to reflect this.
+        const float length = _dimensions.z;
+        const float width = length * glm::tan(glm::radians(_cutoff));
+        _dimensions = glm::vec3(width, width, length);
+    }
 }
 
 bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -72,7 +108,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "LightEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());

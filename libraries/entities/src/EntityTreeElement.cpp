@@ -15,6 +15,7 @@
 #include <GeometryUtil.h>
 
 #include "EntityTree.h"
+#include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement(), _entityItems(NULL) {
@@ -49,8 +50,8 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 }
 
 void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) const { 
-    qDebug() << "EntityTreeElement::debugExtraEncodeData()... ";
-    qDebug() << "    element:" << _cube;
+    qCDebug(entities) << "EntityTreeElement::debugExtraEncodeData()... ";
+    qCDebug(entities) << "    element:" << _cube;
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
@@ -58,9 +59,9 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
                     = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
-        qDebug() << "    encode data:" << entityTreeElementExtraEncodeData;
+        qCDebug(entities) << "    encode data:" << entityTreeElementExtraEncodeData;
     } else {
-        qDebug() << "    encode data: MISSING!!";
+        qCDebug(entities) << "    encode data: MISSING!!";
     }
 }
 
@@ -159,7 +160,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     const bool wantDebug = false;
     
     if (wantDebug) {
-        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
+        qCDebug(entities) << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
@@ -194,15 +195,15 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
                                 
                 if (wantDebug) {
-                    qDebug() << "checking child: " << childElement->_cube;
-                    qDebug() << "    childElement->isLeaf():" << childElement->isLeaf();
-                    qDebug() << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
-                    qDebug() << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
+                    qCDebug(entities) << "checking child: " << childElement->_cube;
+                    qCDebug(entities) << "    childElement->isLeaf():" << childElement->isLeaf();
+                    qCDebug(entities) << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
+                    qCDebug(entities) << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
                 }
                 
                 if (childElement->isLeaf() && childExtraEncodeData->elementCompleted) {
                     if (wantDebug) {
-                        qDebug() << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
+                        qCDebug(entities) << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
                     }
                     childExtraEncodeData->subtreeCompleted = true;
                 }
@@ -215,19 +216,19 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     }
 
     if (wantDebug) {
-        qDebug() << "for this element: " << _cube;
-        qDebug() << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qDebug() << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+        qCDebug(entities) << "for this element: " << _cube;
+        qCDebug(entities) << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qCDebug(entities) << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     }
     
     thisExtraEncodeData->subtreeCompleted = !someChildTreeNotComplete;
 
     if (wantDebug) {
-        qDebug() << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qDebug() << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+        qCDebug(entities) << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qCDebug(entities) << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     
         if (thisExtraEncodeData->subtreeCompleted) {
-            qDebug() << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+            qCDebug(entities) << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
         }
     }
 }
@@ -821,19 +822,19 @@ bool EntityTreeElement::pruneChildren() {
 
 
 void EntityTreeElement::debugDump() {
-    qDebug() << "EntityTreeElement...";
-    qDebug() << "    cube:" << _cube;
-    qDebug() << "    has child elements:" << getChildCount();
+    qCDebug(entities) << "EntityTreeElement...";
+    qCDebug(entities) << "    cube:" << _cube;
+    qCDebug(entities) << "    has child elements:" << getChildCount();
     if (_entityItems->size()) {
-        qDebug() << "    has entities:" << _entityItems->size();
-        qDebug() << "--------------------------------------------------";
+        qCDebug(entities) << "    has entities:" << _entityItems->size();
+        qCDebug(entities) << "--------------------------------------------------";
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             entity->debugDump();
         }
-        qDebug() << "--------------------------------------------------";
+        qCDebug(entities) << "--------------------------------------------------";
     } else {
-        qDebug() << "    NO entities!";
+        qCDebug(entities) << "    NO entities!";
     }
 }
     

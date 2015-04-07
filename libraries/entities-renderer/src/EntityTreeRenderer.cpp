@@ -33,6 +33,7 @@
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 #include "RenderableParticleEffectEntityItem.h"
+#include "EntitiesRendererLogging.h"
 
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -159,11 +160,11 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             QString fileName = url.toLocalFile();
             QFile scriptFile(fileName);
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "Loading file:" << fileName;
+                qCDebug(entitiesrenderer) << "Loading file:" << fileName;
                 QTextStream in(&scriptFile);
                 scriptContents = in.readAll();
             } else {
-                qDebug() << "ERROR Loading file:" << fileName;
+                qCDebug(entitiesrenderer) << "ERROR Loading file:" << fileName;
             }
         } else {
             auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -232,10 +233,10 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
-        qDebug() << "   " << syntaxCheck.errorMessage() << ":"
+        qCDebug(entitiesrenderer) << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
+        qCDebug(entitiesrenderer) << "   " << syntaxCheck.errorMessage() << ":"
                           << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
-        qDebug() << "    SCRIPT:" << entityScript;
+        qCDebug(entitiesrenderer) << "    SCRIPT:" << entityScript;
 
         scriptCache->addScriptToBadScriptList(url);
         
@@ -248,9 +249,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPre
     QScriptValue entityScriptConstructor = _sandboxScriptEngine->evaluate(scriptContents);
     
     if (!entityScriptConstructor.isFunction()) {
-        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
-        qDebug() << "    NOT CONSTRUCTOR";
-        qDebug() << "    SCRIPT:" << entityScript;
+        qCDebug(entitiesrenderer) << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
+        qCDebug(entitiesrenderer) << "    NOT CONSTRUCTOR";
+        qCDebug(entitiesrenderer) << "    SCRIPT:" << entityScript;
 
         scriptCache->addScriptToBadScriptList(url);
 
@@ -394,12 +395,12 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
 
-        Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
-                                            ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+//        Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
+  //                                          ? RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
-        Model::endScene(modelRenderMode, &args);
+        Model::endScene(renderMode, &args);
         _tree->unlock();
     
         // stats...
@@ -781,7 +782,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     bool precisionPicking = !_dontDoPrecisionPicking;
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
-        //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
+        //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
         emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
@@ -811,7 +812,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     bool precisionPicking = !_dontDoPrecisionPicking;
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
-        //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
+        //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
@@ -860,7 +861,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
             entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
 
-        //qDebug() << "mouseMoveEvent over entity:" << rayPickResult.entityID;
+        //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
         emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);

@@ -32,6 +32,7 @@
 
 #include <OVR_CAPI_GL.h>
 
+#include "InterfaceLogging.h"
 #include "Application.h"
 
 template <typename Function>
@@ -128,7 +129,7 @@ void OculusManager::connect() {
 	initSdk();
 #endif
     _calibrationState = UNCALIBRATED;
-    qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
+    qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;
     if (_ovrHmd) {
         if (!_isConnected) {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
@@ -278,7 +279,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 _calibrationState = WAITING_FOR_ZERO_HELD;
 
                 if (!_calibrationMessage) {
-                    qDebug() << "Hold still to calibrate HMD";
+                    qCDebug(interfaceapp) << "Hold still to calibrate HMD";
 
                     billboard = new Text3DOverlay();
                     billboard->setDimensions(glm::vec2(2.0f, 1.25f));
@@ -305,7 +306,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
                     _calibrationState = CALIBRATED;
-                    qDebug() << "HMD calibrated";
+                    qCDebug(interfaceapp) << "HMD calibrated";
                     Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
                     _calibrationMessage = NULL;
                     Application::getInstance()->resetSensors();
@@ -346,7 +347,7 @@ void OculusManager::recalibrate() {
 void OculusManager::abandonCalibration() {
     _calibrationState = CALIBRATED;
     if (_calibrationMessage) {
-        qDebug() << "Abandoned HMD calibration";
+        qCDebug(interfaceapp) << "Abandoned HMD calibration";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
         _calibrationMessage = NULL;
     }
@@ -443,7 +444,6 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 }
 
-static bool timerActive = false;
 //Displays everything for the oculus, frame timing must be active
 void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
     auto glCanvas = Application::getInstance()->getGLWidget();
@@ -463,6 +463,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     // (does not seem to work on OSX with SDK based distortion)
     // FIXME can't use a static object here, because it will cause a crash when the
     // query attempts deconstruct after the GL context is gone.
+    static bool timerActive = false;
     static QOpenGLTimerQuery timerQuery;
     if (!timerQuery.isCreated()) {
         timerQuery.create();
@@ -470,7 +471,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     
     if (timerActive && timerQuery.isResultAvailable()) {
         auto result = timerQuery.waitForResult();
-        if (result) { qDebug() << "Distortion took "  << result << "ns"; };
+        if (result) { qCDebug(interfaceapp) << "Distortion took "  << result << "ns"; };
         timerActive = false;
     }
 #endif
@@ -671,7 +672,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #endif
 
     // No DK2, no message.
-    char latency2Text[128] = "";
     {
         float latencies[5] = {};
         if (debugFrame && ovrHmd_GetFloatArray(_ovrHmd, "DK2Latency", latencies, 5) == 5)
@@ -684,7 +684,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
             if (nonZero)
             {
-                qDebug() << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
+                qCDebug(interfaceapp) << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
                                              latencies[0], latencies[1], latencies[2], latencies[3], latencies[4]);
             }
         }

@@ -76,6 +76,7 @@ public:
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity);
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
+    void setGlobalSkybox(const model::SkyboxPointer& skybox);
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
@@ -150,6 +151,7 @@ private:
 
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
+    model::SkyboxPointer _skybox;
 };
 
 /// Simple interface for objects that require something to be rendered after deferred lighting.

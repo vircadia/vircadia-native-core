@@ -52,12 +52,15 @@ void main(void) {
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
+    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
+
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, interpolatedPosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
-    <$transformModelToEyeDir(cam, obj, tangent, interpolatedTangent.xyz)$>
+    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
+    <$transformModelToEyeDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
     interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);

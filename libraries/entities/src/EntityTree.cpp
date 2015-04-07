@@ -21,6 +21,7 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
+#include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 
 EntityTree::EntityTree(bool shouldReaverage) : 
@@ -103,13 +104,13 @@ void EntityTree::postAddEntity(EntityItem* entity) {
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
+        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
         return false;
     }
 
     EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        qDebug() << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
+        qCDebug(entities) << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
 
@@ -119,7 +120,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
+        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
             << entity->getEntityItemID();
         return false;
     }
@@ -130,7 +131,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                                          EntityTreeElement* containingElement, bool allowLockChange) {
 
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
-        qDebug() << "Refusing disallowed lock adjustment.";
+        qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
     }
 
@@ -177,7 +178,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
+        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
                 << entity->getEntityItemID();
         return false;
     }
@@ -193,7 +194,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     bool recordCreationTime = false;
     if (!entityID.isKnownID) {
         if (getIsServer()) {
-            qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
+            qCDebug(entities) << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
             return result;
         }
         if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
@@ -206,7 +207,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qDebug() << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID 
+        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID 
                     << "containingElement=" << containingElement;
         return result;
     }
@@ -251,7 +252,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         if (!ignoreWarnings) {
-            qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+            qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
         }
         return;
     }
@@ -259,7 +260,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
-            qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
+            qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
                         "entityID=" << entityID;
         }
         return;
@@ -267,7 +268,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
 
     if (existingEntity->getLocked() && !force) {
         if (!ignoreWarnings) {
-            qDebug() << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
+            qCDebug(entities) << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
         }
         return;
     }
@@ -288,7 +289,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityTreeElement* containingElement = getContainingElement(entityID);
         if (!containingElement) {
             if (!ignoreWarnings) {
-                qDebug() << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+                qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
             }
             continue;
         }
@@ -296,7 +297,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
-                qDebug() << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
+                qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
                             "entityID=" << entityID;
             }
             continue;
@@ -304,7 +305,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
 
         if (existingEntity->getLocked() && !force) {
             if (!ignoreWarnings) {
-                qDebug() << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
+                qCDebug(entities) << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
             }
             continue;
         }
@@ -376,7 +377,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
 
     if (!getIsClient()) {
-        qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
+        qCDebug(entities) << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
         return;
     }
 
@@ -602,12 +603,12 @@ EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /
 
 EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
     if (!getIsServer()) {
-        qDebug() << "UNEXPECTED!!! assignEntityID should only be called on a server tree. entityItemID:" << entityItemID;
+        qCDebug(entities) << "UNEXPECTED!!! assignEntityID should only be called on a server tree. entityItemID:" << entityItemID;
         return entityItemID;
     }
 
     if (getContainingElement(entityItemID)) {
-        qDebug() << "UNEXPECTED!!! don't call assignEntityID() for existing entityIDs. entityItemID:" << entityItemID;
+        qCDebug(entities) << "UNEXPECTED!!! don't call assignEntityID() for existing entityIDs. entityItemID:" << entityItemID;
         return entityItemID;
     }
 
@@ -619,7 +620,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
-        qDebug() << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
+        qCDebug(entities) << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
         return 0;
     }
 
@@ -650,23 +651,35 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // if the EntityItem exists, then update it
                     if (existingEntity) {
                         if (wantEditLogging()) {
-                            qDebug() << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
-                            qDebug() << "   properties:" << properties;
+                            qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                            qCDebug(entities) << "   properties:" << properties;
                         }
                         updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
                         existingEntity->markAsChangedOnServer();
                     } else {
-                        qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
+                        qCDebug(entities) << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
                 } else {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         entityItemID = assignEntityID(entityItemID);
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID() << "] adding entity.";
+                            qCDebug(entities) << "   properties:" << properties;
+                        }
                         EntityItem* newEntity = addEntity(entityItemID, properties);
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
+                            if (wantEditLogging()) {
+                                qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:" 
+                                                << newEntity->getEntityItemID();
+                                qCDebug(entities) << "   properties:" << properties;
+                            }
+
                         }
+                    } else {
+                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID() << "] attempted to add an entity.";
                     }
                 }
             }
@@ -897,7 +910,7 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
         for (size_t i = 0; i < numberOfIds; i++) {
 
             if (processedBytes + NUM_BYTES_RFC4122_UUID > packetLength) {
-                qDebug() << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
+                qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }
 
@@ -908,6 +921,11 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
+
+            if (wantEditLogging()) {
+                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            }
+
         }
         deleteEntities(entityItemIDsToDelete, true, true);
     }
@@ -936,7 +954,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
 
             if (processedBytes + NUM_BYTES_RFC4122_UUID > packetLength) {
-                qDebug() << "EntityTree::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+                qCDebug(entities) << "EntityTree::processEraseMessageDetails().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }
 
@@ -947,6 +965,11 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
+
+            if (wantEditLogging()) {
+                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            }
+
         }
         deleteEntities(entityItemIDsToDelete, true, true);
     }
@@ -977,17 +1000,17 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
 void EntityTree::resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
     if (entityItemID.id == UNKNOWN_ENTITY_ID) {
         //assert(entityItemID.id != UNKNOWN_ENTITY_ID);
-        qDebug() << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_ID. entityItemID:" << entityItemID;
+        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_ID. entityItemID:" << entityItemID;
         return;
     }
     if (entityItemID.creatorTokenID == UNKNOWN_ENTITY_TOKEN) {
         //assert(entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN);
-        qDebug() << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_TOKEN. entityItemID:" << entityItemID;
+        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_TOKEN. entityItemID:" << entityItemID;
         return;
     }
     if (!element) {
         //assert(element);
-        qDebug() << "UNEXPECTED! resetContainingElement() called with NULL element. entityItemID:" << entityItemID;
+        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with NULL element. entityItemID:" << entityItemID;
         return;
     }
     
@@ -1020,13 +1043,13 @@ void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTr
 }
 
 void EntityTree::debugDumpMap() {
-    qDebug() << "EntityTree::debugDumpMap() --------------------------";
+    qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
     QHashIterator<EntityItemID, EntityTreeElement*> i(_entityToElementMap);
     while (i.hasNext()) {
         i.next();
-        qDebug() << i.key() << ": " << i.value();
+        qCDebug(entities) << i.key() << ": " << i.value();
     }
-    qDebug() << "-----------------------------------------------------";
+    qCDebug(entities) << "-----------------------------------------------------";
 }
 
 class DebugOperator : public RecurseOctreeOperator {
@@ -1037,7 +1060,7 @@ public:
 
 bool DebugOperator::preRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    qDebug() << "EntityTreeElement [" << entityTreeElement << "]";
+    qCDebug(entities) << "EntityTreeElement [" << entityTreeElement << "]";
     entityTreeElement->debugDump();
     return true;
 }
@@ -1135,7 +1158,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
         EntityItem* entity = addEntity(entityItemID, properties);
         if (!entity) {
-            qDebug() << "adding Entity failed:" << entityItemID << entity->getType();
+            qCDebug(entities) << "adding Entity failed:" << entityItemID << entity->getType();
         }
     }
 
