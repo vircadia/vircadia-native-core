@@ -34,6 +34,7 @@
 #include "DeferredLightingEffect.h"
 #include "GlowEffect.h"
 #include "Model.h"
+#include "RenderUtilsLogging.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -2040,7 +2041,7 @@ void Model::segregateMeshGroups() {
         }
         const bool wantDebug = false;
         if (wantDebug) {
-            qDebug() << "materialID:" << materialID << "parts:" << mesh.parts.size();
+            qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
 
         if (!hasLightmap) {
@@ -2108,7 +2109,7 @@ void Model::segregateMeshGroups() {
 
                 _unsortedMeshesOpaqueSpecularSkinned.insertMulti(materialID, i);
             } else {
-                qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+                qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
             }
         } else {
             if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
@@ -2128,7 +2129,7 @@ void Model::segregateMeshGroups() {
                 _unsortedMeshesOpaqueLightmapSpecular.insertMulti(materialID, i);
 
             } else {
-                qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+                qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
             }
         }
     }
@@ -2290,7 +2291,7 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
         whichList = &_meshesOpaqueLightmapSpecular;
 
     } else {
-        qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+        qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
     }
     return whichList;
 }
@@ -2417,7 +2418,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
     
     if (!whichList) {
-        qDebug() << "unexpected!!! we don't know which list of meshes to render...";
+        qCDebug(renderutils) << "unexpected!!! we don't know which list of meshes to render...";
         return 0;
     }
     QVector<int>& list = *whichList;
@@ -2544,9 +2545,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 if (lastMaterialID != part.materialID) {
                     const bool wantDebug = false;
                     if (wantDebug) {
-                        qDebug() << "Material Changed ---------------------------------------------";
-                        qDebug() << "part INDEX:" << j;
-                        qDebug() << "NEW part.materialID:" << part.materialID;
+                        qCDebug(renderutils) << "Material Changed ---------------------------------------------";
+                        qCDebug(renderutils) << "part INDEX:" << j;
+                        qCDebug(renderutils) << "NEW part.materialID:" << part.materialID;
                     }
 
                     if (locations->glowIntensity >= 0) {

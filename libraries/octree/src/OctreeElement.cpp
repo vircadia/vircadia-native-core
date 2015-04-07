@@ -26,6 +26,7 @@
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 #include "Octree.h"
+#include "OctreeLogging.h"
 #include "SharedUtil.h"
 
 quint64 OctreeElement::_octreeMemoryUsage = 0;
@@ -282,7 +283,7 @@ void OctreeElement::auditChildren(const char* label) const {
             OctreeElement* testChildNew = getChildAtIndex(childIndex);
             OctreeElement* testChildOld = _childrenArray[childIndex];
 
-            qDebug("child at index %d... testChildOld=%p testChildNew=%p %s",
+            qCebug("child at index %d... testChildOld=%p testChildNew=%p %s",
                     childIndex, testChildOld, testChildNew ,
                     ((testChildNew != testChildOld) ? " DOES NOT MATCH <<<< BAD <<<<" : " - OK ")
             );
@@ -435,7 +436,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                         if (externalIndex < childCount && externalIndex >= 0) {
                             result = _children.external[externalIndex];
                         } else {
-                            qDebug("getChildAtIndex() attempt to access external client out of "
+                            qCDebug(octree, "getChildAtIndex() attempt to access external client out of "
                                 "bounds externalIndex=%d <<<<<<<<<< WARNING!!!", externalIndex);
                         }
                         break;
@@ -446,7 +447,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
     }
 #ifdef HAS_AUDIT_CHILDREN
     if (result != _childrenArray[childIndex]) {
-        qDebug("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!!",
+        qCDebug(octree, "getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!!",
             caseStr, result,_childrenArray[childIndex]);
     }
 #endif // def HAS_AUDIT_CHILDREN
@@ -1119,7 +1120,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
     } else {
         //assert(false);
-        qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d",previousChildCount, newChildCount);
+        qCDebug(octree, "THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d",previousChildCount, newChildCount);
     }
 
     // check to see if we could store these 4 children locally
@@ -1163,7 +1164,7 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "OctreeElement::safeDeepDeleteChildAtIndex\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return deleteApproved;
     }
     OctreeElement* childToDelete = getChildAtIndex(childIndex);
@@ -1398,7 +1399,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     float halfOurScale = ourScale / 2.0f;
 
     if(s > ourScale) {
-        qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
+        qCDebug(octree, "UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
     }
 
     if (s > halfOurScale) {
@@ -1521,11 +1522,11 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
 
     // TODO: consider changing this to assert()
     if (cubeScale > ourScale) {
-        qDebug() << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
-        qDebug() << "    cube=" << cube;
-        qDebug() << "    elements AACube=" << _cube;
-        qDebug() << "    cubeScale=" << cubeScale;
-        qDebug() << "    ourScale=" << ourScale;
+        qCDebug(octree) << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
+        qCDebug(octree) << "    cube=" << cube;
+        qCDebug(octree) << "    elements AACube=" << _cube;
+        qCDebug(octree) << "    cubeScale=" << cubeScale;
+        qCDebug(octree) << "    ourScale=" << ourScale;
         assert(false);
     }
 
@@ -1553,7 +1554,7 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
 
     // TODO: consider changing this to assert()
     if(boxLargestScale > ourScale) {
-        qDebug("UNEXPECTED -- OctreeElement::getMyChildContaining() "
+        qCDebug(octree, "UNEXPECTED -- OctreeElement::getMyChildContaining() "
                     "boxLargestScale=[%f] > ourScale=[%f] ", boxLargestScale, ourScale);
     }
 

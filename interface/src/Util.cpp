@@ -27,6 +27,7 @@
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "Application.h"
+#include "InterfaceLogging.h"
 
 #include "Util.h"
 
@@ -136,43 +137,43 @@ void runTimingTests() {
     
     float NSEC_TO_USEC = 1.0f / 1000.0f;
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
     
     // Test sleep functions for accuracy
     startTime.start();
     QThread::msleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     QThread::sleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     usleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     usleep(10);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(10) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(10) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     usleep(100);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(100) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(100) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     usleep(1000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
 
     startTime.start();
     usleep(15000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
 
     // Random number generation
     startTime.start();
@@ -180,7 +181,7 @@ void runTimingTests() {
         iResults[i] = rand();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("rand() stored in array usecs: %f, first result:%d", elapsedUsecs / (float) numTests, iResults[0]);
+    qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d", elapsedUsecs / (float) numTests, iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
@@ -188,7 +189,7 @@ void runTimingTests() {
         fResults[i] = randFloat();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
+    qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
 
     free(iResults);
     free(fResults);
@@ -200,7 +201,7 @@ void runTimingTests() {
         fTest = powf(fTest, 0.5f);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("powf(f, 0.5) usecs: %f", elapsedUsecs / (float) numTests);
+    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", elapsedUsecs / (float) numTests);
 
     //  Vector Math
     float distance;
@@ -212,7 +213,7 @@ void runTimingTests() {
         distance = glm::distance(pointA, pointB);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("vector math usecs: %f [%f usecs total for %d tests], last result:%f",
+    qCDebug(interfaceapp, "vector math usecs: %f [%f usecs total for %d tests], last result:%f",
            elapsedUsecs / (float) numTests, elapsedUsecs, numTests, distance);
 
     //  Vec3 test
@@ -225,7 +226,7 @@ void runTimingTests() {
         result = glm::dot(temp,temp);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
+    qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
 }
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,

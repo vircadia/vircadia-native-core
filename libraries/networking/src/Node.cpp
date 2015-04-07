@@ -16,6 +16,7 @@
 
 #include "Node.h"
 #include "SharedUtil.h"
+#include "NetworkLogging.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
@@ -76,7 +77,7 @@ void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
         }
         
         if (!_publicSocket.isNull()) {
-            qDebug() << "Public socket change for node" << *this;
+            qCDebug(networking) << "Public socket change for node" << *this;
         }
         
         _publicSocket = publicSocket;
@@ -91,7 +92,7 @@ void Node::setLocalSocket(const HifiSockAddr& localSocket) {
         }
         
         if (!_localSocket.isNull()) {
-            qDebug() << "Local socket change for node" << *this;
+            qCDebug(networking) << "Local socket change for node" << *this;
         }
         
         _localSocket = localSocket;
@@ -106,7 +107,7 @@ void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
         }
         
         if (!_symmetricSocket.isNull()) {
-            qDebug() << "Symmetric socket change for node" << *this;
+            qCDebug(networking) << "Symmetric socket change for node" << *this;
         }
         
         _symmetricSocket = symmetricSocket;
@@ -114,17 +115,17 @@ void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
 }
 
 void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    qCDebug(networking) << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
     _activeSocket = &_localSocket;
 }
 
 void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    qCDebug(networking) << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
     _activeSocket = &_publicSocket;
 }
 
 void Node::activateSymmetricSocket() {
-    qDebug() << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
     _activeSocket = &_symmetricSocket;
 }
 

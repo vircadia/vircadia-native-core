@@ -15,6 +15,7 @@
 
 #include <SharedUtil.h>
 
+#include "OctreeLogging.h"
 #include "CoverageMap.h"
 
 int CoverageMap::_mapCount = 0;
@@ -73,19 +74,19 @@ CoverageMap::~CoverageMap() {
 };
 
 void CoverageMap::printStats() {
-    qDebug("CoverageMap::printStats()...");
-    qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
-    qDebug("_mapCount=%d",_mapCount);
-    qDebug("_checkMapRootCalls=%d",_checkMapRootCalls);
-    qDebug("_notAllInView=%d",_notAllInView);
-    qDebug("_maxPolygonsUsed=%d",CoverageRegion::_maxPolygonsUsed);
-    qDebug("_totalPolygons=%d",CoverageRegion::_totalPolygons);
-    qDebug("_occlusionTests=%d",CoverageRegion::_occlusionTests);
-    qDebug("_regionSkips=%d",CoverageRegion::_regionSkips);
-    qDebug("_tooSmallSkips=%d",CoverageRegion::_tooSmallSkips);
-    qDebug("_regionFullSkips=%d",CoverageRegion::_regionFullSkips);
-    qDebug("_outOfOrderPolygon=%d",CoverageRegion::_outOfOrderPolygon);
-    qDebug("_clippedPolygons=%d",CoverageRegion::_clippedPolygons);
+    qCDebug(octree, "CoverageMap::printStats()...");
+    qCDebug(octree, "MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
+    qCDebug(octree, "_mapCount=%d",_mapCount);
+    qCDebug(octree, "_checkMapRootCalls=%d",_checkMapRootCalls);
+    qCDebug(octree, "_notAllInView=%d",_notAllInView);
+    qCDebug(octree, "_maxPolygonsUsed=%d",CoverageRegion::_maxPolygonsUsed);
+    qCDebug(octree, "_totalPolygons=%d",CoverageRegion::_totalPolygons);
+    qCDebug(octree, "_occlusionTests=%d",CoverageRegion::_occlusionTests);
+    qCDebug(octree, "_regionSkips=%d",CoverageRegion::_regionSkips);
+    qCDebug(octree, "_tooSmallSkips=%d",CoverageRegion::_tooSmallSkips);
+    qCDebug(octree, "_regionFullSkips=%d",CoverageRegion::_regionFullSkips);
+    qCDebug(octree, "_outOfOrderPolygon=%d",CoverageRegion::_outOfOrderPolygon);
+    qCDebug(octree, "_clippedPolygons=%d",CoverageRegion::_clippedPolygons);
 }
 
 void CoverageMap::erase() {
@@ -104,7 +105,7 @@ void CoverageMap::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        qDebug("CoverageMap last to be deleted...");
+        qCDebug(octree, "CoverageMap last to be deleted...");
         printStats();
         
         CoverageRegion::_maxPolygonsUsed = 0;
@@ -235,9 +236,9 @@ CoverageMapStorageResult CoverageMap::checkMap(OctreeProjectedPolygon* polygon, 
         
             /*
             if (result == STORED)
-                qDebug("CoverageMap2::checkMap()... STORED\n");
+                qCDebug(octree, "CoverageMap2::checkMap()... STORED\n");
             else
-                qDebug("CoverageMap2::checkMap()... OCCLUDED\n");
+                qCDebug(octree, "CoverageMap2::checkMap()... OCCLUDED\n");
             */
             
             return result;
@@ -260,16 +261,16 @@ CoverageMapStorageResult CoverageMap::checkMap(OctreeProjectedPolygon* polygon, 
                     /*
                     switch (result) {
                         case STORED:
-                            qDebug("checkMap() = STORED\n");
+                            qCDebug(octree, "checkMap() = STORED\n");
                             break;
                         case NOT_STORED:
-                            qDebug("checkMap() = NOT_STORED\n");
+                            qCDebug(octree, "checkMap() = NOT_STORED\n");
                             break;
                         case OCCLUDED:
-                            qDebug("checkMap() = OCCLUDED\n");
+                            qCDebug(octree, "checkMap() = OCCLUDED\n");
                             break;
                         default:
-                            qDebug("checkMap() = ????? \n");
+                            qCDebug(octree, "checkMap() = ????? \n");
                             break;
                     }
                     */
@@ -327,11 +328,11 @@ void CoverageRegion::erase() {
 
 /**
     if (_polygonCount) {
-        qDebug("CoverageRegion::erase()...\n");
-        qDebug("_polygonCount=%d\n",_polygonCount);
+        qCDebug(octree, "CoverageRegion::erase()...\n");
+        qCDebug(octree, "_polygonCount=%d\n",_polygonCount);
         _myBoundingBox.printDebugDetails(getRegionName());
         //for (int i = 0; i < _polygonCount; i++) {
-        //    qDebug("_polygons[%d]=",i);
+        //    qCDebug(octree, "_polygons[%d]=",i);
         //    _polygons[i]->getBoundingBox().printDebugDetails();
         //}
     }
