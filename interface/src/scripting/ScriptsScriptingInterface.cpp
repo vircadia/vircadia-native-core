@@ -29,7 +29,7 @@ QVariantList ScriptsScriptingInterface::getRunning() {
         }
         QVariantMap resultNode;
         resultNode.insert("name", runningScriptURL.fileName());
-        resultNode.insert("path", runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
+        resultNode.insert("url", runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
         resultNode.insert("local", runningScriptURL.isLocalFile());
         result.append(resultNode);
     }
@@ -62,7 +62,7 @@ QVariantList ScriptsScriptingInterface::getPublicChildNodes(TreeNodeFolder* pare
         QVariantMap resultNode;
         resultNode.insert("name", node->getName());
         resultNode.insert("type", "script");
-        resultNode.insert("path", script->getFullPath());
+        resultNode.insert("url", script->getFullPath());
         result.append(resultNode);
     }
     return result;
