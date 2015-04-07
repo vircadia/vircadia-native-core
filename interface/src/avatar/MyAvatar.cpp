@@ -327,7 +327,7 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool postLighting) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
@@ -998,7 +998,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1007,7 +1007,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
     const glm::vec3 cameraPos = camera->getPosition();
 
     // Only tweak the frustum near far if it's not shadow
-    if (renderMode != SHADOW_RENDER_MODE) {
+    if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
         // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
         if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
@@ -1028,8 +1028,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
     }
 
     //  Render the body's voxels and head
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    RenderArgs::RenderMode modelRenderMode = renderMode;
     if (!postLighting) {
         RenderArgs args;
         args._viewFrustum = renderFrustum;
@@ -1048,9 +1047,9 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
     const Head* head = getHead();
-    return (renderMode != NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
+    return (renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1396,19 +1395,19 @@ void MyAvatar::updateMotionBehavior() {
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
+void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == RenderArgs::MIRROR_RENDER_MODE) {
         Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+ //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
+            _attachmentModels.at(i)->render(1.0f, renderMode, args);        
         }
     }
 }
