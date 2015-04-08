@@ -229,10 +229,6 @@ table#properties-list {
     table-layout: fixed;
 }
 
-#properties-list > div {
-    margin: 3pt 0;
-}
-
 #properties-list {
     border-bottom: 0.75pt solid #e5e5e5;
 }
