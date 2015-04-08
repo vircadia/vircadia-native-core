@@ -32,7 +32,7 @@ namespace vhacd {
                           VHACD::IVHACD::Parameters params,
                           FBXGeometry& result,
                           int startMeshIndex, int endMeshIndex,
-                          float minimumMeshSize,
+                          float minimumMeshSize, float maximumMeshSize,
                           bool fattenFaces);
         ~VHACDUtil();
     };
@@ -47,4 +47,7 @@ namespace vhacd {
 		    const char * const stage, const char * const operation);
     };
 }
+
+AABox getAABoxForMeshPart(const FBXMeshPart &meshPart);
+
 #endif //hifi_VHACDUtil_h
