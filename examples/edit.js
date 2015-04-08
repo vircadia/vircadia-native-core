@@ -338,7 +338,7 @@ var toolBar = (function () {
         }
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
-            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+            var position = getPositionToCreateEntity();
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
@@ -355,7 +355,7 @@ var toolBar = (function () {
         }
 
         if (newSphereButton === toolBar.clicked(clickedOverlay)) {
-            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+            var position = getPositionToCreateEntity();
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
@@ -371,7 +371,7 @@ var toolBar = (function () {
         }
 
         if (newLightButton === toolBar.clicked(clickedOverlay)) {
-            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+            var position = getPositionToCreateEntity();
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
@@ -395,7 +395,7 @@ var toolBar = (function () {
 
 
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
-            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+            var position = getPositionToCreateEntity();
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
@@ -947,6 +947,19 @@ function handeMenuEvent(menuItem) {
     tooltip.show(false);
 }
 
+function getPositionToCreateEntity() {
+    var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
+    var direction = Quat.getFront(Camera.orientation);
+    var offset = Vec3.multiply(distance, direction);
+    var position = Vec3.sum(Camera.position, offset);
+
+    position.x = Math.max(0, position.x);
+    position.y = Math.max(0, position.y);
+    position.z = Math.max(0, position.z);
+
+    return position;
+}
+
 function importSVO(importURL) {
     Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
     Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
@@ -954,14 +967,7 @@ function importSVO(importURL) {
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
-        var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
-        var direction = Quat.getFront(Camera.orientation);
-        var offset = Vec3.multiply(distance, direction);
-        var position = Vec3.sum(Camera.position, offset);
-
-        position.x = Math.max(0, position.x);
-        position.y = Math.max(0, position.y);
-        position.z = Math.max(0, position.z);
+        var position = getPositionToCreateEntity();
 
         var pastedEntityIDs = Clipboard.pasteEntities(position);
 
