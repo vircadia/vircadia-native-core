@@ -23,6 +23,7 @@ const glm::vec3 ENTITY_ITEM_ZERO_VEC3(0.0f);
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
 const QString ENTITY_ITEM_DEFAULT_MARKETPLACE_ID = QString("");
+const QString ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QString("");
 
 const float ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float ENTITY_ITEM_DEFAULT_GLOW_LEVEL = 0.0f;
@@ -47,6 +48,7 @@ const float ENTITY_ITEM_DEFAULT_MASS = ENTITY_ITEM_DEFAULT_DENSITY * ENTITY_ITEM
 const glm::vec3 ENTITY_ITEM_DEFAULT_VELOCITY = ENTITY_ITEM_ZERO_VEC3;
 const glm::vec3 ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY = ENTITY_ITEM_ZERO_VEC3;
 const glm::vec3 ENTITY_ITEM_DEFAULT_GRAVITY = ENTITY_ITEM_ZERO_VEC3;
+const glm::vec3 ENTITY_ITEM_DEFAULT_ACCELERATION = ENTITY_ITEM_ZERO_VEC3;
 const float ENTITY_ITEM_DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 const float ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 

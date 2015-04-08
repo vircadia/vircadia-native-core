@@ -134,6 +134,10 @@
             var elGravityY = document.getElementById("property-grav-y");
             var elGravityZ = document.getElementById("property-grav-z");
 
+            var elAccelerationX = document.getElementById("property-lacc-x");
+            var elAccelerationY = document.getElementById("property-lacc-y");
+            var elAccelerationZ = document.getElementById("property-lacc-z");
+
             var elDensity = document.getElementById("property-density");
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
@@ -259,6 +263,10 @@
                             elGravityX.value = properties.gravity.x.toFixed(2);
                             elGravityY.value = properties.gravity.y.toFixed(2);
                             elGravityZ.value = properties.gravity.z.toFixed(2);
+
+                            elAccelerationX.value = properties.acceleration.x.toFixed(2);
+                            elAccelerationY.value = properties.acceleration.y.toFixed(2);
+                            elAccelerationZ.value = properties.acceleration.z.toFixed(2);
 
                             elDensity.value = properties.density.toFixed(2);
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
@@ -396,6 +404,12 @@
             elGravityX.addEventListener('change', gravityChangeFunction);
             elGravityY.addEventListener('change', gravityChangeFunction);
             elGravityZ.addEventListener('change', gravityChangeFunction);
+
+            var accelerationChangeFunction = createEmitVec3PropertyUpdateFunction(
+                'acceleration', elAccelerationX, elAccelerationY, elAccelerationZ);
+            elAccelerationX.addEventListener('change', accelerationChangeFunction);
+            elAccelerationY.addEventListener('change', accelerationChangeFunction);
+            elAccelerationZ.addEventListener('change', accelerationChangeFunction);
 
             elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
@@ -614,6 +628,15 @@
                 <div class="input-area">X <input class="coord" type='number' id="property-grav-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-grav-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-grav-z"></input></div>
+            </div>
+        </div>
+
+        <div class="property">
+            <div class="label">Acceleration</div>
+            <div class="value">
+                <div class="input-area">X <input class="coord" type='number' id="property-lacc-x"></input></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-lacc-y"></input></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-lacc-z"></input></div>
             </div>
         </div>
 
