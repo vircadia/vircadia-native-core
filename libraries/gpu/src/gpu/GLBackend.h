@@ -31,7 +31,7 @@ public:
 
     static void renderBatch(Batch& batch);
 
-    static void checkGLError();
+    static bool checkGLError(const char* name = nullptr);
 
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
