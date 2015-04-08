@@ -628,7 +628,7 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     return true;
 }
 
-void PhysicsEngine::setCharacterController(CharacterController* character) {
+void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
     if (_characterController != character) {
         lock();
         if (_characterController) {

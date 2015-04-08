@@ -1116,7 +1116,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
 }
 
-glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {
+glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool isHovering) {
     if (! (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED)) {
         return localVelocity;
     }
@@ -1137,7 +1137,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     if (_isPushing || isThrust || 
             (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE && 
             _motionBehaviors | AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
-        // we don't want to break if anything is pushing the avatar around
+        // we don't want to brake if something is pushing the avatar around
         timescale = _keyboardMotorTimescale;
         _isBraking = false;
     } else {
@@ -1168,14 +1168,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         if (directionLength > EPSILON) {
             direction /= directionLength;
 
-            if (hasFloor) {
-                // we're walking --> simple exponential decay toward target walk speed
-                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
-                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
-                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
-
-            } else {
-                // we're flying --> more complex curve
+            if (isHovering) {
+                // we're flying --> complex acceleration curve with high max speed
                 float motorSpeed = glm::length(_keyboardMotorVelocity);
                 float finalMaxMotorSpeed = _scale * MAX_KEYBOARD_MOTOR_SPEED;
                 float speedGrowthTimescale  = 2.0f;
@@ -1191,6 +1185,12 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                     motorSpeed = finalMaxMotorSpeed;
                 }
                 _keyboardMotorVelocity = motorSpeed * direction;
+
+            } else {
+                // we're using a floor --> simple exponential decay toward target walk speed
+                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
+                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
+                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
             }
             _isPushing = true;
         } 
@@ -1198,7 +1198,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     } else {
         _keyboardMotorVelocity = glm::vec3(0.0f);
         newLocalVelocity = (1.0f - motorEfficiency) * localVelocity;
-        if (hasFloor && !_wasPushing) {
+        if (!isHovering && !_wasPushing) {
             float speed = glm::length(newLocalVelocity);
             if (speed > MIN_AVATAR_SPEED) {
                 // add small constant friction to help avatar drift to a stop sooner at low speeds
@@ -1238,8 +1238,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
 
-    bool isOnGround = _characterController.onGround();
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isOnGround);
+    bool isHovering = _characterController.isHovering();
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
