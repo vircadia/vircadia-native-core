@@ -29,7 +29,6 @@
   }
 
   this.clickReleaseOnEntity = function(entityId, mouseEvent) {
-    print("ENTITY CLICK")
     if (!mouseEvent.isLeftButton) {
       return;
     }
