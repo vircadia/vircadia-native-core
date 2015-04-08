@@ -84,6 +84,7 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
+var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
 var modelURLs = [
        "Insert the URL to your FBX"
@@ -959,6 +960,11 @@ function getPositionToCreateEntity() {
 }
 
 function importSVO(importURL) {
+    if (!Entities.canAdjustLocks()) {
+        Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
+        return;
+    }
+
     Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
     Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
 
