@@ -137,7 +137,21 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                                               "according the \"best\" clipping plane (range=1-32)", "20");
     parser.addOption(vHacdDepthOption);
 
-    const QCommandLineOption vHacdDeltaOption("delta", "Controls the bias toward maximaxing local concavity (range=0.0-1.0)", "0.05");
+
+    const QCommandLineOption vHacdAlphaOption("alpha", "Controls the bias toward clipping along symmetry "
+                                              "planes (range=0.0-1.0)", "0.05");
+    parser.addOption(vHacdAlphaOption);
+
+    const QCommandLineOption vHacdBetaOption("beta", "Controls the bias toward clipping along revolution "
+                                             "axes (range=0.0-1.0)", "0.05");
+    parser.addOption(vHacdBetaOption);
+
+    const QCommandLineOption vHacdGammaOption("gamma", "Controls the maximum allowed concavity during the "
+                                              "merge stage (range=0.0-1.0)", "0.00125");
+    parser.addOption(vHacdGammaOption);
+
+    const QCommandLineOption vHacdDeltaOption("delta", "Controls the bias toward maximaxing local "
+                                              "concavity (range=0.0-1.0)", "0.05");
     parser.addOption(vHacdDeltaOption);
 
     const QCommandLineOption vHacdConcavityOption("concavity", "Maximum allowed concavity (range=0.0-1.0)", "0.0025");
@@ -152,10 +166,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                                                                "plane selection stage (range=1-16)", "4");
     parser.addOption(vHacdConvexhulldownsamplingOption);
 
-    // alpha
-    // beta
-    // gamma
-    // delta
     // pca
     // mode
 
@@ -236,6 +246,21 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vHacdDepth = parser.value(vHacdDepthOption).toInt();
     }
 
+    float vHacdAlpha = 0.05;
+    if (parser.isSet(vHacdAlphaOption)) {
+        vHacdAlpha = parser.value(vHacdAlphaOption).toFloat();
+    }
+
+    float vHacdBeta = 0.05;
+    if (parser.isSet(vHacdBetaOption)) {
+        vHacdBeta = parser.value(vHacdBetaOption).toFloat();
+    }
+
+    float vHacdGamma = 0.00125;
+    if (parser.isSet(vHacdGammaOption)) {
+        vHacdGamma = parser.value(vHacdGammaOption).toFloat();
+    }
+
     float vHacdDelta = 0.05;
     if (parser.isSet(vHacdDeltaOption)) {
         vHacdDelta = parser.value(vHacdDeltaOption).toFloat();
@@ -304,9 +329,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         params.m_delta = vHacdDelta;
         params.m_planeDownsampling = vHacdPlanedownsampling;
         params.m_convexhullDownsampling = vHacdConvexhulldownsampling;
-        params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
-        params.m_beta = 0.05; // 0.05
-        params.m_gamma = 0.0005; // 0.0005
+        params.m_alpha = vHacdAlpha;
+        params.m_beta = vHacdBeta;
+        params.m_gamma = vHacdBeta;
         params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
         params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
         params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
