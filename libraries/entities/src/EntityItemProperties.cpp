@@ -75,7 +75,6 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
     CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
 
-
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(0),
@@ -333,7 +332,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
 
-
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
     for (int i = 0; i < _sittingPoints.size(); ++i) {
@@ -417,7 +415,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(marketplaceID, setMarketplaceID);
-
 
     _lastEdited = usecTimestampNow();
 }
@@ -839,7 +836,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
-
     
     return valid;
 }
