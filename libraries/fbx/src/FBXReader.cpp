@@ -458,6 +458,18 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
+QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 4 * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        values.append(glm::vec4(x, y, z, w));
+    }
+    return values;
+}
+
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
@@ -739,6 +751,11 @@ public:
     bool normalsByVertex;
     QVector<glm::vec3> normals;
     QVector<int> normalIndices;
+
+    bool colorsByVertex;
+    QVector<glm::vec4> colors;
+    QVector<int> colorIndices;
+
     QVector<glm::vec2> texCoords;
     QVector<int> texCoordIndices;
 
@@ -776,6 +793,23 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         }
     }
 
+
+    glm::vec4 color;
+    bool hasColors = (data.colors.size() > 1);
+    if (hasColors) {
+        int colorIndex = data.colorsByVertex ? vertexIndex : index;
+        if (data.colorIndices.isEmpty()) {    
+            if (colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        } else if (colorIndex < data.colorIndices.size()) {
+            colorIndex = data.colorIndices.at(colorIndex);
+            if (colorIndex >= 0 && colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        }
+    }
+
     if (data.texCoordIndices.isEmpty()) {
         if (index < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(index);
@@ -810,6 +844,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
+        if (hasColors) {
+            data.extracted.mesh.colors.append(glm::vec3(color));
+        }
         if (hasMoreTexcoords) {
             data.extracted.mesh.texCoords1.append(vertex.texCoord1);
         }
@@ -852,6 +889,28 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 // hack to work around wacky Makehuman exports
                 data.normalsByVertex = true;
             }
+        } else if (child.name == "LayerElementColor") {
+            data.colorsByVertex = false;
+            bool indexToDirect = false;
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "Colors") {
+                    data.colors = createVec4Vector(getDoubleVector(subdata));
+
+                } else if (subdata.name == "ColorsIndex") {
+                    data.colorIndices = getIntVector(subdata);
+
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
+                    data.colorsByVertex = true;
+                    
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                    indexToDirect = true;
+                }
+            }
+            if (indexToDirect && data.normalIndices.isEmpty()) {
+                // hack to work around wacky Makehuman exports
+                data.colorsByVertex = true;
+            }
+         
         } else if (child.name == "LayerElementUV") {
             if (child.properties.at(0).toInt() == 0) {
                 AttributeData attrib;

@@ -21,6 +21,8 @@ uniform sampler2D diffuseMap;
 
 varying vec4 normal;
 
+varying vec3 color;
+
 void main(void) {
 
     // Fetch diffuse map
@@ -31,7 +33,7 @@ void main(void) {
     packDeferredFragmentTranslucent(
         normalize(normal.xyz), 
         getMaterialOpacity(mat) * diffuse.a,
-        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 

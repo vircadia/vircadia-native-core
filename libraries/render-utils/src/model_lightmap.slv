@@ -28,9 +28,12 @@ varying vec4 normal;
 // the interpolated texcoord1
 varying vec2 interpolatedTexcoord1;
 
+varying vec3 color;
+
+
 void main(void) {
     // pass along the diffuse color
-    gl_FrontColor = gl_Color;
+    color = gl_Color.xyz;
     
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
