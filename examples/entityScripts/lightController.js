@@ -1,7 +1,10 @@
 (function() {
-
   this.preload = function(entityId) {
-    this.sound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_1.wav");
+    var soundURLs = ["https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_1.wav",
+      "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav",
+      "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_3.wav"];
+    var soundURL = soundURLs[Math.floor(Math.random() * soundURLs.length)];
+    this.sound = SoundCache.getSound(soundURL);
     this.entityId = entityId;
     this.properties = Entities.getEntityProperties(this.entityId);
     this.previousPosition = this.properties.position;
@@ -10,7 +13,6 @@
       this.userData = {};
       this.userData.lightOn = false;
     }
-
   }
 
   this.getUserData = function() {
@@ -27,6 +29,7 @@
   }
 
   this.clickReleaseOnEntity = function(entityId, mouseEvent) {
+    print("ENTITY CLICK")
     if (!mouseEvent.isLeftButton) {
       return;
     }
@@ -61,20 +64,15 @@
 
   this.tryMoveLight = function() {
     if (this.light) {
-      if (!Vec3.equal(this.properties.position, this.previousPosition)) {
-        //just get new offset
-        var offset = Vec3.subtract(this.properties.position, this.previousPosition);
-        var newWorldLightPosition = Vec3.sum(this.lightProperties.position, offset);
-        Entities.editEntity(this.light, {
-          position: newWorldLightPosition
-        })
-        this.previousPosition = this.properties.position;
-
+      //compute offset position
+      var offsetPosition = Quat.multiply(Quat.inverse(this.properties.rotation), Vec3.subtract(this.lightProperties.position, this.properties.position));
+      var newPosition = Vec3.sum(this.properties.position, Vec3.multiplyQbyV(this.properties.rotation, offsetPosition));
+      if (!Vec3.equal(newPosition, this.lightProperties.position)) {
+        Entities.editEntity(this.light, {position: newPosition});
       }
     }
 
   }
-
 
   this.findClosestLight = function() {
     var entities = Entities.findEntities(this.properties.position, 10);
