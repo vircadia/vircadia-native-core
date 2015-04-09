@@ -127,10 +127,11 @@ public:
 
     class DepthTest {
         uint8 _function = LESS;
-        bool _writeMask = true;
-        bool _enabled = false;
+        uint8 _writeMask = true;
+        uint8 _enabled = false;
+        uint8 _spare;
     public:
-        DepthTest(bool enabled, bool writeMask, ComparisonFunction func) : 
+        DepthTest(bool enabled = false, bool writeMask = true, ComparisonFunction func = LESS) :
             _function(func), _writeMask(writeMask), _enabled(enabled) {}
 
         bool isEnabled() const { return _enabled; }

@@ -64,8 +64,8 @@ void AnimationHandle::setRunning(bool running) {
         if (running) {
             // move back to the beginning
             setFrameIndex(getFirstFrame());
+            return;
         }
-        return;
     }
     _animationLoop.setRunning(running);
     if (isRunning()) {

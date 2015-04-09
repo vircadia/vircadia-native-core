@@ -598,9 +598,14 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
         } else {
             glDisable(GL_DEPTH_TEST);
         }
-        CHECK_GL_ERROR();
+        if (CHECK_GL_ERROR()) {
+            qDebug() << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
+                    << "Mask=" << (test.getWriteMask() ? "Write" : "no Write")
+                    << "Func=" << test.getFunction()
+                    << "Raw=" << test.getRaw();
+        }
 
-         _pipeline._stateCache.depthTest = test;
+        _pipeline._stateCache.depthTest = test;
     }
 }
 
@@ -712,7 +717,7 @@ void GLBackend::do_setStateBlend(State::BlendFunction function) {
 }
 
 void GLBackend::do_setStateColorWriteMask(uint32 mask) {
-    if (_pipeline._stateCache.colorWriteMask = mask) {
+    if (_pipeline._stateCache.colorWriteMask != mask) {
         glColorMask(mask & State::ColorMask::WRITE_RED,
                 mask & State::ColorMask::WRITE_GREEN,
                 mask & State::ColorMask::WRITE_BLUE,
