@@ -27,9 +27,9 @@ Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size)
     if (size > 0) {
         // Try allocating as much as the required size + one block of memory
         newSize = size;
-        try {
-            (*dataAllocated) = new Byte[newSize];
-        } catch (const std::bad_alloc&) {
+        (*dataAllocated) = new (std::nothrow) Byte[newSize];
+        // Failed?
+        if (!(*dataAllocated)) {
             qWarning() << "Buffer::Sysmem::allocate() : Can't allocate a system memory buffer of " << newSize << "bytes. Fails to create the buffer Sysmem.";
             return NOT_ALLOCATED;
         }
