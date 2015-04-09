@@ -201,7 +201,7 @@
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
-        QString newValue = P.toVariant().toString();\
+        QString newValue = P.toVariant().toString().trimmed();\
         if (_defaultSettings || newValue != _##P) { \
             S(newValue);                            \
         }                                           \
