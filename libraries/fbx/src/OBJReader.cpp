@@ -116,6 +116,24 @@ bool OBJTokenizer::isNextTokenFloat() {
     return ok;
 }
 
+void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
+    meshPart.diffuseColor = glm::vec3(1, 1, 1);
+    meshPart.specularColor = glm::vec3(1, 1, 1);
+    meshPart.emissiveColor = glm::vec3(0, 0, 0);
+    meshPart.emissiveParams = glm::vec2(0, 1);
+    meshPart.shininess = 40;
+    meshPart.opacity = 1;
+
+    meshPart.materialID = materialID;
+    meshPart.opacity = 1.0;
+    meshPart._material = model::MaterialPointer(new model::Material());
+    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
+    meshPart._material->setOpacity(1.0);
+    meshPart._material->setSpecular(glm::vec3(1.0, 1.0, 1.0));
+    meshPart._material->setShininess(96.0);
+    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
+}
+
 bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
                    FBXGeometry &geometry, QVector<glm::vec3>& faceNormals, QVector<int>& faceNormalIndexes,
                    float& scaleGuess) {
@@ -125,21 +143,7 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
     bool sawG = false;
     bool result = true;
 
-    meshPart.diffuseColor = glm::vec3(1, 1, 1);
-    meshPart.specularColor = glm::vec3(1, 1, 1);
-    meshPart.emissiveColor = glm::vec3(0, 0, 0);
-    meshPart.emissiveParams = glm::vec2(0, 1);
-    meshPart.shininess = 40;
-    meshPart.opacity = 1;
-
-    meshPart.materialID = QString("dontknow") + QString::number(mesh.parts.count());
-    meshPart.opacity = 1.0;
-    meshPart._material = model::MaterialPointer(new model::Material());
-    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setOpacity(1.0);
-    meshPart._material->setSpecular(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setShininess(96.0);
-    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
+    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
     while (true) {
         int tokenType = tokenizer.nextToken();

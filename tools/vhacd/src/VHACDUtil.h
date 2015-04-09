@@ -26,14 +26,16 @@ namespace vhacd {
     class VHACDUtil {
     public:
         bool loadFBX(const QString filename, FBXGeometry& result);
-        // void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
-        // void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+
+        void fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
+                          unsigned int& meshPartCount,
+                          unsigned int startMeshIndex, unsigned int endMeshIndex) const;
+
         bool computeVHACD(FBXGeometry& geometry,
                           VHACD::IVHACD::Parameters params,
                           FBXGeometry& result,
                           int startMeshIndex, int endMeshIndex,
-                          float minimumMeshSize, float maximumMeshSize,
-                          bool fattenFaces);
+                          float minimumMeshSize, float maximumMeshSize);
         ~VHACDUtil();
     };
 
