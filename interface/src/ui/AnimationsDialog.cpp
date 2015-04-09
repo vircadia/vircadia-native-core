@@ -96,7 +96,7 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     QHBoxLayout* urlBox = new QHBoxLayout();
     layout->addRow("URL:", urlBox);
     urlBox->addWidget(_url = new QLineEdit(handle->getURL().toString()), 1);
-    connect(_url, SIGNAL(returnPressed()), SLOT(updateHandle()));
+    connect(_url, SIGNAL(editingFinished()), SLOT(updateHandle()));
     QPushButton* chooseURL = new QPushButton("Choose");
     urlBox->addWidget(chooseURL);
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseURL()));
@@ -118,7 +118,7 @@ AnimationPanel::AnimationPanel(AnimationsDialog* dialog, const AnimationHandlePo
     QHBoxLayout* maskedJointBox = new QHBoxLayout();
     layout->addRow("Masked Joints:", maskedJointBox);
     maskedJointBox->addWidget(_maskedJoints = new QLineEdit(handle->getMaskedJoints().join(", ")), 1);
-    connect(_maskedJoints, SIGNAL(returnPressed()), SLOT(updateHandle()));
+    connect(_maskedJoints, SIGNAL(editingFinished()), SLOT(updateHandle()));
     maskedJointBox->addWidget(_chooseMaskedJoints = new QPushButton("Choose"));
     connect(_chooseMaskedJoints, SIGNAL(clicked(bool)), SLOT(chooseMaskedJoints()));
     
@@ -168,7 +168,7 @@ void AnimationPanel::chooseURL() {
     }
     _animationDirectory.set(QFileInfo(filename).path());
     _url->setText(QUrl::fromLocalFile(filename).toString());
-    emit _url->returnPressed();
+    emit _url->editingFinished();
 }
 
 void AnimationPanel::chooseMaskedJoints() {
