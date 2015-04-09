@@ -1024,7 +1024,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
         roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
-            delete newCode;
+            delete[] newCode;
             codeLength = numberOfThreeBitSectionsInCode(newCode);
         } else {
             codeLength = 1;
@@ -2064,7 +2064,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     readFromMap(asMap);
-    delete rawData;
+    delete[] rawData;
     return true;
 }
 
