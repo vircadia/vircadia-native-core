@@ -11,10 +11,11 @@
 
 var RainSquall = function (properties) {
     var // Properties
-        origin,
-        radius,
+        squallOrigin,
+        squallRadius,
         dropSize = { x: 0.1, y: 0.1, z: 0.1 },
         dropLifetime = 60,                                      // Seconds
+        dropsPerMinute = 60,
         debug = false,                                          // Display origin circle
         // Other
         squallCircle,
@@ -30,13 +31,13 @@ var RainSquall = function (properties) {
             print("ERROR: Rain squall origin must be specified");
             return;
         }
-        origin = properties.origin;
+        squallOrigin = properties.origin;
 
         if (!properties.hasOwnProperty("radius")) {
             print("ERROR: Rain squall radius must be specified");
             return;
         }
-        radius = properties.radius;
+        squallRadius = properties.radius;
 
         if (properties.hasOwnProperty("dropSize")) {
             dropSize = properties.dropSize;
@@ -44,6 +45,10 @@ var RainSquall = function (properties) {
 
         if (properties.hasOwnProperty("dropLifetime")) {
             dropLifetime = properties.dropLifetime;
+        }
+
+        if (properties.hasOwnProperty("dropsPerMinute")) {
+            dropsPerMinute = properties.dropsPerMinute;
         }
 
         if (properties.hasOwnProperty("debug")) {
@@ -59,22 +64,28 @@ var RainSquall = function (properties) {
     }
 
     function createRaindrop() {
-        raindropProperties.position = Vec3.sum(origin, { x: 0, y: -0.1, z: 0 });
+        var angle,
+            radius,
+            offset;
+        angle = Math.random() * 360;
+        radius = Math.random() * squallRadius;
+        offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, angle, 0), { x: 0, y: -0.1, z: radius });
+        raindropProperties.position = Vec3.sum(squallOrigin, offset);
         Entities.addEntity(raindropProperties);
     }
 
     function setUp() {
         squallCircle = Overlays.addOverlay("circle3d", {
-            size: { x: radius, y: radius },
+            size: { x: 2 * squallRadius, y: 2 * squallRadius },
             color: SQUALL_CIRCLE_COLOR,
             alpha: SQUALL_CIRCLE_ALPHA,
             solid: true,
             visible: debug,
-            position: origin,
+            position: squallOrigin,
             rotation: SQUALL_CIRCLE_ROTATION
         });
 
-        raindropTimer = Script.setInterval(createRaindrop, 3000);
+        raindropTimer = Script.setInterval(createRaindrop, 60000 / dropsPerMinute);
     }
 
     function tearDown() {
@@ -94,6 +105,7 @@ var rainSquall1 = new RainSquall({
     origin: { x: 8192, y: 8200, z: 8192 },
     radius: 2.5,
     dropSize: { x: 0.1, y: 0.1, z: 0.1 },
-    dropLifetime: 2,
+    dropLifetime: 10,
+    dropsPerMinute: 120,
     debug: true
 });
