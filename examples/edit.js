@@ -84,6 +84,7 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
+var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
 var modelURLs = [
        "Insert the URL to your FBX"
@@ -134,12 +135,19 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
-        browseModelsButton;
+        browseMarketplaceButton;
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
 
-        // Hide active button for now - this may come back, so not deleting yet.
+        browseMarketplaceButton = toolBar.addTool({
+            imageURL: toolIconUrl + "marketplace.svg",
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true,
+        });
+
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
@@ -152,14 +160,6 @@ var toolBar = (function () {
         newModelButton = toolBar.addTool({
             imageURL: toolIconUrl + "upload.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: false
-        });
-
-        browseModelsButton = toolBar.addTool({
-            imageURL: toolIconUrl + "marketplace.svg",
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -237,7 +237,6 @@ var toolBar = (function () {
     // Sets visibility of tool buttons, excluding the power button
     that.showTools = function(doShow) {
         toolBar.showTool(newModelButton, doShow);
-        toolBar.showTool(browseModelsButton, doShow);
         toolBar.showTool(newCubeButton, doShow);
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
@@ -309,7 +308,7 @@ var toolBar = (function () {
     };
 
     var newModelButtonDown = false;
-    var browseModelsButtonDown = false;
+    var browseMarketplaceButtonDown = false;
     that.mousePressEvent = function (event) {
         var clickedOverlay,
             url,
@@ -328,7 +327,7 @@ var toolBar = (function () {
             newModelButtonDown = true;
             return true;
         }
-        if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+        if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
             if (marketplaceWindow.url != MARKETPLACE_URL) {
                 marketplaceWindow.setURL(MARKETPLACE_URL);
             }
@@ -427,9 +426,9 @@ var toolBar = (function () {
                 }
                 handled = true;
             }
-        } else if (browseModelsButtonDown) {
+        } else if (browseMarketplaceButtonDown) {
             var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-            if (browseModelsButton === toolBar.clicked(clickedOverlay)) {
+            if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
                 url = Window.s3Browse(".*(fbx|FBX|obj|OBJ)");
                 if (url !== null && url !== "") {
                     addModel(url);
@@ -439,7 +438,7 @@ var toolBar = (function () {
         }
 
         newModelButtonDown = false;
-        browseModelsButtonDown = false;
+        browseMarketplaceButtonDown = false;
 
         return handled;
     }
@@ -961,6 +960,11 @@ function getPositionToCreateEntity() {
 }
 
 function importSVO(importURL) {
+    if (!Entities.canAdjustLocks()) {
+        Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
+        return;
+    }
+
     Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
     Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
 
