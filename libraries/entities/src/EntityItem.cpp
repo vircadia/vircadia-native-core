@@ -766,7 +766,6 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
                 qCDebug(entities) << "    damping:" << _damping;
                 qCDebug(entities) << "    velocity AFTER dampingResistance:" << velocity;
                 qCDebug(entities) << "    glm::length(velocity):" << glm::length(velocity);
-                qCDebug(entities) << "    velocityEspilon :" << ENTITY_ITEM_EPSILON_VELOCITY_LENGTH;
             #endif
         }
 
