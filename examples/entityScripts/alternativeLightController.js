@@ -3,7 +3,6 @@
     var soundURLs = ["https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_1.wav",
       "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav",
       "https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_3.wav"];
-    this.sound = ;
     this.entityId = entityId;
     this.properties = Entities.getEntityProperties(this.entityId);
     this.previousPosition = this.properties.position;
