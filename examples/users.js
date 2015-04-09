@@ -201,11 +201,11 @@ var usersWindow = (function () {
         WINDOW_BASE_MARGIN = 6,                             // A little less is needed in order look correct
         WINDOW_FONT = { size: 12 },
         WINDOW_FOREGROUND_COLOR = { red: 240, green: 240, blue: 240 },
-        WINDOW_FOREGROUND_ALPHA = 0.9,
+        WINDOW_FOREGROUND_ALPHA = 0.95,
         WINDOW_HEADING_COLOR = { red: 180, green: 180, blue: 180 },
-        WINDOW_HEADING_ALPHA = 0.9,
+        WINDOW_HEADING_ALPHA = 0.95,
         WINDOW_BACKGROUND_COLOR = { red: 80, green: 80, blue: 80 },
-        WINDOW_BACKGROUND_ALPHA = 0.7,
+        WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
         MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
@@ -223,7 +223,7 @@ var usersWindow = (function () {
         SCROLLBAR_BAR_MIN_HEIGHT = 5,
         SCROLLBAR_BAR_COLOR = { red: 170, green: 170, blue: 170 },
         SCROLLBAR_BAR_ALPHA = 0.8,
-        SCROLLBAR_BAR_SELECTED_ALPHA = 0.9,
+        SCROLLBAR_BAR_SELECTED_ALPHA = 0.95,
         scrollbarBar,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
@@ -233,12 +233,12 @@ var usersWindow = (function () {
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
         FRIENDS_BUTTON_HEIGHT = FRIENDS_BUTTON_SVG_HEIGHT,
-        FRIENDS_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
-        FRIENDS_BUTTON_ALPHA = 0.9,
+        FRIENDS_BUTTON_COLOR = { red: 225, green: 225, blue: 225 },
+        FRIENDS_BUTTON_ALPHA = 0.95,
         friendsButton,
 
         OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
-        OPTION_BACKGROUND_ALPHA = 0.8,
+        OPTION_BACKGROUND_ALPHA = 0.1,
 
         DISPLAY_SPACER = 12,                                // Space before display control
         DISPLAY_PROMPT = "Show me:",
@@ -247,8 +247,8 @@ var usersWindow = (function () {
         DISPLAY_FRIENDS = "friends",
         DISPLAY_VALUES = [DISPLAY_EVERYONE, DISPLAY_FRIENDS],
         DISPLAY_DISPLAY_VALUES = DISPLAY_VALUES,
-        DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 40, green: 40, blue: 40 },
-        DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.95,
+        DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 120, green: 120, blue: 120 },
+        DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.9,
         displayControl,
 
         VISIBILITY_SPACER = 6,                             // Space before visibility control
