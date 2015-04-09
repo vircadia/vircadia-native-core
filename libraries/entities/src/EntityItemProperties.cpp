@@ -27,6 +27,8 @@
 #include "ParticleEffectEntityItem.h"
 
 
+EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
+
 EntityItemProperties::EntityItemProperties() :
 
     CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),

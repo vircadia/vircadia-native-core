@@ -99,8 +99,8 @@ enum EntityPropertyList {
     PROP_SIMULATOR_ID,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_MARKETPLACE_ID,
+    // ATTENTION: add new properties ABOVE this line
+    PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -118,6 +118,10 @@ enum EntityPropertyList {
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+
+// this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
+// one greater than the last item property due to the enum's auto-incrementing.
+extern EntityPropertyList PROP_LAST_ITEM;
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
