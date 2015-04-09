@@ -121,7 +121,6 @@
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
-#include "scripting/ScriptsScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
@@ -3609,7 +3608,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("Scripts", ScriptsScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

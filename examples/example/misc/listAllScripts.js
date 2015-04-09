@@ -1,5 +1,5 @@
 //
-//  scriptsExample.js
+//  listAllScripts.js
 //  examples/example/misc
 //
 //  Created by Thijs Wenker on 7 Apr 2015
@@ -11,13 +11,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var runningScripts = Scripts.getRunning();
+var runningScripts = ScriptDiscoveryService.getRunning();
 print("Running Scripts:");
 for (var i = 0; i < runningScripts.length; i++) {
     print(" - " + runningScripts[i].name + (runningScripts[i].local ? "[Local]" : "") + " {" + runningScripts[i].url + "}");
 }
 
-var localScripts = Scripts.getLocal();
+var localScripts = ScriptDiscoveryService.getLocal();
 print("Local Scripts:");
 for (var i = 0; i < localScripts.length; i++) {
     print(" - " + localScripts[i].name + " {" + localScripts[i].path + "}");
@@ -36,6 +36,6 @@ function displayPublicScriptFolder(nodes, prefix) {
     }
 }
 
-var publicScripts = Scripts.getPublic();
+var publicScripts = ScriptDiscoveryService.getPublic();
 print("Public Scripts:");
 displayPublicScriptFolder(publicScripts, " - ");
