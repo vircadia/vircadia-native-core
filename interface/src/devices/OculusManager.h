@@ -51,6 +51,7 @@ class Text3DOverlay;
 class OculusManager {
 public:
     static void init();
+    static void deinit();
     static void connect();
     static void disconnect();
     static bool isConnected();
