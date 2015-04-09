@@ -123,7 +123,7 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 
         default:
             // Otherwise, throttle.
-            if (!_throttleRendering) {
+            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit()) {
                 _frameTimer.start(_idleRenderInterval);
                 _throttleRendering = true;
             }

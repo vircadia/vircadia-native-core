@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
+#include "OctreeLogging.h"
 #include "OctreeRenderer.h"
 
 OctreeRenderer::OctreeRenderer() :
@@ -49,11 +50,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     bool extraDebugging = false;
     
     if (extraDebugging) {
-        qDebug() << "OctreeRenderer::processDatagram()";
+        qCDebug(octree) << "OctreeRenderer::processDatagram()";
     }
 
     if (!_tree) {
-        qDebug() << "OctreeRenderer::processDatagram() called before init, calling init()...";
+        qCDebug(octree) << "OctreeRenderer::processDatagram() called before init, calling init()...";
         this->init();
     }
 
@@ -94,7 +95,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         unsigned int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
-            qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+            qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                    sequence, flightTime, packetLength, dataBytes);
@@ -123,7 +124,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
-                    qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+                    qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
@@ -131,11 +132,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                            packetData.getUncompressedSize());
                 }
                 if (extraDebugging) {
-                    qDebug() << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
                 }
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                 if (extraDebugging) {
-                    qDebug() << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
                 }
                 _tree->unlock();
             

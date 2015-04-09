@@ -15,6 +15,7 @@
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
+#include "PhysicsLogging.h"
 
 const float DEFAULT_FRICTION = 0.5f;
 const float MAX_FRICTION = 10.0f;
@@ -161,11 +162,11 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
 
         #ifdef WANT_DEBUG
-            qDebug() << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
-            qDebug() << "wasPosition:" << wasPosition;
-            qDebug() << "bullet position:" << position;
-            qDebug() << "_sentPosition:" << _sentPosition;
-            qDebug() << "dx2:" << dx2;
+            qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
+            qCDebug(physics) << "wasPosition:" << wasPosition;
+            qCDebug(physics) << "bullet position:" << position;
+            qCDebug(physics) << "_sentPosition:" << _sentPosition;
+            qCDebug(physics) << "dx2:" << dx2;
         #endif
 
         return true;
@@ -187,17 +188,17 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     #ifdef WANT_DEBUG
         if ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) {
-            qDebug() << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
+            qCDebug(physics) << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
         
-            qDebug() << "wasAngularVelocity:" << wasAngularVelocity;
-            qDebug() << "_sentAngularVelocity:" << _sentAngularVelocity;
+            qCDebug(physics) << "wasAngularVelocity:" << wasAngularVelocity;
+            qCDebug(physics) << "_sentAngularVelocity:" << _sentAngularVelocity;
 
-            qDebug() << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
-            qDebug() << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
+            qCDebug(physics) << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
+            qCDebug(physics) << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
 
-            qDebug() << "wasRotation:" << wasRotation;
-            qDebug() << "bullet actualRotation:" << actualRotation;
-            qDebug() << "_sentRotation:" << _sentRotation;
+            qCDebug(physics) << "wasRotation:" << wasRotation;
+            qCDebug(physics) << "bullet actualRotation:" << actualRotation;
+            qCDebug(physics) << "_sentRotation:" << _sentRotation;
         }
     #endif
 

@@ -39,6 +39,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
+#include "InterfaceLogging.h"
 
 #include "Menu.h"
 
@@ -51,7 +52,7 @@ Menu* Menu::getInstance() {
     menuInstanceMutex.lock();
 
     if (!_instance) {
-        qDebug("First call to Menu::getInstance() - initing menu.");
+        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
 
         _instance = new Menu();
     }
@@ -743,7 +744,7 @@ void Menu::triggerOption(const QString& menuOption) {
     if (action) {
         action->trigger();
     } else {
-        qDebug() << "NULL Action for menuOption '" << menuOption << "'";
+        qCDebug(interfaceapp) << "NULL Action for menuOption '" << menuOption << "'";
     }
 }
 
@@ -987,7 +988,7 @@ void Menu::setVisibility() {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
     } else {
-        qDebug() << "ERROR Menu::setVisibility() called with unrecognized value.";
+        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
     }
 }
 
@@ -999,6 +1000,6 @@ void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
     } else if (discoverabilityMode == Discoverability::None) {
         setIsOptionChecked(MenuOption::VisibleToNoOne, true);
     } else {
-        qDebug() << "ERROR Menu::visibilityChanged() called with unrecognized value.";
+        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
     }
 }

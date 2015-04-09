@@ -16,6 +16,7 @@
 
 #include <SharedUtil.h>
 
+#include "OctreeLogging.h"
 #include "CoverageMapV2.h"
 
 int CoverageMapV2::_mapCount = 0;
@@ -80,11 +81,11 @@ void CoverageMapV2::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        qDebug("CoverageMapV2 last to be deleted...");
-        qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
-        qDebug("_mapCount=%d",_mapCount);
-        qDebug("_checkMapRootCalls=%d",_checkMapRootCalls);
-        qDebug("_notAllInView=%d",_notAllInView);
+        qCDebug(octree, "CoverageMapV2 last to be deleted...");
+        qCDebug(octree, "MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
+        qCDebug(octree, "_mapCount=%d",_mapCount);
+        qCDebug(octree, "_checkMapRootCalls=%d",_checkMapRootCalls);
+        qCDebug(octree, "_notAllInView=%d",_notAllInView);
         _mapCount = 0;
         _checkMapRootCalls = 0;
         _notAllInView = 0;

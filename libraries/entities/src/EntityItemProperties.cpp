@@ -23,6 +23,7 @@
 #include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
+#include "EntitiesLogging.h"
 #include "ParticleEffectEntityItem.h"
 
 
@@ -153,15 +154,15 @@ QString EntityItemProperties::getAnimationSettings() const {
 }
 
 void EntityItemProperties::debugDump() const {
-    qDebug() << "EntityItemProperties...";
-    qDebug() << "    _type=" << EntityTypes::getEntityTypeName(_type);
-    qDebug() << "   _id=" << _id;
-    qDebug() << "   _idSet=" << _idSet;
-    qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
-    qDebug() << "   _dimensions=" << getDimensions();
-    qDebug() << "   _modelURL=" << _modelURL;
-    qDebug() << "   _collisionModelURL=" << _collisionModelURL;
-    qDebug() << "   changed properties...";
+    qCDebug(entities) << "EntityItemProperties...";
+    qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
+    qCDebug(entities) << "   _id=" << _id;
+    qCDebug(entities) << "   _idSet=" << _idSet;
+    qCDebug(entities) << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
+    qCDebug(entities) << "   _dimensions=" << getDimensions();
+    qCDebug(entities) << "   _modelURL=" << _modelURL;
+    qCDebug(entities) << "   _collisionModelURL=" << _collisionModelURL;
+    qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
 }
@@ -643,7 +644,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             memcpy(bufferOut, finalizedData, finalizedSize);
             sizeOut = finalizedSize;
         } else {
-            qDebug() << "ERROR - encoded edit message doesn't fit in output buffer.";
+            qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             sizeOut = 0;
             success = false;
         }
@@ -838,7 +839,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     uint16_t numberOfIds = 1; // only one entity ID in this message
 
     if (maxLength < sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID) {
-        qDebug() << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
+        qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
         outputLength = 0;
         return false;
     }

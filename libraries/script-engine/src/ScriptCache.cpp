@@ -17,7 +17,7 @@
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
-
+#include "ScriptEngineLogging.h"
 #include "ScriptCache.h"
 
 ScriptCache::ScriptCache(QObject* parent) {
@@ -27,7 +27,7 @@ ScriptCache::ScriptCache(QObject* parent) {
 QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending) {
     QString scriptContents;
     if (_scriptCache.contains(url)) {
-        qDebug() << "Found script in cache:" << url.toString();
+        qCDebug(scriptengine) << "Found script in cache:" << url.toString();
         scriptContents = _scriptCache[url];
         scriptUser->scriptContentsAvailable(url, scriptContents);
         isPending = false;
@@ -37,13 +37,13 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
         _scriptUsers.insert(url, scriptUser);
         
         if (alreadyWaiting) {
-            qDebug() << "Already downloading script at:" << url.toString();
+            qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
-            qDebug() << "Downloading script at:" << url.toString();
+            qCDebug(scriptengine) << "Downloading script at:" << url.toString();
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
         }
@@ -59,13 +59,13 @@ void ScriptCache::scriptDownloaded() {
     
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
         _scriptCache[url] = reply->readAll();
-        qDebug() << "Done downloading script at:" << url.toString();
+        qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
 
         foreach(ScriptUser* user, scriptUsers) {
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
     } else {
-        qDebug() << "ERROR Loading file:" << reply->url().toString();
+        qCDebug(scriptengine) << "ERROR Loading file:" << reply->url().toString();
         foreach(ScriptUser* user, scriptUsers) {
             user->errorInLoadingScript(url);
         }

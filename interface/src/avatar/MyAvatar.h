@@ -13,7 +13,7 @@
 #define hifi_MyAvatar_h
 
 #include <SettingHandle.h>
-#include <CharacterController.h>
+#include <DynamicCharacterController.h>
 
 #include "Avatar.h"
 
@@ -37,9 +37,9 @@ public:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
 
-    void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE, bool postLighting = false);
-    void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
+    void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE, bool postLighting = false);
+    void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
+    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
     void renderDebugBodyPoints();
 
     // setters
@@ -122,7 +122,7 @@ public:
 
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
-    CharacterController* getCharacterController() { return &_characterController; }
+    DynamicCharacterController* getCharacterController() { return &_characterController; }
     void updateCharacterController();
     
     void clearJointAnimationPriorities();
@@ -182,7 +182,7 @@ signals:
     void transformChanged();
 
 protected:
-    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
     
 private:
     float _turningKeyPressTime;
@@ -203,7 +203,7 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
-    CharacterController _characterController;
+    DynamicCharacterController _characterController;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -224,7 +224,7 @@ private:
     
 	// private methods
     void updateOrientation(float deltaTime);
-    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
+    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);

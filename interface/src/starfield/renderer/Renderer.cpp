@@ -212,6 +212,7 @@ void Renderer::glUpload(GLsizei numStars) {
 void Renderer::glBatch(GLfloat const* matrix, GLsizei n_ranges, float alpha) {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
 
     // setup modelview matrix
     glPushMatrix();

@@ -18,6 +18,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QVariant>
 
+#include "SharedLogging.h"
 #include "HifiConfigVariantMap.h"
 
 QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
@@ -132,14 +133,14 @@ void HifiConfigVariantMap::loadMapFromJSONFile(QVariantMap& existingMap, const Q
     QFile configFile(filename);
     
     if (configFile.exists()) {
-        qDebug() << "Reading JSON config file at" << filename;
+        qCDebug(shared) << "Reading JSON config file at" << filename;
         configFile.open(QIODevice::ReadOnly);
         
         QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
         existingMap = configDocument.toVariant().toMap();
         
     } else {
-        qDebug() << "Could not find JSON config file at" << filename;
+        qCDebug(shared) << "Could not find JSON config file at" << filename;
     }
 }
 

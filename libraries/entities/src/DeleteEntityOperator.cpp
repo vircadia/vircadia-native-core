@@ -13,6 +13,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
+#include "EntitiesLogging.h"
 #include "DeleteEntityOperator.h"
 
 DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
@@ -43,7 +44,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
         details.entity = details.containingElement->getEntityWithEntityItemID(searchEntityID);
         if (!details.entity) {
             //assert(false);
-            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
+            qCDebug(entities) << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         } else {
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;

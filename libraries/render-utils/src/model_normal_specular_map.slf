@@ -31,12 +31,14 @@ varying vec4 interpolatedNormal;
 // the interpolated tangent
 varying vec4 interpolatedTangent;
 
+varying vec3 color;
+
 void main(void) {
     // compute the view normal from the various bits
     vec3 normalizedNormal = normalize(vec3(interpolatedNormal));
     vec3 normalizedTangent = normalize(vec3(interpolatedTangent));
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
-    vec3 localNormal = vec3(texture2D(normalMap, gl_TexCoord[0].st)) - vec3(0.5, 0.5, 0.5);
+    vec3 localNormal = normalize(vec3(texture2D(normalMap, gl_TexCoord[0].st)) - vec3(0.5, 0.5, 0.5));
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
@@ -49,7 +51,7 @@ void main(void) {
     packDeferredFragment(
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
         specular, //getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }
