@@ -25,7 +25,8 @@ var RainSquall = function (properties) {
         SQUALL_CIRCLE_ROTATION = Quat.fromPitchYawRollDegrees(90, 0, 0),
         raindropProperties,
         RAINDROP_MODEL_URL = "https://s3.amazonaws.com/hifi-public/ozan/Polyworld/Sets/sky/tetrahedron_v1-Faceted2.fbx",
-        raindropTimer;
+        raindropTimer,
+        rainDrops = [];
 
     function processProperties() {
         if (!properties.hasOwnProperty("origin")) {
@@ -74,13 +75,26 @@ var RainSquall = function (properties) {
     function createRaindrop() {
         var angle,
             radius,
-            offset;
+            offset,
+            drop,
+            i;
+
+        // HACK: Work around rain drops not always getting velocity set at creation
+        for (i = 0; i < rainDrops.length; i += 1) {
+            Entities.editEntity(rainDrops[i], { velocity: raindropProperties.velocity });
+        }
 
         angle = Math.random() * 360;
         radius = Math.random() * squallRadius;
         offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, angle, 0), { x: 0, y: -0.1, z: radius });
         raindropProperties.position = Vec3.sum(squallOrigin, offset);
-        Entities.addEntity(raindropProperties);
+        drop = Entities.addEntity(raindropProperties);
+
+        // HACK: Work around rain drops not always getting velocity set at creation
+        rainDrops.push(drop);
+        if (rainDrops.length > 5) {
+            drop = rainDrops.shift();
+        }
     }
 
     function setUp() {
