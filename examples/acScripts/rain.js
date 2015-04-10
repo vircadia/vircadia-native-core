@@ -17,6 +17,7 @@ var RainSquall = function (properties) {
         dropSize = { x: 0.1, y: 0.1, z: 0.1 },
         dropFallSpeed = 1,                                      // m/s
         dropLifetime = 60,                                      // Seconds
+        dropSpinMax = 0,                                        // Maximum angular velocity per axis; deg/s
         debug = false,                                          // Display origin circle; don't use running on Stack Manager
         // Other
         squallCircle,
@@ -26,7 +27,9 @@ var RainSquall = function (properties) {
         raindropProperties,
         RAINDROP_MODEL_URL = "https://s3.amazonaws.com/hifi-public/ozan/Polyworld/Sets/sky/tetrahedron_v1-Faceted2.fbx",
         raindropTimer,
-        rainDrops = [];
+        raindrops = [],                                         // HACK: Work around raindrops not always getting velocities
+        raindropVelocities = [],                                // HACK: Work around raindrops not always getting velocities
+        DEGREES_TO_RADIANS = Math.PI / 180;
 
     function processProperties() {
         if (!properties.hasOwnProperty("origin")) {
@@ -57,6 +60,10 @@ var RainSquall = function (properties) {
             dropLifetime = properties.dropLifetime;
         }
 
+        if (properties.hasOwnProperty("dropSpinMax")) {
+            dropSpinMax = properties.dropSpinMax;
+        }
+
         if (properties.hasOwnProperty("debug")) {
             debug = properties.debug;
         }
@@ -68,6 +75,7 @@ var RainSquall = function (properties) {
             dimensions: dropSize,
             velocity: { x: 0, y: -dropFallSpeed, z: 0 },
             damping: 0,
+            angularDamping: 0,
             ignoreForCollisions: true
         };
     }
@@ -77,23 +85,38 @@ var RainSquall = function (properties) {
             radius,
             offset,
             drop,
+            spin = { x: 0, y: 0, z: 0 },
+            maxSpinRadians = properties.dropSpinMax * DEGREES_TO_RADIANS,
             i;
 
-        // HACK: Work around rain drops not always getting velocity set at creation
-        for (i = 0; i < rainDrops.length; i += 1) {
-            Entities.editEntity(rainDrops[i], { velocity: raindropProperties.velocity });
+        // HACK: Work around rain drops not always getting velocities set at creation
+        for (i = 0; i < raindrops.length; i += 1) {
+            Entities.editEntity(raindrops[i], raindropVelocities[i]);
         }
 
         angle = Math.random() * 360;
         radius = Math.random() * squallRadius;
         offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, angle, 0), { x: 0, y: -0.1, z: radius });
         raindropProperties.position = Vec3.sum(squallOrigin, offset);
+        if (properties.dropSpinMax > 0) {
+            spin = { 
+                x: Math.random() * maxSpinRadians,
+                y: Math.random() * maxSpinRadians,
+                z: Math.random() * maxSpinRadians
+            };
+            raindropProperties.angularVelocity = spin;
+        }
         drop = Entities.addEntity(raindropProperties);
 
-        // HACK: Work around rain drops not always getting velocity set at creation
-        rainDrops.push(drop);
-        if (rainDrops.length > 5) {
-            drop = rainDrops.shift();
+        // HACK: Work around rain drops not always getting velocities set at creation
+        raindrops.push(drop);
+        raindropVelocities.push({
+            velocity: raindropProperties.velocity,
+            angularVelocity: spin
+        });
+        if (raindrops.length > 5) {
+            raindrops.shift();
+            raindropVelocities.shift();
         }
     }
 
@@ -129,11 +152,12 @@ var RainSquall = function (properties) {
 };
 
 var rainSquall1 = new RainSquall({
-    origin: { x: 8192, y: 8200, z: 8192 },
-    radius: 2.5,
+    origin: { x: 1195, y: 1223, z: 1020 },
+    radius: 25,
     dropsPerMinute: 120,
     dropSize: { x: 0.1, y: 0.1, z: 0.1 },
-    dropFallSpeed: 2,  // m/s
-    dropLifetime: 10,
-    debug: true
+    dropFallSpeed: 3,
+    dropLifetime: 30,
+    dropSpinMax: 180,
+    debug: false
 });
