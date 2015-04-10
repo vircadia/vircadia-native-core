@@ -211,7 +211,14 @@
                             disableChildren(document.getElementById("properties-list"), 'input');
                         } else {
                             var activeElement = document.activeElement;
-                            var selected = activeElement.selectionStart == 0 && activeElement.selectionEnd == activeElement.value.length;
+
+                            try {
+                                var selected = (activeElement
+                                           && activeElement.selectionStart == 0
+                                           && activeElement.selectionEnd == activeElement.value.length);
+                            } catch (e) {
+                                var  selected = false;
+                            }
 
                             var properties = data.selections[0].properties;
 
