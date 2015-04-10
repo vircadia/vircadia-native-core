@@ -95,10 +95,12 @@ enum EntityPropertyList {
     
     PROP_COLLISION_MODEL_URL,
     PROP_MARKETPLACE_ID,
+    PROP_ACCELERATION,
+    PROP_SIMULATOR_ID,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_MARKETPLACE_ID,
+    // ATTENTION: add new properties ABOVE this line
+    PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -116,6 +118,10 @@ enum EntityPropertyList {
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+
+// this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
+// one greater than the last item property due to the enum's auto-incrementing.
+extern EntityPropertyList PROP_LAST_ITEM;
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -170,6 +176,7 @@ public:
     DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
     DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
@@ -193,6 +200,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
     DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
+    DEFINE_PROPERTY_REF(PROP_SIMULATOR_ID, SimulatorID, simulatorID, QString);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
@@ -299,6 +307,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Acceleration, acceleration, "in meters per second");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
@@ -321,6 +330,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");

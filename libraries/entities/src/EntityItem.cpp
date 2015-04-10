@@ -47,6 +47,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
     _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
     _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
+    _acceleration = ENTITY_ITEM_DEFAULT_ACCELERATION;
     _damping = ENTITY_ITEM_DEFAULT_DAMPING;
     _lifetime = ENTITY_ITEM_DEFAULT_LIFETIME;
     _script = ENTITY_ITEM_DEFAULT_SCRIPT;
@@ -58,6 +59,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
     _locked = ENTITY_ITEM_DEFAULT_LOCKED;
     _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
+    _simulatorID = ENTITY_ITEM_DEFAULT_SIMULATOR_ID;
     _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
@@ -107,6 +109,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
     requestedProperties += PROP_GRAVITY;
+    requestedProperties += PROP_ACCELERATION;
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
@@ -119,6 +122,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
+    requestedProperties += PROP_SIMULATOR_ID;
     
     return requestedProperties;
 }
@@ -230,6 +234,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, appendValue, getAcceleration());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
@@ -241,6 +246,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -540,6 +546,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
             READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
         }
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+            READ_ENTITY_PROPERTY_SETTER(PROP_ACCELERATION, glm::vec3, updateAcceleration);
+        }
+
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
@@ -555,6 +565,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
+
+        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+            READ_ENTITY_PROPERTY_STRING(PROP_SIMULATOR_ID, setSimulatorID);
+        }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
             READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
@@ -671,6 +685,7 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "    timeElapsed=" << timeElapsed;
         qCDebug(entities) << "    hasVelocity=" << hasVelocity();
         qCDebug(entities) << "    hasGravity=" << hasGravity();
+        qCDebug(entities) << "    hasAcceleration=" << hasAcceleration();
         qCDebug(entities) << "    hasAngularVelocity=" << hasAngularVelocity();
         qCDebug(entities) << "    getAngularVelocity=" << getAngularVelocity();
         qCDebug(entities) << "    isMortal=" << isMortal();
@@ -779,6 +794,10 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
             velocity += getGravity() * timeElapsed;
         }
 
+        if (hasAcceleration()) {
+            velocity += getAcceleration() * timeElapsed;
+        }
+
         float speed = glm::length(velocity);
         const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
@@ -826,6 +845,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(acceleration, getAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
@@ -839,6 +859,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
 
     properties._defaultSettings = false;
@@ -855,6 +876,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, updateAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -868,6 +890,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, setSimulatorID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
 
     if (somethingChanged) {
@@ -1033,6 +1056,7 @@ const float MIN_ALIGNMENT_DOT = 0.999999f;
 const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
+const float MIN_ACCELERATION_DELTA = 0.001f;
 const float MIN_SPIN_DELTA = 0.0003f;
 
 void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
@@ -1121,6 +1145,17 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if ( glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+    }
+}
+
+void EntityItem::updateAcceleration(const glm::vec3& value) { 
+    if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
+        if (glm::length(value) < MIN_ACCELERATION_DELTA) {
+            _acceleration = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            _acceleration = value;
+        }
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }

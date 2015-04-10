@@ -115,6 +115,7 @@ void GLBackend::updatePipeline() {
          State::Data state;
          getCurrentGLState(state);
          State::Signature signature = State::evalSignature(state);
+         (void) signature; // quiet compiler
     }
 #endif
 

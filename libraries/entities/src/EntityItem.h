@@ -54,7 +54,7 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080,
+        DIRTY_UPDATEABLE = 0x0080
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -193,6 +193,10 @@ public:
     void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value * (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
+
+    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second
+    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second
+    bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
@@ -250,6 +254,9 @@ public:
     
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
+
+    QString getSimulatorID() const { return _simulatorID; }
+    void setSimulatorID(const QString& id) { _simulatorID = id; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -279,6 +286,7 @@ public:
     void updateDamping(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
+    void updateAcceleration(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularVelocityInDegrees(const glm::vec3& value) { updateAngularVelocity(glm::radians(value)); }
     void updateAngularDamping(float value);
@@ -331,6 +339,7 @@ protected:
     float _volumeMultiplier = 1.0f;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
+    glm::vec3 _acceleration;
     float _damping;
     float _lifetime;
     QString _script;
@@ -342,6 +351,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+    QString _simulatorID; // id of Node which is currently responsible for simulating this Entity
     QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)

@@ -139,7 +139,6 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
 
     bool depthBias = false;
     bool stencilState = false;
-    bool blendState = false;
 
     // go thorugh the list of state fields in the State and record the corresponding gl command
     for (int i = 0; i < State::NUM_FIELDS; i++) {

@@ -96,7 +96,7 @@ OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
-int OculusManager::_calibrationMessage = NULL;
+int OculusManager::_calibrationMessage = 0;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 // TODO expose this as a developer toggle
 bool OculusManager::_eyePerFrameMode = false;
@@ -308,11 +308,11 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                     _calibrationState = CALIBRATED;
                     qCDebug(interfaceapp) << "HMD calibrated";
                     Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-                    _calibrationMessage = NULL;
+                    _calibrationMessage = 0;
                     Application::getInstance()->resetSensors();
                 } else {
                     quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
-                    if (quarterSeconds + 1 > progressMessage.length()) {
+                    if (quarterSeconds + 1 > (quint64)progressMessage.length()) {
                         // 3...2...1...
                         if (quarterSeconds == 4 * (quarterSeconds / 4)) {
                             quint64 wholeSeconds = CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4;
@@ -349,7 +349,7 @@ void OculusManager::abandonCalibration() {
     if (_calibrationMessage) {
         qCDebug(interfaceapp) << "Abandoned HMD calibration";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-        _calibrationMessage = NULL;
+        _calibrationMessage = 0;
     }
 }
 
