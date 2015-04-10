@@ -17,7 +17,7 @@ var RainSquall = function (properties) {
         dropSize = { x: 0.1, y: 0.1, z: 0.1 },
         dropFallSpeed = 1,                                      // m/s
         dropLifetime = 60,                                      // Seconds
-        debug = false,                                          // Display origin circle
+        debug = false,                                          // Display origin circle; don't use running on Stack Manager
         // Other
         squallCircle,
         SQUALL_CIRCLE_COLOR = { red: 255, green: 0, blue: 0 },
@@ -84,22 +84,26 @@ var RainSquall = function (properties) {
     }
 
     function setUp() {
-        squallCircle = Overlays.addOverlay("circle3d", {
-            size: { x: 2 * squallRadius, y: 2 * squallRadius },
-            color: SQUALL_CIRCLE_COLOR,
-            alpha: SQUALL_CIRCLE_ALPHA,
-            solid: true,
-            visible: debug,
-            position: squallOrigin,
-            rotation: SQUALL_CIRCLE_ROTATION
-        });
+        if (debug) {
+            squallCircle = Overlays.addOverlay("circle3d", {
+                size: { x: 2 * squallRadius, y: 2 * squallRadius },
+                color: SQUALL_CIRCLE_COLOR,
+                alpha: SQUALL_CIRCLE_ALPHA,
+                solid: true,
+                visible: debug,
+                position: squallOrigin,
+                rotation: SQUALL_CIRCLE_ROTATION
+            });
+        }
 
         raindropTimer = Script.setInterval(createRaindrop, 60000 / dropsPerMinute);
     }
 
     function tearDown() {
         Script.clearInterval(raindropTimer);
-        Overlays.deleteOverlay(squallCircle);
+        if (debug) {
+            Overlays.deleteOverlay(squallCircle);
+        }
     }
 
     processProperties();
