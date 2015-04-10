@@ -13,9 +13,10 @@ var RainSquall = function (properties) {
     var // Properties
         squallOrigin,
         squallRadius,
-        dropSize = { x: 0.1, y: 0.1, z: 0.1 },
-        dropLifetime = 60,                                      // Seconds
         dropsPerMinute = 60,
+        dropSize = { x: 0.1, y: 0.1, z: 0.1 },
+        dropFallSpeed = 1,                                      // m/s
+        dropLifetime = 60,                                      // Seconds
         debug = false,                                          // Display origin circle
         // Other
         squallCircle,
@@ -39,16 +40,20 @@ var RainSquall = function (properties) {
         }
         squallRadius = properties.radius;
 
+        if (properties.hasOwnProperty("dropsPerMinute")) {
+            dropsPerMinute = properties.dropsPerMinute;
+        }
+
         if (properties.hasOwnProperty("dropSize")) {
             dropSize = properties.dropSize;
         }
 
-        if (properties.hasOwnProperty("dropLifetime")) {
-            dropLifetime = properties.dropLifetime;
+        if (properties.hasOwnProperty("dropFallSpeed")) {
+            dropFallSpeed = properties.dropFallSpeed;
         }
 
-        if (properties.hasOwnProperty("dropsPerMinute")) {
-            dropsPerMinute = properties.dropsPerMinute;
+        if (properties.hasOwnProperty("dropLifetime")) {
+            dropLifetime = properties.dropLifetime;
         }
 
         if (properties.hasOwnProperty("debug")) {
@@ -59,7 +64,10 @@ var RainSquall = function (properties) {
             type: "Model",
             modelURL: RAINDROP_MODEL_URL,
             lifetime: dropLifetime,
-            dimensions: dropSize
+            dimensions: dropSize,
+            velocity: { x: 0, y: -dropFallSpeed, z: 0 },
+            damping: 0,
+            ignoreForCollisions: true
         };
     }
 
@@ -67,6 +75,7 @@ var RainSquall = function (properties) {
         var angle,
             radius,
             offset;
+
         angle = Math.random() * 360;
         radius = Math.random() * squallRadius;
         offset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, angle, 0), { x: 0, y: -0.1, z: radius });
@@ -104,8 +113,9 @@ var RainSquall = function (properties) {
 var rainSquall1 = new RainSquall({
     origin: { x: 8192, y: 8200, z: 8192 },
     radius: 2.5,
-    dropSize: { x: 0.1, y: 0.1, z: 0.1 },
-    dropLifetime: 10,
     dropsPerMinute: 120,
+    dropSize: { x: 0.1, y: 0.1, z: 0.1 },
+    dropFallSpeed: 2,  // m/s
+    dropLifetime: 10,
     debug: true
 });
