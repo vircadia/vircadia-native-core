@@ -18,8 +18,6 @@
 #include "EntityItem.h"
 
 
-#define WANT_DEBUG 1
-
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, 
                                         unsigned char* editBuffer, size_t length, int clockSkew) {
                                         
