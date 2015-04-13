@@ -208,7 +208,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         return false;
     }
 
-    qDebug() << "EntityMotionState::shouldSendUpdate baseResult=" << baseResult;
     return baseResult;
 }
 
@@ -248,10 +247,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
                 _sentMoving = ! (zeroSpeed && zeroSpin);
 
-
-                qDebug() << "-------------------------------------------";
                 qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
-
 
             } else {
                 _sentVelocity = _sentAngularVelocity = glm::vec3(0.0f);
