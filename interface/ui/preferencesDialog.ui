@@ -1388,7 +1388,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Faceshift eye detection</string>
+            <string>Faceshift eye deflection</string>
            </property>
            <property name="indent">
             <number>0</number>
