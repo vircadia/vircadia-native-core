@@ -199,10 +199,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         simulatorID = "";
     }
 
-    if (simulatorID != myNodeID) {
+    if (!simulatorID.isEmpty() && simulatorID != myNodeID) {
         // some other Node is simulating this, so don't broadcast our computations.
-        qDebug() << "EntityMotionState::shouldSendUpdate baseResult=" << baseResult << "but"
-                 << simulatorID << "!=" << myNodeID;
         return false;
     }
 
