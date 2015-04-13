@@ -11,7 +11,7 @@
 
 #ifndef hifi_HMDToolsDialog_h
 #define hifi_HMDToolsDialog_h
-
+#if 0
 #include <QDialog>
 
 class HMDWindowWatcher;
@@ -84,5 +84,6 @@ private:
     QRect _previousRect;
     QScreen* _previousScreen;
 };
+#endif
 
 #endif // hifi_HMDToolsDialog_h

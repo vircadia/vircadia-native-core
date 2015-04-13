@@ -36,6 +36,8 @@
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
+#include <OffscreenGlContext.h>
+
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -70,6 +72,7 @@
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
+#include "plugins/render/RenderPlugin.h"
 
 
 class QGLWidget;
@@ -154,6 +157,8 @@ public:
     void paintGL();
     void resizeGL(int width, int height);
 
+    void resizeEvent(QResizeEvent * size);
+
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
@@ -174,8 +179,14 @@ public:
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
-    GLCanvas* getGLWidget() { return _glWidget; }
-    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
+    glm::ivec2 getCanvasSize() const;
+    QSize getDeviceSize() const;
+    bool hasFocus() const;
+    PickRay computePickRay() const;
+    PickRay computeViewPickRay(float xRatio, float yRatio) const;
+    void resizeGL();
+
+    bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.  
@@ -201,8 +212,8 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
+    int getTrueMouseX() const;
+    int getTrueMouseY() const;
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
@@ -271,15 +282,17 @@ public:
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
-    virtual PickRay computePickRay(float x, float y);
+    virtual PickRay computePickRay(float x, float y) const;
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    RenderPlugin * getActiveRenderPlugin();
+    const RenderPlugin * getActiveRenderPlugin() const;
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(),
-                                                               _glWidget->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const;
+
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     void skipVersion(QString latestVersion);
@@ -411,8 +424,6 @@ private slots:
     void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
-    glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
-
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
@@ -471,6 +482,9 @@ private:
     int sendNackPackets();
 
     bool _dependencyManagerIsSetup;
+
+    OffscreenGlContext* _offscreenContext{ new OffscreenGlContext() };
+
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
@@ -611,7 +625,7 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
-    GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+    
 
     void checkSkeleton();
 

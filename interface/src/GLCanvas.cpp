@@ -60,21 +60,27 @@ void GLCanvas::initializeGL() {
 
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+#if 0
         //Need accurate frame timing for the oculus rift
         if (OculusManager::isConnected()) {
             OculusManager::beginFrameTiming();
         }
-
+#endif
         Application::getInstance()->paintGL();
         
+#if 0
         if (!OculusManager::isConnected()) {
+#endif
+
             swapBuffers();
+#if 0 
         } else {
             if (OculusManager::allowSwap()) {
                 swapBuffers();
             }
             OculusManager::endFrameTiming();
         }
+#endif
     }
 }
 
@@ -134,17 +140,21 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
+#if 0
         //Need accurate frame timing for the oculus rift
         if (OculusManager::isConnected()) {
             OculusManager::beginFrameTiming();
         }
+#endif
 
         Application::getInstance()->paintGL();
         swapBuffers();
 
+#if 0
         if (OculusManager::isConnected()) {
             OculusManager::endFrameTiming();
         }
+#endif
     }
 }
 

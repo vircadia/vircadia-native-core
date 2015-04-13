@@ -35,7 +35,7 @@ public:
     /// (either the secondary or the tertiary).
     QOpenGLFramebufferObject* getFreeFramebufferObject() const;
     
-    void init(QGLWidget* widget, bool enabled);
+    void init(bool enabled);
     
     /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
     void prepare();
@@ -53,7 +53,7 @@ public:
     /// Renders the glow effect.  To be called after rendering the scene.
     /// \param toTexture whether to render to a texture, rather than to the frame buffer
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
-    QOpenGLFramebufferObject* render(bool toTexture = false);
+    QOpenGLFramebufferObject* render();
 
 public slots:
     void toggleGlowEffect(bool enabled);
@@ -81,7 +81,6 @@ private:
     
     float _intensity;
     QStack<float> _intensityStack;
-    QGLWidget* _widget;
     bool _enabled;
 };
 

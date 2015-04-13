@@ -28,16 +28,15 @@ const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
 Setting::Handle<int> RearMirrorTools::rearViewZoomLevel(QStringList() << SETTINGS_GROUP_NAME << ZOOM_LEVEL_SETTINGS,
                                                         ZoomLevel::HEAD);
 
-RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
-    _parent(parent),
+RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _bounds(bounds),
     _windowed(false),
     _fullScreen(false)
 {
-    _closeTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/close.svg"));
+    _closeTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/close.svg"));
 
-    _zoomHeadTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/plus.svg"));
-    _zoomBodyTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/minus.svg"));
+    _zoomHeadTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/plus.svg"));
+    _zoomBodyTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/minus.svg"));
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
@@ -47,6 +46,7 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
 }
 
 void RearMirrorTools::render(bool fullScreen) {
+#if 0
     if (fullScreen) {
         _fullScreen = true;
         displayIcon(_parent->geometry(), _shrinkIconRect, _closeTextureId);
@@ -62,6 +62,7 @@ void RearMirrorTools::render(bool fullScreen) {
             displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, zoomLevel == BODY);
         }
     }
+#endif
 }
 
 bool RearMirrorTools::mousePressEvent(int x, int y) {
@@ -99,7 +100,7 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
     return false;
 }
 
-void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected) {
+void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, QOpenGLTexture * texture, bool selected) {
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -116,13 +117,13 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     } else {
         quadColor = glm::vec4(1, 1, 1, 1);
     }
-    
-    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    texture->bind();
    
     glm::vec2 topLeft(iconBounds.left(), iconBounds.top());
     glm::vec2 bottomRight(iconBounds.right(), iconBounds.bottom());
-    glm::vec2 texCoordTopLeft(0.0f, 1.0f);
-    glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+    static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
 
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     

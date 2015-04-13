@@ -94,6 +94,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot() {
 }
 
 QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
+#if 0
     auto glCanvas = Application::getInstance()->getGLWidget();
     QImage shot = glCanvas->grabFrameBuffer();
     
@@ -157,6 +158,8 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
         
         return imageTempFile;
     }
+#endif
+    return nullptr; 
 }
 
 

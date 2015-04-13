@@ -192,9 +192,9 @@ void PreferencesDialog::loadPreferences() {
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
     ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
-
+#if 0
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
-
+#endif
     SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
@@ -266,8 +266,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
@@ -280,9 +279,9 @@ void PreferencesDialog::savePreferences() {
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
-
+#if 0
     qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-    
+#endif
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
@@ -305,7 +304,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();

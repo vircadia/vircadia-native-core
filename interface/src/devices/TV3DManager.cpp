@@ -35,18 +35,15 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    int width = glCanvas->getDeviceWidth();
-    int height = glCanvas->getDeviceHeight();
+    auto deviceSize = qApp->getDeviceSize();
     Camera& camera = *Application::getInstance()->getCamera();
-
-    configureCamera(camera, width, height);
+    configureCamera(camera, deviceSize.width(), deviceSize.height());
 }
 
 
 // The basic strategy of this stereoscopic rendering is explained here:
 //    http://www.orthostereo.com/geometryopengl.html
-void TV3DManager::setFrustum(Camera& whichCamera) {
+void TV3DManager::setFrustum(const Camera& whichCamera) {
     const double DTR = 0.0174532925; // degree to radians
     const double IOD = 0.05; //intraocular distance
     double fovy = whichCamera.getFieldOfView(); // field of view in y-axis
@@ -70,7 +67,9 @@ void TV3DManager::setFrustum(Camera& whichCamera) {
     _rightEye.modelTranslation = -IOD / 2;
 }
 
-void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int screenHeight) {
+void TV3DManager::configureCamera(Camera& whichCamera_, int screenWidth, int screenHeight) {
+    const Camera& whichCamera = whichCamera_;
+
     if (screenHeight == 0) {
         screenHeight = 1; // prevent divide by 0
     }
@@ -93,8 +92,7 @@ void TV3DManager::display(Camera& whichCamera) {
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    QSize deviceSize = glCanvas->getDeviceSize() *
+    QSize deviceSize = qApp->getDeviceSize() *
         Application::getInstance()->getRenderResolutionScale();
     int portalW = deviceSize.width() / 2;
     int portalH = deviceSize.height();
@@ -103,7 +101,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay(true);
+    applicationOverlay.renderOverlay();
 
     DependencyManager::get<GlowEffect>()->prepare();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -134,7 +132,9 @@ void TV3DManager::display(Camera& whichCamera) {
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
+#if 0
         applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
+#endif
         _activeEye = NULL;
     }
     glPopMatrix();
@@ -162,8 +162,9 @@ void TV3DManager::display(Camera& whichCamera) {
         glLoadIdentity();
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
-
+#if 0
         applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
+#endif
         _activeEye = NULL;
     }
     glPopMatrix();

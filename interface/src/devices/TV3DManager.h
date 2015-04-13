@@ -11,7 +11,6 @@
 
 #ifndef hifi_TV3DManager_h
 #define hifi_TV3DManager_h
-
 #include <iostream>
 
 #include <glm/glm.hpp>
@@ -37,7 +36,7 @@ public:
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
 private:    
-    static void setFrustum(Camera& whichCamera);
+    static void setFrustum(const Camera& whichCamera);
     static int _screenWidth;
     static int _screenHeight;
     static double _aspect;

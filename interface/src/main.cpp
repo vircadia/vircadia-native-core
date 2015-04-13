@@ -94,11 +94,14 @@ int main(int argc, const char* argv[]) {
         usecTimestampNowForceClockSkew(clockSkew);
         qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
+
+#if 0
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
     OculusManager::init();
-    
+#endif
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);

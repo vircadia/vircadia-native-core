@@ -230,6 +230,7 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
     
+#if 0
     if (isPlaying() && !OculusManager::isConnected()) {
         return;
     }
@@ -301,6 +302,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
+#endif
 }
 
 
@@ -829,11 +831,15 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 howManyLookingAtMe++;
                 //  Have that avatar look directly at my camera
                 //  Philip TODO: correct to look at left/right eye
+#if 0
                 if (OculusManager::isConnected()) {
                     avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
                 } else {
+#endif
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+#if 0
                 }
+#endif
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
@@ -1017,6 +1023,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
         } else {
             float clipDistance = _skeletonModel.getHeadClipDistance();
+#if 0
             if (OculusManager::isConnected()) {
                 // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
                 glm::vec3 cameraToAvatar = _position - cameraPos;
@@ -1027,6 +1034,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
                     clipDistance += headOffset;
                 }
             }
+#endif
             renderFrustum->setNearClip(clipDistance);
         }
     }
@@ -1061,11 +1069,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
     const float TIME_BETWEEN_HMD_TURNS = 0.5f;
     const float HMD_TURN_DEGREES = 22.5f;
+#if 0
     if (!OculusManager::isConnected()) {
         //  Smoothly rotate body with arrow keys if not in HMD
         _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
         _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     } else {
+#endif
         //  Jump turns if in HMD
         if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
             if (_turningKeyPressTime == 0.0f) {
@@ -1079,7 +1089,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
         } else {
             _turningKeyPressTime = 0.0f;
         }
+#if 0
     }
+#endif
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     // update body orientation by movement inputs
@@ -1095,6 +1107,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float MINIMUM_ROTATION_RATE = 2.0f;
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
 
+#if 0
     if (OculusManager::isConnected()) {
         // these angles will be in radians
         float yaw, pitch, roll; 
@@ -1117,7 +1130,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
         
     }
-
+#endif
 }
 
 glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool isHovering) {

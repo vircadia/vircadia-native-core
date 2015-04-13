@@ -267,6 +267,7 @@ bool setupEssentials(int& argc, char** argv) {
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
+        _offscreenContext(new OffscreenGlContext()),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
@@ -476,18 +477,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(_glWidget);
-
+    _window->setCentralWidget(new QWidget());
     _window->restoreGeometry();
-
     _window->setVisible(true);
-    _glWidget->setFocusPolicy(Qt::StrongFocus);
-    _glWidget->setFocus();
 
-    // enable mouse tracking; otherwise, we only get drag events
-    _glWidget->setMouseTracking(true);
-
+#if 0
     _fullscreenMenuWidget->setParent(_glWidget);
+#endif
+
     _menuBarHeight = Menu::getInstance()->height();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         setFullscreen(true);  // Initialize menu bar show/hide
@@ -497,6 +494,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
 
+    _offscreenContext->create();
+    _offscreenContext->makeCurrent();
+    initializeGL();
     // initialization continues in initializeGL when OpenGL context is ready
 
     // Tell our entity edit sender about our known jurisdictions
@@ -629,9 +629,8 @@ Application::~Application() {
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
-    
-    // stop the glWidget frame timer so it doesn't call paintGL
-    _glWidget->stopFrameTimer();
+
+    getActiveRenderPlugin()->deactivate();
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -732,19 +731,14 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
-    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
-    // Otherwise, it must rebuild the FBOs
-    if (OculusManager::isConnected()) {
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
-    } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
-    }
+    _offscreenContext->makeCurrent();
+    QSize fbSize = getActiveRenderPlugin()->getRecommendedFramebufferSize() * getRenderResolutionScale();
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
 
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        if (!OculusManager::isConnected()) {
+        if (!getActiveRenderPlugin()->isHmd()) {
             //  If there isn't an HMD, match exactly to avatar's head
             _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
@@ -753,17 +747,15 @@ void Application::paintGL() {
             _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
-
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
             _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
-        if (OculusManager::isConnected()) {
+        if (getActiveRenderPlugin()->isHmd()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
         }
-
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
@@ -772,30 +764,17 @@ void Application::paintGL() {
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
-    // Update camera position
-    if (!OculusManager::isConnected()) {
-        _myCamera.update(1.0f / _fps);
-    }
-
     if (getShadowsEnabled()) {
         updateShadowMap();
     }
 
-    if (OculusManager::isConnected()) {
-        //When in mirror mode, use camera rotation. Otherwise, use body rotation
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
-        } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
-        }
-        _myCamera.update(1.0f / _fps);
+    DependencyManager::get<GlowEffect>()->prepare();
 
-    } else if (TV3DManager::isConnected()) {
-       
-        TV3DManager::display(_myCamera);
-
-    } else {
-        DependencyManager::get<GlowEffect>()->prepare();
+    // Primary rendering pass
+    auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
+    primaryFbo->bind();
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
@@ -809,20 +788,32 @@ void Application::paintGL() {
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
-        
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);       
-        }
-
-        DependencyManager::get<GlowEffect>()->render();
-
-        {
-            PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay(true);
-            _applicationOverlay.displayOverlayTexture();
+            renderRearViewMirror(_mirrorViewRect);
         }
     }
+    primaryFbo->release();
+    
+    QOpenGLFramebufferObject * finalFbo = DependencyManager::get<GlowEffect>()->render();
+    // This might not be needed *right now*.  We want to ensure that the FBO rendering
+    // has completed before we start trying to read from it in another context.  However
+    // once we have multi-threaded rendering, this will almost certainly be critical,
+    // but may be better handled with a fence object
+    glFinish();
 
+#if 0
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay();
+        _applicationOverlay.displayOverlayTexture();
+    }
+#endif
+
+    _offscreenContext->doneCurrent();
+    Q_ASSERT(!QOpenGLContext::currentContext());
+    getActiveRenderPlugin()->render(finalFbo->texture());
+    Q_ASSERT(!QOpenGLContext::currentContext());
+    _offscreenContext->makeCurrent();
     _frameCount++;
 }
 
@@ -845,14 +836,23 @@ void Application::showEditEntitiesHelp() {
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
+#if 0
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera, width, height);
     } else if (TV3DManager::isConnected()) {
         TV3DManager::configureCamera(camera, width, height);
     } else {
+#endif
         camera.setAspectRatio((float)width / height);
         camera.setFieldOfView(_fieldOfView.get());
+#if 0
     }
+#endif
+}
+
+void Application::resizeEvent(QResizeEvent * event) {
+    const QSize & newSize = event->size();
+    resizeGL(newSize.width(), newSize.height());
 }
 
 void Application::resizeGL(int width, int height) {
@@ -911,6 +911,43 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
+    switch (event->type()) {
+    case QEvent::MouseMove:
+        mouseMoveEvent((QMouseEvent*)event);
+        return true;
+
+    case QEvent::MouseButtonPress:
+        mousePressEvent((QMouseEvent*)event);
+        return true;
+
+    case QEvent::MouseButtonRelease:
+        mouseReleaseEvent((QMouseEvent*)event);
+        return true;
+
+    case QEvent::KeyPress:
+        keyPressEvent((QKeyEvent*)event);
+        return true;
+
+    case QEvent::KeyRelease:
+        keyReleaseEvent((QKeyEvent*)event);
+        return true;
+
+    case QEvent::FocusIn:
+        //focusInEvent((QFocusEvent*)event);
+        //return true;
+        break;
+
+    case QEvent::FocusOut:
+        focusOutEvent((QFocusEvent*)event);
+        return true;
+
+    case QEvent::Resize: 
+        resizeEvent((QResizeEvent *)event);
+        return true;
+
+    default: 
+        break;
+    }
 
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
@@ -1102,9 +1139,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_J:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
+#if 0
                     if (TV3DManager::isConnected()) {
                         TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
+#endif
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -1114,10 +1153,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_M:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
+#if 0
                     if (TV3DManager::isConnected()) {
                         TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
-
+#endif
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
@@ -1168,17 +1208,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _myCamera.computePickRay(getTrueMouseX(),
-                                                                            getTrueMouseY()));
+                    HFActionEvent startActionEvent(HFActionEvent::startType(), computePickRay());
                     sendEvent(this, &startActionEvent);
                 }
                 
                 break;
             }
             case Qt::Key_Escape: {
-                OculusManager::abandonCalibration();
-                
+                getActiveRenderPlugin()->abandonCalibration();
                 if (!event->isAutoRepeat()) {
                     // this starts the HFCancelEvent
                     HFBackEvent startBackEvent(HFBackEvent::startType());
@@ -1266,9 +1303,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             _myCamera.computePickRay(getTrueMouseX(),
-                                                                      getTrueMouseY()));
+                HFActionEvent endActionEvent(HFActionEvent::endType(), computePickRay());
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -1362,7 +1397,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1397,7 +1432,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -1569,11 +1604,13 @@ void Application::idle() {
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
             update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
+
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            _glWidget->updateGL();
+            getActiveRenderPlugin()->idle();
         }
+
         {
             PerformanceTimer perfTimer("rest");
             PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
@@ -1653,11 +1690,15 @@ void Application::setFullscreen(bool fullscreen) {
     }
 }
 
+
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
+#if 0
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+#endif
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+#if 0
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
         Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
     }
@@ -1682,6 +1723,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     
     updateCursorVisibility();
+#endif
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -1689,44 +1731,36 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 bool Application::mouseOnScreen() const {
-    if (OculusManager::isConnected()) {
-        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
-               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
-    }
-    return true;
+    return getActiveRenderPlugin()->isMouseOnScreen();
 }
 
 int Application::getMouseX() const {
-    if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-        return pos.x;
-    }
-    return getTrueMouseX();
+    return getActiveRenderPlugin()->getUiMousePosition().x;
 }
 
 int Application::getMouseY() const {
-    if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-        return pos.y;
-    }
-    return getTrueMouseY();
+    return getActiveRenderPlugin()->getUiMousePosition().x;
 }
 
 int Application::getMouseDragStartedX() const {
+#if 0
     if (OculusManager::isConnected()) {
         glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
                                                                       getTrueMouseDragStartedY()));
         return pos.x;
     }
+#endif
     return getTrueMouseDragStartedX();
 }
 
 int Application::getMouseDragStartedY() const {
+#if 0
     if (OculusManager::isConnected()) {
         glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
                                                                       getTrueMouseDragStartedY()));
         return pos.y;
     }
+#endif
     return getTrueMouseDragStartedY();
 }
 
@@ -1878,6 +1912,7 @@ void Application::init() {
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
 
+#if 0
     OculusManager::connect();
     if (OculusManager::isConnected()) {
         QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
@@ -1891,6 +1926,7 @@ void Application::init() {
                                   "trigger",
                                   Qt::QueuedConnection);
     }
+#endif
 
     _timerStart.start();
     _lastTimeUpdated.start();
@@ -1955,19 +1991,20 @@ void Application::init() {
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
+    _rearMirrorTools = new RearMirrorTools(_mirrorViewRect);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 
+#if 0
     // make sure our texture cache knows about window size changes
     DependencyManager::get<TextureCache>()->associateWithWidget(_glWidget);
+#endif
 
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(_glWidget,
-                                               Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
+    DependencyManager::get<GlowEffect>()->init(Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
 }
 
 void Application::closeMirrorView() {
@@ -2018,7 +2055,7 @@ void Application::updateMouseRay() {
     // make sure the frustum is up-to-date
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    PickRay pickRay = _myCamera.computePickRay(getTrueMouseX(), getTrueMouseY());
+    PickRay pickRay = computePickRay();
     _mouseRayOrigin = pickRay.origin;
     _mouseRayDirection = pickRay.direction;
     
@@ -2043,6 +2080,7 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+#if 0
         //  When I am in mirror mode, just look right at the camera (myself)
         if (!OculusManager::isConnected()) {
             lookAtSpot = _myCamera.getPosition();
@@ -2053,7 +2091,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 lookAtSpot = OculusManager::getRightEyePosition();
             }
         }
- 
+#endif 
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
         if (lookingAt && _myAvatar != lookingAt.data()) {
@@ -2138,6 +2176,7 @@ void Application::updateCamera(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
 
+#if 0
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
             Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
         FaceTracker* tracker = getActiveFaceTracker();
@@ -2149,6 +2188,8 @@ void Application::updateCamera(float deltaTime) {
             updateProjectionMatrix();
         }
     }
+#endif
+
 }
 
 void Application::updateDialogs(float deltaTime) {
@@ -2239,13 +2280,13 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
-    
+#if 0    
     {
         PerformanceTimer perfTimer("myAvatar");
         updateMyAvatarLookAtPosition();
         DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     }
-
+#endif
     {
         PerformanceTimer perfTimer("emitSimulating");
         // let external parties know we're updating
@@ -2561,16 +2602,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 }
 
 bool Application::isHMDMode() const {
-    if (OculusManager::isConnected()) {
-        return true;
-    } else {
-        return false;
-    }
+    return getActiveRenderPlugin()->isHmd();
 }
 
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
-    
+#if 0    
     // If our parent window is on the HMD, then don't use its geometry, instead use
     // the "main screen" geometry.
     HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
@@ -2588,6 +2625,7 @@ QRect Application::getDesirableApplicationGeometry() {
             applicationGeometry = betterScreen->geometry();
         }
     }
+#endif
     return applicationGeometry;
 }
 
@@ -2786,8 +2824,6 @@ void Application::updateShadowMap() {
     }
     
     fbo->release();
-    
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
 }
 
@@ -2826,10 +2862,6 @@ int Application::getBoundaryLevelAdjust() const {
     return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
 }
 
-PickRay Application::computePickRay(float x, float y) {
-    return getCamera()->computePickRay(x, y);
-}
-
 QImage Application::renderAvatarBillboard() {
     DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
 
@@ -2837,9 +2869,11 @@ QImage Application::renderAvatarBillboard() {
     Glower glower;
 
     const int BILLBOARD_SIZE = 64;
+#if 0
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
+#endif
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -3130,12 +3164,13 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 
     // allow 3DTV/Oculus to override parameters from camera
     _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+#if 0
     if (OculusManager::isConnected()) {
         OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    
     } else if (TV3DManager::isConnected()) {
         TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
     }
+#endif
 }
 
 bool Application::getShadowsEnabled() {
@@ -3146,32 +3181,6 @@ bool Application::getShadowsEnabled() {
 
 bool Application::getCascadeShadowsEnabled() { 
     return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows); 
-}
-
-glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
-    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
-
-    // -1,-1 is 0,windowHeight
-    // 1,1 is windowWidth,0
-
-    // -1,1                    1,1
-    // +-----------------------+
-    // |           |           |
-    // |           |           |
-    // | -1,0      |           |
-    // |-----------+-----------|
-    // |          0,0          |
-    // |           |           |
-    // |           |           |
-    // |           |           |
-    // +-----------------------+
-    // -1,-1                   1,-1
-
-    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
-
-    return screenPoint;
 }
 
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
@@ -3214,7 +3223,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-    _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
     if (billboard) {
@@ -3254,15 +3262,19 @@ void Application::resetSensors() {
     DependencyManager::get<Visage>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
 
+    getActiveRenderPlugin()->resetSensors();
+#if 0
     OculusManager::reset();
+#endif
 
     //_leapmotion.reset();
 
+#if 0
     QScreen* currentScreen = _window->windowHandle()->screen();
     QWindow* mainWindow = _window->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
     _glWidget->cursor().setPos(currentScreen, windowCenter);
-    
+#endif
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
@@ -4021,7 +4033,7 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
 
 void Application::loadDialog() {
 
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget,
+    QString fileNameString = QFileDialog::getOpenFileName(desktop(),
                                                           tr("Open Script"),
                                                           getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
@@ -4062,7 +4074,7 @@ void Application::setScriptsLocation(const QString& scriptsLocation) {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(desktop(), getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -4119,7 +4131,7 @@ void Application::parseVersionXml() {
     }
 
     if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
+        new UpdateDialog(desktop(), releaseNotes, latestVersion, downloadUrl);
     }
     sender->deleteLater();
 }
@@ -4152,7 +4164,7 @@ void Application::takeSnapshot() {
     }
 
     if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, desktop());
     }
     _snapshotShareDialog->show();
 }
@@ -4329,4 +4341,91 @@ void Application::showFriendsWindow() {
 void Application::friendsWindowClosed() {
     delete _friendsWindow;
     _friendsWindow = NULL;
+}
+
+
+PickRay Application::computePickRay() const {
+    return computePickRay(getTrueMouseX(), getTrueMouseY());
+}
+
+PickRay Application::computeViewPickRay(float xRatio, float yRatio) const {
+    PickRay result;
+#if 0
+    if (OculusManager::isConnected()) {
+        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(xRatio, yRatio, result.origin, result.direction);
+    } else {
+#endif
+        Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
+#if 0
+    }
+#endif
+    return result;
+}
+
+PickRay Application::computePickRay(float x, float y) const {
+    glm::vec2 canvasSize = getCanvasSize();
+    x /= canvasSize.x;
+    y /= canvasSize.y;
+    return computeViewPickRay(x, y);
+}
+
+glm::ivec2 Application::getCanvasSize() const {
+    return getActiveRenderPlugin()->getCanvasSize();
+}
+
+QSize Application::getDeviceSize() const {
+    return getActiveRenderPlugin()->getRecommendedFramebufferSize();  // _glWidget->getDeviceSize();
+}
+
+void Application::resizeGL() {
+    auto size = getCanvasSize();
+    return resizeGL(size.x, size.y);
+}
+
+bool Application::hasFocus() const {
+    return getActiveRenderPlugin()->hasFocus();
+}
+
+glm::vec2 Application::getViewportDimensions() const {
+    return toGlm(getDeviceSize());
+}
+
+int Application::getTrueMouseX() const { 
+    return getActiveRenderPlugin()->getTrueMousePosition().x;
+}
+
+int Application::getTrueMouseY() const { 
+    return getActiveRenderPlugin()->getTrueMousePosition().y;
+}
+
+bool Application::isThrottleRendering() const {
+    return getActiveRenderPlugin()->isThrottled();
+}
+
+#include "plugins/render/NullRenderPlugin.h"
+#include "plugins/render/WindowRenderPlugin.h"
+#include "plugins/render/LegacyRenderPlugin.h"
+
+static RenderPlugin * renderPlugin = nullptr;
+
+RenderPlugin * Application::getActiveRenderPlugin() {
+    if (nullptr == renderPlugin) {
+        //renderPlugin = new WindowRenderPlugin();
+        renderPlugin = new LegacyRenderPlugin();
+        renderPlugin->init();
+        renderPlugin->activate();
+        connect(renderPlugin, &RenderPlugin::requestRender, this, [&] {
+            this->paintGL();
+        });
+        connect(renderPlugin, &RenderPlugin::recommendedFramebufferSizeChanged, this, [&](const QSize & size) {
+            DependencyManager::get<TextureCache>()->setFrameBufferSize(size * getRenderResolutionScale());
+            this->resizeGL(size.width(), size.height());
+        });
+        _offscreenContext->makeCurrent();
+    }
+    return renderPlugin;
+}
+
+const RenderPlugin * Application::getActiveRenderPlugin() const {
+    return ((Application*)this)->getActiveRenderPlugin();
 }
