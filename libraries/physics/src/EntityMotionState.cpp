@@ -180,6 +180,11 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
+
+    qDebug() << "-------------------------------------------";
+    qDebug() << "EntityMotionState::sendUpdate" << _type << _motionType << _isKinematic;
+    auto nodeList = DependencyManager::get<NodeList>();
+
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
