@@ -680,6 +680,7 @@ void EntityItem::simulate(const quint64& now) {
     #ifdef WANT_DEBUG
         qCDebug(entities) << "********** EntityItem::simulate()";
         qCDebug(entities) << "    entity ID=" << getEntityItemID();
+        qCDebug(entities) << "    simulator ID=" << getSimulatorID();
         qCDebug(entities) << "    now=" << now;
         qCDebug(entities) << "    _lastSimulated=" << _lastSimulated;
         qCDebug(entities) << "    timeElapsed=" << timeElapsed;
@@ -1197,6 +1198,6 @@ void EntityItem::updateLifetime(float value) {
 void EntityItem::updateSimulatorID(QString value) {
     if (_simulatorID != value) {
         _simulatorID = value;
-        _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+        _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
     }
 }

@@ -343,6 +343,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitStrength, emitStrength, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";

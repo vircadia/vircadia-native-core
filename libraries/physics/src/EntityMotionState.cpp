@@ -219,6 +219,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
+        // if (_outgoingPacketFlags & EntityItem::DIRTY_UPDATEABLE) {
+        //     properties.setSimulatorID(_entity->getSimulatorID());
+        // }
+
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
             _sentPosition = bulletToGLM(worldTrans.getOrigin());
