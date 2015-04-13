@@ -149,7 +149,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 
     while (fadingIterator != _avatarFades.end()) {
         Avatar* avatar = static_cast<Avatar*>(fadingIterator->data());
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {
