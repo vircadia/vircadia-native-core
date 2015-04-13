@@ -34,6 +34,7 @@ typedef glm::mat3 Mat3;
 typedef glm::vec4 Vec4;
 typedef glm::vec3 Vec3;
 typedef glm::vec2 Vec2;
+typedef glm::ivec2 Vec2i;
 
 // Description of a scalar type
 enum Type {
