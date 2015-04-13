@@ -193,11 +193,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 
     if (simulatorID.isEmpty() && _body->isActive()) {
         // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-        _entity->setSimulatorID(myNodeID);
+        _entity->updateSimulatorID(myNodeID);
         simulatorID = myNodeID;
     } else if (simulatorID == myNodeID && !_body->isActive()) {
         // we are the simulator and the object has stopped.  give up "simulator" status
-        _entity->setSimulatorID("");
+        _entity->updateSimulatorID("");
         simulatorID = "";
     }
 
