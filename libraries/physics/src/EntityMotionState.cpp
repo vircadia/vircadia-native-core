@@ -191,13 +191,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QString myNodeID = nodeList->getSessionUUID().toString();
     QString simulatorID = _entity->getSimulatorID();
 
-    if (simulatorID.isEmpty() && _sentMoving) {
+    if (simulatorID.isEmpty() && baseResult) {
         // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-        // _entity->updateSimulatorID(myNodeID);
         simulatorID = myNodeID;
-    } else if (simulatorID == myNodeID && !_sentMoving) {
+    } else if (simulatorID == myNodeID && _numNonMovingUpdates > 0) {
         // we are the simulator and the object has stopped.  give up "simulator" status
-        // _entity->updateSimulatorID("");
         simulatorID = "";
     }
 
@@ -262,16 +260,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
 
         qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
-
         auto nodeList = DependencyManager::get<NodeList>();
         QString myNodeID = nodeList->getSessionUUID().toString();
         QString simulatorID = _entity->getSimulatorID();
-
-        if (simulatorID.isEmpty() && _sentMoving) {
+        if (simulatorID.isEmpty()) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && !_sentMoving) {
+        } else if (simulatorID == myNodeID && _numNonMovingUpdates > 0) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
