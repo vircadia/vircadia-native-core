@@ -240,15 +240,25 @@ public:
         _subresource(0),
         _element(element)
     {};
-    TextureView(const TexturePointer& texture, const Element& element) :
+    TextureView(const TexturePointer& texture, uint16 subresource, const Element& element) :
         _texture(texture),
-        _subresource(0),
+        _subresource(subresource),
         _element(element)
     {};
+
+    TextureView(const TexturePointer& texture, uint16 subresource) :
+        _texture(texture),
+        _subresource(subresource)
+    {};
+
     ~TextureView() {}
     TextureView(const TextureView& view) = default;
     TextureView& operator=(const TextureView& view) = default;
+
+    explicit operator bool() const { return (_texture); }
+    bool operator !() const { return (!_texture); }
 };
+typedef std::vector<TextureView> TextureViews;
 
 };
 

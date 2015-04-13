@@ -25,7 +25,8 @@ Batch::Batch() :
     _textures(),
     _streamFormats(),
     _transforms(),
-    _pipelines()
+    _pipelines(),
+    _framebuffers()
 {
 }
 
@@ -41,7 +42,8 @@ void Batch::clear() {
     _textures.clear();
     _streamFormats.clear();
     _transforms.clear();
-    _pipelines.clear();    
+    _pipelines.clear();
+    _framebuffers.clear();
 }
 
 uint32 Batch::cacheData(uint32 size, const void* data) {
@@ -184,5 +186,12 @@ void Batch::setUniformTexture(uint32 slot, const TexturePointer& texture) {
 
 void Batch::setUniformTexture(uint32 slot, const TextureView& view) {
     setUniformTexture(slot, view._texture);
+}
+
+void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
+    ADD_COMMAND(setUniformTexture);
+
+    _params.push_back(_framebuffers.cache(framebuffer));
+
 }
 

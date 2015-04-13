@@ -133,13 +133,24 @@ public:
 
     class GLPipeline : public GPUObject {
     public:
-        GLShader* _program;
-        GLState* _state;
+        GLShader* _program = 0;
+        GLState* _state = 0;
 
         GLPipeline();
         ~GLPipeline();
     };
     static GLPipeline* syncGPUObject(const Pipeline& pipeline);
+
+
+    class GLFramebuffer : public GPUObject {
+    public:
+        GLuint _fbo = 0;
+
+        GLFramebuffer();
+        ~GLFramebuffer();
+    };
+    static GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer);
+    static GLuint getFramebufferID(const FramebufferPointer& framebuffer);
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -276,8 +287,8 @@ protected:
         State::Signature _stateSignatureCache;
 
         GLState* _state;
-        bool _invalidState;
-        bool _needStateSync;
+        bool _invalidState = false;
+        bool _needStateSync = true;
 
         PipelineStageState() :
             _pipeline(),
@@ -290,6 +301,16 @@ protected:
             _needStateSync(true)
              {}
     } _pipeline;
+
+    // Output stage
+    void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+
+    struct OutputStageState {
+
+        FramebufferPointer _framebuffer = nullptr;
+
+        OutputStageState() {}
+    } _output;
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

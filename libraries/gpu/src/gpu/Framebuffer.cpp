@@ -26,7 +26,6 @@ Framebuffer::~Framebuffer()
 Framebuffer* Framebuffer::create() {
     auto framebuffer = new Framebuffer();
     framebuffer->_renderBuffers.resize(MAX_NUM_RENDER_BUFFERS);
-    framebuffer->_renderBuffersSubresource.resize(MAX_NUM_RENDER_BUFFERS, 0);
     return framebuffer;
 }
 
@@ -96,14 +95,14 @@ void Framebuffer::resize(uint16 width, uint16 height, uint16 numSamples) {
         if ((width != _width) || (height != _height) || (numSamples != _numSamples)) {
             for (uint32 i = 0; i < _renderBuffers.size(); ++i) {
                 if (_renderBuffers[i]) {
-                    _renderBuffers[i]->resize2D(width, height, numSamples);
-                    _numSamples = _renderBuffers[i]->getNumSamples();
+                    _renderBuffers[i]._texture->resize2D(width, height, numSamples);
+                    _numSamples = _renderBuffers[i]._texture->getNumSamples();
                 }
             }
 
             if (_depthStencilBuffer) {
-                _depthStencilBuffer->resize2D(width, height, numSamples);
-                _numSamples = _depthStencilBuffer->getNumSamples();
+                _depthStencilBuffer._texture->resize2D(width, height, numSamples);
+                _numSamples = _depthStencilBuffer._texture->getNumSamples();
             }
 
             _width = width;
@@ -155,20 +154,10 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
         }
     }
 
-    // everything works, assign
-    // dereference the previously used buffer if exists
-    if (_renderBuffers[slot]) {
-        _renderBuffers[slot].reset();
-        _renderBuffersSubresource[slot] = 0;
-    }
-
     updateSize(texture);
 
     // assign the new one
-    _renderBuffers[slot] = texture;
-
-    // Assign the subresource
-    _renderBuffersSubresource[slot] = subresource;
+    _renderBuffers[slot] = TextureView(texture, subresource);
 
     // update the mask
     int mask = (1<<slot);
@@ -188,7 +177,7 @@ void Framebuffer::removeRenderBuffers() {
     _buffersMask = _buffersMask & BUFFER_DEPTHSTENCIL;
 
     for (auto renderBuffer : _renderBuffers) {
-        renderBuffer.reset();
+        renderBuffer._texture.reset();
     }
 
     updateSize(TexturePointer(nullptr));
@@ -205,7 +194,7 @@ uint32 Framebuffer::getNumRenderBuffers() const {
 
 TexturePointer Framebuffer::getRenderBuffer(uint32 slot) const {
     if (!isSwapchain() && (slot < getMaxNumRenderBuffers())) {
-        return _renderBuffers[slot];
+        return _renderBuffers[slot]._texture;
     } else {
         return TexturePointer();
     }
@@ -214,7 +203,7 @@ TexturePointer Framebuffer::getRenderBuffer(uint32 slot) const {
 
 uint32 Framebuffer::getRenderBufferSubresource(uint32 slot) const {
     if (!isSwapchain() && (slot < getMaxNumRenderBuffers())) {
-        return _renderBuffersSubresource[slot];
+        return _renderBuffers[slot]._subresource;
     } else {
         return 0;
     }
@@ -232,15 +221,10 @@ bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, uint32 su
         }
     }
 
-    // Checks ok, assign
-    _depthStencilBuffer.reset();
-    _depthStencilBufferSubresource = 0;
-
     updateSize(texture);
 
     // assign the new one
-    _depthStencilBuffer = texture;
-    _depthStencilBufferSubresource = subresource;
+    _depthStencilBuffer = TextureView(texture, subresource);
 
     _buffersMask = ( _buffersMask & ~BUFFER_DEPTHSTENCIL);
     if (texture) {
@@ -254,7 +238,7 @@ TexturePointer Framebuffer::getDepthStencilBuffer() const {
     if (isSwapchain()) {
         return TexturePointer();
     } else {
-        return _depthStencilBuffer;
+        return _depthStencilBuffer._texture;
     }
 }
 
@@ -262,6 +246,6 @@ uint32 Framebuffer::getDepthStencilBufferSubresource() const {
     if (isSwapchain()) {
         return 0;
     } else {
-        return _depthStencilBufferSubresource;
+        return _depthStencilBuffer._subresource;
     }
 }

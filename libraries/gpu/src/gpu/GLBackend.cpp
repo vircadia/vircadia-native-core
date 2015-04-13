@@ -32,6 +32,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setUniformBuffer),
     (&::gpu::GLBackend::do_setUniformTexture),
 
+    (&::gpu::GLBackend::do_setFramebuffer),
+
+
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
 
@@ -67,7 +70,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 GLBackend::GLBackend() :
     _input(),
     _transform(),
-    _pipeline()
+    _pipeline(),
+    _output()
 {
     initTransform();
 }

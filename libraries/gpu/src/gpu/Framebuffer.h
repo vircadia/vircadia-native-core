@@ -155,11 +155,9 @@ public:
     // Get viewport covering the ful Canvas
     Viewport getViewport() const { return Viewport(getWidth(), getHeight(), 0, 0); }
 
+    bool isDefined() const { return _isDefined; }
 
 protected:
-
-    Viewport _viewport;
-
     uint16 _width;
     uint16 _height;
     uint16 _numSamples;
@@ -170,12 +168,10 @@ protected:
 
     SwapchainPointer _swapchain;
 
-    Textures _renderBuffers;
-    std::vector<uint32> _renderBuffersSubresource;
+    TextureViews _renderBuffers;
+    TextureView _depthStencilBuffer;
 
-    TexturePointer _depthStencilBuffer;
-    uint32 _depthStencilBufferSubresource;
-
+    bool _isDefined = false;
 
     void updateSize(const TexturePointer& texture);
 
@@ -189,6 +185,7 @@ protected:
     GPUObject* getGPUObject() const { return _gpuObject; }
     friend class Backend;
 };
+typedef std::shared_ptr<Framebuffer> FramebufferPointer;
 
 }
 
