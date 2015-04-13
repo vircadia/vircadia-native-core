@@ -30,7 +30,6 @@ GlowEffect::GlowEffect()
       _isOddFrame(false),
       _isFirstFrame(true),
       _intensity(0.0f),
-      _widget(NULL),
       _enabled(false) {
 }
 
@@ -63,7 +62,7 @@ static ProgramObject* createProgram(const QString& name) {
     return program;
 }
 
-void GlowEffect::init(QGLWidget* widget, bool enabled) {
+void GlowEffect::init(bool enabled) {
     if (_initialized) {
         qCDebug(renderutils, "[ERROR] GlowEffeect is already initialized.");
         return;
@@ -91,23 +90,10 @@ void GlowEffect::init(QGLWidget* widget, bool enabled) {
     _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
 
     _initialized = true;
-    _widget = widget;
     _enabled = enabled;
 }
 
-int GlowEffect::getDeviceWidth() const {
-    return _widget->width() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
-}
-
-int GlowEffect::getDeviceHeight() const {
-    return _widget->height() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
-}
-
-
 void GlowEffect::prepare() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
     _isEmpty = true;
     _isOddFrame = !_isOddFrame;
 }
@@ -124,24 +110,11 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-static void maybeBind(QOpenGLFramebufferObject* fbo) {
-    if (fbo) {
-        fbo->bind();
-    }
-}
-
-static void maybeRelease(QOpenGLFramebufferObject* fbo) {
-    if (fbo) {
-        fbo->release();
-    }
-}
-
-QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
+QOpenGLFramebufferObject* GlowEffect::render() {
     PerformanceTimer perfTimer("glowEffect");
 
     auto textureCache = DependencyManager::get<TextureCache>();
     QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-    primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
 
     glPushMatrix();
@@ -155,23 +128,19 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
 
-    QOpenGLFramebufferObject* destFBO = toTexture ?
-        textureCache->getSecondaryFramebufferObject() : NULL;
+    QOpenGLFramebufferObject* destFBO = textureCache->getSecondaryFramebufferObject();
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
         } else {
-            maybeBind(destFBO);
-            if (!destFBO) {
-                glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
-            }
+            destFBO->bind();
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
             renderFullscreenQuad();
             glDisable(GL_TEXTURE_2D);
             glEnable(GL_LIGHTING);
-            maybeRelease(destFBO);
+            destFBO->release();
         }
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
@@ -205,21 +174,15 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         // add diffused texture to the primary
         glBindTexture(GL_TEXTURE_2D, newDiffusedFBO->texture());
         
-        if (toTexture) {
-            destFBO = oldDiffusedFBO;
-        }
-        maybeBind(destFBO);
-        if (!destFBO) {
-            glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
-        }
+        destFBO = oldDiffusedFBO;
+        destFBO->bind();
         _addSeparateProgram->bind();
         renderFullscreenQuad();
         _addSeparateProgram->release();
-        maybeRelease(destFBO);
+        destFBO->release();
         
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
-        
     }
     
     glPopMatrix();

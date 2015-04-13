@@ -9,7 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+#if 0
 #include "InterfaceConfig.h"
 
 #include "OculusManager.h"
@@ -860,3 +860,4 @@ int OculusManager::getHMDScreen() {
     return hmdScreenIndex;
 }
 
+#endif

@@ -38,15 +38,14 @@ bool AudioToolBox::mousePressEvent(int x, int y) {
 void AudioToolBox::render(int x, int y, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
     if (_micTextureId == 0) {
-        _micTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+        _micTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
     }
     if (_muteTextureId == 0) {
-        _muteTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+        _muteTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
     }
     if (_boxTextureId == 0) {
-        _boxTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
+        _boxTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
     }
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -60,7 +59,7 @@ void AudioToolBox::render(int x, int y, bool boxed) {
         
         QRect boxBounds = QRect(x - BOX_LEFT_PADDING, y - BOX_TOP_PADDING, BOX_WIDTH, BOX_HEIGHT);
         
-        glBindTexture(GL_TEXTURE_2D, _boxTextureId);
+        _boxTextureId->bind();
         
         glm::vec4 quadColor;
         
@@ -81,10 +80,10 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!audioIO->isMuted()) {
-        glBindTexture(GL_TEXTURE_2D, _micTextureId);
+        _micTextureId->bind();
         iconColor = 1.0f;
     } else {
-        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        _muteTextureId->bind();
         
         // Make muted icon pulsate
         static const float PULSE_MIN = 0.4f;

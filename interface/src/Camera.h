@@ -41,8 +41,6 @@ public:
 
     void initialize(); // instantly put the camera at the ideal position and rotation. 
 
-    void update( float deltaTime );
-
     void setRotation(const glm::quat& rotation);
     void setHmdPosition(const glm::vec3& hmdPosition);
     void setHmdRotation(const glm::quat& hmdRotation);
@@ -77,20 +75,6 @@ public slots:
     
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
     glm::quat getOrientation() const { return getRotation(); }
-    
-    PickRay computePickRay(float x, float y);
-    PickRay computeViewPickRay(float xRatio, float yRatio);
-
-    // These only work on independent cameras
-    /// one time change to what the camera is looking at
-    void lookAt(const glm::vec3& value);
-
-    /// fix what the camera is looking at, and keep the camera looking at this even if position changes
-    void keepLookingAt(const glm::vec3& value);
-
-    /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
-    /// continuing to update it's orientation to keep looking at the item
-    void stopLooking() { _isKeepLookingAt = false; }
 
 signals:
     void modeUpdated(const QString& newMode);
@@ -108,8 +92,6 @@ private:
     glm::vec3 _hmdPosition;
     glm::quat _hmdRotation;
     float _scale;
-    bool _isKeepLookingAt;
-    glm::vec3 _lookingAt;
 };
 
 #endif // hifi_Camera_h

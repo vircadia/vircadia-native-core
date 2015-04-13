@@ -36,9 +36,6 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-
-    void associateWithWidget(QGLWidget* widget);
-    
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -88,8 +85,6 @@ public:
     /// Returns the ID of the shadow framebuffer object's depth texture.
     GLuint getShadowDepthTextureID();
     
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -119,7 +114,6 @@ private:
     GLuint _shadowDepthTextureID;
 
     QSize _frameBufferSize;
-    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.
