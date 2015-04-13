@@ -191,13 +191,13 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QString myNodeID = nodeList->getSessionUUID().toString();
     QString simulatorID = _entity->getSimulatorID();
 
-    if (simulatorID.isEmpty() && _body->isActive()) {
+    if (simulatorID.isEmpty() && _sentMoving) {
         // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-        _entity->updateSimulatorID(myNodeID);
+        // _entity->updateSimulatorID(myNodeID);
         simulatorID = myNodeID;
-    } else if (simulatorID == myNodeID && !_body->isActive()) {
+    } else if (simulatorID == myNodeID && !_sentMoving) {
         // we are the simulator and the object has stopped.  give up "simulator" status
-        _entity->updateSimulatorID("");
+        // _entity->updateSimulatorID("");
         simulatorID = "";
     }
 
@@ -219,9 +219,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-        // if (_outgoingPacketFlags & EntityItem::DIRTY_UPDATEABLE) {
-        //     properties.setSimulatorID(_entity->getSimulatorID());
-        // }
+
+
+
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
@@ -250,9 +250,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 }
 
                 _sentMoving = ! (zeroSpeed && zeroSpin);
-
-                qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
-
             } else {
                 _sentVelocity = _sentAngularVelocity = glm::vec3(0.0f);
                 _sentMoving = false;
@@ -262,6 +259,24 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setGravity(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
         }
+
+
+        qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        QString myNodeID = nodeList->getSessionUUID().toString();
+        QString simulatorID = _entity->getSimulatorID();
+
+        if (simulatorID.isEmpty() && _sentMoving) {
+            // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
+            _entity->setSimulatorID(myNodeID);
+            properties.setSimulatorID(myNodeID);
+        } else if (simulatorID == myNodeID && !_sentMoving) {
+            // we are the simulator and the object has stopped.  give up "simulator" status
+            _entity->setSimulatorID("");
+            properties.setSimulatorID("");
+        }
+
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
         if (_sentMoving) {
