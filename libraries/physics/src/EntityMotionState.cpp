@@ -179,12 +179,41 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
 
-    qDebug() << "-------------------------------------------";
-    qDebug() << "EntityMotionState::sendUpdate" << _type << _motionType << _isKinematic;
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
+    bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
+
+    if (!baseResult) {
+        return false;
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
+    QString myNodeID = nodeList->getSessionUUID().toString();
+    QString simulatorID = _entity->getSimulatorID();
 
+    if (simulatorID.isEmpty() && _body->isActive()) {
+        // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
+        _entity->setSimulatorID(myNodeID);
+        simulatorID = myNodeID;
+    } else if (simulatorID == myNodeID && !_body->isActive()) {
+        // we are the simulator and the object has stopped.  give up "simulator" status
+        _entity->setSimulatorID("");
+        simulatorID = "";
+    }
+
+    if (simulatorID != myNodeID) {
+        // some other Node is simulating this, so don't broadcast our computations.
+        qDebug() << "EntityMotionState::shouldSendUpdate baseResult=" << baseResult << "but"
+                 << simulatorID << "!=" << myNodeID;
+        return false;
+    }
+
+    qDebug() << "EntityMotionState::shouldSendUpdate baseResult=" << baseResult;
+    return baseResult;
+}
+
+
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
@@ -218,6 +247,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 }
 
                 _sentMoving = ! (zeroSpeed && zeroSpin);
+
+
+                qDebug() << "-------------------------------------------";
+                qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
+
+
             } else {
                 _sentVelocity = _sentAngularVelocity = glm::vec3(0.0f);
                 _sentMoving = false;
