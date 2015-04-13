@@ -35,14 +35,101 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
     // need to have a gpu object?
     if (!object) {
-        object = new GLFramebuffer();
-        glGenFramebuffers(1, &object->_fbo);
+        GLuint fbo;
+        glGenFramebuffers(1, &fbo);
         CHECK_GL_ERROR();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+
+        unsigned int nbColorBuffers = 0;
+        GLenum colorBuffers[16];
+        if (framebuffer.hasColor()) {
+            static const GLenum colorAttachments[] = {
+                GL_COLOR_ATTACHMENT0,
+                GL_COLOR_ATTACHMENT1,
+                GL_COLOR_ATTACHMENT2,
+                GL_COLOR_ATTACHMENT3,
+                GL_COLOR_ATTACHMENT4,
+                GL_COLOR_ATTACHMENT5,
+                GL_COLOR_ATTACHMENT6,
+                GL_COLOR_ATTACHMENT7,
+                GL_COLOR_ATTACHMENT8,
+                GL_COLOR_ATTACHMENT9,
+                GL_COLOR_ATTACHMENT10,
+                GL_COLOR_ATTACHMENT11,
+                GL_COLOR_ATTACHMENT12,
+                GL_COLOR_ATTACHMENT13,
+                GL_COLOR_ATTACHMENT14,
+                GL_COLOR_ATTACHMENT15 };
+
+            int unit = 0;
+            for (auto& b : framebuffer.getRenderBuffers()) {
+                auto surface = b._texture;
+                if (surface) {
+                    auto gltexture = GLBackend::syncGPUObject(*surface);
+                    if (gltexture) {
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D, gltexture->_texture, 0);
+                    }
+                    colorBuffers[nbColorBuffers] = colorAttachments[unit];
+                    nbColorBuffers++;
+                    unit++;
+                }
+            }
+        }
+
+        if (framebuffer.hasDepthStencil()) {
+            auto surface = framebuffer.getDepthStencilBuffer();
+            if (surface) {
+                auto gltexture = GLBackend::syncGPUObject(*surface);
+                if (gltexture) {
+                    if (surface)
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gltexture->_texture, 0);
+                }
+            }
+        }
+
+        // Last but not least, define where we draw
+        if (nbColorBuffers > 0) {
+            glDrawBuffers(nbColorBuffers, colorBuffers);
+        } else {
+            glDrawBuffer( GL_NONE );
+        }
+
+        // Now check for completness
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        bool result = false;
+        switch (status) {
+        case GL_FRAMEBUFFER_COMPLETE :
+            // Success !
+            result = true;
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT :
+            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT :
+            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER :
+            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER :
+            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
+            break;
+        case GL_FRAMEBUFFER_UNSUPPORTED :
+            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
+            break;
+        }
+        if (!result && fbo) {
+            glDeleteFramebuffers( 1, &fbo );
+            return nullptr;
+        }
+
+
+        // All is green, assign the gpuobject to the Framebuffer
+        object = new GLFramebuffer();
+        object->_fbo = fbo;
         Backend::setGPUObject(framebuffer, object);
     }
-
-
-    CHECK_GL_ERROR();
 
     return object;
 }

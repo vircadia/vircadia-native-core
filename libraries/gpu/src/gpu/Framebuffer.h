@@ -123,20 +123,24 @@ public:
     uint32 getFrameCount() const;
 
     // Render buffers
-    int32 setRenderBuffer(uint32 slot, const TexturePointer& texture, uint32 subresource = 0);
     void removeRenderBuffers();
     uint32 getNumRenderBuffers() const;
+    const TextureViews& getRenderBuffers() const { return _renderBuffers; }
 
+    int32 setRenderBuffer(uint32 slot, const TexturePointer& texture, uint32 subresource = 0);
     TexturePointer getRenderBuffer(uint32 slot) const;
     uint32 getRenderBufferSubresource(uint32 slot) const;
 
-    bool setDepthStencilBuffer(const TexturePointer& texture, uint32 subresource = 0);
+    bool setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource = 0);
     TexturePointer getDepthStencilBuffer() const;
     uint32 getDepthStencilBufferSubresource() const;
+    Format getDepthStencilBufferFormat() const;
 
     // Properties
-    uint32 getBuffersMask() const { return _buffersMask; }
-    bool isEmpty() const;
+    uint32 getBufferMask() const { return _bufferMask; }
+    bool isEmpty() const { return (_bufferMask == 0); }
+    bool hasColor() const { return (getBufferMask() & BUFFER_COLORS); }
+    bool hasDepthStencil() const { return (getBufferMask() & BUFFER_DEPTHSTENCIL); }
 
     bool validateTargetCompatibility(const Texture& texture, uint32 subresource = 0) const;
 
@@ -162,7 +166,7 @@ protected:
     uint16 _height;
     uint16 _numSamples;
 
-    uint32 _buffersMask;
+    uint32 _bufferMask;
 
     uint32 _frameCount;
 

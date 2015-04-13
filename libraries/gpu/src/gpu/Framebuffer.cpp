@@ -36,7 +36,7 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
     auto depthTexture = TexturePointer(Texture::create2D(depthStencilBufferFormat, width, height));
 
     framebuffer->setRenderBuffer(0, colorTexture);
-    framebuffer->setDepthStencilBuffer(depthTexture);
+    framebuffer->setDepthStencilBuffer(depthTexture, depthStencilBufferFormat);
 
     return framebuffer;
 }
@@ -52,10 +52,6 @@ uint32 Framebuffer::getFrameCount() const {
     } else {
         return _frameCount;
     }
-}
-
-bool Framebuffer::isEmpty() const {
-    return (_buffersMask == 0);
 }
 
 bool Framebuffer::validateTargetCompatibility(const Texture& texture, uint32 subresource) const {
@@ -161,9 +157,9 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
 
     // update the mask
     int mask = (1<<slot);
-    _buffersMask = (_buffersMask & ~(mask));
+    _bufferMask = (_bufferMask & ~(mask));
     if (texture) {
-        _buffersMask |= mask;
+        _bufferMask |= mask;
     }
 
     return slot;
@@ -174,7 +170,7 @@ void Framebuffer::removeRenderBuffers() {
         return;
     }
 
-    _buffersMask = _buffersMask & BUFFER_DEPTHSTENCIL;
+    _bufferMask = _bufferMask & BUFFER_DEPTHSTENCIL;
 
     for (auto renderBuffer : _renderBuffers) {
         renderBuffer._texture.reset();
@@ -209,7 +205,7 @@ uint32 Framebuffer::getRenderBufferSubresource(uint32 slot) const {
     }
 }
 
-bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, uint32 subresource) {
+bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
     if (isSwapchain()) {
         return false;
     }
@@ -224,11 +220,11 @@ bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, uint32 su
     updateSize(texture);
 
     // assign the new one
-    _depthStencilBuffer = TextureView(texture, subresource);
+    _depthStencilBuffer = TextureView(texture, subresource, format);
 
-    _buffersMask = ( _buffersMask & ~BUFFER_DEPTHSTENCIL);
+    _bufferMask = ( _bufferMask & ~BUFFER_DEPTHSTENCIL);
     if (texture) {
-        _buffersMask |= BUFFER_DEPTHSTENCIL;
+        _bufferMask |= BUFFER_DEPTHSTENCIL;
     }
 
     return true;
@@ -247,5 +243,14 @@ uint32 Framebuffer::getDepthStencilBufferSubresource() const {
         return 0;
     } else {
         return _depthStencilBuffer._subresource;
+    }
+}
+
+Format Framebuffer::getDepthStencilBufferFormat() const {
+    if (isSwapchain()) {
+      //  return getSwapchain()->getDepthStencilBufferFormat();
+        return _depthStencilBuffer._element;
+    } else {
+        return _depthStencilBuffer._element;
     }
 }
