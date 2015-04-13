@@ -215,10 +215,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-
-
-
-
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
             _sentPosition = bulletToGLM(worldTrans.getOrigin());
@@ -263,10 +259,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QString simulatorID = _entity->getSimulatorID();
         if (simulatorID.isEmpty()) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
+            qDebug() << "claiming simulator ownership";
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
         } else if (simulatorID == myNodeID && _numNonMovingUpdates > 0) {
             // we are the simulator and the object has stopped.  give up "simulator" status
+            qDebug() << "releasing simulator ownership";
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
         }
