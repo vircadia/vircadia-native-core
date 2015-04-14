@@ -69,25 +69,6 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     }
 }
 
-/// Give an EntityItemID and EntityItemProperties, this will either find the correct entity that already exists
-/// in the tree or it will create a new entity of the type specified by the properties and return that item.
-/// In the case that it creates a new item, the item will be properly added to the tree and all appropriate lookup hashes.
-EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = NULL;
-
-    // we need to first see if we already have the entity in our tree by finding the containing element of the entity
-    EntityTreeElement* containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        result = containingElement->getEntityWithEntityItemID(entityID);
-    }
-    
-    // if the element does not exist, then create a new one of the specified type...
-    if (!result) {
-        result = addEntity(entityID, properties);
-    }
-    return result;
-}
-
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);

@@ -216,20 +216,22 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setRotation(_sentRotation);
         }
 
-        const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-        bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
-        const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-        bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
-    
+        bool zeroSpeed = true;
+        bool zeroSpin = true;
+
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
                 _sentVelocity = bulletToGLM(_body->getLinearVelocity());
                 _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
 
                 // if the speeds are very small we zero them out
+                const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
+                zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
                 if (zeroSpeed) {
                     _sentVelocity = glm::vec3(0.0f);
                 }
+                const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
+                zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
                 if (zeroSpin) {
                     _sentAngularVelocity = glm::vec3(0.0f);
                 }
@@ -249,15 +251,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         auto nodeList = DependencyManager::get<NodeList>();
         QString myNodeID = nodeList->getSessionUUID().toString();
         QString simulatorID = _entity->getSimulatorID();
-        qDebug() << "EntityMotionState::sendUpdate" << (zeroSpin && zeroSpin) << "me:" << myNodeID << "owner:" << simulatorID;
         if (simulatorID.isEmpty() && !(zeroSpin && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-            qDebug() << "claiming simulator ownership";
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
         } else if (simulatorID == myNodeID && zeroSpin && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
-            qDebug() << "releasing simulator ownership";
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
         }
@@ -279,7 +278,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 quint64 now = usecTimestampNow();
                 qCDebug(physics) << "EntityMotionState::sendUpdate()";
-                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID()
+                                 << "---------------------------------------------";
                 qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
             #endif //def WANT_DEBUG
 
@@ -287,12 +287,16 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        if (EntityItem::getSendPhysicsUpdates()) {
+        if (EntityItem::getSendPhysicsUpdates() && _numNonMovingUpdates < 4) {
             EntityItemID id(_entity->getID());
             EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
             #ifdef WANT_DEBUG
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
+                qDebug() << "EntityMotionState::sendUpdate" << (zeroSpin && zeroSpin)
+                         << _sentMoving
+                         << _numNonMovingUpdates
+                         << "me:" << myNodeID << "owner:" << simulatorID;
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG

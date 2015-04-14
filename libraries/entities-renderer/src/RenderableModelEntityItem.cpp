@@ -289,6 +289,10 @@ const QString& RenderableModelEntityItem::getCollisionModelURL() const {
 
 bool RenderableModelEntityItem::isReadyToComputeShape() {
 
+    if (_shapeType != SHAPE_TYPE_COMPOUND && _shapeType != SHAPE_TYPE_CONVEX_HULL) {
+        return true;
+    }
+
     if (!_model) {
         return false; // hmm...
     }
@@ -316,6 +320,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
+    if (_shapeType != SHAPE_TYPE_COMPOUND && _shapeType != SHAPE_TYPE_CONVEX_HULL) {
+        info.setParams(getShapeType(), 0.5f * getDimensions());
+        return;
+    }
+
     if (_model->getCollisionURL().isEmpty() || _model->getURL().isEmpty()) {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {

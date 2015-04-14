@@ -731,12 +731,19 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 }
 
                 // If the item already exists in our tree, we want do the following...
+                // 0) if this node is the simulator for the entity, ignore the update packet
                 // 1) allow the existing item to read from the databuffer
                 // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
                 //
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
-                if (entityItem) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                QString myNodeID = nodeList->getSessionUUID().toString();
+                if (entityItem && entityItem->getSimulatorID() == myNodeID) {
+                    // do nothing, this was echoed back to us
+                    qDebug() << "IGNORING ECHOED ENTITY UPDATE";
+                    // _myTree->entityChanged(entityItem);
+                } else if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
@@ -750,7 +757,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     if (bestFitBefore != bestFitAfter) {
                         // This is the case where the entity existed, and is in some element in our tree...                    
                         if (!bestFitBefore && bestFitAfter) {
-                            // This is the case where the entity existed, and is in some element in our tree...                    
+                            // This is the case where the entity existed, and is in some element in our tree...
                             if (currentContainingElement != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
                                 addEntityItem(entityItem);
