@@ -29,7 +29,7 @@
 #include <Shape.h>
 
 #include "FBXReader.h"
-
+#include "ModelFormatLogging.h"
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
 //#define DEBUG_FBXREADER
@@ -458,6 +458,18 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
+QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 4 * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        values.append(glm::vec4(x, y, z, w));
+    }
+    return values;
+}
+
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
@@ -650,7 +662,7 @@ public:
 void printNode(const FBXNode& node, int indentLevel) {
     int indentLength = 2;
     QByteArray spaces(indentLevel * indentLength, ' ');
-    QDebug nodeDebug = qDebug();
+    QDebug nodeDebug = qDebug(modelformat);
     
     nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
@@ -739,6 +751,11 @@ public:
     bool normalsByVertex;
     QVector<glm::vec3> normals;
     QVector<int> normalIndices;
+
+    bool colorsByVertex;
+    QVector<glm::vec4> colors;
+    QVector<int> colorIndices;
+
     QVector<glm::vec2> texCoords;
     QVector<int> texCoordIndices;
 
@@ -776,6 +793,23 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         }
     }
 
+
+    glm::vec4 color;
+    bool hasColors = (data.colors.size() > 1);
+    if (hasColors) {
+        int colorIndex = data.colorsByVertex ? vertexIndex : index;
+        if (data.colorIndices.isEmpty()) {    
+            if (colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        } else if (colorIndex < data.colorIndices.size()) {
+            colorIndex = data.colorIndices.at(colorIndex);
+            if (colorIndex >= 0 && colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        }
+    }
+
     if (data.texCoordIndices.isEmpty()) {
         if (index < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(index);
@@ -810,6 +844,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
+        if (hasColors) {
+            data.extracted.mesh.colors.append(glm::vec3(color));
+        }
         if (hasMoreTexcoords) {
             data.extracted.mesh.texCoords1.append(vertex.texCoord1);
         }
@@ -852,6 +889,28 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 // hack to work around wacky Makehuman exports
                 data.normalsByVertex = true;
             }
+        } else if (child.name == "LayerElementColor") {
+            data.colorsByVertex = false;
+            bool indexToDirect = false;
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "Colors") {
+                    data.colors = createVec4Vector(getDoubleVector(subdata));
+
+                } else if (subdata.name == "ColorsIndex") {
+                    data.colorIndices = getIntVector(subdata);
+
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
+                    data.colorsByVertex = true;
+                    
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                    indexToDirect = true;
+                }
+            }
+            if (indexToDirect && data.normalIndices.isEmpty()) {
+                // hack to work around wacky Makehuman exports
+                data.colorsByVertex = true;
+            }
+         
         } else if (child.name == "LayerElementUV") {
             if (child.properties.at(0).toInt() == 0) {
                 AttributeData attrib;
@@ -912,7 +971,7 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                     data.attributes.push_back(attrib);
                 } else {
                     // WTF same names for different UVs?
-                    qDebug() << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
+                    qCDebug(modelformat) << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
@@ -2132,7 +2191,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
                 }
                 if ((part.triangleIndices.size() % 3) != 0){
-                    qDebug() << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
                 }
             }
         }
@@ -2153,7 +2212,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
-                    qDebug() << "Joint not in model list: " << jointID;
+                    qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
@@ -2175,7 +2234,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
-                qDebug() << "Model not in model list: " << modelID;
+                qCDebug(modelformat) << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);

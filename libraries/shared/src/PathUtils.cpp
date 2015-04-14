@@ -29,10 +29,9 @@ QString& PathUtils::resourcesPath() {
 
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
+    QString fileNameLowered = fileName.toLower();
     foreach (const QString possibleExtension, possibleExtensions) {
-        if (fileName.endsWith(possibleExtension) ||
-            fileName.endsWith(possibleExtension.toUpper()) ||
-            fileName.endsWith(possibleExtension.toLower())) {
+        if (fileNameLowered.endsWith(possibleExtension.toLower())) {
             return fileName.left(fileName.count() - possibleExtension.count() - 1);
         }
     }

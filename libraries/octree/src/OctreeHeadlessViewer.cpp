@@ -11,6 +11,7 @@
 
 #include <NodeList.h>
 
+#include "OctreeLogging.h"
 #include "OctreeHeadlessViewer.h"
 
 OctreeHeadlessViewer::OctreeHeadlessViewer() :
@@ -41,16 +42,16 @@ void OctreeHeadlessViewer::queryOctree() {
     bool wantExtraDebugging = false;
 
     if (wantExtraDebugging) {
-        qDebug() << "OctreeHeadlessViewer::queryOctree() _jurisdictionListener=" << _jurisdictionListener;
-        qDebug() << "---------------";
-        qDebug() << "_jurisdictionListener=" << _jurisdictionListener;
-        qDebug() << "Jurisdictions...";
+        qCDebug(octree) << "OctreeHeadlessViewer::queryOctree() _jurisdictionListener=" << _jurisdictionListener;
+        qCDebug(octree) << "---------------";
+        qCDebug(octree) << "_jurisdictionListener=" << _jurisdictionListener;
+        qCDebug(octree) << "Jurisdictions...";
         jurisdictions.lockForRead();
         for (NodeToJurisdictionMapIterator i = jurisdictions.begin(); i != jurisdictions.end(); ++i) {
-            qDebug() << i.key() << ": " << &i.value();
+            qCDebug(octree) << i.key() << ": " << &i.value();
         }
         jurisdictions.unlock();
-        qDebug() << "---------------";
+        qCDebug(octree) << "---------------";
     }
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
@@ -115,7 +116,7 @@ void OctreeHeadlessViewer::queryOctree() {
     });
 
     if (wantExtraDebugging) {
-        qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
+        qCDebug(octree, "Servers: total %d, in view %d, unknown jurisdiction %d",
             totalServers, inViewServers, unknownJurisdictionServers);
     }
 
@@ -136,7 +137,7 @@ void OctreeHeadlessViewer::queryOctree() {
     }
 
     if (wantExtraDebugging) {
-        qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
+        qCDebug(octree, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -157,7 +158,7 @@ void OctreeHeadlessViewer::queryOctree() {
                 jurisdictions.unlock();
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
-                    qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.";
+                    qCDebug(octree) << "no known jurisdiction for node " << *node << ", assume it's visible.";
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
@@ -179,7 +180,7 @@ void OctreeHeadlessViewer::queryOctree() {
                 } else {
                     jurisdictions.unlock();
                     if (wantExtraDebugging) {
-                        qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
+                        qCDebug(octree) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }
                 }
             }
@@ -187,11 +188,11 @@ void OctreeHeadlessViewer::queryOctree() {
             if (inView) {
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
                 if (wantExtraDebugging) {
-                    qDebug() << "inView for node " << *node << ", give it budget of " << perServerPPS;
+                    qCDebug(octree) << "inView for node " << *node << ", give it budget of " << perServerPPS;
                 }
             } else if (unknownView) {
                 if (wantExtraDebugging) {
-                    qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
+                    qCDebug(octree) << "no known jurisdiction for node " << *node << ", give it budget of "
                     << perUnknownServer << " to send us jurisdiction.";
                 }
                 
@@ -205,11 +206,11 @@ void OctreeHeadlessViewer::queryOctree() {
                     _octreeQuery.setCameraNearClip(0.1f);
                     _octreeQuery.setCameraFarClip(0.1f);
                     if (wantExtraDebugging) {
-                        qDebug() << "Using 'minimal' camera position for node" << *node;
+                        qCDebug(octree) << "Using 'minimal' camera position for node" << *node;
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        qDebug() << "Using regular camera position for node" << *node;
+                        qCDebug(octree) << "Using regular camera position for node" << *node;
                     }
                 }
                 _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);

@@ -194,6 +194,10 @@ input:disabled, textarea:disabled {
     color: rgb(160, 160, 160);
 }
 
+#properties-list input[type=checkbox] {
+    vertical-align: bottom;
+}
+
 #properties-list input[type=button] {
     cursor: pointer;
     background-color: rgb(51, 102, 102);
@@ -210,8 +214,8 @@ input:disabled, textarea:disabled {
 }
 
 #properties-list .property {
-    padding: 6pt 6pt;
-    border-top: 0.75pt solid rgb(63, 63, 63);
+    padding: 4pt;
+    border-bottom: 0.75pt solid rgb(63, 63, 63);
     min-height: 1em;
 }
 
@@ -223,10 +227,6 @@ table#properties-list {
     background-color: #efefef;
     font-family: Arial;
     table-layout: fixed;
-}
-
-#properties-list > div {
-    margin: 3pt 0;
 }
 
 #properties-list {

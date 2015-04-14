@@ -44,6 +44,7 @@
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
 #include "Util.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -309,7 +310,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 headPosition(getHead()->getEyePosition());
     float torsoToHead = glm::length(headPosition - torsoPosition);
     glm::vec3 position;
-    qDebug("head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
+    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
 
     //  Torso Sphere
     position = torsoPosition;
@@ -327,7 +328,7 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool postLighting) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
@@ -448,7 +449,7 @@ void MyAvatar::stopRecording() {
 
 void MyAvatar::saveRecording(QString filename) {
     if (!_recorder) {
-        qDebug() << "There is no recording to save";
+        qCDebug(interfaceapp) << "There is no recording to save";
         return;
     }
     if (QThread::currentThread() != thread()) {
@@ -467,7 +468,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_recorder) {
-        qDebug() << "There is no recording to load";
+        qCDebug(interfaceapp) << "There is no recording to load";
         return;
     }
     if (!_player) {
@@ -645,6 +646,7 @@ void MyAvatar::saveData() {
         settings.setValue("firstFrame", pointer->getFirstFrame());
         settings.setValue("lastFrame", pointer->getLastFrame());
         settings.setValue("maskedJoints", pointer->getMaskedJoints());
+        settings.setValue("running", pointer->getLoop() && pointer->isRunning());
     }
     settings.endArray();
     
@@ -763,6 +765,9 @@ void MyAvatar::loadData() {
         handle->setFirstFrame(settings.value("firstFrame", 0.0f).toFloat());
         handle->setLastFrame(settings.value("lastFrame", INT_MAX).toFloat());
         handle->setMaskedJoints(settings.value("maskedJoints").toStringList());
+        if (settings.value("loop", true).toBool() && settings.value("running", false).toBool()) {
+            handle->setRunning(true);
+        }
     }
     settings.endArray();
     
@@ -831,7 +836,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
-    qDebug() << "Error: ignoring update packet for MyAvatar"
+    qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
         << " packetLength = " << packet.size() 
         << "  offset = " << offset;
     // this packet is just bad, so we pretend that we unpacked it ALL
@@ -1139,7 +1144,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1147,27 +1152,29 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
 
-    // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
-    if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
-        renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
-    } else {
-        float clipDistance = _skeletonModel.getHeadClipDistance();
-        if (OculusManager::isConnected()) {
-            // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
-            glm::vec3 cameraToAvatar = _position - cameraPos;
-            cameraToAvatar.y = 0.0f;
-            glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
-            float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
-            if (headOffset > 0) {
-                clipDistance += headOffset;
+    // Only tweak the frustum near far if it's not shadow
+    if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+        // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
+        if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
+            renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
+        } else {
+            float clipDistance = _skeletonModel.getHeadClipDistance();
+            if (OculusManager::isConnected()) {
+                // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
+                glm::vec3 cameraToAvatar = _position - cameraPos;
+                cameraToAvatar.y = 0.0f;
+                glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
+                float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
+                if (headOffset > 0) {
+                    clipDistance += headOffset;
+                }
             }
+            renderFrustum->setNearClip(clipDistance);
         }
-        renderFrustum->setNearClip(clipDistance);
     }
 
     //  Render the body's voxels and head
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    RenderArgs::RenderMode modelRenderMode = renderMode;
     if (!postLighting) {
         RenderArgs args;
         args._viewFrustum = renderFrustum;
@@ -1186,9 +1193,9 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, boo
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
+bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
     const Head* head = getHead();
-    return (renderMode != NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
+    return (renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1255,7 +1262,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
 }
 
-glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {
+glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool isHovering) {
     if (! (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED)) {
         return localVelocity;
     }
@@ -1276,7 +1283,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     if (_isPushing || isThrust || 
             (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE && 
             _motionBehaviors | AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
-        // we don't want to break if anything is pushing the avatar around
+        // we don't want to brake if something is pushing the avatar around
         timescale = _keyboardMotorTimescale;
         _isBraking = false;
     } else {
@@ -1307,14 +1314,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         if (directionLength > EPSILON) {
             direction /= directionLength;
 
-            if (hasFloor) {
-                // we're walking --> simple exponential decay toward target walk speed
-                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
-                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
-                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
-
-            } else {
-                // we're flying --> more complex curve
+            if (isHovering) {
+                // we're flying --> complex acceleration curve with high max speed
                 float motorSpeed = glm::length(_keyboardMotorVelocity);
                 float finalMaxMotorSpeed = _scale * MAX_KEYBOARD_MOTOR_SPEED;
                 float speedGrowthTimescale  = 2.0f;
@@ -1330,6 +1331,12 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                     motorSpeed = finalMaxMotorSpeed;
                 }
                 _keyboardMotorVelocity = motorSpeed * direction;
+
+            } else {
+                // we're using a floor --> simple exponential decay toward target walk speed
+                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
+                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
+                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
             }
             _isPushing = true;
         } 
@@ -1337,7 +1344,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     } else {
         _keyboardMotorVelocity = glm::vec3(0.0f);
         newLocalVelocity = (1.0f - motorEfficiency) * localVelocity;
-        if (hasFloor && !_wasPushing) {
+        if (!isHovering && !_wasPushing) {
             float speed = glm::length(newLocalVelocity);
             if (speed > MIN_AVATAR_SPEED) {
                 // add small constant friction to help avatar drift to a stop sooner at low speeds
@@ -1377,8 +1384,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
 
-    bool isOnGround = _characterController.onGround();
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isOnGround);
+    bool isHovering = _characterController.isHovering();
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
@@ -1470,33 +1477,33 @@ void MyAvatar::maybeUpdateBillboard() {
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
     }
 }
 
 void MyAvatar::decreaseSize() {
     if (MIN_AVATAR_SCALE < (1.0f - SCALING_RATIO) * _targetScale) {
         _targetScale *= (1.0f - SCALING_RATIO);
-        qDebug("Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
     }
 }
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qDebug("Reseted scale to %f", _targetScale);
+    qCDebug(interfaceapp, "Reseted scale to %f", _targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
     
-    qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
+    qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
     
     glm::vec3 shiftedPosition = newPosition;
     
     if (hasOrientation) {
-        qDebug().nospace() << "MyAvatar goToLocation - new orientation is "
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
             << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
         
         // orient the user to face the target
@@ -1534,19 +1541,19 @@ void MyAvatar::updateMotionBehavior() {
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
-void MyAvatar::renderAttachments(RenderMode renderMode, RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == MIRROR_RENDER_MODE) {
+void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == RenderArgs::MIRROR_RENDER_MODE) {
         Avatar::renderAttachments(renderMode, args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
-    Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
-        Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+ //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode, args);        
+            _attachmentModels.at(i)->render(1.0f, renderMode, args);        
         }
     }
 }

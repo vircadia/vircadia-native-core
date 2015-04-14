@@ -12,6 +12,8 @@
 #include <qdebug.h>
 #include <qscriptengine.h>
 
+#include "ScriptEngineLogging.h"
+
 #include "KeyEvent.h"
 
 KeyEvent::KeyEvent() :
@@ -276,7 +278,7 @@ void KeyEvent::fromScriptValue(const QScriptValue& object, KeyEvent& event) {
     
     const bool wantDebug = false;
     if (wantDebug) {
-        qDebug() << "event.key=" << event.key
+        qCDebug(scriptengine) << "event.key=" << event.key
         << " event.text=" << event.text
         << " event.isShifted=" << event.isShifted
         << " event.isControl=" << event.isControl

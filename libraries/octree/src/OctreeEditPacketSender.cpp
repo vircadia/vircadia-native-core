@@ -15,6 +15,7 @@
 
 #include <OctalCode.h>
 #include <PacketHeaders.h>
+#include "OctreeLogging.h"
 #include "OctreeEditPacketSender.h"
 
 const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND;
@@ -119,7 +120,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 quint64 queuedAt = usecTimestampNow();
                 quint64 transitTime = queuedAt - createdAt;
                 
-                qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
+                qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
                 " - command to node bytes=" << length <<
                 " satoshiCost=" << satoshiCost <<
                 " sequence=" << sequence <<

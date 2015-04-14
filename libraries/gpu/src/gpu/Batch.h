@@ -104,6 +104,8 @@ public:
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
 
+    void setStateBlendFactor(const Vec4& factor);
+
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
@@ -128,7 +130,7 @@ public:
 
     void _glDepthFunc(GLenum func);
     void _glDepthMask(GLboolean flag);
-    void _glDepthRange(GLclampd zNear, GLclampd zFar);
+    void _glDepthRange(GLfloat  zNear, GLfloat  zFar);
 
     void _glBindBuffer(GLenum target, GLuint buffer);
 
@@ -143,15 +145,6 @@ public:
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
-    void _glDrawArrays(GLenum mode, GLint first, GLsizei count);
-    void _glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices);
-
-    void _glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer);
-    void _glNormalPointer(GLenum type, GLsizei stride, const void *pointer);
-    void _glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer);
-    void _glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer);
-
-    void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
     void _glEnableVertexAttribArray(GLint location);
     void _glDisableVertexAttribArray(GLint location);
 
@@ -172,6 +165,8 @@ public:
         COMMAND_setProjectionTransform,
 
         COMMAND_setPipeline,
+        COMMAND_setStateBlendFactor,
+
         COMMAND_setUniformBuffer,
         COMMAND_setUniformTexture,
 
@@ -204,15 +199,6 @@ public:
         COMMAND_glUniform4fv,
         COMMAND_glUniformMatrix4fv,
 
-        COMMAND_glDrawArrays,
-        COMMAND_glDrawRangeElements,
-
-        COMMAND_glColorPointer,
-        COMMAND_glNormalPointer,
-        COMMAND_glTexCoordPointer,
-        COMMAND_glVertexPointer,
-
-        COMMAND_glVertexAttribPointer,
         COMMAND_glEnableVertexAttribArray,
         COMMAND_glDisableVertexAttribArray,
 
@@ -233,28 +219,18 @@ public:
             uint32 _uint;
             float   _float;
             char _chars[4];
-            double _double;
         };
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
-        Param(double val) : _double(val) {}
     };
     typedef std::vector<Param> Params;
 
     const Params& getParams() const { return _params; }
 
-    class ResourceCache {
-    public:
-        union {
-            Resource* _resource;
-            const void* _pointer;
-        };
-        ResourceCache(Resource* res) : _resource(res) {}
-        ResourceCache(const void* pointer) : _pointer(pointer) {}
-    };
-    typedef std::vector<ResourceCache> Resources;
-
+    // The template cache mechanism for the gpu::Object passed to the gpu::Batch
+    // this allow us to have one cache container for each different types and eventually
+    // be smarter how we manage them
     template <typename T>
     class Cache {
     public:
@@ -291,26 +267,10 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
 
+    // Cache Data in a byte array if too big to fit in Param
+    // FOr example Mat4s are going there
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
-
-    uint32 cacheResource(Resource* res);
-    uint32 cacheResource(const void* pointer);
-    ResourceCache* editResource(uint32 offset) {
-        if (offset >= _resources.size()) {
-            return 0;
-        }
-        return (_resources.data() + offset);
-    }
-
-    template <typename T>
-    T* editResourcePointer(uint32 offset) {
-        if (offset >= _resources.size()) {
-            return 0;
-        }
-        return reinterpret_cast<T*>((_resources.data() + offset)->_pointer);
-    }
-
     uint32 cacheData(uint32 size, const void* data);
     Byte* editData(uint32 offset) {
         if (offset >= _data.size()) {
@@ -322,7 +282,6 @@ public:
     Commands _commands;
     CommandOffsets _commandOffsets;
     Params _params;
-    Resources _resources;
     Bytes _data;
 
     BufferCaches _buffers;

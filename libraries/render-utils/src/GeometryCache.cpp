@@ -25,6 +25,7 @@
 #include <SharedUtil.h>
 
 #include "TextureCache.h"
+#include "RenderUtilsLogging.h"
 #include "GeometryCache.h"
 
 //#define WANT_DEBUG
@@ -40,10 +41,10 @@ GeometryCache::GeometryCache() :
 
 GeometryCache::~GeometryCache() {
     #ifdef WANT_DEBUG
-        qDebug() << "GeometryCache::~GeometryCache()... ";
-        qDebug() << "    _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
-        qDebug() << "    _line3DVBOs.size():" << _line3DVBOs.size();
-        qDebug() << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
+        qCDebug(renderutils) << "GeometryCache::~GeometryCache()... ";
+        qCDebug(renderutils) << "    _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
+        qCDebug(renderutils) << "    _line3DVBOs.size():" << _line3DVBOs.size();
+        qCDebug(renderutils) << "    BatchItemDetails... population:" << GeometryCache::BatchItemDetails::population;
     #endif //def WANT_DEBUG
 }
 
@@ -70,7 +71,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         if (registered && _registeredSphereVertices.contains(id)) {
             _registeredSphereVertices[id].clear();
             #ifdef WANT_DEBUG
-                qDebug() << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
+                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
             #endif
         }
 
@@ -114,17 +115,17 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         delete[] vertexData;
 
         #ifdef WANT_DEBUG
-            qDebug() << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
-            qDebug() << "    radius:" << radius;
-            qDebug() << "    slices:" << slices;
-            qDebug() << "    stacks:" << stacks;
+            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING VERTICES BUFFER";
+            qCDebug(renderutils) << "    radius:" << radius;
+            qCDebug(renderutils) << "    slices:" << slices;
+            qCDebug(renderutils) << "    stacks:" << stacks;
 
-            qDebug() << "    _sphereVertices.size():" << _sphereVertices.size();
+            qCDebug(renderutils) << "    _sphereVertices.size():" << _sphereVertices.size();
         #endif
     }
     #ifdef WANT_DEBUG
     else if (registered) {
-        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED VERTICES BUFFER";
+        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED VERTICES BUFFER";
     }
     #endif
     
@@ -134,7 +135,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         if (registered && _registeredSphereIndices.contains(id)) {
             _registeredSphereIndices[id].clear();
             #ifdef WANT_DEBUG
-                qDebug() << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
+                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
             #endif
         }
 
@@ -199,18 +200,18 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         delete[] indexData;
         
         #ifdef WANT_DEBUG
-            qDebug() << "GeometryCache::renderSphere()... --- CREATING INDICES BUFFER";
-            qDebug() << "    radius:" << radius;
-            qDebug() << "    slices:" << slices;
-            qDebug() << "    stacks:" << stacks;
-            qDebug() << "indexCount:" << indexCount;
-            qDebug() << "   indices:" << indices;
-            qDebug() << "    _sphereIndices.size():" << _sphereIndices.size();
+            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING INDICES BUFFER";
+            qCDebug(renderutils) << "    radius:" << radius;
+            qCDebug(renderutils) << "    slices:" << slices;
+            qCDebug(renderutils) << "    stacks:" << stacks;
+            qCDebug(renderutils) << "indexCount:" << indexCount;
+            qCDebug(renderutils) << "   indices:" << indices;
+            qCDebug(renderutils) << "    _sphereIndices.size():" << _sphereIndices.size();
         #endif
     }
     #ifdef WANT_DEBUG
     else if (registered) {
-        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED INDICES BUFFER";
+        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED INDICES BUFFER";
     }
     #endif
 
@@ -220,7 +221,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         if (registered && _registeredSphereColors.contains(id)) {
             _registeredSphereColors[id].clear();
             #ifdef WANT_DEBUG
-                qDebug() << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
+                qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
             #endif
         }
 
@@ -248,17 +249,17 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         delete[] colorData;
 
         #ifdef WANT_DEBUG
-            qDebug() << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
-            qDebug() << "    vertices:" << vertices;
-            qDebug() << "    color:" << color;
-            qDebug() << "    slices:" << slices;
-            qDebug() << "    stacks:" << stacks;
-            qDebug() << "    _sphereColors.size():" << _sphereColors.size();
+            qCDebug(renderutils) << "GeometryCache::renderSphere()... --- CREATING COLORS BUFFER";
+            qCDebug(renderutils) << "    vertices:" << vertices;
+            qCDebug(renderutils) << "    color:" << color;
+            qCDebug(renderutils) << "    slices:" << slices;
+            qCDebug(renderutils) << "    stacks:" << stacks;
+            qCDebug(renderutils) << "    _sphereColors.size():" << _sphereColors.size();
         #endif
     }
     #ifdef WANT_DEBUG
     else if (registered) {
-        qDebug() << "renderSphere()... REUSING PREVIOUSLY REGISTERED COLORS BUFFER";
+        qCDebug(renderutils) << "renderSphere()... REUSING PREVIOUSLY REGISTERED COLORS BUFFER";
     }
     #endif
 
@@ -489,7 +490,7 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
 // TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     #ifdef WANT_DEBUG
-        qDebug() << "GeometryCache::renderGrid(x["<<x<<"], "
+        qCDebug(renderutils) << "GeometryCache::renderGrid(x["<<x<<"], "
             "y["<<y<<"],"
             "w["<<width<<"],"
             "h["<<height<<"],"
@@ -601,7 +602,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     if (details.isCreated) {
         details.clear();
         #ifdef WANT_DEBUG
-            qDebug() << "updateVertices()... RELEASING REGISTERED";
+            qCDebug(renderutils) << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -653,7 +654,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     delete[] colorData;
 
     #ifdef WANT_DEBUG
-        qDebug() << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
+        qCDebug(renderutils) << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
 
@@ -663,7 +664,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     if (details.isCreated) {
         details.clear();
         #ifdef WANT_DEBUG
-            qDebug() << "updateVertices()... RELEASING REGISTERED";
+            qCDebug(renderutils) << "updateVertices()... RELEASING REGISTERED";
         #endif // def WANT_DEBUG
     }
 
@@ -716,7 +717,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     delete[] colorData;
 
     #ifdef WANT_DEBUG
-        qDebug() << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
+        qCDebug(renderutils) << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
     #endif
 }
 
@@ -960,12 +961,12 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
             details.clear();
             _lastRegisteredBevelRects[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderBevelCornersRect()... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderBevelCornersRect()... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderBevelCornersRect()... REUSING PREVIOUSLY REGISTERED";
+            qCDebug(renderutils) << "renderBevelCornersRect()... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
@@ -1068,12 +1069,12 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
             details.clear();
             _lastRegisteredQuad2D[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() 2D ... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderQuad() 2D ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad() 2D ... REUSING PREVIOUSLY REGISTERED";
+            qCDebug(renderutils) << "renderQuad() 2D ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
@@ -1153,12 +1154,12 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
             details.clear();
             _lastRegisteredQuad2DTexture[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() 2D+texture ... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderQuad() 2D+texture ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad() 2D+texture ... REUSING PREVIOUSLY REGISTERED";
+            qCDebug(renderutils) << "renderQuad() 2D+texture ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
@@ -1243,12 +1244,12 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
             details.clear();
             _lastRegisteredQuad3D[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() 3D ... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderQuad() 3D ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad() 3D ... REUSING PREVIOUSLY REGISTERED";
+            qCDebug(renderutils) << "renderQuad() 3D ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
@@ -1318,14 +1319,14 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
                     const glm::vec4& color, int id) {
 
     #ifdef WANT_DEBUG
-        qDebug() << "renderQuad() vec3 + texture VBO...";
-        qDebug() << "    topLeft:" << topLeft;
-        qDebug() << "    bottomLeft:" << bottomLeft;
-        qDebug() << "    bottomRight:" << bottomRight;
-        qDebug() << "    topRight:" << topRight;
-        qDebug() << "    texCoordTopLeft:" << texCoordTopLeft;
-        qDebug() << "    texCoordBottomRight:" << texCoordBottomRight;
-        qDebug() << "    color:" << color;
+        qCDebug(renderutils) << "renderQuad() vec3 + texture VBO...";
+        qCDebug(renderutils) << "    topLeft:" << topLeft;
+        qCDebug(renderutils) << "    bottomLeft:" << bottomLeft;
+        qCDebug(renderutils) << "    bottomRight:" << bottomRight;
+        qCDebug(renderutils) << "    topRight:" << topRight;
+        qCDebug(renderutils) << "    texCoordTopLeft:" << texCoordTopLeft;
+        qCDebug(renderutils) << "    texCoordBottomRight:" << texCoordBottomRight;
+        qCDebug(renderutils) << "    color:" << color;
     #endif //def WANT_DEBUG
     
     bool registered = (id != UNKNOWN_ID);
@@ -1342,12 +1343,12 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
             details.clear();
             _lastRegisteredQuad3DTexture[id] = key;
             #ifdef WANT_DEBUG
-                qDebug() << "renderQuad() 3D+texture ... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderQuad() 3D+texture ... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderQuad() 3D+texture ... REUSING PREVIOUSLY REGISTERED";
+            qCDebug(renderutils) << "renderQuad() 3D+texture ... REUSING PREVIOUSLY REGISTERED";
         }
         #endif // def WANT_DEBUG
     }
@@ -1434,7 +1435,7 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
             details.clear();
             _lastRegisteredDashedLines[id] = key;
             #ifdef WANT_DEBUG
-                qDebug() << "renderDashedLine()... RELEASING REGISTERED";
+                qCDebug(renderutils) << "renderDashedLine()... RELEASING REGISTERED";
             #endif // def WANT_DEBUG
         }
     }
@@ -1516,9 +1517,9 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
 
         #ifdef WANT_DEBUG
         if (registered) {
-            qDebug() << "new registered dashed line buffer made -- _registeredVertices:" << _registeredDashedLines.size();
+            qCDebug(renderutils) << "new registered dashed line buffer made -- _registeredVertices:" << _registeredDashedLines.size();
         } else {
-            qDebug() << "new dashed lines buffer made -- _dashedLines:" << _dashedLines.size();
+            qCDebug(renderutils) << "new dashed lines buffer made -- _dashedLines:" << _dashedLines.size();
         }
         #endif
     }
@@ -1551,7 +1552,7 @@ GeometryCache::BatchItemDetails::BatchItemDetails() :
 {
     population++;
     #ifdef WANT_DEBUG
-        qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+        qCDebug(renderutils) << "BatchItemDetails()... population:" << population << "**********************************";
     #endif
 }
 
@@ -1566,7 +1567,7 @@ GeometryCache::BatchItemDetails::BatchItemDetails(const GeometryCache::BatchItem
 {
     population++;
     #ifdef WANT_DEBUG
-        qDebug() << "BatchItemDetails()... population:" << population << "**********************************";
+        qCDebug(renderutils) << "BatchItemDetails()... population:" << population << "**********************************";
     #endif
 }
 
@@ -1574,7 +1575,7 @@ GeometryCache::BatchItemDetails::~BatchItemDetails() {
     population--;
     clear(); 
     #ifdef WANT_DEBUG
-        qDebug() << "~BatchItemDetails()... population:" << population << "**********************************";
+        qCDebug(renderutils) << "~BatchItemDetails()... population:" << population << "**********************************";
     #endif
 }
 
@@ -1612,12 +1613,12 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
             details.clear();
             _lastRegisteredLine3D[id] = key;  
             #ifdef WANT_DEBUG
-                qDebug() << "renderLine() 3D ... RELEASING REGISTERED line";
+                qCDebug(renderutils) << "renderLine() 3D ... RELEASING REGISTERED line";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderLine() 3D ... REUSING PREVIOUSLY REGISTERED line";
+            qCDebug(renderutils) << "renderLine() 3D ... REUSING PREVIOUSLY REGISTERED line";
         }
         #endif // def WANT_DEBUG
     }
@@ -1657,9 +1658,9 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
 
         #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
-                qDebug() << "new renderLine() 3D VBO made -- _line3DVBOs.size():" << _line3DVBOs.size();
+                qCDebug(renderutils) << "new renderLine() 3D VBO made -- _line3DVBOs.size():" << _line3DVBOs.size();
             } else {
-                qDebug() << "new registered renderLine() 3D VBO made -- _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
+                qCDebug(renderutils) << "new registered renderLine() 3D VBO made -- _registeredLine3DVBOs.size():" << _registeredLine3DVBOs.size();
             }
         #endif
     }
@@ -1704,12 +1705,12 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
             details.clear();
             _lastRegisteredLine2D[id] = key;
             #ifdef WANT_DEBUG
-                qDebug() << "renderLine() 2D ... RELEASING REGISTERED line";
+                qCDebug(renderutils) << "renderLine() 2D ... RELEASING REGISTERED line";
             #endif // def WANT_DEBUG
         }
         #ifdef WANT_DEBUG
         else {
-            qDebug() << "renderLine() 2D ... REUSING PREVIOUSLY REGISTERED line";
+            qCDebug(renderutils) << "renderLine() 2D ... REUSING PREVIOUSLY REGISTERED line";
         }
         #endif // def WANT_DEBUG
     }
@@ -1749,9 +1750,9 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
 
         #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
-                qDebug() << "new renderLine() 2D VBO made -- _line3DVBOs.size():" << _line2DVBOs.size();
+                qCDebug(renderutils) << "new renderLine() 2D VBO made -- _line3DVBOs.size():" << _line2DVBOs.size();
             } else {
-                qDebug() << "new registered renderLine() 2D VBO made -- _registeredLine2DVBOs.size():" << _registeredLine2DVBOs.size();
+                qCDebug(renderutils) << "new registered renderLine() 2D VBO made -- _registeredLine2DVBOs.size():" << _registeredLine2DVBOs.size();
             }
         #endif
     }
@@ -1998,7 +1999,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
             }
         }
     } else {
-        qDebug() << "Adding a name url pair to pending" << name << url;
+        qCDebug(renderutils) << "Adding a name url pair to pending" << name << url;
         // we don't have meshes downloaded yet, so hold this texture as pending
         _pendingTextureChanges.insert(name, url);
     }
@@ -2112,7 +2113,7 @@ void GeometryReader::run() {
         }
 
     } catch (const QString& error) {
-        qDebug() << "Error reading " << _url << ": " << error;
+        qCDebug(renderutils) << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
     }
     _reply->deleteLater();
@@ -2136,7 +2137,7 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
         reply->deleteLater();
         QString filename = _mapping.value("filename").toString();
         if (filename.isNull()) {
-            qDebug() << "Mapping file " << url << " has no filename.";
+            qCDebug(renderutils) << "Mapping file " << url << " has no filename.";
             finishedLoading(false);
             
         } else {

@@ -338,6 +338,8 @@ signals:
     void headURLChanged(const QString& newValue, const QString& modelName);
     void bodyURLChanged(const QString& newValue, const QString& modelName);
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
+    
+    void beforeAboutToQuit();
 
 public slots:
     void domainChanged(const QString& domainHostname);

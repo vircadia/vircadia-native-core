@@ -12,6 +12,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
+#include "AvatarLogging.h"
 #include "AvatarHashMap.h"
 
 AvatarHashMap::AvatarHashMap() {
@@ -20,7 +21,7 @@ AvatarHashMap::AvatarHashMap() {
 
 
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
-    qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
+    qCDebug(avatars) << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
 }
 
@@ -84,7 +85,7 @@ AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID,
         // insert the new avatar into our hash
         matchingAvatar = newSharedAvatar();
     
-        qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
+        qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
         
         matchingAvatar->setSessionUUID(sessionUUID);
         matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);

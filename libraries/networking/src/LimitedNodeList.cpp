@@ -30,6 +30,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
+#include "NetworkLogging.h"
 
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
@@ -60,14 +61,14 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     }
     
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
-    qDebug() << "NodeList socket is listening on" << _nodeSocket.localPort();
+    qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
     
     if (dtlsListenPort > 0) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
         
         _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
-        qDebug() << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
+        qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
     const int LARGER_BUFFER_SIZE = 1048576;
@@ -94,7 +95,7 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     _sessionUUID = sessionUUID;
     
     if (sessionUUID != oldUUID) {
-        qDebug() << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
+        qCDebug(networking) << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
         << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
         emit uuidChanged(sessionUUID, oldUUID);
     }
@@ -125,7 +126,7 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
         // DTLS requires that IP_DONTFRAG be set
         // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
         
-        qDebug() << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
+        qCDebug(networking) << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
     
     return *_dtlsSocket;
@@ -147,11 +148,11 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         if (oldBufferSize < numBytes) {
             int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
-            qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
+            qCDebug(networking) << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
                 << newBufferSize << "bytes";
         } else {
             // don't make the buffer smaller
-            qDebug() << "Did not change socket" << bufferTypeString << "buffer size from" << oldBufferSize
+            qCDebug(networking) << "Did not change socket" << bufferTypeString << "buffer size from" << oldBufferSize
                 << "since it is larger than desired size of" << numBytes;
         }
     }
@@ -169,7 +170,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
         
         QUuid senderUUID = uuidFromPacketHeader(packet);
         if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
-            qDebug() << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
+            qCDebug(networking) << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
             << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
 
@@ -193,7 +194,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                 
                 QUuid senderUUID = uuidFromPacketHeader(packet);
                 if (!hashDebugSuppressMap.contains(senderUUID, checkType)) {
-                    qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
+                    qCDebug(networking) << "Packet hash mismatch on" << checkType << "- Sender"
                     << uuidFromPacketHeader(packet);
                     
                     hashDebugSuppressMap.insert(senderUUID, checkType);
@@ -203,7 +204,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
             
-            qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
+            qCDebug(networking) << "Packet of type" << checkType << "received from unknown node with UUID"
                 << qPrintable(uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet)));
         }
     } else {
@@ -246,7 +247,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
     if (bytesWritten < 0) {
-        qDebug() << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
+        qCDebug(networking) << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
     }
     
     return bytesWritten;
@@ -368,7 +369,7 @@ SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet
 }
 
 void LimitedNodeList::eraseAllNodes() {
-    qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
+    qCDebug(networking) << "Clearing the NodeList. Deleting all nodes in list.";
     
     QSet<SharedNodePointer> killedNodes;
     eachNode([&killedNodes](const SharedNodePointer& node){
@@ -417,7 +418,7 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
 }
 
 void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
-    qDebug() << "Killed" << *node;
+    qCDebug(networking) << "Killed" << *node;
     emit nodeKilled(node);
 }
 
@@ -442,7 +443,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
         
-        qDebug() << "Added" << *newNode;
+        qCDebug(networking) << "Added" << *newNode;
         
         emit nodeAdded(newNodePointer);
         
@@ -629,7 +630,7 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
                         
-                        qDebug("New public socket received from STUN server is %s:%hu",
+                        qCDebug(networking, "New public socket received from STUN server is %s:%hu",
                                _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                                _publicSockAddr.getPort());
                         
@@ -660,9 +661,9 @@ void LimitedNodeList::updateLocalSockAddr() {
     if (newSockAddr != _localSockAddr) {
         
         if (_localSockAddr.isNull()) {
-            qDebug() << "Local socket is" << newSockAddr;
+            qCDebug(networking) << "Local socket is" << newSockAddr;
         } else {
-            qDebug() << "Local socket has changed from" << _localSockAddr << "to" << newSockAddr;
+            qCDebug(networking) << "Local socket has changed from" << _localSockAddr << "to" << newSockAddr;
         }
         
         _localSockAddr = newSockAddr;
@@ -686,7 +687,7 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
     if (!connectionRequestID.isNull()) {
         iceDataStream << connectionRequestID;
         
-        qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
+        qCDebug(networking) << "Sending packet to ICE server to request connection info for peer with ID"
             << uuidStringWithoutCurlyBraces(connectionRequestID);
     }
     
@@ -703,7 +704,7 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
         memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
         sharedPortMem->unlock();
         
-        qDebug() << "Wrote local listening port" << localPort << "to shared memory at key" << key;
+        qCDebug(networking) << "Wrote local listening port" << localPort << "to shared memory at key" << key;
     } else {
         qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
     }

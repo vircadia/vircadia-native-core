@@ -103,7 +103,13 @@ if (APPLE)
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+if (APPLE)
+  add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+elseif(WIN32)
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
+else()
+  add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
+endif()
 
 # set up the external glm library
 add_dependency_external_projects(glm bullet)

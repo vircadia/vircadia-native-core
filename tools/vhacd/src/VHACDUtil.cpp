@@ -50,42 +50,125 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 }
 
 
+unsigned int getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangles) {
+    // append all the triangles (and converted quads) from this mesh-part to triangles
+    std::vector<int> meshPartTriangles = meshPart.triangleIndices.toStdVector();
+    triangles.insert(triangles.end(), meshPartTriangles.begin(), meshPartTriangles.end());
 
-// void vhacd::VHACDUtil::fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const {
+    // convert quads to triangles
+    unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+    unsigned int quadCount = meshPart.quadIndices.size() / 4;
+    for (unsigned int i = 0; i < quadCount; i++) {
+        unsigned int p0Index = meshPart.quadIndices[i * 4];
+        unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
+        unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
+        unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
+        // split each quad into two triangles
+        triangles.push_back(p0Index);
+        triangles.push_back(p1Index);
+        triangles.push_back(p2Index);
+        triangles.push_back(p0Index);
+        triangles.push_back(p2Index);
+        triangles.push_back(p3Index);
+        triangleCount += 2;
+    }
 
-//     for (int i = 0; i < meshes->meshCount; i++) {
-//         QVector<glm::vec3> vertices = meshes->perMeshVertices.at(i);
-//         QVector<int> triangles = meshes->perMeshTriangleIndices.at(i);
-//         const float largestDimension = meshes->perMeshLargestDimension.at(i);
+    return triangleCount;
+}
 
-//         results->perMeshVertices.append(vertices);
-//         results->perMeshTriangleIndices.append(triangles);
-//         results->perMeshLargestDimension.append(largestDimension);
 
-//         for (int j = 0; j < triangles.size(); j += 3) {
-//             auto p0 = vertices[triangles[j]];
-//             auto p1 = vertices[triangles[j+1]];
-//             auto p2 = vertices[triangles[j+2]];
+void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
+                                    unsigned int& meshPartCount,
+                                    unsigned int startMeshIndex, unsigned int endMeshIndex) const {
+    // this is used to make meshes generated from a highfield collidable.  each triangle
+    // is converted into a tetrahedron and made into its own mesh-part.
 
-//             auto d0 = p1 - p0;
-//             auto d1 = p2 - p0;
+    std::vector<int> triangles;
+    foreach (const FBXMeshPart &meshPart, mesh.parts) {
+        if (meshPartCount < startMeshIndex || meshPartCount >= endMeshIndex) {
+            meshPartCount++;
+            continue;
+        }
+        getTrianglesInMeshPart(meshPart, triangles);
+    }
 
-//             auto cp = glm::cross(d0, d1);
-//             cp = -2.0f * glm::normalize(cp);
+    unsigned int triangleCount = triangles.size() / 3;
+    if (triangleCount == 0) {
+        return;
+    }
 
-//             auto p3 = p0 + cp;
-            
-//             auto n = results->perMeshVertices.size();
-//             results->perMeshVertices[i] << p3;
+    int indexStartOffset = result.vertices.size();
 
-//             results->perMeshTriangleIndices[i] << triangles[j] << n << triangles[j + 1];
-//             results->perMeshTriangleIndices[i] << triangles[j + 1] << n << triangles[j + 2];
-//             results->perMeshTriangleIndices[i] << triangles[j + 2] << n << triangles[j];
-//         }
+    // new mesh gets the transformed points from the original
+    for (int i = 0; i < mesh.vertices.size(); i++) {
+        // apply the source mesh's transform to the points
+        glm::vec4 v = mesh.modelTransform * glm::vec4(mesh.vertices[i], 1.0f);
+        result.vertices += glm::vec3(v);
+    }
 
-//         results->meshCount++;
-//     }
-// }
+    // turn each triangle into a tetrahedron
+
+    for (unsigned int i = 0; i < triangleCount; i++) {
+        int index0 = triangles[i * 3] + indexStartOffset;
+        int index1 = triangles[i * 3 + 1] + indexStartOffset;
+        int index2 = triangles[i * 3 + 2] + indexStartOffset;
+
+        glm::vec3 p0 = result.vertices[index0];
+        glm::vec3 p1 = result.vertices[index1];
+        glm::vec3 p2 = result.vertices[index2];
+        glm::vec3 av = (p0 + p1 + p2) / 3.0f; // center of the triangular face
+
+        float dropAmount = 0;
+        dropAmount = glm::max(glm::length(p1 - p0), dropAmount);
+        dropAmount = glm::max(glm::length(p2 - p1), dropAmount);
+        dropAmount = glm::max(glm::length(p0 - p2), dropAmount);
+
+        glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);  // a point 1 meter below the average of this triangle's points
+        int index3 = result.vertices.size();
+        result.vertices << p3; // add the new point to the result mesh
+
+        FBXMeshPart newMeshPart;
+        setMeshPartDefaults(newMeshPart, "unknown");
+        newMeshPart.triangleIndices << index0 << index1 << index2;
+        newMeshPart.triangleIndices << index0 << index3 << index1;
+        newMeshPart.triangleIndices << index1 << index3 << index2;
+        newMeshPart.triangleIndices << index2 << index3 << index0;
+        result.parts.append(newMeshPart);
+    }
+}
+
+
+
+AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
+    AABox aaBox;
+    unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+    for (unsigned int i = 0; i < triangleCount; i++) {
+        glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[i * 3]];
+        glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
+        glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
+        aaBox += p0;
+        aaBox += p1;
+        aaBox += p2;
+    }
+
+    unsigned int quadCount = meshPart.quadIndices.size() / 4;
+    for (unsigned int i = 0; i < quadCount; i++) {
+        unsigned int p0Index = meshPart.quadIndices[i * 4];
+        unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
+        unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
+        unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
+        glm::vec3 p0 = mesh.vertices[p0Index];
+        glm::vec3 p1 = mesh.vertices[p1Index + 1];
+        glm::vec3 p2 = mesh.vertices[p2Index + 2];
+        glm::vec3 p3 = mesh.vertices[p3Index + 3];
+        aaBox += p0;
+        aaBox += p1;
+        aaBox += p2;
+        aaBox += p3;
+    }
+
+    return aaBox;
+}
 
 
 
@@ -93,11 +176,13 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                                     VHACD::IVHACD::Parameters params,
                                     FBXGeometry& result,
                                     int startMeshIndex,
-                                    int endMeshIndex, float minimumMeshSize,
-                                    bool fattenFaces) {
+                                    int endMeshIndex,
+                                    float minimumMeshSize, float maximumMeshSize) {
     // count the mesh-parts
-    QVector<FBXMeshPart> meshParts;
     int meshCount = 0;
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        meshCount += mesh.parts.size();
+    }
 
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 
@@ -132,43 +217,8 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
             qDebug() << "--------------------";
 
-            std::vector<int> triangles = meshPart.triangleIndices.toStdVector();
-
-            AABox aaBox;
-            unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-            for (unsigned int i = 0; i < triangleCount; i++) {
-                glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[i * 3]];
-                glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
-                glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
-                aaBox += p0;
-                aaBox += p1;
-                aaBox += p2;
-            }
-
-            // convert quads to triangles
-            unsigned int quadCount = meshPart.quadIndices.size() / 4;
-            for (unsigned int i = 0; i < quadCount; i++) {
-                unsigned int p0Index = meshPart.quadIndices[i * 4];
-                unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
-                unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
-                unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
-                glm::vec3 p0 = mesh.vertices[p0Index];
-                glm::vec3 p1 = mesh.vertices[p1Index + 1];
-                glm::vec3 p2 = mesh.vertices[p2Index + 2];
-                glm::vec3 p3 = mesh.vertices[p3Index + 3];
-                aaBox += p0;
-                aaBox += p1;
-                aaBox += p2;
-                aaBox += p3;
-                // split each quad into two triangles
-                triangles.push_back(p0Index);
-                triangles.push_back(p1Index);
-                triangles.push_back(p2Index);
-                triangles.push_back(p0Index);
-                triangles.push_back(p2Index);
-                triangles.push_back(p3Index);
-                triangleCount += 2;
-            }
+            std::vector<int> triangles;
+            unsigned int triangleCount = getTrianglesInMeshPart(meshPart, triangles);
 
             // only process meshes with triangles
             if (triangles.size() <= 0) {
@@ -178,16 +228,24 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             }
 
             int nPoints = vertices.size();
+            AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
             const float largestDimension = aaBox.getLargestDimension();
 
             qDebug() << "Mesh " << count << " -- " << nPoints << " points, " << triangleCount << " triangles, "
                      << "size =" << largestDimension;
 
-            if (largestDimension < minimumMeshSize /* || largestDimension > 1000 */) {
+            if (largestDimension < minimumMeshSize) {
                 qDebug() << " Skipping (too small)...";
                 count++;
                 continue;
             }
+
+            if (maximumMeshSize > 0.0 && largestDimension > maximumMeshSize) {
+                qDebug() << " Skipping (too large)...";
+                count++;
+                continue;
+            }
+
 
             // compute approximate convex decomposition
             bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, triangleCount, params);

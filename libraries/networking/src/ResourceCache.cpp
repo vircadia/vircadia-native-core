@@ -21,6 +21,8 @@
 #include <assert.h>
 
 #include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
+
 #include "ResourceCache.h"
 
 #define clamp(x, min, max) (((x) < (min)) ? (min) :\
@@ -50,7 +52,7 @@ void ResourceCache::refresh(const QUrl& url) {
 }
 
 void ResourceCache::getResourceAsynchronously(const QUrl& url) {
-    qDebug() << "ResourceCache::getResourceAsynchronously" << url.toString();
+    qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
     _resourcesToBeGottenLock.lockForWrite();
     _resourcesToBeGotten.enqueue(QUrl(url));
     _resourcesToBeGottenLock.unlock();
@@ -354,10 +356,10 @@ void Resource::maybeRefresh() {
             }
         } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
                    !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
-            qDebug() << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
+            qCDebug(networking) << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
             return;
         }
-        qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
+        qCDebug(networking) << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
         refresh();
     }
 }
@@ -441,7 +443,7 @@ void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug)
 }
 
 void Resource::handleReplyFinished() {
-    qDebug() << "Got finished without download progress/error?" << _url;
+    qCDebug(networking) << "Got finished without download progress/error?" << _url;
     handleDownloadProgress(0, 0);
 }
 

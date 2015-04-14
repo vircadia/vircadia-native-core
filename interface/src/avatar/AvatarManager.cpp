@@ -115,7 +115,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool postLighting, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
@@ -149,7 +149,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 
     while (fadingIterator != _avatarFades.end()) {
         Avatar* avatar = static_cast<Avatar*>(fadingIterator->data());
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE);
+        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {
@@ -159,9 +159,9 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode) {
+void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) {
     // render avatar fades
-    Glower glower(renderMode == Avatar::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
+    Glower glower(renderMode == RenderArgs::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());

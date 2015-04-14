@@ -16,8 +16,9 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "ModelEntityItem.h"
+#include "EntitiesLogging.h"
 #include "ResourceCache.h"
+#include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
@@ -78,7 +79,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
@@ -266,12 +267,12 @@ void ModelEntityItem::update(const quint64& now) {
 }
 
 void ModelEntityItem::debugDump() const {
-    qDebug() << "ModelEntityItem id:" << getEntityItemID();
-    qDebug() << "    edited ago:" << getEditedAgo();
-    qDebug() << "    position:" << getPosition();
-    qDebug() << "    dimensions:" << getDimensions();
-    qDebug() << "    model URL:" << getModelURL();
-    qDebug() << "    collision model URL:" << getCollisionModelURL();
+    qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
+    qCDebug(entities) << "    edited ago:" << getEditedAgo();
+    qCDebug(entities) << "    position:" << getPosition();
+    qCDebug(entities) << "    dimensions:" << getDimensions();
+    qCDebug(entities) << "    model URL:" << getModelURL();
+    qCDebug(entities) << "    collision model URL:" << getCollisionModelURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {
@@ -296,11 +297,11 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
 void ModelEntityItem::setAnimationFrameIndex(float value) {
 #ifdef WANT_DEBUG
     if (isAnimatingSomething()) {
-        qDebug() << "ModelEntityItem::setAnimationFrameIndex()";
-        qDebug() << "    value:" << value;
-        qDebug() << "    was:" << _animationLoop.getFrameIndex();
-        qDebug() << "    model URL:" << getModelURL();
-        qDebug() << "    animation URL:" << getAnimationURL();
+        qCDebug(entities) << "ModelEntityItem::setAnimationFrameIndex()";
+        qCDebug(entities) << "    value:" << value;
+        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
+        qCDebug(entities) << "    model URL:" << getModelURL();
+        qCDebug(entities) << "    animation URL:" << getAnimationURL();
     }
 #endif
     _animationLoop.setFrameIndex(value);
@@ -323,12 +324,12 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
 #ifdef WANT_DEBUG
         if (isAnimatingSomething()) {
-            qDebug() << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qDebug() << "    model URL:" << getModelURL();
-            qDebug() << "    animation URL:" << getAnimationURL();
-            qDebug() << "    settings:" << value;
-            qDebug() << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qDebug("    frameIndex: %20.5f", frameIndex);
+            qCDebug(entities) << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
+            qCDebug(entities) << "    model URL:" << getModelURL();
+            qCDebug(entities) << "    animation URL:" << getAnimationURL();
+            qCDebug(entities) << "    settings:" << value;
+            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
+            qCDebug(entities"    frameIndex: %20.5f", frameIndex);
         }
 #endif
 

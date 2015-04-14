@@ -74,7 +74,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAS_MARKETPLACE_ID;
+            return VERSION_ENTITIES_HAVE_ACCELERATION;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

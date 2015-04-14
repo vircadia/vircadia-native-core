@@ -22,7 +22,7 @@
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
-#include "CharacterController.h"
+#include "DynamicCharacterController.h"
 #include "ContactInfo.h"
 #include "EntityMotionState.h"
 #include "ShapeManager.h"
@@ -84,7 +84,9 @@ public:
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
-    void setCharacterController(CharacterController* character);
+    void setCharacterController(DynamicCharacterController* character);
+
+    void dumpNextStats() { _dumpNextStats = true; }
 
 private:
     /// \param motionState pointer to Object's MotionState
@@ -120,7 +122,9 @@ private:
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
-    CharacterController* _characterController = NULL;
+    DynamicCharacterController* _characterController = NULL;
+
+    bool _dumpNextStats = false;
 };
 
 #endif // hifi_PhysicsEngine_h

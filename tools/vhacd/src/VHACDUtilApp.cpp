@@ -13,6 +13,7 @@
 #include <VHACD.h>
 #include "VHACDUtilApp.h"
 #include "VHACDUtil.h"
+#include "PathUtils.h"
 
 using namespace std;
 using namespace VHACD;
@@ -32,34 +33,57 @@ QString formatFloat(double n) {
 }
 
 
-bool writeOBJ(QString outFileName, FBXGeometry& geometry) {
+bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1) {
     QFile file(outFileName);
     if (!file.open(QIODevice::WriteOnly)) {
         qDebug() << "Unable to write to " << outFileName;
         return false;
     }
-
     QTextStream out(&file);
 
-    unsigned int nth = 0;
-    foreach (const FBXMesh& mesh, geometry.meshes) {
-        for (int i = 0; i < mesh.vertices.size(); i++) {
-            out << "v ";
-            out << formatFloat(mesh.vertices[i][0]) << " ";
-            out << formatFloat(mesh.vertices[i][1]) << " ";
-            out << formatFloat(mesh.vertices[i][2]) << "\n";
-        }
+    if (outputCentimeters) {
+        out << "# This file uses centimeters as units\n\n";
+    }
 
+    unsigned int nth = 0;
+
+    // vertex indexes in obj files span the entire file
+    // vertex indexes in a mesh span just that mesh
+
+    int vertexIndexOffset = 0;
+
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        bool verticesHaveBeenOutput = false;
         foreach (const FBXMeshPart &meshPart, mesh.parts) {
+            if (whichMeshPart >= 0 && nth != (unsigned int) whichMeshPart) {
+                nth++;
+                continue;
+            }
+
+            if (!verticesHaveBeenOutput) {
+                for (int i = 0; i < mesh.vertices.size(); i++) {
+                    glm::vec4 v = mesh.modelTransform * glm::vec4(mesh.vertices[i], 1.0f);
+                    out << "v ";
+                    out << formatFloat(v[0]) << " ";
+                    out << formatFloat(v[1]) << " ";
+                    out << formatFloat(v[2]) << "\n";
+                }
+                verticesHaveBeenOutput = true;
+            }
+
             out << "g hull-" << nth++ << "\n";
             int triangleCount = meshPart.triangleIndices.size() / 3;
             for (int i = 0; i < triangleCount; i++) {
                 out << "f ";
-                out << meshPart.triangleIndices[i*3] + 1 << " ";
-                out << meshPart.triangleIndices[i*3+1] + 1  << " ";
-                out << meshPart.triangleIndices[i*3+2] + 1  << "\n";
+                out << vertexIndexOffset + meshPart.triangleIndices[i*3] + 1 << " ";
+                out << vertexIndexOffset + meshPart.triangleIndices[i*3+1] + 1  << " ";
+                out << vertexIndexOffset + meshPart.triangleIndices[i*3+2] + 1  << "\n";
             }
             out << "\n";
+        }
+
+        if (verticesHaveBeenOutput) {
+            vertexIndexOffset += mesh.vertices.size();
         }
     }
 
@@ -72,12 +96,7 @@ bool writeOBJ(QString outFileName, FBXGeometry& geometry) {
 VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
 {
-    vector<int> triangles; // array of indexes
-    vector<float> points;  // array of coordinates 
     vhacd::VHACDUtil vUtil;
-    VHACD::IVHACD::Parameters params;
-    vhacd::ProgressCallback pCallBack;
-
 
     // parse command-line
     QCommandLineParser parser;
@@ -86,14 +105,23 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 
+    const QCommandLineOption splitOption("split", "split input-file into one mesh per output-file");
+    parser.addOption(splitOption);
+
     const QCommandLineOption fattenFacesOption("f", "fatten faces");
     parser.addOption(fattenFacesOption);
+
+    const QCommandLineOption generateHullsOption("g", "output convex hull approximations");
+    parser.addOption(generateHullsOption);
 
     const QCommandLineOption inputFilenameOption("i", "input file", "filename.fbx");
     parser.addOption(inputFilenameOption);
 
     const QCommandLineOption outputFilenameOption("o", "output file", "filename.obj");
     parser.addOption(outputFilenameOption);
+
+    const QCommandLineOption outputCentimetersOption("c", "output units are centimeters");
+    parser.addOption(outputCentimetersOption);
 
     const QCommandLineOption startMeshIndexOption("s", "start-mesh index", "0");
     parser.addOption(startMeshIndexOption);
@@ -104,6 +132,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh (diagonal) size to consider", "0");
     parser.addOption(minimumMeshSizeOption);
 
+    const QCommandLineOption maximumMeshSizeOption("x", "maximum mesh (diagonal) size to consider", "0");
+    parser.addOption(maximumMeshSizeOption);
+
     const QCommandLineOption vHacdResolutionOption("resolution", "Maximum number of voxels generated during the "
                                                    "voxelization stage (range=10,000-16,000,000)", "100000");
     parser.addOption(vHacdResolutionOption);
@@ -113,7 +144,21 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                                               "according the \"best\" clipping plane (range=1-32)", "20");
     parser.addOption(vHacdDepthOption);
 
-    const QCommandLineOption vHacdDeltaOption("delta", "Controls the bias toward maximaxing local concavity (range=0.0-1.0)", "0.05");
+
+    const QCommandLineOption vHacdAlphaOption("alpha", "Controls the bias toward clipping along symmetry "
+                                              "planes (range=0.0-1.0)", "0.05");
+    parser.addOption(vHacdAlphaOption);
+
+    const QCommandLineOption vHacdBetaOption("beta", "Controls the bias toward clipping along revolution "
+                                             "axes (range=0.0-1.0)", "0.05");
+    parser.addOption(vHacdBetaOption);
+
+    const QCommandLineOption vHacdGammaOption("gamma", "Controls the maximum allowed concavity during the "
+                                              "merge stage (range=0.0-1.0)", "0.00125");
+    parser.addOption(vHacdGammaOption);
+
+    const QCommandLineOption vHacdDeltaOption("delta", "Controls the bias toward maximaxing local "
+                                              "concavity (range=0.0-1.0)", "0.05");
     parser.addOption(vHacdDeltaOption);
 
     const QCommandLineOption vHacdConcavityOption("concavity", "Maximum allowed concavity (range=0.0-1.0)", "0.0025");
@@ -128,10 +173,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                                                                "plane selection stage (range=1-16)", "4");
     parser.addOption(vHacdConvexhulldownsamplingOption);
 
-    // alpha
-    // beta
-    // gamma
-    // delta
     // pca
     // mode
 
@@ -140,7 +181,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     parser.addOption(vHacdMaxVerticesPerCHOption);
 
     // minVolumePerCH
-
     // convexhullApproximation
 
 
@@ -155,7 +195,12 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
+    bool outputCentimeters = parser.isSet(outputCentimetersOption);
+
     bool fattenFaces = parser.isSet(fattenFacesOption);
+    bool generateHulls = parser.isSet(generateHullsOption);
+    bool splitModel = parser.isSet(splitOption);
+
 
     QString inputFilename;
     if (parser.isSet(inputFilenameOption)) {
@@ -195,6 +240,11 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         minimumMeshSize = parser.value(minimumMeshSizeOption).toFloat();
     }
 
+    float maximumMeshSize = 0.0f;
+    if (parser.isSet(maximumMeshSizeOption)) {
+        maximumMeshSize = parser.value(maximumMeshSizeOption).toFloat();
+    }
+
     int vHacdResolution = 100000;
     if (parser.isSet(vHacdResolutionOption)) {
         vHacdResolution = parser.value(vHacdResolutionOption).toInt();
@@ -203,6 +253,21 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     int vHacdDepth = 20;
     if (parser.isSet(vHacdDepthOption)) {
         vHacdDepth = parser.value(vHacdDepthOption).toInt();
+    }
+
+    float vHacdAlpha = 0.05;
+    if (parser.isSet(vHacdAlphaOption)) {
+        vHacdAlpha = parser.value(vHacdAlphaOption).toFloat();
+    }
+
+    float vHacdBeta = 0.05;
+    if (parser.isSet(vHacdBetaOption)) {
+        vHacdBeta = parser.value(vHacdBetaOption).toFloat();
+    }
+
+    float vHacdGamma = 0.00125;
+    if (parser.isSet(vHacdGammaOption)) {
+        vHacdGamma = parser.value(vHacdGammaOption).toFloat();
     }
 
     float vHacdDelta = 0.05;
@@ -230,27 +295,12 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vHacdMaxVerticesPerCH = parser.value(vHacdMaxVerticesPerCHOption).toInt();
     }
 
+    if (!splitModel && !generateHulls && !fattenFaces) {
+        cerr << "\nNothing to do!  Use -g or -f or --split\n\n";
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
 
-
-    //set parameters for V-HACD
-    params.m_callback = &pCallBack; //progress callback
-    params.m_resolution = vHacdResolution;
-    params.m_depth = vHacdDepth;
-    params.m_concavity = vHacdConcavity;
-    params.m_delta = vHacdDelta;
-    params.m_planeDownsampling = vHacdPlanedownsampling;
-    params.m_convexhullDownsampling = vHacdConvexhulldownsampling;
-    params.m_alpha = 0.05; // 0.05  // controls the bias toward clipping along symmetry planes
-    params.m_beta = 0.05; // 0.05
-    params.m_gamma = 0.0005; // 0.0005
-    params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
-    params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
-    params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
-    params.m_minVolumePerCH = 0.0001; // 0.0001
-    params.m_callback = 0; // 0
-    params.m_logger = 0; // 0
-    params.m_convexhullApproximation = true; // true
-    params.m_oclAcceleration = true; // true
 
     // load the mesh 
 
@@ -262,40 +312,107 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     auto end = std::chrono::high_resolution_clock::now();
     auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
-    //perform vhacd computation
-    begin = std::chrono::high_resolution_clock::now();
 
-    FBXGeometry result;
-    if (!vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex, minimumMeshSize, fattenFaces)) {
-        cout << "Compute Failed...";
-    }
-    end = std::chrono::high_resolution_clock::now();
-    auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
-
-    int totalVertices = 0;
-    int totalTriangles = 0;
-    int totalMeshParts = 0;
-    foreach (const FBXMesh& mesh, result.meshes) {
-        totalVertices += mesh.vertices.size();
-        foreach (const FBXMeshPart &meshPart, mesh.parts) {
-            totalTriangles += meshPart.triangleIndices.size() / 3;
-            // each quad was made into two triangles
-            totalTriangles += 2 * meshPart.quadIndices.size() / 4;
-            totalMeshParts++;
+    if (splitModel) {
+        QVector<QString> infileExtensions = {"fbx", "obj"};
+        QString baseFileName = fileNameWithoutExtension(inputFilename, infileExtensions);
+        int count = 0;
+        foreach (const FBXMesh& mesh, fbx.meshes) {
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                QString outputFileName = baseFileName + "-" + QString::number(count) + ".obj";
+                writeOBJ(outputFileName, fbx, outputCentimeters, count);
+                count++;
+            }
         }
     }
 
-    int totalHulls = result.meshes[0].parts.size();
-    cout << endl << "Summary of V-HACD Computation..................." << endl;
-    cout << "File Path          : " << inputFilename.toStdString() << endl;
-    cout << "Number Of Meshes   : " << totalMeshParts << endl;
-    cout << "Total vertices     : " << totalVertices << endl;
-    cout << "Total Triangles    : " << totalTriangles << endl;
-    cout << "Total Convex Hulls : " << totalHulls << endl;
-    cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
-    cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
+    if (generateHulls) {
+        VHACD::IVHACD::Parameters params;
+        vhacd::ProgressCallback pCallBack;
 
-    writeOBJ(outputFilename, result);
+        //set parameters for V-HACD
+        params.m_callback = &pCallBack; //progress callback
+        params.m_resolution = vHacdResolution;
+        params.m_depth = vHacdDepth;
+        params.m_concavity = vHacdConcavity;
+        params.m_delta = vHacdDelta;
+        params.m_planeDownsampling = vHacdPlanedownsampling;
+        params.m_convexhullDownsampling = vHacdConvexhulldownsampling;
+        params.m_alpha = vHacdAlpha;
+        params.m_beta = vHacdBeta;
+        params.m_gamma = vHacdGamma;
+        params.m_pca = 0; // 0  enable/disable normalizing the mesh before applying the convex decomposition
+        params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
+        params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
+        params.m_minVolumePerCH = 0.0001; // 0.0001
+        params.m_callback = 0; // 0
+        params.m_logger = 0; // 0
+        params.m_convexhullApproximation = true; // true
+        params.m_oclAcceleration = true; // true
+
+        //perform vhacd computation
+        begin = std::chrono::high_resolution_clock::now();
+
+        FBXGeometry result;
+        if (!vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex,
+                                minimumMeshSize, maximumMeshSize)) {
+            cout << "Compute Failed...";
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+        int totalVertices = 0;
+        int totalTriangles = 0;
+        int totalMeshParts = 0;
+        foreach (const FBXMesh& mesh, result.meshes) {
+            totalVertices += mesh.vertices.size();
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                totalTriangles += meshPart.triangleIndices.size() / 3;
+                // each quad was made into two triangles
+                totalTriangles += 2 * meshPart.quadIndices.size() / 4;
+                totalMeshParts++;
+            }
+        }
+
+        int totalHulls = result.meshes[0].parts.size();
+        cout << endl << "Summary of V-HACD Computation..................." << endl;
+        cout << "File Path          : " << inputFilename.toStdString() << endl;
+        cout << "Number Of Meshes   : " << totalMeshParts << endl;
+        cout << "Total vertices     : " << totalVertices << endl;
+        cout << "Total Triangles    : " << totalTriangles << endl;
+        cout << "Total Convex Hulls : " << totalHulls << endl;
+        cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
+        cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
+
+        writeOBJ(outputFilename, result, outputCentimeters);
+    }
+
+    if (fattenFaces) {
+        FBXGeometry newFbx;
+        FBXMesh result;
+
+        // count the mesh-parts
+        unsigned int meshCount = 0;
+        foreach (const FBXMesh& mesh, fbx.meshes) {
+            meshCount += mesh.parts.size();
+        }
+
+        if (startMeshIndex < 0) {
+            startMeshIndex = 0;
+        }
+        if (endMeshIndex < 0) {
+            endMeshIndex = meshCount;
+        }
+
+        unsigned int meshPartCount = 0;
+        result.modelTransform = glm::mat4(); // Identity matrix
+        foreach (const FBXMesh& mesh, fbx.meshes) {
+            vUtil.fattenMeshes(mesh, result, meshPartCount, startMeshIndex, endMeshIndex);
+        }
+
+        newFbx.meshes.append(result);
+        writeOBJ(outputFilename, newFbx, outputCentimeters);
+    }
 }
 
 VHACDUtilApp::~VHACDUtilApp() {

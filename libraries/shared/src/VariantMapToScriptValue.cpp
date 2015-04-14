@@ -10,6 +10,7 @@
 //
 
 #include <QDebug>
+#include "SharedLogging.h"
 #include "VariantMapToScriptValue.h"
 
 QScriptValue variantMapToScriptValue(QVariantMap& variantMap, QScriptEngine& scriptEngine) {
@@ -39,7 +40,7 @@ QScriptValue variantMapToScriptValue(QVariantMap& variantMap, QScriptEngine& scr
             break;
         }
         default:
-            qDebug() << "unhandled QScript type" << qValue.type();
+            qCDebug(shared) << "unhandled QScript type" << qValue.type();
         }
     }
 
