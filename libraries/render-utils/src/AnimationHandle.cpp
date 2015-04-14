@@ -47,10 +47,11 @@ void AnimationHandle::setPriority(float priority) {
 }
 
 void AnimationHandle::setStartAutomatically(bool startAutomatically) {
-    _animationLoop.setStartAutomatically(startAutomatically);
-    if (getStartAutomatically() && !isRunning()) {
+    if (startAutomatically && !isRunning()) {
+        // Start before setting _animationLoop value so that code in setRunning() is executed
         start();
     }
+    _animationLoop.setStartAutomatically(startAutomatically);
 }
 
 void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
