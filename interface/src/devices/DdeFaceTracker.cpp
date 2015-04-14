@@ -20,6 +20,7 @@
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
+#include "Menu.h"
 
 
 static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
@@ -178,6 +179,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     if (enabled && !_ddeProcess) {
         qDebug() << "[Info] DDE Face Tracker Starting";
         _ddeProcess = new QProcess(qApp);
+        connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
         _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
     }
 
@@ -193,6 +195,16 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         qDebug() << "[Info] DDE Face Tracker Stopped";
     }
 #endif
+}
+
+void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+    if (_ddeProcess) {
+        // DDE crashed or was manually terminated
+        qDebug() << "[Info] DDE Face Tracker Stopped Unexpectedly";
+        _udpSocket.close();
+        _ddeProcess = NULL;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
+    }
 }
 
 void DdeFaceTracker::resetTracking() {

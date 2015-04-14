@@ -53,7 +53,8 @@ public slots:
     void resetTracking();
 
 private slots:
-    
+    void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
     //sockets
     void socketErrorOccurred(QAbstractSocket::SocketError socketError);
     void readPendingDatagrams();
