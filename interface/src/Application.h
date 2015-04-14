@@ -339,6 +339,8 @@ signals:
 
     void faceURLChanged(const QString& newValue);
     void skeletonURLChanged(const QString& newValue);
+    
+    void beforeAboutToQuit();
 
 public slots:
     void domainChanged(const QString& domainHostname);

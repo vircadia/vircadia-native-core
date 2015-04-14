@@ -42,6 +42,7 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 #include "ParticleEffectEntityItem.h"
 
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
@@ -137,7 +138,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "ParticleEffectEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "ParticleEffectEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                 "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
@@ -278,11 +279,11 @@ void ParticleEffectEntityItem::update(const quint64& now) {
 
 void ParticleEffectEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qDebug() << "PA EFFECT EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qDebug() << "                  color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qDebug() << "               position:" << debugTreeVector(_position);
-    qDebug() << "             dimensions:" << debugTreeVector(_dimensions);
-    qDebug() << "          getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "PA EFFECT EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "                  color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "               position:" << debugTreeVector(_position);
+    qCDebug(entities) << "             dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "          getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
 void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
@@ -295,9 +296,9 @@ void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
 void ParticleEffectEntityItem::setAnimationFrameIndex(float value) {
 #ifdef WANT_DEBUG
     if (isAnimatingSomething()) {
-        qDebug() << "ParticleEffectEntityItem::setAnimationFrameIndex()";
-        qDebug() << "    value:" << value;
-        qDebug() << "    was:" << _animationLoop.getFrameIndex();
+        qCDebug(entities) << "ParticleEffectEntityItem::setAnimationFrameIndex()";
+        qCDebug(entities) << "    value:" << value;
+        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
     }
 #endif
     _animationLoop.setFrameIndex(value);
@@ -320,10 +321,10 @@ void ParticleEffectEntityItem::setAnimationSettings(const QString& value) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
 #ifdef WANT_DEBUG
         if (isAnimatingSomething()) {
-            qDebug() << "ParticleEffectEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qDebug() << "    settings:" << value;
-            qDebug() << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qDebug("    frameIndex: %20.5f", frameIndex);
+            qCDebug(entities) << "ParticleEffectEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
+            qCDebug(entities) << "    settings:" << value;
+            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
+            qCDebug(entities"    frameIndex: %20.5f", frameIndex);
         }
 #endif
 

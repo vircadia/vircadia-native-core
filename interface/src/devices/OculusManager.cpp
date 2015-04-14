@@ -32,6 +32,7 @@
 
 #include <OVR_CAPI_GL.h>
 
+#include "InterfaceLogging.h"
 #include "Application.h"
 
 template <typename Function>
@@ -95,7 +96,7 @@ OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
-int OculusManager::_calibrationMessage = NULL;
+int OculusManager::_calibrationMessage = 0;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 // TODO expose this as a developer toggle
 bool OculusManager::_eyePerFrameMode = false;
@@ -128,7 +129,7 @@ void OculusManager::connect() {
 	initSdk();
 #endif
     _calibrationState = UNCALIBRATED;
-    qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
+    qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;
     if (_ovrHmd) {
         if (!_isConnected) {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
@@ -278,7 +279,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 _calibrationState = WAITING_FOR_ZERO_HELD;
 
                 if (!_calibrationMessage) {
-                    qDebug() << "Hold still to calibrate HMD";
+                    qCDebug(interfaceapp) << "Hold still to calibrate HMD";
 
                     billboard = new Text3DOverlay();
                     billboard->setDimensions(glm::vec2(2.0f, 1.25f));
@@ -305,13 +306,13 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
                     _calibrationState = CALIBRATED;
-                    qDebug() << "HMD calibrated";
+                    qCDebug(interfaceapp) << "HMD calibrated";
                     Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-                    _calibrationMessage = NULL;
+                    _calibrationMessage = 0;
                     Application::getInstance()->resetSensors();
                 } else {
                     quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
-                    if (quarterSeconds + 1 > progressMessage.length()) {
+                    if (quarterSeconds + 1 > (quint64)progressMessage.length()) {
                         // 3...2...1...
                         if (quarterSeconds == 4 * (quarterSeconds / 4)) {
                             quint64 wholeSeconds = CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4;
@@ -346,9 +347,9 @@ void OculusManager::recalibrate() {
 void OculusManager::abandonCalibration() {
     _calibrationState = CALIBRATED;
     if (_calibrationMessage) {
-        qDebug() << "Abandoned HMD calibration";
+        qCDebug(interfaceapp) << "Abandoned HMD calibration";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-        _calibrationMessage = NULL;
+        _calibrationMessage = 0;
     }
 }
 
@@ -470,7 +471,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     
     if (timerActive && timerQuery.isResultAvailable()) {
         auto result = timerQuery.waitForResult();
-        if (result) { qDebug() << "Distortion took "  << result << "ns"; };
+        if (result) { qCDebug(interfaceapp) << "Distortion took "  << result << "ns"; };
         timerActive = false;
     }
 #endif
@@ -683,7 +684,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
             if (nonZero)
             {
-                qDebug() << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
+                qCDebug(interfaceapp) << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
                                              latencies[0], latencies[1], latencies[2], latencies[3], latencies[4]);
             }
         }

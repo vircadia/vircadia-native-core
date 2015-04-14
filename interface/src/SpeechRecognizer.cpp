@@ -12,6 +12,7 @@
 #include <QtGlobal>
 #include <QDebug>
 
+#include "InterfaceLogging.h"
 #include "SpeechRecognizer.h"
 
 #if defined(Q_OS_WIN)
@@ -139,13 +140,13 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         
         _enabled = SUCCEEDED(hr);
 
-        qDebug() << "Speech recognition" << (_enabled ? "enabled" : "enable failed");
+        qCDebug(interfaceapp) << "Speech recognition" << (_enabled ? "enabled" : "enable failed");
 
     } else {
         _commandRecognizedNotifier->setEnabled(false);
         static_cast<ISpRecoContext*>(_speechRecognizerContext)->Release();
         static_cast<ISpRecognizer*>(_speechRecognizer)->Release();
-        qDebug() << "Speech recognition disabled";
+        qCDebug(interfaceapp) << "Speech recognition disabled";
     }
 
     emit enabledUpdated(_enabled);
@@ -207,7 +208,7 @@ void SpeechRecognizer::reloadCommands() {
     }
 
     if (FAILED(hr)) {
-        qDebug() << "ERROR: Didn't successfully reload speech commands";
+        qCDebug(interfaceapp) << "ERROR: Didn't successfully reload speech commands";
     }
 }
 

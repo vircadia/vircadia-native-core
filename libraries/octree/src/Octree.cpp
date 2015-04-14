@@ -46,6 +46,7 @@
 #include "OctreeElementBag.h"
 #include "Octree.h"
 #include "ViewFrustum.h"
+#include "OctreeLogging.h"
 
 
 QVector<QString> PERSIST_EXTENSIONS = {"svo", "json"};
@@ -89,7 +90,7 @@ void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOp
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "Octree::recurseElementWithOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -111,7 +112,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "Octree::recurseElementWithPostOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -141,7 +142,7 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "Octree::recurseElementWithOperationDistanceSorted\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -182,7 +183,7 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "Octree::recurseElementWithOperator\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return false;
     }
 
@@ -251,7 +252,7 @@ OctreeElement* Octree::createMissingElement(OctreeElement* lastParentElement, co
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "Octree::createMissingElement\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "Octree::createMissingElement() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "Octree::createMissingElement() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return lastParentElement;
     }
     int indexOfNewChild = branchIndexWithDescendant(lastParentElement->getOctalCode(), codeToReach);
@@ -283,13 +284,13 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     
     if ((size_t)bytesLeftToRead < sizeof(unsigned char)) {
-        qDebug() << "UNEXPECTED: readElementData() only had " << bytesLeftToRead << " bytes. "
+        qCDebug(octree) << "UNEXPECTED: readElementData() only had " << bytesLeftToRead << " bytes. "
                     "Not enough for meaningful data.";
         return bytesAvailable; // assume we read the entire buffer...
     }
     
     if (destinationElement->getScale() < SCALE_AT_DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
+        qCDebug(octree) << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
                 << destinationElement->getScale() << " meters] "
                 << " Discarding " << bytesAvailable << " remaining bytes.";
         return bytesAvailable; // assume we read the entire buffer...
@@ -331,7 +332,7 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
 
     if (bytesLeftToRead < bytesForMasks) {
         if (bytesLeftToRead > 0) {
-            qDebug() << "UNEXPECTED: readElementDataFromBuffer() only had " << bytesLeftToRead << " bytes before masks. "
+            qCDebug(octree) << "UNEXPECTED: readElementDataFromBuffer() only had " << bytesLeftToRead << " bytes before masks. "
                         "Not enough for meaningful data.";
         }
         return bytesAvailable; // assume we read the entire buffer...
@@ -414,14 +415,14 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
                     );
 
 
-            qDebug() << "UNEXPECTED: parsing of the octal code would make UNREASONABLY_DEEP_RECURSION... "
+            qCDebug(octree) << "UNEXPECTED: parsing of the octal code would make UNREASONABLY_DEEP_RECURSION... "
                         "numberOfThreeBitSectionsInStream:" << numberOfThreeBitSectionsInStream <<
                         "This buffer is corrupt. Returning.";
             return;
         }
         
         if (numberOfThreeBitSectionsInStream == OVERFLOWED_OCTCODE_BUFFER) {
-            qDebug() << "UNEXPECTED: parsing of the octal code would overflow the buffer. "
+            qCDebug(octree) << "UNEXPECTED: parsing of the octal code would overflow the buffer. "
                         "This buffer is corrupt. Returning.";
             return;
         }
@@ -605,7 +606,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
 
         if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
-            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(),"
+            qCDebug(octree, "WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(),"
                    " bailing processing of packet!");
             break;
         }
@@ -616,7 +617,7 @@ void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream
             voxelCode += voxelDataSize;
             atByte += voxelDataSize;
         } else {
-            qDebug("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!");
+            qCDebug(octree, "WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!");
             break;
         }
     }
@@ -636,7 +637,7 @@ void Octree::reaverageOctreeElements(OctreeElement* startElement) {
             recursionCount++;
         }
         if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
-            qDebug("Octree::reaverageOctreeElements()... bailing out of UNREASONABLY_DEEP_RECURSION");
+            qCDebug(octree, "Octree::reaverageOctreeElements()... bailing out of UNREASONABLY_DEEP_RECURSION");
             recursionCount--;
             return;
         }
@@ -1004,7 +1005,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
 
     // you can't call this without a valid element
     if (!element) {
-        qDebug("WARNING! encodeTreeBitstream() called with element=NULL");
+        qCDebug(octree, "WARNING! encodeTreeBitstream() called with element=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesWritten;
     }
@@ -1023,7 +1024,7 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
         roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
-            delete newCode;
+            delete[] newCode;
             codeLength = numberOfThreeBitSectionsInCode(newCode);
         } else {
             codeLength = 1;
@@ -1100,7 +1101,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
     // you can't call this without a valid element
     if (!element) {
-        qDebug("WARNING! encodeTreeBitstreamRecursion() called with element=NULL");
+        qCDebug(octree, "WARNING! encodeTreeBitstreamRecursion() called with element=NULL");
         params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesAtThisLevel;
     }
@@ -1541,16 +1542,16 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     }
     
     if (!mustIncludeAllChildData() && !continueThisLevel) {
-        qDebug() << "WARNING UNEXPECTED CASE: reached end of child element data loop with continueThisLevel=FALSE";
-        qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+        qCDebug(octree) << "WARNING UNEXPECTED CASE: reached end of child element data loop with continueThisLevel=FALSE";
+        qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
     }
 
     if (continueThisLevel && actualChildrenDataBits != childrenDataBits) {
         // repair the child data mask
         continueThisLevel = packetData->updatePriorBitMask(childDataBitsPlaceHolder, actualChildrenDataBits);
         if (!continueThisLevel) {
-            qDebug() << "WARNING UNEXPECTED CASE: Failed to update childDataBitsPlaceHolder";
-            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+            qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update childDataBitsPlaceHolder";
+            qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1565,8 +1566,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->existsBitsWritten();
             }
         } else {
-            qDebug() << "WARNING UNEXPECTED CASE: Failed to append childrenExistInTreeBits";
-            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+            qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to append childrenExistInTreeBits";
+            qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1580,8 +1581,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 params.stats->existsInPacketBitsWritten();
             }
         } else {
-            qDebug() << "WARNING UNEXPECTED CASE: Failed to append childrenExistInPacketBits";
-            qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+            qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to append childrenExistInPacketBits";
+            qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1697,8 +1698,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     // repair the child exists mask
                     continueThisLevel = packetData->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
                     if (!continueThisLevel) {
-                        qDebug() << "WARNING UNEXPECTED CASE: Failed to update childExistsPlaceHolder";
-                        qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+                        qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update childExistsPlaceHolder";
+                        qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
                     }
 
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
@@ -1708,10 +1709,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
 
                     if (!continueThisLevel) {
                         if (wantDebug) {
-                            qDebug() << "    WARNING line:" << __LINE__;
-                            qDebug() << "       breaking the child recursion loop with continueThisLevel=false!!!";
-                            qDebug() << "       AFTER attempting to updatePriorBitMask() for empty sub tree....";
-                            qDebug() << "       IS THIS ACCEPTABLE!!!!";
+                            qCDebug(octree) << "    WARNING line:" << __LINE__;
+                            qCDebug(octree) << "       breaking the child recursion loop with continueThisLevel=false!!!";
+                            qCDebug(octree) << "       AFTER attempting to updatePriorBitMask() for empty sub tree....";
+                            qCDebug(octree) << "       IS THIS ACCEPTABLE!!!!";
                         }
                         break; // can't continue...
                     }
@@ -1743,8 +1744,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
             // now that all slices are back in the correct order, copy them to the correct output buffer
             continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
             if (!continueThisLevel) {
-                qDebug() << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
-                qDebug() << "This is not expected!!!!  -- continueThisLevel=FALSE....";
+                qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
+                qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
             }
         }
     } // end keepDiggingDeeper
@@ -1766,7 +1767,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         if (partOfRootFit) {
             continueThisLevel = packetData->endLevel(rootDataLevelKey);
             if (!continueThisLevel) {
-                qDebug() << " UNEXPECTED ROOT ELEMENT -- could not packetData->endLevel(rootDataLevelKey) -- line:" << __LINE__;
+                qCDebug(octree) << " UNEXPECTED ROOT ELEMENT -- could not packetData->endLevel(rootDataLevelKey) -- line:" << __LINE__;
             }
         } else {
             packetData->discardLevel(rootDataLevelKey);
@@ -1791,8 +1792,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         }
 
         if (!continueThisLevel) {
-            qDebug() << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
-            qDebug() << "This is not expected!!!! -- continueThisLevel=FALSE....";
+            qCDebug(octree) << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
+            qCDebug(octree) << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
 
     }
@@ -1805,8 +1806,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         packetData->discardLevel(thisLevelKey);
         
         if (!mustIncludeAllChildData()) {
-            qDebug() << "WARNING UNEXPECTED CASE: Something failed in attempting to pack this element";
-            qDebug() << "This is not expected!!!! -- continueThisLevel=FALSE....";
+            qCDebug(octree) << "WARNING UNEXPECTED CASE: Something failed in attempting to pack this element";
+            qCDebug(octree) << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
     }
 
@@ -1815,9 +1816,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
     // added back to the element bag.
     if (!continueThisLevel) {
         if (!mustIncludeAllChildData()) {
-            qDebug() << "WARNING UNEXPECTED CASE - Something failed in attempting to pack this element.";
-            qDebug() << "   If the datatype requires all child data, then this might happen. Otherwise" ;
-            qDebug() << "   this is an unexpected case and we should research a potential logic error." ;
+            qCDebug(octree) << "WARNING UNEXPECTED CASE - Something failed in attempting to pack this element.";
+            qCDebug(octree) << "   If the datatype requires all child data, then this might happen. Otherwise" ;
+            qCDebug(octree) << "   this is an unexpected case and we should research a potential logic error." ;
         }
 
         bag.insert(element);
@@ -1864,7 +1865,7 @@ bool Octree::readFromFile(const char* fileName) {
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
-        qDebug() << "Loading file" << qFileName << "...";
+        qCDebug(octree) << "Loading file" << qFileName << "...";
     
         fileOk = readFromStream(fileLength, fileInputStream);
 
@@ -1891,7 +1892,7 @@ bool Octree::readFromURL(const QString& urlString) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(request);
 
-        qDebug() << "Downloading svo at" << qPrintable(urlString);
+        qCDebug(octree) << "Downloading svo at" << qPrintable(urlString);
     
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
@@ -1916,10 +1917,10 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
     device->ungetChar(firstChar);
 
     if (firstChar == (char) PacketTypeEntityData) {
-        qDebug() << "Reading from SVO Stream length:" << streamLength;
+        qCDebug(octree) << "Reading from SVO Stream length:" << streamLength;
         return readSVOFromStream(streamLength, inputStream);
     } else {
-        qDebug() << "Reading from JSON Stream length:" << streamLength;
+        qCDebug(octree) << "Reading from JSON Stream length:" << streamLength;
         return readJSONFromStream(streamLength, inputStream);
     }
 }
@@ -1965,28 +1966,28 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                 dataAt += sizeof(gotVersion);
                 dataLength -= sizeof(gotVersion);
                 fileOk = true;
-                qDebug("SVO file version match. Expected: %d Got: %d", 
+                qCDebug(octree, "SVO file version match. Expected: %d Got: %d", 
                             versionForPacketType(expectedDataPacketType()), gotVersion);
 
                 hasBufferBreaks = versionHasSVOfileBreaks(gotVersion);
             } else {
-                qDebug("SVO file version mismatch. Expected: %d Got: %d", 
+                qCDebug(octree, "SVO file version mismatch. Expected: %d Got: %d", 
                             versionForPacketType(expectedDataPacketType()), gotVersion);
             }
         } else {
-            qDebug() << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType) 
+            qCDebug(octree) << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType) 
                         << " Got: " << nameForPacketType(gotType);
         }
 
     } else {
-        qDebug() << "   NOTE: this file type does not include type and version information.";
+        qCDebug(octree) << "   NOTE: this file type does not include type and version information.";
         fileOk = true; // assume the file is ok
     }
     
     if (hasBufferBreaks) {
-        qDebug() << "    this version includes buffer breaks";
+        qCDebug(octree) << "    this version includes buffer breaks";
     } else {
-        qDebug() << "    this version does not include buffer breaks";
+        qCDebug(octree) << "    this version does not include buffer breaks";
     }
 
     if (fileOk) {
@@ -2022,13 +2023,13 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                 remainingLength -= sizeof(chunkLength);
                 
                 if (chunkLength > remainingLength) {
-                    qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                    qCDebug(octree) << "UNEXPECTED chunk size of:" << chunkLength 
                                 << "greater than remaining length:" << remainingLength;
                     break;
                 }
 
                 if (chunkLength > MAX_CHUNK_LENGTH) {
-                    qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                    qCDebug(octree) << "UNEXPECTED chunk size of:" << chunkLength 
                                 << "greater than MAX_CHUNK_LENGTH:" << MAX_CHUNK_LENGTH;
                     break;
                 }
@@ -2063,7 +2064,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     readFromMap(asMap);
-    delete rawData;
+    delete[] rawData;
     return true;
 }
 
@@ -2078,7 +2079,7 @@ void Octree::writeToFile(const char* fileName, OctreeElement* element, QString p
     } else if (persistAsFileType == "json") {
         writeToJSONFile(cFileName, element);
     } else {
-        qDebug() << "unable to write octree to file of type" << persistAsFileType;
+        qCDebug(octree) << "unable to write octree to file of type" << persistAsFileType;
     }
 }
 
@@ -2086,7 +2087,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
     QFile persistFile(fileName);
     QVariantMap entityDescription;
 
-    qDebug("Saving to file %s...", fileName);
+    qCDebug(octree, "Saving to file %s...", fileName);
 
     OctreeElement* top;
     if (element) {
@@ -2107,7 +2108,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        qDebug("Saving to file %s...", fileName);
+        qCDebug(octree, "Saving to file %s...", fileName);
 
         PacketType expectedType = expectedDataPacketType();
         PacketVersion expectedVersion = versionForPacketType(expectedType);
@@ -2118,14 +2119,14 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
             // if so, read the first byte of the file and see if it matches the expected version code
             file.write(reinterpret_cast<char*>(&expectedType), sizeof(expectedType));
             file.write(&expectedVersion, sizeof(expectedVersion));
-            qDebug() << "SVO file type: " << nameForPacketType(expectedType) << " version: " << (int)expectedVersion;
+            qCDebug(octree) << "SVO file type: " << nameForPacketType(expectedType) << " version: " << (int)expectedVersion;
 
             hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
         }
         if (hasBufferBreaks) {
-            qDebug() << "    this version includes buffer breaks";
+            qCDebug(octree) << "    this version includes buffer breaks";
         } else {
-            qDebug() << "    this version does not include buffer breaks";
+            qCDebug(octree) << "    this version does not include buffer breaks";
         }
         
 

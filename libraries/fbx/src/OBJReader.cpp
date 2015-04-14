@@ -19,9 +19,11 @@
 #include "FBXReader.h"
 #include "OBJReader.h"
 #include "Shape.h"
+#include "ModelFormatLogging.h"
 
 
-QHash<QString, float> COMMENT_SCALE_HINTS;
+QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
+                                             {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
 
 class OBJTokenizer {
@@ -50,11 +52,6 @@ private:
 
 
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
-    // This is a list of comments that exports use to hint at scaling
-    if (COMMENT_SCALE_HINTS.isEmpty()) {
-        COMMENT_SCALE_HINTS["This file uses centimeters as units"] = 1.0f / 100.0f;
-        COMMENT_SCALE_HINTS["This file uses millimeters as units"] = 1.0f / 1000.0f;
-    }
 }
 
 
@@ -73,7 +70,6 @@ int OBJTokenizer::nextToken() {
         switch (ch) {
             case '#': {
                 _comment = _device->readLine(); // stash comment for a future call to getComment
-                qDebug() << "COMMENT:" << _comment;
                 return COMMENT_TOKEN;
             }
 
@@ -120,6 +116,24 @@ bool OBJTokenizer::isNextTokenFloat() {
     return ok;
 }
 
+void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
+    meshPart.diffuseColor = glm::vec3(1, 1, 1);
+    meshPart.specularColor = glm::vec3(1, 1, 1);
+    meshPart.emissiveColor = glm::vec3(0, 0, 0);
+    meshPart.emissiveParams = glm::vec2(0, 1);
+    meshPart.shininess = 40;
+    meshPart.opacity = 1;
+
+    meshPart.materialID = materialID;
+    meshPart.opacity = 1.0;
+    meshPart._material = model::MaterialPointer(new model::Material());
+    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
+    meshPart._material->setOpacity(1.0);
+    meshPart._material->setSpecular(glm::vec3(1.0, 1.0, 1.0));
+    meshPart._material->setShininess(96.0);
+    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
+}
+
 bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
                    FBXGeometry &geometry, QVector<glm::vec3>& faceNormals, QVector<int>& faceNormalIndexes,
                    float& scaleGuess) {
@@ -129,21 +143,7 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
     bool sawG = false;
     bool result = true;
 
-    meshPart.diffuseColor = glm::vec3(1, 1, 1);
-    meshPart.specularColor = glm::vec3(1, 1, 1);
-    meshPart.emissiveColor = glm::vec3(0, 0, 0);
-    meshPart.emissiveParams = glm::vec2(0, 1);
-    meshPart.shininess = 40;
-    meshPart.opacity = 1;
-
-    meshPart.materialID = QString("dontknow") + QString::number(mesh.parts.count());
-    meshPart.opacity = 1.0;
-    meshPart._material = model::MaterialPointer(new model::Material());
-    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setOpacity(1.0);
-    meshPart._material->setSpecular(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setShininess(96.0);
-    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
+    setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
     while (true) {
         int tokenType = tokenizer.nextToken();
@@ -299,7 +299,7 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             }
         } else {
             // something we don't (yet) care about
-            // qDebug() << "OBJ parser is skipping a line with" << token;
+            // qCDebug(modelformat) << "OBJ parser is skipping a line with" << token;
             tokenizer.skipLine();
         }
     }
@@ -436,7 +436,7 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
         }
     }
     catch(const std::exception& e) {
-        qDebug() << "something went wrong in OBJ reader";
+        qCDebug(modelformat) << "something went wrong in OBJ reader";
     }
 
     return geometry;
@@ -445,73 +445,73 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
 
 
 void fbxDebugDump(const FBXGeometry& fbxgeo) {
-    qDebug() << "---------------- fbxGeometry ----------------";
-    qDebug() << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
-    qDebug() << "  offset =" << fbxgeo.offset;
-    qDebug() << "  attachments.count() = " << fbxgeo.attachments.count();
-    qDebug() << "  meshes.count() =" << fbxgeo.meshes.count();
+    qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
+    qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
+    qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
+    qCDebug(modelformat) << "  attachments.count() = " << fbxgeo.attachments.count();
+    qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
     foreach (FBXMesh mesh, fbxgeo.meshes) {
-        qDebug() << "    vertices.count() =" << mesh.vertices.count();
-        qDebug() << "    normals.count() =" << mesh.normals.count();
+        qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
+        qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
         if (mesh.normals.count() == mesh.vertices.count()) {
             for (int i = 0; i < mesh.normals.count(); i++) {
-                qDebug() << "        " << mesh.vertices[ i ] << mesh.normals[ i ];
+                qCDebug(modelformat) << "        " << mesh.vertices[ i ] << mesh.normals[ i ];
             }
         }
-        qDebug() << "    tangents.count() =" << mesh.tangents.count();
-        qDebug() << "    colors.count() =" << mesh.colors.count();
-        qDebug() << "    texCoords.count() =" << mesh.texCoords.count();
-        qDebug() << "    texCoords1.count() =" << mesh.texCoords1.count();
-        qDebug() << "    clusterIndices.count() =" << mesh.clusterIndices.count();
-        qDebug() << "    clusterWeights.count() =" << mesh.clusterWeights.count();
-        qDebug() << "    meshExtents =" << mesh.meshExtents;
-        qDebug() << "    modelTransform =" << mesh.modelTransform;
-        qDebug() << "    parts.count() =" << mesh.parts.count();
+        qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.count();
+        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
+        qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
+        qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
+        qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
+        qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
+        qCDebug(modelformat) << "    meshExtents =" << mesh.meshExtents;
+        qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
+        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
         foreach (FBXMeshPart meshPart, mesh.parts) {
-            qDebug() << "        quadIndices.count() =" << meshPart.quadIndices.count();
-            qDebug() << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
-            qDebug() << "        diffuseColor =" << meshPart.diffuseColor;
-            qDebug() << "        specularColor =" << meshPart.specularColor;
-            qDebug() << "        emissiveColor =" << meshPart.emissiveColor;
-            qDebug() << "        emissiveParams =" << meshPart.emissiveParams;
-            qDebug() << "        shininess =" << meshPart.shininess;
-            qDebug() << "        opacity =" << meshPart.opacity;
-            qDebug() << "        materialID =" << meshPart.materialID;
+            qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
+            qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
+            qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor;
+            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor;
+            qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor;
+            qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
+            qCDebug(modelformat) << "        shininess =" << meshPart.shininess;
+            qCDebug(modelformat) << "        opacity =" << meshPart.opacity;
+            qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
         }
-        qDebug() << "    clusters.count() =" << mesh.clusters.count();
+        qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
         foreach (FBXCluster cluster, mesh.clusters) {
-            qDebug() << "        jointIndex =" << cluster.jointIndex;
-            qDebug() << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
+            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
+            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
         }
     }
 
-    qDebug() << "  jointIndices =" << fbxgeo.jointIndices;
-    qDebug() << "  joints.count() =" << fbxgeo.joints.count();
+    qCDebug(modelformat) << "  jointIndices =" << fbxgeo.jointIndices;
+    qCDebug(modelformat) << "  joints.count() =" << fbxgeo.joints.count();
 
     foreach (FBXJoint joint, fbxgeo.joints) {
-        qDebug() << "    isFree =" << joint.isFree;
-        qDebug() << "    freeLineage" << joint.freeLineage;
-        qDebug() << "    parentIndex" << joint.parentIndex;
-        qDebug() << "    distanceToParent" << joint.distanceToParent;
-        qDebug() << "    boneRadius" << joint.boneRadius;
-        qDebug() << "    translation" << joint.translation;
-        qDebug() << "    preTransform" << joint.preTransform;
-        qDebug() << "    preRotation" << joint.preRotation;
-        qDebug() << "    rotation" << joint.rotation;
-        qDebug() << "    postRotation" << joint.postRotation;
-        qDebug() << "    postTransform" << joint.postTransform;
-        qDebug() << "    transform" << joint.transform;
-        qDebug() << "    rotationMin" << joint.rotationMin;
-        qDebug() << "    rotationMax" << joint.rotationMax;
-        qDebug() << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
-        qDebug() << "    inverseBindRotation" << joint.inverseBindRotation;
-        qDebug() << "    bindTransform" << joint.bindTransform;
-        qDebug() << "    name" << joint.name;
-        qDebug() << "    shapePosition" << joint.shapePosition;
-        qDebug() << "    shapeRotation" << joint.shapeRotation;
-        qDebug() << "    shapeType" << joint.shapeType;
-        qDebug() << "    isSkeletonJoint" << joint.isSkeletonJoint;
+        qCDebug(modelformat) << "    isFree =" << joint.isFree;
+        qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
+        qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
+        qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
+        qCDebug(modelformat) << "    boneRadius" << joint.boneRadius;
+        qCDebug(modelformat) << "    translation" << joint.translation;
+        qCDebug(modelformat) << "    preTransform" << joint.preTransform;
+        qCDebug(modelformat) << "    preRotation" << joint.preRotation;
+        qCDebug(modelformat) << "    rotation" << joint.rotation;
+        qCDebug(modelformat) << "    postRotation" << joint.postRotation;
+        qCDebug(modelformat) << "    postTransform" << joint.postTransform;
+        qCDebug(modelformat) << "    transform" << joint.transform;
+        qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
+        qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
+        qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
+        qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
+        qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
+        qCDebug(modelformat) << "    name" << joint.name;
+        qCDebug(modelformat) << "    shapePosition" << joint.shapePosition;
+        qCDebug(modelformat) << "    shapeRotation" << joint.shapeRotation;
+        qCDebug(modelformat) << "    shapeType" << joint.shapeType;
+        qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
     }
 
-    qDebug() << "\n";
+    qCDebug(modelformat) << "\n";
 }

@@ -26,14 +26,16 @@ namespace vhacd {
     class VHACDUtil {
     public:
         bool loadFBX(const QString filename, FBXGeometry& result);
-        // void combineMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
-        // void fattenMeshes(vhacd::LoadFBXResults *meshes, vhacd::LoadFBXResults *results) const;
+
+        void fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
+                          unsigned int& meshPartCount,
+                          unsigned int startMeshIndex, unsigned int endMeshIndex) const;
+
         bool computeVHACD(FBXGeometry& geometry,
                           VHACD::IVHACD::Parameters params,
                           FBXGeometry& result,
                           int startMeshIndex, int endMeshIndex,
-                          float minimumMeshSize,
-                          bool fattenFaces);
+                          float minimumMeshSize, float maximumMeshSize);
         ~VHACDUtil();
     };
 
@@ -47,4 +49,7 @@ namespace vhacd {
 		    const char * const stage, const char * const operation);
     };
 }
+
+AABox getAABoxForMeshPart(const FBXMeshPart &meshPart);
+
 #endif //hifi_VHACDUtil_h

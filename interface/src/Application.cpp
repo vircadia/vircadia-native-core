@@ -94,6 +94,7 @@
 #include "Menu.h"
 #include "ModelPackager.h"
 #include "Util.h"
+#include "InterfaceLogging.h"
 
 #include "avatar/AvatarManager.h"
 
@@ -330,7 +331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _applicationStartupTime = startup_time;
 
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+    qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
@@ -528,7 +529,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // check first run...
     if (_firstRun.get()) {
-        qDebug() << "This is a first run...";
+        qCDebug(interfaceapp) << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScriptsBeforeRunning();
         loadScript(DEFAULT_SCRIPTS_JS_URL);
@@ -564,8 +565,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 }
 
 void Application::aboutToQuit() {
-    _aboutToQuit = true;
+    emit beforeAboutToQuit();
     
+    _aboutToQuit = true;
     cleanupBeforeQuit();
 }
 
@@ -653,7 +655,7 @@ Application::~Application() {
 }
 
 void Application::initializeGL() {
-    qDebug() << "Created Display Window.";
+    qCDebug(interfaceapp) << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -665,22 +667,22 @@ void Application::initializeGL() {
     }
     #endif
 
-    qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
     #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
-      /* Problem: glewInit failed, something is seriously wrong. */
-      qDebug("Error: %s\n", glewGetErrorString(err));
+        /* Problem: glewInit failed, something is seriously wrong. */
+        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
     }
-    qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
-        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
     #endif
 
@@ -688,15 +690,15 @@ void Application::initializeGL() {
     // TODO: Write the correct  code for Linux...
     /* if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
-        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }*/
 #endif
 
     initDisplay();
-    qDebug( "Initialized Display.");
+    qCDebug(interfaceapp, "Initialized Display.");
 
     init();
-    qDebug( "init() complete.");
+    qCDebug(interfaceapp, "init() complete.");
 
     // create thread for parsing of octee data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessOctreeThread);
@@ -717,7 +719,7 @@ void Application::initializeGL() {
     if (_justStarted) {
         float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0;
         _justStarted = false;
-        qDebug("Startup time: %4.2f seconds.", startupTime);
+        qCDebug(interfaceapp, "Startup time: %4.2f seconds.", startupTime);
     }
 
     // update before the first render
@@ -1602,6 +1604,10 @@ void Application::setFullscreen(bool fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
     }
 
+// The following code block is useful on platforms that can have a visible
+// app menu in a fullscreen window.  However the OSX mechanism hides the
+// application menu for fullscreen apps, so the check is not required.
+#ifndef Q_OS_MAC
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
@@ -1624,6 +1630,7 @@ void Application::setFullscreen(bool fullscreen) {
             _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
         }
     }
+#endif
 
     // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
     // https://bugreports.qt.io/browse/QTBUG-41883
@@ -1806,7 +1813,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
         }
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
-        qDebug() << "No models were selected";
+        qCDebug(interfaceapp) << "No models were selected";
         return false;
     }
 
@@ -1904,7 +1911,7 @@ void Application::init() {
     
     DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
     
-    qDebug() << "Loaded settings";
+    qCDebug(interfaceapp) << "Loaded settings";
     
 #ifdef __APPLE__
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
@@ -2385,7 +2392,7 @@ int Application::sendNackPackets() {
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
-    //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
+    //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
@@ -2448,7 +2455,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     });
 
     if (wantExtraDebugging) {
-        qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
+        qCDebug(interfaceapp, "Servers: total %d, in view %d, unknown jurisdiction %d",
             totalServers, inViewServers, unknownJurisdictionServers);
     }
 
@@ -2469,7 +2476,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     }
 
     if (wantExtraDebugging) {
-        qDebug("perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
+        qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
     
     nodeList->eachNode([&](const SharedNodePointer& node){
@@ -2488,7 +2495,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                 unknownView = true; // assume it's in view
                 if (wantExtraDebugging) {
-                    qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.";
+                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", assume it's visible.";
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
@@ -2508,7 +2515,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
+                        qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                     }
                 }
             }
@@ -2517,7 +2524,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
-                    qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
+                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
                     << perUnknownServer << " to send us jurisdiction.";
                 }
                 
@@ -2531,11 +2538,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                     _octreeQuery.setCameraNearClip(0.1f);
                     _octreeQuery.setCameraFarClip(0.1f);
                     if (wantExtraDebugging) {
-                        qDebug() << "Using 'minimal' camera position for node" << *node;
+                        qCDebug(interfaceapp) << "Using 'minimal' camera position for node" << *node;
                     }
                 } else {
                     if (wantExtraDebugging) {
-                        qDebug() << "Using regular camera position for node" << *node;
+                        qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
                 _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
@@ -2755,7 +2762,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(Avatar::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         {
@@ -3002,6 +3009,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 "Application::displaySide() ... entities...");
             if (renderCollisionHulls) {
                 _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
+            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
             } else {
                 _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
             }
@@ -3026,8 +3035,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     
     {
         PerformanceTimer perfTimer("avatars");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
-                                                               false, selfAvatarOnly);
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
+            false, selfAvatarOnly);   
     }
 
     {
@@ -3043,7 +3052,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
             true, selfAvatarOnly);   
     }
     
@@ -3302,13 +3311,13 @@ void Application::updateWindowTitle(){
 
 #ifndef WIN32
     // crashes with vs2013/win32
-    qDebug("Application title set to: %s", title.toStdString().c_str());
+    qCDebug(interfaceapp, "Application title set to: %s", title.toStdString().c_str());
 #endif
     _window->setWindowTitle(title);
 }
 
 void Application::clearDomainOctreeDetails() {
-    qDebug() << "Clearing domain octree details...";
+    qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3380,7 +3389,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             voxelDetailsForCode(rootCode, rootDetails);
             _entityServerJurisdictions.unlock();
 
-            qDebug("model server going away...... v[%f, %f, %f, %f]",
+            qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3466,7 +3475,7 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
             jurisdiction->unlock();
 
-            qDebug("stats from new %s server... [%f, %f, %f, %f]",
+            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -3614,6 +3623,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
+    scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
+
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
@@ -3712,7 +3723,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QNetworkRequest networkRequest = QNetworkRequest(url);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    qDebug() << "Downloading avatar file at " << url;
+    qCDebug(interfaceapp) << "Downloading avatar file at " << url;
     QEventLoop loop;
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
@@ -3761,13 +3772,13 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     msgBox.exec();
 
     if (msgBox.clickedButton() == headButton) {
-        qDebug() << "Chose to use for head: " << url;
+        qCDebug(interfaceapp) << "Chose to use for head: " << url;
         _myAvatar->setFaceModelURL(url);
         UserActivityLogger::getInstance().changedModel("head", url);
         _myAvatar->sendIdentityPacket();
         emit faceURLChanged(url);
     } else if (msgBox.clickedButton() == bodyButton) {
-        qDebug() << "Chose to use for body: " << url;
+        qCDebug(interfaceapp) << "Chose to use for body: " << url;
         _myAvatar->setSkeletonModelURL(url);
         // if the head is empty, reset it to the default head.
         if (_myAvatar->getFaceModelURLString().isEmpty()) {
@@ -3779,7 +3790,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         _myAvatar->sendIdentityPacket();
         emit skeletonURLChanged(url);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        qDebug() << "Chose to use for body + head: " << url;
+        qCDebug(interfaceapp) << "Chose to use for body + head: " << url;
         _myAvatar->setFaceModelURL(QString());
         _myAvatar->setSkeletonModelURL(url);
         UserActivityLogger::getInstance().changedModel("skeleton", url);
@@ -3787,7 +3798,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         emit faceURLChanged(QString());
         emit skeletonURLChanged(url);
     } else {
-        qDebug() << "Declined to use the avatar: " << url;
+        qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
     }
     return true;
 }
@@ -3799,10 +3810,10 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        qDebug() << "Chose to run the script: " << scriptFilenameOrURL;
+        qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
         loadScript(scriptFilenameOrURL);
     } else {
-        qDebug() << "Declined to run the script: " << scriptFilenameOrURL;
+        qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
     }
     return true;
 }
@@ -3860,7 +3871,7 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
 }
 
 void Application::handleScriptLoadError(const QString& scriptFilename) {
-    qDebug() << "Application::loadScript(), script failed to load...";
+    qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
@@ -3882,7 +3893,7 @@ void Application::stopAllScripts(bool restart) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
         it.value()->stop();
-        qDebug() << "stopping script..." << it.key();
+        qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
     // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
     // whenever a script stops in case it happened to have been setting joint rotations.
@@ -3894,7 +3905,7 @@ void Application::stopScript(const QString &scriptName) {
     const QString& scriptURLString = QUrl(scriptName).toString();
     if (_scriptEnginesHash.contains(scriptURLString)) {
         _scriptEnginesHash.value(scriptURLString)->stop();
-        qDebug() << "stopping script..." << scriptName;
+        qCDebug(interfaceapp) << "stopping script..." << scriptName;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
@@ -3992,8 +4003,8 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
         voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
     }
     
-    qDebug() << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
-    qDebug() << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
+    qCDebug(interfaceapp) << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
+    qCDebug(interfaceapp) << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -4158,9 +4169,9 @@ void Application::setVSyncEnabled() {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         wglSwapIntervalEXT(vsyncOn);
         int swapInterval = wglGetSwapIntervalEXT();
-        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     } else {
-        qDebug("V-Sync is FORCED ON on this system\n");
+        qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4169,13 +4180,13 @@ void Application::setVSyncEnabled() {
         glxSwapIntervalEXT(vsyncOn);
         int swapInterval = xglGetSwapIntervalEXT();
         _isVSyncOn = swapInterval;
-        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     } else {
-    qDebug("V-Sync is FORCED ON on this system\n");
+    qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
     }
     */
 #else
-    qDebug("V-Sync is FORCED ON on this system\n");
+    qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
 #endif
 }
 
@@ -4291,7 +4302,7 @@ void Application::notifyPacketVersionMismatch() {
 
 void Application::checkSkeleton() {
     if (_myAvatar->getSkeletonModel().isActive() && !_myAvatar->getSkeletonModel().hasSkeleton()) {
-        qDebug() << "MyAvatar model has no skeleton";
+        qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
     
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
         QMessageBox msgBox;

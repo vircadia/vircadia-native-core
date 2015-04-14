@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptEngineLogging.h"
 #include "ScriptAudioInjector.h"
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in) {
@@ -38,6 +39,6 @@ ScriptAudioInjector::~ScriptAudioInjector() {
 }
 
 void ScriptAudioInjector::stopInjectorImmediately() {
-    qDebug() << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
+    qCDebug(scriptengine) << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
     _injector->stopAndDeleteLater();
 }

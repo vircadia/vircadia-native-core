@@ -21,7 +21,7 @@
 #include <UUID.h>
 
 #include "NodeList.h"
-
+#include "NetworkLogging.h"
 #include "AddressManager.h"
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -74,7 +74,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
                 QString orientationString = createByteArray(_orientationGetter());
                 pathString += "/" + orientationString;
             } else {
-                qDebug() << "Cannot add orientation to path without a getter for position."
+                qCDebug(networking) << "Cannot add orientation to path without a getter for position."
                     << "Call AddressManager::setOrientationGetter to pass a function that will return a glm::quat";
             }
             
@@ -82,7 +82,7 @@ const QString AddressManager::currentPath(bool withOrientation) const {
         
         return pathString;
     } else {
-        qDebug() << "Cannot create address path without a getter for position."
+        qCDebug(networking) << "Cannot create address path without a getter for position."
             << "Call AddressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
         return QString();
     }
@@ -105,7 +105,7 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
 bool AddressManager::handleUrl(const QUrl& lookupUrl) {
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
         
-        qDebug() << "Trying to go to URL" << lookupUrl.toString();
+        qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
         
         // there are 4 possible lookup strings
         
@@ -132,7 +132,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         
         return true;
     } else if (lookupUrl.toString().startsWith('/')) {
-        qDebug() << "Going to relative path" << lookupUrl.path();
+        qCDebug(networking) << "Going to relative path" << lookupUrl.path();
         
         // if this is a relative path then handle it as a relative viewpoint
         handleRelativeViewpoint(lookupUrl.path());
@@ -211,7 +211,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                         ? domainObject[DOMAIN_NETWORK_PORT_KEY].toUInt()
                         : DEFAULT_DOMAIN_SERVER_PORT;
                     
-                    qDebug() << "Possible domain change required to connect to" << domainHostname
+                    qCDebug(networking) << "Possible domain change required to connect to" << domainHostname
                         << "on" << domainPort;
                     emit possibleDomainChangeRequired(domainHostname, domainPort);
                 } else {
@@ -221,7 +221,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
                     QUuid domainID(domainIDString);
                     
-                    qDebug() << "Possible domain change required to connect to domain with ID" << domainID
+                    qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
                     
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
@@ -241,7 +241,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 
                 if (!overridePath.isEmpty()) {
                     if (!handleRelativeViewpoint(overridePath)){
-                        qDebug() << "User entered path could not be handled as a viewpoint - " << overridePath;
+                        qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << overridePath;
                     }
                 } else {
                     // take the path that came back
@@ -253,28 +253,28 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     if (!returnedPath.isEmpty()) {
                         // try to parse this returned path as a viewpoint, that's the only thing it could be for now
                         if (!handleRelativeViewpoint(returnedPath, shouldFaceViewpoint)) {
-                            qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
+                            qCDebug(networking) << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
                         }
                     }
                 }
                 
                 
             } else {
-                qDebug() << "Received an address manager API response with no domain key. Cannot parse.";
-                qDebug() << locationMap;
+                qCDebug(networking) << "Received an address manager API response with no domain key. Cannot parse.";
+                qCDebug(networking) << locationMap;
             }
         } else {
             // we've been told that this result exists but is offline, emit our signal so the application can handle
             emit lookupResultIsOffline();
         }
     } else {
-        qDebug() << "Received an address manager API response with no location key or place key. Cannot parse.";
-        qDebug() << locationMap;
+        qCDebug(networking) << "Received an address manager API response with no location key or place key. Cannot parse.";
+        qCDebug(networking) << locationMap;
     }
 }
 
 void AddressManager::handleAPIError(QNetworkReply& errorReply) {
-    qDebug() << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
+    qCDebug(networking) << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
     
     if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
         emit lookupResultIsNotFound();
@@ -379,14 +379,14 @@ bool AddressManager::handleRelativeViewpoint(const QString& lookupString, bool s
                     emit locationChangeRequired(newPosition, true, newOrientation, shouldFace);
                     return true;
                 } else {
-                    qDebug() << "Orientation parsed from lookup string is invalid. Will not use for location change.";
+                    qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
             
             emit locationChangeRequired(newPosition, false, newOrientation, shouldFace);
             
         } else {
-            qDebug() << "Could not jump to position from lookup string because it has an invalid value.";
+            qCDebug(networking) << "Could not jump to position from lookup string because it has an invalid value.";
         }
         
         return true;
@@ -422,7 +422,7 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
     _rootPlaceName = hostname;
     _rootPlaceID = QUuid();
     
-    qDebug() << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
     
     emit possibleDomainChangeRequired(hostname, port);
 }

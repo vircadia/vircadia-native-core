@@ -12,6 +12,7 @@
 #include <AACube.h>
 
 #include "EntitySimulation.h"
+#include "EntitiesLogging.h"
 #include "MovingEntitiesOperator.h"
 
 void EntitySimulation::setEntityTree(EntityTree* tree) {
@@ -94,7 +95,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
         // check to see if this movement has sent the entity outside of the domain.
         AACube newCube = entity->getMaximumAACube();
         if (!domainBounds.touches(newCube)) {
-            qDebug() << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
+            qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             _entitiesToDelete.insert(entity);
             _mortalEntities.remove(entity);
             _updateableEntities.remove(entity);
@@ -154,7 +155,7 @@ void EntitySimulation::entityChanged(EntityItem* entity) {
         AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), (float)TREE_SCALE);
         AACube newCube = entity->getMaximumAACube();
         if (!domainBounds.touches(newCube)) {
-            qDebug() << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
+            qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             _entitiesToDelete.insert(entity);
             _mortalEntities.remove(entity);
             _updateableEntities.remove(entity);

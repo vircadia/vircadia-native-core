@@ -50,9 +50,9 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
 };
 
 #if _DEBUG
-#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError(__FUNCTION__)
 #else
-#define CHECK_GL_ERROR()
+#define CHECK_GL_ERROR() false
 #endif
 
 #endif

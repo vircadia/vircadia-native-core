@@ -184,6 +184,14 @@ void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
     data._scales.z = data._scales.x / data._scales.y;
 }
 
+Skybox::Skybox() {
+}
+
+void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
+    _cubemap = cubemap;
+}
+
+
 
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
@@ -207,7 +215,12 @@ SunSkyStage::SunSkyStage() :
     auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
     auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
     auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
-    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, gpu::States()));
+
+    auto skyState = gpu::StatePointer(new gpu::State());
+ //   skyState->setStencilEnable(false);
+   // skyState->setBlendEnable(false);
+
+    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
 
 }
 
@@ -273,3 +286,7 @@ void SunSkyStage::updateGraphicsObject() const {
 
 }
 
+void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
+    _skybox = skybox;
+    invalidate();
+}

@@ -25,6 +25,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
+#include "NetworkLogging.h"
 
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -99,7 +100,7 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
     const bool wantDebug = false;
     
     if (wantDebug) {
-        qDebug() << "PING_REPLY from node " << *sendingNode << "\n" <<
+        qCDebug(networking) << "PING_REPLY from node " << *sendingNode << "\n" <<
         "                     now: " << now << "\n" <<
         "                 ourTime: " << ourOriginalTime << "\n" <<
         "                pingTime: " << pingTime << "\n" <<
@@ -167,17 +168,17 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeUnverifiedPingReply: {
-            qDebug() << "Received reply from domain-server on" << senderSockAddr;
+            qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
             
             // for now we're unsafely assuming this came back from the domain
             if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
-                qDebug() << "Connecting to domain using local socket";
+                qCDebug(networking) << "Connecting to domain using local socket";
                 _domainHandler.activateICELocalSocket();
             } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
-                qDebug() << "Conecting to domain using public socket";
+                qCDebug(networking) << "Conecting to domain using public socket";
                 _domainHandler.activateICEPublicSocket();
             } else {
-                qDebug() << "Reply does not match either local or public socket for domain. Will not connect.";
+                qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
             }
         }
         case PacketTypeStunResponse: {
@@ -225,7 +226,7 @@ const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 void NodeList::sendSTUNRequest() {
 
     if (!_hasCompletedInitialSTUNFailure) {
-        qDebug() << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
+        qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
     }
     
     LimitedNodeList::sendSTUNRequest();
@@ -236,7 +237,7 @@ void NodeList::sendSTUNRequest() {
         if (!_hasCompletedInitialSTUNFailure) {
             // if we're here this was the last failed STUN request
             // use our DS as our stun server
-            qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.",
+            qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.",
                    STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
 
             _hasCompletedInitialSTUNFailure = true;
@@ -276,7 +277,7 @@ void NodeList::sendDomainServerCheckIn() {
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
         
         if (!_domainHandler.isConnected()) {
-            qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+            qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
             
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
@@ -290,7 +291,7 @@ void NodeList::sendDomainServerCheckIn() {
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
                                                    localDSPortSharedMem,
                                                    domainPort);
-                qDebug() << "Local domain-server port read from shared memory (or default) is" << domainPort;
+                qCDebug(networking) << "Local domain-server port read from shared memory (or default) is" << domainPort;
                 _domainHandler.setPort(domainPort);
             }
             
@@ -327,7 +328,7 @@ void NodeList::sendDomainServerCheckIn() {
             const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature();
             
             if (!usernameSignature.isEmpty()) {
-                qDebug() << "Including username signature in domain connect request.";
+                qCDebug(networking) << "Including username signature in domain connect request.";
                 packetStream << usernameSignature;
             }
         }
@@ -365,7 +366,7 @@ void NodeList::handleICEConnectionToDomainServer() {
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getICEDomainID());
     } else {
-        qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
+        qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
         
         // send the ping packet to the local and public sockets for this node

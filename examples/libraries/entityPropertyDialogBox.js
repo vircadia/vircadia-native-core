@@ -168,6 +168,13 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
         index++;
 
+        array.push({ label: "Acceleration X:", value: properties.acceleration.x.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Y:", value: properties.acceleration.y.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Z:", value: properties.acceleration.z.toFixed(decimals) });
+        index++;
+
         array.push({ label: "Collisions:", type: "header" });
         index++;
         array.push({ label: "Density:", value: properties.density.toFixed(decimals) });
@@ -359,6 +366,10 @@ EntityPropertyDialogBox = (function () {
             properties.gravity.x = array[index++].value;
             properties.gravity.y = array[index++].value;
             properties.gravity.z = array[index++].value;
+
+            properties.acceleration.x = array[index++].value;
+            properties.acceleration.y = array[index++].value;
+            properties.acceleration.z = array[index++].value;
 
             index++; // skip header
             properties.density = array[index++].value;

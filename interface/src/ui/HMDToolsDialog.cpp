@@ -87,7 +87,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     }
     
     // when the application is about to quit, leave HDM mode
-    connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(Application::getInstance(), SIGNAL(beforeAboutToQuit()), this, SLOT(aboutToQuit()));
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
@@ -184,8 +184,8 @@ void HMDToolsDialog::leaveHDMMode() {
         _switchModeButton->setText("Enter HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
-        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->setEnableVRMode(false);
+        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->getWindow()->activateWindow();
 
         if (_wasMoved) {

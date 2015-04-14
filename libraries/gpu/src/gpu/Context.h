@@ -82,6 +82,15 @@ public:
         return reinterpret_cast<T*>(pipeline.getGPUObject());
     }
 
+    template< typename T >
+    static void setGPUObject(const State& state, T* so) {
+        state.setGPUObject(so);
+    }
+    template< typename T >
+    static T* getGPUObject(const State& state) {
+        return reinterpret_cast<T*>(state.getGPUObject());
+    }
+
 protected:
 
 };

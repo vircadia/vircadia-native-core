@@ -23,8 +23,11 @@
 #include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
 #include "TextEntityItem.h"
+#include "EntitiesLogging.h"
 #include "ParticleEffectEntityItem.h"
 
+
+EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
 EntityItemProperties::EntityItemProperties() :
 
@@ -35,6 +38,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
     CONSTRUCT_PROPERTY(velocity, ENTITY_ITEM_DEFAULT_VELOCITY),
     CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
+    CONSTRUCT_PROPERTY(acceleration, ENTITY_ITEM_DEFAULT_ACCELERATION),
     CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
     CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
@@ -58,6 +62,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(textures, ""),
     CONSTRUCT_PROPERTY(animationSettings, ""),
     CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
+    CONSTRUCT_PROPERTY(simulatorID, ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
     CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
     CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
     CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -153,15 +158,15 @@ QString EntityItemProperties::getAnimationSettings() const {
 }
 
 void EntityItemProperties::debugDump() const {
-    qDebug() << "EntityItemProperties...";
-    qDebug() << "    _type=" << EntityTypes::getEntityTypeName(_type);
-    qDebug() << "   _id=" << _id;
-    qDebug() << "   _idSet=" << _idSet;
-    qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
-    qDebug() << "   _dimensions=" << getDimensions();
-    qDebug() << "   _modelURL=" << _modelURL;
-    qDebug() << "   _collisionModelURL=" << _collisionModelURL;
-    qDebug() << "   changed properties...";
+    qCDebug(entities) << "EntityItemProperties...";
+    qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
+    qCDebug(entities) << "   _id=" << _id;
+    qCDebug(entities) << "   _idSet=" << _idSet;
+    qCDebug(entities) << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
+    qCDebug(entities) << "   _dimensions=" << getDimensions();
+    qCDebug(entities) << "   _modelURL=" << _modelURL;
+    qCDebug(entities) << "   _collisionModelURL=" << _collisionModelURL;
+    qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
 }
@@ -224,6 +229,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
+    CHECK_PROPERTY_CHANGE(PROP_ACCELERATION, acceleration);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
@@ -248,6 +254,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
@@ -282,6 +289,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(acceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
@@ -311,6 +319,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(simulatorID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
@@ -367,6 +376,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(density, setDensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(acceleration, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifetime, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(script, setScript);
@@ -393,6 +403,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(userData, setUserData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(simulatorID, setSimulatorID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(text, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
@@ -541,6 +552,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
+            APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, appendValue, properties.getAcceleration());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
@@ -553,6 +565,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, properties.getUserData());
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, properties.getSimulatorID());
             
             if (properties.getType() == EntityTypes::Text) {
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, appendValue, properties.getText());
@@ -643,7 +656,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             memcpy(bufferOut, finalizedData, finalizedSize);
             sizeOut = finalizedSize;
         } else {
-            qDebug() << "ERROR - encoded edit message doesn't fit in output buffer.";
+            qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             sizeOut = 0;
             success = false;
         }
@@ -772,6 +785,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, glm::vec3, setAcceleration);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
@@ -784,6 +798,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
 
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXT, setText);
@@ -838,7 +853,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     uint16_t numberOfIds = 1; // only one entity ID in this message
 
     if (maxLength < sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID) {
-        qDebug() << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
+        qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
         outputLength = 0;
         return false;
     }
@@ -863,9 +878,11 @@ void EntityItemProperties::markAllChanged() {
     _densityChanged = true;
     _velocityChanged = true;
     _gravityChanged = true;
+    _accelerationChanged = true;
     _dampingChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
+    _simulatorIDChanged = true;
     _scriptChanged = true;
     _registrationPointChanged = true;
     _angularVelocityChanged = true;

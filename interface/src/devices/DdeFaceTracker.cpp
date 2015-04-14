@@ -19,6 +19,8 @@
 
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
+#include "InterfaceLogging.h"
+
 
 static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
 static const quint16 DDE_SERVER_PORT = 64204;
@@ -206,7 +208,7 @@ bool DdeFaceTracker::isActive() const {
 
 //private slots and methods
 void DdeFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
-    qDebug() << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
+    qCDebug(interfaceapp) << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
 }
 
 void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
@@ -234,7 +236,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    qDebug() << "[Info] DDE Face Tracker Socket: " << state;
+    qCDebug(interfaceapp) << "[Info] DDE Face Tracker Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {
@@ -328,7 +330,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
     } else {
-        qDebug() << "[Error] DDE Face Tracker Decode Error";
+        qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
 }

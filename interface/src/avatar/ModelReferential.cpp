@@ -13,6 +13,7 @@
 #include <EntityTree.h>
 #include <Model.h>
 
+#include "InterfaceLogging.h"
 #include "ModelReferential.h"
 
 ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
@@ -25,7 +26,7 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
                     referential->getExtraData().size());
     
     if (!isValid()) {
-        qDebug() << "ModelReferential::copyConstructor(): Not Valid";
+        qCDebug(interfaceapp) << "ModelReferential::copyConstructor(): Not Valid";
         return;
     }
     
@@ -45,7 +46,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
 {
     const EntityItem* item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL) {
-        qDebug() << "ModelReferential::constructor(): Not Valid";
+        qCDebug(interfaceapp) << "ModelReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -100,7 +101,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
 {
     _type = JOINT;
     if (!isValid()) {
-        qDebug() << "JointReferential::copyConstructor(): Not Valid";
+        qCDebug(interfaceapp) << "JointReferential::copyConstructor(): Not Valid";
         return;
     }
     
@@ -122,7 +123,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
-        qDebug() << "JointReferential::constructor(): Not Valid";
+        qCDebug(interfaceapp) << "JointReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
