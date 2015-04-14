@@ -58,6 +58,7 @@ private slots:
     void useSeparateBodyAndHead(bool checked);
     void useFullAvatar(bool checked);
     
+    
 };
 
 #endif // hifi_AvatarAppearanceDialog_h

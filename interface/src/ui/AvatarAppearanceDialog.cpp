@@ -26,9 +26,8 @@
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
 #include "UIUtil.h"
-
-
-const int PREFERENCES_HEIGHT_PADDING = 20;
+#include "ui/DialogsManager.h"
+#include "ui/PreferencesDialog.h"
 
 AvatarAppearanceDialog::AvatarAppearanceDialog(QWidget* parent) :
     QDialog(parent) {
@@ -52,10 +51,6 @@ AvatarAppearanceDialog::AvatarAppearanceDialog(QWidget* parent) :
     connect(Application::getInstance(), &Application::bodyURLChanged, this, &AvatarAppearanceDialog::bodyURLChanged);
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &AvatarAppearanceDialog::fullAvatarURLChanged);
 
-    // move dialog to left side
-    //move(parentWidget()->geometry().topLeft());
-    //setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
-
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
     ui.bodyNameLabel->setText("Body - " + myAvatar->getBodyModelName());
@@ -66,18 +61,16 @@ AvatarAppearanceDialog::AvatarAppearanceDialog(QWidget* parent) :
 }
 
 void AvatarAppearanceDialog::useSeparateBodyAndHead(bool checked) {
-    setUseFullAvatar(!checked);
-
     QUrl headURL(ui.faceURLEdit->text());
     QUrl bodyURL(ui.skeletonURLEdit->text());
-    
     DependencyManager::get<AvatarManager>()->getMyAvatar()->useHeadAndBodyURLs(headURL, bodyURL);
+    setUseFullAvatar(!checked);
 }
 
 void AvatarAppearanceDialog::useFullAvatar(bool checked) {
-    setUseFullAvatar(checked);
     QUrl fullAvatarURL(ui.fullAvatarURLEdit->text());
     DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(fullAvatarURL);
+    setUseFullAvatar(checked);
 }
 
 void AvatarAppearanceDialog::setUseFullAvatar(bool useFullAvatar) {
@@ -88,6 +81,8 @@ void AvatarAppearanceDialog::setUseFullAvatar(bool useFullAvatar) {
     
     ui.useFullAvatar->setChecked(_useFullAvatar);
     ui.useSeparateBodyAndHead->setChecked(!_useFullAvatar);
+
+    DependencyManager::get<DialogsManager>()->getPreferencesDialog()->avatarDescriptionChanged();
 }
 
 void AvatarAppearanceDialog::headURLChanged(const QString& newValue, const QString& modelName) {
@@ -110,6 +105,9 @@ void AvatarAppearanceDialog::fullAvatarURLChanged(const QString& newValue, const
 
 void AvatarAppearanceDialog::accept() {
     saveAvatarAppearance();
+
+    DependencyManager::get<DialogsManager>()->getPreferencesDialog()->avatarDescriptionChanged();
+
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;

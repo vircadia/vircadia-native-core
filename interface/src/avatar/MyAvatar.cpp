@@ -943,6 +943,29 @@ void MyAvatar::clearJointAnimationPriorities() {
     }
 }
 
+QString MyAvatar::getModelDescription() const {
+    QString result;
+    if (_useFullAvatar) {
+        if (!getFullAvartarModelName().isEmpty()) {
+            result = "Full Avatar \"" + getFullAvartarModelName() + "\"";
+        } else {
+            result = "Full Avatar \"" + _fullAvatarURLFromPreferences.fileName() + "\"";
+        }
+    } else {
+        if (!getHeadModelName().isEmpty()) {
+            result = "Head \"" + getHeadModelName() + "\"";
+        } else {
+            result = "Head \"" + _headURLFromPreferences.fileName() + "\"";
+        }
+        if (!getBodyModelName().isEmpty()) {
+            result += " and Body \"" + getBodyModelName() + "\"";
+        } else {
+            result += " and Body \"" + _skeletonURLFromPreferences.fileName() + "\"";
+        }
+    }
+    return result;
+}
+
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     _billboardValid = false;

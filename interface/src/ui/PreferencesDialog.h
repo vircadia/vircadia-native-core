@@ -25,6 +25,8 @@ class PreferencesDialog : public QDialog {
 public:
     PreferencesDialog(QWidget* parent = nullptr);
 
+    void avatarDescriptionChanged();
+
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);
 

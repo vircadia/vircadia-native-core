@@ -44,6 +44,7 @@ public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
+    QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
     
 public slots:
     void toggleAddressBar();

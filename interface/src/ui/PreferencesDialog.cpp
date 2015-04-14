@@ -57,23 +57,25 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     move(parentWidget()->geometry().topLeft());
     setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    
-    ui.apperanceDescription->setText("Body - " + myAvatar->getBodyModelName());
+    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 
     UIUtil::scaleWidgetFontSizes(this);
 }
 
+void PreferencesDialog::avatarDescriptionChanged() {
+    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
+}
+
 void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText("Head - " + modelName);
+    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 }
 
 void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText("Body - " + modelName);
+    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 }
 
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.apperanceDescription->setText("Full Avatar - " + modelName);
+    ui.apperanceDescription->setText(DependencyManager::get<AvatarManager>()->getMyAvatar()->getModelDescription());
 }
 
 void PreferencesDialog::accept() {

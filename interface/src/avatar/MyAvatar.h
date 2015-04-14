@@ -131,6 +131,8 @@ public:
     const QString& getBodyModelName() const { return _bodyModelName; }
     const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
 
+    QString getModelDescription() const;
+
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     virtual glm::vec3 getSkeletonPosition() const;
