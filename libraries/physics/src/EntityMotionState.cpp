@@ -191,20 +191,12 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QString myNodeID = nodeList->getSessionUUID().toString();
     QString simulatorID = _entity->getSimulatorID();
 
-    if (simulatorID.isEmpty() && baseResult) {
-        // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-        simulatorID = myNodeID;
-    } else if (simulatorID == myNodeID && _numNonMovingUpdates > 0) {
-        // we are the simulator and the object has stopped.  give up "simulator" status
-        simulatorID = "";
-    }
-
     if (!simulatorID.isEmpty() && simulatorID != myNodeID) {
         // some other Node is simulating this, so don't broadcast our computations.
         return false;
     }
 
-    return baseResult;
+    return true;
 }
 
 
@@ -223,6 +215,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             _sentRotation = bulletToGLM(worldTrans.getRotation());
             properties.setRotation(_sentRotation);
         }
+
+        const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
+        bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
+        const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
+        bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
     
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
@@ -230,13 +227,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
 
                 // if the speeds are very small we zero them out
-                const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-                bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
                 if (zeroSpeed) {
                     _sentVelocity = glm::vec3(0.0f);
                 }
-                const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-                bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
                 if (zeroSpin) {
                     _sentAngularVelocity = glm::vec3(0.0f);
                 }
@@ -252,23 +245,21 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setAngularVelocity(_sentAngularVelocity);
         }
 
-
         qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
         auto nodeList = DependencyManager::get<NodeList>();
         QString myNodeID = nodeList->getSessionUUID().toString();
         QString simulatorID = _entity->getSimulatorID();
-        if (simulatorID.isEmpty()) {
+        if (simulatorID.isEmpty() && _sentMoving) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             qDebug() << "claiming simulator ownership";
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && _numNonMovingUpdates > 0) {
+        } else if (simulatorID == myNodeID && zeroSpin && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             qDebug() << "releasing simulator ownership";
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
         }
-
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
         if (_sentMoving) {
