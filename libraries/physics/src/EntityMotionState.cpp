@@ -245,11 +245,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setAngularVelocity(_sentAngularVelocity);
         }
 
-        qDebug() << "EntityMotionState::sendUpdate" << _sentMoving << _body->isActive();
+
         auto nodeList = DependencyManager::get<NodeList>();
         QString myNodeID = nodeList->getSessionUUID().toString();
         QString simulatorID = _entity->getSimulatorID();
-        if (simulatorID.isEmpty() && _sentMoving) {
+        qDebug() << "EntityMotionState::sendUpdate" << (zeroSpin && zeroSpin) << "me:" << myNodeID << "owner:" << simulatorID;
+        if (simulatorID.isEmpty() && !(zeroSpin && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             qDebug() << "claiming simulator ownership";
             _entity->setSimulatorID(myNodeID);

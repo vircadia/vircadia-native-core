@@ -65,17 +65,25 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
+    // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QString myNodeID = nodeList->getSessionUUID().toString();
+    // QString simulatorID = _entity->getSimulatorID();
+
+    EntityItemProperties propertiesWithSimID = properties;
+    propertiesWithSimID.setSimulatorID(myNodeID);
+
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->addEntity(id, properties);
+        _entityTree->addEntity(id, propertiesWithSimID);
         _entityTree->unlock();
     }
 
     // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
 
     return id;
 }
