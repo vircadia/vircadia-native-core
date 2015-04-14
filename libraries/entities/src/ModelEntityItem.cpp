@@ -276,6 +276,16 @@ void ModelEntityItem::debugDump() const {
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {
+    // BEGIN_TEMPORARY_WORKAROUND
+    // we have allowed inconsistent ShapeType's to be stored in SVO files in the past (this was a bug)
+    // but we are now enforcing the entity properties to be consistent.  To make the possible we're 
+    // introducing a temporary workaround: we will ignore ShapeType updates that conflict with the
+    // _collisionModelURL.
+    if (hasCollisionModel()) {
+        type = SHAPE_TYPE_COMPOUND;
+    }
+    // END_TEMPORARY_WORKAROUND
+
     if (type != _shapeType) {
         _shapeType = type;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
@@ -296,6 +306,7 @@ void ModelEntityItem::setCollisionModelURL(const QString& url) {
     if (_collisionModelURL != url) {
         _collisionModelURL = url;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _shapeType = _collisionModelURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
     }
 }
 
