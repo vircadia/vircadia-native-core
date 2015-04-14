@@ -33,6 +33,7 @@ class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
+class AvatarAppearanceDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -59,6 +60,7 @@ public slots:
     void hmdTools(bool showTools);
     void showScriptEditor();
     void showIRCLink();
+    void changeAvatarAppearance();
 
 private slots:
     void toggleToolWindow();
@@ -94,6 +96,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
+    QPointer<AvatarAppearanceDialog> _avatarAppearanceDialog;
 };
 
 #endif // hifi_DialogsManager_h

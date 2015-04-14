@@ -19,6 +19,7 @@
 #include <NetworkingConstants.h>
 
 #include "Application.h"
+#include "DialogsManager.h"
 #include "MainWindow.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -41,18 +42,13 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     ui.outputBufferSizeSpinner->setMinimum(MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
     ui.outputBufferSizeSpinner->setMaximum(MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
 
-    connect(ui.buttonBrowseHead, &QPushButton::clicked, this, &PreferencesDialog::openHeadModelBrowser);
-    connect(ui.buttonBrowseBody, &QPushButton::clicked, this, &PreferencesDialog::openBodyModelBrowser);
-    connect(ui.buttonBrowseFullAvatar, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
-
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
 
-    connect(ui.useSeparateBodyAndHead, &QRadioButton::clicked, this, &PreferencesDialog::useSeparateBodyAndHead);
-    connect(ui.useFullAvatar, &QRadioButton::clicked, this, &PreferencesDialog::useFullAvatar);
-    
-    
+    DialogsManager* dialogsManager = DependencyManager::get<DialogsManager>().data();
+    connect(ui.buttonChangeApperance, &QPushButton::clicked, dialogsManager, &DialogsManager::changeAvatarAppearance);
+
     connect(Application::getInstance(), &Application::headURLChanged, this, &PreferencesDialog::headURLChanged);
     connect(Application::getInstance(), &Application::bodyURLChanged, this, &PreferencesDialog::bodyURLChanged);
     connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
@@ -63,54 +59,21 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
-    ui.bodyNameLabel->setText("Body - " + myAvatar->getBodyModelName());
-    ui.headNameLabel->setText("Head - " + myAvatar->getHeadModelName());
-    ui.fullAvatarNameLabel->setText("Full Avatar - " + myAvatar->getFullAvartarModelName());
+    ui.apperanceDescription->setText("Body - " + myAvatar->getBodyModelName());
 
     UIUtil::scaleWidgetFontSizes(this);
 }
 
-void PreferencesDialog::useSeparateBodyAndHead(bool checked) {
-    setUseFullAvatar(!checked);
-
-    QUrl headURL(ui.faceURLEdit->text());
-    QUrl bodyURL(ui.skeletonURLEdit->text());
-    
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->useHeadAndBodyURLs(headURL, bodyURL);
-}
-
-void PreferencesDialog::useFullAvatar(bool checked) {
-    setUseFullAvatar(checked);
-    QUrl fullAvatarURL(ui.fullAvatarURLEdit->text());
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(fullAvatarURL);
-}
-
-void PreferencesDialog::setUseFullAvatar(bool useFullAvatar) {
-    _useFullAvatar = useFullAvatar;
-    ui.faceURLEdit->setEnabled(!_useFullAvatar);
-    ui.skeletonURLEdit->setEnabled(!_useFullAvatar);
-    ui.fullAvatarURLEdit->setEnabled(_useFullAvatar);
-    
-    ui.useFullAvatar->setChecked(_useFullAvatar);
-    ui.useSeparateBodyAndHead->setChecked(!_useFullAvatar);
-}
-
 void PreferencesDialog::headURLChanged(const QString& newValue, const QString& modelName) {
-    ui.faceURLEdit->setText(newValue);
-    setUseFullAvatar(false);
-    ui.headNameLabel->setText("Head - " + modelName);
+    ui.apperanceDescription->setText("Head - " + modelName);
 }
 
 void PreferencesDialog::bodyURLChanged(const QString& newValue, const QString& modelName) {
-    ui.skeletonURLEdit->setText(newValue);
-    setUseFullAvatar(false);
-    ui.bodyNameLabel->setText("Body - " + modelName);
+    ui.apperanceDescription->setText("Body - " + modelName);
 }
 
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
-    ui.fullAvatarURLEdit->setText(newValue);
-    setUseFullAvatar(true);
-    ui.fullAvatarNameLabel->setText("Full Avatar - " + modelName);
+    ui.apperanceDescription->setText("Full Avatar - " + modelName);
 }
 
 void PreferencesDialog::accept() {
@@ -118,44 +81,6 @@ void PreferencesDialog::accept() {
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;
-}
-
-void PreferencesDialog::setHeadUrl(QString modelUrl) {
-    ui.faceURLEdit->setText(modelUrl);
-}
-
-void PreferencesDialog::setSkeletonUrl(QString modelUrl) {
-    ui.skeletonURLEdit->setText(modelUrl);
-}
-
-void PreferencesDialog::openFullAvatarModelBrowser() {
-    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
-    auto WIDTH = 900;
-    auto HEIGHT = 700;
-    if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
-    }
-    _marketplaceWindow->setVisible(true);
-}
-
-void PreferencesDialog::openHeadModelBrowser() {
-    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
-    auto WIDTH = 900;
-    auto HEIGHT = 700;
-    if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
-    }
-    _marketplaceWindow->setVisible(true);
-}
-
-void PreferencesDialog::openBodyModelBrowser() {
-    auto MARKETPLACE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace?category=avatars";
-    auto WIDTH = 900;
-    auto HEIGHT = 700;
-    if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
-    }
-    _marketplaceWindow->setVisible(true);
 }
 
 void PreferencesDialog::openSnapshotLocationBrowser() {
@@ -199,19 +124,6 @@ void PreferencesDialog::loadPreferences() {
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
 
-
-    _useFullAvatar = myAvatar->getUseFullAvatar();
-    _fullAvatarURLString = myAvatar->getFullAvatarURLFromPreferences().toString();
-    _headURLString = myAvatar->getHeadURLFromPreferences().toString();
-    _bodyURLString = myAvatar->getBodyURLFromPreferences().toString();
-
-    ui.fullAvatarURLEdit->setText(_fullAvatarURLString);
-    ui.faceURLEdit->setText(_headURLString);
-    ui.skeletonURLEdit->setText(_bodyURLString);
-    setUseFullAvatar(_useFullAvatar);
-    
-    // TODO: load the names for the models.
-    
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
@@ -281,29 +193,6 @@ void PreferencesDialog::savePreferences() {
         shouldDispatchIdentityPacket = true;
     }
 
-    QUrl headURL(ui.faceURLEdit->text());
-    QString headURLString = headURL.toString();
-
-    QUrl bodyURL(ui.skeletonURLEdit->text());
-    QString bodyURLString = bodyURL.toString();
-
-    QUrl fullAvatarURL(ui.fullAvatarURLEdit->text());
-    QString fullAvatarURLString = fullAvatarURL.toString();
-
-    bool somethingChanged = 
-        _useFullAvatar != myAvatar->getUseFullAvatar() ||
-        fullAvatarURLString != myAvatar->getFullAvatarURLFromPreferences().toString() ||
-        headURLString != myAvatar->getHeadURLFromPreferences().toString() || 
-        bodyURLString != myAvatar->getBodyURLFromPreferences().toString();
-        
-    if (somethingChanged) {
-        if (_useFullAvatar) {
-            myAvatar->useFullAvatarURL(fullAvatarURL);
-        } else {
-            myAvatar->useHeadAndBodyURLs(headURL, bodyURL);
-        }
-    }
-    
     if (shouldDispatchIdentityPacket) {
         myAvatar->sendIdentityPacket();
     }

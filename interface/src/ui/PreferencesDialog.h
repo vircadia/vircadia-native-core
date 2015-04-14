@@ -31,35 +31,20 @@ protected:
 private:
     void loadPreferences();
     void savePreferences();
-    void openHeadModelBrowser();
-    void openBodyModelBrowser();
-    void openFullAvatarModelBrowser();
-    void setUseFullAvatar(bool useFullAvatar);
 
     Ui_PreferencesDialog ui;
 
-    bool _useFullAvatar;
-    QString _headURLString;
-    QString _bodyURLString;
-    QString _fullAvatarURLString;
-    
-    
     QString _displayNameString;
     
     WebWindowClass* _marketplaceWindow = NULL;
 
 private slots:
     void accept();
-    void setHeadUrl(QString modelUrl);
-    void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
     void headURLChanged(const QString& newValue, const QString& modelName);
     void bodyURLChanged(const QString& newValue, const QString& modelName);
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
-    void useSeparateBodyAndHead(bool checked);
-    void useFullAvatar(bool checked);
-    
 };
 
 #endif // hifi_PreferencesDialog_h
