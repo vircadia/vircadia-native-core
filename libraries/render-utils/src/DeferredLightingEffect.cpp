@@ -183,15 +183,17 @@ void DeferredLightingEffect::render() {
 
     auto textureCache = DependencyManager::get<TextureCache>();
     
-    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-    primaryFBO->release();
+  //  QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
+  //  primaryFBO->release();
+    QSize framebufferSize = textureCache->getFrameBufferSize();
     
     QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
     freeFBO->bind();
     glClear(GL_COLOR_BUFFER_BIT);
    // glEnable(GL_FRAMEBUFFER_SRGB);
 
-    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+   // glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryColorTextureID());
     
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryNormalTextureID());
@@ -209,11 +211,17 @@ void DeferredLightingEffect::render() {
     const int VIEWPORT_Y_INDEX = 1;
     const int VIEWPORT_WIDTH_INDEX = 2;
     const int VIEWPORT_HEIGHT_INDEX = 3;
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
+ /*   float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
-   
+    */
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
+    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
+    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+
+
     // Fetch the ViewMatrix;
     glm::mat4 invViewMat;
     _viewState->getViewTransform().getMatrix(invViewMat);
@@ -437,7 +445,10 @@ void DeferredLightingEffect::render() {
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glColorMask(true, true, true, false);
     
-    primaryFBO->bind();
+    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryOpaqueFramebuffer());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
+
+    //primaryFBO->bind();
     
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     glEnable(GL_TEXTURE_2D);

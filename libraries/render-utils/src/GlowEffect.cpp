@@ -24,6 +24,7 @@
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 
+#include "gpu/GLBackend.h"
 
 GlowEffect::GlowEffect()
     : _initialized(false),
@@ -105,7 +106,11 @@ int GlowEffect::getDeviceHeight() const {
 
 
 void GlowEffect::prepare() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    //DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer();
+    GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     _isEmpty = true;
@@ -140,9 +145,11 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     PerformanceTimer perfTimer("glowEffect");
 
     auto textureCache = DependencyManager::get<TextureCache>();
-    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-    primaryFBO->release();
-    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+   // QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
+  //  primaryFBO->release();
+    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryOpaqueFramebuffer());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryColorTextureID());
+    auto framebufferSize = textureCache->getFrameBufferSize();
 
     glPushMatrix();
     glLoadIdentity();
@@ -160,7 +167,10 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destFBO->handle());
+            glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(), 0, 0, framebufferSize.width(), framebufferSize.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        //    QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
@@ -192,7 +202,8 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
             
             _diffuseProgram->bind();
-            QSize size = primaryFBO->size();
+            //QSize size = primaryFBO->size();
+            QSize size = framebufferSize;
             _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
         
             renderFullscreenQuad();

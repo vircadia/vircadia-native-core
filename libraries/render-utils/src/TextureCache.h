@@ -14,6 +14,7 @@
 
 #include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
+#include <gpu/Framebuffer.h>
 
 #include <QImage>
 #include <QMap>
@@ -62,9 +63,18 @@ public:
     /// used for scene rendering.
     QOpenGLFramebufferObject* getPrimaryFramebufferObject();
     
+    gpu::FramebufferPointer getPrimaryOpaqueFramebuffer();
+    gpu::FramebufferPointer getPrimaryTransparentFramebuffer();
+
+    gpu::TexturePointer getPrimaryDepthTexture();
+    gpu::TexturePointer getPrimaryColorTexture();
+    gpu::TexturePointer getPrimaryNormalTexture();
+    gpu::TexturePointer getPrimarySpecularTexture();
+
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     GLuint getPrimaryDepthTextureID();
-    
+    GLuint getPrimaryColorTextureID();
+
     /// Returns the ID of the primary framebuffer object's normal texture.
     GLuint getPrimaryNormalTextureID();
     
@@ -78,6 +88,7 @@ public:
     /// screen effects.
     QOpenGLFramebufferObject* getSecondaryFramebufferObject();
     
+
     /// Returns a pointer to the tertiary framebuffer object, used as an additional render target when performing full
     /// screen effects.
     QOpenGLFramebufferObject* getTertiaryFramebufferObject();
@@ -85,6 +96,9 @@ public:
     /// Returns a pointer to the framebuffer object used to render shadow maps.
     QOpenGLFramebufferObject* getShadowFramebufferObject();
     
+    gpu::FramebufferPointer getShadowFramebuffer();
+
+
     /// Returns the ID of the shadow framebuffer object's depth texture.
     GLuint getShadowDepthTextureID();
     
@@ -105,9 +119,18 @@ private:
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
     gpu::TexturePointer _blueTexture;
+
     
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
-    
+   
+    gpu::TexturePointer _primaryDepthTexture;
+    gpu::TexturePointer _primaryColorTexture;
+    gpu::TexturePointer _primaryNormalTexture;
+    gpu::TexturePointer _primarySpecularTexture;
+    gpu::FramebufferPointer _primaryOpaqueFramebuffer;
+    gpu::FramebufferPointer _primaryTransparentFramebuffer;
+    void createPrimaryFramebuffer();
+
     GLuint _primaryDepthTextureID;
     GLuint _primaryNormalTextureID;
     GLuint _primarySpecularTextureID;
@@ -115,8 +138,12 @@ private:
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
     
+
     QOpenGLFramebufferObject* _shadowFramebufferObject;
     GLuint _shadowDepthTextureID;
+
+    gpu::FramebufferPointer _shadowFramebuffer;
+    gpu::TexturePointer _shadowTexture;
 
     QSize _frameBufferSize;
     QGLWidget* _associatedWidget;

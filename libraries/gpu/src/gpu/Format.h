@@ -119,7 +119,8 @@ enum Semantic {
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
 
-    DEPTH, // Depth buffer
+    DEPTH, // Depth only buffer
+    STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
     SRGB,

@@ -798,7 +798,8 @@ void Application::paintGL() {
         DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
+       // QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
@@ -2636,8 +2637,12 @@ void Application::updateShadowMap() {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
-    fbo->bind();
+//    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
+//    fbo->bind();
+    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
+    GLuint shadowFBO = gpu::GLBackend::getFramebufferID(shadowFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -2653,16 +2658,18 @@ void Application::updateShadowMap() {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     int matrixCount = 1;
-    int targetSize = fbo->width();
+    //int targetSize = fbo->width();
+    int sourceSize = shadowFramebuffer->getWidth();
+    int targetSize = shadowFramebuffer->getWidth();
     float targetScale = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
         matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = fbo->width() / 2;
+        targetSize = sourceSize / 2;
         targetScale = 0.5f;
     }
     for (int i = 0; i < matrixCount; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
+        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
 
         // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
         int regionIncrement = (matrixCount == 1 ? 2 : 1);
@@ -2785,7 +2792,7 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
-    fbo->release();
+   // fbo->release();
     
     glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;

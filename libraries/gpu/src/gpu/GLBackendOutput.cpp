@@ -28,7 +28,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
     bool needUpdate = false;
     if (object) {
         return object;
-    } else if (!framebuffer.isDefined()) {
+    } else if (framebuffer.isEmpty()) {
         // NO framebuffer definition yet so let's avoid thinking
         return nullptr;
     }
@@ -39,7 +39,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         glGenFramebuffers(1, &fbo);
         CHECK_GL_ERROR();
 
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
         unsigned int nbColorBuffers = 0;
         GLenum colorBuffers[16];
@@ -82,7 +82,6 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             if (surface) {
                 auto gltexture = GLBackend::syncGPUObject(*surface);
                 if (gltexture) {
-                    if (surface)
                     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gltexture->_texture, 0);
                 }
             }

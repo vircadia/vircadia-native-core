@@ -144,7 +144,38 @@ public:
                     texel.internalFormat = GL_RED;
                     break;
                 case gpu::DEPTH:
+                    texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
                     texel.internalFormat = GL_DEPTH_COMPONENT;
+                    switch (dstFormat.getType()) {
+                    case gpu::UINT32:
+                    case gpu::INT32:
+                    case gpu::NUINT32:
+                    case gpu::NINT32: {
+                        texel.internalFormat = GL_DEPTH_COMPONENT32;
+                        break;
+                        }
+                    case gpu::NFLOAT:
+                    case gpu::FLOAT: {
+                        texel.internalFormat = GL_DEPTH_COMPONENT32F;
+                        break;
+                        }
+                    case gpu::UINT16:
+                    case gpu::INT16:
+                    case gpu::NUINT16:
+                    case gpu::NINT16:
+                    case gpu::HALF:
+                    case gpu::NHALF: {
+                        texel.internalFormat = GL_DEPTH_COMPONENT16;
+                        break;
+                        }
+                    case gpu::UINT8:
+                    case gpu::INT8:
+                    case gpu::NUINT8:
+                    case gpu::NINT8: {
+                        texel.internalFormat = GL_DEPTH_COMPONENT24;
+                        break;
+                        }
+                    }
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -306,6 +337,9 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
             if (bytes && texture.isAutogenerateMips()) {
                 glGenerateMipmap(GL_TEXTURE_2D);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            } else {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             }
 
             // At this point the mip piels have been loaded, we can notify

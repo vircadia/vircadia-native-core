@@ -41,6 +41,14 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
     return framebuffer;
 }
 
+Framebuffer* Framebuffer::createShadowmap(uint16 width) {
+    auto framebuffer = Framebuffer::create();
+    auto depthTexture = TexturePointer(Texture::create2D(Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH), width, width));
+
+    framebuffer->setDepthStencilBuffer(depthTexture, Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH));
+
+    return framebuffer;
+}
 
 bool Framebuffer::isSwapchain() const {
     return _swapchain != 0;

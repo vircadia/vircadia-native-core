@@ -116,6 +116,7 @@ public:
     static Framebuffer* create(const SwapchainPointer& swapchain);
     static Framebuffer* create();
     static Framebuffer* create(const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height, uint16 samples );
+    static Framebuffer* createShadowmap(uint16 width);
 
     bool isSwapchain() const;
     SwapchainPointer getSwapchain() const { return _swapchain; }
@@ -135,6 +136,7 @@ public:
     TexturePointer getDepthStencilBuffer() const;
     uint32 getDepthStencilBufferSubresource() const;
     Format getDepthStencilBufferFormat() const;
+
 
     // Properties
     uint32 getBufferMask() const { return _bufferMask; }
@@ -159,23 +161,19 @@ public:
     // Get viewport covering the ful Canvas
     Viewport getViewport() const { return Viewport(getWidth(), getHeight(), 0, 0); }
 
-    bool isDefined() const { return _isDefined; }
-
 protected:
-    uint16 _width;
-    uint16 _height;
-    uint16 _numSamples;
+    uint16 _width = 0;
+    uint16 _height = 0;
+    uint16 _numSamples = 0;
 
-    uint32 _bufferMask;
+    uint32 _bufferMask = 0;
 
-    uint32 _frameCount;
+    uint32 _frameCount = 0;
 
     SwapchainPointer _swapchain;
 
     TextureViews _renderBuffers;
     TextureView _depthStencilBuffer;
-
-    bool _isDefined = false;
 
     void updateSize(const TexturePointer& texture);
 
