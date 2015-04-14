@@ -47,6 +47,8 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | Entit
 
 class OctreeEditPacketSender;
 
+extern const int MAX_NUM_NON_MOVING_UPDATES;
+
 class ObjectMotionState : public btMotionState {
 public:
     // The WorldOffset is used to keep the positions of objects in the simulation near the origin, to
