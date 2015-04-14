@@ -1,9 +1,8 @@
 //
 //  LoginDialog.h
-//  interface/src/ui
 //
-//  Created by Ryan Huffman on 4/23/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Bradley Austin Davis on 2015/04/14
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,35 +11,41 @@
 #ifndef hifi_LoginDialog_h
 #define hifi_LoginDialog_h
 
-#include <QObject>
-#include "FramelessDialog.h"
+#pragma once
+#include <QQuickItem>
 
-namespace Ui {
-    class LoginDialog;
-}
+#include "OffscreenUi.h"
 
-class LoginDialog : public FramelessDialog {
+class LoginDialog : public QQuickItem
+{
     Q_OBJECT
+    QML_DIALOG_DECL
+
+    Q_PROPERTY(QString statusText READ statusText WRITE setStatusText NOTIFY statusTextChanged)
+    Q_PROPERTY(QString rootUrl READ rootUrl)
 
 public:
-    LoginDialog(QWidget* parent);
-    ~LoginDialog();
+    static void toggleAction();
 
-public slots:
-    void toggleQAction();
-    void showLoginForCurrentDomain();
-    
-protected slots:
-    void reset();
-    void handleLoginClicked();
+    LoginDialog(QQuickItem *parent = 0);
+
+    void setStatusText(const QString & a);
+    QString statusText() const;
+
+    QString rootUrl() const;
+
+signals:
+    void statusTextChanged();
+
+protected:
     void handleLoginCompleted(const QUrl& authURL);
     void handleLoginFailed();
 
-protected:
-    void moveEvent(QMoveEvent* event);
-
+    Q_INVOKABLE void login(const QString & username, const QString & password);
+    Q_INVOKABLE void openUrl(const QString & url);
 private:
-    Ui::LoginDialog* _ui = nullptr;
+    QString _statusText;
+    const QString _rootUrl;
 };
 
 #endif // hifi_LoginDialog_h

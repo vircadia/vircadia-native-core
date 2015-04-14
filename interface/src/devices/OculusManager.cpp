@@ -114,13 +114,22 @@ void OculusManager::initSdk() {
 }
 
 void OculusManager::shutdownSdk() {
-    ovrHmd_Destroy(_ovrHmd);
-    ovr_Shutdown();
+    if (_ovrHmd) {
+        ovrHmd_Destroy(_ovrHmd);
+        _ovrHmd = nullptr;
+        ovr_Shutdown();
+    }
 }
 
 void OculusManager::init() {
 #ifdef OVR_DIRECT_MODE
 	initSdk();
+#endif
+}
+
+void OculusManager::deinit() {
+#ifdef OVR_DIRECT_MODE
+    shutdownSdk();
 #endif
 }
 
@@ -515,7 +524,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
     // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay(true);
+    applicationOverlay.renderOverlay();
    
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {

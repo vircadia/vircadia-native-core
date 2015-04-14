@@ -137,6 +137,7 @@
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
+#include "ui/AddressBarDialog.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -209,8 +210,12 @@ public:
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
-    
+
     if (!logMessage.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(logMessage.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#endif
         Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
@@ -260,6 +265,7 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+    auto offscreenUi = DependencyManager::set<OffscreenUi>();
 
     return true;
 }
@@ -316,8 +322,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
+    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
+
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
@@ -562,7 +570,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+    // The offscreen UI needs to intercept the mouse and keyboard 
+    // events coming from the onscreen window
+    _glWidget->installEventFilter(
+    	DependencyManager::get<OffscreenUi>().data());
 }
+
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
@@ -720,8 +733,33 @@ void Application::initializeGL() {
 
     // update before the first render
     update(1.0f / _fps);
+   
+    // The UI can't be created until the primary OpenGL 
+    // context is created, because it needs to share 
+    // texture resources
+    initializeUi();
 
     InfoView::showFirstTime(INFO_HELP_PATH);
+}
+
+void Application::initializeUi() {
+    AddressBarDialog::registerType();
+    LoginDialog::registerType();
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->create(_glWidget->context()->contextHandle());
+    offscreenUi->resize(_glWidget->size());
+    offscreenUi->setProxyWindow(_window->windowHandle());
+    auto rootQml = PathUtils::resourcesPath() + "qml/Root.qml";
+    offscreenUi->loadQml(QUrl::fromLocalFile(rootQml));
+    offscreenUi->setMouseTranslator([this](const QPointF& p){
+        if (OculusManager::isConnected()) {
+            glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
+            return QPointF(pos.x, pos.y);
+        }
+        return QPointF(p);
+    });
+    offscreenUi->resume();
 }
 
 void Application::paintGL() {
@@ -818,7 +856,7 @@ void Application::paintGL() {
 
         {
             PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay(true);
+            _applicationOverlay.renderOverlay();
             _applicationOverlay.displayOverlayTexture();
         }
     }
@@ -862,6 +900,9 @@ void Application::resizeGL(int width, int height) {
 
     updateProjectionMatrix();
     glLoadIdentity();
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->resize(QSize(width, height));
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
@@ -911,6 +952,44 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
+    switch (event->type()) {
+        case QEvent::MouseMove:
+            mouseMoveEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonPress:
+            mousePressEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonRelease:
+            mouseReleaseEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::KeyPress:
+            keyPressEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::KeyRelease:
+            keyReleaseEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::FocusOut:
+            focusOutEvent((QFocusEvent*)event);
+            return true;
+        case QEvent::TouchBegin:
+            touchBeginEvent(static_cast<QTouchEvent*>(event));
+            event->accept();
+            return true;
+        case QEvent::TouchEnd:
+            touchEndEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::TouchUpdate:
+            touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Wheel:
+            wheelEvent(static_cast<QWheelEvent*>(event));
+            return true;
+        case QEvent::Drop:
+            dropEvent(static_cast<QDropEvent*>(event));
+            return true;
+        default:
+            break;
+    }
 
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
@@ -931,7 +1010,7 @@ bool Application::event(QEvent* event) {
     if (HFActionEvent::types().contains(event->type())) {
         _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
     }
-     
+
     return QApplication::event(event);
 }
 
@@ -963,14 +1042,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
+        bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
             case Qt::Key_L:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
-                } else if (isMeta) {
+                if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
-                }
+                } else if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                } else if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                } 
                 break;
 
             case Qt::Key_E:
@@ -1030,11 +1112,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Return:
-            case Qt::Key_Enter:
-                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
-                break;
-                
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
@@ -1491,6 +1568,17 @@ void Application::dropEvent(QDropEvent *event) {
     
     if (atLeastOneFileAccepted) {
         event->acceptProposedAction();
+    }
+}
+
+void Application::dragEnterEvent(QDragEnterEvent* event) {
+    const QMimeData* mimeData = event->mimeData();
+    foreach(QUrl url, mimeData->urls()) {
+        auto urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            event->acceptProposedAction();
+            break;
+        }
     }
 }
 
