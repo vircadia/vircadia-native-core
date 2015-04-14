@@ -20,16 +20,18 @@
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 
-#if defined(Q_OS_WIN)
-static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
-static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
-#elif defined(Q_OS_MAC)
-static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde.app/Contents/MacOS/dde";
-static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
-#endif
 static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
 static const quint16 DDE_SERVER_PORT = 64204;
 static const quint16 DDE_CONTROL_PORT = 64205;
+#if defined(Q_OS_WIN)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
+#elif defined(Q_OS_MAC)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde.app/Contents/MacOS/dde";
+#endif
+static const QStringList DDE_ARGUMENTS = QStringList() 
+    << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
+    << "--receiver=" + QString::number(DDE_CONTROL_PORT)
+    << "--headless";
 
 static const int NUM_EXPRESSIONS = 46;
 static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSIONS) * sizeof(float) + sizeof(int);
@@ -174,7 +176,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     if (enabled && !_ddeProcess) {
         qDebug() << "[Info] DDE Face Tracker Starting";
         _ddeProcess = new QProcess(qApp);
-        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS.split(" "));
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
     }
 
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
