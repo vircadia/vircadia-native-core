@@ -60,13 +60,10 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running) {
-    if (isRunning() == running) {
+    if (running && isRunning()) {
         // if we're already running, this is the same as a restart
-        if (running) {
-            // move back to the beginning
-            setFrameIndex(getFirstFrame());
-            return;
-        }
+        setFrameIndex(getFirstFrame());
+        return;
     }
     _animationLoop.setRunning(running);
     if (isRunning()) {
