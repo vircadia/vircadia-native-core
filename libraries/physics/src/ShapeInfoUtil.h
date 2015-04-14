@@ -19,16 +19,10 @@
 
 // translates between ShapeInfo and btShape
 
+// TODO: rename this to ShapeFactory
 namespace ShapeInfoUtil {
 
-    // XXX is collectInfoFromShape no longer strictly needed?
-    void collectInfoFromShape(const btCollisionShape* shape, ShapeInfo& info);
-
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
-
-    // TODO? just use bullet shape types everywhere?
-    int toBulletShapeType(int shapeInfoType);
-    int fromBulletShapeType(int bulletShapeType);
 };
 
 #endif // hifi_ShapeInfoUtil_h
