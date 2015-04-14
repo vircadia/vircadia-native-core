@@ -176,21 +176,25 @@ DdeFaceTracker::~DdeFaceTracker() {
 
 void DdeFaceTracker::setEnabled(bool enabled) {
 #ifdef HAVE_DDE
-    if (enabled && !_ddeProcess) {
-        qDebug() << "[Info] DDE Face Tracker Starting";
-        _ddeProcess = new QProcess(qApp);
-        connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
-        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
-    }
-
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
         _udpSocket.bind(_host, _serverPort);
     }
 
+    if (enabled && !_ddeProcess) {
+        // Terminate any existing DDE process, perhaps left running after an Interface crash
+        const char* DDE_EXIT_COMMAND = "exit";
+        _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+        qDebug() << "[Info] DDE Face Tracker Starting";
+        _ddeProcess = new QProcess(qApp);
+        connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
+    }
+
     if (!enabled && _ddeProcess) {
-        _ddeProcess->kill();
+        _ddeProcess->kill();  // More robust than trying to send an "exit" command to DDE
         _ddeProcess = NULL;
         qDebug() << "[Info] DDE Face Tracker Stopped";
     }
