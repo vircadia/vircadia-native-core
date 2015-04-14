@@ -68,10 +68,13 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
     auto nodeList = DependencyManager::get<NodeList>();
     const QString myNodeID = nodeList->getSessionUUID().toString();
-    // QString simulatorID = _entity->getSimulatorID();
 
     EntityItemProperties propertiesWithSimID = properties;
-    propertiesWithSimID.setSimulatorID(myNodeID);
+
+    // if this object is moving, set this Node as the simulation owner
+    if (properties.velocityChanged() || properties.rotationChanged()) {
+        propertiesWithSimID.setSimulatorID(myNodeID);
+    }
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
