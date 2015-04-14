@@ -130,7 +130,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     }
 
     // Z test depends if transparent or not
-    state->setDepthTest(true, !key.isTranslucent(), gpu::State::LESS_EQUAL);
+    state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),

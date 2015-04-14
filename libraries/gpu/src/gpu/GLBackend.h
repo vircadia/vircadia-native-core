@@ -53,6 +53,7 @@ public:
         Stamp _storageStamp;
         Stamp _contentStamp;
         GLuint _texture;
+        GLenum _target;
         GLuint _size;
 
         GLTexture();
@@ -60,6 +61,9 @@ public:
     };
     static GLTexture* syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture);
+
+    // very specific for now
+    static void syncSampler(const Sampler& sampler, Texture::Type type, GLTexture* object);
 
     class GLShader : public GPUObject {
     public:

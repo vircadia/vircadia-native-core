@@ -253,7 +253,7 @@ void DeferredLightingEffect::render() {
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
-            1.0f / textureCache->getShadowFramebufferObject()->width());
+            1.0f / textureCache->getShadowFramebuffer()->getWidth());
         
     } else {
         if (_ambientLightMode > -1) {

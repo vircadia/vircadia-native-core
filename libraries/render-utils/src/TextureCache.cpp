@@ -259,9 +259,11 @@ void TextureCache::createPrimaryFramebuffer() {
     auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
     auto width = _frameBufferSize.width();
     auto height = _frameBufferSize.height();
-    _primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height));
-    _primaryNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height));
-    _primarySpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height));
+
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+    _primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _primaryNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _primarySpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
 
     _primaryOpaqueFramebuffer->setRenderBuffer(0, _primaryColorTexture);
     _primaryOpaqueFramebuffer->setRenderBuffer(1, _primaryNormalTexture);
@@ -270,7 +272,7 @@ void TextureCache::createPrimaryFramebuffer() {
     _primaryTransparentFramebuffer->setRenderBuffer(0, _primaryColorTexture);
 
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-    _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height));
+    _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
 
     _primaryOpaqueFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
@@ -380,25 +382,6 @@ gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
         _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
 
         _shadowTexture = _shadowFramebuffer->getDepthStencilBuffer();
-        /*
-        glGenTextures(1, &_shadowDepthTextureID);
-        glBindTexture(GL_TEXTURE_2D, _shadowDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        const float DISTANT_BORDER[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, DISTANT_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _shadowFramebufferObject->bind();
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _shadowDepthTextureID, 0);
-        _shadowFramebufferObject->release();
-        */
     }
     return _shadowFramebuffer;
 }
@@ -675,7 +658,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height()));
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         _gpuTexture->autoGenerateMips(-1);
     }
@@ -714,7 +697,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
                 formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
                 formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
             }
-            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
+            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
             texture->_gpuTexture->autoGenerateMips(-1);
 

@@ -179,6 +179,20 @@ public:
     uint8 _type : 4;
 };
 
+  
+enum ComparisonFunction {
+    NEVER = 0,
+    LESS,
+    EQUAL,
+    LESS_EQUAL,
+    GREATER,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    ALWAYS,
+
+    NUM_COMPARISON_FUNCS,
+};
+
 };
 
 

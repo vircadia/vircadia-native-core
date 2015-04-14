@@ -93,23 +93,23 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     return allocated == size;
 }
 
-Texture* Texture::create1D(const Element& texelFormat, uint16 width) {
-    return create(TEX_1D, texelFormat, width, 1, 1, 1, 1);
+Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
+    return create(TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
 }
 
-Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height) {
-    return create(TEX_2D, texelFormat, width, height, 1, 1, 1);
+Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
 }
 
-Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth) {
-    return create(TEX_3D, texelFormat, width, height, depth, 1, 1);
+Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler) {
+    return create(TEX_3D, texelFormat, width, height, depth, 1, 1, sampler);
 }
 
-Texture* Texture::createCube(const Element& texelFormat, uint16 width) {
-    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 1);
+Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sampler& sampler) {
+    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 1, sampler);
 }
 
-Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices)
+Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
 {
     Texture* tex = new Texture();
     tex->_storage.reset(new Storage());
@@ -117,6 +117,8 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     tex->_type = type;
     tex->_maxMip = 0;
     tex->resize(type, texelFormat, width, height, depth, numSamples, numSlices);
+
+    tex->_sampler = sampler;
 
     return tex;
 }
@@ -345,4 +347,9 @@ uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried) {
         sample = 8;
 
     return sample;
+}
+
+void Texture::setSampler(const Sampler& sampler) {
+    _sampler = sampler;
+    _samplerStamp++;
 }
