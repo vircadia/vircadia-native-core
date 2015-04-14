@@ -255,7 +255,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && zeroSpin && zeroSpin) {
+        } else if (simulatorID == myNodeID && zeroSpin && _numNonMovingUpdates == 3) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
