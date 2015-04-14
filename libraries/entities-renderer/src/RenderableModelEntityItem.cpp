@@ -299,7 +299,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         }
 
         // the model is still being downloaded.
-        std::cout << "adebug still being downloaded" << std::endl;  // adebug
         return false;
     }
     return true;
