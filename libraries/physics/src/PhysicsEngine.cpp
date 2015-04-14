@@ -288,85 +288,79 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
 }
 
 void PhysicsEngine::stepSimulation() {
-    {
-        lock();
-        CProfileManager::Reset();
-        BT_PROFILE("stepSimulation");
-        // NOTE: the grand order of operations is:
-        // (1) pull incoming changes
-        // (2) step simulation
-        // (3) synchronize outgoing motion states
-        // (4) send outgoing packets
+    lock();
+    CProfileManager::Reset();
+    BT_PROFILE("stepSimulation");
+    // NOTE: the grand order of operations is:
+    // (1) pull incoming changes
+    // (2) step simulation
+    // (3) synchronize outgoing motion states
+    // (4) send outgoing packets
 
-        // This is step (1) pull incoming changes
-        relayIncomingChangesToSimulation();
-    
-        const int MAX_NUM_SUBSTEPS = 4;
-        const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
-        float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
-        _clock.reset();
-        float timeStep = btMin(dt, MAX_TIMESTEP);
-    
-        // TODO: move character->preSimulation() into relayIncomingChanges
-        if (_characterController) {
-            if (_characterController->needsRemoval()) {
-                _characterController->setDynamicsWorld(NULL);
-            }
-            _characterController->updateShapeIfNecessary();
-            if (_characterController->needsAddition()) {
-                _characterController->setDynamicsWorld(_dynamicsWorld);
-            }
-            _characterController->preSimulation(timeStep);
+    // This is step (1) pull incoming changes
+    relayIncomingChangesToSimulation();
+
+    const int MAX_NUM_SUBSTEPS = 4;
+    const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
+    float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
+    _clock.reset();
+    float timeStep = btMin(dt, MAX_TIMESTEP);
+
+    // TODO: move character->preSimulation() into relayIncomingChanges
+    if (_characterController) {
+        if (_characterController->needsRemoval()) {
+            _characterController->setDynamicsWorld(NULL);
         }
-    
-        // This is step (2) step simulation
-        int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
-        _numSubsteps += (uint32_t)numSubsteps;
-        stepNonPhysicalKinematics(usecTimestampNow());
-        unlock();
-    
-        // TODO: make all of this harvest stuff into one function: relayOutgoingChanges()
-        if (numSubsteps > 0) {
-            BT_PROFILE("postSimulation");
-            // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
-            //
-            // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
-            // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
-            // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
-            // lock on the tree before we re-lock ourselves.
-            //
-            // TODO: untangle these lock sequences.
-            _entityTree->lockForWrite();
-            lock();
-            _dynamicsWorld->synchronizeMotionStates();
-    
-            if (_characterController) {
-                _characterController->postSimulation();
-            }
-    
-            unlock();
-            _entityTree->unlock();
-        
-            computeCollisionEvents();
+        _characterController->updateShapeIfNecessary();
+        if (_characterController->needsAddition()) {
+            _characterController->setDynamicsWorld(_dynamicsWorld);
         }
+        _characterController->preSimulation(timeStep);
     }
-    if (_dumpNextStats) {
-        _dumpNextStats = false;
-        CProfileManager::dumpAll();
+
+    // This is step (2) step simulation
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    _numSubsteps += (uint32_t)numSubsteps;
+    stepNonPhysicalKinematics(usecTimestampNow());
+    unlock();
+
+    // TODO: make all of this harvest stuff into one function: relayOutgoingChanges()
+    if (numSubsteps > 0) {
+        BT_PROFILE("postSimulation");
+        // This is step (3) which is done outside of stepSimulation() so we can lock _entityTree.
+        //
+        // Unfortunately we have to unlock the simulation (above) before we try to lock the _entityTree
+        // to avoid deadlock -- the _entityTree may try to lock its EntitySimulation (from which this 
+        // PhysicsEngine derives) when updating/adding/deleting entities so we need to wait for our own
+        // lock on the tree before we re-lock ourselves.
+        //
+        // TODO: untangle these lock sequences.
+        ObjectMotionState::setSimulationStep(_numSubsteps);
+        _entityTree->lockForWrite();
+        lock();
+        _dynamicsWorld->synchronizeMotionStates();
+
+        if (_characterController) {
+            _characterController->postSimulation();
+        }
+
+        unlock();
+        _entityTree->unlock();
+    
+        computeCollisionEvents();
     }
 }
 
 void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
     BT_PROFILE("nonPhysicalKinematics");
     QSet<ObjectMotionState*>::iterator stateItr = _nonPhysicalKinematicObjects.begin();
+    // TODO?: need to occasionally scan for stopped non-physical kinematics objects
     while (stateItr != _nonPhysicalKinematicObjects.end()) {
         ObjectMotionState* motionState = *stateItr;
         motionState->stepKinematicSimulation(now);
         ++stateItr;
     }
 }
-
-// TODO?: need to occasionally scan for stopped non-physical kinematics objects
 
 void PhysicsEngine::computeCollisionEvents() {
     BT_PROFILE("computeCollisionEvents");
@@ -442,6 +436,13 @@ void PhysicsEngine::computeCollisionEvents() {
         } else {
             ++contactItr;
         }
+    }
+}
+
+void PhysicsEngine::dumpStatsIfNecessary() {
+    if (_dumpNextStats) {
+        _dumpNextStats = false;
+        CProfileManager::dumpAll();
     }
 }
 
