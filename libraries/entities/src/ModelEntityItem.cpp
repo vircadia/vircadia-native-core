@@ -282,6 +282,16 @@ void ModelEntityItem::updateShapeType(ShapeType type) {
     }
 }
 
+// virtual 
+ShapeType ModelEntityItem::getShapeType() const {
+    if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        return hasCollisionModel() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+    }
+    else {
+        return _shapeType;
+    }
+}
+
 void ModelEntityItem::setCollisionModelURL(const QString& url) {
     if (_collisionModelURL != url) {
         _collisionModelURL = url;
