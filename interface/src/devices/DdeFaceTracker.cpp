@@ -24,7 +24,7 @@
 static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
 static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
 #elif defined(Q_OS_MAC)
-static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde";
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde.app/Contents/MacOS/dde";
 static const QString DDE_ARGUMENTS = "--udp=127.0.0.1:64204 --receiver=64205 --headless";
 #endif
 static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
