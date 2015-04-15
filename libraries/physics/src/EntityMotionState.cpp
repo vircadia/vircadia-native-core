@@ -255,7 +255,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && _numNonMovingUpdates == MAX_NUM_NON_MOVING_UPDATES) {
+        } else if (simulatorID == myNodeID && _numNonMovingUpdates >= MAX_NUM_NON_MOVING_UPDATES - 1) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
@@ -287,7 +287,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setLastEdited(_entity->getLastEdited());
         }
 
-        if (EntityItem::getSendPhysicsUpdates() /* && _numNonMovingUpdates <= MAX_NUM_NON_MOVING_UPDATES*/) {
+        if (EntityItem::getSendPhysicsUpdates()) {
             EntityItemID id(_entity->getID());
             EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
             #ifdef WANT_DEBUG
