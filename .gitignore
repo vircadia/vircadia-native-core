@@ -46,4 +46,8 @@ libraries/audio-client/external/*/*
 gvr-interface/assets/oculussig*
 gvr-interface/libs/*
 
+# ignore files for various dev environments
 TAGS
+.ycm_extra_conf.*
+*.taghl
+*.swp
