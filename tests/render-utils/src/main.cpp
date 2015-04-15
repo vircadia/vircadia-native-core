@@ -160,7 +160,7 @@ public:
         setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
         
-        static const QString f("/Users/bdavis/Git/hifi/interface/resources/qml/Root.qml");
+        static const QString f("/Users/bdavis/Git/hifi/interface/resources/qml/TestRoot.qml");
         _offscreenUi.loadQml(QUrl::fromLocalFile(f));
         connect(&_offscreenUi, &OffscreenUi::textureUpdated, this, [&](int textureId) {
             _offscreenUi.lockTexture(textureId);
@@ -193,8 +193,7 @@ protected:
     void keyPressEvent(QKeyEvent *event) {
         switch (event->key()) {
         case Qt::Key_Slash:
-            qDebug() << "Foo";
-            _offscreenUi.load(QString("Login.qml"));
+            _offscreenUi.toggle(QString("TestDialog.qml"), "TestDialog");
             break;
         }
         QWindow::keyPressEvent(event);
@@ -289,15 +288,15 @@ void QTestWindow::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width(), _size.height());
 
-    renderText();
-    //renderQml();
+    //renderText();
+    renderQml();
 
     _context->swapBuffers(this);
     glFinish();
 
     fps.increment();
     if (fps.elapsed() >= 2.0f) {
-        //qDebug() << "FPS: " << fps.rate();
+        qDebug() << "FPS: " << fps.rate();
         fps.reset();
     }
 }

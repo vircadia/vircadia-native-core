@@ -308,9 +308,10 @@ void OffscreenUi::toggle(const QUrl & url, const QString & name) {
 
     // Toggle the visibity AND the enabled flag (otherwise invisible 
     // dialogs can still swallow keyboard input)
-    bool newFlag = !item->isVisible();
-    item->setVisible(newFlag);
+    bool newFlag = !item->isEnabled();
     item->setEnabled(newFlag);
+    // item->setVisible(newFlag);
+    
 }
 
 

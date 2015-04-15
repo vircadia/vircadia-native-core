@@ -23,7 +23,8 @@ const float MAGNIFY_MULT = 2.0f;
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 // Handles the drawing of the overlays to the screen
-class ApplicationOverlay {
+class ApplicationOverlay : public QObject {
+    Q_OBJECT
 public:
     ApplicationOverlay();
     ~ApplicationOverlay();
