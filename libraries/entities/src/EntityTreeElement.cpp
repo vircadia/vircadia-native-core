@@ -717,6 +717,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         bytesRead += sizeof(numberOfEntities);
 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
+            // look up the Id of this Node
+            auto nodeList = DependencyManager::get<NodeList>();
+            QString myNodeID = nodeList->getSessionUUID().toString();
+
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
                 EntityItemID entityItemID;
@@ -737,8 +741,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 //
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
-                auto nodeList = DependencyManager::get<NodeList>();
-                QString myNodeID = nodeList->getSessionUUID().toString();
                 if (entityItem && entityItem->getSimulatorID() == myNodeID) {
                     // do nothing, this was echoed back to us by the entity server
                 } else if (entityItem) {

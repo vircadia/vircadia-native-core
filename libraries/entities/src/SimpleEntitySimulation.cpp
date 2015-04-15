@@ -15,7 +15,7 @@
 #include "SimpleEntitySimulation.h"
 #include "EntitiesLogging.h"
 
-const quint64 AUTO_REMOVE_SIMULATION_OWNER_USEC = 2000000;
+const quint64 AUTO_REMOVE_SIMULATION_OWNER_USEC = 2 * USECS_PER_SECOND;
 
 void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // now is usecTimestampNow()

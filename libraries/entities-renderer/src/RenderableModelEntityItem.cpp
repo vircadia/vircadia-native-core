@@ -308,7 +308,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
     if (type != SHAPE_TYPE_COMPOUND) {
         ModelEntityItem::computeShapeInfo(info);
-        info.setParams(_shapeType, 0.5f * getDimensions());
+        info.setParams(type, 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
 
@@ -410,7 +410,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(_shapeType, collisionModelDimensions, _collisionModelURL);
+        info.setParams(type, collisionModelDimensions, _collisionModelURL);
         info.setConvexHulls(_points);
     }
 }
