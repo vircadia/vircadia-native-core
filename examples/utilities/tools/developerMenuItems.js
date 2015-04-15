@@ -73,6 +73,7 @@ function setupMenus() {
     Menu.addMenuItem({ menuName: AUDIO_SOURCE_MENU, menuItemName: AUDIO_SOURCE_PINK_NOISE, isCheckable: true, isChecked: false });
     Menu.addMenuItem({ menuName: AUDIO_SOURCE_MENU, menuItemName: AUDIO_SOURCE_SINE_440, isCheckable: true, isChecked: false });
     Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, true);
+    Audio.selectPinkNoise();
     
 }
 
