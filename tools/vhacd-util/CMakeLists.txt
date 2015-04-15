@@ -8,7 +8,7 @@ find_package(VHACD REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${VHACD_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${VHACD_LIBRARIES})
 
-if (NOT WIN32)
+if (UNIX AND NOT APPLE)
   include(FindOpenMP)
   if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
