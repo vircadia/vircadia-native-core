@@ -726,9 +726,9 @@ void AudioClient::handleAudioInput() {
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
-
+    
+    //  Add audio source injection if enabled
     if (!_muted && _audioSourceInjectEnabled) {
-        
         int16_t* inputFrameData = (int16_t*)inputByteArray.data();
         const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
 
@@ -737,17 +737,12 @@ void AudioClient::handleAudioInput() {
 #if ENABLE_INPUT_GAIN
         _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
 #endif
-        //  Add audio source injection if enabled
-        if (_audioSourceInjectEnabled) {
-         
-            if (_toneSourceEnabled) {  // sine generator
-                _toneSource.render(_inputFrameBuffer);
-            }
-            else if(_noiseSourceEnabled) { // pink noise generator
-                _noiseSource.render(_inputFrameBuffer);
-            }
-            _sourceGain.render(_inputFrameBuffer); // post gain
+        if (_toneSourceEnabled) {  // sine generator
+            _toneSource.render(_inputFrameBuffer);
+        } else if(_noiseSourceEnabled) { // pink noise generator
+            _noiseSource.render(_inputFrameBuffer);
         }
+        _sourceGain.render(_inputFrameBuffer); // post gain
         _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
     }
     
