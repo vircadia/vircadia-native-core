@@ -1,6 +1,6 @@
 //
 //  AudioClient.h
-//  interface/src
+//  libraries/audio-client/src
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -143,9 +143,9 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
     
-    void toggleAudioSourceInject();
-    void selectAudioSourcePinkNoise();
-    void selectAudioSourceSine440();
+    virtual void enableAudioSourceInject(bool enable);
+    virtual void selectAudioSourcePinkNoise();
+    virtual void selectAudioSourceSine440();
     
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
     

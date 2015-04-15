@@ -967,8 +967,8 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
     }
 }
 
-void AudioClient::toggleAudioSourceInject() {
-    _audioSourceInjectEnabled = !_audioSourceInjectEnabled;
+void AudioClient::enableAudioSourceInject(bool enable) {
+    _audioSourceInjectEnabled = enable;
 }
 
 void AudioClient::selectAudioSourcePinkNoise() {
