@@ -11,6 +11,7 @@
 
 #include <SharedUtil.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -19,10 +20,21 @@
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
+#include "Menu.h"
 
 
-static const QHostAddress DDE_FEATURE_POINT_SERVER_ADDR("127.0.0.1");
-static const quint16 DDE_FEATURE_POINT_SERVER_PORT = 5555;
+static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
+static const quint16 DDE_SERVER_PORT = 64204;
+static const quint16 DDE_CONTROL_PORT = 64205;
+#if defined(Q_OS_WIN)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
+#elif defined(Q_OS_MAC)
+static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde.app/Contents/MacOS/dde";
+#endif
+static const QStringList DDE_ARGUMENTS = QStringList() 
+    << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
+    << "--receiver=" + QString::number(DDE_CONTROL_PORT)
+    << "--headless";
 
 static const int NUM_EXPRESSIONS = 46;
 static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSIONS) * sizeof(float) + sizeof(int);
@@ -121,14 +133,16 @@ struct Packet {
 };
 
 DdeFaceTracker::DdeFaceTracker() :
-    DdeFaceTracker(QHostAddress::Any, DDE_FEATURE_POINT_SERVER_PORT)
+    DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
 
 }
 
-DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort) :
+    _ddeProcess(NULL),
     _host(host),
-    _port(port),
+    _serverPort(serverPort),
+    _controlPort(controlPort),
     _lastReceiveTimestamp(0),
     _reset(false),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
@@ -157,17 +171,50 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
 }
 
 DdeFaceTracker::~DdeFaceTracker() {
-    if (_udpSocket.isOpen()) {
-        _udpSocket.close();
-    }
+    setEnabled(false);
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {
+#ifdef HAVE_DDE
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
-        _udpSocket.bind(_host, _port);
+        _udpSocket.bind(_host, _serverPort);
     }
+
+    if (enabled && !_ddeProcess) {
+        // Terminate any existing DDE process, perhaps left running after an Interface crash
+        const char* DDE_EXIT_COMMAND = "exit";
+        _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+        qDebug() << "[Info] DDE Face Tracker Starting";
+        _ddeProcess = new QProcess(qApp);
+        connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
+    }
+
+    if (!enabled && _ddeProcess) {
+        _ddeProcess->kill();  // More robust than trying to send an "exit" command to DDE
+        _ddeProcess = NULL;
+        qDebug() << "[Info] DDE Face Tracker Stopped";
+    }
+#endif
+}
+
+void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+    if (_ddeProcess) {
+        // DDE crashed or was manually terminated
+        qDebug() << "[Info] DDE Face Tracker Stopped Unexpectedly";
+        _udpSocket.close();
+        _ddeProcess = NULL;
+        Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
+    }
+}
+
+void DdeFaceTracker::resetTracking() {
+    qDebug() << "[Info] Reset DDE Tracking";
+    const char* DDE_RESET_COMMAND = "reset";
+    _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
 }
 
 bool DdeFaceTracker::isActive() const {
@@ -239,7 +286,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Compute relative translation
-        float LEAN_DAMPING_FACTOR = 200.0f;
+        float LEAN_DAMPING_FACTOR = 75.0f;
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
