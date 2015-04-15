@@ -25,31 +25,28 @@ class PreferencesDialog : public QDialog {
 public:
     PreferencesDialog(QWidget* parent = nullptr);
 
+    void avatarDescriptionChanged();
+
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);
 
 private:
     void loadPreferences();
     void savePreferences();
-    void openHeadModelBrowser();
-    void openBodyModelBrowser();
 
     Ui_PreferencesDialog ui;
-    QString _faceURLString;
-    QString _skeletonURLString;
+
     QString _displayNameString;
     
     WebWindowClass* _marketplaceWindow = NULL;
 
 private slots:
     void accept();
-    void setHeadUrl(QString modelUrl);
-    void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    void faceURLChanged(const QString& newValue);
-    void skeletonURLChanged(const QString& newValue);
-    
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 };
 
 #endif // hifi_PreferencesDialog_h
