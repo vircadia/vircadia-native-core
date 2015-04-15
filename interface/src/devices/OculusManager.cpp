@@ -34,7 +34,7 @@
 #include "InterfaceLogging.h"
 #include "Application.h"
 
-#include <gpu\GLBackend.h>
+#include <gpu/GLBackend.h>
 
 template <typename Function>
 void for_each_eye(Function function) {
