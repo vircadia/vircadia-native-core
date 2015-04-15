@@ -18,35 +18,6 @@ namespace gpu {
 
 typedef Element Format;
 
-class Viewport {
-public:
-    int32  width = 1;
-    int32  height = 1;
-    int32   top = 0;
-    int32   left = 0;
-    float   zmin = 0.f;
-    float   zmax = 1.f;
-
-    Viewport() {}
-    Viewport(int32 w, int32 h, int32 t = 0, int32 l = 0, float zin = 0.f, float zax = 1.f):
-        width(w),
-        height(h),
-        top(t),
-        left(l),
-        zmin(zin),
-        zmax(zax)
-    {}
-    Viewport(const Vec2i& wh, const Vec2i& tl = Vec2i(0), const Vec2& zrange = Vec2(0.f, 1.f)):
-        width(wh.x),
-        height(wh.y),
-        top(tl.x),
-        left(tl.y),
-        zmin(zrange.x),
-        zmax(zrange.y)
-    {}
-    ~Viewport() {}
-};
-
 class Swapchain {
 public:
     // Properties
@@ -147,6 +118,7 @@ public:
 
     bool validateTargetCompatibility(const Texture& texture, uint32 subresource = 0) const;
 
+    Vec2u getSize() const { return Vec2u(getWidth(), getHeight()); }
     uint16 getWidth() const;
     uint16 getHeight() const;
     uint16 getNumSamples() const;
@@ -159,22 +131,19 @@ public:
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
-    // Get viewport covering the ful Canvas
-    Viewport getViewport() const { return Viewport(getWidth(), getHeight(), 0, 0); }
-
 protected:
-    uint16 _width = 0;
-    uint16 _height = 0;
-    uint16 _numSamples = 0;
+    SwapchainPointer _swapchain;
+
+    TextureViews _renderBuffers;
+    TextureView _depthStencilBuffer;
 
     uint32 _bufferMask = 0;
 
     uint32 _frameCount = 0;
 
-    SwapchainPointer _swapchain;
-
-    TextureViews _renderBuffers;
-    TextureView _depthStencilBuffer;
+    uint16 _width = 0;
+    uint16 _height = 0;
+    uint16 _numSamples = 0;
 
     void updateSize(const TexturePointer& texture);
 
