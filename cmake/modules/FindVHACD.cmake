@@ -20,9 +20,15 @@ include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("vhacd")
 
 find_path(VHACD_INCLUDE_DIRS VHACD.h PATH_SUFFIXES include HINTS ${VHACD_SEARCH_DIRS})
-find_library(VHACD_LIBRARIES VHACD PATH_SUFFIXES lib HINTS ${VHACD_SEARCH_DIRS})
 
-include(FindPackageHandleStandardArgs)
+find_library(VHACD_LIBRARY_DEBUG NAMES VHACD VHACD_LIB PATH_SUFFIXES lib/Debug HINTS ${VHACD_SEARCH_DIRS})
+find_library(VHACD_LIBRARY_RELEASE NAMES VHACD VHACD_LIB PATH_SUFFIXES lib/Release lib HINTS ${VHACD_SEARCH_DIRS})
+  
+include(SelectLibraryConfigurations)
+select_library_configurations(VHACD)
+  
+set(VHACD_LIBRARIES ${VHACD_LIBRARY})
+
 find_package_handle_standard_args(VHACD "Could NOT find VHACD, try to set the path to VHACD root folder in the system variable VHACD_ROOT_DIR or create a directory vhacd in HIFI_LIB_DIR and paste the necessary files there"
  VHACD_INCLUDE_DIRS VHACD_LIBRARIES)
 
