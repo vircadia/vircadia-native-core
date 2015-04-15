@@ -48,6 +48,4 @@ gvr-interface/libs/*
 
 # ignore files for various dev environments
 TAGS
-.ycm_extra_conf.*
-*.taghl
 *.swp
