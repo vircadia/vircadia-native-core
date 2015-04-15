@@ -740,9 +740,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 auto nodeList = DependencyManager::get<NodeList>();
                 QString myNodeID = nodeList->getSessionUUID().toString();
                 if (entityItem && entityItem->getSimulatorID() == myNodeID) {
-                    // do nothing, this was echoed back to us
-                    qDebug() << "IGNORING ECHOED ENTITY UPDATE";
-                    // _myTree->entityChanged(entityItem);
+                    // do nothing, this was echoed back to us by the entity server
                 } else if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
