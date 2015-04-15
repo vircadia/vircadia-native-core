@@ -27,6 +27,10 @@ public:
     
 public slots:
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) = 0;
+    
+    virtual void enableAudioSourceInject(bool enable) = 0;
+    virtual void selectAudioSourcePinkNoise() = 0;
+    virtual void selectAudioSourceSine440() = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)

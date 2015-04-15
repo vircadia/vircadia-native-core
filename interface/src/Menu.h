@@ -124,9 +124,6 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSourceInject = "Generated Audio";
-    const QString AudioSourcePinkNoise = "Pink Noise";
-    const QString AudioSourceSine440 = "Sine 440hz";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";

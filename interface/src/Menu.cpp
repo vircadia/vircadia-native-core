@@ -491,30 +491,6 @@ Menu::Menu() {
                                   0,
                                   audioIO.data(),
                                   SLOT(sendMuteEnvironmentPacket()));
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
-                                           0,
-                                           false,
-                                           audioIO.data(),
-                                           SLOT(toggleAudioSourceInject()));
-    QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
-    {
-        QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
-                                                               0,
-                                                               false,
-                                                               audioIO.data(),
-                                                               SLOT(selectAudioSourcePinkNoise()));
-        
-        QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
-                                                                    0,
-                                                                    true,
-                                                                    audioIO.data(),
-                                                                    SLOT(selectAudioSourceSine440()));
-
-        QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
-        audioSourceGroup->addAction(pinkNoise);
-        audioSourceGroup->addAction(sine440);
-    }
     
     auto scope = DependencyManager::get<AudioScope>();
 
