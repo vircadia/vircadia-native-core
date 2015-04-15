@@ -68,6 +68,7 @@ public slots:
     
 private slots:
     void setVisibility();
+    void setActiveFaceTracker();
 
 private:
     static Menu* _instance;
@@ -230,6 +231,7 @@ namespace MenuOption {
     const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
     const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetDDETracking = "Reset DDE Tracking";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";

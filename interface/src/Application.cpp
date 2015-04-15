@@ -612,6 +612,10 @@ void Application::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+
+#ifdef HAVE_DDE
+    DependencyManager::destroy<DdeFaceTracker>();
+#endif
 }
 
 Application::~Application() {    
@@ -1743,8 +1747,10 @@ FaceTracker* Application::getActiveFaceTracker() {
 void Application::setActiveFaceTracker() {
 #ifdef HAVE_FACESHIFT
     DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
-#endif 
+#endif
+#ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
+#endif
 #ifdef HAVE_VISAGE
     DependencyManager::get<Visage>()->updateEnabled();
 #endif
