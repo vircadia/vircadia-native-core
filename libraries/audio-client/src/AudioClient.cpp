@@ -493,7 +493,7 @@ void AudioClient::start() {
     _sourceGain.initialize();
     _noiseSource.initialize();
     _toneSource.initialize();
-    _sourceGain.setParameters(0.25f, 0.0f);
+    _sourceGain.setParameters(0.05f, 0.0f);
     _inputGain.setParameters(1.0f, 0.0f);
 }
 
