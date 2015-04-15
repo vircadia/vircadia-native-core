@@ -15,12 +15,7 @@
 
 using namespace gpu;
 
-Framebuffer::Framebuffer()
-{
-}
-
-Framebuffer::~Framebuffer()
-{
+Framebuffer::~Framebuffer() {
 }
 
 Framebuffer* Framebuffer::create() {

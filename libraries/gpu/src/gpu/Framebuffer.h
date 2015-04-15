@@ -149,7 +149,7 @@ protected:
 
     // Non exposed
     Framebuffer(const Framebuffer& framebuffer) {}
-    Framebuffer();
+    Framebuffer() {}
     
     // This shouldn't be used by anything else than the Backend class with the proper casting.
     mutable GPUObject* _gpuObject = NULL;

@@ -12,8 +12,7 @@
 #include "GLBackendShared.h"
 
 
-GLBackend::GLFramebuffer::GLFramebuffer()
-{}
+GLBackend::GLFramebuffer::GLFramebuffer() {}
 
 GLBackend::GLFramebuffer::~GLFramebuffer() {
     if (_fbo != 0) {
