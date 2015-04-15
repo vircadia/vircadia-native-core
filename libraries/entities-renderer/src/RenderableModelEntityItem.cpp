@@ -297,10 +297,17 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         // no collision-model url, so we're ready to compute a shape (of type None).
         return true;
     }
+    if (_model->getURL().isEmpty()) {
+        // we need a render geometry with a scale to proceed, so give up.
+        return true;
+    }
 
     const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-    if (! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) {
-        // we have a _collisionModelURL AND a collisionNetworkGeometry AND it's fully loaded.
+    const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+
+    if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
+        (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+        // we have both URLs AND both geometries AND they are both fully loaded.
         return true;
     }
 
@@ -309,7 +316,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_model->getCollisionURL().isEmpty()) {
+    if (_model->getCollisionURL().isEmpty() || _model->getURL().isEmpty()) {
         info.setParams(getShapeType(), 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();

@@ -12,6 +12,11 @@
 #ifndef hifi_DdeFaceTracker_h
 #define hifi_DdeFaceTracker_h
 
+#if defined(Q_OS_WIN) || defined(Q_OS_OSX)
+    #define HAVE_DDE
+#endif
+
+#include <QProcess>
 #include <QUdpSocket>
 
 #include <DependencyManager.h>
@@ -45,9 +50,11 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
+    void resetTracking();
 
 private slots:
-    
+    void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
     //sockets
     void socketErrorOccurred(QAbstractSocket::SocketError socketError);
     void readPendingDatagrams();
@@ -55,11 +62,14 @@ private slots:
     
 private:
     DdeFaceTracker();
-    DdeFaceTracker(const QHostAddress& host, quint16 port);
+    DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort);
     ~DdeFaceTracker();
 
+    QProcess* _ddeProcess;
+
     QHostAddress _host;
-    quint16 _port;
+    quint16 _serverPort;
+    quint16 _controlPort;
     
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);

@@ -245,7 +245,6 @@ void DynamicCharacterController::setEnabled(bool enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
-            setHovering(true);
         } else {
             if (_dynamicsWorld) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
@@ -253,6 +252,7 @@ void DynamicCharacterController::setEnabled(bool enabled) {
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
             _isOnGround = false;
         }
+        setHovering(true);
         _enabled = enabled;
     }
 }
