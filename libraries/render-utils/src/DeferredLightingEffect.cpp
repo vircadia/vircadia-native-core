@@ -12,7 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <QOpenGLFramebufferObject>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -183,12 +182,13 @@ void DeferredLightingEffect::render() {
 
     auto textureCache = DependencyManager::get<TextureCache>();
     
-  //  QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-  //  primaryFBO->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0 );
+
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
-    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
-    freeFBO->bind();
+    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFBO));
+ 
     glClear(GL_COLOR_BUFFER_BIT);
    // glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -211,11 +211,7 @@ void DeferredLightingEffect::render() {
     const int VIEWPORT_Y_INDEX = 1;
     const int VIEWPORT_WIDTH_INDEX = 2;
     const int VIEWPORT_HEIGHT_INDEX = 3;
- /*   float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
-    */
+
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
@@ -436,7 +432,9 @@ void DeferredLightingEffect::render() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    freeFBO->release();
+    //freeFBO->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   //  glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
@@ -445,12 +443,12 @@ void DeferredLightingEffect::render() {
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glColorMask(true, true, true, false);
     
-    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryOpaqueFramebuffer());
+    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryFramebuffer());
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
 
     //primaryFBO->bind();
     
-    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFBO->getRenderBuffer(0)));
     glEnable(GL_TEXTURE_2D);
     
     glPushMatrix();

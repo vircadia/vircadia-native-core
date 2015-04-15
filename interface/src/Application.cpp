@@ -35,7 +35,6 @@
 #include <QMouseEvent>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
-#include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
@@ -798,7 +797,6 @@ void Application::paintGL() {
         DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
-       // QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
@@ -2637,11 +2635,8 @@ void Application::updateShadowMap() {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
-//    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
-//    fbo->bind();
     auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
-    GLuint shadowFBO = gpu::GLBackend::getFramebufferID(shadowFramebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
 
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -2838,7 +2833,8 @@ PickRay Application::computePickRay(float x, float y) {
 }
 
 QImage Application::renderAvatarBillboard() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2851,7 +2847,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return image;
 }

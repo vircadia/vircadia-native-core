@@ -23,8 +23,6 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-class QOpenGLFramebufferObject;
-
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
@@ -61,10 +59,7 @@ public:
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
-    QOpenGLFramebufferObject* getPrimaryFramebufferObject();
-    
-    gpu::FramebufferPointer getPrimaryOpaqueFramebuffer();
-    gpu::FramebufferPointer getPrimaryTransparentFramebuffer();
+    gpu::FramebufferPointer getPrimaryFramebuffer();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
@@ -86,16 +81,13 @@ public:
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
-    QOpenGLFramebufferObject* getSecondaryFramebufferObject();
+    gpu::FramebufferPointer getSecondaryFramebuffer();
     
-
     /// Returns a pointer to the tertiary framebuffer object, used as an additional render target when performing full
     /// screen effects.
-    QOpenGLFramebufferObject* getTertiaryFramebufferObject();
+    gpu::FramebufferPointer getTertiaryFramebuffer();
     
-    /// Returns a pointer to the framebuffer object used to render shadow maps.
-    QOpenGLFramebufferObject* getShadowFramebufferObject();
-    
+    /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
 
@@ -113,8 +105,6 @@ private:
     TextureCache();
     virtual ~TextureCache();
     friend class DilatableNetworkTexture;
-    
-    QOpenGLFramebufferObject* createFramebufferObject();
  
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
@@ -127,20 +117,11 @@ private:
     gpu::TexturePointer _primaryColorTexture;
     gpu::TexturePointer _primaryNormalTexture;
     gpu::TexturePointer _primarySpecularTexture;
-    gpu::FramebufferPointer _primaryOpaqueFramebuffer;
-    gpu::FramebufferPointer _primaryTransparentFramebuffer;
+    gpu::FramebufferPointer _primaryFramebuffer;
     void createPrimaryFramebuffer();
 
-    GLuint _primaryDepthTextureID;
-    GLuint _primaryNormalTextureID;
-    GLuint _primarySpecularTextureID;
-    QOpenGLFramebufferObject* _primaryFramebufferObject;
-    QOpenGLFramebufferObject* _secondaryFramebufferObject;
-    QOpenGLFramebufferObject* _tertiaryFramebufferObject;
-    
-
-    QOpenGLFramebufferObject* _shadowFramebufferObject;
-    GLuint _shadowDepthTextureID;
+    gpu::FramebufferPointer _secondaryFramebuffer;
+    gpu::FramebufferPointer _tertiaryFramebuffer;
 
     gpu::FramebufferPointer _shadowFramebuffer;
     gpu::TexturePointer _shadowTexture;

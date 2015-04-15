@@ -173,6 +173,8 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_RGBA_32;
+
  protected:
     uint8 _semantic;
     uint8 _dimension : 4;

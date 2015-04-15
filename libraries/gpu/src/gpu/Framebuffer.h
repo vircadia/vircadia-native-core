@@ -115,7 +115,8 @@ public:
 
     static Framebuffer* create(const SwapchainPointer& swapchain);
     static Framebuffer* create();
-    static Framebuffer* create(const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height, uint16 samples );
+    static Framebuffer* create(const Format& colorBufferFormat, uint16 width, uint16 height);
+    static Framebuffer* create(const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height);
     static Framebuffer* createShadowmap(uint16 width);
 
     bool isSwapchain() const;

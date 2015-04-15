@@ -29,7 +29,18 @@ Framebuffer* Framebuffer::create() {
     return framebuffer;
 }
 
-Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height, uint16 numSamples) {
+
+Framebuffer* Framebuffer::create( const Format& colorBufferFormat, uint16 width, uint16 height) {
+    auto framebuffer = Framebuffer::create();
+
+    auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));
+
+    framebuffer->setRenderBuffer(0, colorTexture);
+
+    return framebuffer;
+}
+
+Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format& depthStencilBufferFormat, uint16 width, uint16 height) {
     auto framebuffer = Framebuffer::create();
 
     auto colorTexture = TexturePointer(Texture::create2D(colorBufferFormat, width, height, Sampler(Sampler::FILTER_MIN_MAG_POINT)));

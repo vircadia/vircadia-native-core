@@ -46,10 +46,10 @@ GlowEffect::~GlowEffect() {
     }
 }
 
-QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
+gpu::FramebufferPointer GlowEffect::getFreeFramebuffer() const {
     return (_isOddFrame ?
-                DependencyManager::get<TextureCache>()->getSecondaryFramebufferObject():
-                DependencyManager::get<TextureCache>()->getTertiaryFramebufferObject());
+                DependencyManager::get<TextureCache>()->getSecondaryFramebuffer():
+                DependencyManager::get<TextureCache>()->getTertiaryFramebuffer());
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -106,8 +106,7 @@ int GlowEffect::getDeviceHeight() const {
 
 
 void GlowEffect::prepare() {
-    //DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
-    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer();
+    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 
@@ -129,25 +128,26 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-static void maybeBind(QOpenGLFramebufferObject* fbo) {
+static void maybeBind(const gpu::FramebufferPointer& fbo) {
     if (fbo) {
-        fbo->bind();
+        glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(fbo));
     }
 }
 
-static void maybeRelease(QOpenGLFramebufferObject* fbo) {
+static void maybeRelease(const gpu::FramebufferPointer& fbo) {
     if (fbo) {
-        fbo->release();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }
 
-QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
+gpu::FramebufferPointer GlowEffect::render(bool toTexture) {
     PerformanceTimer perfTimer("glowEffect");
 
     auto textureCache = DependencyManager::get<TextureCache>();
-   // QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-  //  primaryFBO->release();
-    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryOpaqueFramebuffer());
+
+    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryFramebuffer());
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryColorTextureID());
     auto framebufferSize = textureCache->getFrameBufferSize();
 
@@ -162,15 +162,14 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
 
-    QOpenGLFramebufferObject* destFBO = toTexture ?
-        textureCache->getSecondaryFramebufferObject() : NULL;
+    gpu::FramebufferPointer destFBO = toTexture ?
+        textureCache->getSecondaryFramebuffer() : nullptr;
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destFBO->handle());
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
             glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(), 0, 0, framebufferSize.width(), framebufferSize.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        //    QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
@@ -185,36 +184,35 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         }
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
-        QOpenGLFramebufferObject* oldDiffusedFBO =
-            textureCache->getSecondaryFramebufferObject();
-        QOpenGLFramebufferObject* newDiffusedFBO =
-            textureCache->getTertiaryFramebufferObject();
+        auto oldDiffusedFBO =
+            textureCache->getSecondaryFramebuffer();
+        auto newDiffusedFBO =
+            textureCache->getTertiaryFramebuffer();
         if (_isOddFrame) {
             qSwap(oldDiffusedFBO, newDiffusedFBO);
         }
-        newDiffusedFBO->bind();
+        glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(newDiffusedFBO));
         
         if (_isFirstFrame) {
             glClear(GL_COLOR_BUFFER_BIT);    
             
         } else {
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
+            glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(oldDiffusedFBO->getRenderBuffer(0)));
             
             _diffuseProgram->bind();
-            //QSize size = primaryFBO->size();
-            QSize size = framebufferSize;
-            _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
+
+            _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / framebufferSize.width(), 1.0f / framebufferSize.height());
         
             renderFullscreenQuad();
         
             _diffuseProgram->release();
         }
         
-        newDiffusedFBO->release();
-        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
         // add diffused texture to the primary
-        glBindTexture(GL_TEXTURE_2D, newDiffusedFBO->texture());
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(newDiffusedFBO->getRenderBuffer(0)));
         
         if (toTexture) {
             destFBO = oldDiffusedFBO;
