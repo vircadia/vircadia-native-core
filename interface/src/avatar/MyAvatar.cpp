@@ -646,7 +646,6 @@ void MyAvatar::saveData() {
         settings.setValue("firstFrame", pointer->getFirstFrame());
         settings.setValue("lastFrame", pointer->getLastFrame());
         settings.setValue("maskedJoints", pointer->getMaskedJoints());
-        settings.setValue("running", pointer->getLoop() && pointer->isRunning());
     }
     settings.endArray();
     
@@ -761,13 +760,10 @@ void MyAvatar::loadData() {
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
         handle->setLoop(settings.value("loop", true).toBool());
         handle->setHold(settings.value("hold", false).toBool());
-        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
         handle->setFirstFrame(settings.value("firstFrame", 0.0f).toFloat());
         handle->setLastFrame(settings.value("lastFrame", INT_MAX).toFloat());
         handle->setMaskedJoints(settings.value("maskedJoints").toStringList());
-        if (settings.value("loop", true).toBool() && settings.value("running", false).toBool()) {
-            handle->setRunning(true);
-        }
+        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
     }
     settings.endArray();
     
