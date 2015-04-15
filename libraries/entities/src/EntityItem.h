@@ -323,7 +323,7 @@ protected:
     quint64 _lastEdited; // last official local or remote edit time
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
