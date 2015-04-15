@@ -359,7 +359,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
         // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data. 
-        // Only our patent can remove our extra data in these cases and only after it knows that all of it's 
+        // Only our parent can remove our extra data in these cases and only after it knows that all of its
         // children have been encoded.
         // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
         // since that will signal that the entire element needs to be encoded on the next attempt
