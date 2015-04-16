@@ -192,7 +192,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QUuid simulatorID = _entity->getSimulatorID();
 
     if (!simulatorID.isNull() && simulatorID != myNodeID) {
-        // some other Node is simulating this, so don't broadcast our computations.
+        // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
         return false;
     }
 
