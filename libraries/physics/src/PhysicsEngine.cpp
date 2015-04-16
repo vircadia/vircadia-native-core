@@ -395,24 +395,13 @@ void PhysicsEngine::computeCollisionEvents() {
         }
     }
     
-    // We harvest collision callbacks every few frames, which contributes the following effects:
-    //
-    // (1) There is a maximum collision callback rate per pair:  substep_rate / SUBSTEPS_PER_COLLIION_FRAME
-    // (2) END/START cycles shorter than SUBSTEPS_PER_COLLIION_FRAME will be filtered out
-    // (3) There is variable lag between when the contact actually starts and when it is reported, 
-    //     up to SUBSTEPS_PER_COLLIION_FRAME * time_per_substep
-    //
-    const uint32_t SUBSTEPS_PER_COLLISION_FRAME = 2;
-    if (_numSubsteps - _numContactFrames * SUBSTEPS_PER_COLLISION_FRAME < SUBSTEPS_PER_COLLISION_FRAME) {
-        // we don't harvest collision callbacks every frame
-        // this sets a maximum callback-per-contact rate
-        // and also filters out END/START events that happen on shorter timescales
-        return;
-    }
+    const uint32_t CONTINUE_EVENT_FILTER_FREQUENCY = 10;
 
-    ++_numContactFrames;
     // scan known contacts and trigger events
     ContactMap::iterator contactItr = _contactMap.begin();
+
+    // TODO: enable scripts to filter based on contact event type
+    ContactEventType type = contactItr->second.computeType(_numContactFrames);
     while (contactItr != _contactMap.end()) {
         ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
         ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
@@ -420,21 +409,21 @@ void PhysicsEngine::computeCollisionEvents() {
         // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
         // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
         // emit a collision event.
-        if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
-            EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
-            EntityItemID idB;
-            if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
-                idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+        if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0){
+            if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
+                EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
+                EntityItemID idB;
+                if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+                    idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+                }
+                emit entityCollisionWithEntity(idA, idB, contactItr->second);
+            } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
+                EntityItemID idA;
+                EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+                emit entityCollisionWithEntity(idA, idB, contactItr->second);
             }
-            emit entityCollisionWithEntity(idA, idB, contactItr->second);
-        } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
-            EntityItemID idA;
-            EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
-            emit entityCollisionWithEntity(idA, idB, contactItr->second);
         }
 
-        // TODO: enable scripts to filter based on contact event type
-        ContactEventType type = contactItr->second.computeType(_numContactFrames);
         if (type == CONTACT_EVENT_TYPE_END) {
             ContactMap::iterator iterToDelete = contactItr;
             ++contactItr;
@@ -443,6 +432,7 @@ void PhysicsEngine::computeCollisionEvents() {
             ++contactItr;
         }
     }
+    ++_numContactFrames;
 }
 
 // Bullet collision flags are as follows:
