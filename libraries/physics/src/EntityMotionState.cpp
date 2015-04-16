@@ -188,10 +188,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    QString myNodeID = nodeList->getSessionUUID().toString();
-    QString simulatorID = _entity->getSimulatorID();
+    QUuid myNodeID = nodeList->getSessionUUID();
+    QUuid simulatorID = _entity->getSimulatorID();
 
-    if (!simulatorID.isEmpty() && simulatorID != myNodeID) {
+    if (!simulatorID.isNull() && simulatorID != myNodeID) {
         // some other Node is simulating this, so don't broadcast our computations.
         return false;
     }
@@ -249,13 +249,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
 
         auto nodeList = DependencyManager::get<NodeList>();
-        QString myNodeID = nodeList->getSessionUUID().toString();
-        QString simulatorID = _entity->getSimulatorID();
-        if (simulatorID.isEmpty() && !(zeroSpeed && zeroSpin)) {
+        QUuid myNodeID = nodeList->getSessionUUID();
+        QUuid simulatorID = _entity->getSimulatorID();
+        if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && _numNonMovingUpdates >= MAX_NUM_NON_MOVING_UPDATES - 1) {
+        } else if (simulatorID == myNodeID && _numNonMovingUpdates >= MAX_NUM_NON_MOVING_UPDATES - 2) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             _entity->setSimulatorID("");
             properties.setSimulatorID("");
@@ -293,6 +293,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
+
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG

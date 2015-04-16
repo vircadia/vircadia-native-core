@@ -36,6 +36,15 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
     unsigned char bufferOut[MAX_PACKET_SIZE];
     int sizeOut = 0;
 
+
+    //// XXX
+    auto nodeList = DependencyManager::get<NodeList>();
+    QUuid myNodeID = nodeList->getSessionUUID();
+    QString x = properties.getSimulatorID() == myNodeID ? "me" : properties.getSimulatorID().toString();
+    qDebug() << "sending update:" << properties.simulatorIDChanged() << properties.getSimulatorID();
+    //// XXX
+
+
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
         #ifdef WANT_DEBUG
             qCDebug(entities) << "calling queueOctreeEditMessage()...";

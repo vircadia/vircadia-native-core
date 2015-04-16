@@ -255,8 +255,8 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
 
-    QString getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QString& value);
+    QUuid getSimulatorID() const { return _simulatorID; }
+    void setSimulatorID(const QUuid& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
@@ -352,7 +352,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
-    QString _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
 

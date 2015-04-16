@@ -38,7 +38,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     itemItr = _hasSimulationOwnerEntities.begin();
     while (itemItr != _hasSimulationOwnerEntities.end()) {
         EntityItem* entity = *itemItr;
-        if (!entity->getSimulatorID().isEmpty() &&
+        if (!entity->getSimulatorID().isNull() &&
             usecTimestampNow() - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
             qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
             entity->setSimulatorID("");
@@ -55,7 +55,7 @@ void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
     } else if (entity->getCollisionsWillMove()) {
         _movableButStoppedEntities.insert(entity);
     }
-    if (!entity->getSimulatorID().isEmpty()) {
+    if (!entity->getSimulatorID().isNull()) {
         _hasSimulationOwnerEntities.insert(entity);
     }
 }
@@ -79,7 +79,7 @@ void SimpleEntitySimulation::entityChangedInternal(EntityItem* entity) {
             _movingEntities.remove(entity);
             _movableButStoppedEntities.remove(entity);
         }
-        if (!entity->getSimulatorID().isEmpty()) {
+        if (!entity->getSimulatorID().isNull()) {
             _hasSimulationOwnerEntities.insert(entity);
         }
     }

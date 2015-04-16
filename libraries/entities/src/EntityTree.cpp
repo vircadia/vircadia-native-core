@@ -131,7 +131,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
         }
     } else {
         if (properties.simulatorIDChanged() &&
-            !entity->getSimulatorID().isEmpty() &&
+            !entity->getSimulatorID().isNull() &&
             properties.getSimulatorID() != entity->getSimulatorID()) {
             // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
             // if ownership hasn't recently changed.

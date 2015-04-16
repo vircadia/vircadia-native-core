@@ -1197,7 +1197,7 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
-void EntityItem::setSimulatorID(const QString& value) {
+void EntityItem::setSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
         _simulatorID = value;
         _simulatorIDChangedTime = usecTimestampNow();

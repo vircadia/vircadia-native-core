@@ -88,6 +88,22 @@
             }                                           \
         }
 
+// TODO: this doesn't need a length.  See OctreePacketData::appendValue(const QUuid& uuid)
+#define READ_ENTITY_PROPERTY_UUID(P,O)                               \
+        if (propertyFlags.getHasProperty(P)) {                       \
+            uint16_t length;                                         \
+            memcpy(&length, dataAt, sizeof(length));                 \
+            dataAt += sizeof(length);                                \
+            bytesRead += sizeof(length);                             \
+            QByteArray ba((const char*)dataAt, length);              \
+            QUuid value = QUUid::fromRfc4122(ba);                    \
+            dataAt += length;                                        \
+            bytesRead += length;                                     \
+            if (overwriteLocalData) {                                \
+                O(value);                                            \
+            }                                                        \
+        }
+
 #define READ_ENTITY_PROPERTY_COLOR(P,M)         \
         if (propertyFlags.getHasProperty(P)) {  \
             if (overwriteLocalData) {           \
@@ -122,6 +138,20 @@
             dataAt += sizeof(length);                   \
             processedBytes += sizeof(length);           \
             QString value((const char*)dataAt);         \
+            dataAt += length;                           \
+            processedBytes += length;                   \
+            properties.O(value);                        \
+        }
+
+
+// TODO: make a version of this that does a binary unpacking of the uuid
+#define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)    \
+        if (propertyFlags.getHasProperty(P)) {          \
+            uint16_t length;                            \
+            memcpy(&length, dataAt, sizeof(length));    \
+            dataAt += sizeof(length);                   \
+            processedBytes += sizeof(length);           \
+            QUuid value((const char*)dataAt);           \
             dataAt += length;                           \
             processedBytes += length;                   \
             properties.O(value);                        \
@@ -205,6 +235,15 @@
         if (_defaultSettings || newValue != _##P) { \
             S(newValue);                            \
         }                                           \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(P, S)           \
+    QScriptValue P = object.property(#P);                    \
+    if (P.isValid()) {                                       \
+        QUuid newValue = P.toVariant().toUuid();             \
+        if (_defaultSettings || newValue != _##P) {          \
+            S(newValue);                                     \
+        }                                                    \
     }
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \

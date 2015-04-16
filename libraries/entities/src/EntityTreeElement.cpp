@@ -719,7 +719,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             // look up the Id of this Node
             auto nodeList = DependencyManager::get<NodeList>();
-            QString myNodeID = nodeList->getSessionUUID().toString();
+            QUuid myNodeID = nodeList->getSessionUUID();
 
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;

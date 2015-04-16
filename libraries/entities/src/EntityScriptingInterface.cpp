@@ -60,6 +60,19 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 }
 
 
+
+void setSimId(EntityItemProperties& propertiesWithSimID) {
+    if (propertiesWithSimID.velocityChanged() ||
+        propertiesWithSimID.rotationChanged() ||
+        propertiesWithSimID.containsPositionChange()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesWithSimID.setSimulatorID(myNodeID);
+    }
+}
+
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
@@ -67,11 +80,7 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 
     // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
     EntityItemProperties propertiesWithSimID = properties;
-    if (properties.velocityChanged() || properties.rotationChanged()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QString myNodeID = nodeList->getSessionUUID().toString();
-        propertiesWithSimID.setSimulatorID(myNodeID);
-    }
+    setSimId(propertiesWithSimID);
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
@@ -146,14 +155,10 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
         }
     }
 
-    // If this node is changing a physics-related property, claim simulation ownership
+    // if this Node is changing a physics-related property, claim simulation ownership.
     EntityItemProperties propertiesWithSimID = properties;
-    if (properties.velocityChanged() || properties.rotationChanged()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QString myNodeID = nodeList->getSessionUUID().toString();
-        propertiesWithSimID.setSimulatorID(myNodeID);
-    }
-    
+    setSimId(propertiesWithSimID);
+
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
