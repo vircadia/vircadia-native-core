@@ -145,14 +145,15 @@
         }
 
 
-// TODO: make a version of this that does a binary unpacking of the uuid
+// TODO: this doesn't need a length.  See OctreePacketData::appendValue(const QUuid& uuid)
 #define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)    \
         if (propertyFlags.getHasProperty(P)) {          \
             uint16_t length;                            \
             memcpy(&length, dataAt, sizeof(length));    \
             dataAt += sizeof(length);                   \
             processedBytes += sizeof(length);           \
-            QUuid value((const char*)dataAt);           \
+            QByteArray ba((const char*)dataAt, length); \
+            QUuid value = QUuid::fromRfc4122(ba);       \
             dataAt += length;                           \
             processedBytes += length;                   \
             properties.O(value);                        \

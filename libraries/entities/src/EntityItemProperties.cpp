@@ -798,7 +798,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
+    READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
 
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXT, setText);
