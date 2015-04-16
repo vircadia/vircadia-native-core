@@ -97,7 +97,6 @@
             bytesRead += sizeof(length);                             \
             QByteArray ba((const char*)dataAt, length);              \
             QUuid value = QUuid::fromRfc4122(ba);                    \
-            qDebug() << "READING UUID" << (unsigned int)ba[0] << (unsigned int)ba[1] << value << length; \
             dataAt += length;                                        \
             bytesRead += length;                                     \
             if (overwriteLocalData) {                                \

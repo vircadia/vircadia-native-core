@@ -191,11 +191,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QUuid myNodeID = nodeList->getSessionUUID();
     QUuid simulatorID = _entity->getSimulatorID();
 
-    qDebug() << "XXX" << simulatorID << myNodeID;
-
     if (!simulatorID.isNull() && simulatorID != myNodeID) {
         // some other Node is simulating this, so don't broadcast our computations.
-        qDebug() << "NOT SENDING DUE TO NOT OWNER";
         return false;
     }
 
@@ -254,11 +251,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         auto nodeList = DependencyManager::get<NodeList>();
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
-
-        // qDebug() << "XXX me =" << (simulatorID == myNodeID)
-        //          << "_numNonMovingUpdates =" << _numNonMovingUpdates
-        //          << "stopped =" << (zeroSpin && zeroSpeed)
-        //          << "active =" << _body->isActive();
 
         if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
