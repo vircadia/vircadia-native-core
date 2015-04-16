@@ -127,7 +127,7 @@ void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset();
 
-    _velocity = glm::vec3(0.0f);
+    _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
@@ -1378,28 +1378,28 @@ glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVe
 void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
-    glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
+    glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
 
     bool isHovering = _characterController.isHovering();
     glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
-    _velocity = rotation * newLocalVelocity;
+    _targetVelocity = rotation * newLocalVelocity;
 
-    _velocity += _thrust * deltaTime;
+    _targetVelocity += _thrust * deltaTime;
     _thrust = glm::vec3(0.0f);
 
     // cap avatar speed
-    float speed = glm::length(_velocity);
+    float speed = glm::length(_targetVelocity);
     if (speed > MAX_AVATAR_SPEED) {
-        _velocity *= MAX_AVATAR_SPEED / speed;
+        _targetVelocity *= MAX_AVATAR_SPEED / speed;
         speed = MAX_AVATAR_SPEED;
     }
     
     if (speed > MIN_AVATAR_SPEED && !_characterController.isEnabled()) {
         // update position ourselves
-        applyPositionDelta(deltaTime * _velocity);
+        applyPositionDelta(deltaTime * _targetVelocity);
         measureMotionDerivatives(deltaTime);
     } // else physics will move avatar later
     

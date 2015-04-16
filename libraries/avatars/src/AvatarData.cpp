@@ -60,6 +60,7 @@ AvatarData::AvatarData() :
     _owningAvatarMixer(),
     _lastUpdateTimer(),
     _velocity(0.0f),
+    _targetVelocity(0.0f),
     _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
 }

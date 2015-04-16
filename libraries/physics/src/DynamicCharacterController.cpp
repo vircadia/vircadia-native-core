@@ -386,7 +386,7 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
             setHovering(true);
         }
 
-        _walkVelocity = glmToBullet(_avatarData->getVelocity());
+        _walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
 
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
@@ -408,6 +408,7 @@ void DynamicCharacterController::postSimulation() {
 
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(position - rotation * _shapeLocalOffset);
+        _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
     }
 }
 

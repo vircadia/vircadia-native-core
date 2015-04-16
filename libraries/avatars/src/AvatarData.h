@@ -296,6 +296,7 @@ public:
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
+    glm::vec3 getTargetVelocity() const { return _targetVelocity; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -386,6 +387,7 @@ protected:
     void changeReferential(Referential* ref);
 
     glm::vec3 _velocity;
+    glm::vec3 _targetVelocity;
 
     AABox _localAABox;
 
