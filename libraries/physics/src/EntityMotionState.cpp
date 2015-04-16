@@ -251,14 +251,20 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         auto nodeList = DependencyManager::get<NodeList>();
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
+
+        // qDebug() << "XXX me =" << (simulatorID == myNodeID)
+        //          << "_numNonMovingUpdates =" << _numNonMovingUpdates
+        //          << "stopped =" << (zeroSpin && zeroSpeed)
+        //          << "active =" << _body->isActive();
+
         if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && _numNonMovingUpdates >= MAX_NUM_NON_MOVING_UPDATES - 2) {
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
-            _entity->setSimulatorID("");
-            properties.setSimulatorID("");
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
