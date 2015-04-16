@@ -75,6 +75,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
+    _simulatorIDChangedTime = 0;
     initFromEntityItemID(entityItemID);
 }
 
@@ -90,6 +91,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
+    _simulatorIDChangedTime = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties);
 }

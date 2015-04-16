@@ -256,7 +256,8 @@ public:
     void setUserData(const QString& value) { _userData = value; }
 
     QString getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QString& id) { _simulatorID = id; }
+    void setSimulatorID(const QString& id) { _simulatorID = id; _simulatorIDChangedTime = usecTimestampNow(); }
+    quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -352,6 +353,7 @@ protected:
     bool _locked;
     QString _userData;
     QString _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
