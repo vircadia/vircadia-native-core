@@ -256,7 +256,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::CTRL | Qt::Key_H,
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
