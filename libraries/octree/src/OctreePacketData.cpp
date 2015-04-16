@@ -418,6 +418,7 @@ bool OctreePacketData::appendValue(const QUuid& uuid) {
     bool success = appendValue(length);
     if (success) {
         success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+        qDebug() << "SENDING UUID" << (unsigned int)bytes[0] << (unsigned int)bytes[1] << uuid << length;
     }
     return success;
 }
