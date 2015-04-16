@@ -16,6 +16,85 @@
  
 namespace gpu {
 
+class Sampler {
+public:
+
+    enum Filter {
+        FILTER_MIN_MAG_POINT, // top mip only
+        FILTER_MIN_POINT_MAG_LINEAR, // top mip only
+        FILTER_MIN_LINEAR_MAG_POINT, // top mip only
+        FILTER_MIN_MAG_LINEAR, // top mip only
+
+        FILTER_MIN_MAG_MIP_POINT,
+        FILTER_MIN_MAG_POINT_MIP_LINEAR,
+        FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        FILTER_MIN_POINT_MAG_MIP_LINEAR,
+        FILTER_MIN_LINEAR_MAG_MIP_POINT,
+        FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        FILTER_MIN_MAG_LINEAR_MIP_POINT,
+        FILTER_MIN_MAG_MIP_LINEAR,
+        FILTER_ANISOTROPIC,
+
+        NUM_FILTERS,
+    };
+
+    enum WrapMode {
+        WRAP_REPEAT = 0,
+        WRAP_MIRROR,
+        WRAP_CLAMP,
+        WRAP_BORDER,
+        WRAP_MIRROR_ONCE,
+
+        NUM_WRAP_MODES
+    };
+
+    static const uint8 MAX_MIP_LEVEL = 0xFF;
+
+    class Desc {
+    public:
+        glm::vec4 _borderColor{ 1.0f };
+        uint32 _maxAnisotropy = 16;
+
+        uint8 _wrapModeU = WRAP_REPEAT;
+        uint8 _wrapModeV = WRAP_REPEAT;
+        uint8 _wrapModeW = WRAP_REPEAT;
+
+        uint8 _filter = FILTER_MIN_MAG_POINT;
+        uint8 _comparisonFunc = ALWAYS;
+            
+        uint8 _mipOffset = 0;
+        uint8 _minMip = 0;
+        uint8 _maxMip = MAX_MIP_LEVEL;
+
+        Desc() {}
+        Desc(const Filter filter) : _filter(filter) {}
+    };
+
+    Sampler() {}
+    Sampler(const Filter filter) : _desc(filter) {}
+    Sampler(const Desc& desc) : _desc(desc) {}
+    ~Sampler() {}
+
+    const glm::vec4& getBorderColor() const { return _desc._borderColor; }
+
+    uint32 getMaxAnisotropy() const { return _desc._maxAnisotropy; }
+
+    WrapMode getWrapModeU() const { return WrapMode(_desc._wrapModeU); }
+    WrapMode getWrapModeV() const { return WrapMode(_desc._wrapModeV); }
+    WrapMode getWrapModeW() const { return WrapMode(_desc._wrapModeW); }
+
+    Filter getFilter() const { return Filter(_desc._filter); }
+    ComparisonFunction getComparisonFunction() const { return ComparisonFunction(_desc._comparisonFunc); }
+    bool doComparison() const { return getComparisonFunction() != ALWAYS; }
+
+    uint8 getMipOffset() const { return _desc._mipOffset; }
+    uint8 getMinMip() const { return _desc._minMip; }
+    uint8 getMaxMip() const { return _desc._maxMip; }
+
+protected:
+    Desc _desc;
+};
+
 class Texture : public Resource {
 public:
 
@@ -61,10 +140,10 @@ public:
         TEX_CUBE,
     };
 
-    static Texture* create1D(const Element& texelFormat, uint16 width);
-    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height);
-    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth);
-    static Texture* createCube(const Element& texelFormat, uint16 width);
+    static Texture* create1D(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
+    static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
+    static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
+    static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
 
     static Texture* createFromStorage(Storage* storage);
 
@@ -181,10 +260,20 @@ public:
  
     bool isDefined() const { return _defined; }
 
+
+    // Own sampler
+    void setSampler(const Sampler& sampler);
+    const Sampler& getSampler() const { return _sampler; }
+    const Stamp getSamplerStamp() const { return _samplerStamp; }
+
 protected:
     std::unique_ptr< Storage > _storage;
  
     Stamp _stamp;
+
+    Sampler _sampler;
+    Stamp _samplerStamp;
+
 
     uint32 _size;
     Element _texelFormat;
@@ -202,7 +291,7 @@ protected:
     bool _autoGenerateMips;
     bool _defined;
    
-    static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
+    static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
     Texture();
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
@@ -240,15 +329,25 @@ public:
         _subresource(0),
         _element(element)
     {};
-    TextureView(const TexturePointer& texture, const Element& element) :
+    TextureView(const TexturePointer& texture, uint16 subresource, const Element& element) :
         _texture(texture),
-        _subresource(0),
+        _subresource(subresource),
         _element(element)
     {};
+
+    TextureView(const TexturePointer& texture, uint16 subresource) :
+        _texture(texture),
+        _subresource(subresource)
+    {};
+
     ~TextureView() {}
     TextureView(const TextureView& view) = default;
     TextureView& operator=(const TextureView& view) = default;
+
+    explicit operator bool() const { return (_texture); }
+    bool operator !() const { return (!_texture); }
 };
+typedef std::vector<TextureView> TextureViews;
 
 };
 

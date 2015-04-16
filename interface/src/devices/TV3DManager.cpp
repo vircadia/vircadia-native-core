@@ -11,8 +11,6 @@
 
 #include "InterfaceConfig.h"
 
-#include <QOpenGLFramebufferObject>
-
 #include <glm/glm.hpp>
 
 #include <GlowEffect.h>
