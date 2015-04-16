@@ -191,8 +191,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     QUuid myNodeID = nodeList->getSessionUUID();
     QUuid simulatorID = _entity->getSimulatorID();
 
+    qDebug() << "XXX" << simulatorID << myNodeID;
+
     if (!simulatorID.isNull() && simulatorID != myNodeID) {
         // some other Node is simulating this, so don't broadcast our computations.
+        qDebug() << "NOT SENDING DUE TO NOT OWNER";
         return false;
     }
 
