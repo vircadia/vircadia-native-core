@@ -130,7 +130,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     }
 
     // Z test depends if transparent or not
-    state->setDepthTest(true, !key.isTranslucent(), gpu::State::LESS_EQUAL);
+    state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),
@@ -151,7 +151,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
-        auto it = insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
+        insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
     }
 }
 
@@ -673,8 +673,6 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         return false;
     }
 
- //   auto glowEffectIntensity = DependencyManager::get<GlowEffect>()->getIntensity();
-
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
     gpu::Batch& batch = _renderBatch;
@@ -703,35 +701,12 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     batch.setViewTransform(_transforms[0]);
 
-  //  GLBATCH(glDisable)(GL_COLOR_MATERIAL);
-    
-    // taking care of by the state?
-   /* if (mode == RenderArgs::DIFFUSE_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE) {
-        GLBATCH(glDisable)(GL_CULL_FACE);
-    } else {
-        GLBATCH(glEnable)(GL_CULL_FACE);
-        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            GLBATCH(glCullFace)(GL_FRONT);
-        }
-    }
-    */
-
-    // render opaque meshes with alpha testing
-
-//    GLBATCH(glDisable)(GL_BLEND);
-//    GLBATCH(glEnable)(GL_ALPHA_TEST);
-    
- /*   if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
-    }
-    */
-
     /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
         mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE,
         mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE,
         mode == RenderArgs::DEFAULT_RENDER_MODE);
         */
-    {
+     /*if (mode != RenderArgs::SHADOW_RENDER_MODE)*/ {
         GLenum buffers[3];
         int bufferCount = 0;
 
@@ -748,6 +723,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
         }
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
+      //  batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
     }
 
     const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
@@ -790,12 +766,6 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args, true);
     translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args, true);
 
- //   GLBATCH(glDisable)(GL_ALPHA_TEST);
-  /*  GLBATCH(glEnable)(GL_BLEND);
-    GLBATCH(glDepthMask)(false);
-    GLBATCH(glDepthFunc)(GL_LEQUAL);
-    */
-    //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
     {
         GLenum buffers[1];
         int bufferCount = 0;
@@ -805,6 +775,8 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
    // if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
     if (mode != RenderArgs::SHADOW_RENDER_MODE) {
+    //    batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
+
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args, true);
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args, true);
@@ -814,6 +786,8 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args, true);
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args, true);
         translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args, true);
+
+   //     batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
     }
 
     GLBATCH(glDepthMask)(true);
@@ -1758,14 +1732,6 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
-  //  auto glowEffectIntensity = DependencyManager::get<GlowEffect>()->getIntensity();
-
-
-    #if defined(ANDROID)
-    #else
-        glPushMatrix();
-    #endif
-
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
@@ -1792,34 +1758,15 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         _sceneRenderBatch.clear();
         gpu::Batch& batch = _sceneRenderBatch;
 
-     //   GLBATCH(glDisable)(GL_COLOR_MATERIAL);
-    
-      /*  if (mode == RenderArgs::DIFFUSE_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE) {
-            GLBATCH(glDisable)(GL_CULL_FACE);
-        } else {
-            GLBATCH(glEnable)(GL_CULL_FACE);
-            if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-                GLBATCH(glCullFace)(GL_FRONT);
-            }
-        }*/
-    
-        // render opaque meshes with alpha testing
-
-      //  GLBATCH(glDisable)(GL_BLEND);
-      //  GLBATCH(glEnable)(GL_ALPHA_TEST);
-    
-     /*   if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
-        }
-*/
-
         /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
             mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE,
             mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE,
             mode == RenderArgs::DEFAULT_RENDER_MODE);
             */
-        {
+
+       /*  if (mode != RenderArgs::SHADOW_RENDER_MODE) */{
             GLenum buffers[3];
+
             int bufferCount = 0;
          //   if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
             if (mode != RenderArgs::SHADOW_RENDER_MODE) {
@@ -1834,6 +1781,8 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
                 buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
             }
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
+        
+           // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
         }
 
         const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
@@ -1856,7 +1805,6 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
 
         // render translucent meshes afterwards
-        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
         {
             GLenum buffers[2];
             int bufferCount = 0;
@@ -1876,21 +1824,19 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args);
         translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
 
-     //   GLBATCH(glDisable)(GL_ALPHA_TEST);
-       /* GLBATCH(glEnable)(GL_BLEND);
-        GLBATCH(glDepthMask)(false);
-        GLBATCH(glDepthFunc)(GL_LEQUAL);
-    */
-        //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true);
+
         {
             GLenum buffers[1];
             int bufferCount = 0;
             buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
             GLBATCH(glDrawBuffers)(bufferCount, buffers);
+         //   batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
         }
     
        // if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
         if (mode != RenderArgs::SHADOW_RENDER_MODE) {
+          //  batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
+
             const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
@@ -1900,6 +1846,8 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args);
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args);
             translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args);
+        
+          // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
         }
 
         GLBATCH(glDepthMask)(true);
@@ -1938,10 +1886,10 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         // Back to no program
         GLBATCH(glUseProgram)(0);
 
-    if (args) {
-        args->_translucentMeshPartsRendered = translucentParts;
-        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-    }
+        if (args) {
+            args->_translucentMeshPartsRendered = translucentParts;
+            args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+        }
 
     }
 
@@ -1950,12 +1898,6 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         PROFILE_RANGE("render Batch");
         backend.render(_sceneRenderBatch);
     }
-
-
-    #if defined(ANDROID)
-    #else
-        glPopMatrix();
-    #endif
 
     // restore all the default material settings
     _viewState->setupWorldLight();
@@ -2334,17 +2276,15 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
-        qDebug() << "No good, couldn;t find a pipeline from the key ?" << key.getRaw();
+        qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
         return;
     }
 
     gpu::ShaderPointer program = (*pipeline).second._pipeline->getProgram();
     locations = (*pipeline).second._locations.get();
 
-    //GLuint glprogram = gpu::GLBackend::getShaderID(program);
-    //GLBATCH(glUseProgram)(glprogram);
     
-    // dare!
+    // Setup the One pipeline
     batch.setPipeline((*pipeline).second._pipeline);
 
     if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
@@ -2354,9 +2294,6 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
     }
-  //  if (!(translucent && alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
- //       GLBATCH(glAlphaFunc)(GL_EQUAL, DependencyManager::get<GlowEffect>()->getIntensity());
- //   }
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
@@ -2383,10 +2320,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
             }
         }
     }
-    // if we selected a program, then unselect it
-    if (!pickProgramsNeeded) {
- //       GLBATCH(glUseProgram)(0);
-    }
+
     return meshPartsRendered;
 }
 
@@ -2415,8 +2349,6 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                                 args, locations);
     meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
                                 args, locations, forceRenderSomeMeshes);
-   // GLBATCH(glUseProgram)(0);
-
 
     return meshPartsRendered;
 }
@@ -2427,7 +2359,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
     PROFILE_RANGE(__FUNCTION__);
 
     auto textureCache = DependencyManager::get<TextureCache>();
- //   auto glowEffect = DependencyManager::get<GlowEffect>();
+
     QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
@@ -2531,13 +2463,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         qCDebug(renderutils) << "NEW part.materialID:" << part.materialID;
                     }
 
-/*                    if (locations->glowIntensity >= 0) {
-                        GLBATCH(glUniform1f)(locations->glowIntensity, glowEffect->getIntensity());
-                    }
-                    if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, glowEffect->getIntensity());
-                    }
-*/
                     if (locations->materialBufferUnit >= 0) {
                         batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
                     }

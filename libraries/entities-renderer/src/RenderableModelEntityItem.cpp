@@ -274,47 +274,49 @@ void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
     }
 }
 
-bool RenderableModelEntityItem::hasCollisionModel() const {
-    if (_model) {
-        return ! _model->getCollisionURL().isEmpty();
-    } else {
-        return !_collisionModelURL.isEmpty();
-    }
-}
-
-const QString& RenderableModelEntityItem::getCollisionModelURL() const {
-    // assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
-    return _collisionModelURL;
-}
-
 bool RenderableModelEntityItem::isReadyToComputeShape() {
+    ShapeType type = getShapeType();
+    if (type == SHAPE_TYPE_COMPOUND) {
 
-    if (!_model) {
-        return false; // hmm...
+        if (!_model) {
+            return false; // hmm...
+        }
+
+        assert(!_model->getCollisionURL().isEmpty());
+    
+        if (_model->getURL().isEmpty()) {
+            // we need a render geometry with a scale to proceed, so give up.
+            return false;
+        }
+    
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+    
+        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
+            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+            // we have both URLs AND both geometries AND they are both fully loaded.
+            return true;
+        }
+
+        // the model is still being downloaded.
+        return false;
     }
-
-    if (_model->getCollisionURL().isEmpty()) {
-        // no collision-model url, so we're ready to compute a shape (of type None).
-        return true;
-    }
-
-    const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-    if (! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) {
-        // we have a _collisionModelURL AND a collisionNetworkGeometry AND it's fully loaded.
-        return true;
-    }
-
-    // the model is still being downloaded.
-    return false;
+    return true;
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_model->getCollisionURL().isEmpty()) {
-        info.setParams(getShapeType(), 0.5f * getDimensions());
+    ShapeType type = getShapeType();
+    if (type != SHAPE_TYPE_COMPOUND) {
+        ModelEntityItem::computeShapeInfo(info);
+        info.setParams(type, 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
 
+        // should never fall in here when collision model not fully loaded
+        // hence we assert collisionNetworkGeometry is not NULL
+        assert(!collisionNetworkGeometry.isNull());
+
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
         const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
 
@@ -408,18 +410,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(getShapeType(), collisionModelDimensions, _collisionModelURL);
+        info.setParams(type, collisionModelDimensions, _collisionModelURL);
         info.setConvexHulls(_points);
     }
 }
 
-ShapeType RenderableModelEntityItem::getShapeType() const {
-    // XXX make hull an option in edit.js ?
-    if (!_model || _model->getCollisionURL().isEmpty()) {
-        return _shapeType;
-    } else if (_points.size() == 1) {
-        return SHAPE_TYPE_CONVEX_HULL;
-    } else {
-        return SHAPE_TYPE_COMPOUND;
-    }
-}
