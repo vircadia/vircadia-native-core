@@ -17,6 +17,8 @@
 #include <QJsonObject>
 #include <QElapsedTimer>
 
+#include <GLMHelpers.h>
+
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
@@ -267,6 +269,8 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
+        bool isFitering = Menu::getInstance()->isOptionChecked(MenuOption::DDEFiltering);
+
         Packet packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());
         memset(&packet.name, '\n', MAX_NAME_SIZE + 1);
@@ -287,11 +291,36 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
-        _headTranslation = translation;
+        if (isFitering) {
+            glm::vec3 linearVelocity = (translation - _lastHeadTranslation) / _averageMessageTime;
+            const float LINEAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+            float velocityFilter = glm::clamp(1.0f - glm::length(linearVelocity) *
+                LINEAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredHeadTranslation = velocityFilter * _filteredHeadTranslation + (1.0f - velocityFilter) * translation;
+            _lastHeadTranslation = translation;
+            _headTranslation = _filteredHeadTranslation;
+        } else {
+            _headTranslation = translation;
+        }
 
         // Compute relative rotation
         rotation = glm::inverse(_referenceRotation) * rotation;
-        _headRotation = rotation;
+        if (isFitering) {
+            glm::quat r = rotation * glm::inverse(_headRotation);
+            float theta = 2 * acos(r.w);
+            glm::vec3 angularVelocity;
+            if (theta > EPSILON) {
+                float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
+                angularVelocity = theta / _averageMessageTime * glm::vec3(r.x, r.y, r.z) / rMag;
+            } else {
+                angularVelocity = glm::vec3(0, 0, 0);
+            }
+            const float ANGULAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+            _headRotation = safeMix(_headRotation, rotation, glm::clamp(glm::length(angularVelocity) *
+                ANGULAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f));
+        } else {
+            _headRotation = rotation;
+        }
 
         // Translate DDE coefficients to Faceshift compatible coefficients
         for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
@@ -339,7 +368,16 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
                 = glm::clamp(DDE_COEFFICIENT_SCALES[i] * _coefficients[i], 0.0f, 1.0f);
         }
 
-    } else {
+        // Calculate average frame time
+        const float FRAME_AVERAGING_FACTOR = 0.99f;
+        quint64 usecsNow = usecTimestampNow();
+        if (_lastMessageReceived != 0) {
+            _averageMessageTime = FRAME_AVERAGING_FACTOR * _averageMessageTime 
+                + (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastMessageReceived) / 1000000.0f;
+        }
+        _lastMessageReceived = usecsNow;
+    
+} else {
         qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();

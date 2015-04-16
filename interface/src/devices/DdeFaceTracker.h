@@ -23,6 +23,8 @@
 
 #include "FaceTracker.h"
 
+const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -100,6 +102,11 @@ private:
     int _jawOpenIndex;
 
     QVector<float> _coefficients;
+
+    quint64 _lastMessageReceived = 0;
+    float _averageMessageTime = STARTING_DDE_MESSAGE_TIME;
+    glm::vec3 _lastHeadTranslation = glm::vec3(0.0f);
+    glm::vec3 _filteredHeadTranslation = glm::vec3(0.0f);
 };
 
 #endif // hifi_DdeFaceTracker_h
