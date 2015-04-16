@@ -386,6 +386,8 @@ Menu::Menu() {
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
+    ddeFiltering->setVisible(false);
     QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
         Qt::CTRL | Qt::Key_Apostrophe,
         DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
@@ -991,6 +993,7 @@ void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
 void Menu::setActiveFaceTracker() {
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
+    Menu::getInstance()->getActionForOption(MenuOption::DDEFiltering)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
 #endif
     qApp->setActiveFaceTracker();
