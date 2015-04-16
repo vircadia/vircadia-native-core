@@ -11,7 +11,6 @@ Item {
     id: dialog
     width: 256
     height: 256
-    property rect clientArea: clientBorder
     property int topMargin: dialog.height - clientBorder.height + 8
     property int margins: 8
     property string title

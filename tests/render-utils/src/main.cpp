@@ -31,6 +31,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <PathUtils.h>
+#include <QDir>
 
 class RateCounter {
     std::vector<float> times;
@@ -159,8 +160,12 @@ public:
         // "#0e7077"
         setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
-        
-        static const QString f("/Users/bdavis/Git/hifi/interface/resources/qml/TestRoot.qml");
+
+        QApplication::applicationDirPath();
+        QDir path(__FILE__);
+        path.cdUp();
+        static const QString f(path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/TestRoot.qml")));
+
         _offscreenUi.loadQml(QUrl::fromLocalFile(f));
         connect(&_offscreenUi, &OffscreenUi::textureUpdated, this, [&](int textureId) {
             _offscreenUi.lockTexture(textureId);

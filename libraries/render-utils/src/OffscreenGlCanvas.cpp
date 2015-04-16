@@ -16,16 +16,18 @@ OffscreenGlCanvas::OffscreenGlCanvas() {
 }
 
 void OffscreenGlCanvas::create(QOpenGLContext * sharedContext) {
-    QSurfaceFormat format;
-    format.setDepthBufferSize(16);
-    format.setStencilBufferSize(8);
-    format.setMajorVersion(4);
-    format.setMinorVersion(1);
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-
-    _context.setFormat(format);
     if (nullptr != sharedContext) {
+        sharedContext->doneCurrent();
+        _context.setFormat(sharedContext->format());
         _context.setShareContext(sharedContext);
+    } else {
+        QSurfaceFormat format;
+        format.setDepthBufferSize(16);
+        format.setStencilBufferSize(8);
+        format.setMajorVersion(4);
+        format.setMinorVersion(1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        _context.setFormat(format);
     }
     _context.create();
 

@@ -44,7 +44,7 @@ public: \
 private:
 
 #define QML_DIALOG_DEF(x) \
-    const QUrl x::QML = #x ".qml"; \
+    const QUrl x::QML = QUrl(#x ".qml"); \
     const QString x::NAME = #x; \
     \
     void x::registerType() { \
