@@ -1196,3 +1196,10 @@ void EntityItem::updateLifetime(float value) {
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
     }
 }
+
+void EntityItem::setSimulatorID(const QString& value) {
+    if (_simulatorID != value) {
+        _simulatorID = value;
+        _simulatorIDChangedTime = usecTimestampNow();
+    }
+}

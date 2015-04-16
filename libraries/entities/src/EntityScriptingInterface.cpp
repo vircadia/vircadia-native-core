@@ -66,13 +66,10 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
     // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QString myNodeID = nodeList->getSessionUUID().toString();
-
     EntityItemProperties propertiesWithSimID = properties;
-
-    // if this object is moving, set this Node as the simulation owner
     if (properties.velocityChanged() || properties.rotationChanged()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QString myNodeID = nodeList->getSessionUUID().toString();
         propertiesWithSimID.setSimulatorID(myNodeID);
     }
 
@@ -148,12 +145,20 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
             entityID.isKnownID = true;
         }
     }
+
+    // If this node is changing a physics-related property, claim simulation ownership
+    EntityItemProperties propertiesWithSimID = properties;
+    if (properties.velocityChanged() || properties.rotationChanged()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QString myNodeID = nodeList->getSessionUUID().toString();
+        propertiesWithSimID.setSimulatorID(myNodeID);
+    }
     
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
+        _entityTree->updateEntity(entityID, propertiesWithSimID, canAdjustLocks());
         _entityTree->unlock();
     }
 

@@ -256,7 +256,7 @@ public:
     void setUserData(const QString& value) { _userData = value; }
 
     QString getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QString& id) { _simulatorID = id; _simulatorIDChangedTime = usecTimestampNow(); }
+    void setSimulatorID(const QString& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }

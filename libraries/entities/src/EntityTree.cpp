@@ -136,7 +136,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
             // if ownership hasn't recently changed.
             quint64 now = usecTimestampNow();
-            if (now - entity->getSimulatorIDChangedTime() < 0.1 * USECS_PER_SECOND) { // XXX pick time and put in constant
+            if (now - entity->getSimulatorIDChangedTime() < 2 * USECS_PER_SECOND) { // XXX pick time and put in constant
                 qDebug() << "TOO SOON";
             }
         }
