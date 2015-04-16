@@ -192,7 +192,7 @@ void buildStringToShapeTypeLookup() {
     stringToShapeTypeLookup["box"] = SHAPE_TYPE_BOX;
     stringToShapeTypeLookup["sphere"] = SHAPE_TYPE_SPHERE;
     stringToShapeTypeLookup["ellipsoid"] = SHAPE_TYPE_ELLIPSOID;
-    stringToShapeTypeLookup["convex-hull"] = SHAPE_TYPE_CONVEX_HULL;
+    stringToShapeTypeLookup["convex-hull"] = SHAPE_TYPE_COMPOUND;
     stringToShapeTypeLookup["plane"] = SHAPE_TYPE_PLANE;
     stringToShapeTypeLookup["compound"] = SHAPE_TYPE_COMPOUND;
     stringToShapeTypeLookup["capsule-x"] = SHAPE_TYPE_CAPSULE_X;

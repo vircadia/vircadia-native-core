@@ -151,7 +151,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
-        auto it = insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
+        insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
     }
 }
 
