@@ -193,6 +193,9 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
                 // hence the MotionState has all the knowledge and authority to perform the update.
                 motionState->updateObjectEasy(flags, _numSubsteps);
             }
+            if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+                motionState->resetMeasuredVelocityAndAcceleration();
+            }
         } else {
             // the only way we should ever get here (motionState exists but no body) is when the object
             // is undergoing non-physical kinematic motion.
@@ -508,6 +511,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
     body->setFriction(motionState->_friction);
     body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
     _dynamicsWorld->addRigidBody(body);
+    motionState->resetMeasuredVelocityAndAcceleration();
 }
 
 void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
