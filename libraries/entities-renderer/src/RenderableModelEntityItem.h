@@ -53,12 +53,9 @@ public:
     bool needsToCallUpdate() const;
 
     virtual void setCollisionModelURL(const QString& url);
-    virtual bool hasCollisionModel() const;
-    virtual const QString& getCollisionModelURL() const;
 
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
-    ShapeType getShapeType() const;
 
 private:
     void remapTextures();

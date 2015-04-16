@@ -24,7 +24,6 @@ enum ShapeType {
     SHAPE_TYPE_BOX,
     SHAPE_TYPE_SPHERE,
     SHAPE_TYPE_ELLIPSOID,
-    SHAPE_TYPE_CONVEX_HULL,
     SHAPE_TYPE_PLANE,
     SHAPE_TYPE_COMPOUND,
     SHAPE_TYPE_CAPSULE_X,
@@ -52,6 +51,7 @@ public:
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
 
     const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
+    uint32_t getNumSubShapes() const;
 
     void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }

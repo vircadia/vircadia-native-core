@@ -49,7 +49,7 @@ public:
     virtual void debugDump() const;
 
     void updateShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const { return _shapeType; }
+    virtual ShapeType getShapeType() const;
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -63,7 +63,7 @@ public:
     const QString& getModelURL() const { return _modelURL; }
 
     static const QString DEFAULT_COLLISION_MODEL_URL;
-    virtual const QString& getCollisionModelURL() const { return _collisionModelURL; }
+    const QString& getCollisionModelURL() const { return _collisionModelURL; }
 
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     static const QString DEFAULT_ANIMATION_URL;
