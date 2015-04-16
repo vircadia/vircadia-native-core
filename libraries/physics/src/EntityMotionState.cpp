@@ -258,8 +258,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setSimulatorID(myNodeID);
         } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
-            _entity->setSimulatorID(QUuid());
-            properties.setSimulatorID(QUuid());
+
+            // XXX the entity server will clear the simulatorID after 2 seconds.  if the interface clears
+            // it here, every node that sees the entity-stopped-moving packets will rebroadcast them.
+
+            // _entity->setSimulatorID(QUuid());
+            // properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
@@ -270,7 +274,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         }
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
-            // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // (i.e. NOT when we just simulate the positions forward, nor when we resend non-moving data)
             // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
