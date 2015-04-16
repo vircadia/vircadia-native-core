@@ -37,12 +37,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             _halfExtents = glm::vec3(radius);
             break;
         }
-        case SHAPE_TYPE_CONVEX_HULL:
-            _url = QUrl(url);
-            // halfExtents aren't used by convex-hull or compound convex-hull except as part of
-            // the generation of the key for the ShapeManager.
-            _halfExtents = halfExtents;
-            break;
         case SHAPE_TYPE_COMPOUND:
             _url = QUrl(url);
             _halfExtents = halfExtents;
@@ -78,12 +72,8 @@ void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
 }
 
 void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
-    if (points.size() == 1) {
-        _type = SHAPE_TYPE_CONVEX_HULL;
-    } else {
-        _type = SHAPE_TYPE_COMPOUND;
-    }
     _points = points;
+    _type = (_points.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
     _doubleHashKey.clear();
 }
 
@@ -95,6 +85,14 @@ void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _doubleHashKey.clear();
 }
 
+uint32_t ShapeInfo::getNumSubShapes() const {
+    if (_type == SHAPE_TYPE_NONE) {
+        return 0;
+    } else if (_type == SHAPE_TYPE_COMPOUND) {
+        return _points.size();
+    }
+    return 1;
+}
 float ShapeInfo::computeVolume() const {
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;

@@ -12,7 +12,7 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <QOpenGLFramebufferObject>
+#include <gpu/GLBackend.h>
 
 #include <glm/gtc/random.hpp>
 
@@ -107,8 +107,8 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
-    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
-    freeFBO->bind();
+    auto freeFramebuffer = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFramebuffer));
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
@@ -118,9 +118,10 @@ void AmbientOcclusionEffect::render() {
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
     const int VIEWPORT_WIDTH_INDEX = 2;
-    QOpenGLFramebufferObject* primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
+
+    auto framebufferSize = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
     
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue(_nearLocation, nearVal);
@@ -128,7 +129,7 @@ void AmbientOcclusionEffect::render() {
     _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
     _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
     _occlusionProgram->setUniformValue(_noiseScaleLocation, viewport[VIEWPORT_WIDTH_INDEX] / (float)ROTATION_WIDTH,
-        primaryFBO->height() / (float)ROTATION_HEIGHT);
+        framebufferSize.height() / (float)ROTATION_HEIGHT);
     _occlusionProgram->setUniformValue(_texCoordOffsetLocation, sMin, 0.0f);
     _occlusionProgram->setUniformValue(_texCoordScaleLocation, sWidth, 1.0f);
     
@@ -136,22 +137,24 @@ void AmbientOcclusionEffect::render() {
     
     _occlusionProgram->release();
     
-    freeFBO->release();
-    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glBindTexture(GL_TEXTURE_2D, 0);
     
     glActiveTexture(GL_TEXTURE0);
     
     // now render secondary to primary with 4x4 blur
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
-    
+    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
+
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
     
-    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
+    auto freeFramebufferTexture = freeFramebuffer->getRenderBuffer(0);
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFramebufferTexture));
     
     _blurProgram->bind();
-    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / primaryFBO->width(), 1.0f / primaryFBO->height());
+    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / framebufferSize.width(), 1.0f / framebufferSize.height());
     
     renderFullscreenQuad(sMin, sMin + sWidth);
     

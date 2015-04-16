@@ -35,7 +35,6 @@
 #include <QMouseEvent>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
-#include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
@@ -841,7 +840,7 @@ void Application::paintGL() {
         DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
@@ -2731,8 +2730,9 @@ void Application::updateShadowMap() {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
-    fbo->bind();
+    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -2748,16 +2748,18 @@ void Application::updateShadowMap() {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     int matrixCount = 1;
-    int targetSize = fbo->width();
+    //int targetSize = fbo->width();
+    int sourceSize = shadowFramebuffer->getWidth();
+    int targetSize = shadowFramebuffer->getWidth();
     float targetScale = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
         matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = fbo->width() / 2;
+        targetSize = sourceSize / 2;
         targetScale = 0.5f;
     }
     for (int i = 0; i < matrixCount; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
+        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
 
         // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
         int regionIncrement = (matrixCount == 1 ? 2 : 1);
@@ -2880,7 +2882,7 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
-    fbo->release();
+   // fbo->release();
     
     glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
@@ -2926,7 +2928,8 @@ PickRay Application::computePickRay(float x, float y) {
 }
 
 QImage Application::renderAvatarBillboard() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2939,7 +2942,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return image;
 }
@@ -3808,17 +3811,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     }
     
     // Download the FST file, to attempt to determine its model type
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest networkRequest = QNetworkRequest(url);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    qCDebug(interfaceapp) << "Downloading avatar file at " << url;
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-    QByteArray fstContents = reply->readAll();
-    delete reply;
-    QVariantHash fstMapping = FSTReader::readMapping(fstContents);
+    QVariantHash fstMapping = FSTReader::downloadMapping(url);
     
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
     
@@ -3829,26 +3822,27 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QPushButton* bodyButton = NULL;
     QPushButton* bodyAndHeadButton = NULL;
     
+    QString modelName = fstMapping["name"].toString();
     QString message;
     QString typeInfo;
     switch (modelType) {
         case FSTReader::HEAD_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar head?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar head?");
             headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
 
         case FSTReader::BODY_ONLY_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar body?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar body?");
             bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
 
         case FSTReader::HEAD_AND_BODY_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
             bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
         
         default:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for some part of your avatar head?");
+            message = QString("Would you like to use '") + modelName + QString("' for some part of your avatar head?");
             headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
             bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
             bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
@@ -3861,34 +3855,18 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     msgBox.exec();
 
     if (msgBox.clickedButton() == headButton) {
-        qCDebug(interfaceapp) << "Chose to use for head: " << url;
-        _myAvatar->setFaceModelURL(url);
-        UserActivityLogger::getInstance().changedModel("head", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(url);
+        _myAvatar->useHeadURL(url, modelName);
+        emit headURLChanged(url, modelName);
     } else if (msgBox.clickedButton() == bodyButton) {
-        qCDebug(interfaceapp) << "Chose to use for body: " << url;
-        _myAvatar->setSkeletonModelURL(url);
-        // if the head is empty, reset it to the default head.
-        if (_myAvatar->getFaceModelURLString().isEmpty()) {
-            _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
-            emit faceURLChanged(DEFAULT_HEAD_MODEL_URL.toString());
-            UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
-        }
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit skeletonURLChanged(url);
+        _myAvatar->useBodyURL(url, modelName);
+        emit bodyURLChanged(url, modelName);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        qCDebug(interfaceapp) << "Chose to use for body + head: " << url;
-        _myAvatar->setFaceModelURL(QString());
-        _myAvatar->setSkeletonModelURL(url);
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(QString());
-        emit skeletonURLChanged(url);
+        _myAvatar->useFullAvatarURL(url, modelName);
+        emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
     }
+    
     return true;
 }
 
@@ -4400,8 +4378,7 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
         
-        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
-        _myAvatar->sendIdentityPacket();
+        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
     } else {
         _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());

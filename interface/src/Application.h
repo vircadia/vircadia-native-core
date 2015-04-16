@@ -340,8 +340,9 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
-    void faceURLChanged(const QString& newValue);
-    void skeletonURLChanged(const QString& newValue);
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
     
     void beforeAboutToQuit();
 
