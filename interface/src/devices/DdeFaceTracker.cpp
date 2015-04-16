@@ -269,7 +269,7 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
-        bool isFitering = Menu::getInstance()->isOptionChecked(MenuOption::DDEFiltering);
+        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::DDEFiltering);
 
         Packet packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());
@@ -291,7 +291,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
-        if (isFitering) {
+        if (isFiltering) {
             glm::vec3 linearVelocity = (translation - _lastHeadTranslation) / _averageMessageTime;
             const float LINEAR_VELOCITY_FILTER_STRENGTH = 0.3f;
             float velocityFilter = glm::clamp(1.0f - glm::length(linearVelocity) *
@@ -305,7 +305,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         // Compute relative rotation
         rotation = glm::inverse(_referenceRotation) * rotation;
-        if (isFitering) {
+        if (isFiltering) {
             glm::quat r = rotation * glm::inverse(_headRotation);
             float theta = 2 * acos(r.w);
             glm::vec3 angularVelocity;
@@ -331,6 +331,21 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         static const float RELAXED_EYE_VALUE = 0.1f;
         float leftEye = _coefficients[_leftBlinkIndex];
         float rightEye = _coefficients[_rightBlinkIndex];
+        if (isFiltering) {
+            const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
+
+            float velocity = fabs(leftEye - _lastLeftEyeBlink) / _averageMessageTime;
+            float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredLeftEyeBlink = velocityFilter * leftEye + (1.0f - velocityFilter) * _filteredLeftEyeBlink;
+            _lastLeftEyeBlink = leftEye;
+            leftEye = _filteredLeftEyeBlink;
+
+            velocity = fabs(rightEye - _lastRightEyeBlink) / _averageMessageTime;
+            velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredRightEyeBlink = velocityFilter * rightEye + (1.0f - velocityFilter) * _filteredRightEyeBlink;
+            _lastRightEyeBlink = rightEye;
+            rightEye = _filteredRightEyeBlink;
+        }
         if (leftEye > RELAXED_EYE_VALUE) {
             _coefficients[_leftBlinkIndex] = leftEye - RELAXED_EYE_VALUE;
             _coefficients[_leftEyeOpenIndex] = 0.0f;

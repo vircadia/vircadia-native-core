@@ -107,6 +107,10 @@ private:
     float _averageMessageTime = STARTING_DDE_MESSAGE_TIME;
     glm::vec3 _lastHeadTranslation = glm::vec3(0.0f);
     glm::vec3 _filteredHeadTranslation = glm::vec3(0.0f);
+    float _lastLeftEyeBlink = 0.0f;
+    float _filteredLeftEyeBlink = 0.0f;
+    float _lastRightEyeBlink = 0.0f;
+    float _filteredRightEyeBlink = 0.0f;
 };
 
 #endif // hifi_DdeFaceTracker_h
