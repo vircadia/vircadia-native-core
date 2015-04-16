@@ -296,8 +296,7 @@ void ModelEntityItem::updateShapeType(ShapeType type) {
 ShapeType ModelEntityItem::getShapeType() const {
     if (_shapeType == SHAPE_TYPE_COMPOUND) {
         return hasCollisionModel() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
-    }
-    else {
+    } else {
         return _shapeType;
     }
 }
