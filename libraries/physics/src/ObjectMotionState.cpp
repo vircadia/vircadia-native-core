@@ -60,7 +60,7 @@ ObjectMotionState::ObjectMotionState() :
     _sentAcceleration(0.0f),
     _lastSimulationStep(0),
     _lastVelocity(0.0f),
-    _measuredAcceleration(0.0f)
+    _measuredAcceleration(0.0f) {
 }
 
 ObjectMotionState::~ObjectMotionState() {
