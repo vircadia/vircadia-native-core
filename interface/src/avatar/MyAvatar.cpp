@@ -31,6 +31,7 @@
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
+#include <UserActivityLogger.h>
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -126,7 +127,7 @@ void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset();
 
-    _velocity = glm::vec3(0.0f);
+    _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
@@ -605,10 +606,15 @@ void MyAvatar::saveData() {
 
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
-    
-    settings.setValue("faceModelURL", _faceModelURL);
-    settings.setValue("skeletonModelURL", _skeletonModelURL);
-    
+
+    settings.setValue("useFullAvatar", _useFullAvatar);
+    settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
+    settings.setValue("faceModelURL", _headURLFromPreferences);
+    settings.setValue("skeletonModelURL", _skeletonURLFromPreferences);
+    settings.setValue("headModelName", _headModelName);
+    settings.setValue("bodyModelName", _bodyModelName);
+    settings.setValue("fullAvatarModelName", _fullAvatarModelName);
+
     settings.beginWriteArray("attachmentData");
     for (int i = 0; i < _attachmentData.size(); i++) {
         settings.setArrayIndex(i);
@@ -640,7 +646,6 @@ void MyAvatar::saveData() {
         settings.setValue("firstFrame", pointer->getFirstFrame());
         settings.setValue("lastFrame", pointer->getLastFrame());
         settings.setValue("maskedJoints", pointer->getMaskedJoints());
-        settings.setValue("running", pointer->getLoop() && pointer->isRunning());
     }
     settings.endArray();
     
@@ -669,9 +674,54 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
-    
-    setFaceModelURL(settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl());
-    setSkeletonModelURL(settings.value("skeletonModelURL").toUrl());
+
+
+    // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls 
+    // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
+    // the head URL is empty, then we will assume they are using a full url...
+    bool isOldSettings = !(settings.contains("useFullAvatar") || settings.contains("fullAvatarURL"));
+
+    _useFullAvatar = settings.value("useFullAvatar").toBool();
+    _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
+    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL").toUrl();
+    _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+    _headModelName = settings.value("headModelName").toString();
+    _bodyModelName = settings.value("bodyModelName").toString();
+    _fullAvatarModelName = settings.value("fullAvatarModelName").toString();;
+
+    if (isOldSettings) {
+        bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
+        _useFullAvatar = assumeFullAvatar;
+
+        if (_useFullAvatar) {
+            _fullAvatarURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+            _headURLFromPreferences = DEFAULT_HEAD_MODEL_URL;
+            _skeletonURLFromPreferences = DEFAULT_BODY_MODEL_URL;
+
+            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
+
+            _headModelName = "Default";
+            _bodyModelName = "Default";
+            _fullAvatarModelName = fullAvatarFST["name"].toString();
+
+        } else {
+            _fullAvatarURLFromPreferences = DEFAULT_FULL_AVATAR_MODEL_URL;
+            _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+
+            QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
+            QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
+
+            _headModelName = headFST["name"].toString();
+            _bodyModelName = bodyFST["name"].toString();
+            _fullAvatarModelName = "Default";
+        }
+    }
+
+    if (_useFullAvatar) {
+        useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
+    } else {
+        useHeadAndBodyURLs(_headURLFromPreferences, _skeletonURLFromPreferences, _headModelName, _bodyModelName);
+    }
     
     QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
@@ -710,13 +760,10 @@ void MyAvatar::loadData() {
         handle->setPriority(loadSetting(settings, "priority", 1.0f));
         handle->setLoop(settings.value("loop", true).toBool());
         handle->setHold(settings.value("hold", false).toBool());
-        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
         handle->setFirstFrame(settings.value("firstFrame", 0.0f).toFloat());
         handle->setLastFrame(settings.value("lastFrame", INT_MAX).toFloat());
         handle->setMaskedJoints(settings.value("maskedJoints").toStringList());
-        if (settings.value("loop", true).toBool() && settings.value("running", false).toBool()) {
-            handle->setRunning(true);
-        }
+        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
     }
     settings.endArray();
     
@@ -897,6 +944,29 @@ void MyAvatar::clearJointAnimationPriorities() {
     }
 }
 
+QString MyAvatar::getModelDescription() const {
+    QString result;
+    if (_useFullAvatar) {
+        if (!getFullAvartarModelName().isEmpty()) {
+            result = "Full Avatar \"" + getFullAvartarModelName() + "\"";
+        } else {
+            result = "Full Avatar \"" + _fullAvatarURLFromPreferences.fileName() + "\"";
+        }
+    } else {
+        if (!getHeadModelName().isEmpty()) {
+            result = "Head \"" + getHeadModelName() + "\"";
+        } else {
+            result = "Head \"" + _headURLFromPreferences.fileName() + "\"";
+        }
+        if (!getBodyModelName().isEmpty()) {
+            result += " and Body \"" + getBodyModelName() + "\"";
+        } else {
+            result += " and Body \"" + _skeletonURLFromPreferences.fileName() + "\"";
+        }
+    }
+    return result;
+}
+
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     _billboardValid = false;
@@ -906,6 +976,74 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _billboardValid = false;
 }
+
+void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
+    _useFullAvatar = true;
+    
+    if (_fullAvatarURLFromPreferences != fullAvatarURL) {
+        _fullAvatarURLFromPreferences = fullAvatarURL;
+        if (modelName.isEmpty()) {
+            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
+            _fullAvatarModelName = fullAvatarFST["name"].toString();
+        } else {     
+            _fullAvatarModelName = modelName;
+        }
+    }
+
+    if (!getFaceModelURLString().isEmpty()) {
+        setFaceModelURL(QString());
+    }
+
+    if (fullAvatarURL != getSkeletonModelURL()) {
+        setSkeletonModelURL(fullAvatarURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", fullAvatarURL.toString());
+    }
+    sendIdentityPacket();
+}
+
+void MyAvatar::useHeadURL(const QUrl& headURL, const QString& modelName) {
+    useHeadAndBodyURLs(headURL, _skeletonURLFromPreferences, modelName, _bodyModelName);
+}
+
+void MyAvatar::useBodyURL(const QUrl& bodyURL, const QString& modelName) {
+    useHeadAndBodyURLs(_headURLFromPreferences, bodyURL, _headModelName, modelName);
+}
+
+void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName, const QString& bodyName) {
+    _useFullAvatar = false;
+
+    if (_headURLFromPreferences != headURL) {
+        _headURLFromPreferences = headURL;
+        if (headName.isEmpty()) {
+            QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
+            _headModelName = headFST["name"].toString();
+        } else {     
+            _headModelName = headName;
+        }
+    }
+
+    if (_skeletonURLFromPreferences != bodyURL) {
+        _skeletonURLFromPreferences = bodyURL;
+        if (bodyName.isEmpty()) {
+            QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
+            _bodyModelName = bodyFST["name"].toString();
+        } else {     
+            _bodyModelName = bodyName;
+        }
+    }
+
+    if (headURL != getFaceModelURL()) {
+        setFaceModelURL(headURL);
+        UserActivityLogger::getInstance().changedModel("head", headURL.toString());
+    }
+
+    if (bodyURL != getSkeletonModelURL()) {
+        setSkeletonModelURL(bodyURL);
+        UserActivityLogger::getInstance().changedModel("skeleton", bodyURL.toString());
+    }
+    sendIdentityPacket();
+}
+
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     Avatar::setAttachmentData(attachmentData);
@@ -1240,28 +1378,28 @@ glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVe
 void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
-    glm::vec3 localVelocity = glm::inverse(rotation) * _velocity;
+    glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
 
     bool isHovering = _characterController.isHovering();
     glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
-    _velocity = rotation * newLocalVelocity;
+    _targetVelocity = rotation * newLocalVelocity;
 
-    _velocity += _thrust * deltaTime;
+    _targetVelocity += _thrust * deltaTime;
     _thrust = glm::vec3(0.0f);
 
     // cap avatar speed
-    float speed = glm::length(_velocity);
+    float speed = glm::length(_targetVelocity);
     if (speed > MAX_AVATAR_SPEED) {
-        _velocity *= MAX_AVATAR_SPEED / speed;
+        _targetVelocity *= MAX_AVATAR_SPEED / speed;
         speed = MAX_AVATAR_SPEED;
     }
     
     if (speed > MIN_AVATAR_SPEED && !_characterController.isEnabled()) {
         // update position ourselves
-        applyPositionDelta(deltaTime * _velocity);
+        applyPositionDelta(deltaTime * _targetVelocity);
         measureMotionDerivatives(deltaTime);
     } // else physics will move avatar later
     

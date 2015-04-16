@@ -114,13 +114,22 @@ void OculusManager::initSdk() {
 }
 
 void OculusManager::shutdownSdk() {
-    ovrHmd_Destroy(_ovrHmd);
-    ovr_Shutdown();
+    if (_ovrHmd) {
+        ovrHmd_Destroy(_ovrHmd);
+        _ovrHmd = nullptr;
+        ovr_Shutdown();
+    }
 }
 
 void OculusManager::init() {
 #ifdef OVR_DIRECT_MODE
 	initSdk();
+#endif
+}
+
+void OculusManager::deinit() {
+#ifdef OVR_DIRECT_MODE
+    shutdownSdk();
 #endif
 }
 

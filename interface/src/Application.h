@@ -210,6 +210,8 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+    void setActiveFaceTracker();
+
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -335,8 +337,9 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
-    void faceURLChanged(const QString& newValue);
-    void skeletonURLChanged(const QString& newValue);
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
     
     void beforeAboutToQuit();
 
@@ -389,8 +392,6 @@ public slots:
     void saveSettings();
 
     void notifyPacketVersionMismatch();
-
-    void setActiveFaceTracker();
 
     void domainConnectionDenied(const QString& reason);
 

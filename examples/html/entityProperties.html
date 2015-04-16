@@ -508,18 +508,22 @@
             // To make this work we block the first mouseup event after the elements
             // received focus.  If we block all mouseup events the user will not
             // be able to click within the selected text.
+            // We also check to see if the value has changed to make sure we aren't
+            // blocking a mouse-up event when clicking on an input spinner.
             var els = document.querySelectorAll("input, textarea");
             for (var i = 0; i < els.length; i++) {
                 var clicked = false;
+                var originalText;
                 els[i].onfocus = function() {
+                    originalText = this.value;
                     this.select();
                     clicked = false;
                 };
                 els[i].onmouseup = function(e) {
-                    if (!clicked) {
+                    if (!clicked && originalText == this.value) {
                         e.preventDefault();
-                        clicked = true;
                     }
+                    clicked = true;
                 };
             }
         }

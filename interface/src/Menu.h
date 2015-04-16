@@ -68,6 +68,7 @@ public slots:
     
 private slots:
     void setVisibility();
+    void setActiveFaceTracker();
 
 private:
     static Menu* _instance;
@@ -123,9 +124,6 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSourceInject = "Generated Audio";
-    const QString AudioSourcePinkNoise = "Pink Noise";
-    const QString AudioSourceSine440 = "Sine 440hz";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -230,6 +228,7 @@ namespace MenuOption {
     const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
     const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetDDETracking = "Reset DDE Tracking";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
