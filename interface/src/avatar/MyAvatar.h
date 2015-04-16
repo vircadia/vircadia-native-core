@@ -117,21 +117,21 @@ public:
     virtual void clearJointData(int index);
     virtual void clearJointsData();
 
-    void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
-    void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
-    void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
-    void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName = QString(), const QString& bodyName = QString());
+    Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
+    Q_INVOKABLE void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
+    Q_INVOKABLE void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
+    Q_INVOKABLE void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName = QString(), const QString& bodyName = QString());
 
-    bool getUseFullAvatar() const { return _useFullAvatar; }
-    const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
-    const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
-    const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
+    Q_INVOKABLE bool getUseFullAvatar() const { return _useFullAvatar; }
+    Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
+    Q_INVOKABLE const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
+    Q_INVOKABLE const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
 
-    const QString& getHeadModelName() const { return _headModelName; }
-    const QString& getBodyModelName() const { return _bodyModelName; }
-    const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
+    Q_INVOKABLE const QString& getHeadModelName() const { return _headModelName; }
+    Q_INVOKABLE const QString& getBodyModelName() const { return _bodyModelName; }
+    Q_INVOKABLE const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
 
-    QString getModelDescription() const;
+    Q_INVOKABLE QString getModelDescription() const;
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
