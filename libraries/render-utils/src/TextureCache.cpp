@@ -32,13 +32,6 @@ TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
     _blueTexture(0),
-    _primaryDepthTextureID(0),
-    _primaryNormalTextureID(0),
-    _primarySpecularTextureID(0),
-    _primaryFramebufferObject(NULL),
-    _secondaryFramebufferObject(NULL),
-    _tertiaryFramebufferObject(NULL),
-    _shadowFramebufferObject(NULL),
     _frameBufferSize(100, 100),
     _associatedWidget(NULL)
 {
@@ -47,24 +40,6 @@ TextureCache::TextureCache() :
 }
 
 TextureCache::~TextureCache() {
-
-    if (_primaryFramebufferObject) {
-        glDeleteTextures(1, &_primaryDepthTextureID);
-        glDeleteTextures(1, &_primaryNormalTextureID);
-        glDeleteTextures(1, &_primarySpecularTextureID);
-    }
-    
-    if (_primaryFramebufferObject) {
-        delete _primaryFramebufferObject;
-    }
-
-    if (_secondaryFramebufferObject) {
-        delete _secondaryFramebufferObject;
-    }
-
-    if (_tertiaryFramebufferObject) {
-        delete _tertiaryFramebufferObject;
-    }
 }
 
 void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
@@ -72,26 +47,15 @@ void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
     if (_frameBufferSize != frameBufferSize) {
         _frameBufferSize = frameBufferSize;
 
-        if (_primaryFramebufferObject) {
-            delete _primaryFramebufferObject;
-            _primaryFramebufferObject = NULL;
-            glDeleteTextures(1, &_primaryDepthTextureID);
-            _primaryDepthTextureID = 0;
-            glDeleteTextures(1, &_primaryNormalTextureID);
-            _primaryNormalTextureID = 0;
-            glDeleteTextures(1, &_primarySpecularTextureID);
-            _primarySpecularTextureID = 0;
-        }
+        _primaryFramebuffer.reset();
+        _primaryDepthTexture.reset();
+        _primaryColorTexture.reset();
+        _primaryNormalTexture.reset();
+        _primarySpecularTexture.reset();
 
-        if (_secondaryFramebufferObject) {
-            delete _secondaryFramebufferObject;
-            _secondaryFramebufferObject = NULL;
-        }
+        _secondaryFramebuffer.reset();
 
-        if (_tertiaryFramebufferObject) {
-            delete _tertiaryFramebufferObject;
-            _tertiaryFramebufferObject = NULL;
-        }
+        _tertiaryFramebuffer.reset();
     }
 }
 
@@ -206,58 +170,78 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
     return texture;
 }
 
-QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
+void TextureCache::createPrimaryFramebuffer() {
+    _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
-    if (!_primaryFramebufferObject) {
-        _primaryFramebufferObject = createFramebufferObject();
+    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+    auto width = _frameBufferSize.width();
+    auto height = _frameBufferSize.height();
 
-        glGenTextures(1, &_primaryDepthTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        
-        glGenTextures(1, &_primaryNormalTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primaryNormalTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glGenTextures(1, &_primarySpecularTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primarySpecularTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _primaryFramebufferObject->bind();
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _primaryDepthTextureID, 0);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _primaryNormalTextureID, 0);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _primarySpecularTextureID, 0);
-        _primaryFramebufferObject->release();
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+    _primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _primaryNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _primarySpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+
+    _primaryFramebuffer->setRenderBuffer(0, _primaryColorTexture);
+    _primaryFramebuffer->setRenderBuffer(1, _primaryNormalTexture);
+    _primaryFramebuffer->setRenderBuffer(2, _primarySpecularTexture);
+
+
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+    _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
+
+    _primaryFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+}
+
+gpu::FramebufferPointer TextureCache::getPrimaryFramebuffer() {
+    if (!_primaryFramebuffer) {
+        createPrimaryFramebuffer();
     }
-    return _primaryFramebufferObject;
+    return _primaryFramebuffer;
+}
+
+gpu::TexturePointer TextureCache::getPrimaryDepthTexture() {
+    if (!_primaryDepthTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _primaryDepthTexture;
+}
+
+gpu::TexturePointer TextureCache::getPrimaryColorTexture() {
+    if (!_primaryColorTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _primaryColorTexture;
+}
+
+gpu::TexturePointer TextureCache::getPrimaryNormalTexture() {
+    if (!_primaryNormalTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _primaryNormalTexture;
+}
+
+gpu::TexturePointer TextureCache::getPrimarySpecularTexture() {
+    if (!_primarySpecularTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _primarySpecularTexture;
 }
 
 GLuint TextureCache::getPrimaryDepthTextureID() {
-    // ensure that the primary framebuffer object is initialized before returning the depth texture id
-    getPrimaryFramebufferObject();
-    return _primaryDepthTextureID;
+    return gpu::GLBackend::getTextureID(getPrimaryDepthTexture());
+}
+
+GLuint TextureCache::getPrimaryColorTextureID() {
+    return gpu::GLBackend::getTextureID(getPrimaryColorTexture());
 }
 
 GLuint TextureCache::getPrimaryNormalTextureID() {
-    // ensure that the primary framebuffer object is initialized before returning the normal texture id
-    getPrimaryFramebufferObject();
-    return _primaryNormalTextureID;
+    return gpu::GLBackend::getTextureID(getPrimaryNormalTexture());
 }
 
 GLuint TextureCache::getPrimarySpecularTextureID() {
-    getPrimaryFramebufferObject();
-    return _primarySpecularTextureID;
+    return gpu::GLBackend::getTextureID(getPrimarySpecularTexture());
 }
 
 void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
@@ -275,70 +259,50 @@ void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular)
     glDrawBuffers(bufferCount, buffers);
 }
 
-QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
-    if (!_secondaryFramebufferObject) {
-        _secondaryFramebufferObject = createFramebufferObject();
+gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {
+    if (!_secondaryFramebuffer) {
+        _secondaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
     }
-    return _secondaryFramebufferObject;
+    return _secondaryFramebuffer;
 }
 
-QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
-    if (!_tertiaryFramebufferObject) {
-        _tertiaryFramebufferObject = createFramebufferObject();
+gpu::FramebufferPointer TextureCache::getTertiaryFramebuffer() {
+    if (!_tertiaryFramebuffer) {
+        _tertiaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
     }
-    return _tertiaryFramebufferObject;
+    return _tertiaryFramebuffer;
 }
 
-QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
-    if (!_shadowFramebufferObject) {
+
+gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
+    if (!_shadowFramebuffer) {
         const int SHADOW_MAP_SIZE = 2048;
-        _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
-        
-        glGenTextures(1, &_shadowDepthTextureID);
-        glBindTexture(GL_TEXTURE_2D, _shadowDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        const float DISTANT_BORDER[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, DISTANT_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _shadowFramebufferObject->bind();
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _shadowDepthTextureID, 0);
-        _shadowFramebufferObject->release();
+        _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
+
+        _shadowTexture = _shadowFramebuffer->getDepthStencilBuffer();
     }
-    return _shadowFramebufferObject;
+    return _shadowFramebuffer;
 }
 
 GLuint TextureCache::getShadowDepthTextureID() {
     // ensure that the shadow framebuffer object is initialized before returning the depth texture id
-    getShadowFramebufferObject();
-    return _shadowDepthTextureID;
+    getShadowFramebuffer();
+    return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_primaryFramebufferObject && _primaryFramebufferObject->size() != size) {
-            delete _primaryFramebufferObject;
-            _primaryFramebufferObject = NULL;
-            glDeleteTextures(1, &_primaryDepthTextureID);
-            glDeleteTextures(1, &_primaryNormalTextureID);
-            glDeleteTextures(1, &_primarySpecularTextureID);
-        }
-        if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
-            delete _secondaryFramebufferObject;
-            _secondaryFramebufferObject = NULL;
-        }
-        if (_tertiaryFramebufferObject && _tertiaryFramebufferObject->size() != size) {
-            delete _tertiaryFramebufferObject;
-            _tertiaryFramebufferObject = NULL;
+        if (_frameBufferSize != size) {
+            _primaryFramebuffer.reset();
+            _primaryColorTexture.reset();
+            _primaryDepthTexture.reset();
+            _primaryNormalTexture.reset();
+            _primarySpecularTexture.reset();
+
+            _secondaryFramebuffer.reset();
+
+            _tertiaryFramebuffer.reset();
         }
     }
     return false;
@@ -357,17 +321,6 @@ void TextureCache::associateWithWidget(QGLWidget* widget) {
     }
     _associatedWidget = widget;
     _associatedWidget->installEventFilter(this);
-}
-
-QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
-    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
-    
-    glBindTexture(GL_TEXTURE_2D, fbo->texture());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    return fbo;
 }
 
 Texture::Texture() {
@@ -559,7 +512,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height()));
+        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         _gpuTexture->autoGenerateMips(-1);
     }
@@ -598,7 +551,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
                 formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
                 formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
             }
-            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
+            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
             texture->_gpuTexture->autoGenerateMips(-1);
 

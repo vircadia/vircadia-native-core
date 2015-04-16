@@ -237,26 +237,26 @@ void GLBackend::resetPipelineState(State::Signature nextSignature) {
     }
 }
 
-State::ComparisonFunction comparisonFuncFromGL(GLenum func) {
+ComparisonFunction comparisonFuncFromGL(GLenum func) {
     if (func == GL_NEVER) {
-        return State::NEVER;
+        return NEVER;
     } else if (func == GL_LESS) {
-        return State::LESS;
+        return LESS;
     } else if (func == GL_EQUAL) {
-        return State::EQUAL;
+        return EQUAL;
     } else if (func == GL_LEQUAL) {
-        return State::LESS_EQUAL;
+        return LESS_EQUAL;
     } else if (func == GL_GREATER) {
-        return State::GREATER;
+        return GREATER;
     } else if (func == GL_NOTEQUAL) {
-        return State::NOT_EQUAL;
+        return NOT_EQUAL;
     } else if (func == GL_GEQUAL) {
-        return State::GREATER_EQUAL;
+        return GREATER_EQUAL;
     } else if (func == GL_ALWAYS) {
-        return State::ALWAYS;
+        return ALWAYS;
     }
 
-    return State::ALWAYS;
+    return ALWAYS;
 }
 
 State::StencilOp stencilOpFromGL(GLenum stencilOp) {

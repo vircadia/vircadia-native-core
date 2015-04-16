@@ -35,7 +35,6 @@
 #include <QMouseEvent>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
-#include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
@@ -802,7 +801,7 @@ void Application::paintGL() {
         DependencyManager::get<GlowEffect>()->prepare();
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
@@ -2642,8 +2641,9 @@ void Application::updateShadowMap() {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
-    fbo->bind();
+    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -2659,16 +2659,18 @@ void Application::updateShadowMap() {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     int matrixCount = 1;
-    int targetSize = fbo->width();
+    //int targetSize = fbo->width();
+    int sourceSize = shadowFramebuffer->getWidth();
+    int targetSize = shadowFramebuffer->getWidth();
     float targetScale = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
         matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = fbo->width() / 2;
+        targetSize = sourceSize / 2;
         targetScale = 0.5f;
     }
     for (int i = 0; i < matrixCount; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
+        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
 
         // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
         int regionIncrement = (matrixCount == 1 ? 2 : 1);
@@ -2791,7 +2793,7 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
-    fbo->release();
+   // fbo->release();
     
     glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
@@ -2837,7 +2839,8 @@ PickRay Application::computePickRay(float x, float y) {
 }
 
 QImage Application::renderAvatarBillboard() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2850,7 +2853,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return image;
 }
