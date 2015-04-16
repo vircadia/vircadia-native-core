@@ -156,12 +156,9 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _browUpRightIndex(18),
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
-    _jawOpenIndex(21),
-    _previousTranslation(glm::vec3()),
-    _previousRotation(glm::quat())
+    _jawOpenIndex(21)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-    _previousCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
     
@@ -290,13 +287,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
-        _headTranslation = (translation + _previousTranslation) / 2.0f;
-        _previousTranslation = translation;
+        _headTranslation = translation;
 
         // Compute relative rotation
         rotation = glm::inverse(_referenceRotation) * rotation;
-        _headRotation = (rotation + _previousRotation) / 2.0f;
-        _previousRotation = rotation;
+        _headRotation = rotation;
 
         // Translate DDE coefficients to Faceshift compatible coefficients
         for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
@@ -305,8 +300,8 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         // Use EyeBlink values to control both EyeBlink and EyeOpen
         static const float RELAXED_EYE_VALUE = 0.1f;
-        float leftEye = (_coefficients[_leftBlinkIndex] + _previousCoefficients[_leftBlinkIndex]) / 2.0f;
-        float rightEye = (_coefficients[_rightBlinkIndex] + _previousCoefficients[_rightBlinkIndex]) / 2.0f;
+        float leftEye = _coefficients[_leftBlinkIndex];
+        float rightEye = _coefficients[_rightBlinkIndex];
         if (leftEye > RELAXED_EYE_VALUE) {
             _coefficients[_leftBlinkIndex] = leftEye - RELAXED_EYE_VALUE;
             _coefficients[_leftEyeOpenIndex] = 0.0f;
@@ -341,8 +336,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         // Scale all coefficients
         for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
             _blendshapeCoefficients[i]
-                = glm::clamp(DDE_COEFFICIENT_SCALES[i] * (_coefficients[i] + _previousCoefficients[i]) / 2.0f, 0.0f, 1.0f);
-            _previousCoefficients[i] = _coefficients[i];
+                = glm::clamp(DDE_COEFFICIENT_SCALES[i] * _coefficients[i], 0.0f, 1.0f);
         }
 
     } else {
