@@ -194,7 +194,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
                 motionState->updateObjectEasy(flags, _numSubsteps);
             }
             if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
-                motionState->resetMeasuredVelocityAndAcceleration();
+                motionState->resetMeasuredAcceleration();
             }
         } else {
             // the only way we should ever get here (motionState exists but no body) is when the object
@@ -511,7 +511,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
     body->setFriction(motionState->_friction);
     body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
     _dynamicsWorld->addRigidBody(body);
-    motionState->resetMeasuredVelocityAndAcceleration();
+    motionState->resetMeasuredAcceleration();
 }
 
 void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {

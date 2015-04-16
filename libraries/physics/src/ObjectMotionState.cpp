@@ -68,7 +68,7 @@ ObjectMotionState::~ObjectMotionState() {
     assert(_body == NULL);
 }
 
-void ObjectMotionState::measureVelocityAndAcceleration() {
+void ObjectMotionState::measureAcceleration() {
     // try to manually measure the true acceleration of the object
     uint32_t numSubsteps = _simulationStep - _lastSimulationStep;
     if (numSubsteps > 0) {
@@ -84,7 +84,7 @@ void ObjectMotionState::measureVelocityAndAcceleration() {
     }
 }
 
-void ObjectMotionState::resetMeasuredVelocityAndAcceleration() {
+void ObjectMotionState::resetMeasuredAcceleration() {
     _lastSimulationStep = _simulationStep;
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }

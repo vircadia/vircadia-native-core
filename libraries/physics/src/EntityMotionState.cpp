@@ -62,7 +62,7 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
-    // TODO: we can't use ObjectMotionState::measureVelocityAndAcceleration() here because the entity
+    // TODO: we can't use ObjectMotionState::measureAcceleration() here because the entity
     // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
     // Hence we must manually measure kinematic velocity and acceleration.
 }
@@ -95,7 +95,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    measureVelocityAndAcceleration();
+    measureAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
