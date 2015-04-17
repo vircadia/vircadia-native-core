@@ -78,6 +78,12 @@ panel.newSlider("Light Intensity", 0.0, 5,
     function(value) { return (value).toFixed(2); }
 );
 
+panel.newSlider("Light Ambient Intensity", 0.0, 1.0, 
+    function(value) { Scene.setSunAmbientIntensity(value); },
+    function() { return Scene.getSunAmbientIntensity(); },
+    function(value) { return (value).toFixed(2); }
+);
+
 Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return panel.mouseMoveEvent(event); });
 Controller.mousePressEvent.connect( function panelMousePressEvent(event) { return panel.mousePressEvent(event); });
 Controller.mouseReleaseEvent.connect(function(event) { return panel.mouseReleaseEvent(event); });

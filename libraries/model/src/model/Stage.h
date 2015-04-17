@@ -177,37 +177,48 @@ typedef QSharedPointer< Skybox > SkyboxPointer;
 
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
-class SunSkyStage {
+class SunSkyStage : public QObject {
+    Q_OBJECT
 public:
 
     SunSkyStage();
     ~SunSkyStage();
 
     // time of the day (local to the position) expressed in decimal hour in the range [0.0, 24.0]
-    void setDayTime(float hour);
-    float getDayTime() const { return _dayTime; }
+    Q_INVOKABLE void setDayTime(float hour);
+    Q_INVOKABLE float getDayTime() const { return _dayTime; }
 
     // time of the year expressed in day in the range [0, 365]
-    void setYearTime(unsigned int day);
-    unsigned int getYearTime() const { return _yearTime; }
+    Q_INVOKABLE void setYearTime(unsigned int day);
+    Q_INVOKABLE unsigned int getYearTime() const { return _yearTime; }
 
     // Origin orientation used to modify the cardinal axis alignement used.
     // THe default is north along +Z axis and west along +X axis. this orientation gets added
     // to the transform stack producing the sun light direction.
-    void setOriginOrientation(const Quat& orientation);
-    const Quat& getOriginOrientation() const { return _earthSunModel.getSurfaceOrientation(); }
+    Q_INVOKABLE void setOriginOrientation(const Quat& orientation);
+    Q_INVOKABLE const Quat& getOriginOrientation() const { return _earthSunModel.getSurfaceOrientation(); }
 
     // Location  used to define the sun & sky is a longitude and latitude [rad] and a earth surface altitude [km]
-    void setOriginLocation(float longitude, float latitude, float surfaceAltitude);
-    float getOriginLatitude() const { return _earthSunModel.getLatitude(); }
-    float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
-    float getOriginSurfaceAltitude() const { return _earthSunModel.getAltitude(); }
+    Q_INVOKABLE void setOriginLocation(float longitude, float latitude, float surfaceAltitude);
+    Q_INVOKABLE float getOriginLatitude() const { return _earthSunModel.getLatitude(); }
+    Q_INVOKABLE float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
+    Q_INVOKABLE float getOriginSurfaceAltitude() const { return _earthSunModel.getAltitude(); }
+
+    // Enable / disable the effect of the time and location on the sun direction and color
+    Q_INVOKABLE void setEarthSunModelEnable(bool isEnabled);
+    Q_INVOKABLE bool isEarthSunModelEnabled() const { return _earthSunModelEnable; }
 
     // Sun properties
-    void setSunColor(const Vec3& color);
-    const Vec3& getSunColor() const { return getSunLight()->getColor(); }
-    void setSunIntensity(float intensity);
-    float getSunIntensity() const { return getSunLight()->getIntensity(); }
+    Q_INVOKABLE void setSunColor(const Vec3& color);
+    Q_INVOKABLE const Vec3& getSunColor() const { return getSunLight()->getColor(); }
+    Q_INVOKABLE void setSunIntensity(float intensity);
+    Q_INVOKABLE float getSunIntensity() const { return getSunLight()->getIntensity(); }
+    Q_INVOKABLE void setSunAmbientIntensity(float intensity);
+    Q_INVOKABLE float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
+
+    // The sun direction is expressed in the world space
+    Q_INVOKABLE void setSunDirection(const Vec3& direction);
+    Q_INVOKABLE const Vec3& getSunDirection() const { return getSunLight()->getDirection(); }
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
@@ -223,10 +234,10 @@ protected:
 
     gpu::PipelinePointer _skyPipeline;
 
-    float _dayTime;
-    int _yearTime;
-
+    float _dayTime = 12.0f;
+    int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
+    bool _earthSunModelEnable = true;
  
     mutable bool _invalid = true;
     void invalidate() const { _invalid = true; }

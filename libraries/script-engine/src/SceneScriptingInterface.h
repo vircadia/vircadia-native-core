@@ -38,10 +38,24 @@ public:
     Q_INVOKABLE void setStageYearTime(int day);
     Q_INVOKABLE int getStageYearTime() const;
 
+    Q_INVOKABLE void setStageEarthSunModelEnable(bool isEnabled);
+    Q_INVOKABLE bool isStageEarthSunModelEnabled() const;
+
+
     Q_INVOKABLE void setSunColor(const glm::vec3& color);
     Q_INVOKABLE const glm::vec3& getSunColor() const;
     Q_INVOKABLE void setSunIntensity(float intensity);
     Q_INVOKABLE float getSunIntensity() const;
+    Q_INVOKABLE void setSunAmbientIntensity(float intensity);
+    Q_INVOKABLE float getSunAmbientIntensity() const;
+
+    // Only valid if stage Earth Sun model is disabled
+    Q_INVOKABLE void setSunDirection(const glm::vec3& direction);
+
+    Q_INVOKABLE const glm::vec3& getSunDirection() const;
+
+
+
 
     model::SunSkyStagePointer getSkyStage() const;
     

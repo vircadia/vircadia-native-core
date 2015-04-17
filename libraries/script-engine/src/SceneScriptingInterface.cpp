@@ -62,6 +62,30 @@ float SceneScriptingInterface::getSunIntensity() const {
     return _skyStage->getSunIntensity();
 }
 
+void SceneScriptingInterface::setSunAmbientIntensity(float intensity) {
+    _skyStage->setSunAmbientIntensity(intensity);
+}
+
+float SceneScriptingInterface::getSunAmbientIntensity() const {
+    return _skyStage->getSunAmbientIntensity();
+}
+
+void SceneScriptingInterface::setSunDirection(const glm::vec3& direction) {
+    _skyStage->setSunDirection(direction);
+}
+
+const glm::vec3& SceneScriptingInterface::getSunDirection() const {
+    return _skyStage->getSunDirection();
+}
+
+void SceneScriptingInterface::setStageEarthSunModelEnable(bool isEnabled) {
+    _skyStage->setEarthSunModelEnable(isEnabled);
+}
+
+bool SceneScriptingInterface::isStageEarthSunModelEnabled() const {
+    return _skyStage->isEarthSunModelEnabled();
+}
+
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
 }
