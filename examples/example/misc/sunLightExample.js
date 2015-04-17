@@ -72,13 +72,19 @@ function runStageTime() {
 }
 Script.setInterval(runStageTime, tickTackPeriod);
 
+panel.newCheckbox("Enable Earth Sun Model", 
+    function(value) { Scene.setStageEarthSunModelEnable((value != 0)); },
+    function() { return Scene.isStageEarthSunModelEnabled(); },
+    function(value) { return (value); }
+);
+
 panel.newSlider("Light Intensity", 0.0, 5, 
     function(value) { Scene.setSunIntensity(value); },
     function() { return Scene.getSunIntensity(); },
     function(value) { return (value).toFixed(2); }
 );
 
-panel.newSlider("Light Ambient Intensity", 0.0, 1.0, 
+panel.newSlider("Ambient Light Intensity", 0.0, 1.0, 
     function(value) { Scene.setSunAmbientIntensity(value); },
     function() { return Scene.getSunAmbientIntensity(); },
     function(value) { return (value).toFixed(2); }
