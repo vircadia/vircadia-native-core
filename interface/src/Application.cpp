@@ -2231,6 +2231,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
         _physicsEngine.stepSimulation();
+        _physicsEngine.dumpStatsIfNecessary();
     }
 
     if (!_aboutToQuit) {

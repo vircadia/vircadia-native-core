@@ -62,6 +62,9 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
+    // TODO: we can't use ObjectMotionState::measureAcceleration() here because the entity
+    // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
+    // Hence we must manually measure kinematic velocity and acceleration.
 }
 
 bool EntityMotionState::isMoving() const {
@@ -71,7 +74,7 @@ bool EntityMotionState::isMoving() const {
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
-// (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
+// (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (_isKinematic) {
@@ -89,9 +92,10 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
-// This callback is invoked by the physics simulation at the end of each simulation frame...
+// This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
+    measureAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
@@ -116,7 +120,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
+void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
@@ -131,7 +135,7 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
         if (flags & EntityItem::DIRTY_VELOCITY) {
             updateObjectVelocities();
         }
-        _sentFrame = frame;
+        _sentStep = step;
     }
 
     // TODO: entity support for friction and restitution
@@ -179,7 +183,6 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 
-
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
 
@@ -199,8 +202,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     return true;
 }
 
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
@@ -305,7 +308,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  
         _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
-        _sentFrame = frame;
+        _sentStep = step;
     }
 }
 

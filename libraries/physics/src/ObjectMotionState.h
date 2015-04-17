@@ -59,8 +59,13 @@ public:
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
+    static void setSimulationStep(uint32_t step);
+
     ObjectMotionState();
     ~ObjectMotionState();
+
+    void measureAcceleration();
+    void resetMeasuredAcceleration();
 
     // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
     virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
@@ -89,7 +94,7 @@ public:
     void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame);
+    virtual bool shouldSendUpdate(uint32_t simulationStep);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeMotionType() const = 0;
@@ -128,12 +133,16 @@ protected:
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
     uint32_t _outgoingPacketFlags;
-    uint32_t _sentFrame;
+    uint32_t _sentStep;
     glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
     glm::quat _sentRotation;;
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentAcceleration;
+
+    uint32_t _lastSimulationStep;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _measuredAcceleration;
 };
 
 #endif // hifi_ObjectMotionState_h

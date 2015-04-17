@@ -50,14 +50,14 @@ public:
     virtual void setWorldTransform(const btTransform& worldTrans);
 
     // these relay incoming values to the RigidBody
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame);
+    virtual void updateObjectEasy(uint32_t flags, uint32_t step);
     virtual void updateObjectVelocities();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     virtual float computeMass(const ShapeInfo& shapeInfo) const;
 
     virtual bool shouldSendUpdate(uint32_t simulationFrame);
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
+    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() const;
     virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
