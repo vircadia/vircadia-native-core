@@ -29,9 +29,9 @@ static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
 static const quint16 DDE_SERVER_PORT = 64204;
 static const quint16 DDE_CONTROL_PORT = 64205;
 #if defined(Q_OS_WIN)
-static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde/dde.exe";
+static const QString DDE_PROGRAM_PATH = "/dde/dde.exe";
 #elif defined(Q_OS_MAC)
-static const QString DDE_PROGRAM_PATH = QCoreApplication::applicationDirPath() + "/dde.app/Contents/MacOS/dde";
+static const QString DDE_PROGRAM_PATH = "/dde.app/Contents/MacOS/dde";
 #endif
 static const QStringList DDE_ARGUMENTS = QStringList() 
     << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
