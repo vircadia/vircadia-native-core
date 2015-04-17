@@ -38,10 +38,11 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     itemItr = _hasSimulationOwnerEntities.begin();
     while (itemItr != _hasSimulationOwnerEntities.end()) {
         EntityItem* entity = *itemItr;
-        if (!entity->getSimulatorID().isNull() &&
-            usecTimestampNow() - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
+        if (entity->getSimulatorID().isNull()) {
+            itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+        } else if (usecTimestampNow() - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
             qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
-            entity->setSimulatorID("");
+            entity->setSimulatorID(QUuid());
             itemItr = _hasSimulationOwnerEntities.erase(itemItr);
         } else {
             ++itemItr;
