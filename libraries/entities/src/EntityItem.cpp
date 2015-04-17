@@ -1033,12 +1033,6 @@ AABox EntityItem::getAABox() const {
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
-AABox EntityItem::getAABoxInDomainUnits() const { 
-    AABox box = getAABox();
-    box.scale(1.0f / (float)TREE_SCALE);
-    return box;
-}
-
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
 //    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
