@@ -696,7 +696,6 @@ bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
 // and dirty path marking in one pass.
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
-
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
     if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
@@ -735,20 +734,20 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 }
 
                 // If the item already exists in our tree, we want do the following...
-                // 0) if this node is the simulator for the entity, ignore the update packet
                 // 1) allow the existing item to read from the databuffer
                 // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
                 //
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
-                if (entityItem && entityItem->getSimulatorID() == myNodeID) {
-                    // do nothing, this was echoed back to us by the entity server
-                } else if (entityItem) {
+                if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
-                    bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    // this Node was the original source of this packet, so read it, but ignore it.
+                    bool shouldIgnore = (entityItem && entityItem->getSimulatorID() == myNodeID);
+
+                    bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args, shouldIgnore);
                     if (entityItem->getDirtyFlags()) {
                         _myTree->entityChanged(entityItem);
                     }
