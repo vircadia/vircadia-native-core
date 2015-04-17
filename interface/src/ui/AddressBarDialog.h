@@ -8,15 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#pragma once
 #ifndef hifi_AddressBarDialog_h
 #define hifi_AddressBarDialog_h
 
-#pragma once
-#include <QQuickItem>
+#include <OffscreenQmlDialog.h>
 
-#include "OffscreenUi.h"
-
-class AddressBarDialog : public QQuickItem
+class AddressBarDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
     QML_DIALOG_DECL

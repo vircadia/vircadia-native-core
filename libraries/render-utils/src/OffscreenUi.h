@@ -33,34 +33,6 @@
 #include "FboCache.h"
 #include "OffscreenGlCanvas.h"
 
-#define QML_DIALOG_DECL \
-private: \
-    static const QString NAME; \
-    static const QUrl QML; \
-public: \
-    static void registerType(); \
-    static void show(); \
-    static void toggle(); \
-private:
-
-#define QML_DIALOG_DEF(x) \
-    const QUrl x::QML = QUrl(#x ".qml"); \
-    const QString x::NAME = #x; \
-    \
-    void x::registerType() { \
-        qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
-    } \
-    \
-    void x::show() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->show(QML, NAME); \
-    } \
-    \
-    void x::toggle() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME); \
-    } 
-
 
 class OffscreenUi : public OffscreenGlCanvas, public Dependency {
     Q_OBJECT

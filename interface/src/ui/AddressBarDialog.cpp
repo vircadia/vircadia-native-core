@@ -17,17 +17,15 @@
 
 QML_DIALOG_DEF(AddressBarDialog)
 
-AddressBarDialog::AddressBarDialog(QQuickItem *parent) : QQuickItem(parent) {
+AddressBarDialog::AddressBarDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
     connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
 }
 
-
 void AddressBarDialog::hide() {
-    setEnabled(false);
-    setVisible(false);
+    ((QQuickItem *)parent())->setEnabled(false);
 }
 
 void AddressBarDialog::loadAddress(const QString & address) {

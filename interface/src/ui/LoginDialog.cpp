@@ -17,7 +17,7 @@
 
 QML_DIALOG_DEF(LoginDialog)
 
-LoginDialog::LoginDialog(QQuickItem *parent) : QQuickItem(parent), _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString()) {
+LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent), _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString()) {
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(&AccountManager::getInstance(), &AccountManager::loginFailed,
@@ -42,8 +42,7 @@ void LoginDialog::toggleAction() {
 }
 
 void LoginDialog::handleLoginCompleted(const QUrl& authURL) {
-    setEnabled(false);
-    setVisible(false);
+    hide();
 }
 
 void LoginDialog::handleLoginFailed() {

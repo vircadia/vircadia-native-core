@@ -7,10 +7,34 @@ import "hifiConstants.js" as HifiConstants
 
 Item {
     SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
-
     id: dialog
     width: 256
     height: 256
+    scale: 0.0
+    enabled: false
+    visible: false
+    
+    onEnabledChanged: {
+        scale = enabled ? 1.0 : 0.0
+    }
+    
+    onScaleChanged: {
+        visible = (scale != 0.0);
+    }
+    
+    Component.onCompleted: {
+        scale = 1.0
+    }
+
+    Behavior on scale {
+        NumberAnimation {
+            //This specifies how long the animation takes
+            duration: 400
+            //This selects an easing curve to interpolate with, the default is Easing.Linear
+            easing.type: Easing.InOutBounce
+        }
+    }
+
     property int topMargin: dialog.height - clientBorder.height + 8
     property int margins: 8
     property string title
@@ -54,11 +78,11 @@ Item {
                 anchors.top: parent.top
                 anchors.rightMargin: 4
                 drag {
-                    target: dialog.parent
+                    target: dialog
                     minimumX: 0
                     minimumY: 0
-                    maximumX: dialog.parent.parent.width - dialog.parent.width
-                    maximumY: dialog.parent.parent.height - dialog.parent.height
+                    maximumX: dialog.parent.width - dialog.width
+                    maximumY: dialog.parent.height - dialog.height
                 }
             }
             Image {
@@ -73,11 +97,10 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        dialog.parent.destroy()
+                        dialog.destroy()
                     }
                 }
             }
-
         } // header border
 
         CustomBorder {
