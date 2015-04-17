@@ -134,6 +134,8 @@ struct Packet {
     char name[MAX_NAME_SIZE + 1];
 };
 
+const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -158,7 +160,15 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _browUpRightIndex(18),
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
-    _jawOpenIndex(21)
+    _jawOpenIndex(21),
+    _lastMessageReceived(0),
+    _averageMessageTime(STARTING_DDE_MESSAGE_TIME),
+    _lastHeadTranslation(glm::vec3(0.0f)),
+    _filteredHeadTranslation(glm::vec3(0.0f)),
+    _lastLeftEyeBlink(0.0f),
+    _filteredLeftEyeBlink(0.0f),
+    _lastRightEyeBlink(0.0f),
+    _filteredRightEyeBlink(0.0f)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -392,7 +402,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
         _lastMessageReceived = usecsNow;
     
-} else {
+    } else {
         qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
