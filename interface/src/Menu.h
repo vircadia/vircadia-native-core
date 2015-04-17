@@ -68,7 +68,6 @@ public slots:
     
 private slots:
     void setVisibility();
-    void setActiveFaceTracker();
 
 private:
     static Menu* _instance;
