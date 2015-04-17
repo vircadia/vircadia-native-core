@@ -35,14 +35,13 @@ void AddressBarDialog::loadAddress(const QString & address) {
     }
 }
 
-// TODO port to a QML based message box
 void AddressBarDialog::displayAddressOfflineMessage() {
-    QMessageBox::information(nullptr, "Address offline",
+    OffscreenUi::information("Address offline",
         "That user or place is currently offline.");
 }
 
-// TODO port to a QML based message box
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    QMessageBox::information(nullptr, "Address not found",
+    OffscreenUi::information("Address not found",
         "There is no address information for that user or place.");
 }
+

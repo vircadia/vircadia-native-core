@@ -12,7 +12,9 @@ Item {
     height: 256
     scale: 0.0
     enabled: false
-    visible: false
+    property int animationDuration: 400
+    property bool destroyOnInvisible: false
+    property bool destroyOnCloseButton: true
     
     onEnabledChanged: {
         scale = enabled ? 1.0 : 0.0
@@ -22,14 +24,24 @@ Item {
         visible = (scale != 0.0);
     }
     
-    Component.onCompleted: {
-        scale = 1.0
+    onVisibleChanged: {
+        if (!visible && destroyOnInvisible) {
+            console.log("Destroying closed component");
+            destroy();
+        }
+    }
+
+    function close() {
+        if (destroyOnCloseButton) {
+            destroyOnInvisible = true
+        }
+        enabled = false;
     }
 
     Behavior on scale {
         NumberAnimation {
             //This specifies how long the animation takes
-            duration: 400
+            duration: dialog.animationDuration
             //This selects an easing curve to interpolate with, the default is Easing.Linear
             easing.type: Easing.InOutBounce
         }
@@ -81,8 +93,8 @@ Item {
                     target: dialog
                     minimumX: 0
                     minimumY: 0
-                    maximumX: dialog.parent.width - dialog.width
-                    maximumY: dialog.parent.height - dialog.height
+                    maximumX: dialog.parent ? dialog.parent.width - dialog.width : 0
+                    maximumY: dialog.parent ? dialog.parent.height - dialog.height : 0
                 }
             }
             Image {
@@ -97,7 +109,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        dialog.destroy()
+                        dialog.close();
                     }
                 }
             }

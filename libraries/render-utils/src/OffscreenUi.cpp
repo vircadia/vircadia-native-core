@@ -12,8 +12,29 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
+#include <QtQml>
+
+class OffscreenUiRoot : public QQuickItem {
+    Q_OBJECT
+public:
+
+    OffscreenUiRoot(QQuickItem *parent = 0);
+    Q_INVOKABLE void information(const QString & title, const QString & text);
+    Q_INVOKABLE void loadChild(const QUrl & url) {
+        DependencyManager::get<OffscreenUi>()->load(url);
+    }
+};
+
+
+OffscreenUiRoot::OffscreenUiRoot(QQuickItem *parent) : QQuickItem(parent) {
+}
+
+void OffscreenUiRoot::information(const QString & title, const QString & text = "foo") {
+    OffscreenUi::information(title, text);
+}
 
 OffscreenUi::OffscreenUi() {
+    ::qmlRegisterType<OffscreenUiRoot>("Hifi", 1, 0, "Root");
 }
 
 OffscreenUi::~OffscreenUi() {
@@ -62,17 +83,16 @@ void OffscreenUi::create(QOpenGLContext * shareContext) {
     // is needed too).
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, &OffscreenUi::requestRender);
     connect(_renderControl, &QQuickRenderControl::sceneChanged, this, &OffscreenUi::requestUpdate);
-    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, [this](QObject *object){
-        OffscreenUi * p = this;
-        qDebug() << "Focus changed to " << object;
-    });
     _quickWindow->focusObject();
 
     _qmlComponent = new QQmlComponent(_qmlEngine);
-
     // Initialize the render control and our OpenGL resources.
     makeCurrent();
     _renderControl->initialize(&_context);
+}
+
+void OffscreenUi::addImportPath(const QString & path) {
+    _qmlEngine->addImportPath(path);
 }
 
 void OffscreenUi::resize(const QSize & newSize) {
@@ -102,10 +122,15 @@ QQmlContext * OffscreenUi::qmlContext() {
     return QQmlEngine::contextForObject(_rootItem);
 }
 
-void OffscreenUi::loadQml(const QUrl & qmlSource, std::function<void(QQmlContext*)> f) {
+void OffscreenUi::setBaseUrl(const QUrl & baseUrl) {
+    _qmlEngine->setBaseUrl(baseUrl);
+}
+
+void OffscreenUi::load(const QUrl & qmlSource, std::function<void(QQmlContext*)> f) {
+    qDebug() << "Loading QML from URL " << qmlSource;
     _qmlComponent->loadUrl(qmlSource);
     if (_qmlComponent->isLoading())
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, &OffscreenUi::finishQmlLoad);
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this, [] {});
     else
         finishQmlLoad();
 }
@@ -131,30 +156,43 @@ void OffscreenUi::finishQmlLoad() {
         return;
     }
 
-    QObject *rootObject = _qmlComponent->create();
+    QObject *newObject = _qmlComponent->create();
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
         foreach(const QQmlError &error, errorList)
             qWarning() << error.url() << error.line() << error;
-        qFatal("Unable to finish loading QML");
+        if (!_rootItem) {
+            qFatal("Unable to finish loading QML root");
+        }
         return;
     }
 
-    _rootItem = qobject_cast<QQuickItem *>(rootObject);
-    if (!_rootItem) {
+    QQuickItem * newItem = qobject_cast<QQuickItem *>(newObject);
+    if (!newItem) {
         qWarning("run: Not a QQuickItem");
-        delete rootObject;
-        qFatal("Unable to find root QQuickItem");
+        delete newObject;
+        if (!_rootItem) {
+            qFatal("Unable to find root QQuickItem");
+        }
         return;
     }
 
-    // Make sure we can assign focus to the root item (critical for 
+    // Make sure we make items focusable (critical for 
     // supporting keyboard shortcuts)
-    _rootItem->setFlag(QQuickItem::ItemIsFocusScope, true);
-    // The root item is ready. Associate it with the window.
-    _rootItem->setParentItem(_quickWindow->contentItem());
-    _rootItem->setSize(_quickWindow->renderTargetSize());
-    qDebug() << "Finished setting up QML provider";
+    newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+
+    if (!_rootItem) {
+        // The root item is ready. Associate it with the window.
+        _rootItem = newItem;
+        _rootItem->setParentItem(_quickWindow->contentItem());
+        _rootItem->setSize(_quickWindow->renderTargetSize());
+    } else {
+        // Allow child windows to be destroyed from JS
+        QQmlEngine::setObjectOwnership(newItem, QQmlEngine::JavaScriptOwnership);
+        newItem->setParent(_rootItem);
+        newItem->setParentItem(_rootItem);
+        newItem->setEnabled(true);
+    }
 }
 
 
@@ -240,7 +278,7 @@ bool OffscreenUi::eventFilter(QObject * dest, QEvent * e) {
     case QEvent::KeyRelease:
     {
         e->ignore();
-        if (QApplication::sendEvent(_quickWindow, e)) {
+        if (QCoreApplication::sendEvent(_quickWindow, e)) {
             return e->isAccepted();
         }
     }
@@ -302,38 +340,55 @@ void OffscreenUi::setProxyWindow(QWindow * window) {
 
 void OffscreenUi::show(const QUrl & url, const QString & name) {
     QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
+    // First load?
     if (nullptr == item) {
         load(url);
-        item = _rootItem->findChild<QQuickItem*>(name);
+        return;
     }
-    
-    if (nullptr != item) {
-        item->setEnabled(true);
-    }
+    item->setEnabled(true);
 }
 
 void OffscreenUi::toggle(const QUrl & url, const QString & name) {
     QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
     if (nullptr == item) {
-        show(url, name);
+        load(url);
         return;
     }
+    item->setEnabled(!item->isEnabled());
+}
 
-    // Toggle the visibity AND the enabled flag (otherwise invisible 
-    // dialogs can still swallow keyboard input)
-    bool newFlag = !item->isEnabled();
-    item->setEnabled(newFlag);
+void OffscreenUi::messageBox(const QString &title, const QString &text,
+    QMessageBox::Icon icon,
+    QMessageBox::StandardButtons buttons,
+    ButtonCallback f) {
+}
+
+void OffscreenUi::information(const QString &title, const QString &text,
+    QMessageBox::StandardButtons buttons,
+    ButtonCallback callback) {
+    callback(QMessageBox::information(nullptr, title, text, buttons));
+}
+
+void OffscreenUi::question(const QString &title, const QString &text,
+    QMessageBox::StandardButtons buttons,
+    ButtonCallback callback) {
+    callback(QMessageBox::question(nullptr, title, text, buttons));
+}
+
+void OffscreenUi::warning(const QString &title, const QString &text,
+    QMessageBox::StandardButtons buttons,
+    ButtonCallback callback) {
+    callback(QMessageBox::warning(nullptr, title, text, buttons));
+}
+
+void OffscreenUi::critical(const QString &title, const QString &text,
+    QMessageBox::StandardButtons buttons,
+    ButtonCallback callback) {
+    callback(QMessageBox::critical(nullptr, title, text, buttons));
 }
 
 
-void OffscreenUi::load(const QUrl & url) {
-    qDebug() << "Loading from url: " << url;
-    QVariant returnedValue;
-    QVariant msg = url;
-    QMetaObject::invokeMethod(_rootItem, "loadChild",
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, msg));
-    qDebug() << "QML function returned:" << returnedValue.toString();
-}
+OffscreenUi::ButtonCallback OffscreenUi::NO_OP_CALLBACK = [](QMessageBox::StandardButton) {};
 
+#include "OffscreenUi.moc"

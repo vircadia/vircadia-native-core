@@ -5,16 +5,21 @@ import QtQuick.Window 2.2
 import QtQuick.Controls.Styles 1.3
 
 CustomDialog {
-    id: dialog
     title: "Go to..."
     objectName: "AddressBarDialog"
-    SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     height: 128
     width: 512
+    destroyOnCloseButton: false
 
     onVisibleChanged: {
         if (!visible) {
             reset();
+        } 
+    }
+
+    onEnabledChanged: {
+        if (enabled) {
+            addressLine.forceActiveFocus();
         }
     }
 

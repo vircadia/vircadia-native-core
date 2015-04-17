@@ -18,10 +18,12 @@ function finishCreation() {
             // Error Handling
             console.log("Error creating object");
         } else {
-        	instance.focus = true;
+        	instance.enabled = true
         }
     } else if (component.status == Component.Error) {
         // Error Handling
         console.log("Error loading component:", component.errorString());
+    } else {
+    	console.log("Unknown component status: " + component.status);
     }
 }

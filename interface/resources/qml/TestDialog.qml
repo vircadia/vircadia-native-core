@@ -5,12 +5,19 @@ import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.3
 
 CustomDialog {
-    title: "Test Dlg"
+    title: "Test Dialog"
     id: testDialog
     objectName: "TestDialog"
     width: 512
     height: 512
+    animationDuration: 200
 
+    onEnabledChanged: {
+        if (enabled) {
+            edit.forceActiveFocus();
+        }
+    }
+    
     Item {
         id: clientArea
         // The client area
@@ -31,6 +38,7 @@ CustomDialog {
     
     
         CustomTextEdit {
+            id: edit
             anchors.left: parent.left
             anchors.leftMargin: 12
             anchors.right: parent.right

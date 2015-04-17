@@ -1,25 +1,34 @@
+import Hifi 1.0
 import QtQuick 2.3
-import "componentCreation.js" as Creator
 
-
-Item {
+Root {
     id: root
     width: 1280
     height: 720
 
-    function loadChild(url) {
-        Creator.createObject(root, url)
+    CustomButton {
+        id: messageBox
+        anchors.right: createDialog.left
+        anchors.rightMargin: 24
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        text: "Message"
+        onClicked: {
+            console.log("Foo")
+            root.information("a")
+            console.log("Bar")
+        }
     }
-    
 
     CustomButton {
+        id: createDialog
         anchors.right: parent.right
         anchors.rightMargin: 24
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 24
-        text: "Test"
+        text: "Create"
         onClicked: {
-            loadChild("TestDialog.qml");
+            root.loadChild("TestDialog.qml");
         }
     }
 }

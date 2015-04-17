@@ -69,6 +69,17 @@ public:
     }
 };
 
+
+const QString & getQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        QDir path(__FILE__);
+        path.cdUp();
+        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/")) + "/";
+        qDebug() << "Qml Path: " << dir;
+    }
+    return dir;
+}
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
     Q_OBJECT
@@ -77,7 +88,6 @@ class QTestWindow : public QWindow {
     QSize _size;
     TextRenderer* _textRenderer[4];
     RateCounter fps;
-    OffscreenUi _offscreenUi;
     int testQmlTexture{ 0 };
     //ProgramPtr _planeProgam;
     //ShapeWrapperPtr _planeShape;
@@ -90,11 +100,12 @@ protected:
 private:
     void resizeWindow(const QSize & size) {
         _size = size;
-        _offscreenUi.resize(_size);
+        DependencyManager::get<OffscreenUi>()->resize(_size);
     }
 
 public:
     QTestWindow() {
+        DependencyManager::set<OffscreenUi>();
         setSurfaceType(QSurface::OpenGLSurface);
 
         QSurfaceFormat format;
@@ -154,30 +165,30 @@ public:
         glClearColor(0.2f, 0.2f, 0.2f, 1);
         glDisable(GL_DEPTH_TEST);
 
-        _offscreenUi.create(_context);
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
+        offscreenUi->create(_context);
         // FIXME, need to switch to a QWindow for mouse and keyboard input to work
-        _offscreenUi.setProxyWindow(this);
+        offscreenUi->setProxyWindow(this);
         // "#0e7077"
         setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
 
-        QApplication::applicationDirPath();
-        QDir path(__FILE__);
-        path.cdUp();
-        static const QString f(path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/TestRoot.qml")));
+        offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
+        offscreenUi->load(QUrl("TestRoot.qml"));
+        offscreenUi->addImportPath(getQmlDir());
+        offscreenUi->addImportPath(".");
 
-        _offscreenUi.loadQml(QUrl::fromLocalFile(f));
-        connect(&_offscreenUi, &OffscreenUi::textureUpdated, this, [&](int textureId) {
-            _offscreenUi.lockTexture(textureId);
+        connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [this, offscreenUi](int textureId) {
+            offscreenUi->lockTexture(textureId);
             assert(!glGetError());
             GLuint oldTexture = testQmlTexture;
             testQmlTexture = textureId;
             if (oldTexture) {
-                _offscreenUi.releaseTexture(oldTexture);
+                offscreenUi->releaseTexture(oldTexture);
             }
         });
-        installEventFilter(&_offscreenUi);
-        _offscreenUi.resume();
+        installEventFilter(offscreenUi.data());
+        offscreenUi->resume();
     }
 
     virtual ~QTestWindow() {
@@ -197,8 +208,10 @@ protected:
 
     void keyPressEvent(QKeyEvent *event) {
         switch (event->key()) {
-        case Qt::Key_Slash:
-            _offscreenUi.toggle(QString("TestDialog.qml"), "TestDialog");
+        case Qt::Key_L:
+            if (event->modifiers() & Qt::CTRL) {
+                DependencyManager::get<OffscreenUi>()->toggle(QString("TestDialog.qml"), "TestDialog");
+            }
             break;
         }
         QWindow::keyPressEvent(event);
@@ -319,6 +332,7 @@ int main(int argc, char** argv) {
     QApplication app(argc, argv);
     //QLoggingCategory::setFilterRules("qt.quick.mouse.debug = true");
     QTestWindow window;
+
     QTimer timer;
     timer.setInterval(1);
     app.connect(&timer, &QTimer::timeout, &app, [&] {

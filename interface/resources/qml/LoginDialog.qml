@@ -18,6 +18,12 @@ CustomDialog {
         }
     }
 
+    onEnabledChanged: {
+        if (enabled) {
+            username.forceActiveFocus();
+        }
+    }
+
     function reset() {
         username.text = ""
         password.text = ""

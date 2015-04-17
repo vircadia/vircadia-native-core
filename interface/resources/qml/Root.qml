@@ -1,14 +1,9 @@
+import Hifi 1.0
 import QtQuick 2.3
-import "componentCreation.js" as Creator
 
-
-Item {
+Root {
     id: root
     width: 1280
     height: 720
-
-    function loadChild(url) {
-        Creator.createObject(root, url)
-    }
 }
 

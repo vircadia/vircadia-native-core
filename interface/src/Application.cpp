@@ -754,8 +754,8 @@ void Application::initializeUi() {
     offscreenUi->create(_glWidget->context()->contextHandle());
     offscreenUi->resize(_glWidget->size());
     offscreenUi->setProxyWindow(_window->windowHandle());
-    auto rootQml = PathUtils::resourcesPath() + "qml/Root.qml";
-    offscreenUi->loadQml(QUrl::fromLocalFile(rootQml));
+    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+    offscreenUi->load("Root.qml");
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
