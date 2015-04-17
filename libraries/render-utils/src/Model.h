@@ -350,58 +350,6 @@ private:
 
     bool _meshGroupsKnown;
 
-    QMap<QString, int> _unsortedMeshesTranslucent;
-    QMap<QString, int> _unsortedMeshesTranslucentTangents;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesTranslucentSpecular;
-
-    QMap<QString, int> _unsortedMeshesTranslucentSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecularSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentSpecularSkinned;
-
-    QMap<QString, int> _unsortedMeshesOpaque;
-    QMap<QString, int> _unsortedMeshesOpaqueTangents;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesOpaqueSpecular;
-
-    QMap<QString, int> _unsortedMeshesOpaqueSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
-
-    QMap<QString, int> _unsortedMeshesOpaqueLightmap;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangents;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapSpecular;
-    
-    typedef std::unordered_map<int, QVector<int>> MeshListMap;
-    MeshListMap _sortedMeshes;
-
-    QVector<int> _meshesTranslucent;
-    QVector<int> _meshesTranslucentTangents;
-    QVector<int> _meshesTranslucentTangentsSpecular;
-    QVector<int> _meshesTranslucentSpecular;
-
-    QVector<int> _meshesTranslucentSkinned;
-    QVector<int> _meshesTranslucentTangentsSkinned;
-    QVector<int> _meshesTranslucentTangentsSpecularSkinned;
-    QVector<int> _meshesTranslucentSpecularSkinned;
-
-    QVector<int> _meshesOpaque;
-    QVector<int> _meshesOpaqueTangents;
-    QVector<int> _meshesOpaqueTangentsSpecular;
-    QVector<int> _meshesOpaqueSpecular;
-
-    QVector<int> _meshesOpaqueSkinned;
-    QVector<int> _meshesOpaqueTangentsSkinned;
-    QVector<int> _meshesOpaqueTangentsSpecularSkinned;
-    QVector<int> _meshesOpaqueSpecularSkinned;
-
-    QVector<int> _meshesOpaqueLightmap;
-    QVector<int> _meshesOpaqueLightmapTangents;
-    QVector<int> _meshesOpaqueLightmapTangentsSpecular;
-    QVector<int> _meshesOpaqueLightmapSpecular;
 
     // debug rendering support
     void renderDebugMeshBoxes();
@@ -490,6 +438,17 @@ private:
 
         int getRaw() { return *reinterpret_cast<int*>(this); }
 
+
+        RenderKey(
+            bool translucent, bool hasLightmap,
+            bool hasTangents, bool hasSpecular, bool isSkinned) :
+            RenderKey(  (translucent ? IS_TRANSLUCENT : 0)
+                      | (hasLightmap ? HAS_LIGHTMAP : 0)
+                      | (hasTangents ? HAS_TANGENTS : 0)
+                      | (hasSpecular ? HAS_SPECULAR : 0)
+                      | (isSkinned ? IS_SKINNED : 0)
+                     ) {}
+
         RenderKey(RenderArgs::RenderMode mode,
             bool translucent, float alphaThreshold, bool hasLightmap,
             bool hasTangents, bool hasSpecular, bool isSkinned) :
@@ -526,6 +485,19 @@ private:
         void initLocations(gpu::ShaderPointer& program, Locations& locations);
     };
     static RenderPipelineLib _renderPipelineLib;
+
+   
+    class RenderBucket {
+    public:
+        QVector<int> _meshes;
+        QMap<QString, int> _unsortedMeshes;
+    };
+    typedef std::unordered_map<int, RenderBucket> BaseRenderBucketMap;
+    class RenderBucketMap : public BaseRenderBucketMap {
+    public:
+        typedef RenderKey Key;
+    };
+    RenderBucketMap _renderBuckets;
 
     bool _renderCollisionHull;
 };
