@@ -496,9 +496,6 @@ private:
     class RenderBucketMap : public BaseRenderBucketMap {
     public:
         typedef RenderKey Key;
-
-        
-        void addRenderBucket(Key key, RenderBucket& bucket);
     };
     RenderBucketMap _renderBuckets;
 
