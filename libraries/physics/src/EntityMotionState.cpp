@@ -258,12 +258,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setSimulatorID(myNodeID);
         } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
-
-            // XXX the entity server will clear the simulatorID after 2 seconds.  if the interface clears
-            // it here, every node that sees the entity-stopped-moving packets will rebroadcast them.
-
-            // _entity->setSimulatorID(QUuid());
-            // properties.setSimulatorID(QUuid());
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
