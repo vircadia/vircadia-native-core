@@ -400,8 +400,7 @@ void PhysicsEngine::computeCollisionEvents() {
     // scan known contacts and trigger events
     ContactMap::iterator contactItr = _contactMap.begin();
 
-    // TODO: enable scripts to filter based on contact event type
-    ContactEventType type = contactItr->second.computeType(_numContactFrames);
+
     while (contactItr != _contactMap.end()) {
         ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
         ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
@@ -409,6 +408,8 @@ void PhysicsEngine::computeCollisionEvents() {
         // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
         // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
         // emit a collision event.
+        // TODO: enable scripts to filter based on contact event type
+        ContactEventType type = contactItr->second.computeType(_numContactFrames);
         if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0){
             if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
                 EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
