@@ -764,6 +764,16 @@ void Application::initializeUi() {
         return QPointF(p);
     });
     offscreenUi->resume();
+    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
+        static qreal oldDevicePixelRatio = 0;
+        qreal devicePixelRatio = _glWidget->devicePixelRatio();
+        if (devicePixelRatio != oldDevicePixelRatio) {
+            oldDevicePixelRatio = devicePixelRatio;
+            qDebug() << "Device pixel ratio changed, triggering GL resize";
+            resizeGL(_glWidget->width(),
+                     _glWidget->height());
+        }
+    });
 }
 
 void Application::paintGL() {
@@ -906,7 +916,7 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->resize(QSize(width, height));
+    offscreenUi->resize(_glWidget->size());
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror

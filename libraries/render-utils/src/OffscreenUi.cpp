@@ -79,7 +79,8 @@ void OffscreenUi::resize(const QSize & newSize) {
     makeCurrent();
 
     // Clear out any fbos with the old size
-    _fboCache.setSize(newSize);
+    qreal pixelRatio = _renderControl->_renderWindow ? _renderControl->_renderWindow->devicePixelRatio() : 1.0;
+    _fboCache.setSize(newSize * pixelRatio);
 
     // Update our members
     if (_rootItem) {
@@ -203,7 +204,7 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF & p, QObject * dest) {
     }
     vec2 pos = toGlm(p);
     pos /= sourceSize;
-    pos *= vec2(toGlm(_quickWindow->renderTargetSize()));
+    pos *= vec2(toGlm(_quickWindow->size()));
     return QPointF(pos.x, pos.y);
 }
 
@@ -300,11 +301,13 @@ void OffscreenUi::setProxyWindow(QWindow * window) {
 
 void OffscreenUi::show(const QUrl & url, const QString & name) {
     QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
+    if (nullptr == item) {
+        load(url);
+        item = _rootItem->findChild<QQuickItem*>(name);
+    }
+    
     if (nullptr != item) {
         item->setEnabled(true);
-        item->setVisible(true);
-    } else {
-        load(url);
     }
 }
 
@@ -312,7 +315,7 @@ void OffscreenUi::toggle(const QUrl & url, const QString & name) {
     QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
     if (nullptr == item) {
-        load(url);
+        show(url, name);
         return;
     }
 
@@ -320,12 +323,11 @@ void OffscreenUi::toggle(const QUrl & url, const QString & name) {
     // dialogs can still swallow keyboard input)
     bool newFlag = !item->isEnabled();
     item->setEnabled(newFlag);
-    // item->setVisible(newFlag);
-    
 }
 
 
 void OffscreenUi::load(const QUrl & url) {
+    qDebug() << "Loading from url: " << url;
     QVariant returnedValue;
     QVariant msg = url;
     QMetaObject::invokeMethod(_rootItem, "loadChild",
