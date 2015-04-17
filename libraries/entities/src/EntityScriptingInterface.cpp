@@ -61,13 +61,18 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 
 
 
-void setSimId(EntityItemProperties& propertiesWithSimID) {
+void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
     if (propertiesWithSimID.velocityChanged() ||
         propertiesWithSimID.rotationChanged() ||
         propertiesWithSimID.containsPositionChange()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesWithSimID.setSimulatorID(myNodeID);
+        entity->setSimulatorID(myNodeID);
+    } else if (entity->getSimulatorID() == myNodeID) {
+        propertiesWithSimID.setSimulatorID(QUuid()); // give up simulation ownership
+        entity->setSimulatorID(QUuid());
     }
 }
 
@@ -80,14 +85,14 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 
     // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
     EntityItemProperties propertiesWithSimID = properties;
-    setSimId(propertiesWithSimID);
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->addEntity(id, propertiesWithSimID);
+        EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        setSimId(propertiesWithSimID, entity);
         _entityTree->unlock();
     }
 
@@ -157,7 +162,6 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 
     // if this Node is changing a physics-related property, claim simulation ownership.
     EntityItemProperties propertiesWithSimID = properties;
-    setSimId(propertiesWithSimID);
 
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
@@ -174,6 +178,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
                 propertiesWithSimID.setType(entity->getType());
+                setSimId(propertiesWithSimID, entity);
             }
         }
 
