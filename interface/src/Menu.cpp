@@ -362,30 +362,32 @@ Menu::Menu() {
 
         QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
             0, true,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
 #ifdef HAVE_FACESHIFT
         QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
 #ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
 #endif
 #ifdef HAVE_VISAGE
         QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(visageFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
+    ddeFiltering->setVisible(false);
     QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
         Qt::CTRL | Qt::Key_Apostrophe,
         DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
@@ -986,12 +988,4 @@ void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
     } else {
         qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
     }
-}
-
-void Menu::setActiveFaceTracker() {
-#ifdef HAVE_DDE
-    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
-    Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
-#endif
-    qApp->setActiveFaceTracker();
 }

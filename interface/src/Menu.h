@@ -68,7 +68,6 @@ public slots:
     
 private slots:
     void setVisibility();
-    void setActiveFaceTracker();
 
 private:
     static Menu* _instance;
@@ -137,6 +136,7 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString DDEFaceRegression = "DDE Face Regression";
+    const QString DDEFiltering = "DDE Filtering";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
