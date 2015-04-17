@@ -13,7 +13,7 @@
 //
 
 var isDice = false; 
-var NUMBER_OF_DICE = 1; 
+var NUMBER_OF_DICE = 2; 
 var dice = [];
 var DIE_SIZE = 0.20;
 
