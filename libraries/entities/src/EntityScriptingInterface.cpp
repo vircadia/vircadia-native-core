@@ -170,18 +170,14 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // if at this point, we know the id, send the update to the entity server
     if (entityID.isKnownID) {
         // make sure the properties has a type, so that the encode can know which properties to include
-        if (properties.getType() == EntityTypes::Unknown) {
+        if (propertiesWithSimID.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                EntityItemProperties tempProperties = properties;
-                tempProperties.setType(entity->getType());
-                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, tempProperties);
-                return entityID;
+                propertiesWithSimID.setType(entity->getType());
             }
         }
-        
-        // if the properties already includes the type, then use it as is
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, propertiesWithSimID);
     }
     
     return entityID;
