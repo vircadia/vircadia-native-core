@@ -10,7 +10,6 @@ CustomDialog {
     objectName: "TestDialog"
     width: 512
     height: 512
-    scale: 0.0
 
     Item {
         id: clientArea
@@ -39,7 +38,7 @@ CustomDialog {
             clip: true
             text: "test edit"
             anchors.top: parent.top
-            anchors.topMargin: parent.titleSize + 12
+            anchors.topMargin: 12
         }
 
         CustomButton {
@@ -85,7 +84,6 @@ CustomDialog {
             }
         }
     }
-
 
 }
 
