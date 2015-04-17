@@ -182,9 +182,10 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         _udpSocket.bind(_host, _serverPort);
     }
 
+    const char* DDE_EXIT_COMMAND = "exit";
+
     if (enabled && !_ddeProcess) {
         // Terminate any existing DDE process, perhaps left running after an Interface crash
-        const char* DDE_EXIT_COMMAND = "exit";
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
 
         qDebug() << "[Info] DDE Face Tracker Starting";
@@ -194,7 +195,8 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     }
 
     if (!enabled && _ddeProcess) {
-        _ddeProcess->kill();  // More robust than trying to send an "exit" command to DDE
+        _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        delete _ddeProcess;
         _ddeProcess = NULL;
         qDebug() << "[Info] DDE Face Tracker Stopped";
     }
