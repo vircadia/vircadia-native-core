@@ -235,32 +235,32 @@ Menu::Menu() {
 
     QMenu* viewMenu = addMenu("View");
 
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
 #ifdef Q_OS_MAC
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
 #else
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::Key_F,
+#endif
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
-#endif
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
                                             qApp,SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::CTRL | Qt::Key_H,
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 
+#ifdef Q_OS_MAC
+                                           Qt::META | Qt::Key_H,
+#else
+                                           Qt::CTRL | Qt::Key_H,
+#endif
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
-
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
