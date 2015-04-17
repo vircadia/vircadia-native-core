@@ -195,8 +195,8 @@ public:
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second
-    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second
+    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
+    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }

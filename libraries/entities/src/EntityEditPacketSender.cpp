@@ -38,10 +38,10 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
 
 
     //// XXX
-    auto nodeList = DependencyManager::get<NodeList>();
-    QUuid myNodeID = nodeList->getSessionUUID();
-    QString x = properties.getSimulatorID() == myNodeID ? "me" : properties.getSimulatorID().toString();
-    qDebug() << "sending update:" << properties.simulatorIDChanged() << x;
+    // auto nodeList = DependencyManager::get<NodeList>();
+    // QUuid myNodeID = nodeList->getSessionUUID();
+    // QString x = properties.getSimulatorID() == myNodeID ? "me" : properties.getSimulatorID().toString();
+    // qDebug() << "sending update:" << properties.simulatorIDChanged() << x;
     //// XXX
 
 

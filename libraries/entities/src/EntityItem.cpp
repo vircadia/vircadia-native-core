@@ -699,6 +699,7 @@ void EntityItem::simulate(const quint64& now) {
             qCDebug(entities) << "    MOVING...=";
             qCDebug(entities) << "        hasVelocity=" << hasVelocity();
             qCDebug(entities) << "        hasGravity=" << hasGravity();
+            qCDebug(entities) << "        hasAcceleration=" << hasAcceleration();
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
             qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
         }
@@ -788,13 +789,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         
         position = newPosition;
 
-        // apply gravity
-        if (hasGravity()) { 
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it's what we've got
-            velocity += getGravity() * timeElapsed;
-        }
-
+        // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
         if (hasAcceleration()) {
             velocity += getAcceleration() * timeElapsed;
         }
@@ -1151,14 +1146,8 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
-        if (glm::length(value) < MIN_ACCELERATION_DELTA) {
-            _acceleration = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _acceleration = value;
-        }
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
-    }
+    _acceleration = value;
+    _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 

@@ -18,6 +18,7 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
+static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -166,8 +167,8 @@ void EntityMotionState::updateObjectVelocities() {
         _sentAngularVelocity = _entity->getAngularVelocity();
         setAngularVelocity(_sentAngularVelocity);
 
-        _sentAcceleration = _entity->getGravity();
-        setGravity(_sentAcceleration);
+        _sentGravity = _entity->getGravity();
+        setGravity(_sentGravity);
 
         _body->setActivationState(ACTIVE_TAG);
     }
@@ -191,8 +192,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    QUuid myNodeID = nodeList->getSessionUUID();
-    QUuid simulatorID = _entity->getSimulatorID();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    const QUuid& simulatorID = _entity->getSimulatorID();
 
     if (!simulatorID.isNull() && simulatorID != myNodeID) {
         // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
@@ -203,12 +204,17 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
-
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
+
+        if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
+            _entity->setAcceleration(glm::vec3(0));
+        } else {
+            _entity->setAcceleration(_entity->getGravity());
+        }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
@@ -245,11 +251,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentMoving = false;
             }
             properties.setVelocity(_sentVelocity);
-            _sentAcceleration = bulletToGLM(_body->getGravity());
-            properties.setGravity(_sentAcceleration);
+            _sentGravity = _entity->getGravity();
+            properties.setGravity(_entity->getGravity());
+            _sentAcceleration = _entity->getAcceleration();
+            properties.setAcceleration(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
         }
-
 
         auto nodeList = DependencyManager::get<NodeList>();
         QUuid myNodeID = nodeList->getSessionUUID();

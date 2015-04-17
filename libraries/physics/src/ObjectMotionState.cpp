@@ -57,6 +57,7 @@ ObjectMotionState::ObjectMotionState() :
     _sentRotation(),
     _sentVelocity(0.0f),
     _sentAngularVelocity(0.0f),
+    _sentGravity(0.0f),
     _sentAcceleration(0.0f),
     _lastSimulationStep(0),
     _lastVelocity(0.0f),
@@ -174,7 +175,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
     // of remote EntitySimulation) and return true if the error is significant.
 
-    // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
+    // NOTE: math is done the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
 
     // compute position error

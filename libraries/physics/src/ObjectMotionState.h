@@ -138,6 +138,7 @@ protected:
     glm::quat _sentRotation;;
     glm::vec3 _sentVelocity;
     glm::vec3 _sentAngularVelocity; // radians per second
+    glm::vec3 _sentGravity;
     glm::vec3 _sentAcceleration;
 
     uint32_t _lastSimulationStep;
