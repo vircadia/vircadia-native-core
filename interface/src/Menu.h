@@ -251,7 +251,6 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString PackageModel = "Package Model...";
-    const QString Visage = "Visage";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
