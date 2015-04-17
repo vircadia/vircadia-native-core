@@ -175,7 +175,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
     // of remote EntitySimulation) and return true if the error is significant.
 
-    // NOTE: math is done the simulation-frame, which is NOT necessarily the same as the world-frame 
+    // NOTE: math is done in the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
 
     // compute position error
