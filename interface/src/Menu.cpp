@@ -30,7 +30,6 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -376,12 +375,6 @@ Menu::Menu() {
             0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
-#endif
-#ifdef HAVE_VISAGE
-        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
-            0, false,
-            qApp, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(visageFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
