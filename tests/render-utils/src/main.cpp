@@ -203,7 +203,16 @@ protected:
         }
         QWindow::keyPressEvent(event);
     }
-
+    
+    void moveEvent(QMoveEvent *event) {
+        static qreal oldPixelRatio = 0.0;
+        if (devicePixelRatio() != oldPixelRatio) {
+            oldPixelRatio = devicePixelRatio();
+            resizeWindow(size());
+        }		
+   
+        QWindow::moveEvent(event);
+    }
 };
 
 #ifndef SERIF_FONT_FAMILY
@@ -291,7 +300,7 @@ void QTestWindow::renderQml() {
 void QTestWindow::draw() {
     makeCurrent();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, _size.width(), _size.height());
+    glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
     //renderText();
     renderQml();

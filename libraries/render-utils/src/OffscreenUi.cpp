@@ -80,6 +80,7 @@ void OffscreenUi::resize(const QSize & newSize) {
 
     // Clear out any fbos with the old size
     qreal pixelRatio = _renderControl->_renderWindow ? _renderControl->_renderWindow->devicePixelRatio() : 1.0;
+    qDebug() << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
     _fboCache.setSize(newSize * pixelRatio);
 
     // Update our members
