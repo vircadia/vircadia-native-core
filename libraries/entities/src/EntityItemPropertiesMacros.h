@@ -338,6 +338,7 @@
         T get##N() const { return _##n; } \
         void set##N(T value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -347,6 +348,7 @@
         const T& get##N() const { return _##n; } \
         void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -356,6 +358,7 @@
         const T& get##N() const { return _##n; } \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -365,6 +368,7 @@
         T get##N() const; \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -376,6 +380,7 @@
         bool n##Changed() const { return _##n##Changed; } \
         QString get##N##AsString() const; \
         void set##N##FromString(const QString& name); \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;

@@ -24,6 +24,10 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 
+
+const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = 0.2 * USECS_PER_SECOND;
+
+
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
@@ -108,9 +112,9 @@ bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& pr
     return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
 }
 
-bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& origProperties, 
                                          EntityTreeElement* containingElement, bool allowLockChange) {
-
+    EntityItemProperties properties = origProperties;
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
@@ -136,8 +140,13 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
             // if ownership hasn't recently changed.
             quint64 now = usecTimestampNow();
-            if (now - entity->getSimulatorIDChangedTime() < 2 * USECS_PER_SECOND) { // XXX pick time and put in constant
-                qDebug() << "TOO SOON";
+            if (now - entity->getSimulatorIDChangedTime() < SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                qDebug() << "SIMULATOR_CHANGE_LOCKOUT_PERIOD";
+                // squash the physics-related changes.
+                properties.setSimulatorIDChanged(false);
+                properties.setPositionChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAccelerationChanged(false);
             }
         }
 
