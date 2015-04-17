@@ -88,20 +88,24 @@
             }                                           \
         }
 
-// TODO: this doesn't need a length.  See OctreePacketData::appendValue(const QUuid& uuid)
-#define READ_ENTITY_PROPERTY_UUID(P,O)                               \
-        if (propertyFlags.getHasProperty(P)) {                       \
-            uint16_t length;                                         \
-            memcpy(&length, dataAt, sizeof(length));                 \
-            dataAt += sizeof(length);                                \
-            bytesRead += sizeof(length);                             \
-            QByteArray ba((const char*)dataAt, length);              \
-            QUuid value = QUuid::fromRfc4122(ba);                    \
-            dataAt += length;                                        \
-            bytesRead += length;                                     \
-            if (overwriteLocalData) {                                \
-                O(value);                                            \
-            }                                                        \
+#define READ_ENTITY_PROPERTY_UUID(P,O)                      \
+        if (propertyFlags.getHasProperty(P)) {              \
+            uint16_t length;                                \
+            memcpy(&length, dataAt, sizeof(length));        \
+            dataAt += sizeof(length);                       \
+            bytesRead += sizeof(length);                    \
+            QUuid value;                                    \
+            if (length == 0) {                              \
+                value = QUuid();                            \
+            } else {                                        \
+                QByteArray ba((const char*)dataAt, length); \
+                value = QUuid::fromRfc4122(ba);             \
+                dataAt += length;                           \
+                bytesRead += length;                        \
+            }                                               \
+            if (overwriteLocalData) {                       \
+                O(value);                                   \
+            }                                               \
         }
 
 #define READ_ENTITY_PROPERTY_COLOR(P,M)         \
@@ -144,18 +148,22 @@
         }
 
 
-// TODO: this doesn't need a length.  See OctreePacketData::appendValue(const QUuid& uuid)
-#define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)    \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            processedBytes += sizeof(length);           \
-            QByteArray ba((const char*)dataAt, length); \
-            QUuid value = QUuid::fromRfc4122(ba);       \
-            dataAt += length;                           \
-            processedBytes += length;                   \
-            properties.O(value);                        \
+#define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)        \
+        if (propertyFlags.getHasProperty(P)) {              \
+            uint16_t length;                                \
+            memcpy(&length, dataAt, sizeof(length));        \
+            dataAt += sizeof(length);                       \
+            processedBytes += sizeof(length);               \
+            QUuid value;                                    \
+            if (length == 0) {                              \
+                value = QUuid();                            \
+            } else {                                        \
+                QByteArray ba((const char*)dataAt, length); \
+                value = QUuid::fromRfc4122(ba);             \
+                dataAt += length;                           \
+                processedBytes += length;                   \
+            }                                               \
+            properties.O(value);                            \
         }
 
 #define READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(P,O)   \
