@@ -66,9 +66,6 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
-private slots:
-    void setVisibility();
-
 private:
     static Menu* _instance;
     Menu();
@@ -98,8 +95,6 @@ private:
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    
-    void visibilityChanged(Discoverability::Mode discoverabilityMode);
     
     QHash<QString, QAction*> _actionHash;
 };
