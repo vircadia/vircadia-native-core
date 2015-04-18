@@ -265,7 +265,7 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 3.0f};
         Vec4 _shadow{0.0f};
 
-        Vec4 _control{0.0f};
+        Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};
 
         Schema() {}
     };

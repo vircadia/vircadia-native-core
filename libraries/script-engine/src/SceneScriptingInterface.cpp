@@ -50,7 +50,7 @@ void SceneScriptingInterface::setSunColor(const glm::vec3& color) {
     _skyStage->setSunColor(color);
 }
 
-const glm::vec3& SceneScriptingInterface::getSunColor() const {
+glm::vec3 SceneScriptingInterface::getSunColor() const {
     return _skyStage->getSunColor();
 }
 
@@ -74,7 +74,7 @@ void SceneScriptingInterface::setSunDirection(const glm::vec3& direction) {
     _skyStage->setSunDirection(direction);
 }
 
-const glm::vec3& SceneScriptingInterface::getSunDirection() const {
+glm::vec3 SceneScriptingInterface::getSunDirection() const {
     return _skyStage->getSunDirection();
 }
 

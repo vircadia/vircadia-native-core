@@ -41,7 +41,8 @@ panel.newSlider("Year Time", 0, 364,
 );
 
 panel.newSlider("Day Time", 0, 24, 
-    function(value) { Scene.setStageDayTime(value); },
+        
+    function(value) { Scene.setStageDayTime(value); panel.update("Light Direction"); },
     function() { return Scene.getStageDayTime(); },
     function(value) {
         var hour = Math.floor(value);
@@ -78,6 +79,12 @@ panel.newCheckbox("Enable Earth Sun Model",
     function(value) { return (value); }
 );
 
+panel.newDirectionBox("Light Direction", 
+    function(value) { Scene.setSunDirection(value); },
+    function() { return Scene.getSunDirection(); },
+    function(value) { return value.x.toFixed(2) + "," + value.y.toFixed(2) + "," + value.z.toFixed(2); }
+);
+
 panel.newSlider("Light Intensity", 0.0, 5, 
     function(value) { Scene.setSunIntensity(value); },
     function() { return Scene.getSunIntensity(); },
@@ -88,6 +95,12 @@ panel.newSlider("Ambient Light Intensity", 0.0, 1.0,
     function(value) { Scene.setSunAmbientIntensity(value); },
     function() { return Scene.getSunAmbientIntensity(); },
     function(value) { return (value).toFixed(2); }
+);
+
+panel.newColorBox("Light Color", 
+    function(value) { Scene.setSunColor(value); },
+    function() { return Scene.getSunColor(); },
+    function(value) { return (value); } // "(" + value.x + "," = value.y + "," + value.z + ")"; }
 );
 
 Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return panel.mouseMoveEvent(event); });
