@@ -15,6 +15,10 @@ Item {
     property int animationDuration: 400
     property bool destroyOnInvisible: false
     property bool destroyOnCloseButton: true
+    property bool resizable: false
+    property int minX: 256
+    property int minY: 256
+    clip: true
     
     onEnabledChanged: {
         scale = enabled ? 1.0 : 0.0
@@ -36,6 +40,11 @@ Item {
             destroyOnInvisible = true
         }
         enabled = false;
+    }
+    
+    function deltaSize(dx, dy) {
+        width = Math.max(width + dx, minX) 
+        height = Math.max(height + dy, minY) 
     }
 
     Behavior on scale {
@@ -82,8 +91,6 @@ Item {
 
             MouseArea {
                 id: titleDrag
-                property int startX
-                property int startY
                 anchors.right: closeButton.left
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
@@ -127,6 +134,29 @@ Item {
             anchors.rightMargin: 0
             anchors.left: parent.left
             anchors.leftMargin: 0
+            clip: true
         } // client border
     } // window border
+
+    MouseArea {
+        id: sizeDrag
+        property int startX
+        property int startY
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        width: 16
+        height: 16
+        hoverEnabled: true
+        onPressed: {
+            startX = mouseX
+            startY = mouseY
+        }
+        onPositionChanged: {
+            if (pressed && dialog.resizable) {
+                dialog.deltaSize((mouseX - startX), (mouseY - startY))
+                startX = mouseX
+                startY = mouseY
+            }
+        }
+    }
 }
