@@ -163,21 +163,21 @@ Menu::Menu() {
 
         QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToEveryone);
 
         QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToFriends);
 
         QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToNoOne);
 
         connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
-            this, &Menu::visibilityChanged);
+            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
     }
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -963,29 +963,3 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
-
-void Menu::setVisibility() {
-    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToEveryone)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToFriends)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
-    }
-}
-
-void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
-    if (discoverabilityMode == Discoverability::All) {
-        setIsOptionChecked(MenuOption::VisibleToEveryone, true);
-    } else if (discoverabilityMode == Discoverability::Friends) {
-        setIsOptionChecked(MenuOption::VisibleToFriends, true);
-    } else if (discoverabilityMode == Discoverability::None) {
-        setIsOptionChecked(MenuOption::VisibleToNoOne, true);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
-    }
-}
