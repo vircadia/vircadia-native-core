@@ -203,11 +203,21 @@ public:
     float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
     float getOriginSurfaceAltitude() const { return _earthSunModel.getAltitude(); }
 
+    // Enable / disable the effect of the time and location on the sun direction and color
+    void setEarthSunModelEnable(bool isEnabled);
+    bool isEarthSunModelEnabled() const { return _earthSunModelEnable; }
+
     // Sun properties
     void setSunColor(const Vec3& color);
     const Vec3& getSunColor() const { return getSunLight()->getColor(); }
     void setSunIntensity(float intensity);
     float getSunIntensity() const { return getSunLight()->getIntensity(); }
+    void setSunAmbientIntensity(float intensity);
+    float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
+
+    // The sun direction is expressed in the world space
+    void setSunDirection(const Vec3& direction);
+    const Vec3& getSunDirection() const { return getSunLight()->getDirection(); }
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
@@ -223,10 +233,10 @@ protected:
 
     gpu::PipelinePointer _skyPipeline;
 
-    float _dayTime;
-    int _yearTime;
-
+    float _dayTime = 12.0f;
+    int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
+    bool _earthSunModelEnable = true;
  
     mutable bool _invalid = true;
     void invalidate() const { _invalid = true; }
