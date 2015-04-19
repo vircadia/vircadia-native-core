@@ -36,6 +36,9 @@ public slots:
     Discoverability::Mode getDiscoverabilityMode() { return static_cast<Discoverability::Mode>(_mode.get()); }
     void setDiscoverabilityMode(Discoverability::Mode discoverabilityMode);
 
+    void setVisibility();
+    void visibilityChanged(Discoverability::Mode discoverabilityMode);
+
 signals:
     void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
