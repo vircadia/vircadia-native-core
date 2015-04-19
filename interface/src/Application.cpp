@@ -52,6 +52,8 @@
 #include <QMimeData>
 #include <QMessageBox>
 #include <QJsonDocument>
+#include <QQmlNetworkAccessManagerFactory>
+#include <QThreadStorage>
 
 #include <AddressManager.h>
 #include <AccountManager.h>
@@ -82,6 +84,7 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
+#include <OAuthNetworkAccessManager.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -132,6 +135,7 @@
 #include "ui/DialogsManager.h"
 #include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
+#include "ui/MarketplaceDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
@@ -743,12 +747,26 @@ void Application::initializeGL() {
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
+class OAuthFactory : public QQmlNetworkAccessManagerFactory {
+    QThreadStorage<OAuthNetworkAccessManager*> oauthNetworkAccessManagers;
+public:
+    virtual QNetworkAccessManager *	create(QObject * parent) {
+        if (!oauthNetworkAccessManagers.hasLocalData()) {
+            oauthNetworkAccessManagers.setLocalData(OAuthNetworkAccessManager::getInstance());
+        }
+        return oauthNetworkAccessManagers.localData();
+    }
+};
+
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
+    MarketplaceDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
+    offscreenUi->qmlEngine()->setNetworkAccessManagerFactory(new OAuthFactory());
+    offscreenUi->qmlEngine()->networkAccessManager();
     offscreenUi->resize(_glWidget->size());
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
@@ -1129,7 +1147,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Backslash:
-                Menu::getInstance()->triggerOption(MenuOption::Chat);
+                MarketplaceDialog::show();
+
+                //Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
             case Qt::Key_Up:

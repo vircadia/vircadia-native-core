@@ -51,7 +51,7 @@ void WindowScriptingInterface::setFocus() {
 }
 
 void WindowScriptingInterface::raiseMainWindow() {
-    Application::getInstance()->getWindow()->raise();
+//    Application::getInstance()->getWindow()->raise();
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {

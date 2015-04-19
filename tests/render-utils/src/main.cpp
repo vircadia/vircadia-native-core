@@ -27,6 +27,8 @@
 #include <QOpenGLVertexArrayObject>
 #include <QApplication>
 #include <QOpenGLDebugLogger>
+#include <QWebEnginePage>
+
 #include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
@@ -189,6 +191,8 @@ public:
         });
         installEventFilter(offscreenUi.data());
         offscreenUi->resume();
+        QWebEnginePage *page = new QWebEnginePage;
+        page->runJavaScript("'Java''' 'Script'", [](const QVariant &result) { qDebug() << result; });
     }
 
     virtual ~QTestWindow() {
@@ -210,7 +214,20 @@ protected:
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
+                auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                offscreenUi->qmlEngine()->clearComponentCache();
                 DependencyManager::get<OffscreenUi>()->toggle(QString("TestDialog.qml"), "TestDialog");
+            }
+            break;
+        case Qt::Key_K:
+            if (event->modifiers() & Qt::CTRL) {
+                DependencyManager::get<OffscreenUi>()->toggle(QString("Browser.qml"), "Browser");
+            }
+            break;
+        case Qt::Key_J:
+            if (event->modifiers() & Qt::CTRL) {
+                QObject * obj = DependencyManager::get<OffscreenUi>()->findObject("WebView");
+                qDebug() << obj;
             }
             break;
         }
