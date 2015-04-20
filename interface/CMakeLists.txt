@@ -170,15 +170,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   endif ()
 endforeach()
 
-# special APPLE modifications for Visage library
-if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
-  add_definitions(-DMAC_OS_X)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
-  find_library(AVFoundation AVFoundation)
-  find_library(CoreMedia CoreMedia)
-  target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-endif ()
-
 # special OS X modifications for RtMidi library
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
   find_library(CoreMIDI CoreMIDI)
