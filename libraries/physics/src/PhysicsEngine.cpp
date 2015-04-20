@@ -23,8 +23,9 @@ uint32_t PhysicsEngine::getNumSubsteps() {
     return _numSubsteps;
 }
 
-PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
-    : _originOffset(offset) {
+PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
+    _originOffset(offset),
+    _characterController(NULL) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -367,6 +368,12 @@ void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
 
 void PhysicsEngine::computeCollisionEvents() {
     BT_PROFILE("computeCollisionEvents");
+
+    const btCollisionObject* characterCollisionObject =
+        _characterController ? _characterController->getCollisionObject() : NULL;
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+
     // update all contacts every frame
     int numManifolds = _collisionDispatcher->getNumManifolds();
     for (int i = 0; i < numManifolds; ++i) {
@@ -382,12 +389,34 @@ void PhysicsEngine::computeCollisionEvents() {
                 // which will eventually trigger a CONTACT_EVENT_TYPE_END
                 continue;
             }
-        
+
             void* a = objectA->getUserPointer();
             void* b = objectB->getUserPointer();
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
-                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
+                const ContactKey& contactKey = ContactKey(a, b);
+                ContactInfo& contactInfo = _contactMap[contactKey];
+                contactInfo.update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
+
+                // if our character capsule is colliding with something dynamic, claim simulation ownership.
+                // do this by setting the entity's simulator-id to NULL, thereby causing EntityMotionState::sendUpdate
+                // to set ownership to us.
+                if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
+                    ObjectMotionState* B = static_cast<ObjectMotionState*>(b);
+                    EntityItem* entityB = static_cast<EntityMotionState*>(B)->getEntity();
+                    if (entityB->getSimulatorID() != myNodeID) {
+                        qDebug() << "CLAIMING B";
+                        entityB->setSimulatorID(NULL);
+                    }
+                }
+                if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
+                    ObjectMotionState* A = static_cast<ObjectMotionState*>(a);
+                    EntityItem* entityA = static_cast<EntityMotionState*>(A)->getEntity();
+                    if (entityA->getSimulatorID() != myNodeID) {
+                        qDebug() << "CLAIMING A";
+                        entityA->setSimulatorID(NULL);
+                    }
+                }
             }
         }
     }

@@ -305,6 +305,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
 
+            qCDebug(physics) << "EntityMotionState::sendUpdate()";
+
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG
