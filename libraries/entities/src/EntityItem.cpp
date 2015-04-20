@@ -405,8 +405,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
 
-        bool ignoreServerPacket = false;
-
         // TODO: we could make this encoded as a delta from _created
         // _lastEdited
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
@@ -431,6 +429,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
             qCDebug(entities) << "                     fromSameServerEdit:" << fromSameServerEdit;
         #endif
+
+        bool ignoreServerPacket = false;
 
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.

@@ -217,9 +217,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
             _entity->setAcceleration(glm::vec3(0));
         } else {
-            // _entity->setAcceleration(_entity->getGravity());
-            // XXX
-            _entity->setAcceleration(glm::vec3(0));
+            _entity->setAcceleration(_entity->getGravity());
         }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
