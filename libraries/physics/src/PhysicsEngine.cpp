@@ -394,25 +394,21 @@ void PhysicsEngine::computeCollisionEvents() {
             void* b = objectB->getUserPointer();
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
-                const ContactKey& contactKey = ContactKey(a, b);
-                ContactInfo& contactInfo = _contactMap[contactKey];
-                contactInfo.update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
+                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
 
                 // if our character capsule is colliding with something dynamic, claim simulation ownership.
                 // do this by setting the entity's simulator-id to NULL, thereby causing EntityMotionState::sendUpdate
                 // to set ownership to us.
                 if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
-                    ObjectMotionState* B = static_cast<ObjectMotionState*>(b);
-                    EntityItem* entityB = static_cast<EntityMotionState*>(B)->getEntity();
-                    if (entityB->getSimulatorID() != myNodeID) {
+                    EntityItem* entityB = static_cast<EntityMotionState*>(b)->getEntity();
+                    if (!entityB->getSimulatorID().isNull() && entityB->getSimulatorID() != myNodeID) {
                         qDebug() << "CLAIMING B";
                         entityB->setSimulatorID(NULL);
                     }
                 }
                 if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
-                    ObjectMotionState* A = static_cast<ObjectMotionState*>(a);
-                    EntityItem* entityA = static_cast<EntityMotionState*>(A)->getEntity();
-                    if (entityA->getSimulatorID() != myNodeID) {
+                    EntityItem* entityA = static_cast<EntityMotionState*>(a)->getEntity();
+                    if (!entityA->getSimulatorID().isNull() && entityA->getSimulatorID() != myNodeID) {
                         qDebug() << "CLAIMING A";
                         entityA->setSimulatorID(NULL);
                     }
