@@ -1754,6 +1754,12 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
+
+#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
+    // with legacy transform profile, we still to protect that transform stack...
+    glPushMatrix();
+#endif 
+
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
@@ -1920,6 +1926,12 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         PROFILE_RANGE("render Batch");
         backend.render(_sceneRenderBatch);
     }
+
+
+#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
+    // with legacy transform profile, we still to protect that transform stack...
+    glPopMatrix();
+#endif 
 
     // restore all the default material settings
     _viewState->setupWorldLight();
