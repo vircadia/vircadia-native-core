@@ -716,10 +716,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         bytesRead += sizeof(numberOfEntities);
 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
-            // look up the Id of this Node
-            auto nodeList = DependencyManager::get<NodeList>();
-            QUuid myNodeID = nodeList->getSessionUUID();
-
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
                 EntityItemID entityItemID;
@@ -744,12 +740,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
-                    // this Node was the original source of this packet, so read it, but ignore it.
-                    /// XXX what should be done here?  Do we need to ignore packets which show us as simulator owner?  XXX
-                    // bool shouldIgnore = (entityItem && entityItem->getSimulatorID() == myNodeID); XXX
-                    bool shouldIgnore = false;
-
-                    bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args, shouldIgnore);
+                    bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                     if (entityItem->getDirtyFlags()) {
                         _myTree->entityChanged(entityItem);
                     }

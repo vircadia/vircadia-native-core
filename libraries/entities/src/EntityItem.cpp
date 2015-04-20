@@ -313,8 +313,7 @@ int EntityItem::expectedBytes() {
 }
 
 
-int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args,
-                                         bool ignoreServerPacket) {
+int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
@@ -324,6 +323,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
         return 0;
     }
+
+    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
+    glm::vec3 savePosition = _position;
+    glm::quat saveRotation = _rotation;
+    glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveGravity = _gravity;
+    glm::vec3 saveAcceleration = _acceleration;
+
 
     // Header bytes
     //    object ID [16 bytes]
@@ -397,6 +404,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
+
+        bool ignoreServerPacket = false;
 
         // TODO: we could make this encoded as a delta from _created
         // _lastEdited
@@ -608,6 +617,20 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             _lastSimulated = now;
         }
     }
+
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    if (_simulatorID == myNodeID) {
+        // the packet that produced this bitstream originally came from physics simulations performed by
+        // this node, so our version has to be newer than what the packet contained.
+        _position = savePosition;
+        _rotation = saveRotation;
+        _velocity = saveVelocity;
+        _gravity = saveGravity;
+        _acceleration = saveAcceleration;
+    }
+
     return bytesRead;
 }
 
