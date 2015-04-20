@@ -745,6 +745,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
                     // this Node was the original source of this packet, so read it, but ignore it.
+                    /// XXX what should be done here?  Do we need to ignore packets which show us as simulator owner?  XXX
                     // bool shouldIgnore = (entityItem && entityItem->getSimulatorID() == myNodeID); XXX
                     bool shouldIgnore = false;
 

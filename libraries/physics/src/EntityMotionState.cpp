@@ -217,7 +217,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
             _entity->setAcceleration(glm::vec3(0));
         } else {
-            _entity->setAcceleration(_entity->getGravity());
+            // _entity->setAcceleration(_entity->getGravity());
+            // XXX
+            _entity->setAcceleration(glm::vec3(0));
         }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
@@ -313,8 +315,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
-
-            qCDebug(physics) << "EntityMotionState::sendUpdate()";
 
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {

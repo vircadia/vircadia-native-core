@@ -401,14 +401,12 @@ void PhysicsEngine::computeCollisionEvents() {
                 if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
                     EntityItem* entityB = static_cast<EntityMotionState*>(b)->getEntity();
                     if (entityB->getSimulatorID() != myNodeID && !entityB->getShouldClaimSimulationOwnership()) {
-                        qDebug() << "CLAIMING B";
                         entityB->setShouldClaimSimulationOwnership(true);
                     }
                 }
                 if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
                     EntityItem* entityA = static_cast<EntityMotionState*>(a)->getEntity();
                     if (entityA->getSimulatorID() != myNodeID && !entityA->getShouldClaimSimulationOwnership()) {
-                        qDebug() << "CLAIMING A";
                         entityA->setShouldClaimSimulationOwnership(true);
                     }
                 }
