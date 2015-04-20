@@ -1750,7 +1750,6 @@ void Application::setActiveFaceTracker() {
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
     Menu::getInstance()->getActionForOption(MenuOption::DDEFiltering)->setVisible(isUsingDDE);
-    Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
     DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
 #endif
 #ifdef HAVE_VISAGE

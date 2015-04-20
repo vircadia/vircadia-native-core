@@ -28,7 +28,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    virtual void reset() { _reset = true; }
+    virtual void reset();
 
     virtual bool isActive() const;
     virtual bool isTracking() const { return isActive(); }
@@ -50,7 +50,6 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
-    void resetTracking();
 
 private slots:
     void processFinished(int exitCode, QProcess::ExitStatus exitStatus);

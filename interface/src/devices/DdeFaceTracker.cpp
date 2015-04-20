@@ -222,10 +222,14 @@ void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStat
     }
 }
 
-void DdeFaceTracker::resetTracking() {
+void DdeFaceTracker::reset() {
+    _reset = true;
+
     qDebug() << "[Info] Reset DDE Tracking";
     const char* DDE_RESET_COMMAND = "reset";
     _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+    _reset = true;
 }
 
 bool DdeFaceTracker::isActive() const {

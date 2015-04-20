@@ -388,11 +388,6 @@ Menu::Menu() {
     faceTrackingMenu->addSeparator();
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
     ddeFiltering->setVisible(false);
-    QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
-        Qt::CTRL | Qt::Key_Apostrophe,
-        DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
-    ddeFaceTrackerReset->setVisible(false);
-    faceTrackingMenu->addAction(ddeFaceTrackerReset);
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
