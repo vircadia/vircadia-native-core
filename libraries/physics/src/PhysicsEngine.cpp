@@ -371,8 +371,6 @@ void PhysicsEngine::computeCollisionEvents() {
 
     const btCollisionObject* characterCollisionObject =
         _characterController ? _characterController->getCollisionObject() : NULL;
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid& myNodeID = nodeList->getSessionUUID();
 
     // update all contacts every frame
     int numManifolds = _collisionDispatcher->getNumManifolds();
@@ -400,15 +398,11 @@ void PhysicsEngine::computeCollisionEvents() {
                 // see EntityMotionState::sendUpdate
                 if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
                     EntityItem* entityB = static_cast<EntityMotionState*>(b)->getEntity();
-                    if (entityB->getSimulatorID() != myNodeID && !entityB->getShouldClaimSimulationOwnership()) {
-                        entityB->setShouldClaimSimulationOwnership(true);
-                    }
+                    entityB->setShouldClaimSimulationOwnership(true);
                 }
                 if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
                     EntityItem* entityA = static_cast<EntityMotionState*>(a)->getEntity();
-                    if (entityA->getSimulatorID() != myNodeID && !entityA->getShouldClaimSimulationOwnership()) {
-                        entityA->setShouldClaimSimulationOwnership(true);
-                    }
+                    entityA->setShouldClaimSimulationOwnership(true);
                 }
             }
         }
