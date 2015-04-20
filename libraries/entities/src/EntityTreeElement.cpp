@@ -745,7 +745,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
                     // this Node was the original source of this packet, so read it, but ignore it.
-                    bool shouldIgnore = (entityItem && entityItem->getSimulatorID() == myNodeID);
+                    // bool shouldIgnore = (entityItem && entityItem->getSimulatorID() == myNodeID); XXX
+                    bool shouldIgnore = false;
 
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args, shouldIgnore);
                     if (entityItem->getDirtyFlags()) {
