@@ -430,7 +430,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "                     fromSameServerEdit:" << fromSameServerEdit;
         #endif
 
-        bool ignoreServerPacket = false;
+        bool ignoreServerPacket = false; // assume we'll use this server packet
 
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
