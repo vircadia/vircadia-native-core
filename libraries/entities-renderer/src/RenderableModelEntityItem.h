@@ -56,6 +56,8 @@ public:
 
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
+    
+    virtual bool contains(const glm::vec3& point) const;
 
 private:
     void remapTextures();

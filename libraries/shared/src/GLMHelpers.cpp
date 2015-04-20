@@ -203,6 +203,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
+bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
+    glm::vec3 v1 = p0 - p1, v2 = p2 - p1; // Non-collinear vectors contained in the plane
+    glm::vec3 n = glm::cross(v1, v2); // Plane's normal vector, pointing out of the triangle
+    float d = -glm::dot(n, p0); // Compute plane's equation constant
+    return (glm::dot(n, point) + d) <= 0;
+}
+
 glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 }

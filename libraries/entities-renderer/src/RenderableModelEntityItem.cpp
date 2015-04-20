@@ -415,3 +415,35 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 }
 
+bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
+    bool result = EntityItem::contains(point);
+    
+    if (result && _model && _model->getCollisionGeometry()) {
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+        
+        auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
+            for (unsigned int j = 0; j < indices.size(); j += primitiveSize) {
+                if (!isPointBehindTrianglesPlane(point,
+                                                 mesh.vertices[indices[j]],
+                                                 mesh.vertices[indices[j + 1]],
+                                                 mesh.vertices[indices[j + 2]])) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        
+        for (auto mesh : collisionGeometry.meshes) {
+            for (auto part : mesh.parts) {
+                // run through all the triangles and quads
+                if (!checkEachPrimitive(mesh, part.triangleIndices, 3) ||
+                    !checkEachPrimitive(mesh, part.quadIndices, 4)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return result;
+}
