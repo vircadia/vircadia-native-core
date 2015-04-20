@@ -101,10 +101,14 @@ private:
 
     QVector<float> _coefficients;
 
-    // Previous values for simple smoothing
-    glm::vec3 _previousTranslation;
-    glm::quat _previousRotation;
-    QVector<float> _previousCoefficients;
+    quint64 _lastMessageReceived;
+    float _averageMessageTime;
+    glm::vec3 _lastHeadTranslation;
+    glm::vec3 _filteredHeadTranslation;
+    float _lastLeftEyeBlink;
+    float _filteredLeftEyeBlink;
+    float _lastRightEyeBlink;
+    float _filteredRightEyeBlink;
 };
 
 #endif // hifi_DdeFaceTracker_h

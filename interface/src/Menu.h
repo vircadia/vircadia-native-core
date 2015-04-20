@@ -66,10 +66,6 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
-private slots:
-    void setVisibility();
-    void setActiveFaceTracker();
-
 private:
     static Menu* _instance;
     Menu();
@@ -99,8 +95,6 @@ private:
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    
-    void visibilityChanged(Discoverability::Mode discoverabilityMode);
     
     QHash<QString, QAction*> _actionHash;
 };
@@ -137,6 +131,7 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString DDEFaceRegression = "DDE Face Regression";
+    const QString DDEFiltering = "DDE Filtering";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
