@@ -191,6 +191,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         return false;
     }
 
+    if (_entity->getShouldClaimSimulationOwnership()) {
+        return true;
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     const QUuid& simulatorID = _entity->getSimulatorID();
@@ -262,7 +266,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
+        if (_entity->getShouldClaimSimulationOwnership()) {
+            _entity->setSimulatorID(myNodeID);
+            properties.setSimulatorID(myNodeID);
+            _entity->setShouldClaimSimulationOwnership(false);
+        }
+        else if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
             // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);

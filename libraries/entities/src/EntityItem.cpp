@@ -76,6 +76,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _changedOnServer = 0;
     _element = NULL;
     _simulatorIDChangedTime = 0;
+    _shouldClaimSimulationOwnership = false;
     initFromEntityItemID(entityItemID);
 }
 

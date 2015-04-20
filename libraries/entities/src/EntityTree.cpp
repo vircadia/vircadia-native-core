@@ -147,6 +147,8 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 properties.setPositionChanged(false);
                 properties.setVelocityChanged(false);
                 properties.setAccelerationChanged(false);
+            } else {
+                qCDebug(entities) << "allowing simulatorID change";
             }
         }
 

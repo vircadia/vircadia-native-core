@@ -397,20 +397,19 @@ void PhysicsEngine::computeCollisionEvents() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
 
                 // if our character capsule is colliding with something dynamic, claim simulation ownership.
-                // do this by setting the entity's simulator-id to NULL, thereby causing EntityMotionState::sendUpdate
-                // to set ownership to us.
+                // see EntityMotionState::sendUpdate
                 if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
                     EntityItem* entityB = static_cast<EntityMotionState*>(b)->getEntity();
-                    if (!entityB->getSimulatorID().isNull() && entityB->getSimulatorID() != myNodeID) {
+                    if (entityB->getSimulatorID() != myNodeID && !entityB->getShouldClaimSimulationOwnership()) {
                         qDebug() << "CLAIMING B";
-                        entityB->setSimulatorID(NULL);
+                        entityB->setShouldClaimSimulationOwnership(true);
                     }
                 }
                 if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
                     EntityItem* entityA = static_cast<EntityMotionState*>(a)->getEntity();
-                    if (!entityA->getSimulatorID().isNull() && entityA->getSimulatorID() != myNodeID) {
+                    if (entityA->getSimulatorID() != myNodeID && !entityA->getShouldClaimSimulationOwnership()) {
                         qDebug() << "CLAIMING A";
-                        entityA->setSimulatorID(NULL);
+                        entityA->setShouldClaimSimulationOwnership(true);
                     }
                 }
             }
