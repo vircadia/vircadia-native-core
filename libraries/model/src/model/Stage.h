@@ -204,8 +204,8 @@ public:
     float getOriginSurfaceAltitude() const { return _earthSunModel.getAltitude(); }
 
     // Enable / disable the effect of the time and location on the sun direction and color
-    void setEarthSunModelEnable(bool isEnabled);
-    bool isEarthSunModelEnabled() const { return _earthSunModelEnable; }
+    void setSunModelEnable(bool isEnabled);
+    bool isSunModelEnabled() const { return _sunModelEnable; }
 
     // Sun properties
     void setSunColor(const Vec3& color);
@@ -236,7 +236,7 @@ protected:
     float _dayTime = 12.0f;
     int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
-    bool _earthSunModelEnable = true;
+    bool _sunModelEnable = true;
  
     mutable bool _invalid = true;
     void invalidate() const { _invalid = true; }

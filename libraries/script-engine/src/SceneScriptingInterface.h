@@ -38,21 +38,23 @@ public:
     Q_INVOKABLE void setStageYearTime(int day);
     Q_INVOKABLE int getStageYearTime() const;
 
-    Q_INVOKABLE void setStageEarthSunModelEnable(bool isEnabled);
-    Q_INVOKABLE bool isStageEarthSunModelEnabled() const;
+    // Enable/disable the stage sun model which uses the key light to simulate
+    // the sun light based on the location of the stage trelative to earth and the current time 
+    Q_INVOKABLE void setStageSunModelEnable(bool isEnabled);
+    Q_INVOKABLE bool isStageSunModelEnabled() const;
 
 
-    Q_INVOKABLE void setSunColor(const glm::vec3& color);
-    Q_INVOKABLE glm::vec3 getSunColor() const;
-    Q_INVOKABLE void setSunIntensity(float intensity);
-    Q_INVOKABLE float getSunIntensity() const;
-    Q_INVOKABLE void setSunAmbientIntensity(float intensity);
-    Q_INVOKABLE float getSunAmbientIntensity() const;
+    Q_INVOKABLE void setKeyLightColor(const glm::vec3& color);
+    Q_INVOKABLE glm::vec3 getKeyLightColor() const;
+    Q_INVOKABLE void setKeyLightIntensity(float intensity);
+    Q_INVOKABLE float getKeyLightIntensity() const;
+    Q_INVOKABLE void setKeyLightAmbientIntensity(float intensity);
+    Q_INVOKABLE float getKeyLightAmbientIntensity() const;
 
-    // Only valid if stage Earth Sun model is disabled
-    Q_INVOKABLE void setSunDirection(const glm::vec3& direction);
+    // setKeyLightDIrection is only effective if stage Sun model is disabled
+    Q_INVOKABLE void setKeyLightDirection(const glm::vec3& direction);
 
-    Q_INVOKABLE glm::vec3 getSunDirection() const;
+    Q_INVOKABLE glm::vec3 getKeyLightDirection() const;
 
 
 
