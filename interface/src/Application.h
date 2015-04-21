@@ -213,7 +213,6 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
-    void setActiveFaceTracker();
 
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
@@ -388,6 +387,8 @@ public slots:
     void setVSyncEnabled();
 
     void resetSensors();
+    void setActiveFaceTracker();
+
     void aboutApp();
     void showEditEntitiesHelp();
     

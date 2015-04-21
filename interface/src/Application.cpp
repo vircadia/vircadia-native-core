@@ -108,7 +108,6 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-#include "devices/Visage.h"
 
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
@@ -247,7 +246,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto visage = DependencyManager::set<Visage>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
@@ -1834,12 +1832,10 @@ int Application::getMouseDragStartedY() const {
 
 FaceTracker* Application::getActiveFaceTracker() {
     auto faceshift = DependencyManager::get<Faceshift>();
-    auto visage = DependencyManager::get<Visage>();
     auto dde = DependencyManager::get<DdeFaceTracker>();
     
     return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
-            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
-             (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : NULL));
 }
 
 void Application::setActiveFaceTracker() {
@@ -1847,10 +1843,11 @@ void Application::setActiveFaceTracker() {
     DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
 #endif
 #ifdef HAVE_DDE
-    DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
-#endif
-#ifdef HAVE_VISAGE
-    DependencyManager::get<Visage>()->updateEnabled();
+    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
+    Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::DDEFiltering)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
+    DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
 #endif
 }
 
@@ -2025,7 +2022,6 @@ void Application::init() {
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
     DependencyManager::get<DdeFaceTracker>()->init();
-    DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
     RealSense::init();
@@ -3144,7 +3140,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         PROFILE_RANGE("DeferredLighting"); 
@@ -3359,7 +3355,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
-    DependencyManager::get<Visage>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
 
     OculusManager::reset();
@@ -3966,6 +3961,9 @@ void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
+        if (it.value()->isFinished()) {
+            continue;
+        }
         if (restart && it.value()->isUserLoaded()) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }

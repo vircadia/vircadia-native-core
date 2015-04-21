@@ -244,13 +244,6 @@ void Model::initJointTransforms() {
 
 void Model::init() {
     if (_renderPipelineLib.empty()) {
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
-
         // Vertex shaders
         auto modelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert)));
         auto modelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_normal_map_vert)));
@@ -291,10 +284,24 @@ void Model::init() {
             RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
             modelNormalMapVertex, modelNormalSpecularMapPixel);
 
+
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::IS_TRANSLUCENT),
             modelVertex, modelTranslucentPixel);
  
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
+            modelNormalMapVertex, modelTranslucentPixel);
+
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+            modelVertex, modelTranslucentPixel);
+
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+            modelNormalMapVertex, modelTranslucentPixel);
+
+
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::HAS_LIGHTMAP),
             modelLightmapVertex, modelLightmapPixel);
@@ -309,6 +316,7 @@ void Model::init() {
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
             modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
+
 
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::IS_SKINNED),
@@ -326,14 +334,28 @@ void Model::init() {
             RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
             skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 
+
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_TRANSLUCENT),
             skinModelVertex, modelTranslucentPixel);
+
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
+            skinModelNormalMapVertex, modelTranslucentPixel);
+
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+            skinModelVertex, modelTranslucentPixel);
+
+        _renderPipelineLib.addRenderPipeline(
+            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+            skinModelNormalMapVertex, modelTranslucentPixel);
 
 
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
             modelShadowVertex, modelShadowPixel);
+
 
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
@@ -1732,6 +1754,12 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
+
+#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
+    // with legacy transform profile, we still to protect that transform stack...
+    glPushMatrix();
+#endif 
+
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {
         renderSide = args->_renderSide;
@@ -1899,6 +1927,12 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         backend.render(_sceneRenderBatch);
     }
 
+
+#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
+    // with legacy transform profile, we still to protect that transform stack...
+    glPopMatrix();
+#endif 
+
     // restore all the default material settings
     _viewState->setupWorldLight();
     
@@ -1935,55 +1969,7 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
 }
 
 void Model::segregateMeshGroups() {
-    _meshesTranslucentTangents.clear();
-    _meshesTranslucent.clear();
-    _meshesTranslucentTangentsSpecular.clear();
-    _meshesTranslucentSpecular.clear();
-
-    _meshesTranslucentTangentsSkinned.clear();
-    _meshesTranslucentSkinned.clear();
-    _meshesTranslucentTangentsSpecularSkinned.clear();
-    _meshesTranslucentSpecularSkinned.clear();
-
-    _meshesOpaqueTangents.clear();
-    _meshesOpaque.clear();
-    _meshesOpaqueTangentsSpecular.clear();
-    _meshesOpaqueSpecular.clear();
-
-    _meshesOpaqueTangentsSkinned.clear();
-    _meshesOpaqueSkinned.clear();
-    _meshesOpaqueTangentsSpecularSkinned.clear();
-    _meshesOpaqueSpecularSkinned.clear();
-
-    _meshesOpaqueLightmapTangents.clear();
-    _meshesOpaqueLightmap.clear();
-    _meshesOpaqueLightmapTangentsSpecular.clear();
-    _meshesOpaqueLightmapSpecular.clear();
-
-    _unsortedMeshesTranslucentTangents.clear();
-    _unsortedMeshesTranslucent.clear();
-    _unsortedMeshesTranslucentTangentsSpecular.clear();
-    _unsortedMeshesTranslucentSpecular.clear();
-
-    _unsortedMeshesTranslucentTangentsSkinned.clear();
-    _unsortedMeshesTranslucentSkinned.clear();
-    _unsortedMeshesTranslucentTangentsSpecularSkinned.clear();
-    _unsortedMeshesTranslucentSpecularSkinned.clear();
-
-    _unsortedMeshesOpaqueTangents.clear();
-    _unsortedMeshesOpaque.clear();
-    _unsortedMeshesOpaqueTangentsSpecular.clear();
-    _unsortedMeshesOpaqueSpecular.clear();
-
-    _unsortedMeshesOpaqueTangentsSkinned.clear();
-    _unsortedMeshesOpaqueSkinned.clear();
-    _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
-    _unsortedMeshesOpaqueSpecularSkinned.clear();
-
-    _unsortedMeshesOpaqueLightmapTangents.clear();
-    _unsortedMeshesOpaqueLightmap.clear();
-    _unsortedMeshesOpaqueLightmapTangentsSpecular.clear();
-    _unsortedMeshesOpaqueLightmapSpecular.clear();
+    _renderBuckets.clear();
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -2017,200 +2003,18 @@ void Model::segregateMeshGroups() {
             qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
 
-        if (!hasLightmap) {
-            if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned);
 
-                _unsortedMeshesTranslucent.insertMulti(materialID, i);
-
-            } else if (translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
-
-                _unsortedMeshesTranslucentTangents.insertMulti(materialID, i);
-
-            } else if (translucentMesh && hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesTranslucentTangentsSpecular.insertMulti(materialID, i);
-
-            } else if (translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesTranslucentSpecular.insertMulti(materialID, i);
-
-            } else if (translucentMesh && hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesTranslucentTangentsSkinned.insertMulti(materialID, i);
-
-            } else if (translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesTranslucentSkinned.insertMulti(materialID, i);
-
-            } else if (translucentMesh && hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesTranslucentTangentsSpecularSkinned.insertMulti(materialID, i);
-
-            } else if (translucentMesh && !hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesTranslucentSpecularSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaque.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueTangents.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueTangentsSpecular.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueSpecular.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueTangentsSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueTangentsSpecularSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueSpecularSkinned.insertMulti(materialID, i);
-            } else {
-                qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
-            }
-        } else {
-            if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueLightmap.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueLightmapTangents.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueLightmapTangentsSpecular.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
-
-                _unsortedMeshesOpaqueLightmapSpecular.insertMulti(materialID, i);
-
-            } else {
-                qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
-            }
-        }
+        // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
+        _renderBuckets[key.getRaw()]._unsortedMeshes.insertMulti(materialID, i);
     }
     
-    foreach(int i, _unsortedMeshesTranslucent) {
-        _meshesTranslucent.append(i);
+    for(auto& b : _renderBuckets) {
+        foreach(auto i, b.second._unsortedMeshes) {
+            b.second._meshes.append(i);
+            b.second._unsortedMeshes.clear();
+        }
     }
-
-    foreach(int i, _unsortedMeshesTranslucentTangents) {
-        _meshesTranslucentTangents.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentTangentsSpecular) {
-        _meshesTranslucentTangentsSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentSpecular) {
-        _meshesTranslucentSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentSkinned) {
-        _meshesTranslucentSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentTangentsSkinned) {
-        _meshesTranslucentTangentsSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentTangentsSpecularSkinned) {
-        _meshesTranslucentTangentsSpecularSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesTranslucentSpecularSkinned) {
-        _meshesTranslucentSpecularSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaque) {
-        _meshesOpaque.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueTangents) {
-        _meshesOpaqueTangents.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueTangentsSpecular) {
-        _meshesOpaqueTangentsSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueSpecular) {
-        _meshesOpaqueSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueSkinned) {
-        _meshesOpaqueSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueTangentsSkinned) {
-        _meshesOpaqueTangentsSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueTangentsSpecularSkinned) {
-        _meshesOpaqueTangentsSpecularSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueSpecularSkinned) {
-        _meshesOpaqueSpecularSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueLightmap) {
-        _meshesOpaqueLightmap.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueLightmapTangents) {
-        _meshesOpaqueLightmapTangents.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueLightmapTangentsSpecular) {
-        _meshesOpaqueLightmapTangentsSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueLightmapSpecular) {
-        _meshesOpaqueLightmapSpecular.append(i);
-    }
-
-    _unsortedMeshesTranslucentTangents.clear();
-    _unsortedMeshesTranslucent.clear();
-    _unsortedMeshesTranslucentTangentsSpecular.clear();
-    _unsortedMeshesTranslucentSpecular.clear();
-
-    _unsortedMeshesTranslucentTangentsSkinned.clear();
-    _unsortedMeshesTranslucentSkinned.clear();
-    _unsortedMeshesTranslucentTangentsSpecularSkinned.clear();
-    _unsortedMeshesTranslucentSpecularSkinned.clear();
-
-    _unsortedMeshesOpaqueTangents.clear();
-    _unsortedMeshesOpaque.clear();
-    _unsortedMeshesOpaqueTangentsSpecular.clear();
-    _unsortedMeshesOpaqueSpecular.clear();
-
-    _unsortedMeshesOpaqueTangentsSkinned.clear();
-    _unsortedMeshesOpaqueSkinned.clear();
-    _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
-    _unsortedMeshesOpaqueSpecularSkinned.clear();
-
-    _unsortedMeshesOpaqueLightmapTangents.clear();
-    _unsortedMeshesOpaqueLightmap.clear();
-    _unsortedMeshesOpaqueLightmapTangentsSpecular.clear();
-    _unsortedMeshesOpaqueLightmapSpecular.clear();
 
     _meshGroupsKnown = true;
 }
@@ -2220,52 +2024,14 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 
     // depending on which parameters we were called with, pick the correct mesh group to render
     QVector<int>* whichList = NULL;
-    if (translucent && !hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesTranslucent;
-    } else if (translucent && hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesTranslucentTangents;
-    } else if (translucent && hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesTranslucentTangentsSpecular;
-    } else if (translucent && !hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesTranslucentSpecular;
-    } else if (translucent && hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesTranslucentTangentsSkinned;
-    } else if (translucent && !hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesTranslucentSkinned;
-    } else if (translucent && hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesTranslucentTangentsSpecularSkinned;
-    } else if (translucent && !hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesTranslucentSpecularSkinned;
 
-    } else if (!translucent && !hasLightmap && !hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaque;
-    } else if (!translucent && !hasLightmap && hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueTangents;
-    } else if (!translucent && !hasLightmap && hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueTangentsSpecular;
-    } else if (!translucent && !hasLightmap && !hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueSpecular;
-    } else if (!translucent && !hasLightmap && hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueTangentsSkinned;
-    } else if (!translucent && !hasLightmap && !hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueSkinned;
-    } else if (!translucent && !hasLightmap && hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueTangentsSpecularSkinned;
-    } else if (!translucent && !hasLightmap && !hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueSpecularSkinned;
+    RenderKey key(translucent, hasLightmap, hasTangents, hasSpecular, isSkinned);
 
-    } else if (!translucent && hasLightmap && !hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueLightmap;
-    } else if (!translucent && hasLightmap && hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueLightmapTangents;
-    } else if (!translucent && hasLightmap && hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueLightmapTangentsSpecular;
-    } else if (!translucent && hasLightmap && !hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueLightmapSpecular;
-
-    } else {
-        qCDebug(renderutils) << "unexpected!!! this mesh didn't fall into any or our groups???";
+    auto bucket = _renderBuckets.find(key.getRaw());
+    if (bucket != _renderBuckets.end()) {
+        whichList = &(*bucket).second._meshes;
     }
+
     return whichList;
 }
 
@@ -2277,6 +2043,7 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
+        locations = 0;
         return;
     }
 
@@ -2303,7 +2070,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
     int meshPartsRendered = 0;
 
     bool pickProgramsNeeded = true;
-    Locations* locations;
+    Locations* locations = nullptr;
     
     foreach(Model* model, _modelsInScene) {
         QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
@@ -2331,20 +2098,19 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
 
-    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
-    
+    //Pick the mesh list with the requested render flags
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);    
     if (!whichList) {
-        qCDebug(renderutils) << "unexpected!!! we don't know which list of meshes to render...";
         return 0;
     }
     QVector<int>& list = *whichList;
 
     // If this list has nothing to render, then don't bother proceeding. This saves us on binding to programs    
-    if (list.size() == 0) {
+    if (list.empty()) {
         return 0;
     }
 
-    Locations* locations;
+    Locations* locations = nullptr;
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, 
                                 args, locations);
     meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 

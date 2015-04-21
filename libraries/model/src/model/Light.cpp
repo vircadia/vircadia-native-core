@@ -64,6 +64,10 @@ void Light::setIntensity(float intensity) {
     editSchema()._intensity = intensity;
 }
 
+void Light::setAmbientIntensity(float intensity) {
+    editSchema()._ambientIntensity = intensity;
+}
+
 void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;

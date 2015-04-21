@@ -302,6 +302,9 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
                 return false;
             }
+        } else {
+            qDebug() << "Using access token from DOMAIN_SERVER_ACCESS_TOKEN in env. This overrides any access token present"
+                << " in the user or master config.";
         }
         
         // give this access token to the AccountManager

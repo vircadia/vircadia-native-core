@@ -27,6 +27,7 @@ vec3 getLightDirection(Light l) { return l._direction.xyz; } // direction is -Z 
 
 vec3 getLightColor(Light l) { return l._color.rgb; }
 float getLightIntensity(Light l) { return l._color.w; }
+float getLightAmbientIntensity(Light l) { return l._direction.w; }
 
 float evalLightAttenuation(Light l, float r) {
     float d = max(r - l._attenuation.x, 0.0);

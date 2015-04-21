@@ -30,7 +30,6 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -164,21 +163,21 @@ Menu::Menu() {
 
         QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToEveryone);
 
         QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToFriends);
 
         QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToNoOne);
 
         connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
-            this, &Menu::visibilityChanged);
+            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
     }
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -236,17 +235,13 @@ Menu::Menu() {
 
     QMenu* viewMenu = addMenu("View");
 
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
 #ifdef Q_OS_MAC
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
 #else
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::Key_F,
+#endif
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
@@ -261,11 +256,15 @@ Menu::Menu() {
         0, // QML Qt::Key_H, 
         false, qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::CTRL | Qt::SHIFT | Qt::Key_H,
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 
+#ifdef Q_OS_MAC
+                                           Qt::META | Qt::Key_H,
+#else
+                                           Qt::CTRL | Qt::Key_H,
+#endif
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
-
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -376,30 +375,28 @@ Menu::Menu() {
 
         QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
             0, true,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
 #ifdef HAVE_FACESHIFT
         QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
 #ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
-#endif
-#ifdef HAVE_VISAGE
-        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
-            0, false,
-            this, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(visageFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
+    useAudioForMouth->setVisible(false);
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
+    ddeFiltering->setVisible(false);
     QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
         Qt::CTRL | Qt::Key_Apostrophe,
         DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
@@ -975,37 +972,3 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
-
-void Menu::setVisibility() {
-    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToEveryone)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToFriends)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
-    }
-}
-
-void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
-    if (discoverabilityMode == Discoverability::All) {
-        setIsOptionChecked(MenuOption::VisibleToEveryone, true);
-    } else if (discoverabilityMode == Discoverability::Friends) {
-        setIsOptionChecked(MenuOption::VisibleToFriends, true);
-    } else if (discoverabilityMode == Discoverability::None) {
-        setIsOptionChecked(MenuOption::VisibleToNoOne, true);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
-    }
-}
-
-void Menu::setActiveFaceTracker() {
-#ifdef HAVE_DDE
-    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
-    Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
-#endif
-    qApp->setActiveFaceTracker();
-}
