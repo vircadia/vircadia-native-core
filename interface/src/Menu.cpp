@@ -379,6 +379,8 @@ Menu::Menu() {
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
+    useAudioForMouth->setVisible(false);
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
     ddeFiltering->setVisible(false);
     QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 

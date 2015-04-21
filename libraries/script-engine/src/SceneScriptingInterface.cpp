@@ -46,44 +46,44 @@ int SceneScriptingInterface::getStageYearTime() const {
     return _skyStage->getYearTime();
 }
 
-void SceneScriptingInterface::setSunColor(const glm::vec3& color) {
+void SceneScriptingInterface::setKeyLightColor(const glm::vec3& color) {
     _skyStage->setSunColor(color);
 }
 
-glm::vec3 SceneScriptingInterface::getSunColor() const {
+glm::vec3 SceneScriptingInterface::getKeyLightColor() const {
     return _skyStage->getSunColor();
 }
 
-void SceneScriptingInterface::setSunIntensity(float intensity) {
+void SceneScriptingInterface::setKeyLightIntensity(float intensity) {
     _skyStage->setSunIntensity(intensity);
 }
 
-float SceneScriptingInterface::getSunIntensity() const {
+float SceneScriptingInterface::getKeyLightIntensity() const {
     return _skyStage->getSunIntensity();
 }
 
-void SceneScriptingInterface::setSunAmbientIntensity(float intensity) {
+void SceneScriptingInterface::setKeyLightAmbientIntensity(float intensity) {
     _skyStage->setSunAmbientIntensity(intensity);
 }
 
-float SceneScriptingInterface::getSunAmbientIntensity() const {
+float SceneScriptingInterface::getKeyLightAmbientIntensity() const {
     return _skyStage->getSunAmbientIntensity();
 }
 
-void SceneScriptingInterface::setSunDirection(const glm::vec3& direction) {
+void SceneScriptingInterface::setKeyLightDirection(const glm::vec3& direction) {
     _skyStage->setSunDirection(direction);
 }
 
-glm::vec3 SceneScriptingInterface::getSunDirection() const {
+glm::vec3 SceneScriptingInterface::getKeyLightDirection() const {
     return _skyStage->getSunDirection();
 }
 
-void SceneScriptingInterface::setStageEarthSunModelEnable(bool isEnabled) {
-    _skyStage->setEarthSunModelEnable(isEnabled);
+void SceneScriptingInterface::setStageSunModelEnable(bool isEnabled) {
+    _skyStage->setSunModelEnable(isEnabled);
 }
 
-bool SceneScriptingInterface::isStageEarthSunModelEnabled() const {
-    return _skyStage->isEarthSunModelEnabled();
+bool SceneScriptingInterface::isStageSunModelEnabled() const {
+    return _skyStage->isSunModelEnabled();
 }
 
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {

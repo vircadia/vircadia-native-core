@@ -250,8 +250,8 @@ void SunSkyStage::setOriginLocation(float longitude, float latitude, float altit
     invalidate();
 }
 
-void SunSkyStage::setEarthSunModelEnable(bool isEnabled) {
-    _earthSunModelEnable = isEnabled;
+void SunSkyStage::setSunModelEnable(bool isEnabled) {
+    _sunModelEnable = isEnabled;
     invalidate();
 }
 
@@ -266,7 +266,7 @@ void SunSkyStage::setSunAmbientIntensity(float intensity) {
 }
 
 void SunSkyStage::setSunDirection(const Vec3& direction) {
-    if (!isEarthSunModelEnabled()) {
+    if (!isSunModelEnabled()) {
         _sunLight->setDirection(direction);
     }
 }
@@ -286,7 +286,7 @@ void SunSkyStage::updateGraphicsObject() const {
     // And update the sunLAtitude as the declinaison depending of the time of the year
     _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
-    if (isEarthSunModelEnabled()) {
+    if (isSunModelEnabled()) {
         Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
         _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
 
