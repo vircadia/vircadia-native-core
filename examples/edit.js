@@ -13,6 +13,8 @@
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
+Script.include(["libraries/overlays.js"]);
+
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataviewHelpers.js",
@@ -28,6 +30,7 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/lightOverlayManager.js",
+    "libraries/zoneOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
@@ -35,6 +38,8 @@ var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
+var zoneOverlayManager = new ZoneOverlayManager();
+zoneOverlayManager.setVisible(true);
 
 var cameraManager = new CameraManager();
 
@@ -47,6 +52,7 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
+    zoneOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
