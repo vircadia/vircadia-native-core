@@ -42,7 +42,7 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 int main(int argc, const char* argv[]) {
 #ifdef Q_OS_WIN
     // Run only one instance of Interface at a time.
-    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
+    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface - " + qgetenv("USERNAME"));
     DWORD result = GetLastError();
     if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
         // Interface is already running.
