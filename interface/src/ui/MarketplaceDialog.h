@@ -1,5 +1,5 @@
 //
-//  AddressBarDialog.h
+//  MarketplaceDialog.h
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
