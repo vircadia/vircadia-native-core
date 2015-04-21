@@ -1745,6 +1745,7 @@ void Application::setActiveFaceTracker() {
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
+    Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::DDEFiltering)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
     DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
