@@ -73,33 +73,33 @@ function runStageTime() {
 }
 Script.setInterval(runStageTime, tickTackPeriod);
 
-panel.newCheckbox("Enable Earth Sun Model", 
-    function(value) { Scene.setStageEarthSunModelEnable((value != 0)); },
-    function() { return Scene.isStageEarthSunModelEnabled(); },
+panel.newCheckbox("Enable Sun Model", 
+    function(value) { Scene.setStageSunModelEnable((value != 0)); },
+    function() { return Scene.isStageSunModelEnabled(); },
     function(value) { return (value); }
 );
 
 panel.newDirectionBox("Light Direction", 
-    function(value) { Scene.setSunDirection(value); },
-    function() { return Scene.getSunDirection(); },
+    function(value) { Scene.setKeyLightDirection(value); },
+    function() { return Scene.getKeyLightDirection(); },
     function(value) { return value.x.toFixed(2) + "," + value.y.toFixed(2) + "," + value.z.toFixed(2); }
 );
 
 panel.newSlider("Light Intensity", 0.0, 5, 
-    function(value) { Scene.setSunIntensity(value); },
-    function() { return Scene.getSunIntensity(); },
+    function(value) { Scene.setKeyLightIntensity(value); },
+    function() { return Scene.getKeyLightIntensity(); },
     function(value) { return (value).toFixed(2); }
 );
 
 panel.newSlider("Ambient Light Intensity", 0.0, 1.0, 
-    function(value) { Scene.setSunAmbientIntensity(value); },
-    function() { return Scene.getSunAmbientIntensity(); },
+    function(value) { Scene.setKeyLightAmbientIntensity(value); },
+    function() { return Scene.getKeyLightAmbientIntensity(); },
     function(value) { return (value).toFixed(2); }
 );
 
 panel.newColorBox("Light Color", 
-    function(value) { Scene.setSunColor(value); },
-    function() { return Scene.getSunColor(); },
+    function(value) { Scene.setKeyLightColor(value); },
+    function() { return Scene.getKeyLightColor(); },
     function(value) { return (value); } // "(" + value.x + "," = value.y + "," + value.z + ")"; }
 );
 
