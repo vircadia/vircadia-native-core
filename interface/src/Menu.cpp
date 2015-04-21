@@ -245,7 +245,7 @@ Menu::Menu() {
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
-#endif
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, 
         0, // QML Qt::Key_P, 
         true, qApp, SLOT(cameraMenuChanged()));
