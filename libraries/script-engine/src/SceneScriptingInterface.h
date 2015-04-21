@@ -38,6 +38,8 @@ public:
     Q_INVOKABLE void setStageYearTime(int day);
     Q_INVOKABLE int getStageYearTime() const;
 
+    // Enable/disable the stage sun model which uses the key light to simulate
+    // the sun light based on the location of the stage trelative to earth and the current time 
     Q_INVOKABLE void setStageSunModelEnable(bool isEnabled);
     Q_INVOKABLE bool isStageSunModelEnabled() const;
 
@@ -49,7 +51,7 @@ public:
     Q_INVOKABLE void setKeyLightAmbientIntensity(float intensity);
     Q_INVOKABLE float getKeyLightAmbientIntensity() const;
 
-    // Only valid if stage Earth Sun model is disabled
+    // setKeyLightDIrection is only effective if stage Sun model is disabled
     Q_INVOKABLE void setKeyLightDirection(const glm::vec3& direction);
 
     Q_INVOKABLE glm::vec3 getKeyLightDirection() const;
