@@ -189,6 +189,15 @@
         }                                           \
     }
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(P, S) \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        int newValue = P.toVariant().toInt();   \
+        if (_defaultSettings || newValue != _##P) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(P, S)  \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \

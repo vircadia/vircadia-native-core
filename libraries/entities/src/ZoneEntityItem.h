@@ -41,22 +41,73 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-    const rgbColor& getColor() const { return _sunColor; }
-    xColor getXColor() const { xColor color = { _sunColor[RED_INDEX], _sunColor[GREEN_INDEX], _sunColor[BLUE_INDEX] }; return color; }
+    virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
 
-    void setColor(const rgbColor& value) { memcpy(_sunColor, value, sizeof(_sunColor)); }
-    void setColor(const xColor& value) {
-        _sunColor[RED_INDEX] = value.red;
-        _sunColor[GREEN_INDEX] = value.green;
-        _sunColor[BLUE_INDEX] = value.blue;
+    xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
+    void setKeyLightColor(const xColor& value) {
+        _keyLightColor[RED_INDEX] = value.red;
+        _keyLightColor[GREEN_INDEX] = value.green;
+        _keyLightColor[BLUE_INDEX] = value.blue;
     }
     
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
+    float getKeyLightIntensity() const { return _keyLightIntensity; }
+    void setKeyLightIntensity(float value) { _keyLightIntensity = value; }
+
+    float getKeyLightAmbientIntensity() const { return _keyLightAmbientIntensity; }
+    void setKeyLightAmbientIntensity(float value) { _keyLightAmbientIntensity = value; }
+
+    const glm::vec3& getKeyLightDirection() const { return _keyLightDirection; }
+    void setKeyLightDirection(const glm::vec3& value) { _keyLightDirection = value; }
+
+    bool getStageSunModelEnabled() const { return _stageSunModelEnabled; }
+    void setStageSunModelEnabled(bool value) { _stageSunModelEnabled = value; }
+
+    float getStageLatitude() const { return _stageLatitude; }
+    void setStageLatitude(float value) { _stageLatitude = value; }
+
+    float getStageLongitude() const { return _stageLongitude; }
+    void setStageLongitude(float value) { _stageLongitude = value; }
+
+    float getStageAltitude() const { return _stageAltitude; }
+    void setStageAltitude(float value) { _stageAltitude = value; }
+
+    uint16_t getStageDay() const { return _stageDay; }
+    void setStageDay(uint16_t value) { _stageDay = value; }
+
+    float getStageHour() const { return _stageHour; }
+    void setStageHour(float value) { _stageHour = value; }
+
+    static bool getZonesArePickable() { return _zonesArePickable; }
+    static void setZonesArePickable(bool value) { _zonesArePickable = value; }
+  
 
     virtual void debugDump() const;
 
+    static const xColor DEFAULT_KEYLIGHT_COLOR;
+    static const float DEFAULT_KEYLIGHT_INTENSITY;
+    static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
+    static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
+    static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
+    static const float DEFAULT_STAGE_LATITUDE;
+    static const float DEFAULT_STAGE_LONGITUDE;
+    static const float DEFAULT_STAGE_ALTITUDE;
+    static const quint16 DEFAULT_STAGE_DAY;
+    static const float DEFAULT_STAGE_HOUR;
+    
 protected:
-    rgbColor _sunColor;
+    // properties of the "sun" in the zone
+    rgbColor _keyLightColor;
+    float _keyLightIntensity;
+    float _keyLightAmbientIntensity;
+    glm::vec3 _keyLightDirection;
+    bool _stageSunModelEnabled;
+    float _stageLatitude;
+    float _stageLongitude;
+    float _stageAltitude;
+    uint16_t _stageDay;
+    float _stageHour;
+
+    static bool _zonesArePickable;
 };
 
 #endif // hifi_ZoneEntityItem_h

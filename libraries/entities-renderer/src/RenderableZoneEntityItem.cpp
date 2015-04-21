@@ -32,8 +32,8 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
 
     const float MAX_COLOR = 255.0f;
 
-    glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
-                    getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
+    glm::vec4 cubeColor(_keyLightColor[RED_INDEX] / MAX_COLOR, _keyLightColor[GREEN_INDEX] / MAX_COLOR,
+                    _keyLightColor[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
 
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
@@ -46,5 +46,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
         glPopMatrix();
     glPopMatrix();
+
+    //debugDump();
 
 };

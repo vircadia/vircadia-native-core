@@ -12,18 +12,20 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
+#include <QSet>
+#include <QStack>
+
 #include <EntityTree.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
 
+class AbstractScriptingServicesInterface;
+class AbstractViewStateInterface;
 class Model;
 class ScriptEngine;
-class AbstractViewStateInterface;
-class AbstractScriptingServicesInterface;
-
-class ScriptEngine;
+class ZoneEntityItem;
 
 class EntityScriptDetails {
 public:
@@ -164,6 +166,24 @@ private:
     bool _shuttingDown = false;
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
+
+    QSet<EntityItemID> _lastZones;
+    QSet<EntityItemID> _currentZones;
+    QStack<EntityItemID> _zoneHistory;
+    EntityItemID _currentZone;
+    
+    bool _hasPreviousZone = false;
+
+    glm::vec3 _previousKeyLightColor;
+    float _previousKeyLightIntensity;
+    float _previousKeyLightAmbientIntensity;
+    glm::vec3 _previousKeyLightDirection;
+    bool _previousStageSunModelEnabled;
+    float _previousStageLongitude;
+    float _previousStageLatitude;
+    float _previousStageAltitude;
+    float _previousStageHour;
+    int _previousStageDay;
     
 };
 
