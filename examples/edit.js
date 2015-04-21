@@ -135,6 +135,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newZoneButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -201,6 +202,14 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+        newZoneButton = toolBar.addTool({
+            imageURL: toolIconUrl + "zonecube3.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH + 208, width: 256, height: 256 },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
 
         that.setActive(false);
     }
@@ -241,6 +250,7 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newZoneButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -405,6 +415,21 @@ var toolBar = (function () {
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
                                 lineHeight: 0.06
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newZoneButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Zone",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 10, y: 10, z: 10 },
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
