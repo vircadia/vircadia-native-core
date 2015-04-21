@@ -13,6 +13,8 @@
 #define hifi_OffscreenQmlDialog_h
 
 #include <QQuickItem>
+#include <5.4.1/QtGui/qpa/qplatformdialoghelper.h>
+
 #include "OffscreenUi.h"
 
 #define QML_DIALOG_DECL \
@@ -21,8 +23,8 @@ private: \
     static const QUrl QML; \
 public: \
     static void registerType(); \
-    static void show(); \
-    static void toggle(); \
+    static void show(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void toggle(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
 private:
 
 #define QML_DIALOG_DEF(x) \
@@ -33,24 +35,70 @@ private:
         qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
     } \
     \
-    void x::show() { \
+    void x::show(std::function<void(QQmlContext*, QQuickItem *)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->show(QML, NAME); \
+        offscreenUi->show(QML, NAME, f); \
     } \
     \
-    void x::toggle() { \
+    void x::toggle(std::function<void(QQmlContext*, QQuickItem *)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME); \
+        offscreenUi->toggle(QML, NAME, f); \
     }
 
 class OffscreenQmlDialog : public QQuickItem
 {
     Q_OBJECT
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY titleChanged)
+    Q_ENUMS(StandardButton)
+    Q_FLAGS(StandardButtons)
+
 public:
     OffscreenQmlDialog(QQuickItem* parent = nullptr);
+    virtual ~OffscreenQmlDialog();
+
+    enum StandardButton {
+        NoButton = QPlatformDialogHelper::NoButton,
+        Ok = QPlatformDialogHelper::Ok,
+        Save = QPlatformDialogHelper::Save,
+        SaveAll = QPlatformDialogHelper::SaveAll,
+        Open = QPlatformDialogHelper::Open,
+        Yes = QPlatformDialogHelper::Yes,
+        YesToAll = QPlatformDialogHelper::YesToAll,
+        No = QPlatformDialogHelper::No,
+        NoToAll = QPlatformDialogHelper::NoToAll,
+        Abort = QPlatformDialogHelper::Abort,
+        Retry = QPlatformDialogHelper::Retry,
+        Ignore = QPlatformDialogHelper::Ignore,
+        Close = QPlatformDialogHelper::Close,
+        Cancel = QPlatformDialogHelper::Cancel,
+        Discard = QPlatformDialogHelper::Discard,
+        Help = QPlatformDialogHelper::Help,
+        Apply = QPlatformDialogHelper::Apply,
+        Reset = QPlatformDialogHelper::Reset,
+        RestoreDefaults = QPlatformDialogHelper::RestoreDefaults,
+        NButtons
+    };
+    Q_DECLARE_FLAGS(StandardButtons, StandardButton)
 
 protected:
     void hide();
+    virtual void accept();
+    virtual void reject();
+
+public:    
+    QString title() const;
+    void setTitle(const QString &arg);
+
+signals:
+    void accepted();
+    void rejected();
+    void titleChanged();
+
+private:
+    QString _title;
+
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(OffscreenQmlDialog::StandardButtons)
 
 #endif

@@ -37,7 +37,9 @@ void LoginDialog::toggleAction() {
     } else {
         // change the menu item to login
         loginAction->setText("Login");
-        connect(loginAction, &QAction::triggered, &LoginDialog::show);
+        connect(loginAction, &QAction::triggered, [] {
+            LoginDialog::show();
+        });
     }
 }
 

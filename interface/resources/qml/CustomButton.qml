@@ -6,9 +6,13 @@ import QtQuick.Controls.Styles 1.3
 Button {
     SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     text: "Text"
-    width: 128
-    height: 64
     style: ButtonStyle {
+    	padding {
+            top: 8
+            left: 12
+            right: 12
+            bottom: 8
+    	}
         background:  CustomBorder {
             anchors.fill: parent
         }

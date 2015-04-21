@@ -59,12 +59,12 @@ public:
     virtual ~OffscreenUi();
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
-    void load(const QUrl& qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*) {});
-    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*) {}) {
+    void load(const QUrl& qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*, QQuickItem*) {});
+    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*, QQuickItem*) {}) {
         load(QUrl(qmlSourceFile), f);
     }
-    void show(const QUrl& url, const QString& name);
-    void toggle(const QUrl& url, const QString& name);
+    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {}));
+    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {}));
     void setBaseUrl(const QUrl& baseUrl);
     void addImportPath(const QString& path);
     QQmlContext* qmlContext();
@@ -86,31 +86,32 @@ public:
     static ButtonCallback NO_OP_CALLBACK;
 
     static void messageBox(const QString& title, const QString& text,
+    static void messageBox(const QString &title, const QString &text,
+        ButtonCallback f,
         QMessageBox::Icon icon, 
-        QMessageBox::StandardButtons buttons, 
-        ButtonCallback f);
+        QMessageBox::StandardButtons buttons);
 
     static void information(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
-        ButtonCallback callback = NO_OP_CALLBACK);
+        ButtonCallback callback = NO_OP_CALLBACK,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
     static void question(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),
-        ButtonCallback callback = [](QMessageBox::StandardButton) {});
+        ButtonCallback callback = NO_OP_CALLBACK,
+        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
 
     static void warning(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
-        ButtonCallback callback = [](QMessageBox::StandardButton) {});
+        ButtonCallback callback = NO_OP_CALLBACK,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
     static void critical(const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
-        ButtonCallback callback = [](QMessageBox::StandardButton) {});
+        ButtonCallback callback = NO_OP_CALLBACK,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
 protected:
 
 private slots:
     void updateQuick();
-    void finishQmlLoad();
+    void finishQmlLoad(std::function<void(QQmlContext*, QQuickItem *)> f);
 
 public slots:
     void requestUpdate();

@@ -85,6 +85,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <OAuthNetworkAccessManager.h>
+#include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -762,11 +763,10 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
     MarketplaceDialog::registerType();
+    MessageDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
-    offscreenUi->qmlEngine()->setNetworkAccessManagerFactory(new OAuthFactory());
-    offscreenUi->qmlEngine()->networkAccessManager();
     offscreenUi->resize(_glWidget->size());
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
