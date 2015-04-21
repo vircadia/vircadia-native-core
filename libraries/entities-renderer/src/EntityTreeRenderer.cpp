@@ -463,7 +463,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
                 _previousKeyLightIntensity = scene->getKeyLightIntensity();
                 _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
                 _previousKeyLightDirection = scene->getKeyLightDirection();
-                _previousUseEarthModel = scene->isStageEarthSunModelEnabled();
+                _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
                 _previousStageLongitude = scene->getStageLocationLongitude();
                 _previousStageLatitude = scene->getStageLocationLatitude();
                 _previousStageAltitude = scene->getStageLocationAltitude();
@@ -475,7 +475,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
             scene->setKeyLightIntensity(bestZone->getKeyLightIntensity());
             scene->setKeyLightAmbientIntensity(bestZone->getKeyLightAmbientIntensity());
             scene->setKeyLightDirection(bestZone->getKeyLightDirection());
-            scene->setStageEarthSunModelEnable(bestZone->getUseEarthModel());
+            scene->setStageSunModelEnable(bestZone->getStageSunModelEnabled());
             scene->setStageLocation(bestZone->getStageLongitude(), bestZone->getStageLatitude(),
                                     bestZone->getStageAltitude());
             scene->setStageDayTime(bestZone->getStageHour());
@@ -488,7 +488,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
                 scene->setKeyLightIntensity(_previousKeyLightIntensity);
                 scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
                 scene->setKeyLightDirection(_previousKeyLightDirection);
-                scene->setStageEarthKeyLightModelEnable(_previousUseEarthModel);
+                scene->setStageSunModelEnable(_previousStageSunModelEnabled);
                 scene->setStageLocation(_previousStageLongitude, _previousStageLatitude, 
                                         _previousStageAltitude);
                 scene->setStageDayTime(_previousStageHour);

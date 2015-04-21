@@ -41,7 +41,10 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
+    // NOTE: Apparently if you begin to return a shape type, then the physics system will prevent an avatar
+    // from penetrating the walls of the entity. This fact will likely be important to Clement as he works
+    // on better defining the shape/volume of a zone.
+    //virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
 
     xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
     void setKeyLightColor(const xColor& value) {
@@ -49,6 +52,15 @@ public:
         _keyLightColor[GREEN_INDEX] = value.green;
         _keyLightColor[BLUE_INDEX] = value.blue;
     }
+
+    glm::vec3 getKeyLightColorVec3() const {
+        const quint8 MAX_COLOR = 255;
+        glm::vec3 color = { _keyLightColor[RED_INDEX] / MAX_COLOR,
+                            _keyLightColor[GREEN_INDEX] / MAX_COLOR,
+                            _keyLightColor[BLUE_INDEX] / MAX_COLOR };
+        return color;
+    }
+
     
     float getKeyLightIntensity() const { return _keyLightIntensity; }
     void setKeyLightIntensity(float value) { _keyLightIntensity = value; }
