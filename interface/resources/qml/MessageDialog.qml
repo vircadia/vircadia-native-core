@@ -43,8 +43,9 @@ import QtQuick 2.2
 import QtQuick.Controls 1.2
 import QtQuick.Window 2.1
 import QtQuick.Dialogs 1.2
+import "controls"
 
-CustomDialog {
+Dialog {
     id: root
     property real spacing: 8
     property real outerSpacing: 16
@@ -179,115 +180,115 @@ CustomDialog {
                 spacing: root.spacing
                 layoutDirection: Qt.RightToLeft
                 width: parent.width
-                CustomButton {
+                Button {
                     id: okButton
                     text: qsTr("OK")
                     onClicked: content.click(StandardButton.Ok)
                     visible: content.standardButtons & StandardButton.Ok
                 }
-                CustomButton {
+                Button {
                     id: openButton
                     text: qsTr("Open")
                     onClicked: content.click(StandardButton.Open)
                     visible: content.standardButtons & StandardButton.Open
                 }
-                CustomButton {
+                Button {
                     id: saveButton
                     text: qsTr("Save")
                     onClicked: content.click(StandardButton.Save)
                     visible: content.standardButtons & StandardButton.Save
                 }
-                CustomButton {
+                Button {
                     id: saveAllButton
                     text: qsTr("Save All")
                     onClicked: content.click(StandardButton.SaveAll)
                     visible: content.standardButtons & StandardButton.SaveAll
                 }
-                CustomButton {
+                Button {
                     id: retryButton
                     text: qsTr("Retry")
                     onClicked: content.click(StandardButton.Retry)
                     visible: content.standardButtons & StandardButton.Retry
                 }
-                CustomButton {
+                Button {
                     id: ignoreButton
                     text: qsTr("Ignore")
                     onClicked: content.click(StandardButton.Ignore)
                     visible: content.standardButtons & StandardButton.Ignore
                 }
-                CustomButton {
+                Button {
                     id: applyButton
                     text: qsTr("Apply")
                     onClicked: content.click(StandardButton.Apply)
                     visible: content.standardButtons & StandardButton.Apply
                 }
-                CustomButton {
+                Button {
                     id: yesButton
                     text: qsTr("Yes")
                     onClicked: content.click(StandardButton.Yes)
                     visible: content.standardButtons & StandardButton.Yes
                 }
-                CustomButton {
+                Button {
                     id: yesAllButton
                     text: qsTr("Yes to All")
                     onClicked: content.click(StandardButton.YesToAll)
                     visible: content.standardButtons & StandardButton.YesToAll
                 }
-                CustomButton {
+                Button {
                     id: noButton
                     text: qsTr("No")
                     onClicked: content.click(StandardButton.No)
                     visible: content.standardButtons & StandardButton.No
                 }
-                CustomButton {
+                Button {
                     id: noAllButton
                     text: qsTr("No to All")
                     onClicked: content.click(StandardButton.NoToAll)
                     visible: content.standardButtons & StandardButton.NoToAll
                 }
-                CustomButton {
+                Button {
                     id: discardButton
                     text: qsTr("Discard")
                     onClicked: content.click(StandardButton.Discard)
                     visible: content.standardButtons & StandardButton.Discard
                 }
-                CustomButton {
+                Button {
                     id: resetButton
                     text: qsTr("Reset")
                     onClicked: content.click(StandardButton.Reset)
                     visible: content.standardButtons & StandardButton.Reset
                 }
-                CustomButton {
+                Button {
                     id: restoreDefaultsButton
                     text: qsTr("Restore Defaults")
                     onClicked: content.click(StandardButton.RestoreDefaults)
                     visible: content.standardButtons & StandardButton.RestoreDefaults
                 }
-                CustomButton {
+                Button {
                     id: cancelButton
                     text: qsTr("Cancel")
                     onClicked: content.click(StandardButton.Cancel)
                     visible: content.standardButtons & StandardButton.Cancel
                 }
-                CustomButton {
+                Button {
                     id: abortButton
                     text: qsTr("Abort")
                     onClicked: content.click(StandardButton.Abort)
                     visible: content.standardButtons & StandardButton.Abort
                 }
-                CustomButton {
+                Button {
                     id: closeButton
                     text: qsTr("Close")
                     onClicked: content.click(StandardButton.Close)
                     visible: content.standardButtons & StandardButton.Close
                 }
-                CustomButton {
+                Button {
                     id: moreButton
                     text: qsTr("Show Details...")
                     onClicked: content.state = (content.state === "" ? "expanded" : "")
                     visible: content.detailedText.length > 0
                 }
-                CustomButton {
+                Button {
                     id: helpButton
                     text: qsTr("Help")
                     onClicked: content.click(StandardButton.Help)
