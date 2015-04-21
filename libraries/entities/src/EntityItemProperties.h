@@ -137,6 +137,7 @@ class EntityItemProperties {
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
