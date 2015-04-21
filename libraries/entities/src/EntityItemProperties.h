@@ -98,22 +98,10 @@ enum EntityPropertyList {
     PROP_ACCELERATION,
     PROP_SIMULATOR_ID,
 
-    PROP_KEYLIGHT_COLOR,
-    PROP_KEYLIGHT_INTENSITY,
-    PROP_KEYLIGHT_AMBIENT_INTENSITY,
-    PROP_KEYLIGHT_DIRECTION,
-    PROP_STAGE_SUN_MODEL_ENABLED,
-    PROP_STAGE_LATITUDE,
-    PROP_STAGE_LONGITUDE,
-    PROP_STAGE_ALTITUDE,
-    PROP_STAGE_DAY,
-    PROP_STAGE_HOUR,
-    
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // WARNING! Do not add props here unless you intentionally mean to reuse PROP_ indexes
@@ -127,8 +115,8 @@ enum EntityPropertyList {
     PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1,
 
     // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
-    // other properties
-    /*
+    // other properties which will never overlap with each other. We do this so that we don't have to expand
+    // the size of the properties bitflags mask
     PROP_KEYLIGHT_COLOR = PROP_COLOR,
     PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
     PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
@@ -139,7 +127,7 @@ enum EntityPropertyList {
     PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
-    */
+
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 
