@@ -1744,9 +1744,9 @@ void Application::setActiveFaceTracker() {
     DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
 #endif
 #ifdef HAVE_DDE
-    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
+    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
-    Menu::getInstance()->getActionForOption(MenuOption::DDEFiltering)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
 #endif
 }

@@ -285,7 +285,7 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
-        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::DDEFiltering);
+        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());
