@@ -75,6 +75,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
+    _simulatorIDChangedTime = 0;
+    _shouldClaimSimulationOwnership = false;
     initFromEntityItemID(entityItemID);
 }
 
@@ -90,6 +92,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _dirtyFlags = 0;
     _changedOnServer = 0;
     _element = NULL;
+    _simulatorIDChangedTime = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties);
 }
@@ -321,6 +324,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
+    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
+    glm::vec3 savePosition = _position;
+    glm::quat saveRotation = _rotation;
+    glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveGravity = _gravity;
+    glm::vec3 saveAcceleration = _acceleration;
+
+
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -420,7 +431,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         #endif
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
-        
+
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
         if (fromSameServerEdit) {
@@ -567,7 +578,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_STRING(PROP_SIMULATOR_ID, setSimulatorID);
+            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, setSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -606,6 +617,20 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             _lastSimulated = now;
         }
     }
+
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    if (_simulatorID == myNodeID) {
+        // the packet that produced this bitstream originally came from physics simulations performed by
+        // this node, so our version has to be newer than what the packet contained.
+        _position = savePosition;
+        _rotation = saveRotation;
+        _velocity = saveVelocity;
+        _gravity = saveGravity;
+        _acceleration = saveAcceleration;
+    }
+
     return bytesRead;
 }
 
@@ -680,6 +705,7 @@ void EntityItem::simulate(const quint64& now) {
     #ifdef WANT_DEBUG
         qCDebug(entities) << "********** EntityItem::simulate()";
         qCDebug(entities) << "    entity ID=" << getEntityItemID();
+        qCDebug(entities) << "    simulator ID=" << getSimulatorID();
         qCDebug(entities) << "    now=" << now;
         qCDebug(entities) << "    _lastSimulated=" << _lastSimulated;
         qCDebug(entities) << "    timeElapsed=" << timeElapsed;
@@ -697,6 +723,7 @@ void EntityItem::simulate(const quint64& now) {
             qCDebug(entities) << "    MOVING...=";
             qCDebug(entities) << "        hasVelocity=" << hasVelocity();
             qCDebug(entities) << "        hasGravity=" << hasGravity();
+            qCDebug(entities) << "        hasAcceleration=" << hasAcceleration();
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
             qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
         }
@@ -766,7 +793,6 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
                 qCDebug(entities) << "    damping:" << _damping;
                 qCDebug(entities) << "    velocity AFTER dampingResistance:" << velocity;
                 qCDebug(entities) << "    glm::length(velocity):" << glm::length(velocity);
-                qCDebug(entities) << "    velocityEspilon :" << ENTITY_ITEM_EPSILON_VELOCITY_LENGTH;
             #endif
         }
 
@@ -787,13 +813,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         
         position = newPosition;
 
-        // apply gravity
-        if (hasGravity()) { 
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it's what we've got
-            velocity += getGravity() * timeElapsed;
-        }
-
+        // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
         if (hasAcceleration()) {
             velocity += getAcceleration() * timeElapsed;
         }
@@ -1150,14 +1170,8 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
-        if (glm::length(value) < MIN_ACCELERATION_DELTA) {
-            _acceleration = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _acceleration = value;
-        }
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
-    }
+    _acceleration = value;
+    _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
@@ -1195,3 +1209,9 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
+void EntityItem::setSimulatorID(const QUuid& value) {
+    if (_simulatorID != value) {
+        _simulatorID = value;
+        _simulatorIDChangedTime = usecTimestampNow();
+    }
+}

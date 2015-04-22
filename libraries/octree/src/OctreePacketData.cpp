@@ -411,6 +411,20 @@ bool OctreePacketData::appendValue(const QString& string) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QUuid& uuid) {
+    QByteArray bytes = uuid.toRfc4122();
+    if (uuid.isNull()) {
+        return appendValue((uint16_t)0); // zero length for null uuid
+    } else {
+        uint16_t length = bytes.size();
+        bool success = appendValue(length);
+        if (success) {
+            success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+        }
+        return success;
+    }
+}
+
 bool OctreePacketData::appendValue(const QByteArray& bytes) {
     bool success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
     return success;
