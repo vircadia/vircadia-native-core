@@ -52,7 +52,7 @@ public:
 
     bool needsToCallUpdate() const;
 
-    virtual void setCollisionModelURL(const QString& url);
+    virtual void setCompoundShapeURL(const QString& url);
 
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);

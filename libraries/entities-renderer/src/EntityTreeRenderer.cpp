@@ -551,7 +551,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const Entit
     
     if (entityItem->getType() == EntityTypes::Model) {
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        if (constModelEntityItem->hasCollisionModel()) {
+        if (constModelEntityItem->hasCompoundShapeURL()) {
             RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
             Model* model = modelEntityItem->getModel(this);
             if (model) {
