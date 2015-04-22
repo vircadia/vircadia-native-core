@@ -72,8 +72,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastUpdated = now;
 }
 
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID)
+EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
 {
     setProperties(properties);
 }

@@ -200,7 +200,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     const QUuid& myNodeID = nodeList->getSessionUUID();
     const QUuid& simulatorID = _entity->getSimulatorID();
 
-    // if (!simulatorID.isNull() && simulatorID != myNodeID) {
     if (simulatorID != myNodeID) {
         // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
         return false;
@@ -280,24 +279,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setAngularVelocity(_sentAngularVelocity);
         }
 
-        auto nodeList = DependencyManager::get<NodeList>();
-        QUuid myNodeID = nodeList->getSessionUUID();
-        // QUuid simulatorID = _entity->getSimulatorID();
-
         if (_entity->getShouldClaimSimulationOwnership()) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            QUuid myNodeID = nodeList->getSessionUUID();
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
             _entity->setShouldClaimSimulationOwnership(false);
         }
-        // else if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
-        //     // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-        //     _entity->setSimulatorID(myNodeID);
-        //     properties.setSimulatorID(myNodeID);
-        // } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
-        //     // we are the simulator and the object has stopped.  give up "simulator" status
-        //     _entity->setSimulatorID(QUuid());
-        //     properties.setSimulatorID(QUuid());
-        // }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
         if (_sentMoving) {

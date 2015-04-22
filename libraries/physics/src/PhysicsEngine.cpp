@@ -401,29 +401,15 @@ void PhysicsEngine::computeCollisionEvents() {
 
                 // collisions cause infections spread of simulation-ownership.  we also attempt to take
                 // ownership of anything that collides with our avatar.
-                if (entityA && entityB &&
-                    !objectA->isStaticOrKinematicObject() &&
-                    !objectB->isStaticOrKinematicObject()) {
+                if (entityA && entityB && !objectA->isStaticOrKinematicObject() && !objectB->isStaticOrKinematicObject()) {
                     if (entityA->getSimulatorID() == myNodeID || 
                         entityA->getShouldClaimSimulationOwnership() ||
                         objectA == characterCollisionObject) {
-
-                        qDebug() << "collision claiming ownership 0"
-                                 << (entityA->getSimulatorID() == myNodeID)
-                                 << (entityA->getShouldClaimSimulationOwnership())
-                                 << (objectA == characterCollisionObject) << myNodeID;
-
                         entityB->setShouldClaimSimulationOwnership(true);
                     }
                     if (entityB->getSimulatorID() == myNodeID ||
                         entityB->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
-
-                        qDebug() << "collision claiming ownership 1"
-                                 << (entityB->getSimulatorID() == myNodeID)
-                                 << (entityB->getShouldClaimSimulationOwnership())
-                                 << (objectB == characterCollisionObject) << myNodeID;
-
                         entityA->setShouldClaimSimulationOwnership(true);
                     }
                 }
