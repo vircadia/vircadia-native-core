@@ -343,6 +343,7 @@ protected:
     glm::vec3 _velocity;
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
+    quint8 _accelerationNearlyGravityCount;
     float _damping;
     float _lifetime;
     QString _script;

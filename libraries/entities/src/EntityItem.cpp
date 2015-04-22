@@ -74,6 +74,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _created = UNKNOWN_CREATED_TIME;
     _dirtyFlags = 0;
     _changedOnServer = 0;
+    _accelerationNearlyGravityCount = 0;
     _element = NULL;
     _simulatorIDChangedTime = 0;
     _shouldClaimSimulationOwnership = false;
