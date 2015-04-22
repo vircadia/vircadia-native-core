@@ -269,9 +269,6 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    // in case something is resting on top of this, give it a bump in the simulation.
-    _simulation->bump(existingEntity);
-
     if (existingEntity->getLocked() && !force) {
         if (!ignoreWarnings) {
             qCDebug(entities) << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;

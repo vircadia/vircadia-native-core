@@ -386,9 +386,15 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
                     if (entityA && entityB) {
                         if (entityA == bumpEntity) {
                             entityB->setShouldClaimSimulationOwnership(true);
+                            if (!objectB->isActive()) {
+                                objectB->setActivationState(ACTIVE_TAG);
+                            }
                         }
                         if (entityB == bumpEntity) {
                             entityA->setShouldClaimSimulationOwnership(true);
+                            if (!objectA->isActive()) {
+                                objectA->setActivationState(ACTIVE_TAG);
+                            }
                         }
                     }
                 }
@@ -564,6 +570,8 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
 
 void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     assert(motionState);
+    EntityItem* entity = static_cast<EntityMotionState*>(motionState)->getEntity();
+    bump(entity);
     btRigidBody* body = motionState->getRigidBody();
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
