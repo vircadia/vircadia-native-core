@@ -61,6 +61,8 @@ public:
 
     void clearEntities();
 
+    virtual void bump(EntityItem* bumpEntity) {}
+
     EntityTree* getEntityTree() { return _entityTree; }
 
 signals:

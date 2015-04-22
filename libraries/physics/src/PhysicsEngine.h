@@ -68,6 +68,7 @@ public:
 
     void stepSimulation();
     void stepNonPhysicalKinematics(const quint64& now);
+    virtual void bump(EntityItem* bumpEntity);
     void computeCollisionEvents();
 
     void dumpStatsIfNecessary();

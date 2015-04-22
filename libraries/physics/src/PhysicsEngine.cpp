@@ -366,6 +366,39 @@ void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
     }
 }
 
+
+void PhysicsEngine::bump(EntityItem* bumpEntity) {
+    // If this node is doing something like deleting an entity, scan for contacts involving the
+    // entity.  For each found, flag the other entity involved as being simulated by this node.
+    lock();
+    int numManifolds = _collisionDispatcher->getNumManifolds();
+    for (int i = 0; i < numManifolds; ++i) {
+        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+        if (contactManifold->getNumContacts() > 0) {
+            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+            if (objectA && objectB) {
+                void* a = objectA->getUserPointer();
+                void* b = objectB->getUserPointer();
+                if (a && b) {
+                    EntityItem* entityA = a ? static_cast<EntityMotionState*>(a)->getEntity() : NULL;
+                    EntityItem* entityB = b ? static_cast<EntityMotionState*>(b)->getEntity() : NULL;
+                    if (entityA && entityB) {
+                        if (entityA == bumpEntity) {
+                            entityB->setShouldClaimSimulationOwnership(true);
+                        }
+                        if (entityB == bumpEntity) {
+                            entityA->setShouldClaimSimulationOwnership(true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    unlock();
+}
+
+
 void PhysicsEngine::computeCollisionEvents() {
     BT_PROFILE("computeCollisionEvents");
 
@@ -421,7 +454,6 @@ void PhysicsEngine::computeCollisionEvents() {
 
     // scan known contacts and trigger events
     ContactMap::iterator contactItr = _contactMap.begin();
-
 
     while (contactItr != _contactMap.end()) {
         ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
