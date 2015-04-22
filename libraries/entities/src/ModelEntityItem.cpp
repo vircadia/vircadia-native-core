@@ -100,9 +100,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
         setCollisionModelURL("");
     } else if (args.bitstreamVersion == VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL_OLD_VERSION, setCollisionModelURL);
+        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCollisionModelURL);
     } else {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
+        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCollisionModelURL);
     }
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
     
@@ -140,7 +140,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_MODEL_URL;
-    requestedProperties += PROP_COLLISION_MODEL_URL;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_ANIMATION_URL;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -164,7 +164,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
-    APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, getCollisionModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCollisionModelURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
