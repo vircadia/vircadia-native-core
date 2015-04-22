@@ -91,7 +91,13 @@ public:
 
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
-  
+    
+    void updateShapeType(ShapeType type) { _shapeType = type; }
+    virtual ShapeType getShapeType() const;
+    
+    virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
+    const QString getCompoundShapeURL() const { return _compoundShapeURL; }
+    virtual void setCompoundShapeURL(const QString& url);
 
     virtual void debugDump() const;
 
@@ -105,6 +111,8 @@ public:
     static const float DEFAULT_STAGE_ALTITUDE;
     static const quint16 DEFAULT_STAGE_DAY;
     static const float DEFAULT_STAGE_HOUR;
+    static const ShapeType DEFAULT_SHAPE_TYPE;
+    static const QString DEFAULT_COMPOUND_SHAPE_URL;
     
 protected:
     // properties of the "sun" in the zone
@@ -118,6 +126,9 @@ protected:
     float _stageAltitude;
     uint16_t _stageDay;
     float _stageHour;
+    
+    ShapeType _shapeType = SHAPE_TYPE_NONE;
+    QString _compoundShapeURL;
 
     static bool _zonesArePickable;
 };
