@@ -279,12 +279,20 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             properties.setAngularVelocity(_sentAngularVelocity);
         }
 
+        auto nodeList = DependencyManager::get<NodeList>();
+        QUuid myNodeID = nodeList->getSessionUUID();
+        QUuid simulatorID = _entity->getSimulatorID();
+
         if (_entity->getShouldClaimSimulationOwnership()) {
-            auto nodeList = DependencyManager::get<NodeList>();
-            QUuid myNodeID = nodeList->getSessionUUID();
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
             _entity->setShouldClaimSimulationOwnership(false);
+        }
+
+        if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the object has stopped.  give up "simulator" status
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
