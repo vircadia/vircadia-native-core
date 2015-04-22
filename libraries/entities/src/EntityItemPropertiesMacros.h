@@ -88,6 +88,26 @@
             }                                           \
         }
 
+#define READ_ENTITY_PROPERTY_UUID(P,O)                      \
+        if (propertyFlags.getHasProperty(P)) {              \
+            uint16_t length;                                \
+            memcpy(&length, dataAt, sizeof(length));        \
+            dataAt += sizeof(length);                       \
+            bytesRead += sizeof(length);                    \
+            QUuid value;                                    \
+            if (length == 0) {                              \
+                value = QUuid();                            \
+            } else {                                        \
+                QByteArray ba((const char*)dataAt, length); \
+                value = QUuid::fromRfc4122(ba);             \
+                dataAt += length;                           \
+                bytesRead += length;                        \
+            }                                               \
+            if (overwriteLocalData) {                       \
+                O(value);                                   \
+            }                                               \
+        }
+
 #define READ_ENTITY_PROPERTY_COLOR(P,M)         \
         if (propertyFlags.getHasProperty(P)) {  \
             if (overwriteLocalData) {           \
@@ -125,6 +145,25 @@
             dataAt += length;                           \
             processedBytes += length;                   \
             properties.O(value);                        \
+        }
+
+
+#define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)        \
+        if (propertyFlags.getHasProperty(P)) {              \
+            uint16_t length;                                \
+            memcpy(&length, dataAt, sizeof(length));        \
+            dataAt += sizeof(length);                       \
+            processedBytes += sizeof(length);               \
+            QUuid value;                                    \
+            if (length == 0) {                              \
+                value = QUuid();                            \
+            } else {                                        \
+                QByteArray ba((const char*)dataAt, length); \
+                value = QUuid::fromRfc4122(ba);             \
+                dataAt += length;                           \
+                processedBytes += length;                   \
+            }                                               \
+            properties.O(value);                            \
         }
 
 #define READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(P,O)   \
@@ -216,6 +255,15 @@
         }                                           \
     }
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(P, S)           \
+    QScriptValue P = object.property(#P);                    \
+    if (P.isValid()) {                                       \
+        QUuid newValue = P.toVariant().toUuid();             \
+        if (_defaultSettings || newValue != _##P) {          \
+            S(newValue);                                     \
+        }                                                    \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \
     QScriptValue P = object.property(#P);                 \
     if (P.isValid()) {                                    \
@@ -299,6 +347,7 @@
         T get##N() const { return _##n; } \
         void set##N(T value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -308,6 +357,7 @@
         const T& get##N() const { return _##n; } \
         void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -317,6 +367,7 @@
         const T& get##N() const { return _##n; } \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -326,6 +377,7 @@
         T get##N() const; \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -337,6 +389,7 @@
         bool n##Changed() const { return _##n##Changed; } \
         QString get##N##AsString() const; \
         void set##N##FromString(const QString& name); \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;

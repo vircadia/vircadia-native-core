@@ -68,8 +68,9 @@ public:
 
     void stepSimulation();
     void stepNonPhysicalKinematics(const quint64& now);
-
     void computeCollisionEvents();
+
+    void dumpStatsIfNecessary();
 
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }

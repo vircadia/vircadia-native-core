@@ -327,7 +327,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings,getAnimationSettings());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings, getAnimationSettings());
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
@@ -339,7 +339,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(simulatorID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
@@ -434,7 +434,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(userData, setUserData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(simulatorID, setSimulatorID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(simulatorID, setSimulatorID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(text, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
@@ -853,7 +853,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
+    READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
 
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXT, setText);
