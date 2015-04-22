@@ -25,7 +25,7 @@
 #include "RecurseOctreeToMapOperator.h"
 
 
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = 0.2 * USECS_PER_SECOND;
+const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
 
 
 EntityTree::EntityTree(bool shouldReaverage) : 

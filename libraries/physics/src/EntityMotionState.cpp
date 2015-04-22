@@ -18,7 +18,7 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
-static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05;
+static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05f;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -215,7 +215,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         EntityItemProperties properties = _entity->getProperties();
 
         if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
-            _entity->setAcceleration(glm::vec3(0));
+            _entity->setAcceleration(glm::vec3(0.0f));
         } else {
             _entity->setAcceleration(_entity->getGravity());
         }
