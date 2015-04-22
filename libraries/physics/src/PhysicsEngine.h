@@ -39,8 +39,8 @@ public:
     ContactKey(void* a, void* b) : _a(a), _b(b) {}
     bool operator<(const ContactKey& other) const { return _a < other._a || (_a == other._a && _b < other._b); }
     bool operator==(const ContactKey& other) const { return _a == other._a && _b == other._b; }
-    void* _a;
-    void* _b;
+    void* _a; // EntityMotionState pointer
+    void* _b; // EntityMotionState pointer
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;

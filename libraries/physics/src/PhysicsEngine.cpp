@@ -15,6 +15,7 @@
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "PhysicsLogging.h"
 
 static uint32_t _numSubsteps;
 
