@@ -1020,7 +1020,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                } else {
+                } else if (!isMeta) {
                     _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
                 }
                 break;

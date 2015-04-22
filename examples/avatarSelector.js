@@ -89,7 +89,7 @@ var DRONE_VOLUME = 0.3;
 
 function drawLobby() {
     if (!panelWall) {
-        print("Adding overlays for the lobby panel wall and orb shell.");
+        print("Adding overlays for the avatar selector panel wall and orb shell.");
 
         var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
         var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0 });
@@ -294,13 +294,27 @@ function actionStartEvent(event) {
     }
 }
 
-function backStartEvent() {
-    if (!panelWall) {
-        toggleEnvironmentRendering(false);
-        drawLobby();
-        changeLobbyTextures();
-    } else {
-        cleanupLobby();
+var control = false;
+
+function keyPressEvent(event) {
+    if (event.text === "CONTROL") {
+        control = true;
+    }
+
+    if (control && event.text === "a") {
+        if (!panelWall) {
+            toggleEnvironmentRendering(false);
+            drawLobby();
+            changeLobbyTextures();
+        } else {
+            cleanupLobby();
+        }
+    }
+}
+
+function keyReleaseEvent(event) {
+    if (event.text === "CONTROL") {
+        control = false;
     }
 }
 
@@ -394,7 +408,8 @@ function mouseMoveEvent(event) {
 }
 
 Controller.actionStartEvent.connect(actionStartEvent);
-Controller.backStartEvent.connect(backStartEvent);
+Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
