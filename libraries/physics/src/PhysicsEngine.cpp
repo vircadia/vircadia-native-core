@@ -407,14 +407,24 @@ void PhysicsEngine::computeCollisionEvents() {
                     if (entityA->getSimulatorID() == myNodeID || 
                         entityA->getShouldClaimSimulationOwnership() ||
                         objectA == characterCollisionObject) {
+
+                        qDebug() << "collision claiming ownership"
+                                 << (entityA->getSimulatorID() == myNodeID)
+                                 << (entityA->getShouldClaimSimulationOwnership())
+                                 << (objectA == characterCollisionObject);
+
                         entityB->setShouldClaimSimulationOwnership(true);
-                        qDebug() << "collision claiming ownership";
                     }
                     if (entityB->getSimulatorID() == myNodeID ||
                         entityB->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
+
+                        qDebug() << "collision claiming ownership"
+                                 << (entityB->getSimulatorID() == myNodeID)
+                                 << (entityB->getShouldClaimSimulationOwnership())
+                                 << (objectB == characterCollisionObject);
+
                         entityA->setShouldClaimSimulationOwnership(true);
-                        qDebug() << "collision claiming ownership";
                     }
                 }
             }
