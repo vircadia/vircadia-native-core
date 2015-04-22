@@ -405,7 +405,9 @@ void PhysicsEngine::computeCollisionEvents() {
                     entityA->setShouldClaimSimulationOwnership(true);
                 }
 
-                if (entityA && entityB) {
+                if (entityA && entityB &&
+                    !objectA->isStaticOrKinematicObject() &&
+                    !objectB->isStaticOrKinematicObject()) {
                     if (entityA->getShouldClaimSimulationOwnership()) {
                         entityB->setShouldClaimSimulationOwnership(true);
                     }
