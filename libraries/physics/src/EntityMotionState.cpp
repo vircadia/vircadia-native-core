@@ -229,7 +229,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             _entity->resetAccelerationNearlyGravityCount();
         }
 
-        // if this entity has been accelerated at close to gravity for a certain number of frames, let
+        // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
         if (_entity->getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
