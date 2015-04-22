@@ -389,7 +389,9 @@ void PhysicsEngine::computeCollisionEvents() {
             }
 
             void* a = objectA->getUserPointer();
+            EntityItem* entityA = a ? static_cast<EntityMotionState*>(a)->getEntity() : NULL;
             void* b = objectB->getUserPointer();
+            EntityItem* entityB = b ? static_cast<EntityMotionState*>(b)->getEntity() : NULL;
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
@@ -397,12 +399,19 @@ void PhysicsEngine::computeCollisionEvents() {
                 // if our character capsule is colliding with something dynamic, claim simulation ownership.
                 // see EntityMotionState::sendUpdate
                 if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
-                    EntityItem* entityB = static_cast<EntityMotionState*>(b)->getEntity();
                     entityB->setShouldClaimSimulationOwnership(true);
                 }
                 if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
-                    EntityItem* entityA = static_cast<EntityMotionState*>(a)->getEntity();
                     entityA->setShouldClaimSimulationOwnership(true);
+                }
+
+                if (entityA && entityB) {
+                    if (entityA->getShouldClaimSimulationOwnership()) {
+                        entityB->setShouldClaimSimulationOwnership(true);
+                    }
+                    else if (entityB->getShouldClaimSimulationOwnership()) {
+                        entityA->setShouldClaimSimulationOwnership(true);
+                    }
                 }
             }
         }
