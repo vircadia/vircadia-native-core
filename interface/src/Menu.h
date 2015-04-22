@@ -187,6 +187,7 @@ namespace MenuOption {
     const QString OctreeStats = "Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
@@ -244,8 +245,7 @@ namespace MenuOption {
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
-    const QString PackageModel = "Package Model...";
-    const QString Visage = "Visage";
+    const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";

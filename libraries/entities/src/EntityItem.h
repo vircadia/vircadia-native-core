@@ -194,8 +194,8 @@ public:
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second
-    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second
+    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
+    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
@@ -255,8 +255,11 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
 
-    QString getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QString& id) { _simulatorID = id; }
+    QUuid getSimulatorID() const { return _simulatorID; }
+    void setSimulatorID(const QUuid& value);
+    quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
+    void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
+    bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -323,7 +326,7 @@ protected:
     quint64 _lastEdited; // last official local or remote edit time
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -351,7 +354,9 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
-    QString _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
+    bool _shouldClaimSimulationOwnership;
     QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)

@@ -359,7 +359,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
         // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data. 
-        // Only our patent can remove our extra data in these cases and only after it knows that all of it's 
+        // Only our parent can remove our extra data in these cases and only after it knows that all of its
         // children have been encoded.
         // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
         // since that will signal that the entire element needs to be encoded on the next attempt
@@ -696,7 +696,6 @@ bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
 // and dirty path marking in one pass.
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
-
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
     if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
@@ -750,7 +749,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     if (bestFitBefore != bestFitAfter) {
                         // This is the case where the entity existed, and is in some element in our tree...                    
                         if (!bestFitBefore && bestFitAfter) {
-                            // This is the case where the entity existed, and is in some element in our tree...                    
+                            // This is the case where the entity existed, and is in some element in our tree...
                             if (currentContainingElement != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
                                 addEntityItem(entityItem);

@@ -554,11 +554,12 @@ void DeferredLightingEffect::setAmbientLightMode(int preset) {
     }
 }
 
-void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity) {
+void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity) {
     auto light = _allocatedLights.front();
     light->setDirection(direction);
     light->setColor(diffuse);
     light->setIntensity(intensity);
+    light->setAmbientIntensity(ambientIntensity);
 }
 
 void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {

@@ -82,7 +82,6 @@ public:
     virtual void update();
 
     // The newer API...
-    EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);

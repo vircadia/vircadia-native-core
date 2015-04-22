@@ -18,14 +18,14 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
+#include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
-#include "TextEntityItem.h"
-#include "EntitiesLogging.h"
 #include "ParticleEffectEntityItem.h"
-
+#include "TextEntityItem.h"
+#include "ZoneEntityItem.h"
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -76,6 +76,16 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(localGravity, ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY),
     CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
     CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
+    CONSTRUCT_PROPERTY(keyLightColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR),
+    CONSTRUCT_PROPERTY(keyLightIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY),
+    CONSTRUCT_PROPERTY(keyLightAmbientIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY),
+    CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
+    CONSTRUCT_PROPERTY(stageSunModelEnabled, ZoneEntityItem::DEFAULT_STAGE_SUN_MODEL_ENABLED),
+    CONSTRUCT_PROPERTY(stageLatitude, ZoneEntityItem::DEFAULT_STAGE_LATITUDE),
+    CONSTRUCT_PROPERTY(stageLongitude, ZoneEntityItem::DEFAULT_STAGE_LONGITUDE),
+    CONSTRUCT_PROPERTY(stageAltitude, ZoneEntityItem::DEFAULT_STAGE_ALTITUDE),
+    CONSTRUCT_PROPERTY(stageDay, ZoneEntityItem::DEFAULT_STAGE_DAY),
+    CONSTRUCT_PROPERTY(stageHour, ZoneEntityItem::DEFAULT_STAGE_HOUR),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -268,6 +278,16 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_SUN_MODEL_ENABLED, stageSunModelEnabled);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_LATITUDE, stageLatitude);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_LONGITUDE, stageLongitude);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_ALTITUDE, stageAltitude);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
+    CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
 
     return changedProperties;
 }
@@ -307,7 +327,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings,getAnimationSettings());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings, getAnimationSettings());
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
@@ -319,7 +339,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(simulatorID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
@@ -333,6 +353,17 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(keyLightColor);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(keyLightDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageSunModelEnabled);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageLatitude);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageLongitude);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageAltitude);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageDay);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(stageHour);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -403,7 +434,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(userData, setUserData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(simulatorID, setSimulatorID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(simulatorID, setSimulatorID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(text, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
@@ -417,6 +448,17 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(marketplaceID, setMarketplaceID);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(keyLightColor, setKeyLightColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(keyLightIntensity, setKeyLightIntensity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(keyLightAmbientIntensity, setKeyLightAmbientIntensity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(keyLightDirection, setKeyLightDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(stageSunModelEnabled, setStageSunModelEnabled);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageLatitude, setStageLatitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageLongitude, setStageLongitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageAltitude, setStageAltitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
 
     _lastEdited = usecTimestampNow();
 }
@@ -602,6 +644,19 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
                 APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
+            }
+
+            if (properties.getType() == EntityTypes::Zone) {
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, appendColor, properties.getKeyLightColor());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  appendValue, properties.getKeyLightIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, appendValue, properties.getKeyLightAmbientIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, appendValue, properties.getKeyLightDirection());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, appendValue, properties.getStageSunModelEnabled());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, appendValue, properties.getStageLatitude());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, appendValue, properties.getStageLongitude());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, properties.getStageAltitude());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, properties.getStageDay());
+                APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, properties.getStageHour());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
@@ -798,7 +853,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
+    READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(PROP_SIMULATOR_ID, setSimulatorID);
 
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXT, setText);
@@ -835,6 +890,19 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_STRENGTH, float, setEmitStrength);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    }
+
+    if (properties.getType() == EntityTypes::Zone) {
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_KEYLIGHT_COLOR, setKeyLightColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_INTENSITY,  float, setKeyLightIntensity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_SUN_MODEL_ENABLED, bool, setStageSunModelEnabled);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_LATITUDE, float, setStageLatitude);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_LONGITUDE, float, setStageLongitude);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_ALTITUDE, float, setStageAltitude);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_DAY, quint16, setStageDay);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
@@ -923,6 +991,17 @@ void EntityItemProperties::markAllChanged() {
     _particleRadiusChanged = true;
     
     _marketplaceIDChanged = true;
+
+    _keyLightColorChanged = true;
+    _keyLightIntensityChanged = true;
+    _keyLightAmbientIntensityChanged = true;
+    _keyLightDirectionChanged = true;
+    _stageSunModelEnabledChanged = true;
+    _stageLatitudeChanged = true;
+    _stageLongitudeChanged = true;
+    _stageAltitudeChanged = true;
+    _stageDayChanged = true;
+    _stageHourChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
