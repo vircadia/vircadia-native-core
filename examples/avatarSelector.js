@@ -74,9 +74,9 @@ var panelPlaceOrder = [
   14, 15, 16, 17, 18, 19, 20
 ];
 
-// place index is 0-based
-function placeIndexToPanelIndex(placeIndex) {
-    return panelPlaceOrder.indexOf(placeIndex) + 1;
+// Avatar index is 0-based
+function avatarIndexToPanelIndex(avatarIndex) {
+    return panelPlaceOrder.indexOf(avatarIndex) + 1;
 }
 
 // Panel index is 1-based
@@ -151,24 +151,24 @@ function drawLobby() {
     }
 }
 
-var places = {};
+var avatars = {};
 
 function changeLobbyTextures() {
     var req = new XMLHttpRequest();
-    req.open("GET", "https://metaverse.highfidelity.com/api/v1/places?limit=21", false);
-    req.send();
+    req.open("GET", "https://metaverse.highfidelity.com/api/v1/marketplace?category=head+%26+body&limit=21", false);
+    req.send();  // Data returned is randomized.
 
-    places = JSON.parse(req.responseText).data.places;
+    avatars = JSON.parse(req.responseText).data.items;
 
-    var NUM_PANELS = places.length;
+    var NUM_PANELS = avatars.length;
 
     var textureProp = {
         textures: {}
     };
 
     for (var j = 0; j < NUM_PANELS; j++) {
-        var panelIndex = placeIndexToPanelIndex(j);
-        textureProp["textures"]["file" + panelIndex] = places[j].previews.lobby;
+        var panelIndex = avatarIndexToPanelIndex(j);
+        textureProp["textures"]["file" + panelIndex] = avatars[j].preview_url;
     };
 
     Overlays.editOverlay(panelWall, textureProp);
@@ -263,7 +263,7 @@ function cleanupLobby() {
         currentMuzakInjector = null;
     }
 
-    places = {};
+    avatars = {};
 
 }
 
@@ -279,14 +279,15 @@ function actionStartEvent(event) {
             var panelStringIndex = panelName.indexOf("Panel");
             if (panelStringIndex != -1) {
                 var panelIndex = parseInt(panelName.slice(5));
-                var placeIndex = panelIndexToPlaceIndex(panelIndex);
-                if (placeIndex < places.length) {
-                    var actionPlace = places[placeIndex];
+                var avatarIndex = panelIndexToPlaceIndex(panelIndex);
+                if (avatarIndex < avatars.length) {
+                    var actionPlace = avatars[avatarIndex];
 
-                    print("Jumping to " + actionPlace.name + " at " + actionPlace.address
-                      + " after click on panel " + panelIndex + " with place index " + placeIndex);
+                    print("Changing avatar to " + actionPlace.name 
+                      + " after click on panel " + panelIndex + " with avatar index " + avatarIndex);
 
-                    Window.location = actionPlace.address;
+                    MyAvatar.useFullAvatarURL(actionPlace.content_url);
+
                     maybeCleanupLobby();
                 }
             }
@@ -341,9 +342,9 @@ function handleLookAt(pickRay) {
             var panelStringIndex = panelName.indexOf("Panel");
             if (panelStringIndex != -1) {
                 var panelIndex = parseInt(panelName.slice(5));
-                var placeIndex = panelIndexToPlaceIndex(panelIndex);
-                if (placeIndex < places.length) {
-                    var actionPlace = places[placeIndex];
+                var avatarIndex = panelIndexToPlaceIndex(panelIndex);
+                if (avatarIndex < avatars.length) {
+                    var actionPlace = avatars[avatarIndex];
 
                     if (actionPlace.description == "") {
                         Overlays.editOverlay(descriptionText, { text: actionPlace.name, visible: showText });
