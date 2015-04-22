@@ -348,10 +348,10 @@ void PhysicsEngine::stepSimulation() {
             _characterController->postSimulation();
         }
 
+        computeCollisionEvents();
+
         unlock();
         _entityTree->unlock();
-    
-        computeCollisionEvents();
     }
 }
 
