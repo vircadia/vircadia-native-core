@@ -438,7 +438,7 @@ void PhysicsEngine::computeCollisionEvents() {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
 
-                // collisions cause infections spread of simulation-ownership.  we also attempt to take
+                // collisions cause infectious spread of simulation-ownership.  we also attempt to take
                 // ownership of anything that collides with our avatar.
                 if (entityA && entityB && !objectA->isStaticOrKinematicObject() && !objectB->isStaticOrKinematicObject()) {
                     if (entityA->getSimulatorID() == myNodeID || 
