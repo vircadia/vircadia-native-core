@@ -369,6 +369,9 @@ void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
 void PhysicsEngine::computeCollisionEvents() {
     BT_PROFILE("computeCollisionEvents");
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    QUuid myNodeID = nodeList->getSessionUUID();
+
     const btCollisionObject* characterCollisionObject =
         _characterController ? _characterController->getCollisionObject() : NULL;
 
@@ -398,20 +401,26 @@ void PhysicsEngine::computeCollisionEvents() {
 
                 // if our character capsule is colliding with something dynamic, claim simulation ownership.
                 // see EntityMotionState::sendUpdate
-                if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
-                    entityB->setShouldClaimSimulationOwnership(true);
-                }
-                if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
-                    entityA->setShouldClaimSimulationOwnership(true);
-                }
+                // if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
+                //     entityB->setShouldClaimSimulationOwnership(true);
+                // }
+                // if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
+                //     entityA->setShouldClaimSimulationOwnership(true);
+                // }
 
+                // collisions cause infections spread of simulation-ownership.  we also attempt to take
+                // ownership of anything that collides with our avatar.
                 if (entityA && entityB &&
                     !objectA->isStaticOrKinematicObject() &&
                     !objectB->isStaticOrKinematicObject()) {
-                    if (entityA->getShouldClaimSimulationOwnership()) {
+                    if (entityA->getSimulatorID() == myNodeID || 
+                        entityA->getShouldClaimSimulationOwnership() ||
+                        objectA == characterCollisionObject) {
                         entityB->setShouldClaimSimulationOwnership(true);
                     }
-                    else if (entityB->getShouldClaimSimulationOwnership()) {
+                    if (entityB->getSimulatorID() == myNodeID ||
+                        entityB->getShouldClaimSimulationOwnership() ||
+                        objectB == characterCollisionObject) {
                         entityA->setShouldClaimSimulationOwnership(true);
                     }
                 }
