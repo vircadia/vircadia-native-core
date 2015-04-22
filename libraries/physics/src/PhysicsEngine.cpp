@@ -399,15 +399,6 @@ void PhysicsEngine::computeCollisionEvents() {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
 
-                // if our character capsule is colliding with something dynamic, claim simulation ownership.
-                // see EntityMotionState::sendUpdate
-                // if (objectA == characterCollisionObject && !objectB->isStaticOrKinematicObject() && b) {
-                //     entityB->setShouldClaimSimulationOwnership(true);
-                // }
-                // if (objectB == characterCollisionObject && !objectA->isStaticOrKinematicObject() && a) {
-                //     entityA->setShouldClaimSimulationOwnership(true);
-                // }
-
                 // collisions cause infections spread of simulation-ownership.  we also attempt to take
                 // ownership of anything that collides with our avatar.
                 if (entityA && entityB &&
@@ -417,11 +408,13 @@ void PhysicsEngine::computeCollisionEvents() {
                         entityA->getShouldClaimSimulationOwnership() ||
                         objectA == characterCollisionObject) {
                         entityB->setShouldClaimSimulationOwnership(true);
+                        qDebug() << "collision claiming ownership";
                     }
                     if (entityB->getSimulatorID() == myNodeID ||
                         entityB->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
                         entityA->setShouldClaimSimulationOwnership(true);
+                        qDebug() << "collision claiming ownership";
                     }
                 }
             }

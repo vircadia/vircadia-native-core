@@ -71,9 +71,11 @@ void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
         propertiesWithSimID.containsPositionChange()) {
         propertiesWithSimID.setSimulatorID(myNodeID);
         entity->setSimulatorID(myNodeID);
+        qDebug() << "script claiming ownership";
     } else if (entity->getSimulatorID() == myNodeID) {
         propertiesWithSimID.setSimulatorID(QUuid()); // give up simulation ownership
         entity->setSimulatorID(QUuid());
+        qDebug() << "script releasing ownership";
     }
 }
 
