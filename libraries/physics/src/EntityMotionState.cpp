@@ -18,7 +18,8 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
-static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05f;
+static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
+static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -214,10 +215,26 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-        if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
-            _entity->setAcceleration(glm::vec3(0.0f));
+        float gravityLength = glm::length(_entity->getGravity());
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (_entity->getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet.  this is to avoid
+                // overflowing the counter.
+                _entity->incrementAccelerationNearlyGravityCount();
+            }
         } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            _entity->resetAccelerationNearlyGravityCount();
+        }
+
+        // if this entity has been accelerated at close to gravity for a certain number of frames, let
+        // the entity server's estimates include gravity.
+        if (_entity->getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
+        } else {
+            _entity->setAcceleration(glm::vec3(0.0f));
         }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {

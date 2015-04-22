@@ -311,6 +311,10 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
+    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
+    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+
 protected:
 
     static bool _sendPhysicsUpdates;
