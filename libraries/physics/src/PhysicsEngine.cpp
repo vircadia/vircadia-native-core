@@ -408,10 +408,10 @@ void PhysicsEngine::computeCollisionEvents() {
                         entityA->getShouldClaimSimulationOwnership() ||
                         objectA == characterCollisionObject) {
 
-                        qDebug() << "collision claiming ownership"
+                        qDebug() << "collision claiming ownership 0"
                                  << (entityA->getSimulatorID() == myNodeID)
                                  << (entityA->getShouldClaimSimulationOwnership())
-                                 << (objectA == characterCollisionObject);
+                                 << (objectA == characterCollisionObject) << myNodeID;
 
                         entityB->setShouldClaimSimulationOwnership(true);
                     }
@@ -419,10 +419,10 @@ void PhysicsEngine::computeCollisionEvents() {
                         entityB->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
 
-                        qDebug() << "collision claiming ownership"
+                        qDebug() << "collision claiming ownership 1"
                                  << (entityB->getSimulatorID() == myNodeID)
                                  << (entityB->getShouldClaimSimulationOwnership())
-                                 << (objectB == characterCollisionObject);
+                                 << (objectB == characterCollisionObject) << myNodeID;
 
                         entityA->setShouldClaimSimulationOwnership(true);
                     }
