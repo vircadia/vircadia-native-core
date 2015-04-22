@@ -318,9 +318,6 @@ public:
 protected:
 
     static bool _sendPhysicsUpdates;
-
-    virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
-
     EntityTypes::EntityType _type;
     QUuid _id;
     uint32_t _creatorTokenID;

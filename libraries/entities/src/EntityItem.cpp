@@ -25,76 +25,56 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
-void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
-    _id = entityItemID.id;
-    _creatorTokenID = entityItemID.creatorTokenID;
-
-    // init values with defaults before calling setProperties
+EntityItem::EntityItem(const EntityItemID& entityItemID) :
+    _type(EntityTypes::Unknown),
+    _id(entityItemID.id),
+    _creatorTokenID(entityItemID.creatorTokenID),
+    _newlyCreated(false),
+    _lastSimulated(0),
+    _lastUpdated(0),
+    _lastEdited(0),
+    _lastEditedFromRemote(0),
+    _lastEditedFromRemoteInRemoteTime(0),
+    _created(UNKNOWN_CREATED_TIME),
+    _changedOnServer(0),
+    _position(ENTITY_ITEM_ZERO_VEC3),
+    _dimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS),
+    _rotation(ENTITY_ITEM_DEFAULT_ROTATION),
+    _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
+    _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
+    _density(ENTITY_ITEM_DEFAULT_DENSITY),
+    _volumeMultiplier(1.0f),
+    _velocity(ENTITY_ITEM_DEFAULT_VELOCITY),
+    _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
+    _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
+    _accelerationNearlyGravityCount(0),
+    _damping(ENTITY_ITEM_DEFAULT_DAMPING),
+    _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
+    _script(ENTITY_ITEM_DEFAULT_SCRIPT),
+    _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
+    _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
+    _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
+    _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
+    _ignoreForCollisions(ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
+    _locked(ENTITY_ITEM_DEFAULT_LOCKED),
+    _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
+    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+    _simulatorIDChangedTime(0),
+    _shouldClaimSimulationOwnership(false),
+    _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
+    _physicsInfo(NULL),
+    _dirtyFlags(0),
+    _element(NULL)
+{
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _changedOnServer = 0;
-
-    _position = ENTITY_ITEM_ZERO_VEC3;
-    _dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
-    _density = ENTITY_ITEM_DEFAULT_DENSITY;
-    _rotation = ENTITY_ITEM_DEFAULT_ROTATION;
-    _glowLevel = ENTITY_ITEM_DEFAULT_GLOW_LEVEL;
-    _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
-    _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
-    _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
-    _acceleration = ENTITY_ITEM_DEFAULT_ACCELERATION;
-    _damping = ENTITY_ITEM_DEFAULT_DAMPING;
-    _lifetime = ENTITY_ITEM_DEFAULT_LIFETIME;
-    _script = ENTITY_ITEM_DEFAULT_SCRIPT;
-    _registrationPoint = ENTITY_ITEM_DEFAULT_REGISTRATION_POINT;
-    _angularVelocity = ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY;
-    _angularDamping = ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING;
-    _visible = ENTITY_ITEM_DEFAULT_VISIBLE;
-    _ignoreForCollisions = ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS;
-    _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
-    _locked = ENTITY_ITEM_DEFAULT_LOCKED;
-    _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
-    _simulatorID = ENTITY_ITEM_DEFAULT_SIMULATOR_ID;
-    _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
-EntityItem::EntityItem(const EntityItemID& entityItemID) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _accelerationNearlyGravityCount = 0;
-    _element = NULL;
-    _simulatorIDChangedTime = 0;
-    _shouldClaimSimulationOwnership = false;
-    initFromEntityItemID(entityItemID);
-}
-
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _element = NULL;
-    _simulatorIDChangedTime = 0;
-    initFromEntityItemID(entityItemID);
+EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+    EntityItem(entityItemID)
+{
     setProperties(properties);
 }
 
