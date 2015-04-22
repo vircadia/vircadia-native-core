@@ -395,67 +395,14 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
 
         _tree->lockForRead();
 
-        // Implement some kind of a stack/union mechanism here...
-        //
-        //    * As you enter a zone (A), you use it's properties
-        //    * if already in a zone, and you enter the union of that zone and a new zone (A + B)
-        //      you use the settings of the new zone (B) you entered.. but remember that you were previously 
-        //      in zone A
-        //    * if you enter a new zone and are in the union of 3 zones (A+B+C) then use zone C and remember
-        //      you were most recently in B
-        _lastZones = _currentZones;
-        _currentZones.clear();
+        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+        _bestZone = NULL;
+        _bestZoneVolume = std::numeric_limits<float>::max();
         _tree->recurseTreeWithOperation(renderOperation, &args);
-        const ZoneEntityItem* bestZone = NULL;
-        
-        if (_currentZones.empty()) {
-            // if we're not in any current zone, then we can completely erase our zoneHistory
-            _zoneHistory.clear();
-        } else {
-            // we're in some zone... check to see if we've changed zones..
-            QSet<EntityItemID> newZones = _currentZones - _lastZones;
 
-            if (!newZones.empty()) {
-                // we just entered a new zone, so we want to make a shift
-                EntityItemID theNewZone = *(newZones.begin()); // random we don't care, if it's one, then this works.
-                _zoneHistory << _currentZone; // remember the single zone we used to be in.
-                _currentZone = theNewZone; // change to our new zone
-
-                // do something to remove any item of _zoneHistory that is not in _currentZones
-                QStack<EntityItemID> newHistory;
-                QStack<EntityItemID>::iterator i = _zoneHistory.begin();
-                while(i != _zoneHistory.end()) {
-                    EntityItemID zoneID = *i;
-                    if (_currentZones.contains(zoneID)) {
-                        newHistory << zoneID;
-                    }
-                    ++i;
-                }
-            
-                _zoneHistory = newHistory;
-                bestZone = dynamic_cast<const ZoneEntityItem*>(
-                                    static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(_currentZone));
-            } else {
-    
-                if (_currentZones.contains(_currentZone)) {
-                    // No change in zone, keep the current zone
-                    bestZone = dynamic_cast<const ZoneEntityItem*>(
-                                        static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(_currentZone));
-                } else {
-                    if (!_zoneHistory.empty()) {
-                        _currentZone = _zoneHistory.pop();
-                        bestZone = dynamic_cast<const ZoneEntityItem*>(
-                                            static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(_currentZone));
-                    }
-
-                }
-        
-            }
-        }
-        
         QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
         
-        if (bestZone) {
+        if (_bestZone) {
             if (!_hasPreviousZone) {
                 _previousKeyLightColor = scene->getKeyLightColor();
                 _previousKeyLightIntensity = scene->getKeyLightIntensity();
@@ -469,18 +416,16 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
                 _previousStageDay = scene->getStageYearTime();
                 _hasPreviousZone = true;
             }
-            scene->setKeyLightColor(bestZone->getKeyLightColorVec3());
-            scene->setKeyLightIntensity(bestZone->getKeyLightIntensity());
-            scene->setKeyLightAmbientIntensity(bestZone->getKeyLightAmbientIntensity());
-            scene->setKeyLightDirection(bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(bestZone->getStageSunModelEnabled());
-            scene->setStageLocation(bestZone->getStageLongitude(), bestZone->getStageLatitude(),
-                                    bestZone->getStageAltitude());
-            scene->setStageDayTime(bestZone->getStageHour());
-            scene->setStageYearTime(bestZone->getStageDay());
-
+            scene->setKeyLightColor(_bestZone->getKeyLightColorVec3());
+            scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
+            scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
+            scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
+            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
+                                    _bestZone->getStageAltitude());
+            scene->setStageDayTime(_bestZone->getStageHour());
+            scene->setStageYearTime(_bestZone->getStageDay());
         } else {
-            _currentZone = EntityItemID(); // clear out current zone
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
                 scene->setKeyLightIntensity(_previousKeyLightIntensity);
@@ -698,7 +643,23 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             // like other entity types. So we will skip the normal rendering tests
             if (entityItem->getType() == EntityTypes::Zone) {
                 if (entityItem->contains(args->_viewFrustum->getPosition())) {
-                    _currentZones << entityItem->getEntityItemID();
+                    float entityVolumeEstimate = entityItem->getVolumeEstimate();
+                    if (entityVolumeEstimate < _bestZoneVolume) {
+                        _bestZoneVolume = entityVolumeEstimate;
+                        _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                    } else if (entityVolumeEstimate == _bestZoneVolume) {
+                        if (!_bestZone) {
+                            _bestZoneVolume = entityVolumeEstimate;
+                            _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                        } else {
+                            // in the case of the volume being equal, we will use the
+                            // EntityItemID to deterministically pick one entity over the other
+                            if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                            }
+                        }
+                    }
                 }
             } else {
                 // render entityItem 
