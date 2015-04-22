@@ -125,14 +125,53 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
+// TODO: Move to model::Mesh when Sam's ready
+bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
+    auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
+        // Check whether the point is "behind" all the primitives.
+        for (unsigned int j = 0; j < indices.size(); j += primitiveSize) {
+            if (!isPointBehindTrianglesPlane(point,
+                                             mesh.vertices[indices[j]],
+                                             mesh.vertices[indices[j + 1]],
+                                             mesh.vertices[indices[j + 2]])) {
+                // it's not behind at least one so we bail
+                return false;
+            }
+        }
+        return true;
+    };
+    
+    // Check that the point is contained in at least one convex mesh.
+    for (auto mesh : meshes) {
+        bool insideMesh = true;
+        
+        // To be considered inside a convex mesh,
+        // the point needs to be "behind" all the primitives respective planes.
+        for (auto part : mesh.parts) {
+            // run through all the triangles and quads
+            if (!checkEachPrimitive(mesh, part.triangleIndices, 3) ||
+                !checkEachPrimitive(mesh, part.quadIndices, 4)) {
+                // If not, the point is outside, bail for this mesh
+                insideMesh = false;
+                continue;
+            }
+        }
+        if (insideMesh) {
+            // It's inside this mesh, return true.
+            return true;
+        }
+    }
+    
+    // It wasn't in any mesh, return false.
+    return false;
+}
+
 QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
     if (meshIndicesToModelNames.contains(meshIndex)) {
         return meshIndicesToModelNames.value(meshIndex);
     }
     return QString();
 }
-
-
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
