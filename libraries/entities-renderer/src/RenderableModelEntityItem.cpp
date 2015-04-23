@@ -224,10 +224,10 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCollisionModelURL());
+            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL(), getCollisionModelURL());
+            result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else { // we already have the model we want...
             result = _model;
@@ -267,8 +267,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
-void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
-    ModelEntityItem::setCollisionModelURL(url);
+void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    ModelEntityItem::setCompoundShapeURL(url);
     if (_model) {
         _model->setCollisionModelURL(QUrl(url));
     }
@@ -410,8 +410,17 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(type, collisionModelDimensions, _collisionModelURL);
+        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
     }
 }
 
+bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
+    if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+        return collisionGeometry.convexHullContains(worldToEntity(point));
+    }
+    
+    return false;
+}

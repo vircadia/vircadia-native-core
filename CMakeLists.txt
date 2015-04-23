@@ -92,7 +92,16 @@ else ()
   if (NOT QT_CMAKE_PREFIX_PATH)
     set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
   endif ()
+  if (NOT QT_CMAKE_PREFIX_PATH)
+    get_filename_component(QT_CMAKE_PREFIX_PATH "${Qt5_DIR}/.." REALPATH)
+  endif ()
 endif ()
+
+if (WIN32)
+    if (NOT EXISTS ${QT_CMAKE_PREFIX_PATH})
+        message(FATAL_ERROR "Could not determine QT_CMAKE_PREFIX_PATH.")
+    endif ()
+endif()
 
 # figure out where the qt dir is
 get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)

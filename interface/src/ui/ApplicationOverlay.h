@@ -23,12 +23,13 @@ const float MAGNIFY_MULT = 2.0f;
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
 // Handles the drawing of the overlays to the screen
-class ApplicationOverlay {
+class ApplicationOverlay : public QObject {
+    Q_OBJECT
 public:
     ApplicationOverlay();
     ~ApplicationOverlay();
 
-    void renderOverlay(bool renderToTexture = false);
+    void renderOverlay();
     void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
@@ -75,8 +76,7 @@ private:
         
         void bind();
         void release();
-        void bindTexture();
-        void releaseTexture();
+        GLuint getTexture();
         
         void buildFramebufferObject();
         void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
@@ -122,6 +122,9 @@ private:
     float _trailingAudioLoudness;
 
     GLuint _crosshairTexture;
+    // TODO, move divide up the rendering, displaying and input handling 
+    // facilities of this class
+    GLuint _newUiTexture{ 0 };
     
     int _reticleQuad;
     int _magnifierQuad;

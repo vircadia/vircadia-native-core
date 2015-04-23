@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DialogsManager.h"
+
 #include <QMessageBox>
 
 #include <AccountManager.h>
@@ -29,14 +31,9 @@
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
 
-#include "DialogsManager.h"
 
 void DialogsManager::toggleAddressBar() {
-    maybeCreateDialog(_addressBarDialog);
-    
-    if (!_addressBarDialog->isVisible()) {
-        _addressBarDialog->show();
-    }
+    AddressBarDialog::toggle();
 }
 
 void DialogsManager::toggleDiskCacheEditor() {
@@ -45,13 +42,11 @@ void DialogsManager::toggleDiskCacheEditor() {
 }
 
 void DialogsManager::toggleLoginDialog() {
-    maybeCreateDialog(_loginDialog);
-    _loginDialog->toggleQAction();
+    LoginDialog::toggleAction();
 }
 
 void DialogsManager::showLoginDialog() {
-    maybeCreateDialog(_loginDialog);
-    _loginDialog->showLoginForCurrentDomain();
+    LoginDialog::show();
 }
 
 void DialogsManager::octreeStatsDetails() {
@@ -180,3 +175,4 @@ void DialogsManager::showIRCLink() {
     
     _ircInfoBox->raise();
 }
+

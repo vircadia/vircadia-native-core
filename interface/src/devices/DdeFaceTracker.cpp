@@ -200,7 +200,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         qDebug() << "[Info] DDE Face Tracker Starting";
         _ddeProcess = new QProcess(qApp);
         connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
-        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS, QIODevice::ReadOnly);
     }
 
     if (!enabled && _ddeProcess) {
@@ -222,10 +222,14 @@ void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStat
     }
 }
 
-void DdeFaceTracker::resetTracking() {
+void DdeFaceTracker::reset() {
+    _reset = true;
+
     qDebug() << "[Info] Reset DDE Tracking";
     const char* DDE_RESET_COMMAND = "reset";
     _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+    _reset = true;
 }
 
 bool DdeFaceTracker::isActive() const {
@@ -281,7 +285,7 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
-        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::DDEFiltering);
+        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());

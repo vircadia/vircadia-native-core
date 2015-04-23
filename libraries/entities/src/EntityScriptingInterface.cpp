@@ -15,6 +15,7 @@
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "ZoneEntityItem.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -304,6 +305,14 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setZonesArePickable(bool value) {
+    ZoneEntityItem::setZonesArePickable(value);
+}
+
+bool EntityScriptingInterface::getZonesArePickable() const {
+    return ZoneEntityItem::getZonesArePickable();
 }
 
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
