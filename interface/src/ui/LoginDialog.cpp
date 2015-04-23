@@ -50,7 +50,7 @@ void LoginDialog::handleLoginFailed() {
 }
 
 void LoginDialog::setStatusText(const QString& statusText) {
-    if (a != _statusText) {
+    if (statusText != _statusText) {
         _statusText = statusText;
         emit statusTextChanged();
     }
