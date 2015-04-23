@@ -11,6 +11,8 @@
 
 #include <QtCore/QObject>
 
+#include <glm/gtx/transform.hpp>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -843,7 +845,27 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
-bool EntityItem::lifetimeHasExpired() const { 
+glm::mat4 EntityItem::getEntityToWorldMatrix() const {
+    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+    return translation * rotation * scale * registration;
+}
+
+glm::mat4 EntityItem::getWorldToEntityMatrix() const {
+    return glm::inverse(getEntityToWorldMatrix());
+}
+
+glm::vec3 EntityItem::entityToWorld(const glm::vec3 point) const {
+    return glm::vec3(getEntityToWorldMatrix() * glm::vec4(point, 1.0f));
+}
+
+glm::vec3 EntityItem::worldToEntity(const glm::vec3 point) const {
+    return glm::vec3(getWorldToEntityMatrix() * glm::vec4(point, 1.0f));
+}
+
+bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
@@ -1033,12 +1055,6 @@ AABox EntityItem::getAABox() const {
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
-AABox EntityItem::getAABoxInDomainUnits() const { 
-    AABox box = getAABox();
-    box.scale(1.0f / (float)TREE_SCALE);
-    return box;
-}
-
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
 //    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
@@ -1064,6 +1080,16 @@ void EntityItem::setRadius(float value) {
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
 float EntityItem::getRadius() const { 
     return 0.5f * glm::length(_dimensions);
+}
+
+bool EntityItem::contains(const glm::vec3& point) const {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        return getAABox().contains(point);
+    } else {
+        ShapeInfo info;
+        info.setParams(getShapeType(), glm::vec3(0.5f));
+        return info.contains(worldToEntity(point));
+    }
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {

@@ -34,8 +34,8 @@
 #include "RenderableParticleEffectEntityItem.h"
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
+#include "RenderableZoneEntityItem.h"
 #include "EntitiesRendererLogging.h"
-#include "ZoneEntityItem.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -57,6 +57,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
@@ -496,7 +497,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const Entit
     
     if (entityItem->getType() == EntityTypes::Model) {
         const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        if (constModelEntityItem->hasCollisionModel()) {
+        if (constModelEntityItem->hasCompoundShapeURL()) {
             RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
             Model* model = modelEntityItem->getModel(this);
             if (model) {

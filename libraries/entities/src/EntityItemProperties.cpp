@@ -44,7 +44,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
-    CONSTRUCT_PROPERTY(collisionModelURL, ""),
+    CONSTRUCT_PROPERTY(compoundShapeURL, ""),
     CONSTRUCT_PROPERTY(animationURL, ""),
     CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
     CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
@@ -175,7 +175,7 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qCDebug(entities) << "   _dimensions=" << getDimensions();
     qCDebug(entities) << "   _modelURL=" << _modelURL;
-    qCDebug(entities) << "   _collisionModelURL=" << _collisionModelURL;
+    qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -245,7 +245,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
-    CHECK_PROPERTY_CHANGE(PROP_COLLISION_MODEL_URL, collisionModelURL);
+    CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
@@ -322,7 +322,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionModelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(compoundShapeURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
@@ -417,7 +417,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(visible, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(modelURL, setModelURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(collisionModelURL, setCollisionModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(compoundShapeURL, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationURL, setAnimationURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
@@ -618,7 +618,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
-                APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, properties.getCollisionModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
@@ -657,6 +657,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, properties.getStageAltitude());
                 APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, properties.getStageDay());
                 APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, properties.getStageHour());
+                
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
@@ -864,7 +867,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
-        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
@@ -903,6 +906,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_ALTITUDE, float, setStageAltitude);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_DAY, quint16, setStageDay);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
@@ -958,7 +963,7 @@ void EntityItemProperties::markAllChanged() {
     _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
-    _collisionModelURLChanged = true;
+    _compoundShapeURLChanged = true;
     _animationURLChanged = true;
     _animationIsPlayingChanged = true;
     _animationFrameIndexChanged = true;
