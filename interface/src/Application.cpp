@@ -1028,6 +1028,11 @@ bool Application::event(QEvent* event) {
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::ShortcutOverride) {
+        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+            event->accept();
+            return true;
+        }
+
         // Filter out captured keys before they're used for shortcut actions.
         if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();

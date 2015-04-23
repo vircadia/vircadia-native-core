@@ -89,7 +89,15 @@ void OffscreenUi::create(QOpenGLContext* shareContext) {
     // is needed too).
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, &OffscreenUi::requestRender);
     connect(_renderControl, &QQuickRenderControl::sceneChanged, this, &OffscreenUi::requestUpdate);
-    _quickWindow->focusObject();
+
+#ifdef DEBUG
+    connect(_quickWindow, &QQuickWindow::focusObjectChanged, [this]{
+        qDebug() << "New focus item " << _quickWindow->focusObject();
+    });
+    connect(_quickWindow, &QQuickWindow::activeFocusItemChanged, [this] {
+        qDebug() << "New active focus item " << _quickWindow->activeFocusItem();
+    });
+#endif
 
     _qmlComponent = new QQmlComponent(_qmlEngine);
     // Initialize the render control and our OpenGL resources.
@@ -257,6 +265,24 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF& sourcePosition, QObject* sourc
     return QPointF(offscreenPosition.x, offscreenPosition.y);
 }
 
+// This hack allows the QML UI to work with keys that are also bound as 
+// shortcuts at the application level.  However, it seems as though the 
+// bound actions are still getting triggered.  At least for backspace.  
+// Not sure why.
+//
+// However, the problem may go away once we switch to the new menu system,
+// so I think it's OK for the time being.
+bool OffscreenUi::shouldSwallowShortcut(QEvent * event) {
+    Q_ASSERT(event->type() == QEvent::ShortcutOverride);
+    QObject * focusObject = _quickWindow->focusObject();
+    if (focusObject != _quickWindow && focusObject != _rootItem) {
+        //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
+        event->accept();
+        return true;
+    }
+    return false;
+}
+
 ///////////////////////////////////////////////////////
 //
 // Event handling customization
@@ -268,11 +294,17 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
         return false;
     }
 
+
+#ifdef DEBUG
     // Don't intercept our own events, or we enter an infinite recursion
-    if (originalDestination == _quickWindow) {
-        return false;
+    QObject * recurseTest = originalDestination;
+    while (recurseTest) {
+        Q_ASSERT(recurseTest != _rootItem && recurseTest != _quickWindow);
+        recurseTest = recurseTest->parent();
     }
-    
+#endif
+
+   
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -280,12 +312,14 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
             if (widget) {
                 this->resize(resizeEvent->size());
             }
-            return false;
+            break;
         }
 
         case QEvent::KeyPress:
         case QEvent::KeyRelease: {
             event->ignore();
+            //if (_quickWindow->activeFocusItem()) {
+            //    _quickWindow->sendEvent(_quickWindow->activeFocusItem(), event);
             if (QCoreApplication::sendEvent(_quickWindow, event)) {
                 return event->isAccepted();
             }
