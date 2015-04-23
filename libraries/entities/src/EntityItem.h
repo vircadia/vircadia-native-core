@@ -258,8 +258,6 @@ public:
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
-    void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
-    bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -311,10 +309,6 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
-    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
-    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
-
 protected:
 
     static bool _sendPhysicsUpdates;
@@ -344,7 +338,6 @@ protected:
     glm::vec3 _velocity;
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
-    quint8 _accelerationNearlyGravityCount;
     float _damping;
     float _lifetime;
     QString _script;
@@ -358,7 +351,6 @@ protected:
     QString _userData;
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
-    bool _shouldClaimSimulationOwnership;
     QString _marketplaceID;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)

@@ -35,8 +35,11 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
     _outgoingEntityList->insert(entity);
 }
 
-EntityMotionState::EntityMotionState(EntityItem* entity) 
-    :   _entity(entity) {
+EntityMotionState::EntityMotionState(EntityItem* entity) :
+    _entity(entity),
+    _accelerationNearlyGravityCount(0),
+    _shouldClaimSimulationOwnership(false)
+{
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
@@ -192,7 +195,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         return false;
     }
 
-    if (_entity->getShouldClaimSimulationOwnership()) {
+    if (getShouldClaimSimulationOwnership()) {
         return true;
     }
 
@@ -219,19 +222,19 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
         if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
             // acceleration measured during the most recent simulation step was close to gravity.
-            if (_entity->getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
                 // only increment this if we haven't reached the threshold yet.  this is to avoid
                 // overflowing the counter.
-                _entity->incrementAccelerationNearlyGravityCount();
+                incrementAccelerationNearlyGravityCount();
             }
         } else {
             // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
-            _entity->resetAccelerationNearlyGravityCount();
+            resetAccelerationNearlyGravityCount();
         }
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
-        if (_entity->getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
+        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
         } else {
             _entity->setAcceleration(glm::vec3(0.0f));
@@ -283,10 +286,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        if (_entity->getShouldClaimSimulationOwnership()) {
+        if (getShouldClaimSimulationOwnership()) {
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-            _entity->setShouldClaimSimulationOwnership(false);
+            setShouldClaimSimulationOwnership(false);
         }
 
         if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {

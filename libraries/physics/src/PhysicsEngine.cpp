@@ -392,9 +392,11 @@ void PhysicsEngine::computeCollisionEvents() {
             }
 
             void* a = objectA->getUserPointer();
-            EntityItem* entityA = a ? static_cast<EntityMotionState*>(a)->getEntity() : NULL;
+            EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
+            EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : NULL;
             void* b = objectB->getUserPointer();
-            EntityItem* entityB = b ? static_cast<EntityMotionState*>(b)->getEntity() : NULL;
+            EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
+            EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : NULL;
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
@@ -403,14 +405,14 @@ void PhysicsEngine::computeCollisionEvents() {
                 // ownership of anything that collides with our avatar.
                 if (entityA && entityB && !objectA->isStaticOrKinematicObject() && !objectB->isStaticOrKinematicObject()) {
                     if (entityA->getSimulatorID() == myNodeID || 
-                        entityA->getShouldClaimSimulationOwnership() ||
+                        entityMotionStateA->getShouldClaimSimulationOwnership() ||
                         objectA == characterCollisionObject) {
-                        entityB->setShouldClaimSimulationOwnership(true);
+                        entityMotionStateB->setShouldClaimSimulationOwnership(true);
                     }
                     if (entityB->getSimulatorID() == myNodeID ||
-                        entityB->getShouldClaimSimulationOwnership() ||
+                        entityMotionStateA->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
-                        entityA->setShouldClaimSimulationOwnership(true);
+                        entityMotionStateB->setShouldClaimSimulationOwnership(true);
                     }
                 }
             }
@@ -543,17 +545,19 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
                 void* a = objectA->getUserPointer();
                 void* b = objectB->getUserPointer();
                 if (a && b) {
-                    EntityItem* entityA = a ? static_cast<EntityMotionState*>(a)->getEntity() : NULL;
-                    EntityItem* entityB = b ? static_cast<EntityMotionState*>(b)->getEntity() : NULL;
+                    EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
+                    EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
+                    EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : NULL;
+                    EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : NULL;
                     if (entityA && entityB) {
                         if (entityA == bumpEntity) {
-                            entityB->setShouldClaimSimulationOwnership(true);
+                            entityMotionStateB->setShouldClaimSimulationOwnership(true);
                             if (!objectB->isActive()) {
                                 objectB->setActivationState(ACTIVE_TAG);
                             }
                         }
                         if (entityB == bumpEntity) {
-                            entityA->setShouldClaimSimulationOwnership(true);
+                            entityMotionStateA->setShouldClaimSimulationOwnership(true);
                             if (!objectA->isActive()) {
                                 objectA->setActivationState(ACTIVE_TAG);
                             }
