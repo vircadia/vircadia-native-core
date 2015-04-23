@@ -21,7 +21,7 @@
 #include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
-const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
+const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
 const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -272,7 +272,7 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    position:" << getPosition();
     qCDebug(entities) << "    dimensions:" << getDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
-    qCDebug(entities) << "    collision model URL:" << getCompoundShapeURL();
+    qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {

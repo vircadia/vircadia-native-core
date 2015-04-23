@@ -62,7 +62,7 @@ public:
     static const QString DEFAULT_MODEL_URL;
     const QString& getModelURL() const { return _modelURL; }
 
-    static const QString DEFAULT_COLLISION_MODEL_URL;
+    static const QString DEFAULT_COMPOUND_SHAPE_URL;
     const QString& getCompoundShapeURL() const { return _compoundShapeURL; }
 
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
