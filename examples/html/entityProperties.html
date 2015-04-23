@@ -386,8 +386,8 @@
                                 elZoneKeyLightColorRed.value = properties.keyLightColor.red;
                                 elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
                                 elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
-                                elZoneKeyLightIntensity.value = properties.keyLightIntensity;
-                                elZoneKeyLightAmbientIntensity.value = properties.keyLightAmbientIntensity;
+                                elZoneKeyLightIntensity.value = properties.keyLightIntensity.toFixed(2);
+                                elZoneKeyLightAmbientIntensity.value = properties.keyLightAmbientIntensity.toFixed(2);
                                 elZoneKeyLightDirectionX.value = properties.keyLightDirection.x.toFixed(2);
                                 elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
                                 elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
@@ -907,21 +907,21 @@
         <div class="zone-section property">
             <div class="label">Key Light Color</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green" min="0" max="255" step="1"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></input></div>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Key Light Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-key-intensity"></input>
+                <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Key Light Ambient Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-key-ambient-intensity"></input>
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1"></input>
             </div>
         </div>
         <div class="zone-section property">
@@ -936,31 +936,31 @@
         <div class="zone-section property">
             <div class="label">Stage Latitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-latitude"></input>
+                <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Longitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-longitude"></input>
+                <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Altitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-altitude"></input>
+                <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-day"></input>
+                <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Hour</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-hour"></input>
+                <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5"></input>
             </div>
         </div>
     </div>
