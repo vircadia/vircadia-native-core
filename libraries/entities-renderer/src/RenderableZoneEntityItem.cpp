@@ -44,10 +44,11 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
         return EntityItem::contains(point);
     }
     
-    if (EntityItem::contains(point) && _compoundShapeModel) {
+    if (EntityItem::contains(point) && _compoundShapeModel && _compoundShapeModel->isLoaded()) {
         const FBXGeometry& geometry = _compoundShapeModel->getFBXGeometry();
+        glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
         
-        return geometry.convexHullContains(point);
+        return geometry.convexHullContains(transformedPoint);
     }
     
     return false;
