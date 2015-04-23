@@ -529,12 +529,53 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
     motionState->resetMeasuredAcceleration();
 }
 
+void PhysicsEngine::bump(EntityItem* bumpEntity) {
+    // If this node is doing something like deleting an entity, scan for contacts involving the
+    // entity.  For each found, flag the other entity involved as being simulated by this node.
+    lock();
+    int numManifolds = _collisionDispatcher->getNumManifolds();
+    for (int i = 0; i < numManifolds; ++i) {
+        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+        if (contactManifold->getNumContacts() > 0) {
+            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+            if (objectA && objectB) {
+                void* a = objectA->getUserPointer();
+                void* b = objectB->getUserPointer();
+                if (a && b) {
+                    EntityItem* entityA = a ? static_cast<EntityMotionState*>(a)->getEntity() : NULL;
+                    EntityItem* entityB = b ? static_cast<EntityMotionState*>(b)->getEntity() : NULL;
+                    if (entityA && entityB) {
+                        if (entityA == bumpEntity) {
+                            entityB->setShouldClaimSimulationOwnership(true);
+                            if (!objectB->isActive()) {
+                                objectB->setActivationState(ACTIVE_TAG);
+                            }
+                        }
+                        if (entityB == bumpEntity) {
+                            entityA->setShouldClaimSimulationOwnership(true);
+                            if (!objectA->isActive()) {
+                                objectA->setActivationState(ACTIVE_TAG);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    unlock();
+}
+
 void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->getRigidBody();
+
     // set the about-to-be-deleted entity active in order to wake up the island it's part of.  this is done
     // so that anything resting on top of it will fall.
-    body->setActivationState(ACTIVE_TAG);
+    // body->setActivationState(ACTIVE_TAG);
+    EntityItem* entity = static_cast<EntityMotionState*>(motionState)->getEntity();
+    bump(entity);
+
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
         _dynamicsWorld->removeRigidBody(body);

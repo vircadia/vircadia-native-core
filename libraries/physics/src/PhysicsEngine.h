@@ -98,6 +98,7 @@ private:
     // return 'true' of update was successful
     bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+    void bump(EntityItem* bumpEntity);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig = NULL;
