@@ -1,6 +1,7 @@
 import Hifi 1.0
 import QtQuick 2.3
 import "controls"
+import "styles"
 
 Dialog {
     title: "Go to..."

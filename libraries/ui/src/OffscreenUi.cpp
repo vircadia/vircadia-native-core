@@ -118,13 +118,15 @@ void OffscreenUi::resize(const QSize& newSize) {
     qDebug() << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
     _fboCache.setSize(newSize * pixelRatio);
 
+    if (_quickWindow) {
+        _quickWindow->setGeometry(QRect(QPoint(), newSize));
+    }
+
+    _quickWindow->contentItem()->setSize(newSize);
+
     // Update our members
     if (_rootItem) {
         _rootItem->setSize(newSize);
-    }
-
-    if (_quickWindow) {
-        _quickWindow->setGeometry(QRect(QPoint(), newSize));
     }
 
     doneCurrent();
@@ -190,6 +192,7 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (!newItem) {
         qWarning("run: Not a QQuickItem");
+        return;
         delete newObject;
         if (!_rootItem) {
             qFatal("Unable to find root QQuickItem");
@@ -206,6 +209,7 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
         _rootItem = newItem;
         _rootItem->setParentItem(_quickWindow->contentItem());
         _rootItem->setSize(_quickWindow->renderTargetSize());
+        _rootItem->forceActiveFocus();
     } else {
         // Allow child windows to be destroyed from JS
         QQmlEngine::setObjectOwnership(newItem, QQmlEngine::JavaScriptOwnership);

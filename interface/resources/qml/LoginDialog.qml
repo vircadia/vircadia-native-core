@@ -2,6 +2,7 @@ import Hifi 1.0
 import QtQuick 2.3
 import QtQuick.Controls.Styles 1.3
 import "controls"
+import "styles"
 
 Dialog {
     title: "Login"

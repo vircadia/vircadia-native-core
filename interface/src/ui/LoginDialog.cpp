@@ -25,19 +25,18 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent), _root
 }
 
 void LoginDialog::toggleAction() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
-    Q_CHECK_PTR(loginAction);
-    disconnect(loginAction, 0, 0, 0);
-
+    AccountManager & accountManager = AccountManager::getInstance();
+    Menu* menu = Menu::getInstance();
     if (accountManager.isLoggedIn()) {
         // change the menu item to logout
-        loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
-        connect(loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+        menu->setOptionText(MenuOption::Login, "Logout " + accountManager.getAccountInfo().getUsername());
+        menu->setOptionTriggerAction(MenuOption::Login, [] {
+            AccountManager::getInstance().logout();
+        });
     } else {
         // change the menu item to login
-        loginAction->setText("Login");
-        connect(loginAction, &QAction::triggered, [] {
+        menu->setOptionText(MenuOption::Login, "Login");
+        menu->setOptionTriggerAction(MenuOption::Login, [] {
             LoginDialog::show();
         });
     }

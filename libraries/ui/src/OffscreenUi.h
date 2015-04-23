@@ -32,6 +32,39 @@
 #include "FboCache.h"
 #include <QQuickItem>
 
+#define HIFI_QML_DECL \
+private: \
+    static const QString NAME; \
+    static const QUrl QML; \
+public: \
+    static void registerType(); \
+    static void show(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void toggle(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void load(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+private:
+
+#define HIFI_QML_DEF(x) \
+    const QUrl x::QML = QUrl(#x ".qml"); \
+    const QString x::NAME = #x; \
+    \
+    void x::registerType() { \
+        qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
+    } \
+    \
+    void x::show(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        offscreenUi->show(QML, NAME, f); \
+    } \
+    \
+    void x::toggle(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        offscreenUi->toggle(QML, NAME, f); \
+    } \
+    void x::load(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        offscreenUi->load(QML, f); \
+    } 
+
 
 class OffscreenUi : public OffscreenGlCanvas, public Dependency {
     Q_OBJECT

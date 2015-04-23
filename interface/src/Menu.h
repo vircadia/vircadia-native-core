@@ -18,85 +18,69 @@
 #include <QKeySequence>
 #include <QPointer>
 #include <QStandardPaths>
-
+#include <QQuickItem>
 #include <MenuItemProperties.h>
+
+#include <OffscreenUi.h>
 
 #include "DiscoverabilityManager.h"
 
 class Settings;
 
-class Menu : public QMenuBar {
-    Q_OBJECT
+// Proxy object to simplify porting over
+class HifiAction {
+    const QString _menuOption;
 public:
+    HifiAction(const QString & menuOption);
+    void setCheckable(bool);
+    void setChecked(bool);
+    void setVisible(bool);
+    const QString & shortcut() const;
+    void setText(const QString &);
+    void setTriggerAction(std::function<void()>);
+    void setToggleAction(std::function<void(bool)>);
+};
+
+class Menu : public QQuickItem {
+    Q_OBJECT
+    HIFI_QML_DECL
+public:
+    Menu(QQuickItem * parent = 0);
     static Menu* getInstance();
     
     void loadSettings();
     void saveSettings();
-    
-    QMenu* getMenu(const QString& menuName);
-
-    void triggerOption(const QString& menuOption);
-    QAction* getActionForOption(const QString& menuOption);
-    
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           const QString& actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                           QAction* action,
-                                           const QString& actionName = QString(),
-                                           const QKeySequence& shortcut = 0,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
-    
-    void removeAction(QMenu* menu, const QString& actionName);
-    
-public slots:
-    QMenu* addMenu(const QString& menuName);
+    HifiAction * getActionForOption(const QString& menuOption) {
+        return new HifiAction(menuOption); 
+    }
+//    QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
-    void removeMenuItem(const QString& menuName, const QString& menuitem);
+    void removeMenuItem(const QString& menuitem);
     bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
-    
+    void triggerOption(const QString& menuOption);
+    void setOptionText(const QString& menuOption, const QString & text);
+    void setOptionTriggerAction(const QString& menuOption, std::function<void()> f);
+    void setOptionToggleAction(const QString& menuOption, std::function<void(bool)> f);
+    void addMenuItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f);
+    void addMenuItem(const QString & parentMenu, const QString & menuOption);
+    void addMenu(const QString & parentMenu, const QString & menuOption);
+    void enableMenuItem(const QString & menuOption, bool enabled = true);
+
+private:
+    void init();
+
 private:
     static Menu* _instance;
-    Menu();
     
-    typedef void(*settingsAction)(Settings&, QAction&);
-    static void loadAction(Settings& settings, QAction& action);
-    static void saveAction(Settings& settings, QAction& action);
-    void scanMenuBar(settingsAction modifySetting);
-    void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
-    
-    /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
-                                       int menuItemLocation = UNSPECIFIED_POSITION);
-    
-    QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
-    
-    QAction* getActionFromName(const QString& menuName, QMenu* menu);
-    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
-    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
-    
-    QAction* getMenuAction(const QString& menuName);
-    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
-    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    
-    QHash<QString, QAction*> _actionHash;
+    QHash<QString, std::function<void()>> _triggerActions;
+    QHash<QString, std::function<void(bool)>> _toggleActions;
+
 };
 
 namespace MenuOption {
@@ -251,5 +235,4 @@ namespace MenuOption {
     const QString VisibleToNoOne = "No one";
     const QString Wireframe = "Wireframe";
 }
-
 #endif // hifi_Menu_h

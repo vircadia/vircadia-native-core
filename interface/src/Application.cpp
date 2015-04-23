@@ -149,6 +149,23 @@ extern "C" {
 }
 #endif
 
+enum CustomEventTypes {
+    Lambda = QEvent::User + 1
+};
+
+class LambdaEvent : public QEvent {
+    std::function<void()> _fun;
+public:
+    LambdaEvent(const std::function<void()> & fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    LambdaEvent(std::function<void()> && fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    void call() { _fun(); }
+};
+
+
 using namespace std;
 
 //  Starfield information
@@ -345,9 +362,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
-
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
     // start the nodeThread so its event loop is running
@@ -497,8 +511,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
-    _fullscreenMenuWidget->setParent(_glWidget);
-    _menuBarHeight = Menu::getInstance()->height();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         setFullscreen(true);  // Initialize menu bar show/hide
     }
@@ -712,6 +724,13 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // The UI can't be created until the primary OpenGL 
+    // context is created, because it needs to share 
+    // texture resources
+    initializeUi();
+    qCDebug(interfaceapp, "Initialized Offscreen UI.");
+    _glWidget->makeCurrent();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -740,11 +759,6 @@ void Application::initializeGL() {
     // update before the first render
     update(1.0f / _fps);
    
-    // The UI can't be created until the primary OpenGL 
-    // context is created, because it needs to share 
-    // texture resources
-    initializeUi();
-
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
@@ -764,6 +778,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     MarketplaceDialog::registerType();
     MessageDialog::registerType();
+    Menu::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -898,9 +913,7 @@ void Application::runTests() {
 }
 
 void Application::audioMuteToggled() {
-    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
-    Q_CHECK_PTR(muteAction);
-    muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
+    Menu::getInstance()->setIsOptionChecked(MenuOption::MuteAudio, DependencyManager::get<AudioClient>()->isMuted());
 }
 
 void Application::aboutApp() {
@@ -982,6 +995,10 @@ bool Application::importSVOFromURL(const QString& urlString) {
 
 bool Application::event(QEvent* event) {
     switch (event->type()) {
+        case Lambda:
+            ((LambdaEvent*)event)->call();
+            return true;
+
         case QEvent::MouseMove:
             mouseMoveEvent((QMouseEvent*)event);
             return true;
@@ -1061,8 +1078,10 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-void Application::keyPressEvent(QKeyEvent* event) {
+static bool _altPressed;
 
+void Application::keyPressEvent(QKeyEvent* event) {
+    _altPressed = event->key() == Qt::Key_Alt;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1314,6 +1333,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Alt && _altPressed) {
+        Menu::toggle();
+    }
 
     _keysPressed.remove(event->key());
 
@@ -1420,18 +1442,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) 
-        && !Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        // Show/hide menu bar in fullscreen
-        if (event->globalY() > _menuBarHeight) {
-            _fullscreenMenuWidget->setFixedHeight(0);
-            Menu::getInstance()->setFixedHeight(0);
-        } else {
-            _fullscreenMenuWidget->setFixedHeight(_menuBarHeight);
-            Menu::getInstance()->setFixedHeight(_menuBarHeight);
-        }
-    }
-
     _entities.mouseMoveEvent(event, deviceID);
     
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -1439,7 +1449,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
-    
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -1724,34 +1733,6 @@ void Application::setFullscreen(bool fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
     }
 
-// The following code block is useful on platforms that can have a visible
-// app menu in a fullscreen window.  However the OSX mechanism hides the
-// application menu for fullscreen apps, so the check is not required.
-#ifndef Q_OS_MAC
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        if (fullscreen) {
-            // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
-            // So set height instead.
-            _window->menuBar()->setMaximumHeight(0);
-        } else {
-            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
-        }
-    } else {
-        if (fullscreen) {
-            // Move menu to a QWidget floating above _glWidget so that show/hide doesn't adjust viewport.
-            _menuBarHeight = Menu::getInstance()->height();
-            Menu::getInstance()->setParent(_fullscreenMenuWidget);
-            Menu::getInstance()->setFixedWidth(_window->windowHandle()->screen()->size().width());
-            _fullscreenMenuWidget->show();
-        } else {
-            // Restore menu to being part of MainWindow.
-            _fullscreenMenuWidget->hide();
-            _window->setMenuBar(Menu::getInstance());
-            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
-        }
-    }
-#endif
-
     // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
     // https://bugreports.qt.io/browse/QTBUG-41883
     // Known issue: Top-level menu items don't highlight when cursor hovers. This is probably a side-effect of the work-around.
@@ -2004,16 +1985,18 @@ void Application::init() {
 
     OculusManager::connect();
     if (OculusManager::isConnected()) {
-        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
-                                  "trigger",
-                                  Qt::QueuedConnection);
+        // perform as a post-event so that the code is run after init is complete
+        qApp->postLambdaEvent([] {
+            Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
+        });
     }
 
     TV3DManager::connect();
     if (TV3DManager::isConnected()) {
-        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
-                                  "trigger",
-                                  Qt::QueuedConnection);
+        // perform as a post-event so that the code is run after init is complete
+        qApp->postLambdaEvent([] {
+            Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
+        });
     }
 
     _timerStart.start();
@@ -4433,4 +4416,8 @@ void Application::showFriendsWindow() {
 void Application::friendsWindowClosed() {
     delete _friendsWindow;
     _friendsWindow = NULL;
+}
+
+void Application::postLambdaEvent(std::function<void()> f) {
+    QCoreApplication::postEvent(this, new LambdaEvent(f));
 }

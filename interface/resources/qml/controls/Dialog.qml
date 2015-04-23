@@ -30,14 +30,13 @@ Item {
     property string frameColor: hifiPalette.hifiBlue
     property string backgroundColor: sysPalette.window
     property string headerBackgroundColor: sysPalette.dark
-    
     clip: true
-    enabled: false
-    scale: 0.0
 
     /*
      * Support for animating the dialog in and out. 
      */
+    enabled: false
+    scale: 0.0
     
     // The offscreen UI will enable an object, rather than manipulating it's 
     // visibility, so that we can do animations in both directions.  Because 

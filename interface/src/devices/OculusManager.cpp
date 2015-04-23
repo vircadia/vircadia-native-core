@@ -216,7 +216,7 @@ void OculusManager::connect() {
         _isConnected = false;
         
         // we're definitely not in "VR mode" so tell the menu that
-        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableVRMode, false);
     }
 }
 

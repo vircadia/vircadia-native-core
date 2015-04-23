@@ -10,7 +10,6 @@
 
 #include "TextRenderer.h"
 #include "MatrixStack.h"
-#include "OffscreenUi.h"
 
 #include <QWindow>
 #include <QFile>
@@ -27,7 +26,6 @@
 #include <QOpenGLVertexArrayObject>
 #include <QApplication>
 #include <QOpenGLDebugLogger>
-#include <QWebEnginePage>
 
 #include <unordered_map>
 #include <memory>
@@ -82,6 +80,7 @@ const QString& getQmlDir() {
     }
     return dir;
 }
+
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
     Q_OBJECT
@@ -90,24 +89,17 @@ class QTestWindow : public QWindow {
     QSize _size;
     TextRenderer* _textRenderer[4];
     RateCounter fps;
-    int testQmlTexture{ 0 };
-    //ProgramPtr _planeProgam;
-    //ShapeWrapperPtr _planeShape;
 
 protected:
-
     void renderText();
-    void renderQml();
 
 private:
     void resizeWindow(const QSize& size) {
         _size = size;
-        DependencyManager::get<OffscreenUi>()->resize(_size);
     }
 
 public:
     QTestWindow() {
-        DependencyManager::set<OffscreenUi>();
         setSurfaceType(QSurface::OpenGLSurface);
 
         QSurfaceFormat format;
@@ -167,32 +159,10 @@ public:
         glClearColor(0.2f, 0.2f, 0.2f, 1);
         glDisable(GL_DEPTH_TEST);
 
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
-        offscreenUi->create(_context);
-        // FIXME, need to switch to a QWindow for mouse and keyboard input to work
-        offscreenUi->setProxyWindow(this);
-        // "#0e7077"
+        makeCurrent();
+
         setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
-
-        offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
-        offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->addImportPath(getQmlDir());
-        offscreenUi->addImportPath(".");
-
-        connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [this, offscreenUi](int textureId) {
-            offscreenUi->lockTexture(textureId);
-            assert(!glGetError());
-            GLuint oldTexture = testQmlTexture;
-            testQmlTexture = textureId;
-            if (oldTexture) {
-                offscreenUi->releaseTexture(oldTexture);
-            }
-        });
-        installEventFilter(offscreenUi.data());
-        offscreenUi->resume();
-        QWebEnginePage *page = new QWebEnginePage;
-        page->runJavaScript("'Java''' 'Script'", [](const QVariant &result) { qDebug() << result; });
     }
 
     virtual ~QTestWindow() {
@@ -207,41 +177,6 @@ protected:
 
     void resizeEvent(QResizeEvent* ev) override {
         resizeWindow(ev->size());
-    }
-
-
-    void keyPressEvent(QKeyEvent* event) {
-        switch (event->key()) {
-        case Qt::Key_L:
-            if (event->modifiers() & Qt::CTRL) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                offscreenUi->qmlEngine()->clearComponentCache();
-                DependencyManager::get<OffscreenUi>()->toggle(QString("TestDialog.qml"), "TestDialog");
-            }
-            break;
-        case Qt::Key_K:
-            if (event->modifiers() & Qt::CTRL) {
-                DependencyManager::get<OffscreenUi>()->toggle(QString("Browser.qml"), "Browser");
-            }
-            break;
-        case Qt::Key_J:
-            if (event->modifiers() & Qt::CTRL) {
-                QObject * obj = DependencyManager::get<OffscreenUi>()->findObject("WebView");
-                qDebug() << obj;
-            }
-            break;
-        }
-        QWindow::keyPressEvent(event);
-    }
-    
-    void moveEvent(QMoveEvent* event) {
-        static qreal oldPixelRatio = 0.0;
-        if (devicePixelRatio() != oldPixelRatio) {
-            oldPixelRatio = devicePixelRatio();
-            resizeWindow(size());
-        }		
-   
-        QWindow::moveEvent(event);
     }
 };
 
@@ -299,39 +234,16 @@ void QTestWindow::renderText() {
     }
 }
 
-void QTestWindow::renderQml() {
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    if (testQmlTexture > 0) {
-        glEnable(GL_TEXTURE_2D);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, testQmlTexture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    }
-    glBegin(GL_QUADS);
-    {
-        glTexCoord2f(0, 0);
-        glVertex2f(-1, -1);
-        glTexCoord2f(0, 1);
-        glVertex2f(-1, 1);
-        glTexCoord2f(1, 1);
-        glVertex2f(1, 1);
-        glTexCoord2f(1, 0);
-        glVertex2f(1, -1);
-    }
-    glEnd();
-}
-
 void QTestWindow::draw() {
+    if (!isVisible()) {
+        return;
+    }
+
     makeCurrent();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
-    //renderText();
-    renderQml();
+    renderText();
 
     _context->swapBuffers(this);
     glFinish();
@@ -344,10 +256,8 @@ void QTestWindow::draw() {
 }
 
 int main(int argc, char** argv) {    
-    QApplication app(argc, argv);
-    //QLoggingCategory::setFilterRules("qt.quick.mouse.debug = true");
+    QGuiApplication app(argc, argv);
     QTestWindow window;
-
     QTimer timer;
     timer.setInterval(1);
     app.connect(&timer, &QTimer::timeout, &app, [&] {

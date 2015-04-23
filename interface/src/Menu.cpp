@@ -12,6 +12,7 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
+#include <QmlContext>
 
 #include <AddressManager.h>
 #include <AudioClient.h>
@@ -20,7 +21,7 @@
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
-
+#include <OffscreenUi.h>
 #include "Application.h"
 #include "AccountManager.h"
 #include "audio/AudioIOStatsRenderer.h"
@@ -42,64 +43,176 @@
 
 #include "Menu.h"
 
-Menu* Menu::_instance = NULL;
+// Proxy object to simplify porting over
+HifiAction::HifiAction(const QString & menuOption) : _menuOption(menuOption) {
+}
+
+//void HifiAction::setCheckable(bool) {
+//    Menu::getInstance()->set
+//    qFatal("Not implemented");
+//}
+
+void HifiAction::setChecked(bool) {
+    qFatal("Not implemented");
+}
+
+void HifiAction::setVisible(bool) {
+    qFatal("Not implemented");
+}
+
+const QString & HifiAction::shortcut() const {
+    qFatal("Not implemented");
+    return "";
+}
+
+void HifiAction::setText(const QString &) {
+    qFatal("Not implemented");
+}
+
+void HifiAction::setTriggerAction(std::function<void()> f) {
+    qFatal("Not implemented");
+}
+
+void HifiAction::setToggleAction(std::function<void(bool)> f) {
+    qFatal("Not implemented");
+}
+
+HIFI_QML_DEF(Menu)
+
+
+Menu* Menu::_instance = nullptr;
 
 Menu* Menu::getInstance() {
-    static QMutex menuInstanceMutex;
-
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    menuInstanceMutex.lock();
-
+    // Optimistic check for menu existence
     if (!_instance) {
-        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
+        static QMutex menuInstanceMutex;
+        withLock(menuInstanceMutex, [] {
+            if (!_instance) {
+                OffscreenUi * offscreenUi = DependencyManager::get<OffscreenUi>().data();
+                QQmlContext * qmlContext = offscreenUi->qmlContext();
+                qmlContext->setContextProperty("foo", QVariant::fromValue(foo));
+//                qmlContext->setContextProperty("presetsModel", QVariant::fromValue(dataList));
 
-        _instance = new Menu();
+                qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
+                load([&](QQmlContext *, QQuickItem* item) {
+                    _instance = dynamic_cast<Menu*>(item);
+                });
+                if (!_instance) {
+                    qFatal("Could not load menu QML");
+                } else {
+                    _instance->init();
+                }
+            }
+        });
     }
-
-    menuInstanceMutex.unlock();
-
     return _instance;
 }
 
-Menu::Menu() {
-    QMenu* fileMenu = addMenu("File");
+Menu::Menu(QQuickItem * parent) : QQuickItem(parent) {
+}
 
-#ifdef Q_OS_MAC
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
-#endif
+QObject * _rootMenu;
+static const QString FILE_MENU{ "File" };
+static const QString EDIT_MENU{ "Edit" };
+static const QString TOOLS_MENU{ "Tools" };
+static const QString AVATAR_MENU{ "Avatar" };
+
+
+static const QString MENU_SUFFIX{ "__Menu" };
+
+QObject * addMenu(QObject * parent, const QString & text) {
+    // FIXME add more checking here to ensure no name conflicts
+    QVariant returnedValue;
+    QMetaObject::invokeMethod(parent, "addMenu",
+        Q_RETURN_ARG(QVariant, returnedValue),
+        Q_ARG(QVariant, text));
+    QObject * result = returnedValue.value<QObject*>();
+    if (result) {
+        result->setObjectName(text + MENU_SUFFIX);
+    }
+    return result;
+}
+
+class QQuickMenuItem;
+QObject * addItem(QObject * parent, const QString & text) {
+    // FIXME add more checking here to ensure no name conflicts
+    QQuickMenuItem* returnedValue;
+    QMetaObject::invokeMethod(parent, "addItem",
+        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_ARG(QString, text));
+    QObject* result = reinterpret_cast<QObject*>(returnedValue);
+    if (result) {
+        result->setObjectName(text + MENU_SUFFIX);
+    }
+    return result;
+}
+
+void Menu::init() {
+    _rootMenu = property("menu").value<QObject*>();
+    QObject * fileMenu = ::addMenu(_rootMenu, FILE_MENU);
+
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     AccountManager& accountManager = AccountManager::getInstance();
 
     {
-        addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
-        
+        ::addItem(fileMenu, MenuOption::Login);
+
         // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
         connect(&accountManager, &AccountManager::profileChanged,
-                dialogsManager.data(), &DialogsManager::toggleLoginDialog);
+            dialogsManager.data(), &DialogsManager::toggleLoginDialog);
         connect(&accountManager, &AccountManager::logoutComplete,
-                dialogsManager.data(), &DialogsManager::toggleLoginDialog);
+            dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
-    
-    addDisabledActionAndSeparator(fileMenu, "Scripts");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-                                  qApp, SLOT(loadDialog()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
-                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-                                  qApp, SLOT(reloadAllScripts()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-                                  qApp, SLOT(toggleRunningScriptsWidget()));
 
-    addDisabledActionAndSeparator(fileMenu, "Location");
-    qApp->getBookmarks()->setupMenus(this, fileMenu);
+
+#ifdef Q_OS_MAC
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
+#endif
+
+    {
+        static const QString SCRIPTS_MENU{ "Scripts" };
+        addMenu(FILE_MENU, SCRIPTS_MENU);
+        //Qt::CTRL | Qt::Key_O
+        addMenuItem(SCRIPTS_MENU, MenuOption::LoadScript, [=] {
+            qApp->loadDialog();
+        });
+        //Qt::CTRL | Qt::SHIFT | Qt::Key_O
+        addMenuItem(SCRIPTS_MENU, MenuOption::LoadScriptURL, [=] {
+            qApp->loadScriptURLDialog();
+        });
+        addMenuItem(SCRIPTS_MENU, MenuOption::StopAllScripts, [=] {
+            qApp->stopAllScripts();
+        });
+        //Qt::CTRL | Qt::Key_R,
+        addMenuItem(SCRIPTS_MENU, MenuOption::ReloadAllScripts, [=] {
+            qApp->reloadAllScripts();
+        });
+        // Qt::CTRL | Qt::Key_J,
+        addMenuItem(SCRIPTS_MENU, MenuOption::RunningScripts, [=] {
+            qApp->toggleRunningScriptsWidget();
+        });
+    }
+
+    {
+        static const QString LOCATION_MENU{ "Location" };
+        addMenu(FILE_MENU, LOCATION_MENU);
+        qApp->getBookmarks()->setupMenus(LOCATION_MENU);
+        //Qt::CTRL | Qt::Key_L
+        addMenuItem(LOCATION_MENU, MenuOption::AddressBar, [=] {
+            auto dialogsManager = DependencyManager::get<DialogsManager>();
+            dialogsManager->toggleAddressBar();
+        });
+        addMenuItem(LOCATION_MENU, MenuOption::CopyAddress, [=] {
+            auto addressManager = DependencyManager::get<AddressManager>();
+            addressManager->copyAddress();
+        });
+        addMenuItem(LOCATION_MENU, MenuOption::CopyAddress, [=] {
+            auto addressManager = DependencyManager::get<AddressManager>();
+            addressManager->copyPath();
+        });
+    }
+#if 0
     
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::AddressBar,
-                                  Qt::CTRL | Qt::Key_L,
-                                  dialogsManager.data(),
-                                  SLOT(toggleAddressBar()));
-    auto addressManager = DependencyManager::get<AddressManager>();
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
                                   addressManager.data(), SLOT(copyAddress()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
@@ -556,15 +669,17 @@ Menu::Menu() {
     QAction* aboutAction = helpMenu->addAction(MenuOption::AboutApp);
     connect(aboutAction, SIGNAL(triggered()), qApp, SLOT(aboutApp()));
 #endif
+#endif
 }
 
 void Menu::loadSettings() {
-    scanMenuBar(&Menu::loadAction);
+//    scanMenuBar(&Menu::loadAction);
 }
 
 void Menu::saveSettings() {
-    scanMenuBar(&Menu::saveAction);
+//    scanMenuBar(&Menu::saveAction);
 }
+#if 0
 
 void Menu::loadAction(Settings& settings, QAction& action) {
     if (action.isChecked() != settings.value(action.text(), action.isChecked()).toBool()) {
@@ -708,35 +823,19 @@ void Menu::removeAction(QMenu* menu, const QString& actionName) {
     _actionHash.remove(actionName);
 }
 
+#endif
+
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked", Qt::BlockingQueuedConnection,
-                    Q_ARG(const QString&, menuOption),
-                    Q_ARG(bool, isChecked));
-        return;
-    }
-    QAction* menu = _actionHash.value(menuOption);
-    if (menu) {
-        menu->setChecked(isChecked);
-    }
 }
 
 bool Menu::isOptionChecked(const QString& menuOption) const {
-    const QAction* menu = _actionHash.value(menuOption);
-    if (menu) {
-        return menu->isChecked();
-    }
     return false;
 }
 
 void Menu::triggerOption(const QString& menuOption) {
-    QAction* action = _actionHash.value(menuOption);
-    if (action) {
-        action->trigger();
-    } else {
-        qCDebug(interfaceapp) << "NULL Action for menuOption '" << menuOption << "'";
-    }
 }
+
+#if 0
 
 QAction* Menu::getActionForOption(const QString& menuOption) {
     return _actionHash.value(menuOption);
@@ -951,15 +1050,12 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         QMenuBar::repaint();
     }
 }
+#endif
 
-void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
-    QMenu* menuObj = getMenu(menu);
-    if (menuObj) {
-        removeAction(menuObj, menuitem);
-        QMenuBar::repaint();
-    }
+void Menu::removeMenuItem(const QString& menuitem) {
 };
 
+#if 0
 bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     QAction* menuItemAction = _actionHash.value(menuitem);
     if (menuItemAction) {
@@ -967,3 +1063,29 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
+
+#endif
+
+void Menu::setOptionText(const QString& menuitem, const QString& text) {
+}
+
+void Menu::addMenu(const QString& parentMenu, const QString& text) {
+}
+
+void Menu::addMenuItem(const QString& parentMenu, const QString& menuItem) {
+}
+
+void Menu::addMenuItem(const QString& parentMenu, const QString& menuItem, std::function<void()> f) {
+    addMenuItem(parentMenu, menuItem);
+    setOptionTriggerAction(parentMenu, f);
+}
+
+void Menu::enableMenuItem(const QString& menuItem, bool enable) {
+}
+
+void Menu::setOptionTriggerAction(const QString& menuOption, std::function<void()> f) {
+    _triggerActions[menuOption] = f;
+}
+void Menu::setOptionToggleAction(const QString& menuOption, std::function<void(bool)> f) {
+    _toggleActions[menuOption] = f;
+}

@@ -84,13 +84,16 @@ void Bookmarks::persistToFile() {
     saveFile.write(data);
 }
 
-void Bookmarks::setupMenus(Menu* menubar, QMenu* menu) {
+void Bookmarks::setupMenus(const QString & parentMenu) {
     // Add menus/actions
-    menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation, 0,
-                                           this, SLOT(bookmarkLocation()));
-    _bookmarksMenu = menu->addMenu(MenuOption::Bookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark, 0,
-                                                                    this, SLOT(deleteBookmark()));
+    Menu * menu = Menu::getInstance();
+    menu->addMenuItem(parentMenu, MenuOption::BookmarkLocation, [this] {
+        bookmarkLocation();
+    });
+    menu->addMenu(parentMenu, MenuOption::Bookmarks);
+    menu->addMenuItem(parentMenu, MenuOption::DeleteBookmark, [this] {
+        deleteBookmark();
+    });
     
     // Enable/Disable menus as needed
     enableMenuItems(_bookmarks.count() > 0);
@@ -99,7 +102,7 @@ void Bookmarks::setupMenus(Menu* menubar, QMenu* menu) {
     for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it ) {
         QString bookmarkName = it.key();
         QString bookmarkAddress = it.value().toString();
-        addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
+        addLocationToMenu(bookmarkName, bookmarkAddress);
     }
 }
 
@@ -134,29 +137,20 @@ void Bookmarks::bookmarkLocation() {
         if (duplicateBookmarkMessage.exec() == QMessageBox::No) {
             return;
         }
-        removeLocationFromMenu(menubar, bookmarkName);
+        removeLocationFromMenu(bookmarkName);
     }
     
-    addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
+    addLocationToMenu(bookmarkName, bookmarkAddress);
     insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
     
     enableMenuItems(true);
 }
 
-void Bookmarks::teleportToBookmark() {
-    QAction* action = qobject_cast<QAction*>(sender());
-    QString address = action->data().toString();
-    DependencyManager::get<AddressManager>()->handleLookupString(address);
-}
-
 void Bookmarks::deleteBookmark() {
-    
     QStringList bookmarkList;
-    QList<QAction*> menuItems = _bookmarksMenu->actions();
-    for (int i = 0; i < menuItems.count(); i += 1) {
-        bookmarkList.append(menuItems[i]->text());
-    }
-    
+    bookmarkList.append(_bookmarks.keys());
+
+
     QInputDialog deleteBookmarkDialog(qApp->getWindow());
     deleteBookmarkDialog.setWindowTitle("Delete Bookmark");
     deleteBookmarkDialog.setLabelText("Select the bookmark to delete");
@@ -174,34 +168,29 @@ void Bookmarks::deleteBookmark() {
         return;
     }
     
-    removeLocationFromMenu(Menu::getInstance(), bookmarkName);
+    removeLocationFromMenu(bookmarkName);
     remove(bookmarkName);
-    
-    if (_bookmarksMenu->actions().count() == 0) {
+   
+    if (_bookmarks.keys().isEmpty()) {
         enableMenuItems(false);
     }
 }
 
 void Bookmarks::enableMenuItems(bool enabled) {
-    if (_bookmarksMenu) {
-        _bookmarksMenu->setEnabled(enabled);
-    }
-    if (_deleteBookmarksAction) {
-        _deleteBookmarksAction->setEnabled(enabled);
-    }
+    Menu* menu = Menu::getInstance();
+    menu->enableMenuItem(MenuOption::Bookmarks, enabled);
+    menu->enableMenuItem(MenuOption::DeleteBookmark, enabled);
 }
 
-void Bookmarks::addLocationToMenu(Menu* menubar, QString& name, QString& address) {
-    QAction* teleportAction = new QAction(_bookmarksMenu);
-    teleportAction->setData(address);
-    connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
-    
-    menubar->addActionToQMenuAndActionHash(_bookmarksMenu, teleportAction,
-                                           name, 0, QAction::NoRole);
+void Bookmarks::addLocationToMenu(QString& name, QString& address) {
+
+    Menu::getInstance()->addMenuItem(MenuOption::Bookmarks, name, [=] {
+        DependencyManager::get<AddressManager>()->handleLookupString(address);
+    });
 }
 
-void Bookmarks::removeLocationFromMenu(Menu* menubar, QString& name) {
-    menubar->removeAction(_bookmarksMenu, name);
+void Bookmarks::removeLocationFromMenu(QString& name) {
+    Menu::getInstance()->removeMenuItem(name);
 }
 
 

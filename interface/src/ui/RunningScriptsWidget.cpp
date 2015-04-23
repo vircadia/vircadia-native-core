@@ -44,8 +44,9 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(&_scriptsModelFilter, &QSortFilterProxyModel::modelReset,
             this, &RunningScriptsWidget::selectFirstInList);
 
-    QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
-    ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
+    // FIXME
+    // QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
+    // ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
 
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -161,8 +162,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
 
     QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
-    int menuBarHeight = Menu::getInstance()->geometry().height();
-    int topMargin = titleBarHeight + menuBarHeight;
+    int topMargin = titleBarHeight;
 
     setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + topMargin,
                 size().width(), parentWidget()->height() - topMargin);
