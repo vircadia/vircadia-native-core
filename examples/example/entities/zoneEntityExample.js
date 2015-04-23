@@ -22,7 +22,8 @@ var zoneEntityA = Entities.addEntity({
     dimensions: { x: 10, y: 10, z: 10 },
     keyLightColor: { red: 255, green: 0, blue: 0 },
     stageSunModelEnabled: false,
-    keyLightDirection: { x: 0, y: -1.0, z: 0 }
+    keyLightDirection: { x: 0, y: -1.0, z: 0 },
+    shapeType: "sphere"
 });
 
 print("zoneEntityA:" + zoneEntityA);
@@ -51,7 +52,9 @@ var zoneEntityC = Entities.addEntity({
     keyLightColor: { red: 0, green: 0, blue: 255 },
     keyLightIntensity: 0.75,
     keyLightDirection: { x: 0, y: 0, z: -1 },
-    stageSunModelEnabled: false
+    stageSunModelEnabled: false,
+    shapeType: "compound",
+    compoundShapeURL: "http://headache.hungry.com/~seth/hifi/cube.fbx"
 });
 
 print("zoneEntityC:" + zoneEntityC);
