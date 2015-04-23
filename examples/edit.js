@@ -37,7 +37,6 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
 var zoneOverlayManager = new ZoneOverlayManager();
-zoneOverlayManager.setVisible(true);
 
 var cameraManager = new CameraManager();
 
@@ -245,6 +244,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+        zoneOverlayManager.setVisible(isActive);
     };
 
     // Sets visibility of tool buttons, excluding the power button
