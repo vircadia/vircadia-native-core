@@ -54,7 +54,7 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -169,15 +169,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
     endif ()
   endif ()
 endforeach()
-
-# special APPLE modifications for Visage library
-if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
-  add_definitions(-DMAC_OS_X)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
-  find_library(AVFoundation AVFoundation)
-  find_library(CoreMedia CoreMedia)
-  target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-endif ()
 
 # special OS X modifications for RtMidi library
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  

@@ -366,7 +366,7 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
     OAuthAccessToken newOAuthToken;
     newOAuthToken.token = accessToken;
     
-    qCDebug(networking) << "Setting new account manager access token to" << accessToken;
+    qCDebug(networking) << "Setting new account manager access token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
     
     _accountInfo.setAccessToken(newOAuthToken);
 }

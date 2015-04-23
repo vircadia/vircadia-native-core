@@ -34,6 +34,8 @@ typedef glm::mat3 Mat3;
 typedef glm::vec4 Vec4;
 typedef glm::vec3 Vec3;
 typedef glm::vec2 Vec2;
+typedef glm::ivec2 Vec2i;
+typedef glm::uvec2 Vec2u;
 
 // Description of a scalar type
 enum Type {
@@ -118,7 +120,8 @@ enum Semantic {
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
 
-    DEPTH, // Depth buffer
+    DEPTH, // Depth only buffer
+    STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
     SRGB,
@@ -171,10 +174,26 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_RGBA_32;
+
  protected:
     uint8 _semantic;
     uint8 _dimension : 4;
     uint8 _type : 4;
+};
+
+  
+enum ComparisonFunction {
+    NEVER = 0,
+    LESS,
+    EQUAL,
+    LESS_EQUAL,
+    GREATER,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    ALWAYS,
+
+    NUM_COMPARISON_FUNCS,
 };
 
 };

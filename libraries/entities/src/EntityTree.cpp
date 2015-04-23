@@ -24,6 +24,10 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 
+
+const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+
+
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
@@ -69,25 +73,6 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     }
 }
 
-/// Give an EntityItemID and EntityItemProperties, this will either find the correct entity that already exists
-/// in the tree or it will create a new entity of the type specified by the properties and return that item.
-/// In the case that it creates a new item, the item will be properly added to the tree and all appropriate lookup hashes.
-EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = NULL;
-
-    // we need to first see if we already have the entity in our tree by finding the containing element of the entity
-    EntityTreeElement* containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        result = containingElement->getEntityWithEntityItemID(entityID);
-    }
-    
-    // if the element does not exist, then create a new one of the specified type...
-    if (!result) {
-        result = addEntity(entityID, properties);
-    }
-    return result;
-}
-
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
@@ -127,9 +112,9 @@ bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& pr
     return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
 }
 
-bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& origProperties, 
                                          EntityTreeElement* containingElement, bool allowLockChange) {
-
+    EntityItemProperties properties = origProperties;
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
@@ -149,6 +134,24 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
+        if (properties.simulatorIDChanged() &&
+            !entity->getSimulatorID().isNull() &&
+            properties.getSimulatorID() != entity->getSimulatorID()) {
+            // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
+            // if ownership hasn't recently changed.
+            if (usecTimestampNow() - entity->getSimulatorIDChangedTime() < SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                qCDebug(entities) << "simulator_change_lockout_period:"
+                                  << entity->getSimulatorID() << "to" << properties.getSimulatorID();
+                // squash the physics-related changes.
+                properties.setSimulatorIDChanged(false);
+                properties.setPositionChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAccelerationChanged(false);
+            } else {
+                qCDebug(entities) << "allowing simulatorID change";
+            }
+        }
+
         QString entityScriptBefore = entity->getScript();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);

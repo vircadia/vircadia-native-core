@@ -647,8 +647,10 @@ void ScriptEngine::stopAllTimers() {
 }
 
 void ScriptEngine::stop() {
-    _isFinished = true;
-    emit runningStateChanged();
+    if (!_isFinished) {
+        _isFinished = true;
+        emit runningStateChanged();
+    }
 }
 
 void ScriptEngine::timerFired() {

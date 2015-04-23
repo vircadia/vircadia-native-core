@@ -18,6 +18,7 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
+static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05f;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -62,6 +63,9 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
+    // TODO: we can't use ObjectMotionState::measureAcceleration() here because the entity
+    // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
+    // Hence we must manually measure kinematic velocity and acceleration.
 }
 
 bool EntityMotionState::isMoving() const {
@@ -71,7 +75,7 @@ bool EntityMotionState::isMoving() const {
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
-// (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
+// (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (_isKinematic) {
@@ -89,9 +93,10 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
-// This callback is invoked by the physics simulation at the end of each simulation frame...
+// This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
+    measureAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
@@ -116,7 +121,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
+void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
@@ -131,7 +136,7 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
         if (flags & EntityItem::DIRTY_VELOCITY) {
             updateObjectVelocities();
         }
-        _sentFrame = frame;
+        _sentStep = step;
     }
 
     // TODO: entity support for friction and restitution
@@ -162,8 +167,8 @@ void EntityMotionState::updateObjectVelocities() {
         _sentAngularVelocity = _entity->getAngularVelocity();
         setAngularVelocity(_sentAngularVelocity);
 
-        _sentAcceleration = _entity->getGravity();
-        setGravity(_sentAcceleration);
+        _sentGravity = _entity->getGravity();
+        setGravity(_sentGravity);
 
         _body->setActivationState(ACTIVE_TAG);
     }
@@ -179,12 +184,41 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
+    bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
+
+    if (!baseResult) {
+        return false;
+    }
+
+    if (_entity->getShouldClaimSimulationOwnership()) {
+        return true;
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    const QUuid& simulatorID = _entity->getSimulatorID();
+
+    if (!simulatorID.isNull() && simulatorID != myNodeID) {
+        // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
+        return false;
+    }
+
+    return true;
+}
+
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
+
+        if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
+            _entity->setAcceleration(glm::vec3(0.0f));
+        } else {
+            _entity->setAcceleration(_entity->getGravity());
+        }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
@@ -194,7 +228,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             _sentRotation = bulletToGLM(worldTrans.getRotation());
             properties.setRotation(_sentRotation);
         }
-    
+
+        bool zeroSpeed = true;
+        bool zeroSpin = true;
+
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
                 _sentVelocity = bulletToGLM(_body->getLinearVelocity());
@@ -202,12 +239,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
                 // if the speeds are very small we zero them out
                 const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-                bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
+                zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
                 if (zeroSpeed) {
                     _sentVelocity = glm::vec3(0.0f);
                 }
                 const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-                bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
+                zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
                 if (zeroSpin) {
                     _sentAngularVelocity = glm::vec3(0.0f);
                 }
@@ -218,9 +255,30 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentMoving = false;
             }
             properties.setVelocity(_sentVelocity);
-            _sentAcceleration = bulletToGLM(_body->getGravity());
-            properties.setGravity(_sentAcceleration);
+            _sentGravity = _entity->getGravity();
+            properties.setGravity(_entity->getGravity());
+            _sentAcceleration = _entity->getAcceleration();
+            properties.setAcceleration(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        QUuid myNodeID = nodeList->getSessionUUID();
+        QUuid simulatorID = _entity->getSimulatorID();
+
+        if (_entity->getShouldClaimSimulationOwnership()) {
+            _entity->setSimulatorID(myNodeID);
+            properties.setSimulatorID(myNodeID);
+            _entity->setShouldClaimSimulationOwnership(false);
+        }
+        else if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
+            // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
+            _entity->setSimulatorID(myNodeID);
+            properties.setSimulatorID(myNodeID);
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the object has stopped.  give up "simulator" status
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
@@ -231,7 +289,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         }
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
-            // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // (i.e. NOT when we just simulate the positions forward, nor when we resend non-moving data)
             // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
@@ -240,7 +298,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 quint64 now = usecTimestampNow();
                 qCDebug(physics) << "EntityMotionState::sendUpdate()";
-                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID()
+                                 << "---------------------------------------------";
                 qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
             #endif //def WANT_DEBUG
 
@@ -254,6 +313,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
+
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG
@@ -264,7 +324,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  
         _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
-        _sentFrame = frame;
+        _sentStep = step;
     }
 }
 

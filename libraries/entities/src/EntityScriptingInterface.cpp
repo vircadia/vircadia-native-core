@@ -60,22 +60,45 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 }
 
 
+
+void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
+    // if this entity has non-zero physics/simulation related values, claim simulation ownership
+    if (propertiesWithSimID.velocityChanged() ||
+        propertiesWithSimID.rotationChanged() ||
+        propertiesWithSimID.containsPositionChange()) {
+        propertiesWithSimID.setSimulatorID(myNodeID);
+        entity->setSimulatorID(myNodeID);
+    } else if (entity->getSimulatorID() == myNodeID) {
+        propertiesWithSimID.setSimulatorID(QUuid()); // give up simulation ownership
+        entity->setSimulatorID(QUuid());
+    }
+}
+
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
+
+    EntityItemProperties propertiesWithSimID = properties;
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->addEntity(id, properties);
+        EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+        setSimId(propertiesWithSimID, entity);
         _entityTree->unlock();
     }
 
     // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
 
     return id;
 }
@@ -137,30 +160,29 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
             entityID.isKnownID = true;
         }
     }
-    
+
+    EntityItemProperties propertiesWithSimID = properties;
+
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
+        _entityTree->updateEntity(entityID, propertiesWithSimID, canAdjustLocks());
         _entityTree->unlock();
     }
 
     // if at this point, we know the id, send the update to the entity server
     if (entityID.isKnownID) {
         // make sure the properties has a type, so that the encode can know which properties to include
-        if (properties.getType() == EntityTypes::Unknown) {
+        if (propertiesWithSimID.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                EntityItemProperties tempProperties = properties;
-                tempProperties.setType(entity->getType());
-                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, tempProperties);
-                return entityID;
+                propertiesWithSimID.setType(entity->getType());
+                setSimId(propertiesWithSimID, entity);
             }
         }
-        
-        // if the properties already includes the type, then use it as is
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, propertiesWithSimID);
     }
     
     return entityID;

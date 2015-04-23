@@ -15,8 +15,8 @@
 
 #include "Resource.h"
 #include "Texture.h"
-#include "Shader.h"
 #include "Pipeline.h"
+#include "Framebuffer.h"
 
 namespace gpu {
 
@@ -47,8 +47,8 @@ public:
     };
 
     template< typename T >
-    static void setGPUObject(const Buffer& buffer, T* bo) {
-        buffer.setGPUObject(bo);
+    static void setGPUObject(const Buffer& buffer, T* object) {
+        buffer.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Buffer& buffer) {
@@ -56,8 +56,8 @@ public:
     }
 
     template< typename T >
-    static void setGPUObject(const Texture& texture, T* to) {
-        texture.setGPUObject(to);
+    static void setGPUObject(const Texture& texture, T* object) {
+        texture.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Texture& texture) {
@@ -65,8 +65,8 @@ public:
     }
     
     template< typename T >
-    static void setGPUObject(const Shader& shader, T* so) {
-        shader.setGPUObject(so);
+    static void setGPUObject(const Shader& shader, T* object) {
+        shader.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Shader& shader) {
@@ -74,8 +74,8 @@ public:
     }
 
     template< typename T >
-    static void setGPUObject(const Pipeline& pipeline, T* po) {
-        pipeline.setGPUObject(po);
+    static void setGPUObject(const Pipeline& pipeline, T* object) {
+        pipeline.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Pipeline& pipeline) {
@@ -83,12 +83,21 @@ public:
     }
 
     template< typename T >
-    static void setGPUObject(const State& state, T* so) {
-        state.setGPUObject(so);
+    static void setGPUObject(const State& state, T* object) {
+        state.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const State& state) {
         return reinterpret_cast<T*>(state.getGPUObject());
+    }
+
+    template< typename T >
+    static void setGPUObject(const Framebuffer& framebuffer, T* object) {
+        framebuffer.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Framebuffer& framebuffer) {
+        return reinterpret_cast<T*>(framebuffer.getGPUObject());
     }
 
 protected:

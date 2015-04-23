@@ -28,7 +28,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    virtual void reset() { _reset = true; }
+    virtual void reset();
 
     virtual bool isActive() const;
     virtual bool isTracking() const { return isActive(); }
@@ -50,7 +50,6 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
-    void resetTracking();
 
 private slots:
     void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -101,10 +100,14 @@ private:
 
     QVector<float> _coefficients;
 
-    // Previous values for simple smoothing
-    glm::vec3 _previousTranslation;
-    glm::quat _previousRotation;
-    QVector<float> _previousCoefficients;
+    quint64 _lastMessageReceived;
+    float _averageMessageTime;
+    glm::vec3 _lastHeadTranslation;
+    glm::vec3 _filteredHeadTranslation;
+    float _lastLeftEyeBlink;
+    float _filteredLeftEyeBlink;
+    float _lastRightEyeBlink;
+    float _filteredRightEyeBlink;
 };
 
 #endif // hifi_DdeFaceTracker_h

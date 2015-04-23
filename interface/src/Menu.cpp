@@ -30,7 +30,6 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -97,7 +96,7 @@ Menu::Menu() {
     
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
-                                  Qt::Key_Enter,
+                                  Qt::CTRL | Qt::Key_L,
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
     auto addressManager = DependencyManager::get<AddressManager>();
@@ -151,7 +150,8 @@ Menu::Menu() {
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
     
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 
+                                  0, // QML Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
                                   qApp, SLOT(showFriendsWindow()));
@@ -163,21 +163,21 @@ Menu::Menu() {
 
         QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToEveryone);
 
         QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToFriends);
 
         QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToNoOne);
 
         connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
-            this, &Menu::visibilityChanged);
+            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
     }
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -194,7 +194,7 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ResetSensors,
-                                  Qt::Key_Apostrophe,
+                                  0, // QML Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
     
@@ -207,17 +207,17 @@ Menu::Menu() {
     QMenu* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
-                                  Qt::Key_Plus,
+                                  0, // QML Qt::Key_Plus,
                                   avatar,
                                   SLOT(increaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
-                                  Qt::Key_Minus,
+                                  0, // QML Qt::Key_Minus,
                                   avatar,
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
-                                  Qt::Key_Equal,
+                                  0, // QML Qt::Key_Equal,
                                   avatar,
                                   SLOT(resetSize()));
 
@@ -235,32 +235,36 @@ Menu::Menu() {
 
     QMenu* viewMenu = addMenu("View");
 
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
 #ifdef Q_OS_MAC
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
 #else
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::Key_F,
+#endif
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
-#endif
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
-                                            qApp,SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
-                                            qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, 
+        0, // QML Qt::Key_P, 
+        true, qApp, SLOT(cameraMenuChanged()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, 
+        0, //QML Qt::SHIFT | Qt::Key_H, 
+        true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, 
+        0, // QML Qt::Key_H, 
+        false, qApp, SLOT(cameraMenuChanged()));
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 
+#ifdef Q_OS_MAC
+                                           Qt::META | Qt::Key_H,
+#else
+                                           Qt::CTRL | Qt::Key_H,
+#endif
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
-
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -283,8 +287,12 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, qApp, SLOT(toggleLogDialog()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats,
+        0); // QML Qt::Key_Slash);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, 
+        Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
+        qApp, SLOT(toggleLogDialog()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
@@ -294,7 +302,9 @@ Menu::Menu() {
     QMenu* developerMenu = addMenu("Developer");
 
     QMenu* renderOptionsMenu = developerMenu->addMenu("Render");
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 
+        0, // QML Qt::SHIFT | Qt::Key_A, 
+        true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
 
@@ -346,13 +356,16 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 
+        0, // QML Qt::Key_Asterisk,
+        true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L,
-                                  dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 
+        0, // QML Qt::SHIFT | Qt::Key_L,
+        dialogsManager.data(), SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
@@ -362,35 +375,28 @@ Menu::Menu() {
 
         QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
             0, true,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
 #ifdef HAVE_FACESHIFT
         QAction* faceshiftFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Faceshift,
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
 #ifdef HAVE_DDE
-        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
+        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera, 
             0, false,
-            this, SLOT(setActiveFaceTracker()));
+            qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
-#endif
-#ifdef HAVE_VISAGE
-        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
-            0, false,
-            this, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(visageFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
-    QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
-        Qt::CTRL | Qt::Key_Apostrophe,
-        DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
-    ddeFaceTrackerReset->setVisible(false);
-    faceTrackingMenu->addAction(ddeFaceTrackerReset);
+    QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
+    useAudioForMouth->setVisible(false);
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
+    ddeFiltering->setVisible(false);
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
@@ -491,30 +497,6 @@ Menu::Menu() {
                                   0,
                                   audioIO.data(),
                                   SLOT(sendMuteEnvironmentPacket()));
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
-                                           0,
-                                           false,
-                                           audioIO.data(),
-                                           SLOT(toggleAudioSourceInject()));
-    QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
-    {
-        QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
-                                                               0,
-                                                               false,
-                                                               audioIO.data(),
-                                                               SLOT(selectAudioSourcePinkNoise()));
-        
-        QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
-                                                                    0,
-                                                                    true,
-                                                                    audioIO.data(),
-                                                                    SLOT(selectAudioSourceSine440()));
-
-        QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
-        audioSourceGroup->addAction(pinkNoise);
-        audioSourceGroup->addAction(sine440);
-    }
     
     auto scope = DependencyManager::get<AudioScope>();
 
@@ -985,37 +967,3 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     }
     return false;
 };
-
-void Menu::setVisibility() {
-    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToEveryone)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToFriends)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
-    }
-}
-
-void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
-    if (discoverabilityMode == Discoverability::All) {
-        setIsOptionChecked(MenuOption::VisibleToEveryone, true);
-    } else if (discoverabilityMode == Discoverability::Friends) {
-        setIsOptionChecked(MenuOption::VisibleToFriends, true);
-    } else if (discoverabilityMode == Discoverability::None) {
-        setIsOptionChecked(MenuOption::VisibleToNoOne, true);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
-    }
-}
-
-void Menu::setActiveFaceTracker() {
-#ifdef HAVE_DDE
-    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression);
-    Menu::getInstance()->getActionForOption(MenuOption::ResetDDETracking)->setVisible(isUsingDDE);
-#endif
-    qApp->setActiveFaceTracker();
-}

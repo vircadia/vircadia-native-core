@@ -66,10 +66,6 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
-private slots:
-    void setVisibility();
-    void setActiveFaceTracker();
-
 private:
     static Menu* _instance;
     Menu();
@@ -100,8 +96,6 @@ private:
     int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
     
-    void visibilityChanged(Discoverability::Mode discoverabilityMode);
-    
     QHash<QString, QAction*> _actionHash;
 };
 
@@ -124,9 +118,6 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSourceInject = "Generated Audio";
-    const QString AudioSourcePinkNoise = "Pink Noise";
-    const QString AudioSourceSine440 = "Sine 440hz";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -139,7 +130,6 @@ namespace MenuOption {
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
-    const QString DDEFaceRegression = "DDE Face Regression";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -195,6 +185,7 @@ namespace MenuOption {
     const QString OctreeStats = "Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
@@ -231,7 +222,6 @@ namespace MenuOption {
     const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
     const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
-    const QString ResetDDETracking = "Reset DDE Tracking";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
@@ -253,8 +243,9 @@ namespace MenuOption {
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
-    const QString PackageModel = "Package Model...";
-    const QString Visage = "Visage";
+    const QString UseAudioForMouth = "Use Audio for Mouth";
+    const QString UseCamera = "Use Camera";
+    const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";

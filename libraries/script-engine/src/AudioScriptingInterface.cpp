@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioScriptingInterface.h"
+
 #include "ScriptAudioInjector.h"
 #include "ScriptEngineLogging.h"
-#include "AudioScriptingInterface.h"
 
 void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
@@ -69,3 +70,23 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
         return NULL;
     }
 }
+
+void AudioScriptingInterface::injectGeneratedNoise(bool inject) {
+    if (_localAudioInterface) {
+        _localAudioInterface->enableAudioSourceInject(inject);
+    }
+}
+
+void AudioScriptingInterface::selectPinkNoise() {
+    if (_localAudioInterface) {
+        _localAudioInterface->selectAudioSourcePinkNoise();
+    }
+}
+
+void AudioScriptingInterface::selectSine440() {
+    if (_localAudioInterface) {
+        _localAudioInterface->selectAudioSourceSine440();
+    }
+}
+
+

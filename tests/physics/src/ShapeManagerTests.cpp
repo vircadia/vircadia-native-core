@@ -187,9 +187,7 @@ void ShapeManagerTests::addBoxShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -205,9 +203,7 @@ void ShapeManagerTests::addSphereShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -225,9 +221,7 @@ void ShapeManagerTests::addCylinderShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -246,9 +240,7 @@ void ShapeManagerTests::addCapsuleShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__

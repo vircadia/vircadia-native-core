@@ -23,6 +23,7 @@
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
+#include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 
 #include "EntityTreeRenderer.h"
@@ -30,11 +31,11 @@
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
 #include "RenderableModelEntityItem.h"
+#include "RenderableParticleEffectEntityItem.h"
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
-#include "RenderableParticleEffectEntityItem.h"
 #include "EntitiesRendererLogging.h"
-
+#include "ZoneEntityItem.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -393,10 +394,51 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
 
 
         _tree->lockForRead();
+
+        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+        _bestZone = NULL;
+        _bestZoneVolume = std::numeric_limits<float>::max();
         _tree->recurseTreeWithOperation(renderOperation, &args);
 
-//        Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
-  //                                          ? RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+        QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
+        
+        if (_bestZone) {
+            if (!_hasPreviousZone) {
+                _previousKeyLightColor = scene->getKeyLightColor();
+                _previousKeyLightIntensity = scene->getKeyLightIntensity();
+                _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
+                _previousKeyLightDirection = scene->getKeyLightDirection();
+                _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
+                _previousStageLongitude = scene->getStageLocationLongitude();
+                _previousStageLatitude = scene->getStageLocationLatitude();
+                _previousStageAltitude = scene->getStageLocationAltitude();
+                _previousStageHour = scene->getStageDayTime();
+                _previousStageDay = scene->getStageYearTime();
+                _hasPreviousZone = true;
+            }
+            scene->setKeyLightColor(_bestZone->getKeyLightColorVec3());
+            scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
+            scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
+            scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
+            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
+                                    _bestZone->getStageAltitude());
+            scene->setStageDayTime(_bestZone->getStageHour());
+            scene->setStageYearTime(_bestZone->getStageDay());
+        } else {
+            if (_hasPreviousZone) {
+                scene->setKeyLightColor(_previousKeyLightColor);
+                scene->setKeyLightIntensity(_previousKeyLightIntensity);
+                scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
+                scene->setKeyLightDirection(_previousKeyLightDirection);
+                scene->setStageSunModelEnable(_previousStageSunModelEnabled);
+                scene->setStageLocation(_previousStageLongitude, _previousStageLatitude, 
+                                        _previousStageAltitude);
+                scene->setStageDayTime(_previousStageHour);
+                scene->setStageYearTime(_previousStageDay);
+                _hasPreviousZone = false;
+            }
+        }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
@@ -596,34 +638,59 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         EntityItem* entityItem = entityItems[i];
         
         if (entityItem->isVisible()) {
-            // render entityItem 
-            AABox entityBox = entityItem->getAABox();
-        
-            // TODO: some entity types (like lights) might want to be rendered even
-            // when they are outside of the view frustum...
-            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
-            
-            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-            if (!outOfView) {
-                bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
-                
-                if (bigEnoughToRender) {
-                    renderProxies(entityItem, args);
 
-                    Glower* glower = NULL;
-                    if (entityItem->getGlowLevel() > 0.0f) {
-                        glower = new Glower(entityItem->getGlowLevel());
+            // NOTE: Zone Entities are a special case we handle here... Zones don't render
+            // like other entity types. So we will skip the normal rendering tests
+            if (entityItem->getType() == EntityTypes::Zone) {
+                if (entityItem->contains(args->_viewFrustum->getPosition())) {
+                    float entityVolumeEstimate = entityItem->getVolumeEstimate();
+                    if (entityVolumeEstimate < _bestZoneVolume) {
+                        _bestZoneVolume = entityVolumeEstimate;
+                        _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                    } else if (entityVolumeEstimate == _bestZoneVolume) {
+                        if (!_bestZone) {
+                            _bestZoneVolume = entityVolumeEstimate;
+                            _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                        } else {
+                            // in the case of the volume being equal, we will use the
+                            // EntityItemID to deterministically pick one entity over the other
+                            if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                            }
+                        }
                     }
-                    entityItem->render(args);
-                    args->_itemsRendered++;
-                    if (glower) {
-                        delete glower;
-                    }
-                } else {
-                    args->_itemsTooSmall++;
                 }
             } else {
-                args->_itemsOutOfView++;
+                // render entityItem 
+                AABox entityBox = entityItem->getAABox();
+        
+                // TODO: some entity types (like lights) might want to be rendered even
+                // when they are outside of the view frustum...
+                float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
+            
+                bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
+                if (!outOfView) {
+                    bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
+                
+                    if (bigEnoughToRender) {
+                        renderProxies(entityItem, args);
+
+                        Glower* glower = NULL;
+                        if (entityItem->getGlowLevel() > 0.0f) {
+                            glower = new Glower(entityItem->getGlowLevel());
+                        }
+                        entityItem->render(args);
+                        args->_itemsRendered++;
+                        if (glower) {
+                            delete glower;
+                        }
+                    } else {
+                        args->_itemsTooSmall++;
+                    }
+                } else {
+                    args->_itemsOutOfView++;
+                }
             }
         }
     }
