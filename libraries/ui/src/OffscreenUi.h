@@ -96,8 +96,8 @@ public:
     void load(const QString& qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*, QQuickItem*) {}) {
         load(QUrl(qmlSourceFile), f);
     }
-    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {}));
-    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {}));
+    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {});
+    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {});
     void setBaseUrl(const QUrl& baseUrl);
     void addImportPath(const QString& path);
     QQmlContext* qmlContext();
@@ -119,7 +119,6 @@ public:
     static ButtonCallback NO_OP_CALLBACK;
 
     static void messageBox(const QString& title, const QString& text,
-    static void messageBox(const QString &title, const QString &text,
         ButtonCallback f,
         QMessageBox::Icon icon, 
         QMessageBox::StandardButtons buttons);
