@@ -517,11 +517,22 @@ function rayPlaneIntersection(pickRay, point, normal) {
 }
 
 function findClickedEntity(event) {
+    var pickZones = event.isControl;
+
+    if (pickZones) {
+    print("Picking zones");
+        Entities.setZonesArePickable(true);
+    }
+
     var pickRay = Camera.computePickRay(event.x, event.y);
 
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
     var lightResult = lightOverlayManager.findRayIntersection(pickRay);
     lightResult.accurate = true;
+
+    if (pickZones) {
+        Entities.setZonesArePickable(false);
+    }
 
     var result;
 
