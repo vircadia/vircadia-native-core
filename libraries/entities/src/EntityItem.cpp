@@ -11,6 +11,8 @@
 
 #include <QtCore/QObject>
 
+#include <glm/gtx/transform.hpp>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -843,7 +845,27 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
-bool EntityItem::lifetimeHasExpired() const { 
+glm::mat4 EntityItem::getEntityToWorldMatrix() const {
+    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+    return translation * rotation * scale * registration;
+}
+
+glm::mat4 EntityItem::getWorldToEntityMatrix() const {
+    return glm::inverse(getEntityToWorldMatrix());
+}
+
+glm::vec3 EntityItem::entityToWorld(const glm::vec3 point) const {
+    return glm::vec3(getEntityToWorldMatrix() * glm::vec4(point, 1.0f));
+}
+
+glm::vec3 EntityItem::worldToEntity(const glm::vec3 point) const {
+    return glm::vec3(getWorldToEntityMatrix() * glm::vec4(point, 1.0f));
+}
+
+bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
@@ -1062,18 +1084,11 @@ float EntityItem::getRadius() const {
 
 bool EntityItem::contains(const glm::vec3& point) const {
     switch (getShapeType()) {
-        case SHAPE_TYPE_BOX: {
-            // Transform point to be in a space where the box is a 1m cube centered on the origin.
-            glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
-            return AABox(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f).contains(transformedPoint);
-        }
+        case SHAPE_TYPE_BOX:
+            return AABox(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f).contains(worldToEntity(point));
         case SHAPE_TYPE_SPHERE:
-        case SHAPE_TYPE_ELLIPSOID: {
-            // Transform point to be in a space where the elipsoide is a perfect sphere centered on the origin.
-            glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
-            // Return whether said point is inside the sphere.
-            return glm::length(transformedPoint) <= 1.0f;
-        }
+        case SHAPE_TYPE_ELLIPSOID:
+            return glm::length(worldToEntity(point)) <= 0.5f;
         default:
             return getAABox().contains(point);
     }

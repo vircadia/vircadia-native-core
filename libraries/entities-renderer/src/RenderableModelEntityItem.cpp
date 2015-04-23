@@ -419,9 +419,7 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
-        glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
-        
-        return collisionGeometry.convexHullContains(transformedPoint);
+        return collisionGeometry.convexHullContains(worldToEntity(point));
     }
     
     return false;

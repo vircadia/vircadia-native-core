@@ -297,6 +297,11 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+    glm::mat4 getEntityToWorldMatrix() const;
+    glm::mat4 getWorldToEntityMatrix() const;
+    glm::vec3 worldToEntity(const glm::vec3 point) const;
+    glm::vec3 entityToWorld(const glm::vec3 point) const;
+    
 protected:
 
     static bool _sendPhysicsUpdates;
