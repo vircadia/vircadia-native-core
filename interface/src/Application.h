@@ -30,6 +30,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
+#include <OffscreenUi.h>
 #include <PacketHeaders.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
@@ -151,6 +152,7 @@ public:
     void setPreviousScriptLocation(const QString& previousScriptLocation);
     void clearScriptsBeforeRunning();
     void initializeGL();
+    void initializeUi();
     void paintGL();
     void resizeGL(int width, int height);
 
@@ -169,7 +171,8 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-    void dropEvent(QDropEvent *event);
+    void dropEvent(QDropEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
 
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
