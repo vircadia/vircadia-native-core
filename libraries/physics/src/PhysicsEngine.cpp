@@ -410,9 +410,9 @@ void PhysicsEngine::computeCollisionEvents() {
                         entityMotionStateB->setShouldClaimSimulationOwnership(true);
                     }
                     if (entityB->getSimulatorID() == myNodeID ||
-                        entityMotionStateA->getShouldClaimSimulationOwnership() ||
+                        entityMotionStateB->getShouldClaimSimulationOwnership() ||
                         objectB == characterCollisionObject) {
-                        entityMotionStateB->setShouldClaimSimulationOwnership(true);
+                        entityMotionStateA->setShouldClaimSimulationOwnership(true);
                     }
                 }
             }
