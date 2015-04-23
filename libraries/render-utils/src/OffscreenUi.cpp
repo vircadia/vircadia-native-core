@@ -275,7 +275,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     
     switch (event->type()) {
         case QEvent::Resize: {
-            QResizeEvent* resizeEvent = (QResizeEvent*)event;
+            QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
             QGLWidget* widget = dynamic_cast<QGLWidget*>(originalDestination);
             if (widget) {
                 this->resize(resizeEvent->size());
@@ -293,7 +293,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
         }
 
         case QEvent::Wheel: {
-            QWheelEvent* wheelEvent = (QWheelEvent*)event;
+            QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
             QWheelEvent mappedEvent(
                     mapWindowToUi(wheelEvent->pos(), originalDestination),
                     wheelEvent->delta(),  wheelEvent->buttons(),
@@ -307,7 +307,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
-            QMouseEvent* mouseEvent = (QMouseEvent *)event;
+            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPointF originalPos = mouseEvent->localPos();
             QPointF transformedPos = _mouseTranslator(originalPos);
             QMouseEvent mappedEvent(mouseEvent->type(),
