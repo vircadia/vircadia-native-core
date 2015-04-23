@@ -29,7 +29,7 @@ print("zoneEntityA:" + zoneEntityA);
 
 var zoneEntityB = Entities.addEntity({
     type: "Zone",
-    position: { x: 1, y: 1, z: 21 },
+    position: { x: 5, y: 5, z: 5 },
     dimensions: { x: 2, y: 2, z: 2 },
     keyLightColor: { red: 0, green: 255, blue: 0 },
     keyLightIntensity: 0.9,
@@ -46,7 +46,7 @@ print("zoneEntityB:" + zoneEntityB);
 
 var zoneEntityC = Entities.addEntity({
     type: "Zone",
-    position: { x: 5, y: 5, z: 15 },
+    position: { x: 5, y: 10, z: 5 },
     dimensions: { x: 10, y: 10, z: 10 },
     keyLightColor: { red: 0, green: 0, blue: 255 },
     keyLightIntensity: 0.75,

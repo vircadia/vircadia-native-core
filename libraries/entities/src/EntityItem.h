@@ -272,6 +272,7 @@ public:
 
     virtual bool isReadyToComputeShape() { return true; }
     virtual void computeShapeInfo(ShapeInfo& info);
+    virtual float getVolumeEstimate() const { return _dimensions.x * _dimensions.y * _dimensions.z; }
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }

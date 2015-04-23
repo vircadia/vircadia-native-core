@@ -167,12 +167,9 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    QSet<EntityItemID> _lastZones;
-    QSet<EntityItemID> _currentZones;
-    QStack<EntityItemID> _zoneHistory;
-    EntityItemID _currentZone;
-    
     bool _hasPreviousZone = false;
+    const ZoneEntityItem* _bestZone;
+    float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;
     float _previousKeyLightIntensity;
