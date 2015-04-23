@@ -40,13 +40,14 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _clampedFootPosition(0.0f),
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
+    assert(_owningAvatar);
 }
 
 SkeletonModel::~SkeletonModel() {
 }
 
-void SkeletonModel::setJointStates(QVector<JointState> states) {
-    Model::setJointStates(states);
+void SkeletonModel::initJointStates(QVector<JointState> states) {
+    Model::initJointStates(states);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;

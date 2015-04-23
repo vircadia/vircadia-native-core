@@ -426,12 +426,12 @@ bool Model::updateGeometry() {
         _dilatedTextures.clear();
         _geometry = geometry;
         _meshGroupsKnown = false;
-        setJointStates(newJointStates);
+        initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
         const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
         if (fbxGeometry.joints.size() > 0) {
-            setJointStates(createJointStates(fbxGeometry));
+            initJointStates(createJointStates(fbxGeometry));
             needToRebuild = true;
         }
     } else if (!geometry->isLoaded()) {
@@ -469,7 +469,7 @@ bool Model::updateGeometry() {
 }
 
 // virtual
-void Model::setJointStates(QVector<JointState> states) {
+void Model::initJointStates(QVector<JointState> states) {
     _jointStates = states;
     initJointTransforms();
 
