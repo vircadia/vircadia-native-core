@@ -1060,6 +1060,25 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
+bool EntityItem::contains(const glm::vec3 &point) const {
+    switch (getShapeType()) {
+        case SHAPE_TYPE_BOX: {
+            // Transform point to be in a space where the box is a 1m cube centered on the origin.
+            glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
+            return AABox(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f).contains(transformedPoint);
+        }
+        case SHAPE_TYPE_SPHERE:
+        case SHAPE_TYPE_ELLIPSOID: {
+            // Transform point to be in a space where the elipsoide is a perfect sphere centered on the origin.
+            glm::vec3 transformedPoint = (glm::inverse(getRotation()) * (point - getPosition())) / (getDimensions() / 2.0f);
+            // Return whether said point is inside the sphere.
+            return glm::length(transformedPoint) <= 1.0f;
+        }
+        default:
+            return getAABox().contains(point);
+    }
+}
+
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }

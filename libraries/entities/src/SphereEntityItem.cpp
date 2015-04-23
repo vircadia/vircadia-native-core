@@ -92,14 +92,6 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
-bool SphereEntityItem::contains(const glm::vec3& point) const {
-    // Transform point to be in a space where the elipsoide is a perfect sphere centered on the origin.
-    glm::vec3 transformedPoint = (point - getPosition()) / (getDimensions() / 2.0f);
-    
-    // Return whether said point is inside the sphere.
-    return glm::length(transformedPoint) <= 1.0f;
-}
-
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {

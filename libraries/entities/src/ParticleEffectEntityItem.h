@@ -77,8 +77,6 @@ public:
         _color[GREEN_INDEX] = value.green;
         _color[BLUE_INDEX] = value.blue;
     }
-    
-    virtual bool contains(const glm::vec3& point) const;
 
     void updateShapeType(ShapeType type);
     virtual ShapeType getShapeType() const { return _shapeType; }

@@ -236,14 +236,6 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, getParticleRadius());
 }
 
-bool ParticleEffectEntityItem::contains(const glm::vec3& point) const {
-    // Transform point to be in a space where the elipsoide is a perfect sphere centered on the origin.
-    glm::vec3 transformedPoint = (point - getPosition()) / (getDimensions() / 2.0f);
-    
-    // Return whether said point is inside the sphere.
-    return glm::length(transformedPoint) <= 1.0f;
-}
-
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
     return getAnimationIsPlaying() &&
         getAnimationFPS() != 0.0f;
