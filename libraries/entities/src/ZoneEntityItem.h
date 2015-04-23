@@ -92,6 +92,7 @@ public:
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
     
+    virtual bool isReadyToComputeShape() { return false; }
     void updateShapeType(ShapeType type) { _shapeType = type; }
     virtual ShapeType getShapeType() const;
     
