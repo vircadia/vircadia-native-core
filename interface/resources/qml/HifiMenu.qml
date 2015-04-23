@@ -5,10 +5,10 @@ import QtQuick.Controls.Styles 1.3
 import "controls"
 import "styles"
 
-Hifi.Menu {
+Hifi.HifiMenu {
 	id: root
 	anchors.fill: parent
-	objectName: "Menu"
+	objectName: "HifiMenu"
     enabled: false
     opacity: 0.0
     property int animationDuration: 200
@@ -16,7 +16,7 @@ Hifi.Menu {
 
     onEnabledChanged: {
     	if (enabled && columns.length == 0) {
-    		pushColumn(menu.items);
+    		pushColumn(rootMenu.items);
     	}
     	opacity = enabled ? 1.0 : 0.0
         if (enabled) {
@@ -202,19 +202,23 @@ Hifi.Menu {
 	}
 
 	function popColumn() {
-		if (columns.length > 1) {
+		if (columns.length > 0) {
 			var curColumn = columns.pop();
 			console.log(curColumn);
 			curColumn.visible = false;
 			curColumn.destroy();
 			models.pop();
-			curColumn = lastColumn();
-			curColumn.enabled = true;
-			curColumn.opacity = 1.0;
-			curColumn.forceActiveFocus();
-		} else {
+		} 
+		
+		if (columns.length == 0) {
 			enabled = false;
-		}
+			return;
+		} 
+
+		curColumn = lastColumn();
+		curColumn.enabled = true;
+		curColumn.opacity = 1.0;
+		curColumn.forceActiveFocus();
     }
     
 	function selectItem(source) {
@@ -223,7 +227,6 @@ Hifi.Menu {
 			pushColumn(source.items)
 			break;
 		case 1:
-			console.log("Triggering " + source.text);
 			source.trigger()
 			enabled = false
 			break;
@@ -233,12 +236,9 @@ Hifi.Menu {
 	}
 	
 	function reset() {
-		console.log("Resettting")
-		while (columns.length > 1) {
+		while (columns.length > 0) {
 			popColumn();
 		}
-		lastColumn().children[0].currentIndex = -1
-		console.log(lastColumn().children[0])
 	}
 
 	/*
@@ -367,9 +367,13 @@ Hifi.Menu {
 	MouseArea {
 		anchors.fill: parent
 	    id: mouseArea
-	    acceptedButtons: Qt.RightButton
+	    acceptedButtons: Qt.LeftButton | Qt.RightButton
 	    onClicked: {
-    		root.popColumn();
+            if(mouseArea.pressedButtons & Qt.RightButton) {
+            	root.popColumn();
+            } else {
+            	root.enabled = false;
+            }    		
 	    }
 	}
 }

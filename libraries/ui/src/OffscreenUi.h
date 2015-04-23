@@ -92,16 +92,16 @@ public:
     virtual ~OffscreenUi();
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
-    void load(const QUrl& qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*, QQuickItem*) {});
-    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*, QQuickItem*) {}) {
+    void load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         load(QUrl(qmlSourceFile), f);
     }
-    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {});
-    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem*)> f = [](QQmlContext*, QQuickItem*) {});
+    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void setBaseUrl(const QUrl& baseUrl);
     void addImportPath(const QString& path);
-    QQmlContext* qmlContext();
-
+    //QQmlContext* getQmlContext();
+    QQuickItem* getRootItem();
     void pause();
     void resume();
     bool isPaused() const;
@@ -143,7 +143,7 @@ protected:
 
 private slots:
     void updateQuick();
-    void finishQmlLoad(std::function<void(QQmlContext*, QQuickItem *)> f);
+    void finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
 
 public slots:
     void requestUpdate();

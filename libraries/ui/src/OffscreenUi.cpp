@@ -132,22 +132,27 @@ void OffscreenUi::resize(const QSize& newSize) {
     doneCurrent();
 }
 
-QQmlContext* OffscreenUi::qmlContext() {
-    if (nullptr == _rootItem) {
-        return _qmlComponent->creationContext();
-    }
-    return QQmlEngine::contextForObject(_rootItem);
+QQuickItem* OffscreenUi::getRootItem() {
+    return _rootItem;
 }
+
+//QQmlContext* OffscreenUi::qmlContext() {
+//    if (nullptr == _rootItem) {
+//        return _qmlComponent->creationContext();
+//    }
+//    return QQmlEngine::contextForObject(_rootItem);
+//}
 
 void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
     _qmlEngine->setBaseUrl(baseUrl);
 }
 
-void OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QQuickItem*)> f) {
+void OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
     qDebug() << "Loading QML from URL " << qmlSource;
     _qmlComponent->loadUrl(qmlSource);
     if (_qmlComponent->isLoading())
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, [this, f] {
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
+        [this, f](QQmlComponent::Status){
             finishQmlLoad(f);
         });
     else {
@@ -168,8 +173,8 @@ void OffscreenUi::requestRender() {
     }
 }
 
-void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f) {
-    disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, &OffscreenUi::finishQmlLoad);
+void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
+    disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
         foreach(const QQmlError &error, errorList) {
@@ -178,7 +183,8 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
         return;
     }
 
-    QObject* newObject = _qmlComponent->create();
+    QQmlContext * newContext = new QQmlContext(_qmlEngine, qApp);
+    QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
         foreach(const QQmlError &error, errorList)
@@ -188,6 +194,9 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
         }
         return;
     }
+
+    f(newContext, newObject);
+    _qmlComponent->completeCreate();
 
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (!newItem) {
@@ -203,7 +212,6 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
     // Make sure we make items focusable (critical for 
     // supporting keyboard shortcuts)
     newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
-    f(_qmlEngine->contextForObject(newItem), newItem);
     if (!_rootItem) {
         // The root item is ready. Associate it with the window.
         _rootItem = newItem;
@@ -215,7 +223,6 @@ void OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QQuickItem*)> f
         QQmlEngine::setObjectOwnership(newItem, QQmlEngine::JavaScriptOwnership);
         newItem->setParent(_rootItem);
         newItem->setParentItem(_rootItem);
-        newItem->setEnabled(true);
     }
 }
 
@@ -397,22 +404,22 @@ void OffscreenUi::setProxyWindow(QWindow* window) {
     _renderControl->_renderWindow = window;
 }
 
-void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem *)> f) {
+void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
         load(url, f);
-        return;
+        item = _rootItem->findChild<QQuickItem*>(name); 
     }
     item->setEnabled(true);
 }
 
-void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QQuickItem *)> f) {
+void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
         load(url, f);
-        return;
+        item = _rootItem->findChild<QQuickItem*>(name);
     }
     item->setEnabled(!item->isEnabled());
 }
@@ -421,7 +428,7 @@ void OffscreenUi::messageBox(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::Icon icon,
     QMessageBox::StandardButtons buttons) {
-    MessageDialog::show([=](QQmlContext*ctx, QQuickItem*item) {
+    MessageDialog::show([=](QQmlContext*ctx, QObject*item) {
         MessageDialog * pDialog = item->findChild<MessageDialog*>();
         pDialog->setIcon((MessageDialog::Icon)icon);
         pDialog->setTitle(title);

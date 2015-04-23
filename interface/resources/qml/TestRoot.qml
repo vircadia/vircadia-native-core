@@ -1,5 +1,6 @@
 import Hifi 1.0
 import QtQuick 2.3
+import QtQuick.Controls 1.3
 // Import local folder last so that our own control customizations override 
 // the built in ones
 import "controls"
@@ -19,7 +20,7 @@ Root {
     	console.log("Completed root")
     	root.forceActiveFocus()
     }
-
+		
     Button {
         id: messageBox
         anchors.right: createDialog.left

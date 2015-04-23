@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLFunctions>
+#include <QQmlContext>
 
 #include <unordered_map>
 #include <memory>
@@ -83,6 +84,17 @@ const QString & getQmlDir() {
     return dir;
 }
 
+const QString & getTestQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        QDir path(__FILE__);
+        path.cdUp();
+        dir = path.cleanPath(path.absoluteFilePath("../")) + "/";
+        qDebug() << "Qml Test Path: " << dir;
+    }
+    return dir;
+}
+
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, private QOpenGLFunctions  {
     Q_OBJECT
@@ -95,6 +107,8 @@ class QTestWindow : public QWindow, private QOpenGLFunctions  {
     int testQmlTexture{ 0 };
 
 public:
+    QObject * rootMenu;
+
     QTestWindow() {
         _timer.setInterval(1);
         connect(&_timer, &QTimer::timeout, [=] {
@@ -144,18 +158,6 @@ public:
 
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
         offscreenUi->create(_context);
-
-        makeCurrent();
-
-        offscreenUi->setProxyWindow(this);
-        setFramePosition(QPoint(-1000, 0));
-        resize(QSize(800, 600));
-
-        offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
-        offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->addImportPath(getQmlDir());
-        offscreenUi->addImportPath(".");
-
         connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [this, offscreenUi](int textureId) {
             offscreenUi->lockTexture(textureId);
             assert(!glGetError());
@@ -165,10 +167,25 @@ public:
                 offscreenUi->releaseTexture(oldTexture);
             }
         });
+
+        makeCurrent();
+
+        offscreenUi->setProxyWindow(this);
+        setFramePosition(QPoint(-1000, 0));
+        resize(QSize(800, 600));
+
+#ifdef QML_CONTROL_GALLERY
+        offscreenUi->setBaseUrl(QUrl::fromLocalFile(getTestQmlDir()));
+        offscreenUi->load(QUrl("main.qml"));
+#else 
+        offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
+        offscreenUi->load(QUrl("TestRoot.qml"));
+        offscreenUi->load(QUrl("RootMenu.qml"));
+#endif
         installEventFilter(offscreenUi.data());
-        HifiMenu::setTriggerAction(MenuOption::Quit, [] {
-            QApplication::quit();
-        });
+        //HifiMenu::setTriggerAction(MenuOption::Quit, [] {
+        //    QApplication::quit();
+        //});
         offscreenUi->resume();
         _timer.start();
     }
@@ -216,15 +233,30 @@ protected:
         resizeWindow(ev->size());
     }
 
+
+    static QObject * addMenu(QObject * parent, const QString & text) {
+        // FIXME add more checking here to ensure no name conflicts
+        QVariant returnedValue;
+        QMetaObject::invokeMethod(parent, "addMenu",
+            Q_RETURN_ARG(QVariant, returnedValue),
+            Q_ARG(QVariant, text));
+        QObject * result = returnedValue.value<QObject*>();
+        return result;
+    }
+
     void keyPressEvent(QKeyEvent *event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
-                //auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                //DependencyManager::get<OffscreenUi>()->toggle(QString("TestDialog.qml"), "TestDialog");
-                //DependencyManager::get<OffscreenUi>()->toggle(QString("MenuTest.qml"), "MenuTest");
-                //HifiMenu::toggle();
+                auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+                QObject * result = addMenu(rootMenu, "Test 3");
+                result->setParent(rootMenu);
+                qDebug() << "Added " << result;
+                if (menuContext) {
+                    menuContext->setContextProperty("rootMenu", rootMenu);
+                }
             }
             break;
         case Qt::Key_K:
@@ -236,15 +268,23 @@ protected:
             break;
         case Qt::Key_J:
             if (event->modifiers() & Qt::CTRL) {
+                auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+                QMetaObject::invokeMethod(rootMenu, "popup");
             }
             break;
         }
         QWindow::keyPressEvent(event);
     }
-
+    QQmlContext* menuContext{ nullptr };
     void keyReleaseEvent(QKeyEvent *event) {
         if (_altPressed && Qt::Key_Alt == event->key()) {
-            HifiMenu::toggle();
+            HifiMenu::toggle([=](QQmlContext* context, QObject* newItem) {
+                auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+                menuContext = context;
+                menuContext->setContextProperty("rootMenu", rootMenu);
+            });
         }
     }
 

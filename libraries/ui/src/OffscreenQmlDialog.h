@@ -23,8 +23,8 @@ private: \
     static const QUrl QML; \
 public: \
     static void registerType(); \
-    static void show(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
-    static void toggle(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
+    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
 private:
 
 #define QML_DIALOG_DEF(x) \
@@ -35,12 +35,12 @@ private:
         qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
     } \
     \
-    void x::show(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+    void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->show(QML, NAME, f); \
     } \
     \
-    void x::toggle(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+    void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->toggle(QML, NAME, f); \
     }
