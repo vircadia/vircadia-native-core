@@ -127,6 +127,10 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
 
 // TODO: Move to model::Mesh when Sam's ready
 bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
+    if (!getUnscaledMeshExtents().containsPoint(point)) {
+        return false;
+    }
+    
     auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
         for (unsigned int j = 0; j < indices.size(); j += primitiveSize) {
