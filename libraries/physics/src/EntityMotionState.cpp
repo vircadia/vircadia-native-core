@@ -18,7 +18,8 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
-static const float MEASURED_ACCELERATION_CLOSE_TO_ZERO = 0.05f;
+static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
+static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -34,8 +35,11 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
     _outgoingEntityList->insert(entity);
 }
 
-EntityMotionState::EntityMotionState(EntityItem* entity) 
-    :   _entity(entity) {
+EntityMotionState::EntityMotionState(EntityItem* entity) :
+    _entity(entity),
+    _accelerationNearlyGravityCount(0),
+    _shouldClaimSimulationOwnership(false)
+{
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
@@ -191,7 +195,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
         return false;
     }
 
-    if (_entity->getShouldClaimSimulationOwnership()) {
+    if (getShouldClaimSimulationOwnership()) {
         return true;
     }
 
@@ -199,7 +203,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     const QUuid& myNodeID = nodeList->getSessionUUID();
     const QUuid& simulatorID = _entity->getSimulatorID();
 
-    if (!simulatorID.isNull() && simulatorID != myNodeID) {
+    if (simulatorID != myNodeID) {
         // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
         return false;
     }
@@ -214,10 +218,26 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
 
-        if (glm::length(_measuredAcceleration) < MEASURED_ACCELERATION_CLOSE_TO_ZERO) {
-            _entity->setAcceleration(glm::vec3(0.0f));
+        float gravityLength = glm::length(_entity->getGravity());
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet.  this is to avoid
+                // overflowing the counter.
+                incrementAccelerationNearlyGravityCount();
+            }
         } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            resetAccelerationNearlyGravityCount();
+        }
+
+        // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
+        // the entity server's estimates include gravity.
+        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
+        } else {
+            _entity->setAcceleration(glm::vec3(0.0f));
         }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
@@ -266,16 +286,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        if (_entity->getShouldClaimSimulationOwnership()) {
+        if (getShouldClaimSimulationOwnership()) {
             _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
-            _entity->setShouldClaimSimulationOwnership(false);
+            setShouldClaimSimulationOwnership(false);
         }
-        else if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
-            // The object is moving and nobody thinks they own the motion.  set this Node as the simulator
-            _entity->setSimulatorID(myNodeID);
-            properties.setSimulatorID(myNodeID);
-        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+
+        if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
             // we are the simulator and the object has stopped.  give up "simulator" status
             _entity->setSimulatorID(QUuid());
             properties.setSimulatorID(QUuid());

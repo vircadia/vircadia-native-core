@@ -62,10 +62,18 @@ public:
     virtual uint32_t getIncomingDirtyFlags() const;
     virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
 
-    EntityItem* getEntity() const { return _entity; }
+    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
+    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
+    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+
+    virtual EntityItem* getEntity() const { return _entity; }
+    virtual void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
+    virtual bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
 
 protected:
     EntityItem* _entity;
+    quint8 _accelerationNearlyGravityCount;
+    bool _shouldClaimSimulationOwnership;
 };
 
 #endif // hifi_EntityMotionState_h

@@ -111,6 +111,12 @@ public:
     virtual bool isMoving() const = 0;
 
     friend class PhysicsEngine;
+
+    // these are here so we can call into EntityMotionObject with a base-class pointer
+    virtual EntityItem* getEntity() const { return NULL; }
+    virtual void setShouldClaimSimulationOwnership(bool value) { }
+    virtual bool getShouldClaimSimulationOwnership() { return false; }
+
 protected:
     void setRigidBody(btRigidBody* body);
 
