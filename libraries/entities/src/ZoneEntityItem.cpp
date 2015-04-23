@@ -200,10 +200,11 @@ void ZoneEntityItem::debugDump() const {
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
+    // Zones are not allowed to have a SHAPE_TYPE_NONE... they are always at least a SHAPE_TYPE_BOX
     if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_BOX;
     } else {
-        return _shapeType;
+        return _shapeType == SHAPE_TYPE_NONE ? SHAPE_TYPE_BOX : _shapeType;
     }
 }
 
