@@ -28,32 +28,8 @@ ZoneOverlayManager = function(isEntityFunc, entityAddedFunc, entityRemovedFunc, 
                 position: properties.position,
                 rotation: properties.rotation,
                 dimensions: properties.dimensions,
-                visible: true,
             });
         }
-    };
-
-    this.findRayIntersection = function(pickRay) {
-        return false;
-
-        var result = Overlays.findRayIntersection(pickRay);
-        var found = false;
-
-        if (result.intersects) {
-            for (var id in entityOverlays) {
-                if (result.overlayID == entityOverlays[id]) {
-                    result.entityID = entityIDs[id];
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                result.intersects = false;
-            }
-        }
-
-        return result;
     };
 
     this.setVisible = function(isVisible) {
