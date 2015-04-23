@@ -1082,7 +1082,7 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
-bool EntityItem::contains(const glm::vec3& point) {
+bool EntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         return getAABox().contains(point);
     } else {

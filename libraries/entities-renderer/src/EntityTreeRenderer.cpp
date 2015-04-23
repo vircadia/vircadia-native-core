@@ -324,7 +324,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 
             // create a list of entities that actually contain the avatar's position
             foreach(const EntityItem* entity, foundEntities) {
-                if (const_cast<EntityItem*>(entity)->contains(avatarPosition)) {
+                if (entity->contains(avatarPosition)) {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }

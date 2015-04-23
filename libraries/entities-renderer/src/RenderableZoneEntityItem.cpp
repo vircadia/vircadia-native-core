@@ -39,12 +39,12 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     return bytesRead;
 }
 
-bool RenderableZoneEntityItem::contains(const glm::vec3& point) {
+bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() != SHAPE_TYPE_COMPOUND) {
         return EntityItem::contains(point);
     }
     if (!_compoundShapeModel && hasCompoundShapeURL()) {
-        _compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
+        const_cast<RenderableZoneEntityItem*>(this)->_compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
     }
     
     if (EntityItem::contains(point) && _compoundShapeModel && _compoundShapeModel->isLoaded()) {
