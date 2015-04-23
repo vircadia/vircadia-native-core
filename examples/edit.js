@@ -80,11 +80,13 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
+var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
+var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
@@ -244,7 +246,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        zoneOverlayManager.setVisible(isActive);
+        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -805,6 +807,8 @@ function setupModelMenus() {
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE, afterItem: MENU_EASE_ON_FOCUS,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE, afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true" });
 
     Entities.setLightsArePickable(false);
 }
@@ -833,12 +837,14 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
+    Menu.removeMenuItem("View", MENU_SHOW_ZONES_IN_EDIT_MODE);
 }
 
 Script.scriptEnding.connect(function() {
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     Settings.setValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
     progressDialog.cleanup();
     toolBar.cleanup();
@@ -971,6 +977,8 @@ function handeMenuEvent(menuItem) {
         selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
+        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
