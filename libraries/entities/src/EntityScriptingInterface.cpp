@@ -64,18 +64,6 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
-
-    // // if this entity has non-zero physics/simulation related values, claim simulation ownership
-    // if (propertiesWithSimID.velocityChanged() ||
-    //     propertiesWithSimID.rotationChanged() ||
-    //     propertiesWithSimID.containsPositionChange()) {
-    //     propertiesWithSimID.setSimulatorID(myNodeID);
-    //     entity->setSimulatorID(myNodeID);
-    // } else if (entity->getSimulatorID() == myNodeID) {
-    //     propertiesWithSimID.setSimulatorID(QUuid()); // give up simulation ownership
-    //     entity->setSimulatorID(QUuid());
-    // }
-
     propertiesWithSimID.setSimulatorID(myNodeID);
     entity->setSimulatorID(myNodeID);
 }
