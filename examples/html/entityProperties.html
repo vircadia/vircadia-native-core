@@ -187,8 +187,8 @@
             var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
             var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
             var elZoneKeyLightColorBlue = document.getElementById("property-zone-key-light-color-blue");
-            var elZoneKeyLightIntensity = document.getElementById("property-zone-key-color-intensity");
-            var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-color-ambient-intensity");
+            var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
+            var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-ambient-intensity");
             var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
             var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
             var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
@@ -905,7 +905,7 @@
         </div>
 
         <div class="zone-section property">
-            <div class="label">Key Color</div>
+            <div class="label">Key Light Color</div>
             <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green"></input></div>
@@ -913,13 +913,19 @@
             </div>
         </div>
         <div class="zone-section property">
-            <div class="label">Key Intensity</div>
+            <div class="label">Key Light Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-key-color-intensity"></input>
+                <input class="coord" type='number' id="property-zone-key-intensity"></input>
             </div>
         </div>
         <div class="zone-section property">
-            <div class="label">Key Direction</div>
+            <div class="label">Key Light Ambient Intensity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Key Light Direction</div>
             <div class="value">
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></input></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></input></div>
