@@ -40,6 +40,10 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 }
 
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
+    if (getShapeType() != SHAPE_TYPE_COMPOUND) {
+        return EntityItem::contains(point);
+    }
+    
     if (EntityItem::contains(point) && _compoundShapeModel) {
         const FBXGeometry& geometry = _compoundShapeModel->getFBXGeometry();
         
