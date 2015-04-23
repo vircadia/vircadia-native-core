@@ -111,6 +111,9 @@ public slots:
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;
 
+    Q_INVOKABLE void setZonesArePickable(bool value);
+    Q_INVOKABLE bool getZonesArePickable() const;
+
     Q_INVOKABLE void setSendPhysicsUpdates(bool value);
     Q_INVOKABLE bool getSendPhysicsUpdates() const;
 
