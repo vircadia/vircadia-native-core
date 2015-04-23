@@ -371,7 +371,7 @@ Menu::Menu() {
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
 #ifdef HAVE_DDE
-        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
+        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera, 
             0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
@@ -381,13 +381,8 @@ Menu::Menu() {
     faceTrackingMenu->addSeparator();
     QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
     useAudioForMouth->setVisible(false);
-    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFiltering, 0, true);
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
-    QAction* ddeFaceTrackerReset = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::ResetDDETracking, 
-        Qt::CTRL | Qt::Key_Apostrophe,
-        DependencyManager::get<DdeFaceTracker>().data(), SLOT(resetTracking()));
-    ddeFaceTrackerReset->setVisible(false);
-    faceTrackingMenu->addAction(ddeFaceTrackerReset);
 #endif
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);

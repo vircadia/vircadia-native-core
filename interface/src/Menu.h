@@ -130,8 +130,6 @@ namespace MenuOption {
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
-    const QString DDEFaceRegression = "DDE Face Regression";
-    const QString DDEFiltering = "DDE Filtering";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -224,7 +222,6 @@ namespace MenuOption {
     const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
     const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
-    const QString ResetDDETracking = "Reset DDE Tracking";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
@@ -247,6 +244,8 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UseAudioForMouth = "Use Audio for Mouth";
+    const QString UseCamera = "Use Camera";
+    const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
