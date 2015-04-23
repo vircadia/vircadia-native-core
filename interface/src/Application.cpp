@@ -569,8 +569,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     this->installEventFilter(this);
     // The offscreen UI needs to intercept the mouse and keyboard 
     // events coming from the onscreen window
-    _glWidget->installEventFilter(
-    	DependencyManager::get<OffscreenUi>().data());
+    _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 }
 
 

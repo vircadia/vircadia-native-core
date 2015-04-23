@@ -18,18 +18,18 @@ class OffscreenUiRoot : public QQuickItem {
     Q_OBJECT
 public:
 
-    OffscreenUiRoot(QQuickItem *parent = 0);
-    Q_INVOKABLE void information(const QString & title, const QString & text);
-    Q_INVOKABLE void loadChild(const QUrl & url) {
+    OffscreenUiRoot(QQuickItem* parent = 0);
+    Q_INVOKABLE void information(const QString& title, const QString& text);
+    Q_INVOKABLE void loadChild(const QUrl& url) {
         DependencyManager::get<OffscreenUi>()->load(url);
     }
 };
 
 
-OffscreenUiRoot::OffscreenUiRoot(QQuickItem *parent) : QQuickItem(parent) {
+OffscreenUiRoot::OffscreenUiRoot(QQuickItem* parent) : QQuickItem(parent) {
 }
 
-void OffscreenUiRoot::information(const QString & title, const QString & text = "foo") {
+void OffscreenUiRoot::information(const QString& title, const QString& text) {
     OffscreenUi::information(title, text);
 }
 
@@ -55,7 +55,7 @@ OffscreenUi::~OffscreenUi() {
     doneCurrent();
 }
 
-void OffscreenUi::create(QOpenGLContext * shareContext) {
+void OffscreenUi::create(QOpenGLContext* shareContext) {
     OffscreenGlCanvas::create(shareContext);
 
     makeCurrent();
@@ -69,8 +69,9 @@ void OffscreenUi::create(QOpenGLContext * shareContext) {
     _quickWindow->setFlags(_quickWindow->flags() | static_cast<Qt::WindowFlags>(Qt::WA_TranslucentBackground));
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
-    if (!_qmlEngine->incubationController())
+    if (!_qmlEngine->incubationController()) {
         _qmlEngine->setIncubationController(_quickWindow->incubationController());
+    }
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
@@ -91,11 +92,11 @@ void OffscreenUi::create(QOpenGLContext * shareContext) {
     _renderControl->initialize(&_context);
 }
 
-void OffscreenUi::addImportPath(const QString & path) {
+void OffscreenUi::addImportPath(const QString& path) {
     _qmlEngine->addImportPath(path);
 }
 
-void OffscreenUi::resize(const QSize & newSize) {
+void OffscreenUi::resize(const QSize& newSize) {
     makeCurrent();
 
     // Clear out any fbos with the old size
@@ -115,24 +116,25 @@ void OffscreenUi::resize(const QSize & newSize) {
     doneCurrent();
 }
 
-QQmlContext * OffscreenUi::qmlContext() {
+QQmlContext* OffscreenUi::qmlContext() {
     if (nullptr == _rootItem) {
         return _qmlComponent->creationContext();
     }
     return QQmlEngine::contextForObject(_rootItem);
 }
 
-void OffscreenUi::setBaseUrl(const QUrl & baseUrl) {
+void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
     _qmlEngine->setBaseUrl(baseUrl);
 }
 
-void OffscreenUi::load(const QUrl & qmlSource, std::function<void(QQmlContext*)> f) {
+void OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*)> f) {
     qDebug() << "Loading QML from URL " << qmlSource;
     _qmlComponent->loadUrl(qmlSource);
-    if (_qmlComponent->isLoading())
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this, [] {});
-    else
+    if (_qmlComponent->isLoading()) {
+        connect(_qmlComponent, &QQmlComponent::statusChanged, this, []{});
+    } else {
         finishQmlLoad();
+    }
 }
 
 void OffscreenUi::requestUpdate() {
@@ -156,7 +158,7 @@ void OffscreenUi::finishQmlLoad() {
         return;
     }
 
-    QObject *newObject = _qmlComponent->create();
+    QObject* newObject = _qmlComponent->create();
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
         foreach(const QQmlError &error, errorList)
@@ -167,7 +169,7 @@ void OffscreenUi::finishQmlLoad() {
         return;
     }
 
-    QQuickItem * newItem = qobject_cast<QQuickItem *>(newObject);
+    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
     if (!newItem) {
         qWarning("run: Not a QQuickItem");
         delete newObject;
@@ -200,8 +202,9 @@ void OffscreenUi::updateQuick() {
     if (_paused) {
         return;
     }
-    if (!makeCurrent())
+    if (!makeCurrent()) {
         return;
+    }
 
     // Polish, synchronize and render the next frame (into our fbo).  In this example
     // everything happens on the same thread and therefore all three steps are performed
@@ -234,7 +237,7 @@ void OffscreenUi::updateQuick() {
     emit textureUpdated(fbo->texture());
 }
 
-QPointF OffscreenUi::mapWindowToUi(const QPointF & p, QObject * dest) {
+QPointF OffscreenUi::mapWindowToUi(const QPointF& p, QObject* dest) {
     vec2 sourceSize;
     if (dynamic_cast<QWidget*>(dest)) {
         sourceSize = toGlm(((QWidget*)dest)->size());
@@ -252,7 +255,7 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF & p, QObject * dest) {
 // Event handling customization
 //
 
-bool OffscreenUi::eventFilter(QObject * dest, QEvent * e) {
+bool OffscreenUi::eventFilter(QObject* dest, QEvent* e) {
     // Only intercept events while we're in an active state
     if (_paused) {
         return false;
@@ -264,50 +267,46 @@ bool OffscreenUi::eventFilter(QObject * dest, QEvent * e) {
     }
     
     switch (e->type()) {
-    case QEvent::Resize:
-    {
-        QResizeEvent * re = (QResizeEvent *)e;
-        QGLWidget * widget = dynamic_cast<QGLWidget*>(dest);
-        if (widget) {
-            this->resize(re->size());
+        case QEvent::Resize: {
+            QResizeEvent* re = (QResizeEvent*)e;
+            QGLWidget* widget = dynamic_cast<QGLWidget*>(dest);
+            if (widget) {
+                this->resize(re->size());
+            }
+            return false;
         }
-        return false;
-    }
 
-    case QEvent::KeyPress:
-    case QEvent::KeyRelease:
-    {
-        e->ignore();
-        if (QCoreApplication::sendEvent(_quickWindow, e)) {
-            return e->isAccepted();
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease: {
+            e->ignore();
+            if (QCoreApplication::sendEvent(_quickWindow, e)) {
+                return e->isAccepted();
+            }
+            break;
         }
-    }
-    break;
 
-    case QEvent::Wheel:
-    {
-        QWheelEvent * we = (QWheelEvent*)e;
-        QWheelEvent mappedEvent(mapWindowToUi(we->pos(), dest), we->delta(), we->buttons(), we->modifiers(), we->orientation());
-        QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
-        return true;
-    }
-    break;
+        case QEvent::Wheel: {
+            QWheelEvent* we = (QWheelEvent*)e;
+            QWheelEvent mappedEvent(mapWindowToUi(we->pos(), dest), we->delta(), we->buttons(), we->modifiers(), we->orientation());
+            QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
+            return true;
+        }
 
-    // Fall through
-    case QEvent::MouseButtonDblClick:
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonRelease:
-    case QEvent::MouseMove:
-    {
-        QMouseEvent * me = (QMouseEvent *)e;
-        QPointF originalPos = me->localPos();
-        QPointF transformedPos = _mouseTranslator(originalPos);
-        QMouseEvent mappedEvent(e->type(), mapWindowToUi(transformedPos, dest), me->screenPos(), me->button(), me->buttons(), me->modifiers());
-        QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
-        return QObject::event(e);
-    }
+        // Fall through
+        case QEvent::MouseButtonDblClick:
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseMove: {
+            QMouseEvent* me = (QMouseEvent *)e;
+            QPointF originalPos = me->localPos();
+            QPointF transformedPos = _mouseTranslator(originalPos);
+            QMouseEvent mappedEvent(e->type(), mapWindowToUi(transformedPos, dest), me->screenPos(), me->button(), me->buttons(), me->modifiers());
+            QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
+            return QObject::event(e);
+        }
 
-    default: break;
+        default:
+            break;
     }
 
     return false;
@@ -334,22 +333,22 @@ bool OffscreenUi::isPaused() const {
     return _paused;
 }
 
-void OffscreenUi::setProxyWindow(QWindow * window) {
+void OffscreenUi::setProxyWindow(QWindow* window) {
     _renderControl->_renderWindow = window;
 }
 
-void OffscreenUi::show(const QUrl & url, const QString & name) {
-    QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
+void OffscreenUi::show(const QUrl& url, const QString& name) {
+    QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
-    if (nullptr == item) {
+    if (!item) {
         load(url);
         return;
     }
     item->setEnabled(true);
 }
 
-void OffscreenUi::toggle(const QUrl & url, const QString & name) {
-    QQuickItem * item = _rootItem->findChild<QQuickItem*>(name);
+void OffscreenUi::toggle(const QUrl& url, const QString& name) {
+    QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
     if (nullptr == item) {
         load(url);
@@ -358,31 +357,31 @@ void OffscreenUi::toggle(const QUrl & url, const QString & name) {
     item->setEnabled(!item->isEnabled());
 }
 
-void OffscreenUi::messageBox(const QString &title, const QString &text,
+void OffscreenUi::messageBox(const QString& title, const QString& text,
     QMessageBox::Icon icon,
     QMessageBox::StandardButtons buttons,
     ButtonCallback f) {
 }
 
-void OffscreenUi::information(const QString &title, const QString &text,
+void OffscreenUi::information(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons,
     ButtonCallback callback) {
     callback(QMessageBox::information(nullptr, title, text, buttons));
 }
 
-void OffscreenUi::question(const QString &title, const QString &text,
+void OffscreenUi::question(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons,
     ButtonCallback callback) {
     callback(QMessageBox::question(nullptr, title, text, buttons));
 }
 
-void OffscreenUi::warning(const QString &title, const QString &text,
+void OffscreenUi::warning(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons,
     ButtonCallback callback) {
     callback(QMessageBox::warning(nullptr, title, text, buttons));
 }
 
-void OffscreenUi::critical(const QString &title, const QString &text,
+void OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons,
     ButtonCallback callback) {
     callback(QMessageBox::critical(nullptr, title, text, buttons));

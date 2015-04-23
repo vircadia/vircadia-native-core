@@ -237,15 +237,15 @@ void ApplicationOverlay::renderOverlay() {
 // A quick and dirty solution for compositing the old overlay 
 // texture with the new one
 template <typename F>
-void with_each_texture(GLuint a, GLuint b, F f) {
+void with_each_texture(GLuint firstPassTexture, GLuint secondPassTexture, F f) {
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
-    if (a) {
-        glBindTexture(GL_TEXTURE_2D, a);
+    if (firstPassTexture) {
+        glBindTexture(GL_TEXTURE_2D, firstPassTexture);
         f();
     }
-    if (b) {
-        glBindTexture(GL_TEXTURE_2D, b);
+    if (secondPassTexture) {
+        glBindTexture(GL_TEXTURE_2D, secondPassTexture);
         f();
     }
     glBindTexture(GL_TEXTURE_2D, 0);

@@ -10,7 +10,7 @@
 
 #include "OffscreenQmlDialog.h"
 
-OffscreenQmlDialog::OffscreenQmlDialog(QQuickItem *parent)
+OffscreenQmlDialog::OffscreenQmlDialog(QQuickItem* parent)
   : QQuickItem(parent) { }
 
 void OffscreenQmlDialog::hide() {

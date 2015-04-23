@@ -18,7 +18,7 @@
 class OffscreenGlCanvas : public QObject {
 public:
     OffscreenGlCanvas();
-    void create(QOpenGLContext * sharedContext = nullptr);
+    void create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
 

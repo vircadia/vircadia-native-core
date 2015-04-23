@@ -25,7 +25,7 @@ class LoginDialog : public OffscreenQmlDialog
 public:
     static void toggleAction();
 
-    LoginDialog(QQuickItem *parent = 0);
+    LoginDialog(QQuickItem* parent = 0);
 
     void setStatusText(const QString & a);
     QString statusText() const;
@@ -39,8 +39,8 @@ protected:
     void handleLoginCompleted(const QUrl& authURL);
     void handleLoginFailed();
 
-    Q_INVOKABLE void login(const QString & username, const QString & password);
-    Q_INVOKABLE void openUrl(const QString & url);
+    Q_INVOKABLE void login(const QString& username, const QString& password);
+    Q_INVOKABLE void openUrl(const QString& url);
 private:
     QString _statusText;
     const QString _rootUrl;

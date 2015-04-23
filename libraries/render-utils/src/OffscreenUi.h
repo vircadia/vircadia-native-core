@@ -38,7 +38,7 @@ class OffscreenUi : public OffscreenGlCanvas, public Dependency {
 
     class QMyQuickRenderControl : public QQuickRenderControl {
     protected:
-        QWindow * renderWindow(QPoint * offset) Q_DECL_OVERRIDE{
+        QWindow* renderWindow(QPoint* offset) Q_DECL_OVERRIDE{
             if (nullptr == _renderWindow) {
                 return QQuickRenderControl::renderWindow(offset);
             }
@@ -49,59 +49,59 @@ class OffscreenUi : public OffscreenGlCanvas, public Dependency {
         }
 
     private:
-        QWindow * _renderWindow{ nullptr };
+        QWindow* _renderWindow{ nullptr };
         friend class OffscreenUi;
     };
 
 public:
-    using MouseTranslator = std::function < QPointF(const QPointF &) > ;
+    using MouseTranslator = std::function<QPointF(const QPointF&)>;
     OffscreenUi();
     virtual ~OffscreenUi();
-    void create(QOpenGLContext * context);
-    void resize(const QSize & size);
-    void load(const QUrl & qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*) {});
-    void load(const QString & qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*) {}) {
+    void create(QOpenGLContext* context);
+    void resize(const QSize& size);
+    void load(const QUrl& qmlSource, std::function<void(QQmlContext*)> f = [](QQmlContext*) {});
+    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*)> f = [](QQmlContext*) {}) {
         load(QUrl(qmlSourceFile), f);
     }
-    void show(const QUrl & url, const QString & name);
-    void toggle(const QUrl & url, const QString & name);
-    void setBaseUrl(const QUrl & baseUrl);
-    void addImportPath(const QString & path);
+    void show(const QUrl& url, const QString& name);
+    void toggle(const QUrl& url, const QString& name);
+    void setBaseUrl(const QUrl& baseUrl);
+    void addImportPath(const QString& path);
     QQmlContext * qmlContext();
 
     void pause();
     void resume();
     bool isPaused() const;
-    void setProxyWindow(QWindow * window);
-    QPointF mapWindowToUi(const QPointF & p, QObject * dest);
-    virtual bool eventFilter(QObject * dest, QEvent * e);
+    void setProxyWindow(QWindow* window);
+    QPointF mapWindowToUi(const QPointF& p, QObject* dest);
+    virtual bool eventFilter(QObject* dest, QEvent* e);
     void setMouseTranslator(MouseTranslator mt) {
         _mouseTranslator = mt;
     }
 
 
     // Messagebox replacement functions
-    using ButtonCallback = std::function < void(QMessageBox::StandardButton) >;
+    using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
     static ButtonCallback NO_OP_CALLBACK;
 
-    static void messageBox(const QString &title, const QString &text,
+    static void messageBox(const QString& title, const QString& text,
         QMessageBox::Icon icon, 
         QMessageBox::StandardButtons buttons, 
         ButtonCallback f);
 
-    static void information(const QString &title, const QString &text,
+    static void information(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         ButtonCallback callback = NO_OP_CALLBACK);
 
-    static void question(const QString &title, const QString &text,
+    static void question(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),
         ButtonCallback callback = [](QMessageBox::StandardButton) {});
 
-    static void warning(const QString &title, const QString &text,
+    static void warning(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         ButtonCallback callback = [](QMessageBox::StandardButton) {});
 
-    static void critical(const QString &title, const QString &text,
+    static void critical(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         ButtonCallback callback = [](QMessageBox::StandardButton) {});
 
@@ -121,11 +121,11 @@ signals:
     void textureUpdated(GLuint texture);
 
 private:
-    QMyQuickRenderControl  *_renderControl{ new QMyQuickRenderControl };
-    QQuickWindow *_quickWindow{ nullptr };
-    QQmlEngine *_qmlEngine{ nullptr };
-    QQmlComponent *_qmlComponent{ nullptr };
-    QQuickItem * _rootItem{ nullptr };
+    QMyQuickRenderControl* _renderControl{ new QMyQuickRenderControl };
+    QQuickWindow* _quickWindow{ nullptr };
+    QQmlEngine* _qmlEngine{ nullptr };
+    QQmlComponent* _qmlComponent{ nullptr };
+    QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
     FboCache _fboCache;
     bool _polish{ true };
