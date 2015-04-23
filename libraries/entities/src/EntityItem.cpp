@@ -1082,16 +1082,13 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
-bool EntityItem::contains(const glm::vec3& point) const {
-    switch (getShapeType()) {
-        case SHAPE_TYPE_BOX:
-            return AABox(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f).contains(worldToEntity(point));
-        case SHAPE_TYPE_SPHERE:
-        case SHAPE_TYPE_ELLIPSOID:
-            static const float UNIT_SPHERE_RADIUS = 1.0f / 2.0f;
-            return glm::length(worldToEntity(point)) <= UNIT_SPHERE_RADIUS;
-        default:
-            return getAABox().contains(point);
+bool EntityItem::contains(const glm::vec3& point) {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        return getAABox().contains(point);
+    } else {
+        ShapeInfo info;
+        info.setParams(getShapeType(), glm::vec3(0.5f));
+        return info.contains(worldToEntity(point));
     }
 }
 

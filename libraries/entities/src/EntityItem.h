@@ -253,7 +253,7 @@ public:
     // TODO: get rid of users of getRadius()... 
     float getRadius() const;
     
-    virtual bool contains(const glm::vec3& point) const;
+    virtual bool contains(const glm::vec3& point);
 
     virtual bool isReadyToComputeShape() { return true; }
     virtual void computeShapeInfo(ShapeInfo& info);

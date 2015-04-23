@@ -415,7 +415,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     }
 }
 
-bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
+bool RenderableModelEntityItem::contains(const glm::vec3& point) {
     if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
