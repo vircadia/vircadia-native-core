@@ -58,6 +58,8 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
     _stageAltitude = DEFAULT_STAGE_ALTITUDE;
     _stageDay = DEFAULT_STAGE_DAY;
     _stageHour = DEFAULT_STAGE_HOUR;
+    _shapeType = DEFAULT_SHAPE_TYPE;
+    _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
     
     setProperties(properties);
 }
@@ -207,5 +209,9 @@ ShapeType ZoneEntityItem::getShapeType() const {
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
     _compoundShapeURL = url;
-    _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
+    if (!_compoundShapeURL.isEmpty()) {
+        updateShapeType(SHAPE_TYPE_COMPOUND);
+    } else if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        _shapeType = DEFAULT_SHAPE_TYPE;
+    }
 }
