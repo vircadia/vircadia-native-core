@@ -1,7 +1,4 @@
-var POINT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/point-light.svg";
-var SPOT_LIGHT_URL = "http://s3.amazonaws.com/hifi-public/images/tools/spot-light.svg";
-
-LightOverlayManager = function() {
+ZoneOverlayManager = function(isEntityFunc, entityAddedFunc, entityRemovedFunc, entityMovedFunc) {
     var self = this;
 
     var visible = false;
@@ -22,38 +19,25 @@ LightOverlayManager = function() {
         for (var id in entityIDs) {
             var entityID = entityIDs[id];
             var properties = Entities.getEntityProperties(entityID);
-            Overlays.editOverlay(entityOverlays[entityID.id], {
-                position: properties.position
+            Overlays.editOverlay(entityOverlays[entityID.id].solid, {
+                position: properties.position,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions,
+            });
+            Overlays.editOverlay(entityOverlays[entityID.id].outline, {
+                position: properties.position,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions,
             });
         }
-    };
-
-    this.findRayIntersection = function(pickRay) {
-        var result = Overlays.findRayIntersection(pickRay);
-        var found = false;
-
-        if (result.intersects) {
-            for (var id in entityOverlays) {
-                if (result.overlayID == entityOverlays[id]) {
-                    result.entityID = entityIDs[id];
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                result.intersects = false;
-            }
-        }
-
-        return result;
     };
 
     this.setVisible = function(isVisible) {
         if (visible != isVisible) {
             visible = isVisible;
             for (var id in entityOverlays) {
-                Overlays.editOverlay(entityOverlays[id], { visible: visible });
+                Overlays.editOverlay(entityOverlays[id].solid, { visible: visible });
+                Overlays.editOverlay(entityOverlays[id].outline, { visible: visible });
             }
         }
     };
@@ -61,7 +45,7 @@ LightOverlayManager = function() {
     // Allocate or get an unused overlay
     function getOverlay() {
         if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("billboard", {
+            var overlay = Overlays.addOverlay("cube", {
             });
             allOverlays.push(overlay);
         } else {
@@ -77,25 +61,50 @@ LightOverlayManager = function() {
 
     function addEntity(entityID) {
         var properties = Entities.getEntityProperties(entityID);
-        if (properties.type == "Light" && !(entityID.id in entityOverlays)) {
-            var overlay = getOverlay();
-            entityOverlays[entityID.id] = overlay; 
+        if (properties.type == "Zone" && !(entityID.id in entityOverlays)) {
+            var overlaySolid = getOverlay();
+            var overlayOutline = getOverlay();
+
+            entityOverlays[entityID.id] = {
+                solid: overlaySolid,
+                outline: overlayOutline,
+            }
             entityIDs[entityID.id] = entityID;
-            Overlays.editOverlay(overlay, {
+
+            var color = {
+                red: Math.round(Math.random() * 255),
+                green: Math.round(Math.random() * 255),
+                blue: Math.round(Math.random() * 255)
+            };
+            Overlays.editOverlay(overlaySolid, {
                 position: properties.position,
-                url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
-                rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
+                rotation: properties.rotation,
+                dimensions: properties.dimensions,
                 visible: visible,
-                alpha: 0.9,
-                scale: 0.5,
-                color: { red: 255, green: 255, blue: 255 }
+                solid: true,
+                alpha: 0.1,
+                color: color,
+                ignoreRayIntersection: true,
+            });
+            Overlays.editOverlay(overlayOutline, {
+                position: properties.position,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions,
+                visible: visible,
+                solid: false,
+                dashed: false,
+                lineWidth: 2.0,
+                alpha: 1.0,
+                color: color,
+                ignoreRayIntersection: true,
             });
         }
     }
 
     function deleteEntity(entityID) {
         if (entityID.id in entityOverlays) {
-            releaseOverlay(entityOverlays[entityID.id]);
+            releaseOverlay(entityOverlays[entityID.id].outline);
+            releaseOverlay(entityOverlays[entityID.id].solid);
             delete entityOverlays[entityID.id];
         }
     }
@@ -110,7 +119,8 @@ LightOverlayManager = function() {
 
     function clearEntities() {
         for (var id in entityOverlays) {
-            releaseOverlay(entityOverlays[id]);
+            releaseOverlay(entityOverlays[id].outline);
+            releaseOverlay(entityOverlays[id].solid);
         }
         entityOverlays = {};
         entityIDs = {};
