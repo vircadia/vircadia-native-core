@@ -84,7 +84,7 @@ const QString& getQmlDir() {
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext * _context{ nullptr };
+    QOpenGLContext* _context{ nullptr };
     QSize _size;
     TextRenderer* _textRenderer[4];
     RateCounter fps;
