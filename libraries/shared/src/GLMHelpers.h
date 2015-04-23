@@ -17,6 +17,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+// Bring the most commonly used GLM types into the default namespace
+using glm::ivec3;
+using glm::ivec2;
+using glm::uvec2;
+using glm::mat3;
+using glm::mat4;
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
+using glm::quat;
+
 #include <QtCore/QByteArray>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QColor>

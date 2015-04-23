@@ -100,6 +100,11 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
+    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         void** intersectedObject, bool precisionPicking) const;
+
     virtual void debugDump() const;
 
     static const xColor DEFAULT_KEYLIGHT_COLOR;
