@@ -20,7 +20,7 @@ class AddressBarDialog : public OffscreenQmlDialog
     QML_DIALOG_DECL
 
 public:
-    AddressBarDialog(QQuickItem* parent = 0);
+    AddressBarDialog(QQuickItem* parent = nullptr);
 
 protected:
     void displayAddressOfflineMessage();

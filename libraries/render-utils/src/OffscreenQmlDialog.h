@@ -47,7 +47,7 @@ class OffscreenQmlDialog : public QQuickItem
 {
     Q_OBJECT
 public:
-    OffscreenQmlDialog(QQuickItem* parent = 0);
+    OffscreenQmlDialog(QQuickItem* parent = nullptr);
 
 protected:
     void hide();

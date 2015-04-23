@@ -14,5 +14,5 @@ OffscreenQmlDialog::OffscreenQmlDialog(QQuickItem* parent)
   : QQuickItem(parent) { }
 
 void OffscreenQmlDialog::hide() {
-    ((QQuickItem*)parent())->setEnabled(false);
+    static_cast<QQuickItem*>(parent())->setEnabled(false);
 }

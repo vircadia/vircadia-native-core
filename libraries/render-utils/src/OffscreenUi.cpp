@@ -14,6 +14,11 @@
 #include <QGLWidget>
 #include <QtQml>
 
+// Time between receiving a request to render the offscreen UI actually triggering
+// the render.  Could possibly be increased depending on the framerate we expect to
+// achieve.
+static const int SMALL_INTERVAL = 5;
+
 class OffscreenUiRoot : public QQuickItem {
     Q_OBJECT
 public:
@@ -76,7 +81,7 @@ void OffscreenUi::create(QOpenGLContext* shareContext) {
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     _updateTimer.setSingleShot(true);
-    _updateTimer.setInterval(5);
+    _updateTimer.setInterval(SMALL_INTERVAL);
     connect(&_updateTimer, &QTimer::timeout, this, &OffscreenUi::updateQuick);
 
     // Now hook up the signals. For simplicy we don't differentiate between

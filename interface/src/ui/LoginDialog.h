@@ -25,9 +25,9 @@ class LoginDialog : public OffscreenQmlDialog
 public:
     static void toggleAction();
 
-    LoginDialog(QQuickItem* parent = 0);
+    LoginDialog(QQuickItem* parent = nullptr);
 
-    void setStatusText(const QString& a);
+    void setStatusText(const QString& statusText);
     QString statusText() const;
 
     QString rootUrl() const;
