@@ -200,7 +200,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         qDebug() << "[Info] DDE Face Tracker Starting";
         _ddeProcess = new QProcess(qApp);
         connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
-        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS, QIODevice::ReadOnly);
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
     }
 
     if (!enabled && _ddeProcess) {
