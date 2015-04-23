@@ -391,29 +391,31 @@ void PhysicsEngine::computeCollisionEvents() {
                 continue;
             }
 
-            void* a = objectA->getUserPointer();
-            EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
-            EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : NULL;
-            void* b = objectB->getUserPointer();
-            EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
-            EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : NULL;
+            ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
+            ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
+            EntityItem* entityA = a ? a->getEntity() : NULL;
+            EntityItem* entityB = b ? b->getEntity() : NULL;
+            bool aIsDynamic = entityA && !objectA->isStaticOrKinematicObject();
+            bool bIsDynamic = entityB && !objectB->isStaticOrKinematicObject();
+
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
-
-                // collisions cause infectious spread of simulation-ownership.  we also attempt to take
-                // ownership of anything that collides with our avatar.
-                if (entityA && entityB && !objectA->isStaticOrKinematicObject() && !objectB->isStaticOrKinematicObject()) {
-                    if (entityA->getSimulatorID() == myNodeID || 
-                        entityMotionStateA->getShouldClaimSimulationOwnership() ||
-                        objectA == characterCollisionObject) {
-                        entityMotionStateB->setShouldClaimSimulationOwnership(true);
-                    }
-                    if (entityB->getSimulatorID() == myNodeID ||
-                        entityMotionStateB->getShouldClaimSimulationOwnership() ||
-                        objectB == characterCollisionObject) {
-                        entityMotionStateA->setShouldClaimSimulationOwnership(true);
-                    }
+            }
+            // collisions cause infectious spread of simulation-ownership.  we also attempt to take
+            // ownership of anything that collides with our avatar.
+            if ((aIsDynamic && entityA->getSimulatorID() == myNodeID) ||
+                (a && a->getShouldClaimSimulationOwnership()) ||
+                (objectA == characterCollisionObject)) {
+                if (bIsDynamic) {
+                    b->setShouldClaimSimulationOwnership(true);
+                }
+            }
+            if ((bIsDynamic && entityB->getSimulatorID() == myNodeID) ||
+                (b && b->getShouldClaimSimulationOwnership()) ||
+                (objectB == characterCollisionObject)) {
+                if (aIsDynamic) {
+                    a->setShouldClaimSimulationOwnership(true);
                 }
             }
         }
