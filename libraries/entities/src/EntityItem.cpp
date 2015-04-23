@@ -1088,7 +1088,8 @@ bool EntityItem::contains(const glm::vec3& point) const {
             return AABox(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f).contains(worldToEntity(point));
         case SHAPE_TYPE_SPHERE:
         case SHAPE_TYPE_ELLIPSOID:
-            return glm::length(worldToEntity(point)) <= 0.5f;
+            static const float UNIT_SPHERE_RADIUS = 1.0f / 2.0f;
+            return glm::length(worldToEntity(point)) <= UNIT_SPHERE_RADIUS;
         default:
             return getAABox().contains(point);
     }
