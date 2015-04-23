@@ -43,6 +43,9 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() != SHAPE_TYPE_COMPOUND) {
         return EntityItem::contains(point);
     }
+    if (!_compoundShapeModel && hasCompoundShapeURL()) {
+        const_cast<RenderableZoneEntityItem*>(this)->_compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
+    }
     
     if (EntityItem::contains(point) && _compoundShapeModel && _compoundShapeModel->isLoaded()) {
         const FBXGeometry& geometry = _compoundShapeModel->getFBXGeometry();
