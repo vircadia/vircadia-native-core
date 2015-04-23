@@ -621,7 +621,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
-    if (_simulatorID == myNodeID) {
+    if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
         // the packet that produced this bitstream originally came from physics simulations performed by
         // this node, so our version has to be newer than what the packet contained.
         _position = savePosition;
