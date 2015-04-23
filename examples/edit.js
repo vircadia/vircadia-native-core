@@ -520,7 +520,6 @@ function findClickedEntity(event) {
     var pickZones = event.isControl;
 
     if (pickZones) {
-    print("Picking zones");
         Entities.setZonesArePickable(true);
     }
 
