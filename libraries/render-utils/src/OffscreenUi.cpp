@@ -298,8 +298,11 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
                     mapWindowToUi(wheelEvent->pos(), originalDestination),
                     wheelEvent->delta(),  wheelEvent->buttons(),
                     wheelEvent->modifiers(), wheelEvent->orientation());
-            QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
-            return true;
+            mappedEvent.ignore();
+            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
+                return mappedEvent.isAccepted();
+            }
+            break;
         }
 
         // Fall through
@@ -314,8 +317,11 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
                     mapWindowToUi(transformedPos, originalDestination),
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
-            QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
-            return QObject::event(event);
+            mappedEvent.ignore();
+            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
+                return mappedEvent.isAccepted();
+            }
+            break;
         }
 
         default:

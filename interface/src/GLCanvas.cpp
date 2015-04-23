@@ -115,6 +115,7 @@ void GLCanvas::throttleRender() {
             OculusManager::beginFrameTiming();
         }
 
+        makeCurrent();
         Application::getInstance()->paintGL();
         swapBuffers();
 
