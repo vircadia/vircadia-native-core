@@ -127,7 +127,7 @@ void GLCanvas::throttleRender() {
 int updateTime = 0;
 bool GLCanvas::event(QEvent* event) {
     switch (event->type()) {
-	    case QEvent::MouseMove:
+        case QEvent::MouseMove:
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
         case QEvent::KeyPress:

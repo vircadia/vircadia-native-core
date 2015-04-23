@@ -30,7 +30,7 @@ public:
     // the appropriate OpenGL context is active when doing so.
 
     // Important.... textures are sharable resources, but FBOs ARE NOT.  
-    void setSize(const QSize & newSize);
+    void setSize(const QSize& newSize);
     QOpenGLFramebufferObject* getReadyFbo();
 
     // These operations are thread safe and require no OpenGL context.  They manipulate the 

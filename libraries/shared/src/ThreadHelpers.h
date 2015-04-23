@@ -21,7 +21,7 @@ void withLock(L lock, F function) {
 }
 
 template <typename F>
-void withLock(QMutex & lock, F function) {
+void withLock(QMutex& lock, F function) {
 	QMutexLocker locker(&lock);
 	function();
 }

@@ -72,7 +72,7 @@ QOpenGLFramebufferObject* FboCache::getReadyFbo() {
     return result;
 }
 
-void FboCache::setSize(const QSize & newSize) {
+void FboCache::setSize(const QSize& newSize) {
     if (_size == newSize) {
         return;
     }

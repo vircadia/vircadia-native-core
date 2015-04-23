@@ -27,7 +27,7 @@ public:
 
     LoginDialog(QQuickItem* parent = 0);
 
-    void setStatusText(const QString & a);
+    void setStatusText(const QString& a);
     QString statusText() const;
 
     QString rootUrl() const;

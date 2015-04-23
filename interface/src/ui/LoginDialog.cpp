@@ -41,7 +41,7 @@ void LoginDialog::toggleAction() {
     }
 }
 
-void LoginDialog::handleLoginCompleted(const QUrl& authURL) {
+void LoginDialog::handleLoginCompleted(const QUrl&) {
     hide();
 }
 
@@ -49,9 +49,9 @@ void LoginDialog::handleLoginFailed() {
     setStatusText("<font color = \"#267077\">Invalid username or password.< / font>");
 }
 
-void LoginDialog::setStatusText(const QString &a) {
+void LoginDialog::setStatusText(const QString& statusText) {
     if (a != _statusText) {
-        _statusText = a;
+        _statusText = statusText;
         emit statusTextChanged();
     }
 }
@@ -64,12 +64,12 @@ QString LoginDialog::rootUrl() const {
     return _rootUrl;
 }
 
-void LoginDialog::login(const QString & username, const QString & password) {
+void LoginDialog::login(const QString& username, const QString& password) {
     qDebug() << "Attempting to login " << username;
     setStatusText("Authenticating...");
     AccountManager::getInstance().requestAccessToken(username, password);
 }
 
-void LoginDialog::openUrl(const QString & url) {
+void LoginDialog::openUrl(const QString& url) {
     qDebug() << url;
 }

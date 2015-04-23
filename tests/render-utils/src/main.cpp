@@ -70,7 +70,7 @@ public:
 };
 
 
-const QString & getQmlDir() {
+const QString& getQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -98,7 +98,7 @@ protected:
     void renderQml();
 
 private:
-    void resizeWindow(const QSize & size) {
+    void resizeWindow(const QSize& size) {
         _size = size;
         DependencyManager::get<OffscreenUi>()->resize(_size);
     }
@@ -126,7 +126,7 @@ public:
         makeCurrent();
 
         {
-            QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
             logger->enableMessages();
             connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
@@ -201,12 +201,12 @@ public:
 
 protected:
 
-    void resizeEvent(QResizeEvent * ev) override {
+    void resizeEvent(QResizeEvent* ev) override {
         resizeWindow(ev->size());
     }
 
 
-    void keyPressEvent(QKeyEvent *event) {
+    void keyPressEvent(QKeyEvent* event) {
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
@@ -217,7 +217,7 @@ protected:
         QWindow::keyPressEvent(event);
     }
     
-    void moveEvent(QMoveEvent *event) {
+    void moveEvent(QMoveEvent* event) {
         static qreal oldPixelRatio = 0.0;
         if (devicePixelRatio() != oldPixelRatio) {
             oldPixelRatio = devicePixelRatio();
@@ -232,8 +232,8 @@ protected:
 #define SERIF_FONT_FAMILY "Times New Roman"
 #endif
 
-static const wchar_t * EXAMPLE_TEXT = L"Hello";
-//static const wchar_t * EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
+static const wchar_t* EXAMPLE_TEXT = L"Hello";
+//static const wchar_t* EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
 
 static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
@@ -283,7 +283,6 @@ void QTestWindow::renderText() {
 }
 
 void QTestWindow::renderQml() {
-
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glMatrixMode(GL_MODELVIEW);
@@ -297,7 +296,6 @@ void QTestWindow::renderQml() {
     }
     glBegin(GL_QUADS);
     {
-
         glTexCoord2f(0, 0);
         glVertex2f(-1, -1);
         glTexCoord2f(0, 1);

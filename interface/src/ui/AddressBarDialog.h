@@ -20,14 +20,14 @@ class AddressBarDialog : public OffscreenQmlDialog
     QML_DIALOG_DECL
 
 public:
-    AddressBarDialog(QQuickItem *parent = 0);
+    AddressBarDialog(QQuickItem* parent = 0);
 
 protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void hide();
 
-    Q_INVOKABLE void loadAddress(const QString & address);
+    Q_INVOKABLE void loadAddress(const QString& address);
 };
 
 #endif

@@ -17,7 +17,7 @@
 
 QML_DIALOG_DEF(AddressBarDialog)
 
-AddressBarDialog::AddressBarDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
+AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
@@ -25,10 +25,10 @@ AddressBarDialog::AddressBarDialog(QQuickItem *parent) : OffscreenQmlDialog(pare
 }
 
 void AddressBarDialog::hide() {
-    ((QQuickItem *)parent())->setEnabled(false);
+    ((QQuickItem*)parent())->setEnabled(false);
 }
 
-void AddressBarDialog::loadAddress(const QString & address) {
+void AddressBarDialog::loadAddress(const QString& address) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
         DependencyManager::get<AddressManager>()->handleLookupString(address);

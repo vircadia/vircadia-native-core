@@ -139,13 +139,15 @@ void OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*)> 
 
 void OffscreenUi::requestUpdate() {
     _polish = true;
-    if (!_updateTimer.isActive())
+    if (!_updateTimer.isActive()) {
         _updateTimer.start();
+    }
 }
 
 void OffscreenUi::requestRender() {
-    if (!_updateTimer.isActive())
+    if (!_updateTimer.isActive()) {
         _updateTimer.start();
+    }
 }
 
 void OffscreenUi::finishQmlLoad() {
