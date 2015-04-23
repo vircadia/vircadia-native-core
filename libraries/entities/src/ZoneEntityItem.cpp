@@ -129,7 +129,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, _stageDay);
     READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _stageHour);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, _shapeType);
-    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, _compoundShapeURL);
+    READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
 
     return bytesRead;
 }
