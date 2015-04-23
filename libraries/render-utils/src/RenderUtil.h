@@ -37,7 +37,7 @@ void withProjectionIdentity(F f) {
 }
 
 template <typename F>
-void withProjectionMatrix(GLfloat * matrix, F f) {
+void withProjectionMatrix(GLfloat* matrix, F f) {
     withProjectionPush([&] {
         glLoadMatrixf(matrix);
         f();
@@ -58,7 +58,7 @@ void withModelviewIdentity(F f) {
 }
 
 template <typename F>
-void withModelviewMatrix(GLfloat * matrix, F f) {
+void withModelviewMatrix(GLfloat* matrix, F f) {
     withModelviewPush([&] {
         glLoadMatrixf(matrix);
         f();

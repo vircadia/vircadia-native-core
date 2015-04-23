@@ -67,16 +67,16 @@ public:
     void toggle(const QUrl& url, const QString& name);
     void setBaseUrl(const QUrl& baseUrl);
     void addImportPath(const QString& path);
-    QQmlContext * qmlContext();
+    QQmlContext* qmlContext();
 
     void pause();
     void resume();
     bool isPaused() const;
     void setProxyWindow(QWindow* window);
-    QPointF mapWindowToUi(const QPointF& p, QObject* dest);
-    virtual bool eventFilter(QObject* dest, QEvent* e);
-    void setMouseTranslator(MouseTranslator mt) {
-        _mouseTranslator = mt;
+    QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
+    virtual bool eventFilter(QObject* originalDestination, QEvent* event);
+    void setMouseTranslator(MouseTranslator mouseTranslator) {
+        _mouseTranslator = mouseTranslator;
     }
 
 
@@ -130,7 +130,7 @@ private:
     FboCache _fboCache;
     bool _polish{ true };
     bool _paused{ true };
-    MouseTranslator _mouseTranslator{ [](const QPointF & p) { return p;  } };
+    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
 };
 
 #endif

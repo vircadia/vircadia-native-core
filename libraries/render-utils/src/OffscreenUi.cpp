@@ -239,17 +239,17 @@ void OffscreenUi::updateQuick() {
     emit textureUpdated(fbo->texture());
 }
 
-QPointF OffscreenUi::mapWindowToUi(const QPointF& p, QObject* dest) {
+QPointF OffscreenUi::mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject) {
     vec2 sourceSize;
-    if (dynamic_cast<QWidget*>(dest)) {
-        sourceSize = toGlm(((QWidget*)dest)->size());
-    } else if (dynamic_cast<QWindow*>(dest)) {
-        sourceSize = toGlm(((QWindow*)dest)->size());
+    if (dynamic_cast<QWidget*>(sourceObject)) {
+        sourceSize = toGlm(((QWidget*)sourceObject)->size());
+    } else if (dynamic_cast<QWindow*>(sourceObject)) {
+        sourceSize = toGlm(((QWindow*)sourceObject)->size());
     }
-    vec2 pos = toGlm(p);
-    pos /= sourceSize;
-    pos *= vec2(toGlm(_quickWindow->size()));
-    return QPointF(pos.x, pos.y);
+    vec2 offscreenPosition = toGlm(sourcePosition);
+    offscreenPosition /= sourceSize;
+    offscreenPosition *= vec2(toGlm(_quickWindow->size()));
+    return QPointF(offscreenPosition.x, offscreenPosition.y);
 }
 
 ///////////////////////////////////////////////////////
@@ -257,39 +257,42 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF& p, QObject* dest) {
 // Event handling customization
 //
 
-bool OffscreenUi::eventFilter(QObject* dest, QEvent* e) {
+bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // Only intercept events while we're in an active state
     if (_paused) {
         return false;
     }
 
     // Don't intercept our own events, or we enter an infinite recursion
-    if (dest == _quickWindow) {
+    if (originalDestination == _quickWindow) {
         return false;
     }
     
-    switch (e->type()) {
+    switch (event->type()) {
         case QEvent::Resize: {
-            QResizeEvent* re = (QResizeEvent*)e;
-            QGLWidget* widget = dynamic_cast<QGLWidget*>(dest);
+            QResizeEvent* resizeEvent = (QResizeEvent*)event;
+            QGLWidget* widget = dynamic_cast<QGLWidget*>(originalDestination);
             if (widget) {
-                this->resize(re->size());
+                this->resize(resizeEvent->size());
             }
             return false;
         }
 
         case QEvent::KeyPress:
         case QEvent::KeyRelease: {
-            e->ignore();
-            if (QCoreApplication::sendEvent(_quickWindow, e)) {
-                return e->isAccepted();
+            event->ignore();
+            if (QCoreApplication::sendEvent(_quickWindow, event)) {
+                return event->isAccepted();
             }
             break;
         }
 
         case QEvent::Wheel: {
-            QWheelEvent* we = (QWheelEvent*)e;
-            QWheelEvent mappedEvent(mapWindowToUi(we->pos(), dest), we->delta(), we->buttons(), we->modifiers(), we->orientation());
+            QWheelEvent* wheelEvent = (QWheelEvent*)event;
+            QWheelEvent mappedEvent(
+                    mapWindowToUi(wheelEvent->pos(), originalDestination),
+                    wheelEvent->delta(),  wheelEvent->buttons(),
+                    wheelEvent->modifiers(), wheelEvent->orientation());
             QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
             return true;
         }
@@ -299,12 +302,15 @@ bool OffscreenUi::eventFilter(QObject* dest, QEvent* e) {
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
-            QMouseEvent* me = (QMouseEvent *)e;
-            QPointF originalPos = me->localPos();
+            QMouseEvent* mouseEvent = (QMouseEvent *)event;
+            QPointF originalPos = mouseEvent->localPos();
             QPointF transformedPos = _mouseTranslator(originalPos);
-            QMouseEvent mappedEvent(e->type(), mapWindowToUi(transformedPos, dest), me->screenPos(), me->button(), me->buttons(), me->modifiers());
+            QMouseEvent mappedEvent(mouseEvent->type(),
+                    mapWindowToUi(transformedPos, originalDestination),
+                    mouseEvent->screenPos(), mouseEvent->button(),
+                    mouseEvent->buttons(), mouseEvent->modifiers());
             QCoreApplication::sendEvent(_quickWindow, &mappedEvent);
-            return QObject::event(e);
+            return QObject::event(event);
         }
 
         default:
@@ -352,7 +358,7 @@ void OffscreenUi::show(const QUrl& url, const QString& name) {
 void OffscreenUi::toggle(const QUrl& url, const QString& name) {
     QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
     // First load?
-    if (nullptr == item) {
+    if (!item) {
         load(url);
         return;
     }
