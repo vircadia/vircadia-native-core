@@ -391,6 +391,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         (a && a->getShouldClaimSimulationOwnership()) ||
         (objectA == characterCollisionObject)) {
         if (bIsDynamic) {
+            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection";
             b->setShouldClaimSimulationOwnership(true);
         }
     }
@@ -398,6 +399,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         (b && b->getShouldClaimSimulationOwnership()) ||
         (objectB == characterCollisionObject)) {
         if (aIsDynamic) {
+            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection";
             a->setShouldClaimSimulationOwnership(true);
         }
     }
@@ -576,12 +578,14 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
                     EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : NULL;
                     if (entityA && entityB) {
                         if (entityA == bumpEntity) {
+                            qDebug() << "setShouldClaimSimulationOwnership(true) in bump";
                             entityMotionStateB->setShouldClaimSimulationOwnership(true);
                             if (!objectB->isActive()) {
                                 objectB->setActivationState(ACTIVE_TAG);
                             }
                         }
                         if (entityB == bumpEntity) {
+                            qDebug() << "setShouldClaimSimulationOwnership(true) in bump";
                             entityMotionStateA->setShouldClaimSimulationOwnership(true);
                             if (!objectA->isActive()) {
                                 objectA->setActivationState(ACTIVE_TAG);
