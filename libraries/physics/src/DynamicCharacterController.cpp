@@ -43,8 +43,8 @@ protected:
 
 DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _halfHeight = 1.0f;
-    _shape = NULL;
-    _rigidBody = NULL;
+    _shape = nullptr;
+    _rigidBody = nullptr;
 
     assert(avatarData);
     _avatarData = avatarData;
@@ -257,6 +257,10 @@ void DynamicCharacterController::setEnabled(bool enabled) {
     }
 }
 
+bool DynamicCharacterController::isEnabled() const { 
+    return _enabled && _dynamicsWorld;
+}
+
 void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld != world) {
         if (_dynamicsWorld) { 
@@ -264,7 +268,7 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
                 _dynamicsWorld->removeRigidBody(_rigidBody);
                 _dynamicsWorld->removeAction(this);
             }
-            _dynamicsWorld = NULL;
+            _dynamicsWorld = nullptr;
         }
         if (world && _rigidBody) {
             _dynamicsWorld = world;
@@ -294,9 +298,9 @@ void DynamicCharacterController::updateShapeIfNecessary() {
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
         // delete shape and RigidBody
         delete _rigidBody;
-        _rigidBody = NULL;
+        _rigidBody = nullptr;
         delete _shape;
-        _shape = NULL;
+        _shape = nullptr;
 
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
@@ -316,7 +320,7 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             // create new body
             float mass = 1.0f;
             btVector3 inertia(1.0f, 1.0f, 1.0f);
-            _rigidBody = new btRigidBody(mass, NULL, _shape, inertia);
+            _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
             _rigidBody->setSleepingThresholds (0.0f, 0.0f);
             _rigidBody->setAngularFactor (0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
