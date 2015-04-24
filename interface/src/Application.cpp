@@ -786,6 +786,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
+    offscreenUi->load("RootMenu.qml");
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
@@ -1079,9 +1080,11 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 }
 
 static bool _altPressed;
+static bool _ctrlPressed;
 
 void Application::keyPressEvent(QKeyEvent* event) {
     _altPressed = event->key() == Qt::Key_Alt;
+    _ctrlPressed = event->key() == Qt::Key_Control;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1336,6 +1339,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed) {
         Menu::toggle();
     }
+    if (event->key() == Qt::Key_Control && _ctrlPressed) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+        QMetaObject::invokeMethod(rootMenu, "popup");
+    }
+    _ctrlPressed = event->key() == Qt::Key_Control;
 
     _keysPressed.remove(event->key());
 

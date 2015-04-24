@@ -15,6 +15,10 @@
 #include <QtQml>
 #include "MessageDialog.h"
 
+
+Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
+Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
+
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
 // achieve.
@@ -93,10 +97,10 @@ void OffscreenUi::create(QOpenGLContext* shareContext) {
 
 #ifdef DEBUG
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, [this]{
-        qDebug() << "New focus item " << _quickWindow->focusObject();
+        qCDebug(offscreenFocus) << "New focus item " << _quickWindow->focusObject();
     });
     connect(_quickWindow, &QQuickWindow::activeFocusItemChanged, [this] {
-        qDebug() << "New active focus item " << _quickWindow->activeFocusItem();
+        qCDebug(offscreenFocus) << "New active focus item " << _quickWindow->activeFocusItem();
     });
 #endif
 

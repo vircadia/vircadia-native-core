@@ -24,6 +24,7 @@
 #include <OffscreenUi.h>
 
 #include "DiscoverabilityManager.h"
+#include <HifiMenu.h>
 
 class Settings;
 
@@ -41,46 +42,58 @@ public:
     void setToggleAction(std::function<void(bool)>);
 };
 
-class Menu : public QQuickItem {
+class Menu : public HifiMenu {
     Q_OBJECT
-    HIFI_QML_DECL
+
 public:
     Menu(QQuickItem * parent = 0);
     static Menu* getInstance();
-    
+
+    // Override the base type HifiMenu with this class instead
+    static void registerType() {
+        qmlRegisterType<Menu>("Hifi", 1, 0, NAME.toLocal8Bit().constData());
+    }
+
     void loadSettings();
     void saveSettings();
     HifiAction * getActionForOption(const QString& menuOption) {
         return new HifiAction(menuOption); 
     }
 //    QMenu* addMenu(const QString& menuName);
-    void removeMenu(const QString& menuName);
-    bool menuExists(const QString& menuName);
-    void addSeparator(const QString& menuName, const QString& separatorName);
-    void removeSeparator(const QString& menuName, const QString& separatorName);
-    void addMenuItem(const MenuItemProperties& properties);
-    void removeMenuItem(const QString& menuitem);
-    bool menuItemExists(const QString& menuName, const QString& menuitem);
-    bool isOptionChecked(const QString& menuOption) const;
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
-    void triggerOption(const QString& menuOption);
-    void setOptionText(const QString& menuOption, const QString & text);
-    void setOptionTriggerAction(const QString& menuOption, std::function<void()> f);
-    void setOptionToggleAction(const QString& menuOption, std::function<void(bool)> f);
-    void addMenuItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f);
-    void addMenuItem(const QString & parentMenu, const QString & menuOption);
-    void addMenu(const QString & parentMenu, const QString & menuOption);
-    void enableMenuItem(const QString & menuOption, bool enabled = true);
+    //void removeMenu(const QString& menuName);
+    //bool menuExists(const QString& menuName);
+    //void addSeparator(const QString& menuName, const QString& separatorName);
+    //void removeSeparator(const QString& menuName, const QString& separatorName);
+    //void addMenuItem(const MenuItemProperties& properties);
+    //void removeMenuItem(const QString& menuitem);
+    //bool menuItemExists(const QString& menuName, const QString& menuitem);
+    bool isOptionChecked(const QString& menuOption) const {
+        return HifiMenu::isChecked(menuOption);
+    }
+    void setIsOptionChecked(const QString& menuOption, bool isChecked) {
+        HifiMenu::setChecked(menuOption, isChecked);
+    }
+    void triggerOption(const QString& menuOption) {
+        HifiMenu::triggerMenuItem(menuOption);
+    }
+    void setOptionText(const QString& menuOption, const QString & text) {
+        HifiMenu::setText(menuOption, text);
+    }
+    void setOptionTriggerAction(const QString& menuOption, std::function<void()> f) {
+        HifiMenu::setTriggerAction(menuOption, f);
+    }
+    //void setOptionToggleAction(const QString& menuOption, std::function<void(bool)> f);
+    //void addMenuItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f);
+    //void addMenuItem(const QString & parentMenu, const QString & menuOption);
+    //void addMenu(const QString & parentMenu, const QString & menuOption);
+    //void enableMenuItem(const QString & menuOption, bool enabled = true);
 
 private:
     void init();
 
 private:
     static Menu* _instance;
-    
-    QHash<QString, std::function<void()>> _triggerActions;
-    QHash<QString, std::function<void(bool)>> _toggleActions;
-
+    friend class HifiAction;
 };
 
 namespace MenuOption {

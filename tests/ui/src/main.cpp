@@ -34,7 +34,7 @@
 #include <QDir>
 
 #include "MessageDialog.h"
-#include "MenuConstants.h"
+#include "HifiMenu.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -181,11 +181,25 @@ public:
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
         offscreenUi->load(QUrl("TestRoot.qml"));
         offscreenUi->load(QUrl("RootMenu.qml"));
+        HifiMenu::load();
+        QObject* menuObject = offscreenUi->getRootItem()->findChild<QObject*>("HifiMenu");
+        HifiMenu* menu = offscreenUi->getRootItem()->findChild<HifiMenu*>(); 
+        menu->addMenu("", "File");
+        menu->addMenuItem("File", "Quit", []{
+            QApplication::quit();
+        });
+        menu->addCheckableMenuItem("File", "Toggle", false, [](bool toggled) {
+            qDebug() << "Toggle is " << toggled;
+        });
+        menu->addMenu("", "Edit");
+        menu->addMenuItem("Edit", "Undo");
+        menu->addMenuItem("Edit", "Redo");
+        menu->addMenuItem("Edit", "Copy");
+        menu->addMenuItem("Edit", "Cut");
+        menu->addMenuItem("Edit", "Paste");
+        menu->addMenu("", "Long Menu Name...");
 #endif
         installEventFilter(offscreenUi.data());
-        //HifiMenu::setTriggerAction(MenuOption::Quit, [] {
-        //    QApplication::quit();
-        //});
         offscreenUi->resume();
         _timer.start();
     }
@@ -233,30 +247,16 @@ protected:
         resizeWindow(ev->size());
     }
 
-
-    static QObject * addMenu(QObject * parent, const QString & text) {
-        // FIXME add more checking here to ensure no name conflicts
-        QVariant returnedValue;
-        QMetaObject::invokeMethod(parent, "addMenu",
-            Q_RETURN_ARG(QVariant, returnedValue),
-            Q_ARG(QVariant, text));
-        QObject * result = returnedValue.value<QObject*>();
-        return result;
-    }
-
+  
     void keyPressEvent(QKeyEvent *event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
                 auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-                QObject * result = addMenu(rootMenu, "Test 3");
-                result->setParent(rootMenu);
-                qDebug() << "Added " << result;
-                if (menuContext) {
-                    menuContext->setContextProperty("rootMenu", rootMenu);
-                }
+                HifiMenu * menu = offscreenUi->findChild<HifiMenu*>();
+                menu->addMenuItem("", "Test 3");
+                menu->addMenuItem("File", "Test 3");
             }
             break;
         case Qt::Key_K:
@@ -279,12 +279,7 @@ protected:
     QQmlContext* menuContext{ nullptr };
     void keyReleaseEvent(QKeyEvent *event) {
         if (_altPressed && Qt::Key_Alt == event->key()) {
-            HifiMenu::toggle([=](QQmlContext* context, QObject* newItem) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-                menuContext = context;
-                menuContext->setContextProperty("rootMenu", rootMenu);
-            });
+            HifiMenu::toggle();
         }
     }
 
@@ -327,13 +322,12 @@ void QTestWindow::renderQml() {
 
 const char * LOG_FILTER_RULES = R"V0G0N(
 *.debug=false
-qt.quick.dialogs.registration=true
-qt.quick.mouse.debug = true
+qt.quick.mouse.debug=false
 )V0G0N";
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
-    //QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
+//    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     app.exec();
     return 0;
