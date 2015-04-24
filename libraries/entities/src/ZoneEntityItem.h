@@ -55,9 +55,9 @@ public:
 
     glm::vec3 getKeyLightColorVec3() const {
         const quint8 MAX_COLOR = 255;
-        glm::vec3 color = { _keyLightColor[RED_INDEX] / MAX_COLOR,
-                            _keyLightColor[GREEN_INDEX] / MAX_COLOR,
-                            _keyLightColor[BLUE_INDEX] / MAX_COLOR };
+        glm::vec3 color = { (float)_keyLightColor[RED_INDEX] / (float)MAX_COLOR,
+                            (float)_keyLightColor[GREEN_INDEX] / (float)MAX_COLOR,
+                            (float)_keyLightColor[BLUE_INDEX] / (float)MAX_COLOR };
         return color;
     }
 

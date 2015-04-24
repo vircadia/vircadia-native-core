@@ -52,6 +52,8 @@ EntityPropertyDialogBox = (function () {
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
+            array.push({ label: "Shape Type:", value: properties.shapeType });
+            index++;
             array.push({ label: "Compound Shape URL:", value: properties.compoundShapeURL });
             index++;
             array.push({ label: "Animation URL:", value: properties.animationURL });
@@ -284,6 +286,7 @@ EntityPropertyDialogBox = (function () {
             properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
+                properties.shapeType = array[index++].value;
                 properties.compoundShapeURL = array[index++].value;
                 properties.animationURL = array[index++].value;
 
