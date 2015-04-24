@@ -11,6 +11,8 @@
 
 #include <QtCore/QObject>
 
+#include <glm/gtx/transform.hpp>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -25,75 +27,53 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
-void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
-    _id = entityItemID.id;
-    _creatorTokenID = entityItemID.creatorTokenID;
-
-    // init values with defaults before calling setProperties
+EntityItem::EntityItem(const EntityItemID& entityItemID) :
+    _type(EntityTypes::Unknown),
+    _id(entityItemID.id),
+    _creatorTokenID(entityItemID.creatorTokenID),
+    _newlyCreated(false),
+    _lastSimulated(0),
+    _lastUpdated(0),
+    _lastEdited(0),
+    _lastEditedFromRemote(0),
+    _lastEditedFromRemoteInRemoteTime(0),
+    _created(UNKNOWN_CREATED_TIME),
+    _changedOnServer(0),
+    _position(ENTITY_ITEM_ZERO_VEC3),
+    _dimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS),
+    _rotation(ENTITY_ITEM_DEFAULT_ROTATION),
+    _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
+    _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
+    _density(ENTITY_ITEM_DEFAULT_DENSITY),
+    _volumeMultiplier(1.0f),
+    _velocity(ENTITY_ITEM_DEFAULT_VELOCITY),
+    _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
+    _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
+    _damping(ENTITY_ITEM_DEFAULT_DAMPING),
+    _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
+    _script(ENTITY_ITEM_DEFAULT_SCRIPT),
+    _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
+    _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
+    _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
+    _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
+    _ignoreForCollisions(ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
+    _locked(ENTITY_ITEM_DEFAULT_LOCKED),
+    _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
+    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+    _simulatorIDChangedTime(0),
+    _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
+    _physicsInfo(NULL),
+    _dirtyFlags(0),
+    _element(NULL)
+{
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _changedOnServer = 0;
-
-    _position = ENTITY_ITEM_ZERO_VEC3;
-    _dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
-    _density = ENTITY_ITEM_DEFAULT_DENSITY;
-    _rotation = ENTITY_ITEM_DEFAULT_ROTATION;
-    _glowLevel = ENTITY_ITEM_DEFAULT_GLOW_LEVEL;
-    _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
-    _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
-    _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
-    _acceleration = ENTITY_ITEM_DEFAULT_ACCELERATION;
-    _damping = ENTITY_ITEM_DEFAULT_DAMPING;
-    _lifetime = ENTITY_ITEM_DEFAULT_LIFETIME;
-    _script = ENTITY_ITEM_DEFAULT_SCRIPT;
-    _registrationPoint = ENTITY_ITEM_DEFAULT_REGISTRATION_POINT;
-    _angularVelocity = ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY;
-    _angularDamping = ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING;
-    _visible = ENTITY_ITEM_DEFAULT_VISIBLE;
-    _ignoreForCollisions = ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS;
-    _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
-    _locked = ENTITY_ITEM_DEFAULT_LOCKED;
-    _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
-    _simulatorID = ENTITY_ITEM_DEFAULT_SIMULATOR_ID;
-    _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
-EntityItem::EntityItem(const EntityItemID& entityItemID) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _element = NULL;
-    _simulatorIDChangedTime = 0;
-    _shouldClaimSimulationOwnership = false;
-    initFromEntityItemID(entityItemID);
-}
-
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _element = NULL;
-    _simulatorIDChangedTime = 0;
-    initFromEntityItemID(entityItemID);
+EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
+{
     setProperties(properties);
 }
 
@@ -621,7 +601,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
-    if (_simulatorID == myNodeID) {
+    if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
         // the packet that produced this bitstream originally came from physics simulations performed by
         // this node, so our version has to be newer than what the packet contained.
         _position = savePosition;
@@ -843,7 +823,27 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
-bool EntityItem::lifetimeHasExpired() const { 
+glm::mat4 EntityItem::getEntityToWorldMatrix() const {
+    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+    return translation * rotation * scale * registration;
+}
+
+glm::mat4 EntityItem::getWorldToEntityMatrix() const {
+    return glm::inverse(getEntityToWorldMatrix());
+}
+
+glm::vec3 EntityItem::entityToWorld(const glm::vec3 point) const {
+    return glm::vec3(getEntityToWorldMatrix() * glm::vec4(point, 1.0f));
+}
+
+glm::vec3 EntityItem::worldToEntity(const glm::vec3 point) const {
+    return glm::vec3(getWorldToEntityMatrix() * glm::vec4(point, 1.0f));
+}
+
+bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
@@ -1033,12 +1033,6 @@ AABox EntityItem::getAABox() const {
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
-AABox EntityItem::getAABoxInDomainUnits() const { 
-    AABox box = getAABox();
-    box.scale(1.0f / (float)TREE_SCALE);
-    return box;
-}
-
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
 //    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
@@ -1064,6 +1058,16 @@ void EntityItem::setRadius(float value) {
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
 float EntityItem::getRadius() const { 
     return 0.5f * glm::length(_dimensions);
+}
+
+bool EntityItem::contains(const glm::vec3& point) const {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        return getAABox().contains(point);
+    } else {
+        ShapeInfo info;
+        info.setParams(getShapeType(), glm::vec3(0.5f));
+        return info.contains(worldToEntity(point));
+    }
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {

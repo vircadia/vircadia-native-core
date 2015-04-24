@@ -15,6 +15,7 @@
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "ZoneEntityItem.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -64,17 +65,8 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
-
-    // if this entity has non-zero physics/simulation related values, claim simulation ownership
-    if (propertiesWithSimID.velocityChanged() ||
-        propertiesWithSimID.rotationChanged() ||
-        propertiesWithSimID.containsPositionChange()) {
-        propertiesWithSimID.setSimulatorID(myNodeID);
-        entity->setSimulatorID(myNodeID);
-    } else if (entity->getSimulatorID() == myNodeID) {
-        propertiesWithSimID.setSimulatorID(QUuid()); // give up simulation ownership
-        entity->setSimulatorID(QUuid());
-    }
+    propertiesWithSimID.setSimulatorID(myNodeID);
+    entity->setSimulatorID(myNodeID);
 }
 
 
@@ -313,6 +305,14 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setZonesArePickable(bool value) {
+    ZoneEntityItem::setZonesArePickable(value);
+}
+
+bool EntityScriptingInterface::getZonesArePickable() const {
+    return ZoneEntityItem::getZonesArePickable();
 }
 
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
