@@ -15,7 +15,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <QElapsedTimer>
+#include <QTimer>
 
 #include <GLMHelpers.h>
 
@@ -136,6 +136,9 @@ struct Packet {
 
 const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
+const int FPS_TIMER_DELAY = 2000;  // ms
+const int FPS_TIMER_DURATION = 2000;  // ms
+
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -168,7 +171,9 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastLeftEyeBlink(0.0f),
     _filteredLeftEyeBlink(0.0f),
     _lastRightEyeBlink(0.0f),
-    _filteredRightEyeBlink(0.0f)
+    _filteredRightEyeBlink(0.0f),
+    _isCalculatingFPS(false),
+    _frameCount(0)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -228,6 +233,12 @@ void DdeFaceTracker::reset() {
     qDebug() << "[Info] Reset DDE Tracking";
     const char* DDE_RESET_COMMAND = "reset";
     _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+    // Log camera FPS after a reset
+    if (!_isCalculatingFPS) {
+        QTimer::singleShot(FPS_TIMER_DELAY, this, SLOT(startFPSTimer()));
+        _isCalculatingFPS = true;
+    }
 
     _reset = true;
 }
@@ -407,9 +418,24 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
                 + (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastMessageReceived) / 1000000.0f;
         }
         _lastMessageReceived = usecsNow;
+
+        // Count frames if timing
+        if (_isCalculatingFPS) {
+            _frameCount++;
+        }
     
     } else {
         qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
+}
+
+void DdeFaceTracker::startFPSTimer() {
+    _frameCount = 0;
+    QTimer::singleShot(FPS_TIMER_DURATION, this, SLOT(finishFPSTimer()));
+}
+
+void DdeFaceTracker::finishFPSTimer() {
+    qDebug() << "[Info] DDE FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
+    _isCalculatingFPS = false;
 }
