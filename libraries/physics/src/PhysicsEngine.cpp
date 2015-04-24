@@ -391,7 +391,11 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         (a && a->getShouldClaimSimulationOwnership()) ||
         (objectA == characterCollisionObject)) {
         if (bIsDynamic) {
-            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection";
+            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection A"
+                     << (aIsDynamic && entityA->getSimulatorID() == myNodeID)
+                     << (a && a->getShouldClaimSimulationOwnership())
+                     << (objectA == characterCollisionObject);
+
             b->setShouldClaimSimulationOwnership(true);
         }
     }
@@ -399,7 +403,11 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         (b && b->getShouldClaimSimulationOwnership()) ||
         (objectB == characterCollisionObject)) {
         if (aIsDynamic) {
-            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection";
+            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection B"
+                     << (bIsDynamic && entityB->getSimulatorID() == myNodeID)
+                     << (b && b->getShouldClaimSimulationOwnership())
+                     << (objectB == characterCollisionObject);
+
             a->setShouldClaimSimulationOwnership(true);
         }
     }
