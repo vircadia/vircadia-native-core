@@ -1492,9 +1492,11 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
-    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
-    _lastTouchEvent = thisEvent;
+    if (event->type() == QEvent::TouchUpdate) {
+        TouchEvent thisEvent(*event, _lastTouchEvent);
+        _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+        _lastTouchEvent = thisEvent;
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
