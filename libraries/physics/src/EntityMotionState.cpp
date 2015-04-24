@@ -189,9 +189,7 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
-
-    if (!baseResult) {
+    if (!ObjectMotionState::shouldSendUpdate(simulationFrame)) {
         return false;
     }
 
