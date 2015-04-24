@@ -140,24 +140,16 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
             // if ownership hasn't recently changed.
             if (usecTimestampNow() - entity->getSimulatorIDChangedTime() < SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
-
-                // XXX
-                // qCDebug(entities) << "simulator_change_lockout_period:"
-                //                   << entity->getSimulatorID() << "to" << properties.getSimulatorID();
-                // XXX
-
+                qCDebug(entities) << "simulator_change_lockout_period:"
+                                  << entity->getSimulatorID() << "to" << properties.getSimulatorID();
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
                 properties.setVelocityChanged(false);
                 properties.setAccelerationChanged(false);
-
+            } else {
+                qCDebug(entities) << "allowing simulatorID change";
             }
-
-            // else {
-            //     qCDebug(entities) << "allowing simulatorID change";
-            // }
-
         }
 
         QString entityScriptBefore = entity->getScript();
