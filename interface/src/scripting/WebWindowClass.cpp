@@ -47,7 +47,6 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
 
         _webView = new QWebView(dockWidget);
-        _webView->setStyle(QStyleFactory::create("fusion"));
         addEventBridgeToWindowObject();
 
         dockWidget->setWidget(_webView);
@@ -66,13 +65,17 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         dialogWidget->setLayout(layout);
 
         _webView = new QWebView(dialogWidget);
-        _webView->setStyle(QStyleFactory::create("fusion"));
 
         layout->addWidget(_webView);
 
         addEventBridgeToWindowObject();
 
         _windowWidget = dialogWidget;
+    }
+
+    auto style = QStyleFactory::create("fusion");
+    if (style) {
+        _webView->setStyle(style);
     }
 
     _webView->setPage(new DataWebPage());
