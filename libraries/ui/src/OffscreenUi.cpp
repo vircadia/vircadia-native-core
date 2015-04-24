@@ -340,8 +340,6 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
         case QEvent::KeyPress:
         case QEvent::KeyRelease: {
             event->ignore();
-            //if (_quickWindow->activeFocusItem()) {
-            //    _quickWindow->sendEvent(_quickWindow->activeFocusItem(), event);
             if (QCoreApplication::sendEvent(_quickWindow, event)) {
                 return event->isAccepted();
             }
