@@ -118,7 +118,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     if (_entity->getSimulatorID().isNull() && !isStill) {
         // object is moving and has no owner.  attempt to claim simulation ownership.
-        _entity->setShouldClaimSimulationOwnership(true);
+        setShouldClaimSimulationOwnership(true);
     }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
