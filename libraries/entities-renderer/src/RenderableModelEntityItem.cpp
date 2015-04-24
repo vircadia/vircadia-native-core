@@ -125,7 +125,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     // XXX
     
     if (drawAsModel
-        && getSimulatorID() != myNodeID
+        && getSimulatorID() != myNodeID // XXX
         ) {
         remapTextures();
         glPushMatrix();

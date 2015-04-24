@@ -393,22 +393,12 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // (a && a->getShouldClaimSimulationOwnership()) ||
         (objectA == characterCollisionObject)) {
         if (bIsDynamic) {
-            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection A"
-                     << (aIsDynamic && (entityA->getSimulatorID() == myNodeID))
-                     << (a && a->getShouldClaimSimulationOwnership())
-                     << (objectA == characterCollisionObject);
-
             b->setShouldClaimSimulationOwnership(true);
         }
     } else if ((bIsDynamic && (entityB->getSimulatorID() == myNodeID)) ||
         // (b && b->getShouldClaimSimulationOwnership()) ||
         (objectB == characterCollisionObject)) {
         if (aIsDynamic) {
-            qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection B"
-                     << (bIsDynamic && (entityB->getSimulatorID() == myNodeID))
-                     << (b && b->getShouldClaimSimulationOwnership())
-                     << (objectB == characterCollisionObject);
-
             a->setShouldClaimSimulationOwnership(true);
         }
     }
@@ -587,14 +577,12 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
                     EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : NULL;
                     if (entityA && entityB) {
                         if (entityA == bumpEntity) {
-                            qDebug() << "setShouldClaimSimulationOwnership(true) in bump";
                             entityMotionStateB->setShouldClaimSimulationOwnership(true);
                             if (!objectB->isActive()) {
                                 objectB->setActivationState(ACTIVE_TAG);
                             }
                         }
                         if (entityB == bumpEntity) {
-                            qDebug() << "setShouldClaimSimulationOwnership(true) in bump";
                             entityMotionStateA->setShouldClaimSimulationOwnership(true);
                             if (!objectA->isActive()) {
                                 objectA->setActivationState(ACTIVE_TAG);

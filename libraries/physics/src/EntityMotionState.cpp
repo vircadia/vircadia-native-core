@@ -202,7 +202,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     }
 
     if (getShouldClaimSimulationOwnership()) {
-        qDebug() << "shouldSendUpdate due to claiming ownership";
         return true;
     }
 
@@ -345,7 +344,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
 
-                qDebug() << "sending" << _body->isActive() << (_entity->getSimulatorID() == myNodeID);
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG

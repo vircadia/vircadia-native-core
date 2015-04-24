@@ -67,12 +67,7 @@ public:
     quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
 
     virtual EntityItem* getEntity() const { return _entity; }
-    virtual void setShouldClaimSimulationOwnership(bool value) {
-        if (value) {
-            qDebug() << "setShouldClaimSimulationOwnership to TRUE";
-        }
-        _shouldClaimSimulationOwnership = value;
-    }
+    virtual void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
     virtual bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
 
 protected:

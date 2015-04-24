@@ -620,8 +620,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _angularVelocity = saveAngularVelocity;
         _gravity = saveGravity;
         _acceleration = saveAcceleration;
-    } else {
-        qDebug() << "accepting update";
     }
 
     return bytesRead;
