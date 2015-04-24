@@ -378,6 +378,8 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     const btCollisionObject* characterCollisionObject =
         _characterController ? _characterController->getCollisionObject() : NULL;
 
+    assert(!myNodeID.isNull());
+
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
     EntityItem* entityA = a ? a->getEntity() : NULL;
@@ -387,24 +389,23 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
 
     // collisions cause infectious spread of simulation-ownership.  we also attempt to take
     // ownership of anything that collides with our avatar.
-    if ((aIsDynamic && entityA->getSimulatorID() == myNodeID) ||
-        (a && a->getShouldClaimSimulationOwnership()) ||
+    if ((aIsDynamic && (entityA->getSimulatorID() == myNodeID)) ||
+        // (a && a->getShouldClaimSimulationOwnership()) ||
         (objectA == characterCollisionObject)) {
         if (bIsDynamic) {
             qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection A"
-                     << (aIsDynamic && entityA->getSimulatorID() == myNodeID)
+                     << (aIsDynamic && (entityA->getSimulatorID() == myNodeID))
                      << (a && a->getShouldClaimSimulationOwnership())
                      << (objectA == characterCollisionObject);
 
             b->setShouldClaimSimulationOwnership(true);
         }
-    }
-    if ((bIsDynamic && entityB->getSimulatorID() == myNodeID) ||
-        (b && b->getShouldClaimSimulationOwnership()) ||
+    } else if ((bIsDynamic && (entityB->getSimulatorID() == myNodeID)) ||
+        // (b && b->getShouldClaimSimulationOwnership()) ||
         (objectB == characterCollisionObject)) {
         if (aIsDynamic) {
             qDebug() << "setShouldClaimSimulationOwnership(true) in doOwnershipInfection B"
-                     << (bIsDynamic && entityB->getSimulatorID() == myNodeID)
+                     << (bIsDynamic && (entityB->getSimulatorID() == myNodeID))
                      << (b && b->getShouldClaimSimulationOwnership())
                      << (objectB == characterCollisionObject);
 
