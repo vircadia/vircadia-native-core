@@ -7,7 +7,7 @@ Text {
     FontLoader { id: iconFont; source: "../../fonts/fontawesome-webfont.ttf"; }
     property int size: 32
     width: size
-	height: size
+    height: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignHCenter
     font.family: iconFont.name

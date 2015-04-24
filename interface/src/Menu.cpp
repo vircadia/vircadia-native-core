@@ -45,13 +45,12 @@
 #include "Util.h"
 
 // Proxy object to simplify porting over
-HifiAction::HifiAction(const QString & menuOption) : _menuOption(menuOption) {
+HifiAction::HifiAction(const QString& menuOption) : _menuOption(menuOption) {
 }
 
-//void HifiAction::setCheckable(bool) {
-//    Menu::getInstance()->set
-//    qFatal("Not implemented");
-//}
+void HifiAction::setCheckable(bool checkable) {
+    Menu::getInstance()->setCheckable(_menuOption, checkable);
+}
 
 void HifiAction::setChecked(bool checked) {
     Menu::getInstance()->setChecked(_menuOption, checked);
@@ -65,7 +64,7 @@ QString HifiAction::shortcut() const {
     return Menu::getInstance()->getItemShortcut(_menuOption);
 }
 
-void HifiAction::setText(const QString & text) {
+void HifiAction::setText(const QString& text) {
     Menu::getInstance()->setItemText(_menuOption, text);
 }
 
@@ -101,7 +100,7 @@ Menu* Menu::getInstance() {
     return _instance;
 }
 
-Menu::Menu(QQuickItem * parent) : HifiMenu(parent) {
+Menu::Menu(QQuickItem* parent) : HifiMenu(parent) {
 }
 
 void Menu::init() {
@@ -125,12 +124,15 @@ void Menu::init() {
 #endif
 
         {
+#if 0
             static const QString SCRIPTS_MENU{ "Scripts" };
-            addMenu(FILE_MENU, SCRIPTS_MENU);
+            addMenu(FILE_MENU, LOCATION_MENU);
+#else 
+            static const QString SCRIPTS_MENU{ FILE_MENU };
+            addSeparator(FILE_MENU, "Scripts");
+#endif
             //Qt::CTRL | Qt::Key_O
-            addItem(SCRIPTS_MENU, MenuOption::LoadScript, [=] {
-                qApp->loadDialog();
-            });
+            addItem(SCRIPTS_MENU, MenuOption::LoadScript, qApp, SLOT(loadDialog()));
             //Qt::CTRL | Qt::SHIFT | Qt::Key_O
             addItem(SCRIPTS_MENU, MenuOption::LoadScriptURL, [=] {
                 qApp->loadScriptURLDialog();
@@ -149,9 +151,15 @@ void Menu::init() {
         }
 
         {
+#if 0
             static const QString LOCATION_MENU{ "Location" };
             addMenu(FILE_MENU, LOCATION_MENU);
+#else 
+            addSeparator(FILE_MENU, "Location");
+            static const QString LOCATION_MENU{ FILE_MENU };
+#endif
             qApp->getBookmarks()->setupMenus(LOCATION_MENU);
+
             //Qt::CTRL | Qt::Key_L
             addItem(LOCATION_MENU, MenuOption::AddressBar, [=] {
                 auto dialogsManager = DependencyManager::get<DialogsManager>();
@@ -178,16 +186,15 @@ void Menu::init() {
     {
         static const QString EDIT_MENU{ "Edit" };
         addMenu(ROOT_MENU, EDIT_MENU);
-#if 0
-        QUndoStack* undoStack = qApp->getUndoStack();
-        QAction* undoAction = undoStack->createUndoAction(editMenu);
-        undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
-        addActionToQMenuAndActionHash(editMenu, undoAction);
 
-        QAction* redoAction = undoStack->createRedoAction(editMenu);
-        redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
-        addActionToQMenuAndActionHash(editMenu, redoAction);
-#endif
+        QUndoStack* undoStack = qApp->getUndoStack();
+        QAction* undoAction = undoStack->createUndoAction(this);
+        //undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
+        addItem(EDIT_MENU, undoAction->text(), undoAction, SLOT(trigger()));
+
+        QAction* redoAction = undoStack->createRedoAction(this);
+        //redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
+        addItem(EDIT_MENU, redoAction->text(), redoAction, SLOT(trigger()));
 
         // Qt::CTRL | Qt::Key_Comma
         // QAction::PreferencesRole
@@ -231,23 +238,20 @@ void Menu::init() {
             // FIXME group
             addCheckableItem(VIZ_MENU, MenuOption::VisibleToEveryone, 
                 discoverabilityManager->getDiscoverabilityMode() == Discoverability::All, 
-                [=](bool) { discoverabilityManager->setVisibility(); });
+                discoverabilityManager.data(), SLOT(setVisibility()));
             addCheckableItem(VIZ_MENU, MenuOption::VisibleToFriends, 
                 discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends, 
-                [=](bool) { discoverabilityManager->setVisibility(); });
-            addCheckableItem(VIZ_MENU, MenuOption::VisibleToNoOne, 
+                discoverabilityManager.data(), SLOT(setVisibility()));
+            addCheckableItem(VIZ_MENU, MenuOption::VisibleToNoOne,
                 discoverabilityManager->getDiscoverabilityMode() == Discoverability::None, 
-                [=](bool) { discoverabilityManager->setVisibility(); });
-
+                discoverabilityManager.data(), SLOT(setVisibility()));
             connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
                 discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
-
         }
 
         //Qt::CTRL | Qt::ALT | Qt::Key_T,
-        addItem(TOOLS_MENU, MenuOption::ToolWindow, [=] {
-//            dialogsManager->toggleToolWindow();
-        });
+        addItem(TOOLS_MENU, MenuOption::ToolWindow, 
+            dialogsManager.data(), SLOT(toggleToolWindow()));
 
         //Qt::CTRL | Qt::ALT | Qt::Key_J,
         addItem(TOOLS_MENU, MenuOption::Console, [=] {
@@ -297,12 +301,10 @@ void Menu::init() {
         addCheckableItem(AVATAR_MENU, MenuOption::NamesAboveHeads, true);
         addCheckableItem(AVATAR_MENU, MenuOption::GlowWhenSpeaking, true);
         addCheckableItem(AVATAR_MENU, MenuOption::BlueSpeechSphere, true);
-        addCheckableItem(AVATAR_MENU, MenuOption::EnableCharacterController, true, [=](bool) {
-            avatar->updateMotionBehavior();
-        });
-        addCheckableItem(AVATAR_MENU, MenuOption::ShiftHipsForIdleAnimations, false, [=](bool) {
-            avatar->updateMotionBehavior();
-        });
+        addCheckableItem(AVATAR_MENU, MenuOption::EnableCharacterController, true,
+            avatar, SLOT(updateMotionBehavior()));
+        addCheckableItem(AVATAR_MENU, MenuOption::ShiftHipsForIdleAnimations, false, 
+            avatar, SLOT(updateMotionBehavior()));
     }
 
     {
@@ -311,32 +313,28 @@ void Menu::init() {
 
         // Mac Qt::CTRL | Qt::META | Qt::Key_F,
         // Win32/Linux Qt::CTRL | Qt::Key_F,
-        addCheckableItem(VIEW_MENU, MenuOption::Fullscreen, false, [=](bool checked) {
-//            qApp->setFullscreen(checked);
-        });
+        addCheckableItem(VIEW_MENU, MenuOption::Fullscreen, false);
+        connectCheckable(MenuOption::Fullscreen, qApp, SLOT(setFullscreen(bool)));
         // QML Qt::Key_P, 
-        addCheckableItem(VIEW_MENU, MenuOption::FirstPerson, true, [=](bool checked) {
-//            qApp->cameraMenuChanged();
-        });
+        addCheckableItem(VIEW_MENU, MenuOption::FirstPerson, true, 
+            qApp, SLOT(cameraMenuChanged()));
         //QML Qt::SHIFT | Qt::Key_H, 
-        addCheckableItem(VIEW_MENU, MenuOption::Mirror, true);
-
+        addCheckableItem(VIEW_MENU, MenuOption::Mirror, true, 
+            qApp, SLOT(cameraMenuChanged()));
         // QML Qt::Key_H, 
-        addCheckableItem(VIEW_MENU, MenuOption::FullscreenMirror, true, [=](bool checked) {
-//            qApp->cameraMenuChanged();
-        });
+        addCheckableItem(VIEW_MENU, MenuOption::FullscreenMirror, false, 
+            qApp, SLOT(cameraMenuChanged()));
+
 
         // Mac Qt::META | Qt::Key_H,
         // Win32/Linux Qt::CTRL | Qt::Key_H,
         addCheckableItem(VIEW_MENU, MenuOption::HMDTools, false, [=](bool checked) {
             dialogsManager->hmdTools(checked);
         });
-        addCheckableItem(VIEW_MENU, MenuOption::EnableVRMode, false, [=](bool checked) {
-//            qApp->setEnableVRMode(checked);
-        });
-        addCheckableItem(VIEW_MENU, MenuOption::Enable3DTVMode, false, [=](bool checked) {
-//            qApp->setEnable3DTVMode(checked);
-        });
+        addCheckableItem(VIEW_MENU, MenuOption::EnableVRMode, false);
+        connectCheckable(MenuOption::EnableVRMode, qApp, SLOT(setEnableVRMode(bool)));
+        addCheckableItem(VIEW_MENU, MenuOption::Enable3DTVMode, false);
+        connectCheckable(MenuOption::Enable3DTVMode, qApp, SLOT(setEnable3DTVMode(bool)));
 
         {
             static const QString BORDER_MENU{ "Server Borders" };
@@ -362,7 +360,6 @@ void Menu::init() {
             dialogsManager->octreeStatsDetails();
         });
     }
-    
 
     {
         static const QString DEV_MENU{ "Developer" };
@@ -561,25 +558,19 @@ void Menu::init() {
                 static const QString AUDIO_MENU{ "Audio" };
                 addMenu(DEV_MENU, AUDIO_MENU);
                 auto audioIO = DependencyManager::get<AudioClient>();
-                addCheckableItem(AUDIO_MENU, MenuOption::AudioNoiseReduction, true, [=](bool checked) {
-                    audioIO->toggleAudioNoiseReduction();
-                });
-                addCheckableItem(AUDIO_MENU, MenuOption::EchoServerAudio, false, [=](bool checked) {
-                    audioIO->toggleServerEcho();
-                });
-                addCheckableItem(AUDIO_MENU, MenuOption::EchoLocalAudio, false, [=](bool checked) {
-                    audioIO->toggleLocalEcho();
-                });
-                addCheckableItem(AUDIO_MENU, MenuOption::StereoAudio, false, [=](bool checked) {
-                    audioIO->toggleStereoInput();
-                });
+                addCheckableItem(AUDIO_MENU, MenuOption::AudioNoiseReduction, true, 
+                    audioIO.data(), SLOT(toggleAudioNoiseReduction()));
+                addCheckableItem(AUDIO_MENU, MenuOption::EchoServerAudio, false,
+                    audioIO.data(), SLOT(toggleServerEcho()));
+                addCheckableItem(AUDIO_MENU, MenuOption::EchoLocalAudio, false,
+                    audioIO.data(), SLOT(toggleLocalEcho()));
+                addCheckableItem(AUDIO_MENU, MenuOption::StereoAudio, false, 
+                    audioIO.data(), SLOT(toggleStereoInput()));
                 // Qt::CTRL | Qt::Key_M,
-                addCheckableItem(AUDIO_MENU, MenuOption::MuteAudio, false, [=](bool checked) {
-                    audioIO->toggleMute();
-                });
-                addCheckableItem(AUDIO_MENU, MenuOption::MuteEnvironment, false, [=](bool checked) {
-                    audioIO->sendMuteEnvironmentPacket();
-                });
+                addCheckableItem(AUDIO_MENU, MenuOption::MuteAudio, false, 
+                    audioIO.data(), SLOT(toggleMute()));
+                addCheckableItem(AUDIO_MENU, MenuOption::MuteEnvironment, false, 
+                    audioIO.data(), SLOT(sendMuteEnvironmentPacket()));
                 {
                     static const QString SCOPE_MENU{ "Audio Scope" };
                     addMenu(AUDIO_MENU, SCOPE_MENU);
@@ -637,6 +628,37 @@ void Menu::loadSettings() {
 void Menu::saveSettings() {
 //    scanMenuBar(&Menu::saveAction);
 }
+
+void Menu::addMenuItem(const MenuItemProperties& properties) {
+    if (QThread::currentThread() != Application::getInstance()->getMainThread()) {
+        Application::getInstance()->postLambdaEvent([=]{
+            addMenuItem(properties);
+        });
+        return;
+    }
+     // Shortcut key items: in order of priority
+     //QString shortcutKey;
+     //KeyEvent shortcutKeyEvent;
+     //QKeySequence shortcutKeySequence; // this is what we actually use, it's set from one of the above
+
+     //// location related items: in order of priority
+     //int position;
+     //QString beforeItem;
+     //QString afterItem;
+
+     if (properties.isSeparator) {
+         addSeparator(properties.menuName, properties.menuItemName);
+         return;
+     }
+     addItem(properties.menuName, properties.menuItemName);
+     if (properties.isCheckable) {
+         setCheckable(properties.menuItemName);
+         if (properties.isChecked) {
+             setChecked(properties.menuItemName);
+         }
+     }
+ }
+
 #if 0
 
 void Menu::loadAction(Settings& settings, QAction& action) {
@@ -687,5 +709,6 @@ void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& 
         (destinationMenu->addAction(actionName))->setEnabled(false);
     }
 }
+
 
 #endif

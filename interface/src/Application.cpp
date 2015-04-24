@@ -1079,12 +1079,12 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-static bool _altPressed;
-static bool _ctrlPressed;
+static bool altPressed;
+static bool ctrlPressed;
 
 void Application::keyPressEvent(QKeyEvent* event) {
-    _altPressed = event->key() == Qt::Key_Alt;
-    _ctrlPressed = event->key() == Qt::Key_Control;
+    altPressed = event->key() == Qt::Key_Alt;
+    ctrlPressed = event->key() == Qt::Key_Control;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1336,15 +1336,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (event->key() == Qt::Key_Alt && _altPressed) {
+    if (event->key() == Qt::Key_Alt && altPressed && _window->isActiveWindow()) {
         Menu::toggle();
     }
-    if (event->key() == Qt::Key_Control && _ctrlPressed) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-        QMetaObject::invokeMethod(rootMenu, "popup");
+    if (event->key() == Qt::Key_Control && ctrlPressed && _window->isActiveWindow()) {
+        Menu::toggle();
     }
-    _ctrlPressed = event->key() == Qt::Key_Control;
+    ctrlPressed = altPressed = false;
 
     _keysPressed.remove(event->key());
 

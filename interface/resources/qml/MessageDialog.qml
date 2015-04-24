@@ -71,13 +71,13 @@ Dialog {
     
     onEnabledChanged: {
         if (enabled) {
-        	content.forceActiveFocus();
+            content.forceActiveFocus();
         }
     }
 
     Hifi.MessageDialog {
-    	id: content
-    	clip: true
+        id: content
+        clip: true
         anchors.fill: parent
         anchors.topMargin: parent.topMargin + root.outerSpacing
         anchors.leftMargin: parent.margins + root.outerSpacing
@@ -88,16 +88,16 @@ Dialog {
         property real buttonsRowImplicitWidth: Screen.pixelDensity * 50
 
         Keys.onPressed: {
-        	console.log("Key press at content")
+            console.log("Key press at content")
             event.accepted = true
             if (event.modifiers === Qt.ControlModifier)
                 switch (event.key) {
                 case Qt.Key_A:
-                	console.log("Select All")
+                    console.log("Select All")
                     detailedText.selectAll()
                     break
                 case Qt.Key_C:
-                	console.log("Copy")
+                    console.log("Copy")
                     detailedText.copy()
                     break
                 case Qt.Key_Period:
@@ -107,12 +107,12 @@ Dialog {
             } else switch (event.key) {
                 case Qt.Key_Escape:
                 case Qt.Key_Back:
-                	console.log("Rejecting")
+                    console.log("Rejecting")
                     reject()
                     break
                 case Qt.Key_Enter:
                 case Qt.Key_Return:
-                	console.log("Accepting")
+                    console.log("Accepting")
                     accept()
                     break
             }
@@ -123,18 +123,18 @@ Dialog {
         Component.onCompleted: {
             root.title = title
         }
-        	
+            
         onTitleChanged: {
-        	root.title = title
+            root.title = title
         }
-    	
+        
         Column {
             id: contentColumn
             spacing: root.outerSpacing
             anchors {
-            	top: parent.top
-            	left: parent.left
-            	right: parent.right
+                top: parent.top
+                left: parent.left
+                right: parent.right
             }
 
             Item {

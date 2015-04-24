@@ -14,7 +14,7 @@ Dialog {
     resizable: true
     
     MarketplaceDialog {
-    	id: marketplaceDialog
+        id: marketplaceDialog
     }
 
     Item {
@@ -33,13 +33,13 @@ Dialog {
                 url: "https://metaverse.highfidelity.com/marketplace"
                 anchors.fill: parent
                 onNavigationRequested: {
-                	console.log(request.url)
+                    console.log(request.url)
                     if (!marketplaceDialog.navigationRequested(request.url)) {
-                    	console.log("Application absorbed the request")
+                        console.log("Application absorbed the request")
                         request.action = WebView.IgnoreRequest;
-                    	return;
+                        return;
                     } 
-                	console.log("Application passed on the request")
+                    console.log("Application passed on the request")
                     request.action = WebView.AcceptRequest;
                     return;
                 }

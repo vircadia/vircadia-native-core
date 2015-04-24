@@ -45,7 +45,7 @@ void HifiMenu::setTriggerAction(const QString & name, std::function<void()> f) {
 QObject* addMenu(QObject* parent, const QString & text) {
     // FIXME add more checking here to ensure no name conflicts
     QVariant returnedValue;
-    QMetaObject::invokeMethod(parent, "addMenu",
+    QMetaObject::invokeMethod(parent, "addMenu", Qt::DirectConnection,
         Q_RETURN_ARG(QVariant, returnedValue),
         Q_ARG(QVariant, text));
     QObject* result = returnedValue.value<QObject*>();
@@ -59,7 +59,7 @@ class QQuickMenuItem;
 QObject* addItem(QObject* parent, const QString& text) {
     // FIXME add more checking here to ensure no name conflicts
     QQuickMenuItem* returnedValue{ nullptr };
-    bool invokeResult = QMetaObject::invokeMethod(parent, "addItem",
+    bool invokeResult = QMetaObject::invokeMethod(parent, "addItem", Qt::DirectConnection,
         Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
         Q_ARG(QString, text));
     Q_ASSERT(invokeResult);
@@ -104,9 +104,11 @@ bool HifiMenu::menuExists(const QString& menuName) const {
 }
 
 void HifiMenu::addSeparator(const QString& parentMenu, const QString& separatorName) {
-    // FIXME 'add sep'
-//    addMenu(parentMenu, separatorName);
-//    setEnabled()
+    QObject * parent = findMenuObject(parentMenu);
+    bool invokeResult = QMetaObject::invokeMethod(parent, "addSeparator", Qt::DirectConnection);
+    Q_ASSERT(invokeResult);
+    addItem(parentMenu, separatorName);
+    enableItem(separatorName, false);
 }
 
 void HifiMenu::removeSeparator(const QString& parentMenu, const QString& separatorName) {
@@ -130,6 +132,11 @@ void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption) {
 void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f) {
     setTriggerAction(menuOption, f);
     addItem(parentMenu, menuOption);
+}
+
+void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption, QObject* receiver, const char* slot) {
+    addItem(parentMenu, menuOption);
+    connectItem(menuOption, receiver, slot);
 }
 
 void HifiMenu::removeItem(const QString& menuOption) {
@@ -170,8 +177,10 @@ void HifiMenu::setChecked(const QString& menuOption, bool isChecked) {
         warn(menuOption);
         return;
     }
-    menuItem->setProperty("checked", QVariant::fromValue(isChecked));
-    Q_ASSERT(menuItem->property("checked").toBool() == isChecked);
+    if (menuItem->property("checked").toBool() != isChecked) {
+        menuItem->setProperty("checked", QVariant::fromValue(isChecked));
+        Q_ASSERT(menuItem->property("checked").toBool() == isChecked);
+    }
 }
 
 void HifiMenu::setCheckable(const QString& menuOption, bool checkable) {
@@ -185,7 +194,7 @@ void HifiMenu::setCheckable(const QString& menuOption, bool checkable) {
     Q_ASSERT(menuItem->property("checkable").toBool() == checkable);
 }
 
-void HifiMenu::setItemText(const QString& menuOption, const QString & text) {
+void HifiMenu::setItemText(const QString& menuOption, const QString& text) {
     QObject* menuItem = findMenuObject(menuOption);
     if (!menuItem) {
         warn(menuOption);
@@ -252,4 +261,19 @@ QString HifiMenu::getItemShortcut(const QString& menuOption) {
         return result->property("shortcut").toString();
     }
     return QString();
+}
+
+void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked, QObject* receiver, const char* slot) {
+    addCheckableItem(parentMenu, menuOption, checked);
+    connectItem(menuOption, receiver, slot);
+}
+
+void HifiMenu::connectCheckable(const QString& menuOption, QObject* receiver, const char* slot) {
+    QObject* result = findMenuObject(menuOption);
+    connect(result, SIGNAL(toggled(bool)), receiver, slot);
+}
+
+void HifiMenu::connectItem(const QString& menuOption, QObject* receiver, const char* slot) {
+    QObject* result = findMenuObject(menuOption);
+    connect(result, SIGNAL(triggered()), receiver, slot);
 }

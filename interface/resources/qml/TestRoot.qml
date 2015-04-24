@@ -10,17 +10,17 @@ Root {
     anchors.fill: parent
 
     onWidthChanged: {
-		console.log("Root width: " + width)
-	}
-	onHeightChanged: {
-		console.log("Root height: " + height)
-	}
+        console.log("Root width: " + width)
+    }
+    onHeightChanged: {
+        console.log("Root height: " + height)
+    }
     
     Component.onCompleted: {
-    	console.log("Completed root")
-    	root.forceActiveFocus()
+        console.log("Completed root")
+        root.forceActiveFocus()
     }
-		
+        
     Button {
         id: messageBox
         anchors.right: createDialog.left
@@ -48,7 +48,7 @@ Root {
     }
 
     Keys.onPressed: {
-    	console.log(event.key);
+        console.log(event.key);
     }
 }
 

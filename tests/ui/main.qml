@@ -47,7 +47,7 @@ import "qml"
 //import "/Users/bdavis/Git/hifi/interface/resources/qml"
 
 Item {
-	anchors.fill: parent
+    anchors.fill: parent
     visible: true
     //title: "Qt Quick Controls Gallery"
 
