@@ -31,7 +31,9 @@ var yawFromTouch = 0;
 var pitchFromTouch = 0;
 
 // Touch Data
+var TIME_BEFORE_GENERATED_END_TOUCH_EVENT = 50; // ms
 var startedTouching = false;
+var lastTouchEvent = 0;
 var lastMouseX = 0;
 var lastMouseY = 0;
 var yawFromMouse = 0;
@@ -80,11 +82,17 @@ function touchBeginEvent(event) {
     yawFromTouch = 0;
     pitchFromTouch = 0;
     startedTouching = true;
+    var d = new Date();
+    lastTouchEvent = d.getTime();
 }
 
 function touchEndEvent(event) {
     if (wantDebugging) {
-        print("touchEndEvent event.x,y=" + event.x + ", " + event.y);
+        if (event) {
+            print("touchEndEvent event.x,y=" + event.x + ", " + event.y);
+        } else {
+            print("touchEndEvent generated");
+        }
     }
     startedTouching = false;
 }
@@ -96,22 +104,31 @@ function touchUpdateEvent(event) {
     }
 
     if (!startedTouching) {
-      // handle Qt 5.4.x bug where we get touch update without a touch begin event
-      startedTouching = true;
-      lastTouchX = event.x;
-      lastTouchY = event.y;
+        // handle Qt 5.4.x bug where we get touch update without a touch begin event
+        touchBeginEvent(event);
+        return;
     }
 
     yawFromTouch += ((event.x - lastTouchX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
     pitchFromTouch += ((event.y - lastTouchY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
     lastTouchX = event.x;
     lastTouchY = event.y;
+    var d = new Date();
+    lastTouchEvent = d.getTime();
 }
 
 
 function update(deltaTime) {
     if (wantDebugging) {
         print("update()...");
+    }
+    
+    if (startedTouching) {
+        var d = new Date();
+        var sinceLastTouch = d.getTime() - lastTouchEvent;
+        if (sinceLastTouch > TIME_BEFORE_GENERATED_END_TOUCH_EVENT) {
+            touchEndEvent();
+        }
     }
 
     if (yawFromTouch != 0 || yawFromMouse != 0) {
