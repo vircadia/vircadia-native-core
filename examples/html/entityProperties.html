@@ -95,6 +95,7 @@
         };
 
         function loaded() {
+            var allSections = [];
             var elID = document.getElementById("property-id");
             var elType = document.getElementById("property-type");
             var elLocked = document.getElementById("property-locked");
@@ -146,11 +147,13 @@
             var elUserData = document.getElementById("property-user-data");
 
             var elBoxSections = document.querySelectorAll(".box-section");
+            allSections.push(elBoxSections);
             var elBoxColorRed = document.getElementById("property-box-red");
             var elBoxColorGreen = document.getElementById("property-box-green");
             var elBoxColorBlue = document.getElementById("property-box-blue");
 
             var elLightSections = document.querySelectorAll(".light-section");
+            allSections.push(elLightSections);
             var elLightSpotLight = document.getElementById("property-light-spot-light");
             var elLightColorRed = document.getElementById("property-light-color-red");
             var elLightColorGreen = document.getElementById("property-light-color-green");
@@ -161,6 +164,7 @@
             var elLightCutoff = document.getElementById("property-light-cutoff");
 
             var elModelSections = document.querySelectorAll(".model-section");
+            allSections.push(elModelSections);
             var elModelURL = document.getElementById("property-model-url");
             var elShapeType = document.getElementById("property-shape-type");
             var elCompoundShapeURL = document.getElementById("property-compound-shape-url");
@@ -173,6 +177,7 @@
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
+            allSections.push(elTextSections);
             var elTextText = document.getElementById("property-text-text");
             var elTextLineHeight = document.getElementById("property-text-line-height");
             var elTextTextColorRed = document.getElementById("property-text-text-color-red");
@@ -183,6 +188,7 @@
             var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
 
             var elZoneSections = document.querySelectorAll(".zone-section");
+            allSections.push(elZoneSections);
             var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
             var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
             var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
@@ -299,11 +305,13 @@
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
 
-                            if (properties.type != "Box") {
-                                for (var i = 0; i < elBoxSections.length; i++) {
-                                    elBoxSections[i].style.display = 'none';
+                            for (var i = 0; i < allSections.length; i++) {
+                                for (var j = 0; j < allSections[i].length; j++) {
+                                    allSections[i][j].style.display = 'none';
                                 }
-                            } else {
+                            }
+                            
+                            if (properties.type == "Box") {
                                 for (var i = 0; i < elBoxSections.length; i++) {
                                     elBoxSections[i].style.display = 'block';
                                 }
@@ -311,13 +319,7 @@
                                 elBoxColorRed.value = properties.color.red;
                                 elBoxColorGreen.value = properties.color.green;
                                 elBoxColorBlue.value = properties.color.blue;
-                            }
-
-                            if (properties.type != "Model") {
-                                for (var i = 0; i < elModelSections.length; i++) {
-                                    elModelSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Model") {
                                 for (var i = 0; i < elModelSections.length; i++) {
                                     elModelSections[i].style.display = 'block';
                                 }
@@ -332,13 +334,7 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
-                            }
-
-                            if (properties.type != "Text") {
-                                for (var i = 0; i < elTextSections.length; i++) {
-                                    elTextSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Text") {
                                 for (var i = 0; i < elTextSections.length; i++) {
                                     elTextSections[i].style.display = 'block';
                                 }
@@ -351,13 +347,7 @@
                                 elTextBackgroundColorRed.value = properties.backgroundColor.red;
                                 elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                                 elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
-                            }
-
-                            if (properties.type != "Light") {
-                                for (var i = 0; i < elLightSections.length; i++) {
-                                    elLightSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Light") {
                                 for (var i = 0; i < elLightSections.length; i++) {
                                     elLightSections[i].style.display = 'block';
                                 }
@@ -371,13 +361,7 @@
                                 elLightIntensity.value = properties.intensity;
                                 elLightExponent.value = properties.exponent;
                                 elLightCutoff.value = properties.cutoff;
-                            }
-
-                            if (properties.type != "Zone") {
-                                for (var i = 0; i < elZoneSections.length; i++) {
-                                    elZoneSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Zone") {
                                 for (var i = 0; i < elZoneSections.length; i++) {
                                     elZoneSections[i].style.display = 'block';
                                 }
