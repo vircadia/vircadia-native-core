@@ -10,6 +10,7 @@
 //
 
 #include <QTimer>
+#include <QElapsedTimer>
 
 #include <GLMHelpers.h>
 #include <PerfStat.h>
@@ -30,9 +31,14 @@ const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const quint16 FACESHIFT_PORT = 33433;
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 
+const int FPS_TIMER_DELAY = 2000;  // ms
+const int FPS_TIMER_DURATION = 2000;  // ms
+
 Faceshift::Faceshift() :
     _eyeDeflection("faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION),
-    _hostname("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME)
+    _hostname("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME),
+    _isCalculatingFPS(false),
+    _frameCount(0)
 {
 #ifdef HAVE_FACESHIFT
     connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
@@ -81,6 +87,12 @@ void Faceshift::reset() {
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
+
+        // Log camera FPS after a reset
+        if (!_isCalculatingFPS) {
+            QTimer::singleShot(FPS_TIMER_DELAY, this, SLOT(startFPSTimer()));
+            _isCalculatingFPS = true;
+        }
     }
     _longTermAverageInitialized = false;
 }
@@ -283,6 +295,10 @@ void Faceshift::receive(const QByteArray& buffer) {
         }
     }
 #endif
+    // Count frames if timing
+    if (_isCalculatingFPS) {
+        _frameCount++;
+    }
 }
 
 void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
@@ -291,4 +307,14 @@ void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
 
 void Faceshift::setHostname(const QString& hostname) {
     _hostname.set(hostname);
+}
+
+void Faceshift::startFPSTimer() {
+    _frameCount = 0;
+    QTimer::singleShot(FPS_TIMER_DURATION, this, SLOT(finishFPSTimer()));
+}
+
+void Faceshift::finishFPSTimer() {
+    qCDebug(interfaceapp) << "Faceshift: FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
+    _isCalculatingFPS = false;
 }
