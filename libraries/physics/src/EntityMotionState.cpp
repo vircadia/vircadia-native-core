@@ -195,14 +195,15 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    if (getShouldClaimSimulationOwnership()) {
-        return true;
-    }
-
     bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
 
     if (!baseResult) {
         return false;
+    }
+
+    if (getShouldClaimSimulationOwnership()) {
+        qDebug() << "shouldSendUpdate due to claiming ownership";
+        return true;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -303,7 +304,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             setShouldClaimSimulationOwnership(false);
         } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
             // we are the simulator and the entity has stopped.  give up "simulator" status
-            // _entity->setSimulatorID(QUuid());
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
+        } else if (simulatorID == myNodeID && !_body->isActive()) {
+            // it's not active.  don't keep simulation ownership.
+            _entity->setSimulatorID(QUuid());
             properties.setSimulatorID(QUuid());
         }
 
@@ -340,7 +345,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
 
-            qDebug() << "sending";
+                qDebug() << "sending" << _body->isActive() << (_entity->getSimulatorID() == myNodeID);
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG

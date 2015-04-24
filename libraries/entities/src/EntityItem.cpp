@@ -620,6 +620,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _angularVelocity = saveAngularVelocity;
         _gravity = saveGravity;
         _acceleration = saveAcceleration;
+    } else {
+        qDebug() << "accepting update";
     }
 
     return bytesRead;
@@ -1100,7 +1102,7 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (false && value == _previousPositionFromServer) {
+    if (/* false && */ value == _previousPositionFromServer) {
         _position = value;
     } else if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
         _position = value;
@@ -1122,7 +1124,7 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (false && rotation == _previousRotationFromServer) {
+    if (/* false && */ rotation == _previousRotationFromServer) {
         _rotation = rotation;
     } else if (glm::abs(glm::dot(_rotation, rotation)) < MIN_ALIGNMENT_DOT) {
         _rotation = rotation;
@@ -1161,7 +1163,7 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
-    if (false && value == _previousVelocityFromServer) {
+    if (/* false && */ value == _previousVelocityFromServer) {
         if (glm::length(value) < MIN_VELOCITY_DELTA) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
@@ -1191,7 +1193,7 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if (false && value == _previousGravityFromServer) {
+    if (/* false && */ value == _previousGravityFromServer) {
         _gravity = value;
     } else if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
@@ -1201,7 +1203,7 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    if (false && value == _previousAccelerationFromServer) {
+    if (/* false && */ value == _previousAccelerationFromServer) {
         _acceleration = value;
     } else if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
         _acceleration = value;
@@ -1211,7 +1213,7 @@ void EntityItem::updateAcceleration(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (false && value == _previousAngularVelocityFromServer) {
+    if (/* false && */ value == _previousAngularVelocityFromServer) {
         if (glm::length(value) < MIN_SPIN_DELTA) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
