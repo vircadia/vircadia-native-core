@@ -64,7 +64,6 @@ public slots:
     void setStandardButtons(StandardButtons buttons);
     void setResultCallback(OffscreenUi::ButtonCallback callback);
     void click(StandardButton button);
-    QUrl standardIconSource();
     StandardButtons standardButtons() const;
     StandardButton clickedButton() const;
 
