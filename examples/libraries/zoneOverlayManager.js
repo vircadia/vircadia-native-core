@@ -105,6 +105,7 @@ ZoneOverlayManager = function(isEntityFunc, entityAddedFunc, entityRemovedFunc, 
         if (entityID.id in entityOverlays) {
             releaseOverlay(entityOverlays[entityID.id].outline);
             releaseOverlay(entityOverlays[entityID.id].solid);
+            delete entityIDs[entityID.id];
             delete entityOverlays[entityID.id];
         }
     }
