@@ -108,10 +108,18 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     getVelocity(v);
     _entity->setVelocity(v);
 
-    getAngularVelocity(v);
+    glm::vec3 av;
+    getAngularVelocity(av);
     _entity->setAngularVelocity(v);
 
     _entity->setLastSimulated(usecTimestampNow());
+
+    bool isStill = (v == vec3(0.0f)) && (av == vec3(0.0f));
+
+    if (_entity->getSimulatorID().isNull() && !isStill) {
+        // object is moving and has no owner.  attempt to claim simulation ownership.
+        _entity->setShouldClaimSimulationOwnership(true);
+    }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
@@ -286,10 +294,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
-            // the entity is moving and no node has claimed simulation ownership.  try to claim it.
-            setShouldClaimSimulationOwnership(true);
-        }
+        // if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
+        //     // the entity is moving and no node has claimed simulation ownership.  try to claim it.
+        //     setShouldClaimSimulationOwnership(true);
+        // }
 
         if (getShouldClaimSimulationOwnership()) {
             // _entity->setSimulatorID(myNodeID);

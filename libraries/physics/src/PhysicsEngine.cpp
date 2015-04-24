@@ -370,9 +370,8 @@ void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
 
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
-    if (!objectA || !objectB) {
-        return;
-    }
+    assert(objectA);
+    assert(objectB);
 
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid myNodeID = nodeList->getSessionUUID();
