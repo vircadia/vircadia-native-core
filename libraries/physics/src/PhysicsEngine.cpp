@@ -119,8 +119,10 @@ void PhysicsEngine::entityChangedInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _incomingChanges.insert(motionState);
+        if ((entity->getDirtyFlags() & (HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS)) > 0) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+            _incomingChanges.insert(motionState);
+        }
     } else {
         // try to add this entity again (maybe something changed such that it will work this time)
         addEntity(entity);
@@ -366,14 +368,45 @@ void PhysicsEngine::stepNonPhysicalKinematics(const quint64& now) {
     }
 }
 
-void PhysicsEngine::computeCollisionEvents() {
-    BT_PROFILE("computeCollisionEvents");
+
+void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
+    if (!objectA || !objectB) {
+        return;
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid myNodeID = nodeList->getSessionUUID();
-
     const btCollisionObject* characterCollisionObject =
         _characterController ? _characterController->getCollisionObject() : NULL;
+
+    ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
+    ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
+    EntityItem* entityA = a ? a->getEntity() : NULL;
+    EntityItem* entityB = b ? b->getEntity() : NULL;
+    bool aIsDynamic = entityA && !objectA->isStaticOrKinematicObject();
+    bool bIsDynamic = entityB && !objectB->isStaticOrKinematicObject();
+
+    // collisions cause infectious spread of simulation-ownership.  we also attempt to take
+    // ownership of anything that collides with our avatar.
+    if ((aIsDynamic && entityA->getSimulatorID() == myNodeID) ||
+        (a && a->getShouldClaimSimulationOwnership()) ||
+        (objectA == characterCollisionObject)) {
+        if (bIsDynamic) {
+            b->setShouldClaimSimulationOwnership(true);
+        }
+    }
+    if ((bIsDynamic && entityB->getSimulatorID() == myNodeID) ||
+        (b && b->getShouldClaimSimulationOwnership()) ||
+        (objectB == characterCollisionObject)) {
+        if (aIsDynamic) {
+            a->setShouldClaimSimulationOwnership(true);
+        }
+    }
+}
+
+
+void PhysicsEngine::computeCollisionEvents() {
+    BT_PROFILE("computeCollisionEvents");
 
     // update all contacts every frame
     int numManifolds = _collisionDispatcher->getNumManifolds();
@@ -393,31 +426,12 @@ void PhysicsEngine::computeCollisionEvents() {
 
             ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
             ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
-            EntityItem* entityA = a ? a->getEntity() : NULL;
-            EntityItem* entityB = b ? b->getEntity() : NULL;
-            bool aIsDynamic = entityA && !objectA->isStaticOrKinematicObject();
-            bool bIsDynamic = entityB && !objectB->isStaticOrKinematicObject();
-
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
             }
-            // collisions cause infectious spread of simulation-ownership.  we also attempt to take
-            // ownership of anything that collides with our avatar.
-            if ((aIsDynamic && entityA->getSimulatorID() == myNodeID) ||
-                (a && a->getShouldClaimSimulationOwnership()) ||
-                (objectA == characterCollisionObject)) {
-                if (bIsDynamic) {
-                    b->setShouldClaimSimulationOwnership(true);
-                }
-            }
-            if ((bIsDynamic && entityB->getSimulatorID() == myNodeID) ||
-                (b && b->getShouldClaimSimulationOwnership()) ||
-                (objectB == characterCollisionObject)) {
-                if (aIsDynamic) {
-                    a->setShouldClaimSimulationOwnership(true);
-                }
-            }
+
+            doOwnershipInfection(objectA, objectB);
         }
     }
     
@@ -453,6 +467,16 @@ void PhysicsEngine::computeCollisionEvents() {
         if (type == CONTACT_EVENT_TYPE_END) {
             ContactMap::iterator iterToDelete = contactItr;
             ++contactItr;
+
+            // const ContactKey& contactKey = (*iterToDelete).first;
+            // const ObjectMotionState* objectMotionStateA = static_cast<ObjectMotionState*>(contactKey._a);
+            // const ObjectMotionState* objectMotionStateB = static_cast<ObjectMotionState*>(contactKey._b);
+            // const btCollisionObject* objectA =
+            //     objectMotionStateA ? static_cast<const btCollisionObject*>(objectMotionStateA->getRigidBody()) : NULL;
+            // const btCollisionObject* objectB =
+            //     objectMotionStateB ? static_cast<const btCollisionObject*>(objectMotionStateB->getRigidBody()) : NULL;
+            // doOwnershipInfection(objectA, objectB);
+
             _contactMap.erase(iterToDelete);
         } else {
             ++contactItr;
@@ -576,11 +600,16 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->getRigidBody();
 
-    // set the about-to-be-deleted entity active in order to wake up the island it's part of.  this is done
-    // so that anything resting on top of it will fall.
-    // body->setActivationState(ACTIVE_TAG);
-    EntityItem* entity = static_cast<EntityMotionState*>(motionState)->getEntity();
-    bump(entity);
+    // activate this before deleting it so that anything resting on it will begin to fall.
+    //
+    // body->activate();
+    //
+    // motionState->setShouldClaimSimulationOwnership(true);
+    // computeCollisionEvents();
+    //
+    EntityItem* entityItem = motionState ? motionState->getEntity() : NULL;
+    bump(entityItem);
+
 
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();

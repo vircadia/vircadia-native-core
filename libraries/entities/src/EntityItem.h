@@ -132,7 +132,7 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed);
+    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
 
     virtual bool needsToCallUpdate() const { return false; }
 
@@ -368,6 +368,13 @@ protected:
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     EntityTreeElement* _element;    // back pointer to containing Element
+
+    glm::vec3 _previousPositionFromServer;
+    glm::quat _previousRotationFromServer;
+    glm::vec3 _previousVelocityFromServer;
+    glm::vec3 _previousAngularVelocityFromServer;
+    glm::vec3 _previousGravityFromServer;
+    glm::vec3 _previousAccelerationFromServer;
 };
 
 

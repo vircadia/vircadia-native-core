@@ -189,21 +189,21 @@ float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
+    if (getShouldClaimSimulationOwnership()) {
+        return true;
+    }
+
     bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
 
     if (!baseResult) {
         return false;
     }
 
-    if (getShouldClaimSimulationOwnership()) {
-        return true;
-    }
-
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     const QUuid& simulatorID = _entity->getSimulatorID();
 
-    if (simulatorID != myNodeID) {
+    if (simulatorID != myNodeID && !simulatorID.isNull()) {
         // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
         return false;
     }
@@ -286,15 +286,18 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        if (getShouldClaimSimulationOwnership()) {
-            _entity->setSimulatorID(myNodeID);
-            properties.setSimulatorID(myNodeID);
-            setShouldClaimSimulationOwnership(false);
+        if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
+            // the entity is moving and no node has claimed simulation ownership.  try to claim it.
+            setShouldClaimSimulationOwnership(true);
         }
 
-        if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
-            // we are the simulator and the object has stopped.  give up "simulator" status
-            _entity->setSimulatorID(QUuid());
+        if (getShouldClaimSimulationOwnership()) {
+            // _entity->setSimulatorID(myNodeID);
+            properties.setSimulatorID(myNodeID);
+            setShouldClaimSimulationOwnership(false);
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the entity has stopped.  give up "simulator" status
+            // _entity->setSimulatorID(QUuid());
             properties.setSimulatorID(QUuid());
         }
 
