@@ -47,8 +47,8 @@ Hifi.HifiMenu {
     property var itemBuilder: Component {
     	Text {
     	    SystemPalette { id: sp; colorGroup: SystemPalette.Active }
-
     		id: thisText
+    		x: 32
     		property var source
 	    	property var root
 	    	property var listViewIndex
@@ -59,17 +59,25 @@ Hifi.HifiMenu {
     		color: source.enabled ? "black" : "gray"
     			
     		onImplicitWidthChanged: {
-    			width = implicitWidth
     			if (listView) {
-    				listView.minWidth = Math.max(listView.minWidth, implicitWidth);
+    				listView.minWidth = Math.max(listView.minWidth, implicitWidth + 64);
     				listView.recalculateSize();
     			}
     		}
-    		
-    		onImplicitHeightChanged: {
-    			height = implicitHeight
+
+    		FontAwesome {
+    			visible: source.type == 1 && source.checkable
+    			x: -32
+        		text: (source.type == 1 && source.checked) ? "\uF05D" : "\uF10C"
     		}
     		
+    		FontAwesome {
+    			visible: source.type == 2
+    			x: listView.width - 64
+        		text: "\uF0DA"
+    		}
+    		 
+
     		function typedText() {
     			switch(source.type) {
     			case 2:
@@ -84,7 +92,11 @@ Hifi.HifiMenu {
     		MouseArea {
     		    id: mouseArea
     		    acceptedButtons: Qt.LeftButton
-    		    anchors.fill: parent
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.top: parent.top
+                anchors.topMargin: 0
+                width: listView.width
     		    onClicked: {
     				listView.currentIndex = listViewIndex
 		    		parent.root.selectItem(parent.source);
@@ -114,7 +126,7 @@ Hifi.HifiMenu {
 
     			onCountChanged: {
     				recalculateSize()
-    			}
+    			}    			 
     			
     			function recalculateSize() {
     				var newHeight = 0
@@ -128,7 +140,7 @@ Hifi.HifiMenu {
     			}
     		
     			highlight: Rectangle {
-    	            width: 0; height: 32
+    	            width: listView.minWidth; height: 32
     	            color: sysPalette.highlight
     	            y: (listView.currentItem) ? listView.currentItem.y : 0;
     	            Behavior on y { 
@@ -138,15 +150,7 @@ Hifi.HifiMenu {
     		  	        }
                 	}
     	        }
-    		    Keys.onPressed: {
-    		    	switch (event.key) {
-    		    	case Qt.Key_Escape:
-    		    		console.log("Backing out")
-    		        	root.popColumn()
-    		            event.accepted = true;
-    		    	}
-    		    }
-    		
+   		
 
     			property int columnIndex: root.models.length - 1 
     			model: root.models[columnIndex]
@@ -364,12 +368,20 @@ Hifi.HifiMenu {
 	}
     */
 	
+    Keys.onPressed: {
+    	switch (event.key) {
+    	case Qt.Key_Escape:
+        	root.popColumn()
+            event.accepted = true;
+    	}
+    }
+
 	MouseArea {
 		anchors.fill: parent
 	    id: mouseArea
 	    acceptedButtons: Qt.LeftButton | Qt.RightButton
 	    onClicked: {
-            if(mouseArea.pressedButtons & Qt.RightButton) {
+            if (mouse.button == Qt.RightButton) {
             	root.popColumn();
             } else {
             	root.enabled = false;
