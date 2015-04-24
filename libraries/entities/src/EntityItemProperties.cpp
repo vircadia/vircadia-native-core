@@ -192,31 +192,34 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created; 
 }
 
-const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "convex-hull", "plane", "compound", "capsule-x",
+const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "plane", "compound", "capsule-x",
                                 "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
+void addShapeType(ShapeType type) {
+    stringToShapeTypeLookup[shapeTypeNames[type]] = type;
+}
+
 void buildStringToShapeTypeLookup() {
-    stringToShapeTypeLookup["none"] = SHAPE_TYPE_NONE;
-    stringToShapeTypeLookup["box"] = SHAPE_TYPE_BOX;
-    stringToShapeTypeLookup["sphere"] = SHAPE_TYPE_SPHERE;
-    stringToShapeTypeLookup["ellipsoid"] = SHAPE_TYPE_ELLIPSOID;
-    stringToShapeTypeLookup["convex-hull"] = SHAPE_TYPE_COMPOUND;
-    stringToShapeTypeLookup["plane"] = SHAPE_TYPE_PLANE;
-    stringToShapeTypeLookup["compound"] = SHAPE_TYPE_COMPOUND;
-    stringToShapeTypeLookup["capsule-x"] = SHAPE_TYPE_CAPSULE_X;
-    stringToShapeTypeLookup["capsule-y"] = SHAPE_TYPE_CAPSULE_Y;
-    stringToShapeTypeLookup["capsule-z"] = SHAPE_TYPE_CAPSULE_Z;
-    stringToShapeTypeLookup["cylinder-x"] = SHAPE_TYPE_CYLINDER_X;
-    stringToShapeTypeLookup["cylinder-y"] = SHAPE_TYPE_CYLINDER_Y;
-    stringToShapeTypeLookup["cylinder-z"] = SHAPE_TYPE_CYLINDER_Z;
+    addShapeType(SHAPE_TYPE_NONE);
+    addShapeType(SHAPE_TYPE_BOX);
+    addShapeType(SHAPE_TYPE_SPHERE);
+    addShapeType(SHAPE_TYPE_ELLIPSOID);
+    addShapeType(SHAPE_TYPE_PLANE);
+    addShapeType(SHAPE_TYPE_COMPOUND);
+    addShapeType(SHAPE_TYPE_CAPSULE_X);
+    addShapeType(SHAPE_TYPE_CAPSULE_Y);
+    addShapeType(SHAPE_TYPE_CAPSULE_Z);
+    addShapeType(SHAPE_TYPE_CYLINDER_X);
+    addShapeType(SHAPE_TYPE_CYLINDER_Y);
+    addShapeType(SHAPE_TYPE_CYLINDER_Z);
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
     if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
         return QString(shapeTypeNames[_shapeType]);
-    return QString("none");
+    return QString(shapeTypeNames[SHAPE_TYPE_NONE]);
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
