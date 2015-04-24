@@ -84,6 +84,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
     _headClipDistance = std::max(_headClipDistance, DEFAULT_NEAR_CLIP);
 
+    _owningAvatar->rebuildSkeletonBody();
     emit skeletonLoaded();
 }
 

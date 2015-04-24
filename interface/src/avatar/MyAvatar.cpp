@@ -1070,7 +1070,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
-void MyAvatar::updateCharacterController() {
+void MyAvatar::rebuildSkeletonBody() {
     // compute localAABox
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     float radius = capsule.getRadius();
