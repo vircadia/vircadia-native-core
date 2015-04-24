@@ -252,6 +252,7 @@ public:
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
 
+    bool convexHullContains(const glm::vec3& point) const;
 
     QHash<int, QString> meshIndicesToModelNames;
     

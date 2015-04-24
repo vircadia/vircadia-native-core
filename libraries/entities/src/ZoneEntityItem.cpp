@@ -31,6 +31,8 @@ const float ZoneEntityItem::DEFAULT_STAGE_LONGITUDE = 122.407f;
 const float ZoneEntityItem::DEFAULT_STAGE_ALTITUDE = 0.03f;
 const quint16 ZoneEntityItem::DEFAULT_STAGE_DAY = 60;
 const float ZoneEntityItem::DEFAULT_STAGE_HOUR = 12.0f;
+const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
+const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
 
 EntityItem* ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new ZoneEntityItem(entityID, properties);
@@ -56,6 +58,8 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
     _stageAltitude = DEFAULT_STAGE_ALTITUDE;
     _stageDay = DEFAULT_STAGE_DAY;
     _stageHour = DEFAULT_STAGE_HOUR;
+    _shapeType = DEFAULT_SHAPE_TYPE;
+    _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
     
     setProperties(properties);
 }
@@ -73,6 +77,8 @@ EntityItemProperties ZoneEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(stageAltitude, getStageAltitude);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(stageDay, getStageDay);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(stageHour, getStageHour);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
 
     return properties;
 }
@@ -91,6 +97,8 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageAltitude, setStageAltitude);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageDay, setStageDay);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageHour, setStageHour);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -122,6 +130,8 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, float, _stageAltitude);
     READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, _stageDay);
     READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _stageHour);
+    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
 
     return bytesRead;
 }
@@ -141,6 +151,8 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_STAGE_ALTITUDE;
     requestedProperties += PROP_STAGE_DAY;
     requestedProperties += PROP_STAGE_HOUR;
+    requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
     
     return requestedProperties;
 }
@@ -165,6 +177,8 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, getStageAltitude());
     APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, getStageDay());
     APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getStageHour());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -185,3 +199,27 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "                _stageHour:" << _stageHour;
 }
 
+ShapeType ZoneEntityItem::getShapeType() const {
+    // Zones are not allowed to have a SHAPE_TYPE_NONE... they are always at least a SHAPE_TYPE_BOX
+    if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_BOX;
+    } else {
+        return _shapeType == SHAPE_TYPE_NONE ? SHAPE_TYPE_BOX : _shapeType;
+    }
+}
+
+void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
+    _compoundShapeURL = url;
+    if (!_compoundShapeURL.isEmpty()) {
+        updateShapeType(SHAPE_TYPE_COMPOUND);
+    } else if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        _shapeType = DEFAULT_SHAPE_TYPE;
+    }
+}
+
+bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         void** intersectedObject, bool precisionPicking) const {
+
+    return _zonesArePickable;
+}
