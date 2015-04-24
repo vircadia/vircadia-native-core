@@ -112,7 +112,7 @@ void HifiMenu::addSeparator(const QString& parentMenu, const QString& separatorN
 void HifiMenu::removeSeparator(const QString& parentMenu, const QString& separatorName) {
 }
 
-void HifiMenu::addMenuItem(const QString & parentMenu, const QString & menuOption) {
+void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption) {
     QObject* parent = findMenuObject(parentMenu);
     Q_ASSERT(parent);
     QObject* result = ::addItem(parent, menuOption);
@@ -127,20 +127,20 @@ void HifiMenu::addMenuItem(const QString & parentMenu, const QString & menuOptio
     connect(result, SIGNAL(toggled(bool)), &_toggleMapper, SLOT(map()));
 }
 
-void HifiMenu::addMenuItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f) {
+void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f) {
     setTriggerAction(menuOption, f);
-    addMenuItem(parentMenu, menuOption);
+    addItem(parentMenu, menuOption);
 }
 
-void HifiMenu::removeMenuItem(const QString& menuOption) {
+void HifiMenu::removeItem(const QString& menuOption) {
     removeMenu(menuOption);
 }
 
-bool HifiMenu::menuItemExists(const QString& menuName, const QString& menuitem) const {
+bool HifiMenu::itemExists(const QString& menuName, const QString& menuitem) const {
     return findMenuObject(menuName);
 }
 
-void HifiMenu::triggerMenuItem(const QString& menuOption) {
+void HifiMenu::triggerItem(const QString& menuOption) {
     QObject* menuItem = findMenuObject(menuOption);
     Q_ASSERT(menuItem);
     Q_ASSERT(menuItem != _rootMenu);
@@ -185,20 +185,24 @@ void HifiMenu::setCheckable(const QString& menuOption, bool checkable) {
     Q_ASSERT(menuItem->property("checkable").toBool() == checkable);
 }
 
-void HifiMenu::setText(const QString& menuOption, const QString & text) {
+void HifiMenu::setItemText(const QString& menuOption, const QString & text) {
     QObject* menuItem = findMenuObject(menuOption);
     if (!menuItem) {
         warn(menuOption);
         return;
     }
-    menuItem->setProperty("text", QVariant::fromValue(text));
+    if (menuItem->property("type").toInt() == 2) {
+        menuItem->setProperty("title", QVariant::fromValue(text));
+    } else {
+        menuItem->setProperty("text", QVariant::fromValue(text));
+    }
 }
 
 void HifiMenu::setRootMenu(QObject* rootMenu) {
     _rootMenu = rootMenu;
 }
 
-void HifiMenu::enableMenuItem(const QString & menuOption, bool enabled) {
+void HifiMenu::enableItem(const QString & menuOption, bool enabled) {
     QObject* menuItem = findMenuObject(menuOption);
     if (!menuItem) {
         warn(menuOption);
@@ -207,15 +211,45 @@ void HifiMenu::enableMenuItem(const QString & menuOption, bool enabled) {
     menuItem->setProperty("enabled", QVariant::fromValue(enabled));
 }
 
-void HifiMenu::addCheckableMenuItem(const QString& parentMenu, const QString& menuOption, bool checked) {
-    addMenuItem(parentMenu, menuOption);
+void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked) {
+    addItem(parentMenu, menuOption);
     setCheckable(menuOption);
     if (checked) {
         setChecked(menuOption, checked);
     }
 }
 
-void HifiMenu::addCheckableMenuItem(const QString& parentMenu, const QString& menuOption, bool checked, std::function<void(bool)> f) {
+void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked, std::function<void(bool)> f) {
     setToggleAction(menuOption, f);
-    addCheckableMenuItem(parentMenu, menuOption, checked);
+    addCheckableItem(parentMenu, menuOption, checked);
+}
+
+void HifiMenu::setItemVisible(const QString& menuOption, bool visible) {
+    QObject* result = findMenuObject(menuOption);
+    if (result) {
+        result->setProperty("visible", visible);
+    }
+}
+
+bool HifiMenu::isItemVisible(const QString& menuOption) {
+    QObject* result = findMenuObject(menuOption);
+    if (result) {
+        return result->property("visible").toBool();
+    }
+    return false;
+}
+
+void HifiMenu::setItemShortcut(const QString& menuOption, const QString& shortcut) {
+    QObject* result = findMenuObject(menuOption);
+    if (result) {
+        result->setProperty("shortcut", shortcut);
+    }
+}
+
+QString HifiMenu::getItemShortcut(const QString& menuOption) {
+    QObject* result = findMenuObject(menuOption);
+    if (result) {
+        return result->property("shortcut").toString();
+    }
+    return QString();
 }

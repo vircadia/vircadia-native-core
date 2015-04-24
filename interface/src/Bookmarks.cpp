@@ -87,11 +87,11 @@ void Bookmarks::persistToFile() {
 void Bookmarks::setupMenus(const QString & parentMenu) {
     // Add menus/actions
     Menu * menu = Menu::getInstance();
-    menu->addMenuItem(parentMenu, MenuOption::BookmarkLocation, [this] {
+    menu->addItem(parentMenu, MenuOption::BookmarkLocation, [this] {
         bookmarkLocation();
     });
     menu->addMenu(parentMenu, MenuOption::Bookmarks);
-    menu->addMenuItem(parentMenu, MenuOption::DeleteBookmark, [this] {
+    menu->addItem(parentMenu, MenuOption::DeleteBookmark, [this] {
         deleteBookmark();
     });
     
@@ -178,19 +178,19 @@ void Bookmarks::deleteBookmark() {
 
 void Bookmarks::enableMenuItems(bool enabled) {
     Menu* menu = Menu::getInstance();
-    menu->enableMenuItem(MenuOption::Bookmarks, enabled);
-    menu->enableMenuItem(MenuOption::DeleteBookmark, enabled);
+    menu->enableItem(MenuOption::Bookmarks, enabled);
+    menu->enableItem(MenuOption::DeleteBookmark, enabled);
 }
 
 void Bookmarks::addLocationToMenu(QString& name, QString& address) {
 
-    Menu::getInstance()->addMenuItem(MenuOption::Bookmarks, name, [=] {
+    Menu::getInstance()->addItem(MenuOption::Bookmarks, name, [=] {
         DependencyManager::get<AddressManager>()->handleLookupString(address);
     });
 }
 
 void Bookmarks::removeLocationFromMenu(QString& name) {
-    Menu::getInstance()->removeMenuItem(name);
+    Menu::getInstance()->removeItem(name);
 }
 
 

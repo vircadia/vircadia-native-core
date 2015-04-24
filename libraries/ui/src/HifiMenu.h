@@ -35,19 +35,26 @@ public:
     void addSeparator(const QString& menuName, const QString& separatorName);
     void removeSeparator(const QString& menuName, const QString& separatorName);
 
-    void addMenuItem(const QString& parentMenu, const QString& menuOption);
-    void addCheckableMenuItem(const QString& parentMenu, const QString& menuOption, bool checked = false);
-    void addCheckableMenuItem(const QString& parentMenu, const QString& menuOption, bool checked, std::function<void(bool)> f);
-    void addMenuItem(const QString& parentMenu, const QString& menuOption, std::function<void()> f);
-    void removeMenuItem(const QString& menuitem);
-    bool menuItemExists(const QString& menuName, const QString& menuitem) const;
-    void triggerMenuItem(const QString& menuOption);
-    void enableMenuItem(const QString& menuOption, bool enabled = true);
+    void addItem(const QString& parentMenu, const QString& menuOption);
+    void addItem(const QString& parentMenu, const QString& menuOption, std::function<void()> f);
+
+    void addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked = false);
+    void addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked, std::function<void(bool)> f);
+
+    void removeItem(const QString& menuitem);
+    bool itemExists(const QString& menuName, const QString& menuitem) const;
+    void triggerItem(const QString& menuOption);
+    void enableItem(const QString& menuOption, bool enabled = true);
     bool isChecked(const QString& menuOption) const;
-    void setChecked(const QString& menuOption, bool isChecked = true);
+    void setChecked(const QString& menuOption, bool checked = true);
     void setCheckable(const QString& menuOption, bool checkable = true);
     void setExclusiveGroup(const QString& menuOption, const QString & groupName);
-    void setText(const QString& menuOption, const QString& text);
+    void setItemText(const QString& menuOption, const QString& text);
+    void setItemVisible(const QString& menuOption, bool visible = true);
+    bool isItemVisible(const QString& menuOption);
+
+    void setItemShortcut(const QString& menuOption, const QString & shortcut);
+    QString getItemShortcut(const QString& menuOption);
 
     void setRootMenu(QObject * rootMenu);
 

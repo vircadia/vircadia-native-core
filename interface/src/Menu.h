@@ -36,7 +36,7 @@ public:
     void setCheckable(bool);
     void setChecked(bool);
     void setVisible(bool);
-    const QString & shortcut() const;
+    QString shortcut() const;
     void setText(const QString &);
     void setTriggerAction(std::function<void()>);
     void setToggleAction(std::function<void(bool)>);
@@ -56,37 +56,32 @@ public:
 
     void loadSettings();
     void saveSettings();
+
     HifiAction * getActionForOption(const QString& menuOption) {
         return new HifiAction(menuOption); 
     }
-//    QMenu* addMenu(const QString& menuName);
-    //void removeMenu(const QString& menuName);
-    //bool menuExists(const QString& menuName);
-    //void addSeparator(const QString& menuName, const QString& separatorName);
-    //void removeSeparator(const QString& menuName, const QString& separatorName);
-    //void addMenuItem(const MenuItemProperties& properties);
-    //void removeMenuItem(const QString& menuitem);
-    //bool menuItemExists(const QString& menuName, const QString& menuitem);
+
+    void addMenuItem(const MenuItemProperties& properties);
+
     bool isOptionChecked(const QString& menuOption) const {
         return HifiMenu::isChecked(menuOption);
     }
+
     void setIsOptionChecked(const QString& menuOption, bool isChecked) {
         HifiMenu::setChecked(menuOption, isChecked);
     }
+
     void triggerOption(const QString& menuOption) {
-        HifiMenu::triggerMenuItem(menuOption);
+        HifiMenu::triggerItem(menuOption);
     }
+
     void setOptionText(const QString& menuOption, const QString & text) {
-        HifiMenu::setText(menuOption, text);
+        HifiMenu::setItemText(menuOption, text);
     }
+
     void setOptionTriggerAction(const QString& menuOption, std::function<void()> f) {
         HifiMenu::setTriggerAction(menuOption, f);
     }
-    //void setOptionToggleAction(const QString& menuOption, std::function<void(bool)> f);
-    //void addMenuItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f);
-    //void addMenuItem(const QString & parentMenu, const QString & menuOption);
-    //void addMenu(const QString & parentMenu, const QString & menuOption);
-    //void enableMenuItem(const QString & menuOption, bool enabled = true);
 
 private:
     void init();
