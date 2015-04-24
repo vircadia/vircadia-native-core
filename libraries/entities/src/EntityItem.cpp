@@ -314,6 +314,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     glm::vec3 savePosition = _position;
     glm::quat saveRotation = _rotation;
     glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveAngularVelocity = _angularVelocity;
     glm::vec3 saveGravity = _gravity;
     glm::vec3 saveAcceleration = _acceleration;
 
@@ -616,6 +617,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _position = savePosition;
         _rotation = saveRotation;
         _velocity = saveVelocity;
+        _angularVelocity = saveAngularVelocity;
         _gravity = saveGravity;
         _acceleration = saveAcceleration;
     }
