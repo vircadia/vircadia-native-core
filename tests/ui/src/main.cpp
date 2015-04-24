@@ -26,6 +26,7 @@
 #include <QOpenGLDebugLogger>
 #include <QOpenGLFunctions>
 #include <QQmlContext>
+#include <QtQml/QQmlApplicationEngine>
 
 #include <unordered_map>
 #include <memory>
@@ -324,6 +325,16 @@ const char * LOG_FILTER_RULES = R"V0G0N(
 *.debug=false
 qt.quick.mouse.debug=false
 )V0G0N";
+
+//int main(int argc, char *argv[]) {
+//    QGuiApplication app(argc, argv);
+//    QQmlApplicationEngine engine;
+//    engine.setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
+//    engine.load(QUrl("Main.qml"));
+//    return app.exec();
+//}
+
+
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);

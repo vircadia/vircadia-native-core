@@ -25,7 +25,6 @@ private:
     Q_PROPERTY(QString informativeText READ informativeText WRITE setInformativeText NOTIFY informativeTextChanged)
     Q_PROPERTY(QString detailedText READ detailedText WRITE setDetailedText NOTIFY detailedTextChanged)
     Q_PROPERTY(Icon icon READ icon WRITE setIcon NOTIFY iconChanged)
-    Q_PROPERTY(QUrl standardIconSource READ standardIconSource NOTIFY iconChanged)
     Q_PROPERTY(StandardButtons standardButtons READ standardButtons WRITE setStandardButtons NOTIFY standardButtonsChanged)
     Q_PROPERTY(StandardButton clickedButton READ clickedButton NOTIFY buttonClicked)
 

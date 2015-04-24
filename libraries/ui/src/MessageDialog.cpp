@@ -78,27 +78,6 @@ void MessageDialog::click(StandardButton button) {
     // FIXME try to do it more like the standard dialog
     click(StandardButton(button), ButtonRole::NoRole);
 }
-QMessageBox::ButtonRole br;
-
-QUrl MessageDialog::standardIconSource() {
-    switch (icon()) {
-    case Information:
-        return QUrl("images/information.png");
-        break;
-    case Warning:
-        return QUrl("images/warning.png");
-        break;
-    case Critical:
-        return QUrl("images/critical.png");
-        break;
-    case Question:
-        return QUrl("images/question.png");
-        break;
-    default:
-        return QUrl();
-        break;
-    }
-}
 
 MessageDialog::StandardButtons MessageDialog::standardButtons() const {
     return _buttons;
