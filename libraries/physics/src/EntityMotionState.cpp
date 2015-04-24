@@ -114,9 +114,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     _entity->setLastSimulated(usecTimestampNow());
 
-    bool isStill = (v == vec3(0.0f)) && (av == vec3(0.0f));
-
-    if (_entity->getSimulatorID().isNull() && !isStill) {
+    if (_entity->getSimulatorID().isNull() && isMoving()) {
         // object is moving and has no owner.  attempt to claim simulation ownership.
         // setShouldClaimSimulationOwnership(true);
     }
@@ -342,6 +340,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
 
+            qDebug() << "sending";
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG

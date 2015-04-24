@@ -54,7 +54,8 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080
+        DIRTY_UPDATEABLE = 0x0080,
+        DIRTY_TWEAK = 0x0100
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
