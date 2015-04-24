@@ -143,15 +143,9 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
         _sentStep = step;
     }
 
-    // TODO: entity support for friction and restitution
-    //_restitution = _entity->getRestitution();
-    _body->setRestitution(_restitution);
-    //_friction = _entity->getFriction();
-    _body->setFriction(_friction);
-
-    _linearDamping = _entity->getDamping();
-    _angularDamping = _entity->getAngularDamping();
-    _body->setDamping(_linearDamping, _angularDamping);
+    if (flags & EntityItem::DIRTY_MATERIAL) {
+        updateMaterialProperties();
+    }
 
     if (flags & EntityItem::DIRTY_MASS) {
         float mass = _entity->computeMass();
@@ -161,7 +155,13 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
         _body->updateInertiaTensor();
     }
     _body->activate();
-};
+}
+
+void EntityMotionState::updateMaterialProperties() {
+    _body->setRestitution(_entity->getRestitution());
+    _body->setFriction(_entity->getFriction());
+    _body->setDamping(fabsf(btMin(_entity->getDamping(), 1.0f)), fabsf(btMin(_entity->getAngularDamping(), 1.0f)));
+}
 
 void EntityMotionState::updateObjectVelocities() {
     if (_body) {

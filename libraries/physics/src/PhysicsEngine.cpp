@@ -527,9 +527,8 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
         }
     }
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
-    body->setRestitution(motionState->_restitution);
-    body->setFriction(motionState->_friction);
-    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
+    motionState->updateMaterialProperties();
+
     _dynamicsWorld->addRigidBody(body);
     motionState->resetMeasuredAcceleration();
 }

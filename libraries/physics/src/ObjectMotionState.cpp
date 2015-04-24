@@ -43,10 +43,6 @@ void ObjectMotionState::setSimulationStep(uint32_t step) {
 }
 
 ObjectMotionState::ObjectMotionState() : 
-    _friction(DEFAULT_FRICTION), 
-    _restitution(DEFAULT_RESTITUTION), 
-    _linearDamping(0.0f),
-    _angularDamping(0.0f),
     _motionType(MOTION_TYPE_STATIC),
     _body(NULL),
     _sentMoving(false),
@@ -80,7 +76,7 @@ void ObjectMotionState::measureAcceleration() {
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
         glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
-        _measuredAcceleration = (velocity / powf(1.0f - _linearDamping, dt) - _lastVelocity) * invDt;
+        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
     }
 }
@@ -88,22 +84,6 @@ void ObjectMotionState::measureAcceleration() {
 void ObjectMotionState::resetMeasuredAcceleration() {
     _lastSimulationStep = _simulationStep;
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());
-}
-
-void ObjectMotionState::setFriction(float friction) {
-    _friction = btMax(btMin(fabsf(friction), MAX_FRICTION), 0.0f);
-}
-
-void ObjectMotionState::setRestitution(float restitution) {
-    _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setLinearDamping(float damping) {
-    _linearDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setAngularDamping(float damping) {
-    _angularDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
 }
 
 void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
@@ -181,7 +161,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
-        _sentVelocity *= powf(1.0f - _linearDamping, dt);
+        _sentVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
         _sentPosition += dt * _sentVelocity;
     }
 
@@ -206,7 +186,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     
     if (glm::length2(_sentAngularVelocity) > 0.0f) {
         // compute rotation error
-        float attenuation = powf(1.0f - _angularDamping, dt);
+        float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
         _sentAngularVelocity *= attenuation;
    
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 

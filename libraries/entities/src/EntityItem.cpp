@@ -675,6 +675,17 @@ void EntityItem::setMass(float mass) {
     }
 }
 
+const float DEFAULT_ENTITY_RESTITUTION = 0.5f;
+const float DEFAULT_ENTITY_FRICTION = 0.5f;                                                                                
+
+float EntityItem::getRestitution() const { 
+    return DEFAULT_ENTITY_RESTITUTION; 
+}
+
+float EntityItem::getFriction() const { 
+    return DEFAULT_ENTITY_FRICTION;
+}
+
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {
         _lastSimulated = now;
@@ -1157,7 +1168,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
 void EntityItem::updateDamping(float value) { 
     if (fabsf(_damping - value) > MIN_DAMPING_DELTA) {
         _damping = glm::clamp(value, 0.0f, 1.0f);
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_MATERIAL;
     }
 }
 
@@ -1188,7 +1199,7 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
 void EntityItem::updateAngularDamping(float value) { 
     if (fabsf(_angularDamping - value) > MIN_DAMPING_DELTA) {
         _angularDamping = glm::clamp(value, 0.0f, 1.0f);
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_MATERIAL;
     }
 }
 

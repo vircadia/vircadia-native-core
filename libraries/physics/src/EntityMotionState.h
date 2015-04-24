@@ -51,6 +51,7 @@ public:
 
     // these relay incoming values to the RigidBody
     virtual void updateObjectEasy(uint32_t flags, uint32_t step);
+    virtual void updateMaterialProperties();
     virtual void updateObjectVelocities();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);

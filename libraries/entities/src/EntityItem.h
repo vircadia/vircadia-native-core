@@ -54,7 +54,8 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080
+        DIRTY_UPDATEABLE = 0x0080,
+        DIRTY_MATERIAL = 0x00100
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -187,6 +188,9 @@ public:
     
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
+
+    float getRestitution() const;
+    float getFriction() const;
 
     // lifetime related properties.
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
