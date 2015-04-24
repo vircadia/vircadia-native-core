@@ -162,6 +162,7 @@
 
             var elModelSections = document.querySelectorAll(".model-section");
             var elModelURL = document.getElementById("property-model-url");
+            var elShapeType = document.getElementById("property-shape-type");
             var elCompoundShapeURL = document.getElementById("property-compound-shape-url");
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
@@ -170,7 +171,6 @@
             var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
-            var elModelShapeType = document.getElementById("property-model-shape");
 
             var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -323,6 +323,7 @@
                                 }
 
                                 elModelURL.value = properties.modelURL;
+                                elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
@@ -331,7 +332,6 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
-                                elModelShapeType.value = properties.shapeType;
                             }
 
                             if (properties.type != "Text") {
@@ -397,6 +397,8 @@
                                 elZoneStageAltitude.value = properties.stageAltitude.toFixed(2);
                                 elZoneStageDay.value = properties.stageDay;
                                 elZoneStageHour.value = properties.stageHour;
+                                elShapeType.value = properties.shapeType;
+                                elCompoundShapeURL.value = properties.compoundShapeURL;
                             }
 
                             if (selected) {
@@ -487,6 +489,7 @@
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
+            elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
             elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
             elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
@@ -494,7 +497,6 @@
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
             elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
-            elModelShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -774,7 +776,18 @@
                 <input type="text" id="property-model-url" class="url"></input>
             </div>
         </div>
-        <div class="model-section property">
+        <div class="model-section zone-section property">
+            <div class="label">Shape Type</div>
+            <div class="value">
+                <select name="SelectShapeType" id="property-shape-type" name="SelectShapeType">
+                    <option value='none'>none</option>
+                    <option value='box'>box</option>
+                    <option value='sphere'>sphere</option>
+                    <option value='compound'>compound</option>
+                </select> 
+            </div>
+        </div>
+        <div class="model-section zone-section property">
             <div class="label">Compound Shape URL</div>
             <div class="value">
                 <input type="text" id="property-compound-shape-url" class="url"></input>
@@ -822,18 +835,6 @@
                 <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
             </div>
         </div>
-
-        <div class="model-section property">
-            <div class="label">Shape Type</div>
-            <div class="value">
-                <select name="SelectShapeType" id="property-model-shape" name="SelectShapeType">
-                    <option value='none'>none</option>
-                    <option value='box'>box</option>
-                    <option value='sphere'>sphere</option>
-                </select> 
-            </div>
-        </div>
-
 
         <div class="text-section property">
             <div class="label">Text</div>
