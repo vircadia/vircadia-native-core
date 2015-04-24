@@ -1,43 +1,3 @@
-/*****************************************************************************
-**
-** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
-**
-** This file is part of the QtQuick.Dialogs module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:BSD$
-** You may use this file under the terms of the BSD license as follows:
-**
-** "Redistribution and use in source and binary forms, with or without
-** modification, are permitted provided that the following conditions are
-** met:
-**   * Redistributions of source code must retain the above copyright
-**     notice, this list of conditions and the following disclaimer.
-**   * Redistributions in binary form must reproduce the above copyright
-**     notice, this list of conditions and the following disclaimer in
-**     the documentation and/or other materials provided with the
-**     distribution.
-**   * Neither the name of Digia Plc and its Subsidiary(-ies) nor the names
-**     of its contributors may be used to endorse or promote products derived
-**     from this software without specific prior written permission.
-**
-**
-** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-** "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-** LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-** OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-** SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-** LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-** OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-**
-** $QT_END_LICENSE$
-**
-*****************************************************************************/
-
 import Hifi 1.0 as Hifi
 import QtQuick 2.2
 import QtQuick.Controls 1.2
@@ -48,6 +8,7 @@ Dialog {
     id: root
     property real spacing: 8
     property real outerSpacing: 16
+
 
     destroyOnCloseButton: true
     destroyOnInvisible: true
@@ -69,9 +30,13 @@ Dialog {
         content.buttonsRowImplicitWidth = outerSpacing + calcWidth + 48
     }
     
+    Component.onCompleted: {
+        enabled = true
+    }
+        
     onEnabledChanged: {
         if (enabled) {
-            content.forceActiveFocus();
+        	root.forceActiveFocus();
         }
     }
 
@@ -87,37 +52,6 @@ Dialog {
         implicitWidth: Math.max(mainText.implicitWidth, buttonsRowImplicitWidth);
         property real buttonsRowImplicitWidth: Screen.pixelDensity * 50
 
-        Keys.onPressed: {
-            console.log("Key press at content")
-            event.accepted = true
-            if (event.modifiers === Qt.ControlModifier)
-                switch (event.key) {
-                case Qt.Key_A:
-                    console.log("Select All")
-                    detailedText.selectAll()
-                    break
-                case Qt.Key_C:
-                    console.log("Copy")
-                    detailedText.copy()
-                    break
-                case Qt.Key_Period:
-                    if (Qt.platform.os === "osx")
-                        reject()
-                    break
-            } else switch (event.key) {
-                case Qt.Key_Escape:
-                case Qt.Key_Back:
-                    console.log("Rejecting")
-                    reject()
-                    break
-                case Qt.Key_Enter:
-                case Qt.Key_Return:
-                    console.log("Accepting")
-                    accept()
-                    break
-            }
-        }
-        
         onImplicitWidthChanged: root.width = implicitWidth
 
         Component.onCompleted: {
@@ -140,9 +74,46 @@ Dialog {
             Item {
                 width: parent.width
                 height: Math.max(icon.height, mainText.height + informativeText.height + root.spacing)
-                Image {
+
+                FontAwesome {
                     id: icon
-                    source: content.standardIconSource
+                    width: content.icon ? 48 : 0
+                    height: content.icon ? 48 : 0
+                    visible: content.icon ? true : false
+                    font.pixelSize: 48
+                    verticalAlignment: Text.AlignTop
+                    horizontalAlignment: Text.AlignLeft
+                    color: iconColor()
+                    text: iconSymbol()
+                    
+                    function iconSymbol() {
+                        switch (content.icon) {
+                            case Hifi.MessageDialog.Information:
+                                return "\uF05A" 
+                            case Hifi.MessageDialog.Question:
+                                return "\uF059" 
+                            case Hifi.MessageDialog.Warning:
+                                return "\uF071" 
+                            case Hifi.MessageDialog.Critical:
+                                return "\uF057" 
+                            default:
+                                break;
+                        }
+                        return content.icon;
+                    }
+                    function iconColor() {
+                        switch (content.icon) {
+                            case Hifi.MessageDialog.Information:
+                            case Hifi.MessageDialog.Question:
+                                return "blue"
+                            case Hifi.MessageDialog.Warning:
+                            case Hifi.MessageDialog.Critical:
+                                return "red"
+                            default:
+                                break
+                        }
+                        return "black"
+                    }
                 }
 
                 Text {
@@ -348,12 +319,38 @@ Dialog {
                 }
             }
         ]
-        
-/*        
-        Rectangle {
+    }
 
+    Keys.onPressed: {
+        if (event.modifiers === Qt.ControlModifier)
+            switch (event.key) {
+            case Qt.Key_A:
+                event.accepted = true
+                detailedText.selectAll()
+                break
+            case Qt.Key_C:
+                event.accepted = true
+                detailedText.copy()
+                break
+            case Qt.Key_Period:
+                if (Qt.platform.os === "osx") {
+                    event.accepted = true
+                	content.reject()
+                }
+                break
+        } else switch (event.key) {
+            case Qt.Key_Escape:
+            case Qt.Key_Back:
+                event.accepted = true
+                content.reject()
+                break
+
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+            	console.log("Accepting");
+                event.accepted = true
+                content.accept()
+                break
         }
-        Component.onCompleted: calculateImplicitWidth()
-        */
     }
 }

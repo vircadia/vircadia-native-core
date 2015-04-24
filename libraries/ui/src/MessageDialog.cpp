@@ -10,8 +10,7 @@
 //
 #include "MessageDialog.h"
 
-QML_DIALOG_DEF(MessageDialog)
-
+HIFI_QML_DEF(MessageDialog)
 
 MessageDialog::MessageDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     _buttons = StandardButtons(Ok | Cancel);
@@ -76,23 +75,23 @@ void MessageDialog::setStandardButtons(StandardButtons buttons) {
 }
 
 void MessageDialog::click(StandardButton button) {
-    click(static_cast<StandardButton>(button),
-        static_cast<QPlatformDialogHelper::ButtonRole>(
-        QPlatformDialogHelper::buttonRole(static_cast<QPlatformDialogHelper::StandardButton>(button))));
+    // FIXME try to do it more like the standard dialog
+    click(StandardButton(button), ButtonRole::NoRole);
 }
+QMessageBox::ButtonRole br;
 
 QUrl MessageDialog::standardIconSource() {
     switch (icon()) {
-    case QMessageDialogOptions::Information:
+    case Information:
         return QUrl("images/information.png");
         break;
-    case QMessageDialogOptions::Warning:
+    case Warning:
         return QUrl("images/warning.png");
         break;
-    case QMessageDialogOptions::Critical:
+    case Critical:
         return QUrl("images/critical.png");
         break;
-    case QMessageDialogOptions::Question:
+    case Question:
         return QUrl("images/question.png");
         break;
     default:
@@ -109,7 +108,7 @@ MessageDialog::StandardButton MessageDialog::clickedButton() const {
     return _clickedButton;
 }
 
-void MessageDialog::click(StandardButton button, QPlatformDialogHelper::ButtonRole) {
+void MessageDialog::click(StandardButton button, ButtonRole) {
     _clickedButton = button;
     if (_resultCallback) {
         _resultCallback(QMessageBox::StandardButton(_clickedButton));

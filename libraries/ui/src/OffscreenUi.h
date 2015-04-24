@@ -38,9 +38,9 @@ private: \
     static const QUrl QML; \
 public: \
     static void registerType(); \
-    static void show(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
-    static void toggle(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
-    static void load(std::function<void(QQmlContext*, QQuickItem *)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void load(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
 private:
 
 #define HIFI_QML_DECL_LAMBDA \
@@ -62,16 +62,16 @@ private:
         qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
     } \
     \
-    void x::show(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+    void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->show(QML, NAME, f); \
     } \
     \
-    void x::toggle(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+    void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->toggle(QML, NAME, f); \
     } \
-    void x::load(std::function<void(QQmlContext*, QQuickItem *)> f) { \
+    void x::load(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->load(QML, f); \
     } 
@@ -122,9 +122,9 @@ public:
     virtual ~OffscreenUi();
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
-    void load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    void load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
-        load(QUrl(qmlSourceFile), f);
+    QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
+        return load(QUrl(qmlSourceFile), f);
     }
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
@@ -173,7 +173,7 @@ protected:
 
 private slots:
     void updateQuick();
-    void finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
+    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
 
 public slots:
     void requestUpdate();

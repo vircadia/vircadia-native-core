@@ -82,6 +82,7 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
+#include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -1086,6 +1087,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
