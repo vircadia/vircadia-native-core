@@ -114,7 +114,8 @@ function touchUpdateEvent(event) {
     lastTouchX = event.x;
     lastTouchY = event.y;
     var d = new Date();
-    lastTouchEvent = d.getTime();}
+    lastTouchEvent = d.getTime();
+}
 
 
 function update(deltaTime) {
@@ -122,7 +123,7 @@ function update(deltaTime) {
         print("update()...");
     }
     
-    if(startedTouching) {
+    if (startedTouching) {
         var d = new Date();
         var sinceLastTouch = d.getTime() - lastTouchEvent;
         if (sinceLastTouch > TIME_BEFORE_GENERATED_END_TOUCH_EVENT) {
