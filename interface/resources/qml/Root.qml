@@ -1,9 +1,10 @@
 import Hifi 1.0
 import QtQuick 2.3
 
+// This is our primary 'window' object to which all dialogs and controls will 
+// be childed. 
 Root {
     id: root
-    width: 1280
-    height: 720
+    anchors.fill: parent
 }
 

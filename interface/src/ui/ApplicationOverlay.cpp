@@ -323,7 +323,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
                 //Render magnifier, but dont show border for mouse magnifier
                 glm::vec2 projection = screenToOverlay(glm::vec2(_reticlePosition[MOUSE].x(),
                                                                  _reticlePosition[MOUSE].y()));
-                with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+                with_each_texture(_overlays.getTexture(), 0, [&] {
                     renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
                 });
             }

@@ -1,10 +1,9 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtQuick.Window 2.2
-import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.3
+import "controls"
 
-CustomDialog {
+Dialog {
     title: "Test Dialog"
     id: testDialog
     objectName: "TestDialog"
@@ -37,7 +36,7 @@ CustomDialog {
         }
     
     
-        CustomTextEdit {
+        TextEdit {
             id: edit
             anchors.left: parent.left
             anchors.leftMargin: 12
@@ -49,7 +48,7 @@ CustomDialog {
             anchors.topMargin: 12
         }
 
-        CustomButton {
+        Button {
             x: 128
             y: 192
             text: "Test"
@@ -68,7 +67,7 @@ CustomDialog {
             }
         }
     
-        CustomButton {
+        Button {
             id: customButton2
             y: 192
             text: "Move"
@@ -92,15 +91,4 @@ CustomDialog {
             }
         }
     }
-
 }
-
-
-/*
-
-// This is the behavior, and it applies a NumberAnimation to any attempt to set the x property
-
-MouseArea {
-    anchors.fill: parent
-}
-*/

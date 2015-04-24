@@ -3,7 +3,7 @@ import QtQuick.Controls 1.2
 
 TextInput {
     SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
-    property string helperText: ""
+    property string helperText
     font.family: "Helvetica"
     font.pointSize: 18
     width: 256
@@ -24,7 +24,7 @@ TextInput {
         id: helperText
         anchors.fill: parent
         font.pointSize: parent.font.pointSize
-        font.family: "Helvetica"
+        font.family: parent.font.family
         verticalAlignment: TextInput.AlignVCenter
         text: parent.helperText
         color: myPalette.dark

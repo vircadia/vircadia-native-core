@@ -1,10 +1,9 @@
 import Hifi 1.0
 import QtQuick 2.3
-import QtQuick.Controls 1.2
-import QtQuick.Window 2.2
-import QtQuick.Controls.Styles 1.3
+import "controls"
+import "styles"
 
-CustomDialog {
+Dialog {
     title: "Go to..."
     objectName: "AddressBarDialog"
     height: 128
@@ -36,14 +35,14 @@ CustomDialog {
         anchors.margins: parent.margins
         anchors.topMargin: parent.topMargin
 
-        CustomBorder {
+        Border {
             height: 64
             anchors.left: parent.left
             anchors.leftMargin: 0
             anchors.right: goButton.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
-            CustomTextInput {
+            TextInput {
                 id: addressLine
                 anchors.fill: parent
                 helperText: "domain, location, @user, /x,y,z"
