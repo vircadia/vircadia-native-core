@@ -10,7 +10,6 @@
 //
 
 #include <QTimer>
-#include <QElapsedTimer>
 
 #include <GLMHelpers.h>
 #include <PerfStat.h>
