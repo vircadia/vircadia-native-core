@@ -199,7 +199,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
         _ddeStopping = false;
 
-        qDebug() << "[Info] DDE Face Tracker Starting";
+        qCDebug(interfaceapp) << "DDE Face Tracker: Starting";
         _ddeProcess = new QProcess(qApp);
         connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
         _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
@@ -208,7 +208,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     if (!enabled && _ddeProcess) {
         _ddeStopping = true;
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
-        qDebug() << "[Info] DDE Face Tracker Stopped";
+        qCDebug(interfaceapp) << "DDE Face Tracker: Stopping";
     }
 #endif
 }
@@ -250,7 +250,7 @@ bool DdeFaceTracker::isActive() const {
 
 //private slots and methods
 void DdeFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
-    qCDebug(interfaceapp) << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
+    qCWarning(interfaceapp) << "DDE Face Tracker: Socket error: " << _udpSocket.errorString();
 }
 
 void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
@@ -278,7 +278,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    qCDebug(interfaceapp) << "[Info] DDE Face Tracker Socket: " << state;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {
@@ -422,7 +422,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         FaceTracker::countFrame();
         
     } else {
-        qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
+        qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
 }

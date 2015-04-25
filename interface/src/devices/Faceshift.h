@@ -95,6 +95,7 @@ private slots:
     void noteError(QAbstractSocket::SocketError error);
     void readPendingDatagrams();
     void readFromSocket();        
+    void noteDisconnected();
 
 private:
     Faceshift();
