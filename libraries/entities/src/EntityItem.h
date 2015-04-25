@@ -55,7 +55,7 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_TWEAK = 0x0100
+        DIRTY_PHYSICS_NO_WAKE = 0x0100 // we want to update values in physics engine without "waking" the object up
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -369,13 +369,6 @@ protected:
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     EntityTreeElement* _element;    // back pointer to containing Element
-
-    glm::vec3 _previousPositionFromServer;
-    glm::quat _previousRotationFromServer;
-    glm::vec3 _previousVelocityFromServer;
-    glm::vec3 _previousAngularVelocityFromServer;
-    glm::vec3 _previousGravityFromServer;
-    glm::vec3 _previousAccelerationFromServer;
 };
 
 

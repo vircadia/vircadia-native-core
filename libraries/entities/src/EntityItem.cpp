@@ -65,13 +65,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
     _physicsInfo(NULL),
     _dirtyFlags(0),
-    _element(NULL),
-    _previousPositionFromServer(ENTITY_ITEM_ZERO_VEC3),
-    _previousRotationFromServer(ENTITY_ITEM_DEFAULT_ROTATION),
-    _previousVelocityFromServer(ENTITY_ITEM_ZERO_VEC3),
-    _previousAngularVelocityFromServer(ENTITY_ITEM_ZERO_VEC3),
-    _previousGravityFromServer(ENTITY_ITEM_ZERO_VEC3),
-    _previousAccelerationFromServer(ENTITY_ITEM_ZERO_VEC3)
+    _element(NULL)
 {
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
@@ -1100,12 +1094,10 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (/* false && */ value == _previousPositionFromServer) {
+    if (value != _position) {
+        auto distance = glm::distance(_position, value);
+        _dirtyFlags |= (distance > MIN_POSITION_DELTA) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _position = value;
-    } else if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
-        _position = value;
-        _previousPositionFromServer = value;
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -1122,12 +1114,10 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (/* false && */ rotation == _previousRotationFromServer) {
+    if (rotation != _rotation) {
+        auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
+        _dirtyFlags |= (alignmentDot < MIN_ALIGNMENT_DOT) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _rotation = rotation;
-    } else if (glm::abs(glm::dot(_rotation, rotation)) < MIN_ALIGNMENT_DOT) {
-        _rotation = rotation;
-        _previousRotationFromServer = rotation;
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -1161,20 +1151,15 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
-    if (/* false && */ value == _previousVelocityFromServer) {
-        if (glm::length(value) < MIN_VELOCITY_DELTA) {
-            _velocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _velocity = value;
-        }
-    } else if (glm::distance(_velocity, value) > MIN_VELOCITY_DELTA) {
-        if (glm::length(value) < MIN_VELOCITY_DELTA) {
-            _velocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _velocity = value;
-        }
-        _previousVelocityFromServer = value;
+    if (value != _velocity) {
+        auto distance = glm::distance(_velocity, value);
+        // _dirtyFlags |= (distance > MIN_VELOCITY_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        if (distance < MIN_VELOCITY_DELTA) {
+            _velocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            _velocity = value;
+        }
     }
 }
 
@@ -1191,39 +1176,36 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if (/* false && */ value == _previousGravityFromServer) {
-        _gravity = value;
-    } else if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
-        _gravity = value;
-        _previousGravityFromServer = value;
+    auto distance = glm::distance(_gravity, value);
+    // if (value != _gravity) {
+    if (distance > MIN_GRAVITY_DELTA) {
+        // _dirtyFlags |= (distance > MIN_GRAVITY_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _gravity = value;
     }
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    if (/* false && */ value == _previousAccelerationFromServer) {
-        _acceleration = value;
-    } else if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
-        _acceleration = value;
-        _previousAccelerationFromServer = value;
+    auto distance = glm::distance(_acceleration, value);
+    // if (value != _acceleration) {
+    if (distance > MIN_ACCELERATION_DELTA) {
+        // _dirtyFlags |= (distance > MIN_ACCELERATION_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _acceleration = value;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (/* false && */ value == _previousAngularVelocityFromServer) {
-        if (glm::length(value) < MIN_SPIN_DELTA) {
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _angularVelocity = value;
-        }
-    } else if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
-        if (glm::length(value) < MIN_SPIN_DELTA) {
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _angularVelocity = value;
-        }
+    auto distance = glm::distance(_angularVelocity, value);
+    // if (value != _angularVelocity) {
+    if (distance > MIN_SPIN_DELTA) {
+        // _dirtyFlags |= (distance > MIN_SPIN_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        if (glm::length(value) < MIN_SPIN_DELTA) {
+            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            _angularVelocity = value;
+        }
     }
 }
 

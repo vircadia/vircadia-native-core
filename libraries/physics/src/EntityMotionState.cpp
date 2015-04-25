@@ -132,7 +132,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 }
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
-    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_PHYSICS_NO_WAKE)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
@@ -147,6 +147,10 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
             updateObjectVelocities();
         }
         _sentStep = step;
+
+        if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            _body->activate();
+        }
     }
 
     // TODO: entity support for friction and restitution
@@ -166,7 +170,6 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-    _body->activate();
 };
 
 void EntityMotionState::updateObjectVelocities() {
