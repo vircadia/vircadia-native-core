@@ -111,7 +111,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-    bool makeResult = gpu::Shader::makeProgram(*program, slotBindings);
+    // bool makeResult =
+    gpu::Shader::makeProgram(*program, slotBindings);
     
     
     auto locations = std::shared_ptr<Locations>(new Locations());
@@ -139,7 +140,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    auto it = insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
+    // auto it =
+    insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
 
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
     if (!key.isShadow()) {

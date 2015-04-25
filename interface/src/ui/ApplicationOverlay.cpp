@@ -257,7 +257,7 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-    auto glCanvas = Application::getInstance()->getGLWidget();
+    // auto glCanvas = Application::getInstance()->getGLWidget();
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); {
         glLoadIdentity();

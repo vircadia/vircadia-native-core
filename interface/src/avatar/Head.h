@@ -81,7 +81,7 @@ public:
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
     
-    const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
+    bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
