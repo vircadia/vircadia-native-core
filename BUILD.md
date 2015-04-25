@@ -1,7 +1,7 @@
 ###Dependencies
 
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
-* [Qt](http://qt-project.org/downloads) ~> 5.3.2
+* [Qt](http://www.qt.io/download-open-source) ~> 5.4.1
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
   * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
 * [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
@@ -37,12 +37,12 @@ Hifi uses CMake to generate build files and project files for your platform.
 ####Qt
 In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your Qt installation.
 
-For example, a Qt5 5.3.2 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
+For example, a Qt5 5.4.1 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
 The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.3.2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.4.1/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.4.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
 ####Generating build files
@@ -57,7 +57,7 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/lib/cmake
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.4.1/lib/cmake
 
 ####Finding Dependencies
 
