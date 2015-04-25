@@ -38,9 +38,9 @@ private: \
     static const QUrl QML; \
 public: \
     static void registerType(); \
-    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
-    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
-    static void load(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QQuickItem*) {}); \
+    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
+    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
+    static void load(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
 private:
 
 #define HIFI_QML_DECL_LAMBDA \
