@@ -366,10 +366,14 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPointF originalPos = mouseEvent->localPos();
             QPointF transformedPos = _mouseTranslator(originalPos);
+            transformedPos = mapWindowToUi(transformedPos, originalDestination);
             QMouseEvent mappedEvent(mouseEvent->type(),
-                    mapWindowToUi(transformedPos, originalDestination),
+                    transformedPos,
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
+            if (event->type() == QEvent::MouseMove) {
+                _qmlEngine->rootContext()->setContextProperty("lastMousePosition", transformedPos);
+            }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
                 return mappedEvent.isAccepted();
@@ -429,6 +433,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
         item = _rootItem->findChild<QQuickItem*>(name);
     }
     if (item) {
+        qDebug() << "Turning item " << !item->isEnabled();
         item->setEnabled(!item->isEnabled());
     }
 }

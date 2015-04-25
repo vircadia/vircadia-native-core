@@ -38,7 +38,8 @@ bool ToolWindow::event(QEvent* event) {
             QRect mainGeometry = mainWindow->geometry();
 
             int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
-            int topMargin = titleBarHeight;
+            int menuBarHeight = Menu::getInstance()->geometry().height();
+            int topMargin = titleBarHeight + menuBarHeight;
 
             _lastGeometry = QRect(mainGeometry.topLeft().x(),  mainGeometry.topLeft().y() + topMargin,
                                   DEFAULT_WIDTH, mainGeometry.height() - topMargin);

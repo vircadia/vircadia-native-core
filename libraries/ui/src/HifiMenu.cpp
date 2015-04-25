@@ -1,47 +1,64 @@
 #include "HifiMenu.h"
 #include <QtQml>
+#include <QMenuBar>
 
-// FIXME can this be made a class member?
-static const QString MENU_SUFFIX{ "__Menu" };
+// Binds together a Qt Action or Menu with the QML Menu or MenuItem
+class MenuUserData : public QObjectUserData {
+    static const int USER_DATA_ID;
 
-HIFI_QML_DEF_LAMBDA(HifiMenu, [=](QQmlContext* context, QObject* newItem) {
+public:
+    MenuUserData(QAction* action, QObject* qmlObject) {
+        init(action, qmlObject);
+    }
+    MenuUserData(QMenu* menu, QObject* qmlObject) {
+        init(menu, qmlObject);
+    }
+
+    const QUuid uuid{ QUuid::createUuid() };
+
+    static MenuUserData* forObject(QObject* object) {
+        return static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
+    }
+
+private:
+    MenuUserData(const MenuUserData&);
+
+    void init(QObject* widgetObject, QObject* qmlObject) {
+        widgetObject->setUserData(USER_DATA_ID, this);
+        qmlObject->setUserData(USER_DATA_ID, this);
+        qmlObject->setObjectName(uuid.toString());
+        // Make sure we can find it again in the future
+        Q_ASSERT(VrMenu::instance()->findMenuObject(uuid.toString()));
+    }
+};
+
+const int MenuUserData::USER_DATA_ID = QObject::registerUserData();
+
+HIFI_QML_DEF_LAMBDA(VrMenu, [&](QQmlContext* context, QObject* newItem) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QObject * rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
     Q_ASSERT(rootMenu);
-    static_cast<HifiMenu*>(newItem)->setRootMenu(rootMenu);
+    static_cast<VrMenu*>(newItem)->setRootMenu(rootMenu);
     context->setContextProperty("rootMenu", rootMenu);
 });
 
-HifiMenu::HifiMenu(QQuickItem* parent) : QQuickItem(parent), _triggerMapper(this), _toggleMapper(this) {
+VrMenu* VrMenu::_instance{ nullptr };
+
+VrMenu* VrMenu::instance() {
+    if (!_instance) {
+        VrMenu::registerType();
+        VrMenu::load();
+        Q_ASSERT(_instance);
+    }
+    return _instance;
+}
+
+VrMenu::VrMenu(QQuickItem* parent) : QQuickItem(parent) {
+    _instance = this;
     this->setEnabled(false);
-    connect(&_triggerMapper, SIGNAL(mapped(QString)), this, SLOT(onTriggeredByName(const QString &)));
-    connect(&_toggleMapper, SIGNAL(mapped(QString)), this, SLOT(onToggledByName(const QString &)));
 }
 
-void HifiMenu::onTriggeredByName(const QString & name) {
-    qDebug() << name << " triggered";
-    if (_triggerActions.count(name)) {
-        _triggerActions[name]();
-    }
-}
-
-void HifiMenu::onToggledByName(const QString & name) {
-    qDebug() << name << " toggled";
-    if (_toggleActions.count(name)) {
-        QObject* menu = findMenuObject(name);
-        bool checked = menu->property("checked").toBool();
-        _toggleActions[name](checked);
-    }
-}
-
-void HifiMenu::setToggleAction(const QString & name, std::function<void(bool)> f) {
-    _toggleActions[name] = f;
-}
-
-void HifiMenu::setTriggerAction(const QString & name, std::function<void()> f) {
-    _triggerActions[name] = f;
-}
-
+// QML helper functions
 QObject* addMenu(QObject* parent, const QString & text) {
     // FIXME add more checking here to ensure no name conflicts
     QVariant returnedValue;
@@ -50,7 +67,7 @@ QObject* addMenu(QObject* parent, const QString & text) {
         Q_ARG(QVariant, text));
     QObject* result = returnedValue.value<QObject*>();
     if (result) {
-        result->setObjectName(text + MENU_SUFFIX);
+        result->setObjectName(text);
     }
     return result;
 }
@@ -67,236 +84,109 @@ QObject* addItem(QObject* parent, const QString& text) {
     return result;
 }
 
-const QObject* HifiMenu::findMenuObject(const QString & menuOption) const {
+const QObject* VrMenu::findMenuObject(const QString & menuOption) const {
     if (menuOption.isEmpty()) {
         return _rootMenu;
     }
-    const QObject* result = _rootMenu->findChild<QObject*>(menuOption + MENU_SUFFIX);
+    const QObject* result = _rootMenu->findChild<QObject*>(menuOption);
     return result;
 }
 
-QObject* HifiMenu::findMenuObject(const QString & menuOption) {
+QObject* VrMenu::findMenuObject(const QString & menuOption) {
     if (menuOption.isEmpty()) {
         return _rootMenu;
     }
-    QObject* result = _rootMenu->findChild<QObject*>(menuOption + MENU_SUFFIX);
+    QObject* result = _rootMenu->findChild<QObject*>(menuOption);
     return result;
 }
 
-void HifiMenu::addMenu(const QString & parentMenu, const QString & menuOption) {
-    QObject* parent = findMenuObject(parentMenu);
-    QObject* result = ::addMenu(parent, menuOption);
-    Q_ASSERT(result);
-    result->setObjectName(menuOption + MENU_SUFFIX);
-    Q_ASSERT(findMenuObject(menuOption));
-}
-
-void HifiMenu::removeMenu(const QString& menuName) {
-    QObject* menu = findMenuObject(menuName);
-    Q_ASSERT(menu);
-    Q_ASSERT(menu != _rootMenu);
-    QMetaObject::invokeMethod(menu->parent(), "removeItem",
-        Q_ARG(QVariant, QVariant::fromValue(menu)));
-}
-
-bool HifiMenu::menuExists(const QString& menuName) const {
-    return findMenuObject(menuName);
-}
-
-void HifiMenu::addSeparator(const QString& parentMenu, const QString& separatorName) {
-    QObject * parent = findMenuObject(parentMenu);
-    bool invokeResult = QMetaObject::invokeMethod(parent, "addSeparator", Qt::DirectConnection);
-    Q_ASSERT(invokeResult);
-    addItem(parentMenu, separatorName);
-    enableItem(separatorName, false);
-}
-
-void HifiMenu::removeSeparator(const QString& parentMenu, const QString& separatorName) {
-}
-
-void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption) {
-    QObject* parent = findMenuObject(parentMenu);
-    Q_ASSERT(parent);
-    QObject* result = ::addItem(parent, menuOption);
-    Q_ASSERT(result);
-    result->setObjectName(menuOption + MENU_SUFFIX);
-    Q_ASSERT(findMenuObject(menuOption));
-
-    _triggerMapper.setMapping(result, menuOption);
-    connect(result, SIGNAL(triggered()), &_triggerMapper, SLOT(map()));
-
-    _toggleMapper.setMapping(result, menuOption);
-    connect(result, SIGNAL(toggled(bool)), &_toggleMapper, SLOT(map()));
-}
-
-void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption, std::function<void()> f) {
-    setTriggerAction(menuOption, f);
-    addItem(parentMenu, menuOption);
-}
-
-void HifiMenu::addItem(const QString & parentMenu, const QString & menuOption, QObject* receiver, const char* slot) {
-    addItem(parentMenu, menuOption);
-    connectItem(menuOption, receiver, slot);
-}
-
-void HifiMenu::removeItem(const QString& menuOption) {
-    removeMenu(menuOption);
-}
-
-bool HifiMenu::itemExists(const QString& menuName, const QString& menuitem) const {
-    return findMenuObject(menuName);
-}
-
-void HifiMenu::triggerItem(const QString& menuOption) {
-    QObject* menuItem = findMenuObject(menuOption);
-    Q_ASSERT(menuItem);
-    Q_ASSERT(menuItem != _rootMenu);
-    QMetaObject::invokeMethod(menuItem, "trigger");
-}
-
-QHash<QString, QString> warned;
-void warn(const QString & menuOption) {
-    if (!warned.contains(menuOption)) {
-        warned[menuOption] = menuOption;
-        qWarning() << "No menu item: " << menuOption;
-    }
-}
-
-bool HifiMenu::isChecked(const QString& menuOption) const {
-    const QObject* menuItem = findMenuObject(menuOption);
-    if (!menuItem) {
-        warn(menuOption); 
-        return false;
-    }
-    return menuItem->property("checked").toBool();
-}
-
-void HifiMenu::setChecked(const QString& menuOption, bool isChecked) {
-    QObject* menuItem = findMenuObject(menuOption);
-    if (!menuItem) {
-        warn(menuOption);
-        return;
-    }
-    if (menuItem->property("checked").toBool() != isChecked) {
-        menuItem->setProperty("checked", QVariant::fromValue(isChecked));
-        Q_ASSERT(menuItem->property("checked").toBool() == isChecked);
-    }
-}
-
-void HifiMenu::setCheckable(const QString& menuOption, bool checkable) {
-    QObject* menuItem = findMenuObject(menuOption);
-    if (!menuItem) {
-        warn(menuOption);
-        return;
-    }
-    
-    menuItem->setProperty("checkable", QVariant::fromValue(checkable));
-    Q_ASSERT(menuItem->property("checkable").toBool() == checkable);
-}
-
-void HifiMenu::setItemText(const QString& menuOption, const QString& text) {
-    QObject* menuItem = findMenuObject(menuOption);
-    if (!menuItem) {
-        warn(menuOption);
-        return;
-    }
-    if (menuItem->property("type").toInt() == 2) {
-        menuItem->setProperty("title", QVariant::fromValue(text));
-    } else {
-        menuItem->setProperty("text", QVariant::fromValue(text));
-    }
-}
-
-void HifiMenu::setRootMenu(QObject* rootMenu) {
+void VrMenu::setRootMenu(QObject* rootMenu) {
     _rootMenu = rootMenu;
 }
 
-void HifiMenu::enableItem(const QString & menuOption, bool enabled) {
-    QObject* menuItem = findMenuObject(menuOption);
-    if (!menuItem) {
-        warn(menuOption);
-        return;
+void VrMenu::addMenu(QMenu* menu) {
+    Q_ASSERT(!MenuUserData::forObject(menu));
+    QObject * parent = menu->parent();
+    QObject * qmlParent;
+    if (dynamic_cast<QMenu*>(parent)) {
+        MenuUserData* userData = MenuUserData::forObject(parent);
+        qmlParent = findMenuObject(userData->uuid.toString());
+    } else if (dynamic_cast<QMenuBar*>(parent)) {
+        qmlParent = _rootMenu;
+    } else {
+        Q_ASSERT(false);
     }
-    menuItem->setProperty("enabled", QVariant::fromValue(enabled));
+    QObject* result = ::addMenu(qmlParent, menu->title());
+    new MenuUserData(menu, result);
 }
 
-void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked) {
-    addItem(parentMenu, menuOption);
-    setCheckable(menuOption);
-    if (checked) {
-        setChecked(menuOption, checked);
-    }
+void updateQmlItemFromAction(QObject* target, QAction* source) {
+    target->setProperty("checkable", source->isCheckable());
+    target->setProperty("enabled", source->isEnabled());
+    target->setProperty("visible", source->isVisible());
+    target->setProperty("text", source->text());
+    target->setProperty("checked", source->isChecked());
 }
 
-void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked, std::function<void(bool)> f) {
-    setToggleAction(menuOption, f);
-    addCheckableItem(parentMenu, menuOption, checked);
+void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
+    new MenuUserData(action, qmlAction);
+    updateQmlItemFromAction(qmlAction, action);
+    QObject::connect(action, &QAction::changed, [=] {
+        updateQmlItemFromAction(qmlAction, action);
+    });
+    QObject::connect(action, &QAction::toggled, [=](bool checked) {
+        qmlAction->setProperty("checked", checked);
+    });
+    QObject::connect(qmlAction, SIGNAL(triggered()), action, SLOT(trigger()));
 }
 
-void HifiMenu::setItemVisible(const QString& menuOption, bool visible) {
-    QObject* result = findMenuObject(menuOption);
-    if (result) {
-        result->setProperty("visible", visible);
-    }
-}
-
-bool HifiMenu::isItemVisible(const QString& menuOption) {
-    QObject* result = findMenuObject(menuOption);
-    if (result) {
-        return result->property("visible").toBool();
-    }
-    return false;
-}
-
-void HifiMenu::setItemShortcut(const QString& menuOption, const QString& shortcut) {
-    QObject* result = findMenuObject(menuOption);
-    if (result) {
-        result->setProperty("shortcut", shortcut);
-    }
-}
-
-QString HifiMenu::getItemShortcut(const QString& menuOption) {
-    QObject* result = findMenuObject(menuOption);
-    if (result) {
-        return result->property("shortcut").toString();
-    }
-    return QString();
-}
-
-void HifiMenu::addCheckableItem(const QString& parentMenu, const QString& menuOption, bool checked, QObject* receiver, const char* slot) {
-    addCheckableItem(parentMenu, menuOption, checked);
-    connectItem(menuOption, receiver, slot);
-}
-
-void HifiMenu::connectCheckable(const QString& menuOption, QObject* receiver, const char* slot) {
-    QObject* result = findMenuObject(menuOption);
-    connect(result, SIGNAL(toggled(bool)), receiver, slot);
-}
-
-void HifiMenu::connectItem(const QString& menuOption, QObject* receiver, const char* slot) {
-    QObject* result = findMenuObject(menuOption);
-    connect(result, SIGNAL(triggered()), receiver, slot);
-}
-
-void HifiMenu::setExclusiveGroup(const QString& menuOption, const QString& groupName) {
-    static const QString GROUP_SUFFIX{ "__Group" };
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QObject* group = offscreenUi->getRootItem()->findChild<QObject*>(groupName + GROUP_SUFFIX);
-    if (!group) {
-        group = offscreenUi->load("ExclusiveGroup.qml");
-        Q_ASSERT(group);
-    }
-    QObject* menuItem = findMenuObject(menuOption);
-    bool result = menuItem->setProperty("text", QVariant::fromValue(group));
+void VrMenu::addAction(QMenu* menu, QAction* action) {
+    Q_ASSERT(!MenuUserData::forObject(action));
+    Q_ASSERT(MenuUserData::forObject(menu));
+    MenuUserData* userData = MenuUserData::forObject(menu);
+    QObject* parent = findMenuObject(userData->uuid.toString());
+    Q_ASSERT(parent);
+    QObject* result = ::addItem(parent, action->text());
     Q_ASSERT(result);
+    // Bind the QML and Widget together
+    bindActionToQmlAction(result, action);
 }
 
-bool HifiMenu::connectAction(int action, QObject * receiver, const char * slot) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QObject* rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("AllActions");
-    QString name = "HifiAction_" + QVariant(action).toString();
-    QObject* quitAction = rootMenu->findChild<QObject*>(name);
-    connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
-    return true;
+void VrMenu::insertAction(QAction* before, QAction* action) {
+    QObject* beforeQml{ nullptr };
+    {
+        MenuUserData* beforeUserData = MenuUserData::forObject(before);
+        Q_ASSERT(beforeUserData);
+        beforeQml = findMenuObject(beforeUserData->uuid.toString());
+    }
+
+    QObject* menu = beforeQml->parent();
+    int index{ -1 };
+    QVariant itemsVar = menu->property("items");
+    QList<QVariant> items = itemsVar.toList();
+    // FIXME add more checking here to ensure no name conflicts
+    for (index = 0; index < items.length(); ++index) {
+        QObject* currentQmlItem = items.at(index).value<QObject*>();
+        if (currentQmlItem == beforeQml) {
+            break;
+        }
+    }
+
+    QObject* result{ nullptr };
+    if (index < 0 || index >= items.length()) {
+        result = ::addItem(menu, action->text());
+    } else {
+        QQuickMenuItem* returnedValue{ nullptr };
+        bool invokeResult = QMetaObject::invokeMethod(menu, "insertItem", Qt::DirectConnection,
+            Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+            Q_ARG(int, index), Q_ARG(QString, action->text()));
+        Q_ASSERT(invokeResult);
+        result = reinterpret_cast<QObject*>(returnedValue);
+    }
+    Q_ASSERT(result);
+    bindActionToQmlAction(result, action);
 }
 
+void VrMenu::removeAction(QAction* action) {
+    // FIXME implement
+}

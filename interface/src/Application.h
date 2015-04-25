@@ -623,6 +623,9 @@ private:
 
     void checkSkeleton();
 
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
+    
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;

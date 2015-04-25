@@ -6,12 +6,11 @@ import QtQuick.Controls 1.3
 import "controls"
 
 Root {
-	id: root
+    id: root
     anchors.fill: parent
     onParentChanged: {
-    	forceActiveFocus();
+        forceActiveFocus();
     }
-
     Button {
         id: messageBox
         anchors.right: createDialog.left
@@ -38,7 +37,7 @@ Root {
     }
 
     Keys.onPressed: {
-        console.log(event.key);
+        console.log("Key press root")
     }
 }
 

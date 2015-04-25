@@ -5,10 +5,10 @@ import QtQuick.Controls.Styles 1.3
 import "controls"
 import "styles"
 
-Hifi.HifiMenu {
+Hifi.VrMenu {
     id: root
     anchors.fill: parent
-    objectName: "HifiMenu"
+    objectName: "VrMenu"
     enabled: false
     opacity: 0.0
     property int animationDuration: 200
@@ -17,7 +17,7 @@ Hifi.HifiMenu {
 
     onEnabledChanged: {
         if (enabled && columns.length == 0) {
-            pushColumn(rootMenu.menus);
+            pushColumn(rootMenu.items);
         }
         opacity = enabled ? 1.0 : 0.0
         if (enabled) {
@@ -47,13 +47,21 @@ Hifi.HifiMenu {
     
     property var menuBuilder: Component {
         Border {
+            Component.onCompleted: {
+                menuDepth = root.models.length - 1
+                if (menuDepth == 0) {
+                    x = lastMousePosition.x - 20
+                    y = lastMousePosition.y - 20
+                } else {
+                    var lastColumn = root.columns[menuDepth - 1] 
+                    x = lastColumn.x + 64;
+                    y = lastMousePosition.y - height / 2;
+                }
+            }
             SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
-            x: root.models.length == 1 ? 
-                    (root.width / 2 - width / 2) :
-                        root.columns[root.models.length - 2].x + 60; 
-            anchors.verticalCenter: parent.verticalCenter
             border.color: hifiPalette.hifiBlue
             color: sysPalette.window
+            property int menuDepth
 
             ListView {
                 spacing: 6
@@ -186,7 +194,25 @@ Hifi.HifiMenu {
                 anchors.top: parent.top
                 anchors.topMargin: 0
                 width: listView.width
+                hoverEnabled: true
+                Timer {
+                    id: timer
+                    interval: 1000
+                    onTriggered: parent.select();
+                }
+                onEntered: {
+                    if (source.type == 2 && enabled) {
+                        timer.start()
+                    }
+                }
+                onExited: {
+                    timer.stop()
+                }
                 onClicked: {
+                    select();
+                }
+                function select() {
+                    timer.stop();
                     listView.currentIndex = listViewIndex
                     parent.root.selectItem(parent.source);
                 }

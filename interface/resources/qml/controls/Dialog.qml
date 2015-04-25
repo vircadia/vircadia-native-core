@@ -17,7 +17,7 @@ Item {
     HifiPalette { id: hifiPalette }
     SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
     x: parent ? parent.width / 2 - width / 2 : 0
-	y: parent ? parent.height / 2 - height / 2 : 0
+    y: parent ? parent.height / 2 - height / 2 : 0
 
     property int animationDuration: 400
     property bool destroyOnInvisible: false

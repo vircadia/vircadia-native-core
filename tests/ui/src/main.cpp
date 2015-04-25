@@ -320,7 +320,7 @@ public:
         glDisable(GL_DEPTH_TEST);
 
         MessageDialog::registerType();
-        HifiMenu::registerType();
+        VrMenu::registerType();
         qmlRegisterType<MenuConstants>("Hifi", 1, 0, "MenuConstants");
 
 
@@ -348,10 +348,9 @@ public:
 #else 
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
         offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->load(QUrl("Menu.qml"));
+        offscreenUi->load(QUrl("InterfaceMenu.qml"));
         // Requires a root menu to have been loaded before it can load
-        HifiMenu::load();
-        HifiMenu::connectAction(MenuConstants::Quit, qApp, SLOT(quit()));
+        VrMenu::load();
 #endif
         installEventFilter(offscreenUi.data());
         offscreenUi->resume();
@@ -407,10 +406,6 @@ protected:
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                HifiMenu * menu = offscreenUi->findChild<HifiMenu*>();
-                menu->addItem("", "Test 3");
-                menu->addItem("File", "Test 3");
             }
             break;
         case Qt::Key_K:
@@ -433,7 +428,7 @@ protected:
     QQmlContext* menuContext{ nullptr };
     void keyReleaseEvent(QKeyEvent *event) {
         if (_altPressed && Qt::Key_Alt == event->key()) {
-            HifiMenu::toggle();
+            VrMenu::toggle();
         }
     }
 

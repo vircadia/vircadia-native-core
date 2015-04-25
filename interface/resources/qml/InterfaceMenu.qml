@@ -2,6 +2,7 @@ import QtQuick 2.4
 import QtQuick.Controls 1.3
 import Hifi 1.0
 
+// Currently for testing a pure QML replacement menu
 Item {
     Item {
         objectName: "AllActions"
@@ -10,7 +11,7 @@ Item {
             objectName: "HifiAction_" + MenuConstants.AboutApp
             text: qsTr("About Interface")
         }
-    
+
         //
         // File Menu
         //
@@ -26,7 +27,7 @@ Item {
             //shortcut: StandardKey.Quit
             shortcut: "Ctrl+Q"
         }
-    
+
         // Scripts
         Action {
             id: loadScript
@@ -58,7 +59,7 @@ Item {
             objectName: "HifiAction_" + MenuConstants.StopAllScripts
             text: qsTr("Stop All Scripts")
         }
-    
+
         // Locations
         Action {
             id: bookmarkLocation
@@ -75,7 +76,7 @@ Item {
             objectName: "HifiAction_" + MenuConstants.AddressBar
             text: qsTr("Show Address Bar")
         }
-    
+
         //
         // Edit menu
         //
@@ -84,13 +85,13 @@ Item {
             text: "Undo"
             shortcut: StandardKey.Undo
         }
-    
+
         Action {
             id: redo
             text: "Redo"
             shortcut: StandardKey.Redo
         }
-    
+
         Action {
             id: animations
             objectName: "HifiAction_" + MenuConstants.Animations
@@ -157,7 +158,7 @@ Item {
             objectName: "HifiAction_" + MenuConstants.ResetSensors
             text: qsTr("Reset Sensors")
         }
-    
+
         
         
         
@@ -853,7 +854,7 @@ Item {
         }
     }
 
-    MenuBar {
+    Menu {
         objectName: "rootMenu";
         Menu {
             title: "File"

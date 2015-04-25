@@ -52,8 +52,6 @@
 #include <QMimeData>
 #include <QMessageBox>
 #include <QJsonDocument>
-#include <QQmlNetworkAccessManagerFactory>
-#include <QThreadStorage>
 
 #include <AddressManager.h>
 #include <AccountManager.h>
@@ -65,6 +63,7 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
+#include <HifiMenu.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <ModelEntityItem.h>
@@ -135,7 +134,6 @@
 #include "ui/DialogsManager.h"
 #include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
-#include "ui/MarketplaceDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
@@ -510,6 +508,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
+    _fullscreenMenuWidget->setParent(_glWidget);
+    _menuBarHeight = Menu::getInstance()->height();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         setFullscreen(true);  // Initialize menu bar show/hide
     }
@@ -730,6 +730,10 @@ void Application::initializeGL() {
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _glWidget->makeCurrent();
 
+    // call Menu getInstance static method to set up the menu
+    // Needs to happen AFTER the QML UI initialization
+    _window->setMenuBar(Menu::getInstance());
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -764,9 +768,7 @@ void Application::initializeGL() {
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
-    MarketplaceDialog::registerType();
     MessageDialog::registerType();
-    Menu::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -902,7 +904,9 @@ void Application::runTests() {
 }
 
 void Application::audioMuteToggled() {
-    Menu::getInstance()->setIsOptionChecked(MenuOption::MuteAudio, DependencyManager::get<AudioClient>()->isMuted());
+    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
+    Q_CHECK_PTR(muteAction);
+    muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
 }
 
 void Application::aboutApp() {
@@ -1067,12 +1071,10 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-static bool altPressed;
-static bool ctrlPressed;
+static bool _altPressed{ false };
 
 void Application::keyPressEvent(QKeyEvent* event) {
-    altPressed = event->key() == Qt::Key_Alt;
-    ctrlPressed = event->key() == Qt::Key_Control;
+    _altPressed = event->key() == Qt::Key_Alt;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1162,9 +1164,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_Backslash:
-                MarketplaceDialog::show();
-
-                //Menu::getInstance()->triggerOption(MenuOption::Chat);
+                Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
             case Qt::Key_Up:
@@ -1329,13 +1329,15 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (event->key() == Qt::Key_Alt && altPressed && _window->isActiveWindow()) {
-        Menu::toggle();
+    if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
+#ifndef DEBUG
+        if (OculusManager::isConnected()) {
+#endif
+            VrMenu::toggle();
+#ifndef DEBUG
+        }
+#endif
     }
-    if (event->key() == Qt::Key_Control && ctrlPressed && _window->isActiveWindow()) {
-        Menu::toggle();
-    }
-    ctrlPressed = altPressed = false;
 
     _keysPressed.remove(event->key());
 
@@ -1345,6 +1347,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
     }
+
 
     switch (event->key()) {
         case Qt::Key_E:
@@ -1442,6 +1445,18 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) 
+        && !Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        // Show/hide menu bar in fullscreen
+        if (event->globalY() > _menuBarHeight) {
+            _fullscreenMenuWidget->setFixedHeight(0);
+            Menu::getInstance()->setFixedHeight(0);
+        } else {
+            _fullscreenMenuWidget->setFixedHeight(_menuBarHeight);
+            Menu::getInstance()->setFixedHeight(_menuBarHeight);
+        }
+    }
+
     _entities.mouseMoveEvent(event, deviceID);
     
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -1449,6 +1464,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
+    
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -1735,6 +1751,34 @@ void Application::setFullscreen(bool fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
     }
 
+// The following code block is useful on platforms that can have a visible
+// app menu in a fullscreen window.  However the OSX mechanism hides the
+// application menu for fullscreen apps, so the check is not required.
+#ifndef Q_OS_MAC
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        if (fullscreen) {
+            // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
+            // So set height instead.
+            _window->menuBar()->setMaximumHeight(0);
+        } else {
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
+    } else {
+        if (fullscreen) {
+            // Move menu to a QWidget floating above _glWidget so that show/hide doesn't adjust viewport.
+            _menuBarHeight = Menu::getInstance()->height();
+            Menu::getInstance()->setParent(_fullscreenMenuWidget);
+            Menu::getInstance()->setFixedWidth(_window->windowHandle()->screen()->size().width());
+            _fullscreenMenuWidget->show();
+        } else {
+            // Restore menu to being part of MainWindow.
+            _fullscreenMenuWidget->hide();
+            _window->setMenuBar(Menu::getInstance());
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
+    }
+#endif
+
     // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
     // https://bugreports.qt.io/browse/QTBUG-41883
     // Known issue: Top-level menu items don't highlight when cursor hovers. This is probably a side-effect of the work-around.
@@ -1987,18 +2031,16 @@ void Application::init() {
 
     OculusManager::connect();
     if (OculusManager::isConnected()) {
-        // perform as a post-event so that the code is run after init is complete
-        qApp->postLambdaEvent([] {
-            Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
-        });
+        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
+                                  "trigger",
+                                  Qt::QueuedConnection);
     }
 
     TV3DManager::connect();
     if (TV3DManager::isConnected()) {
-        // perform as a post-event so that the code is run after init is complete
-        qApp->postLambdaEvent([] {
-            Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
-        });
+        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
+                                  "trigger",
+                                  Qt::QueuedConnection);
     }
 
     _timerStart.start();

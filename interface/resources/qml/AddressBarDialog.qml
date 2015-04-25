@@ -48,7 +48,7 @@ Dialog {
                 helperText: "domain, location, @user, /x,y,z"
                 anchors.margins: 8
                 onAccepted: {
-                	event.accepted
+                    event.accepted
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }

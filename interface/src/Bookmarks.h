@@ -19,6 +19,7 @@
 class QAction;
 class QMenu;
 class Menu;
+class MenuWrapper;
 
 class Bookmarks: public QObject {
     Q_OBJECT
@@ -26,16 +27,19 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
-    void setupMenus(const QString & menu);
+    void setupMenus(Menu* menubar, MenuWrapper* menu);
 
 private slots:
     void bookmarkLocation();
+    void teleportToBookmark();
     void deleteBookmark();
     
 private:
-    // FIXME bookmarks should be more categorizable
-    // Can we leverage a system browser favorites API?
     QVariantMap _bookmarks;  // { name: address, ... }
+    
+    QPointer<MenuWrapper> _bookmarksMenu;
+    QPointer<QAction> _deleteBookmarksAction;
+
     const QString BOOKMARKS_FILENAME = "bookmarks.json";
     QString _bookmarksFilename;
     
@@ -47,8 +51,8 @@ private:
     void persistToFile();
 
     void enableMenuItems(bool enabled);
-    void addLocationToMenu(QString& name, QString& address);
-    void removeLocationFromMenu(QString& name);
+    void addLocationToMenu(Menu* menubar, QString& name, QString& address);
+    void removeLocationFromMenu(Menu* menubar, QString& name);
 };
 
 #endif // hifi_Bookmarks_h

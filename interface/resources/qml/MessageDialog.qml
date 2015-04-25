@@ -9,6 +9,7 @@ Dialog {
     property real spacing: 8
     property real outerSpacing: 16
 
+
     destroyOnCloseButton: true
     destroyOnInvisible: true
     implicitHeight: content.implicitHeight + outerSpacing * 2 + 48
@@ -35,7 +36,7 @@ Dialog {
         
     onEnabledChanged: {
         if (enabled) {
-        	root.forceActiveFocus();
+            root.forceActiveFocus();
         }
     }
 
@@ -334,7 +335,7 @@ Dialog {
             case Qt.Key_Period:
                 if (Qt.platform.os === "osx") {
                     event.accepted = true
-                	content.reject()
+                    content.reject()
                 }
                 break
         } else switch (event.key) {
@@ -346,7 +347,7 @@ Dialog {
 
             case Qt.Key_Enter:
             case Qt.Key_Return:
-            	console.log("Accepting");
+                console.log("Accepting");
                 event.accepted = true
                 content.accept()
                 break
