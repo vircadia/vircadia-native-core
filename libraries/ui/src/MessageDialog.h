@@ -47,7 +47,7 @@ public:
         NRoles
     };
 
-    MessageDialog(QQuickItem *parent = 0);
+    MessageDialog(QQuickItem* parent = 0);
     virtual ~MessageDialog();
 
     QString text() const;
@@ -57,9 +57,9 @@ public:
 
 public slots:
     virtual void setVisible(bool v);
-    void setText(const QString &arg);
-    void setInformativeText(const QString &arg);
-    void setDetailedText(const QString &arg);
+    void setText(const QString& arg);
+    void setInformativeText(const QString& arg);
+    void setDetailedText(const QString& arg);
     void setIcon(Icon icon);
     void setStandardButtons(StandardButtons buttons);
     void setResultCallback(OffscreenUi::ButtonCallback callback);
@@ -98,7 +98,3 @@ private:
 };
 
 #endif // hifi_MessageDialog_h
-
-
-
-

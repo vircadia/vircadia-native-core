@@ -59,7 +59,7 @@ protected:
 
 public:    
     QString title() const;
-    void setTitle(const QString &arg);
+    void setTitle(const QString& title);
 
 signals:
     void accepted();
