@@ -17,7 +17,7 @@ Hifi.HifiMenu {
 
     onEnabledChanged: {
         if (enabled && columns.length == 0) {
-            pushColumn(rootMenu.items);
+            pushColumn(rootMenu.menus);
         }
         opacity = enabled ? 1.0 : 0.0
         if (enabled) {
@@ -42,9 +42,95 @@ Hifi.HifiMenu {
     }
 
 
-    property var menu: Menu {}
     property var models: []
     property var columns: []
+    
+    property var menuBuilder: Component {
+        Border {
+            SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
+            x: root.models.length == 1 ? 
+                    (root.width / 2 - width / 2) :
+                        root.columns[root.models.length - 2].x + 60; 
+            anchors.verticalCenter: parent.verticalCenter
+            border.color: hifiPalette.hifiBlue
+            color: sysPalette.window
+
+            ListView {
+                spacing: 6
+                property int outerMargin: 8 
+                property real minWidth: 0
+                anchors.fill: parent
+                anchors.margins: outerMargin
+                id: listView
+                height: root.height
+                currentIndex: -1
+
+                onCountChanged: {
+                    recalculateSize()
+                }                 
+                
+                function recalculateSize() {
+                    var newHeight = 0
+                    var newWidth = minWidth;
+                    for (var i = 0; i < children.length; ++i) {
+                        var item = children[i];
+                        newHeight += item.height
+                    }
+                    parent.height = newHeight + outerMargin * 2;
+                    parent.width = newWidth + outerMargin * 2
+                }
+            
+                highlight: Rectangle {
+                    width: listView.minWidth - 32; 
+                    height: 32
+                    color: sysPalette.highlight
+                    y: (listView.currentItem) ? listView.currentItem.y : 0;
+                    x: 32
+                    Behavior on y { 
+                          NumberAnimation {
+                              duration: 100
+                              easing.type: Easing.InOutQuint
+                          }
+                    }
+                }
+           
+
+                property int columnIndex: root.models.length - 1 
+                model: root.models[columnIndex]
+                delegate: Loader {
+                    id: loader
+                    sourceComponent: root.itemBuilder
+                    Binding {
+                        target: loader.item
+                        property: "root"
+                        value: root
+                        when: loader.status == Loader.Ready
+                    }        
+                    Binding {
+                        target: loader.item
+                        property: "source"
+                        value: modelData
+                        when: loader.status == Loader.Ready
+                    }        
+                    Binding {
+                        target: loader.item
+                        property: "listViewIndex"
+                        value: index
+                        when: loader.status == Loader.Ready
+                    }        
+                    Binding {
+                        target: loader.item
+                        property: "listView"
+                        value: listView
+                        when: loader.status == Loader.Ready
+                    }        
+                }
+
+            }
+                
+        }
+    }
+    
     property var itemBuilder: Component {
         Text {
             SystemPalette { id: sp; colorGroup: SystemPalette.Active }
@@ -93,6 +179,8 @@ Hifi.HifiMenu {
             MouseArea {
                 id: mouseArea
                 acceptedButtons: Qt.LeftButton
+                anchors.left: parent.left
+                anchors.leftMargin: -32
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
                 anchors.top: parent.top
@@ -106,91 +194,6 @@ Hifi.HifiMenu {
         }
     }
 
-        
-    property var menuBuilder: Component {
-        Border {
-            SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
-            x: root.models.length == 1 ? 
-                    (root.width / 2 - width / 2) :
-                        root.columns[root.models.length - 2].x + 60; 
-            anchors.verticalCenter: parent.verticalCenter
-            border.color: hifiPalette.hifiBlue
-            color: sysPalette.window
-
-            ListView {
-                spacing: 6
-                property int outerMargin: 8 
-                property real minWidth: 0
-                anchors.fill: parent
-                anchors.margins: outerMargin
-                id: listView
-                height: root.height
-                currentIndex: -1
-
-                onCountChanged: {
-                    recalculateSize()
-                }                 
-                
-                function recalculateSize() {
-                    var newHeight = 0
-                    var newWidth = minWidth;
-                    for (var i = 0; i < children.length; ++i) {
-                        var item = children[i];
-                        newHeight += item.height
-                    }
-                    parent.height = newHeight + outerMargin * 2;
-                    parent.width = newWidth + outerMargin * 2
-                }
-            
-                highlight: Rectangle {
-                    width: listView.minWidth; height: 32
-                    color: sysPalette.highlight
-                    y: (listView.currentItem) ? listView.currentItem.y : 0;
-                    x: 32
-                    Behavior on y { 
-                          NumberAnimation {
-                              duration: 100
-                              easing.type: Easing.InOutQuint
-                          }
-                    }
-                }
-           
-
-                property int columnIndex: root.models.length - 1 
-                model: root.models[columnIndex]
-                delegate: Loader {
-                    id: loader
-                    sourceComponent: root.itemBuilder
-                    Binding {
-                        target: loader.item
-                        property: "root"
-                        value: root
-                        when: loader.status == Loader.Ready
-                    }        
-                    Binding {
-                        target: loader.item
-                        property: "source"
-                        value: modelData
-                        when: loader.status == Loader.Ready
-                    }        
-                    Binding {
-                        target: loader.item
-                        property: "listViewIndex"
-                        value: index
-                        when: loader.status == Loader.Ready
-                    }        
-                    Binding {
-                        target: loader.item
-                        property: "listView"
-                        value: listView
-                        when: loader.status == Loader.Ready
-                    }        
-                }
-
-            }
-                
-        }
-    }
  
 
     function lastColumn() {

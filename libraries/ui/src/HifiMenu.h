@@ -23,6 +23,9 @@ class HifiMenu : public QQuickItem {
     HIFI_QML_DECL_LAMBDA
 
 public:
+
+    static bool connectAction(int action, QObject * receiver, const char * slot);
+
     HifiMenu(QQuickItem* parent = nullptr);
 
     void setToggleAction(const QString& name, std::function<void(bool)> f);

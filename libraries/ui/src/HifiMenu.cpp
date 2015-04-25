@@ -277,3 +277,26 @@ void HifiMenu::connectItem(const QString& menuOption, QObject* receiver, const c
     QObject* result = findMenuObject(menuOption);
     connect(result, SIGNAL(triggered()), receiver, slot);
 }
+
+void HifiMenu::setExclusiveGroup(const QString& menuOption, const QString& groupName) {
+    static const QString GROUP_SUFFIX{ "__Group" };
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    QObject* group = offscreenUi->getRootItem()->findChild<QObject*>(groupName + GROUP_SUFFIX);
+    if (!group) {
+        group = offscreenUi->load("ExclusiveGroup.qml");
+        Q_ASSERT(group);
+    }
+    QObject* menuItem = findMenuObject(menuOption);
+    bool result = menuItem->setProperty("text", QVariant::fromValue(group));
+    Q_ASSERT(result);
+}
+
+bool HifiMenu::connectAction(int action, QObject * receiver, const char * slot) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    QObject* rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("AllActions");
+    QString name = "HifiAction_" + QVariant(action).toString();
+    QObject* quitAction = rootMenu->findChild<QObject*>(name);
+    connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
+    return true;
+}
+

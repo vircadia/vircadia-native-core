@@ -152,13 +152,12 @@ void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
 }
 
 QObject* OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    qDebug() << "Loading QML from URL " << qmlSource;
     _qmlComponent->loadUrl(qmlSource);
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
-        [this, f](QQmlComponent::Status){
-            finishQmlLoad(f);
-        });
+            [this, f](QQmlComponent::Status){
+                finishQmlLoad(f);
+            });
         return nullptr;
     }
     

@@ -12,7 +12,7 @@
 #include "MarketplaceDialog.h"
 #include "DependencyManager.h"
 
-QML_DIALOG_DEF(MarketplaceDialog)
+HIFI_QML_DEF(MarketplaceDialog)
 
 
 MarketplaceDialog::MarketplaceDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {

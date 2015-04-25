@@ -17,7 +17,7 @@
 class MarketplaceDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
-    QML_DIALOG_DECL
+    HIFI_QML_DECL
 
 public:
     MarketplaceDialog(QQuickItem *parent = 0);

@@ -761,17 +761,6 @@ void Application::initializeGL() {
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
-class OAuthFactory : public QQmlNetworkAccessManagerFactory {
-    QThreadStorage<OAuthNetworkAccessManager*> oauthNetworkAccessManagers;
-public:
-    virtual QNetworkAccessManager *	create(QObject * parent) {
-        if (!oauthNetworkAccessManagers.hasLocalData()) {
-            oauthNetworkAccessManagers.setLocalData(OAuthNetworkAccessManager::getInstance());
-        }
-        return oauthNetworkAccessManagers.localData();
-    }
-};
-
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();

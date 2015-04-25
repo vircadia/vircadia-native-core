@@ -74,6 +74,171 @@ public:
 };
 
 
+class MenuConstants : public QObject{
+    Q_OBJECT
+    Q_ENUMS(Item)
+
+public:
+    enum Item {
+        AboutApp,
+        AddRemoveFriends,
+        AddressBar,
+        AlignForearmsWithWrists,
+        AlternateIK,
+        AmbientOcclusion,
+        Animations,
+        Atmosphere,
+        Attachments,
+        AudioNoiseReduction,
+        AudioScope,
+        AudioScopeFiftyFrames,
+        AudioScopeFiveFrames,
+        AudioScopeFrames,
+        AudioScopePause,
+        AudioScopeTwentyFrames,
+        AudioStats,
+        AudioStatsShowInjectedStreams,
+        BandwidthDetails,
+        BlueSpeechSphere,
+        BookmarkLocation,
+        Bookmarks,
+        CascadedShadows,
+        CachesSize,
+        Chat,
+        Collisions,
+        Console,
+        ControlWithSpeech,
+        CopyAddress,
+        CopyPath,
+        DecreaseAvatarSize,
+        DeleteBookmark,
+        DisableActivityLogger,
+        DisableLightEntities,
+        DisableNackPackets,
+        DiskCacheEditor,
+        DisplayHands,
+        DisplayHandTargets,
+        DisplayModelBounds,
+        DisplayModelTriangles,
+        DisplayModelElementChildProxies,
+        DisplayModelElementProxy,
+        DisplayDebugTimingDetails,
+        DontDoPrecisionPicking,
+        DontFadeOnOctreeServerChanges,
+        DontRenderEntitiesAsScene,
+        EchoLocalAudio,
+        EchoServerAudio,
+        EditEntitiesHelp,
+        Enable3DTVMode,
+        EnableCharacterController,
+        EnableGlowEffect,
+        EnableVRMode,
+        ExpandMyAvatarSimulateTiming,
+        ExpandMyAvatarTiming,
+        ExpandOtherAvatarTiming,
+        ExpandPaintGLTiming,
+        ExpandUpdateTiming,
+        Faceshift,
+        FilterSixense,
+        FirstPerson,
+        FrameTimer,
+        Fullscreen,
+        FullscreenMirror,
+        GlowWhenSpeaking,
+        NamesAboveHeads,
+        GoToUser,
+        HMDTools,
+        IncreaseAvatarSize,
+        KeyboardMotorControl,
+        LeapMotionOnHMD,
+        LoadScript,
+        LoadScriptURL,
+        LoadRSSDKFile,
+        LodTools,
+        Login,
+        Log,
+        LowVelocityFilter,
+        Mirror,
+        MuteAudio,
+        MuteEnvironment,
+        NoFaceTracking,
+        NoShadows,
+        OctreeStats,
+        OffAxisProjection,
+        OnlyDisplayTopTen,
+        PackageModel,
+        Pair,
+        PipelineWarnings,
+        Preferences,
+        Quit,
+        ReloadAllScripts,
+        RenderBoundingCollisionShapes,
+        RenderFocusIndicator,
+        RenderHeadCollisionShapes,
+        RenderLookAtVectors,
+        RenderSkeletonCollisionShapes,
+        RenderTargetFramerate,
+        RenderTargetFramerateUnlimited,
+        RenderTargetFramerate60,
+        RenderTargetFramerate50,
+        RenderTargetFramerate40,
+        RenderTargetFramerate30,
+        RenderTargetFramerateVSyncOn,
+        RenderResolution,
+        RenderResolutionOne,
+        RenderResolutionTwoThird,
+        RenderResolutionHalf,
+        RenderResolutionThird,
+        RenderResolutionQuarter,
+        RenderAmbientLight,
+        RenderAmbientLightGlobal,
+        RenderAmbientLight0,
+        RenderAmbientLight1,
+        RenderAmbientLight2,
+        RenderAmbientLight3,
+        RenderAmbientLight4,
+        RenderAmbientLight5,
+        RenderAmbientLight6,
+        RenderAmbientLight7,
+        RenderAmbientLight8,
+        RenderAmbientLight9,
+        ResetAvatarSize,
+        ResetSensors,
+        RunningScripts,
+        RunTimingTests,
+        ScriptEditor,
+        ScriptedMotorControl,
+        ShowBordersEntityNodes,
+        ShowIKConstraints,
+        SimpleShadows,
+        SixenseEnabled,
+        SixenseMouseInput,
+        SixenseLasers,
+        ShiftHipsForIdleAnimations,
+        Stars,
+        Stats,
+        StereoAudio,
+        StopAllScripts,
+        SuppressShortTimings,
+        TestPing,
+        ToolWindow,
+        TransmitterDrive,
+        TurnWithHead,
+        UseAudioForMouth,
+        UseCamera,
+        VelocityFilter,
+        VisibleToEveryone,
+        VisibleToFriends,
+        VisibleToNoOne,
+        Wireframe,
+    };
+
+public:
+    MenuConstants(QObject * parent = nullptr) : QObject(parent) {
+
+    }
+};
+
 const QString & getQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
@@ -156,6 +321,8 @@ public:
 
         MessageDialog::registerType();
         HifiMenu::registerType();
+        qmlRegisterType<MenuConstants>("Hifi", 1, 0, "MenuConstants");
+
 
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
         offscreenUi->create(_context);
@@ -181,24 +348,10 @@ public:
 #else 
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
         offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->load(QUrl("RootMenu.qml"));
+        offscreenUi->load(QUrl("Menu.qml"));
+        // Requires a root menu to have been loaded before it can load
         HifiMenu::load();
-        QObject* menuObject = offscreenUi->getRootItem()->findChild<QObject*>("HifiMenu");
-        HifiMenu* menu = offscreenUi->getRootItem()->findChild<HifiMenu*>(); 
-        menu->addMenu("", "File");
-        menu->addItem("File", "Quit", []{
-            QApplication::quit();
-        });
-        menu->addCheckableItem("File", "Toggle", false, [](bool toggled) {
-            qDebug() << "Toggle is " << toggled;
-        });
-        menu->addMenu("", "Edit");
-        menu->addItem("Edit", "Undo");
-        menu->addItem("Edit", "Redo");
-        menu->addItem("Edit", "Copy");
-        menu->addItem("Edit", "Cut");
-        menu->addItem("Edit", "Paste");
-        menu->addMenu("", "Long Menu Name...");
+        HifiMenu::connectAction(MenuConstants::Quit, qApp, SLOT(quit()));
 #endif
         installEventFilter(offscreenUi.data());
         offscreenUi->resume();
