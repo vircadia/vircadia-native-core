@@ -136,9 +136,6 @@ struct Packet {
 
 const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
-const int FPS_TIMER_DELAY = 2000;  // ms
-const int FPS_TIMER_DURATION = 2000;  // ms
-
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -171,9 +168,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastLeftEyeBlink(0.0f),
     _filteredLeftEyeBlink(0.0f),
     _lastRightEyeBlink(0.0f),
-    _filteredRightEyeBlink(0.0f),
-    _isCalculatingFPS(false),
-    _frameCount(0)
+    _filteredRightEyeBlink(0.0f)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -228,19 +223,18 @@ void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStat
 }
 
 void DdeFaceTracker::reset() {
-    _reset = true;
+    if (_udpSocket.state() == QAbstractSocket::BoundState) {
+        _reset = true;
 
-    qDebug() << "[Info] Reset DDE Tracking";
-    const char* DDE_RESET_COMMAND = "reset";
-    _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        qCDebug(interfaceapp) << "DDE Face Tracker: Reset";
 
-    // Log camera FPS after a reset
-    if (!_isCalculatingFPS) {
-        QTimer::singleShot(FPS_TIMER_DELAY, this, SLOT(startFPSTimer()));
-        _isCalculatingFPS = true;
+        const char* DDE_RESET_COMMAND = "reset";
+        _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+        FaceTracker::reset();
+
+        _reset = true;
     }
-
-    _reset = true;
 }
 
 bool DdeFaceTracker::isActive() const {
@@ -419,23 +413,10 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
         _lastMessageReceived = usecsNow;
 
-        // Count frames if timing
-        if (_isCalculatingFPS) {
-            _frameCount++;
-        }
-    
+        FaceTracker::countFrame();
+        
     } else {
         qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
-}
-
-void DdeFaceTracker::startFPSTimer() {
-    _frameCount = 0;
-    QTimer::singleShot(FPS_TIMER_DURATION, this, SLOT(finishFPSTimer()));
-}
-
-void DdeFaceTracker::finishFPSTimer() {
-    qDebug() << "[Info] DDE FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
-    _isCalculatingFPS = false;
 }

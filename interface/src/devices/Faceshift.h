@@ -95,8 +95,6 @@ private slots:
     void noteError(QAbstractSocket::SocketError error);
     void readPendingDatagrams();
     void readFromSocket();        
-    void startFPSTimer();
-    void finishFPSTimer();
 
 private:
     Faceshift();
@@ -154,9 +152,6 @@ private:
     int _mouthSmileRightIndex = 29;
     
     int _jawOpenIndex = 21;
-
-    bool _isCalculatingFPS;
-    int _frameCount;
 };
 
 #endif // hifi_Faceshift_h
