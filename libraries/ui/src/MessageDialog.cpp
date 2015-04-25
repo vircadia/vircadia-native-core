@@ -1,5 +1,4 @@
 //
-//
 //  MessageDialog.cpp
 //
 //  Created by Bradley Austin Davis on 2015/04/14
@@ -12,7 +11,7 @@
 
 HIFI_QML_DEF(MessageDialog)
 
-MessageDialog::MessageDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
+MessageDialog::MessageDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     _buttons = StandardButtons(Ok | Cancel);
 }
 
@@ -39,21 +38,21 @@ void MessageDialog::setVisible(bool v) {
     OffscreenQmlDialog::setVisible(v);
 }
 
-void MessageDialog::setText(const QString &arg) {
+void MessageDialog::setText(const QString& arg) {
     if (arg != _text) {
         _text = arg;
         emit textChanged();
     }
 }
 
-void MessageDialog::setInformativeText(const QString &arg) {
+void MessageDialog::setInformativeText(const QString& arg) {
     if (arg != _informativeText) {
         _informativeText = arg;
         emit informativeTextChanged();
     }
 }
 
-void MessageDialog::setDetailedText(const QString &arg) {
+void MessageDialog::setDetailedText(const QString& arg) {
     if (arg != _detailedText) {
         _detailedText = arg;
         emit detailedTextChanged();

@@ -1,5 +1,5 @@
 //
-//  MenuConstants.h
+//  HifiMenu.h
 //
 //  Created by Bradley Austin Davis on 2015/04/21
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#ifndef hifi_MenuContants_h
-#define hifi_MenuConstants_h
+#ifndef hifi_HifiMenu_h
+#define hifi_HifiMenu_h
 
 #include <QQuickItem>
 #include <QHash>
@@ -44,7 +44,7 @@ protected:
     friend class MenuUserData;
 };
 
-#endif // hifi_MenuConstants_h
+#endif // hifi_HifiMenu_h
 
 
 

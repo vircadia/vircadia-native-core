@@ -24,9 +24,9 @@ QString OffscreenQmlDialog::title() const {
     return _title;
 }
 
-void OffscreenQmlDialog::setTitle(const QString &arg) {
-    if (arg != _title) {
-        _title = arg;
+void OffscreenQmlDialog::setTitle(const QString& title) {
+    if (title != _title) {
+        _title = title;
         emit titleChanged();
     }
 }

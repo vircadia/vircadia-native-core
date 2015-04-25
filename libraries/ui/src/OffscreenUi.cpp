@@ -140,13 +140,6 @@ QQuickItem* OffscreenUi::getRootItem() {
     return _rootItem;
 }
 
-//QQmlContext* OffscreenUi::qmlContext() {
-//    if (nullptr == _rootItem) {
-//        return _qmlComponent->creationContext();
-//    }
-//    return QQmlEngine::contextForObject(_rootItem);
-//}
-
 void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
     _qmlEngine->setBaseUrl(baseUrl);
 }
@@ -187,7 +180,7 @@ QObject* OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> 
         return nullptr;
     }
 
-    QQmlContext * newContext = new QQmlContext(_qmlEngine, qApp);
+    QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
     QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
@@ -293,9 +286,9 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF& sourcePosition, QObject* sourc
 //
 // However, the problem may go away once we switch to the new menu system,
 // so I think it's OK for the time being.
-bool OffscreenUi::shouldSwallowShortcut(QEvent * event) {
+bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject * focusObject = _quickWindow->focusObject();
+    QObject* focusObject = _quickWindow->focusObject();
     if (focusObject != _quickWindow && focusObject != _rootItem) {
         //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
@@ -318,7 +311,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
 
 #ifdef DEBUG
     // Don't intercept our own events, or we enter an infinite recursion
-    QObject * recurseTest = originalDestination;
+    QObject* recurseTest = originalDestination;
     while (recurseTest) {
         Q_ASSERT(recurseTest != _rootItem && recurseTest != _quickWindow);
         recurseTest = recurseTest->parent();
@@ -442,13 +435,13 @@ void OffscreenUi::messageBox(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::Icon icon,
     QMessageBox::StandardButtons buttons) {
-    MessageDialog * pDialog{ nullptr };
-    MessageDialog::show([&](QQmlContext*ctx, QObject*item) {
+    MessageDialog* pDialog{ nullptr };
+    MessageDialog::show([&](QQmlContext* ctx, QObject* item) {
         pDialog = item->findChild<MessageDialog*>();
         pDialog->setIcon((MessageDialog::Icon)icon);
         pDialog->setTitle(title);
         pDialog->setText(text);
-        pDialog->setStandardButtons(MessageDialog::StandardButtons((int)buttons));
+        pDialog->setStandardButtons(MessageDialog::StandardButtons(static_cast<int>(buttons)));
         pDialog->setResultCallback(callback);
     });
     pDialog->setEnabled(true);
@@ -457,25 +450,29 @@ void OffscreenUi::messageBox(const QString& title, const QString& text,
 void OffscreenUi::information(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback, (QMessageBox::Icon)MessageDialog::Information, buttons);
+    messageBox(title, text, callback,
+            static_cast<QMessageBox::Icon>(MessageDialog::Information), buttons);
 }
 
 void OffscreenUi::question(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback, (QMessageBox::Icon)MessageDialog::Question, buttons);
+    messageBox(title, text, callback,
+            static_cast<QMessageBox::Icon>(MessageDialog::Question), buttons);
 }
 
 void OffscreenUi::warning(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback, (QMessageBox::Icon)MessageDialog::Warning, buttons);
+    messageBox(title, text, callback,
+            static_cast<QMessageBox::Icon>(MessageDialog::Warning), buttons);
 }
 
 void OffscreenUi::critical(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback, (QMessageBox::Icon)MessageDialog::Critical, buttons);
+    messageBox(title, text, callback,
+            static_cast<QMessageBox::Icon>(MessageDialog::Critical), buttons);
 }
 
 
