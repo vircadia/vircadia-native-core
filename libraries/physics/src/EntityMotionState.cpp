@@ -38,7 +38,8 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 EntityMotionState::EntityMotionState(EntityItem* entity) :
     _entity(entity),
     _accelerationNearlyGravityCount(0),
-    _shouldClaimSimulationOwnership(false)
+    _shouldClaimSimulationOwnership(false),
+    _movingStepsWithoutSimulationOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
@@ -116,6 +117,12 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     if (_entity->getSimulatorID().isNull() && isMoving()) {
         // object is moving and has no owner.  attempt to claim simulation ownership.
+        _movingStepsWithoutSimulationOwner++;
+    } else {
+        _movingStepsWithoutSimulationOwner = 0;
+    }
+
+    if (_movingStepsWithoutSimulationOwner > 4) { // XXX maybe meters from our characterController ?
         setShouldClaimSimulationOwnership(true);
     }
 
