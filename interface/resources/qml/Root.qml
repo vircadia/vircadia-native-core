@@ -6,5 +6,9 @@ import QtQuick 2.3
 Root {
     id: root
     anchors.fill: parent
+
+    onParentChanged: {
+    	forceActiveFocus();
+    }
 }
 

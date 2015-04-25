@@ -111,8 +111,8 @@ Hifi.HifiMenu {
         Border {
             SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
             x: root.models.length == 1 ? 
-            		(root.width / 2 - width / 2) :
-            			root.columns[root.models.length - 2].x + 60; 
+                    (root.width / 2 - width / 2) :
+                        root.columns[root.models.length - 2].x + 60; 
             anchors.verticalCenter: parent.verticalCenter
             border.color: hifiPalette.hifiBlue
             color: sysPalette.window

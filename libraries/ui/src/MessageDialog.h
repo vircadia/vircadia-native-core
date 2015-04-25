@@ -13,12 +13,11 @@
 #define hifi_MessageDialog_h
 
 #include "OffscreenQmlDialog.h"
-#include <5.4.1/QtGui/qpa/qplatformdialoghelper.h>
 
 class MessageDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
-    QML_DIALOG_DECL
+    HIFI_QML_DECL
 
 private:
     Q_ENUMS(Icon)
@@ -26,19 +25,27 @@ private:
     Q_PROPERTY(QString informativeText READ informativeText WRITE setInformativeText NOTIFY informativeTextChanged)
     Q_PROPERTY(QString detailedText READ detailedText WRITE setDetailedText NOTIFY detailedTextChanged)
     Q_PROPERTY(Icon icon READ icon WRITE setIcon NOTIFY iconChanged)
-    Q_PROPERTY(QUrl standardIconSource READ standardIconSource NOTIFY iconChanged)
     Q_PROPERTY(StandardButtons standardButtons READ standardButtons WRITE setStandardButtons NOTIFY standardButtonsChanged)
     Q_PROPERTY(StandardButton clickedButton READ clickedButton NOTIFY buttonClicked)
 
 public:
-    enum Icon {
-        NoIcon = QMessageDialogOptions::NoIcon,
-        Information = QMessageDialogOptions::Information,
-        Warning = QMessageDialogOptions::Warning,
-        Critical = QMessageDialogOptions::Critical,
-        Question = QMessageDialogOptions::Question
-    };
+    enum Icon { NoIcon, Information, Warning, Critical, Question };
 
+    enum ButtonRole {
+        // keep this in sync with QDialogButtonBox::ButtonRole and QPlatformDialogHelper::ButtonRole
+        InvalidRole = -1,
+        AcceptRole,
+        RejectRole,
+        DestructiveRole,
+        ActionRole,
+        HelpRole,
+        YesRole,
+        NoRole,
+        ResetRole,
+        ApplyRole,
+
+        NRoles
+    };
 
     MessageDialog(QQuickItem *parent = 0);
     virtual ~MessageDialog();
@@ -57,7 +64,6 @@ public slots:
     void setStandardButtons(StandardButtons buttons);
     void setResultCallback(OffscreenUi::ButtonCallback callback);
     void click(StandardButton button);
-    QUrl standardIconSource();
     StandardButtons standardButtons() const;
     StandardButton clickedButton() const;
 
@@ -76,7 +82,7 @@ signals:
     void reset();
 
 protected slots:
-    virtual void click(StandardButton button, QPlatformDialogHelper::ButtonRole);
+    virtual void click(StandardButton button, ButtonRole);
     virtual void accept();
     virtual void reject();
 

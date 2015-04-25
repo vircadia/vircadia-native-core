@@ -6,21 +6,12 @@ import QtQuick.Controls 1.3
 import "controls"
 
 Root {
-    id: root
+	id: root
     anchors.fill: parent
+    onParentChanged: {
+    	forceActiveFocus();
+    }
 
-    onWidthChanged: {
-        console.log("Root width: " + width)
-    }
-    onHeightChanged: {
-        console.log("Root height: " + height)
-    }
-    
-    Component.onCompleted: {
-        console.log("Completed root")
-        root.forceActiveFocus()
-    }
-        
     Button {
         id: messageBox
         anchors.right: createDialog.left
@@ -34,7 +25,6 @@ Root {
             console.log("Bar")
         }
     }
-
     Button {
         id: createDialog
         anchors.right: parent.right

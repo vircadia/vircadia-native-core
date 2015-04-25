@@ -13,37 +13,8 @@
 #define hifi_OffscreenQmlDialog_h
 
 #include <QQuickItem>
-#include <5.4.1/QtGui/qpa/qplatformdialoghelper.h>
 
 #include "OffscreenUi.h"
-
-#define QML_DIALOG_DECL \
-private: \
-    static const QString NAME; \
-    static const QUrl QML; \
-public: \
-    static void registerType(); \
-    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
-    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
-private:
-
-#define QML_DIALOG_DEF(x) \
-    const QUrl x::QML = QUrl(#x ".qml"); \
-    const QString x::NAME = #x; \
-    \
-    void x::registerType() { \
-        qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
-    } \
-    \
-    void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->show(QML, NAME, f); \
-    } \
-    \
-    void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME, f); \
-    }
 
 class OffscreenQmlDialog : public QQuickItem
 {
@@ -57,25 +28,26 @@ public:
     virtual ~OffscreenQmlDialog();
 
     enum StandardButton {
-        NoButton = QPlatformDialogHelper::NoButton,
-        Ok = QPlatformDialogHelper::Ok,
-        Save = QPlatformDialogHelper::Save,
-        SaveAll = QPlatformDialogHelper::SaveAll,
-        Open = QPlatformDialogHelper::Open,
-        Yes = QPlatformDialogHelper::Yes,
-        YesToAll = QPlatformDialogHelper::YesToAll,
-        No = QPlatformDialogHelper::No,
-        NoToAll = QPlatformDialogHelper::NoToAll,
-        Abort = QPlatformDialogHelper::Abort,
-        Retry = QPlatformDialogHelper::Retry,
-        Ignore = QPlatformDialogHelper::Ignore,
-        Close = QPlatformDialogHelper::Close,
-        Cancel = QPlatformDialogHelper::Cancel,
-        Discard = QPlatformDialogHelper::Discard,
-        Help = QPlatformDialogHelper::Help,
-        Apply = QPlatformDialogHelper::Apply,
-        Reset = QPlatformDialogHelper::Reset,
-        RestoreDefaults = QPlatformDialogHelper::RestoreDefaults,
+        // keep this in sync with QDialogButtonBox::StandardButton and QMessageBox::StandardButton
+        NoButton = 0x00000000,
+        Ok = 0x00000400,
+        Save = 0x00000800,
+        SaveAll = 0x00001000,
+        Open = 0x00002000,
+        Yes = 0x00004000,
+        YesToAll = 0x00008000,
+        No = 0x00010000,
+        NoToAll = 0x00020000,
+        Abort = 0x00040000,
+        Retry = 0x00080000,
+        Ignore = 0x00100000,
+        Close = 0x00200000,
+        Cancel = 0x00400000,
+        Discard = 0x00800000,
+        Help = 0x01000000,
+        Apply = 0x02000000,
+        Reset = 0x04000000,
+        RestoreDefaults = 0x08000000,
         NButtons
     };
     Q_DECLARE_FLAGS(StandardButtons, StandardButton)

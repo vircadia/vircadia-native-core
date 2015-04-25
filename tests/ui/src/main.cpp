@@ -26,6 +26,7 @@
 #include <QOpenGLDebugLogger>
 #include <QOpenGLFunctions>
 #include <QQmlContext>
+#include <QtQml/QQmlApplicationEngine>
 
 #include <unordered_map>
 #include <memory>
@@ -185,18 +186,18 @@ public:
         QObject* menuObject = offscreenUi->getRootItem()->findChild<QObject*>("HifiMenu");
         HifiMenu* menu = offscreenUi->getRootItem()->findChild<HifiMenu*>(); 
         menu->addMenu("", "File");
-        menu->addMenuItem("File", "Quit", []{
+        menu->addItem("File", "Quit", []{
             QApplication::quit();
         });
-        menu->addCheckableMenuItem("File", "Toggle", false, [](bool toggled) {
+        menu->addCheckableItem("File", "Toggle", false, [](bool toggled) {
             qDebug() << "Toggle is " << toggled;
         });
         menu->addMenu("", "Edit");
-        menu->addMenuItem("Edit", "Undo");
-        menu->addMenuItem("Edit", "Redo");
-        menu->addMenuItem("Edit", "Copy");
-        menu->addMenuItem("Edit", "Cut");
-        menu->addMenuItem("Edit", "Paste");
+        menu->addItem("Edit", "Undo");
+        menu->addItem("Edit", "Redo");
+        menu->addItem("Edit", "Copy");
+        menu->addItem("Edit", "Cut");
+        menu->addItem("Edit", "Paste");
         menu->addMenu("", "Long Menu Name...");
 #endif
         installEventFilter(offscreenUi.data());
@@ -255,8 +256,8 @@ protected:
             if (event->modifiers() & Qt::CTRL) {
                 auto offscreenUi = DependencyManager::get<OffscreenUi>();
                 HifiMenu * menu = offscreenUi->findChild<HifiMenu*>();
-                menu->addMenuItem("", "Test 3");
-                menu->addMenuItem("File", "Test 3");
+                menu->addItem("", "Test 3");
+                menu->addItem("File", "Test 3");
             }
             break;
         case Qt::Key_K:
@@ -324,6 +325,14 @@ const char * LOG_FILTER_RULES = R"V0G0N(
 *.debug=false
 qt.quick.mouse.debug=false
 )V0G0N";
+
+//int main(int argc, char *argv[]) {
+//    QGuiApplication app(argc, argv);
+//    QQmlApplicationEngine engine;
+//    engine.setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
+//    engine.load(QUrl("Main.qml"));
+//    return app.exec();
+//}
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);

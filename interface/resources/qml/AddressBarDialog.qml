@@ -48,6 +48,7 @@ Dialog {
                 helperText: "domain, location, @user, /x,y,z"
                 anchors.margins: 8
                 onAccepted: {
+                	event.accepted
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
@@ -71,5 +72,20 @@ Dialog {
             }
         }
     }
+    
+    Keys.onEscapePressed: {
+        enabled = false;
+    }
+
+    function toggleOrGo() {
+        if (addressLine.text == "") {
+            enabled = false
+        } else {
+            addressBarDialog.loadAddress(addressLine.text)
+        }
+    }
+    
+    Keys.onReturnPressed: toggleOrGo()
+    Keys.onEnterPressed: toggleOrGo()
 }
 

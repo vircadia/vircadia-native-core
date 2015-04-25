@@ -84,7 +84,6 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <OAuthNetworkAccessManager.h>
 #include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
@@ -1101,6 +1100,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
@@ -1533,9 +1537,11 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
-    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
-    _lastTouchEvent = thisEvent;
+    if (event->type() == QEvent::TouchUpdate) {
+        TouchEvent thisEvent(*event, _lastTouchEvent);
+        _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+        _lastTouchEvent = thisEvent;
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
