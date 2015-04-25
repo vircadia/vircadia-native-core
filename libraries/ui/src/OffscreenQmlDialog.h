@@ -16,34 +16,6 @@
 
 #include "OffscreenUi.h"
 
-#define QML_DIALOG_DECL \
-private: \
-    static const QString NAME; \
-    static const QUrl QML; \
-public: \
-    static void registerType(); \
-    static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
-    static void toggle(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
-private:
-
-#define QML_DIALOG_DEF(x) \
-    const QUrl x::QML = QUrl(#x ".qml"); \
-    const QString x::NAME = #x; \
-    \
-    void x::registerType() { \
-        qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
-    } \
-    \
-    void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->show(QML, NAME, f); \
-    } \
-    \
-    void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME, f); \
-    }
-
 class OffscreenQmlDialog : public QQuickItem
 {
     Q_OBJECT

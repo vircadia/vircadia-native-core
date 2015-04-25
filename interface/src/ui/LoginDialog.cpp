@@ -15,7 +15,7 @@
 #include "Menu.h"
 #include <NetworkingConstants.h>
 
-QML_DIALOG_DEF(LoginDialog)
+HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent), _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString()) {
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
