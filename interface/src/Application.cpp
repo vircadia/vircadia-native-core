@@ -1058,7 +1058,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
-        bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
             case Qt::Key_L:
