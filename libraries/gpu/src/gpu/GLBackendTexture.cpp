@@ -177,8 +177,7 @@ public:
                         break;
                         }
                     case gpu::NUM_TYPES: { // quiet compiler
-                        assert(false);
-                        break;
+                        Q_UNREACHABLE();
                     }
                     }
                     break;

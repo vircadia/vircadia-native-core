@@ -24,7 +24,6 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
     GLFramebuffer* object = Backend::getGPUObject<GLBackend::GLFramebuffer>(framebuffer);
 
     // If GPU object already created and in sync
-    // bool needUpdate = false;
     if (object) {
         return object;
     } else if (framebuffer.isEmpty()) {

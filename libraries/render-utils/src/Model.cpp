@@ -111,7 +111,6 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-    // bool makeResult =
     gpu::Shader::makeProgram(*program, slotBindings);
     
     

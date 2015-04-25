@@ -35,8 +35,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
 
 }
 
-DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
-    QObject(),
+DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
