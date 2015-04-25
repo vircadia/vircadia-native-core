@@ -681,7 +681,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         if (entityItem->getGlowLevel() > 0.0f) {
                             glower = new Glower(entityItem->getGlowLevel());
                         }
-
                         entityItem->render(args);
                         args->_itemsRendered++;
                         if (glower) {
