@@ -677,25 +677,10 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     if (bigEnoughToRender) {
                         renderProxies(entityItem, args);
 
-
-                        // XXX
-                        // auto nodeList = DependencyManager::get<NodeList>();
-                        // const QUuid& myNodeID = nodeList->getSessionUUID();
-                        // XXX
-
-
                         Glower* glower = NULL;
                         if (entityItem->getGlowLevel() > 0.0f) {
                             glower = new Glower(entityItem->getGlowLevel());
                         }
-
-                        // XXX glow things we are simulating
-                        // if (entityItem->getSimulatorID() == myNodeID) {
-                        //     if (glower) delete glower;
-                        //     glower = new Glower();
-                        // }
-                        // XXX glow things we are simulating
-
 
                         entityItem->render(args);
                         args->_itemsRendered++;

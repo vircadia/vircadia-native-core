@@ -119,24 +119,16 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions();
     float size = glm::length(dimensions);
 
-    // XXX
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid& myNodeID = nodeList->getSessionUUID();
-    // XXX
-    
+    auto nodeList = DependencyManager::get<NodeList>(); // XXX for debugging
+    const QUuid& myNodeID = nodeList->getSessionUUID(); // XXX for debugging
+
     if (drawAsModel
-        && getSimulatorID() != myNodeID // XXX
+        && getSimulatorID() != myNodeID // XXX for debugging
         ) {
         remapTextures();
         glPushMatrix();
         {
             float alpha = getLocalRenderAlpha();
-
-            // XXX
-            // if (getSimulatorID() == myNodeID) {
-            //     alpha = 1.0;
-            // }
-            // XXX
 
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize

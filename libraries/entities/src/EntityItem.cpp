@@ -1151,14 +1151,13 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
-    auto distance = glm::distance(_velocity, value);
-    if (distance > MIN_VELOCITY_DELTA) {
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
-        if (distance < MIN_VELOCITY_DELTA) {
+    if (glm::distance(_velocity, value) > MIN_VELOCITY_DELTA) {
+        if (glm::length(value) < MIN_VELOCITY_DELTA) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
         }
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
@@ -1176,15 +1175,15 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         _gravity = value;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
     if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         _acceleration = value;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
