@@ -144,6 +144,7 @@ DdeFaceTracker::DdeFaceTracker() :
 
 DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort) :
     _ddeProcess(NULL),
+    _ddeStopping(false),
     _host(host),
     _serverPort(serverPort),
     _controlPort(controlPort),
@@ -196,6 +197,7 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     if (enabled && !_ddeProcess) {
         // Terminate any existing DDE process, perhaps left running after an Interface crash
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        _ddeStopping = false;
 
         qDebug() << "[Info] DDE Face Tracker Starting";
         _ddeProcess = new QProcess(qApp);
@@ -204,9 +206,8 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     }
 
     if (!enabled && _ddeProcess) {
+        _ddeStopping = true;
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
-        delete _ddeProcess;
-        _ddeProcess = NULL;
         qDebug() << "[Info] DDE Face Tracker Stopped";
     }
 #endif
@@ -214,11 +215,16 @@ void DdeFaceTracker::setEnabled(bool enabled) {
 
 void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     if (_ddeProcess) {
-        // DDE crashed or was manually terminated
-        qDebug() << "[Info] DDE Face Tracker Stopped Unexpectedly";
+        if (_ddeStopping) {
+            qCDebug(interfaceapp) << "DDE Face Tracker: Stopped";
+
+        } else {
+            qCWarning(interfaceapp) << "DDE Face Tracker: Stopped unexpectedly";
+            Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
+        }
         _udpSocket.close();
+        delete _ddeProcess;
         _ddeProcess = NULL;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
     }
 }
 

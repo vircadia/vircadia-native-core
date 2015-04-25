@@ -62,9 +62,10 @@ private slots:
 private:
     DdeFaceTracker();
     DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort);
-    ~DdeFaceTracker();
+    virtual ~DdeFaceTracker();
 
     QProcess* _ddeProcess;
+    bool _ddeStopping;
 
     QHostAddress _host;
     quint16 _serverPort;
