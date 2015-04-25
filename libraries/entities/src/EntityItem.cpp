@@ -1151,9 +1151,8 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
-    if (value != _velocity) {
-        auto distance = glm::distance(_velocity, value);
-        // _dirtyFlags |= (distance > MIN_VELOCITY_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+    auto distance = glm::distance(_velocity, value);
+    if (distance > MIN_VELOCITY_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         if (distance < MIN_VELOCITY_DELTA) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
@@ -1176,20 +1175,14 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    auto distance = glm::distance(_gravity, value);
-    // if (value != _gravity) {
-    if (distance > MIN_GRAVITY_DELTA) {
-        // _dirtyFlags |= (distance > MIN_GRAVITY_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+    if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         _gravity = value;
     }
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    auto distance = glm::distance(_acceleration, value);
-    // if (value != _acceleration) {
-    if (distance > MIN_ACCELERATION_DELTA) {
-        // _dirtyFlags |= (distance > MIN_ACCELERATION_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+    if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         _acceleration = value;
     }
@@ -1197,9 +1190,7 @@ void EntityItem::updateAcceleration(const glm::vec3& value) {
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
     auto distance = glm::distance(_angularVelocity, value);
-    // if (value != _angularVelocity) {
     if (distance > MIN_SPIN_DELTA) {
-        // _dirtyFlags |= (distance > MIN_SPIN_DELTA) ? EntityItem::DIRTY_VELOCITY : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
         if (glm::length(value) < MIN_SPIN_DELTA) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
