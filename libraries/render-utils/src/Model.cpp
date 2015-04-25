@@ -139,7 +139,10 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+<<<<<<< HEAD
     // auto it =
+=======
+>>>>>>> 3ce65d297a31c83c06f8838dd21ca128b59cef59
     insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
 
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
