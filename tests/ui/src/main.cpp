@@ -27,15 +27,17 @@
 #include <QOpenGLFunctions>
 #include <QQmlContext>
 #include <QtQml/QQmlApplicationEngine>
-
+#include <PathUtils.h>
+#include <QXmlQuery>
 #include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 #include <QDir>
-
+#include <QXmlResultItems>
 #include "MessageDialog.h"
 #include "HifiMenu.h"
+#include "InfoView.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -239,12 +241,21 @@ public:
     }
 };
 
-const QString & getQmlDir() {
+const QString & getResourcesDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
         path.cdUp();
-        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/")) + "/";
+        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/")) + "/";
+        qDebug() << "Resources Path: " << dir;
+    }
+    return dir;
+}
+
+const QString & getQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        dir = getResourcesDir() + "qml/";
         qDebug() << "Qml Path: " << dir;
     }
     return dir;
@@ -321,6 +332,7 @@ public:
 
         MessageDialog::registerType();
         VrMenu::registerType();
+        InfoView::registerType();
         qmlRegisterType<MenuConstants>("Hifi", 1, 0, "MenuConstants");
 
 
@@ -406,6 +418,7 @@ protected:
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
+                InfoView::show(getResourcesDir() + "html/interface-welcome.html", true);
             }
             break;
         case Qt::Key_K:
@@ -484,7 +497,7 @@ qt.quick.mouse.debug=false
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
-//    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
+    //    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     app.exec();
     return 0;
