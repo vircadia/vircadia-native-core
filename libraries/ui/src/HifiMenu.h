@@ -45,7 +45,3 @@ protected:
 };
 
 #endif // hifi_HifiMenu_h
-
-
-
-
