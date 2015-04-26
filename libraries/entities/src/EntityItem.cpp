@@ -846,11 +846,11 @@ glm::mat4 EntityItem::getWorldToEntityMatrix() const {
     return glm::inverse(getEntityToWorldMatrix());
 }
 
-glm::vec3 EntityItem::entityToWorld(const glm::vec3 point) const {
+glm::vec3 EntityItem::entityToWorld(const glm::vec3& point) const {
     return glm::vec3(getEntityToWorldMatrix() * glm::vec4(point, 1.0f));
 }
 
-glm::vec3 EntityItem::worldToEntity(const glm::vec3 point) const {
+glm::vec3 EntityItem::worldToEntity(const glm::vec3& point) const {
     return glm::vec3(getWorldToEntityMatrix() * glm::vec4(point, 1.0f));
 }
 
