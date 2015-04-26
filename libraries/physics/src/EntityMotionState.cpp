@@ -50,7 +50,7 @@ EntityMotionState::~EntityMotionState() {
     _entity = NULL;
 }
 
-MotionType EntityMotionState::computeMotionType() const {
+MotionType EntityMotionState::computeObjectMotionType() const {
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
@@ -67,7 +67,7 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
-    // TODO: we can't use ObjectMotionState::measureAcceleration() here because the entity
+    // TODO: we can't use measureBodyAcceleration() here because the entity
     // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
     // Hence we must manually measure kinematic velocity and acceleration.
 }
@@ -100,7 +100,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    measureAcceleration();
+    measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
@@ -128,63 +128,65 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
         if (flags & EntityItem::DIRTY_POSITION) {
-            _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
+            _sentPosition = getObjectPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
             worldTrans.setOrigin(glmToBullet(_sentPosition));
 
-            _sentRotation = _entity->getRotation();
+            _sentRotation = getObjectRotation();
             worldTrans.setRotation(glmToBullet(_sentRotation));
 
             _body->setWorldTransform(worldTrans);
         }
         if (flags & EntityItem::DIRTY_VELOCITY) {
-            updateObjectVelocities();
+            updateBodyVelocities();
         }
         _sentStep = step;
+        _body->activate();
     }
 
     if (flags & EntityItem::DIRTY_MATERIAL) {
-        updateMaterialProperties();
+        updateBodyMaterialProperties();
     }
 
     if (flags & EntityItem::DIRTY_MASS) {
-        float mass = _entity->computeMass();
+        ShapeInfo shapeInfo;
+        _entity->computeShapeInfo(shapeInfo);
+        float mass = computeObjectMass(shapeInfo);
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-    _body->activate();
 }
 
-void EntityMotionState::updateMaterialProperties() {
-    _body->setRestitution(_entity->getRestitution());
-    _body->setFriction(_entity->getFriction());
-    _body->setDamping(fabsf(btMin(_entity->getDamping(), 1.0f)), fabsf(btMin(_entity->getAngularDamping(), 1.0f)));
+void EntityMotionState::updateBodyMaterialProperties() {
+    _body->setRestitution(getObjectRestitution());
+    _body->setFriction(getObjectFriction());
+    _body->setDamping(fabsf(btMin(getObjectLinearDamping(), 1.0f)), fabsf(btMin(getObjectAngularDamping(), 1.0f)));
 }
 
-void EntityMotionState::updateObjectVelocities() {
+void EntityMotionState::updateBodyVelocities() {
     if (_body) {
-        _sentVelocity = _entity->getVelocity();
-        setVelocity(_sentVelocity);
+        _sentVelocity = getObjectLinearVelocity();
+        setBodyVelocity(_sentVelocity);
 
-        _sentAngularVelocity = _entity->getAngularVelocity();
-        setAngularVelocity(_sentAngularVelocity);
+        _sentAngularVelocity = getObjectAngularVelocity();
+        setBodyAngularVelocity(_sentAngularVelocity);
 
-        _sentGravity = _entity->getGravity();
-        setGravity(_sentGravity);
+        _sentGravity = getObjectGravity();
+        setBodyGravity(_sentGravity);
 
         _body->setActivationState(ACTIVE_TAG);
     }
 }
 
-void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
+void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
     if (_entity->isReadyToComputeShape()) {
         _entity->computeShapeInfo(shapeInfo);
     }
 }
 
-float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
+float EntityMotionState::computeObjectMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 

@@ -36,10 +36,10 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
 }
 
 // static 
-uint32_t _simulationStep = 0;
-void ObjectMotionState::setSimulationStep(uint32_t step) {
-    assert(step > _simulationStep);
-    _simulationStep = step;
+uint32_t _worldSimulationStep = 0;
+void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
+    assert(step > _worldSimulationStep);
+    _worldSimulationStep = step;
 }
 
 ObjectMotionState::ObjectMotionState() : 
@@ -65,13 +65,13 @@ ObjectMotionState::~ObjectMotionState() {
     assert(_body == NULL);
 }
 
-void ObjectMotionState::measureAcceleration() {
+void ObjectMotionState::measureBodyAcceleration() {
     // try to manually measure the true acceleration of the object
-    uint32_t numSubsteps = _simulationStep - _lastSimulationStep;
+    uint32_t numSubsteps = _worldSimulationStep - _lastSimulationStep;
     if (numSubsteps > 0) {
         float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
         float invDt = 1.0f / dt;
-        _lastSimulationStep = _simulationStep;
+        _lastSimulationStep = _worldSimulationStep;
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
@@ -81,20 +81,20 @@ void ObjectMotionState::measureAcceleration() {
     }
 }
 
-void ObjectMotionState::resetMeasuredAcceleration() {
-    _lastSimulationStep = _simulationStep;
+void ObjectMotionState::resetMeasuredBodyAcceleration() {
+    _lastSimulationStep = _worldSimulationStep;
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }
 
-void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setAngularVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyAngularVelocity(const glm::vec3& velocity) const {
     _body->setAngularVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setGravity(const glm::vec3& gravity) const {
+void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 

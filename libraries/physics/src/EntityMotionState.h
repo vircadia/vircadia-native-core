@@ -31,12 +31,11 @@ public:
     static void setOutgoingEntityList(QSet<EntityItem*>* list);
     static void enqueueOutgoingEntity(EntityItem* entity);
 
-    EntityMotionState() = delete; // prevent compiler from making default ctor
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    virtual MotionType computeMotionType() const;
+    virtual MotionType computeObjectMotionType() const;
 
     virtual void updateKinematicState(uint32_t substep);
     virtual void stepKinematicSimulation(quint64 now);
@@ -51,11 +50,11 @@ public:
 
     // these relay incoming values to the RigidBody
     virtual void updateObjectEasy(uint32_t flags, uint32_t step);
-    virtual void updateMaterialProperties();
-    virtual void updateObjectVelocities();
+    virtual void updateBodyMaterialProperties();
+    virtual void updateBodyVelocities();
 
-    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
-    virtual float computeMass(const ShapeInfo& shapeInfo) const;
+    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
+    virtual float computeObjectMass(const ShapeInfo& shapeInfo) const;
 
     virtual bool shouldSendUpdate(uint32_t simulationFrame);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
@@ -70,6 +69,17 @@ public:
     virtual EntityItem* getEntity() const { return _entity; }
     virtual void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
     virtual bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
+
+    virtual float getObjectRestitution() const { return _entity->getRestitution(); }
+    virtual float getObjectFriction() const { return _entity->getFriction(); }
+    virtual float getObjectLinearDamping() const { return _entity->getDamping(); }
+    virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
+
+    virtual const glm::vec3& getObjectPosition() const { return _entity->getPosition(); }
+    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
+    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
 protected:
     EntityItem* _entity;
