@@ -20,6 +20,7 @@
 #include <QMenu>
 #include "OffscreenUi.h"
 
+// FIXME rename the compilation files to VrMenu.h and VrMenu.cpp after upstream pull requests are merged.
 class VrMenu : public QQuickItem {
     Q_OBJECT
     HIFI_QML_DECL_LAMBDA
