@@ -174,7 +174,7 @@ QObject* OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> 
     disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
-        foreach(const QQmlError &error, errorList) {
+        foreach(const QQmlError& error, errorList) {
             qWarning() << error.url() << error.line() << error;
         }
         return nullptr;
@@ -184,7 +184,7 @@ QObject* OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> 
     QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
-        foreach(const QQmlError &error, errorList)
+        foreach(const QQmlError& error, errorList)
             qWarning() << error.url() << error.line() << error;
         if (!_rootItem) {
             qFatal("Unable to finish loading QML root");
