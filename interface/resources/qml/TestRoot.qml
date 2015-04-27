@@ -1,12 +1,17 @@
 import Hifi 1.0
 import QtQuick 2.3
+import QtQuick.Controls 1.3
+// Import local folder last so that our own control customizations override 
+// the built in ones
+import "controls"
 
 Root {
-    id: root
-    width: 1280
-    height: 720
-
-    CustomButton {
+	id: root
+    anchors.fill: parent
+    onParentChanged: {
+    	forceActiveFocus();
+    }
+    Button {
         id: messageBox
         anchors.right: createDialog.left
         anchors.rightMargin: 24
@@ -19,8 +24,7 @@ Root {
             console.log("Bar")
         }
     }
-
-    CustomButton {
+    Button {
         id: createDialog
         anchors.right: parent.right
         anchors.rightMargin: 24
@@ -28,8 +32,12 @@ Root {
         anchors.bottomMargin: 24
         text: "Create"
         onClicked: {
-            root.loadChild("TestDialog.qml");
+            root.loadChild("MenuTest.qml");
         }
     }
+
+    Keys.onPressed: {
+		console.log("Key press root")
+	}
 }
 

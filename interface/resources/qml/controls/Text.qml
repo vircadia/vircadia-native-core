@@ -1,6 +1,6 @@
-import QtQuick 2.3
+import QtQuick 2.3 as Original
 
-Text {
+Original.Text {
     font.family: "Helvetica"
     font.pointSize: 18
 }

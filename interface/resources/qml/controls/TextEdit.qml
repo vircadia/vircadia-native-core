@@ -1,6 +1,6 @@
-import QtQuick 2.3
+import QtQuick 2.3 as Original
 
-TextEdit {
+Original.TextEdit {
     font.family: "Helvetica"
     font.pointSize: 18
 }

@@ -21,6 +21,7 @@
 #include <QSet>
 #include <QStringList>
 #include <QUndoStack>
+#include <functional>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -146,6 +147,8 @@ public:
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
+
+    void postLambdaEvent(std::function<void()> f);
 
     void loadScripts();
     QString getPreviousScriptLocation();
