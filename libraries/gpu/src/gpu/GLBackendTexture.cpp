@@ -16,8 +16,8 @@ GLBackend::GLTexture::GLTexture() :
     _storageStamp(0),
     _contentStamp(0),
     _texture(0),
-    _size(0),
-    _target(GL_TEXTURE_2D)
+    _target(GL_TEXTURE_2D),
+    _size(0)
 {}
 
 GLBackend::GLTexture::~GLTexture() {
@@ -176,6 +176,8 @@ public:
                         texel.internalFormat = GL_DEPTH_COMPONENT24;
                         break;
                         }
+                    case gpu::NUM_TYPES:
+                        Q_UNREACHABLE();
                     }
                     break;
                 default:

@@ -1028,6 +1028,11 @@ bool Application::event(QEvent* event) {
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::ShortcutOverride) {
+        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+            event->accept();
+            return true;
+        }
+
         // Filter out captured keys before they're used for shortcut actions.
         if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
@@ -1053,7 +1058,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
-        bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
             case Qt::Key_L:
@@ -1492,9 +1496,11 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
-    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
-    _lastTouchEvent = thisEvent;
+    if (event->type() == QEvent::TouchUpdate) {
+        TouchEvent thisEvent(*event, _lastTouchEvent);
+        _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+        _lastTouchEvent = thisEvent;
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {

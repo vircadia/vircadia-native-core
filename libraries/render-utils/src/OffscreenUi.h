@@ -73,6 +73,7 @@ public:
     void resume();
     bool isPaused() const;
     void setProxyWindow(QWindow* window);
+    bool shouldSwallowShortcut(QEvent* event);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);
     void setMouseTranslator(MouseTranslator mouseTranslator) {

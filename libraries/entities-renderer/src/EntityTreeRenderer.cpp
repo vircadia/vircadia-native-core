@@ -643,7 +643,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             // NOTE: Zone Entities are a special case we handle here... Zones don't render
             // like other entity types. So we will skip the normal rendering tests
             if (entityItem->getType() == EntityTypes::Zone) {
-                if (entityItem->contains(args->_viewFrustum->getPosition())) {
+                if (entityItem->contains(_viewState->getAvatarPosition())) {
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
                     if (entityVolumeEstimate < _bestZoneVolume) {
                         _bestZoneVolume = entityVolumeEstimate;

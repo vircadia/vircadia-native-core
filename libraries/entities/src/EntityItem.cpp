@@ -1085,7 +1085,6 @@ const float MIN_ALIGNMENT_DOT = 0.999999f;
 const float MIN_VELOCITY_DELTA = 0.01f;
 const float MIN_DAMPING_DELTA = 0.001f;
 const float MIN_GRAVITY_DELTA = 0.001f;
-const float MIN_ACCELERATION_DELTA = 0.001f;
 const float MIN_SPIN_DELTA = 0.0003f;
 
 void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
