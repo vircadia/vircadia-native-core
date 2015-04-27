@@ -467,16 +467,6 @@ void PhysicsEngine::computeCollisionEvents() {
         if (type == CONTACT_EVENT_TYPE_END) {
             ContactMap::iterator iterToDelete = contactItr;
             ++contactItr;
-
-            // const ContactKey& contactKey = (*iterToDelete).first;
-            // const ObjectMotionState* objectMotionStateA = static_cast<ObjectMotionState*>(contactKey._a);
-            // const ObjectMotionState* objectMotionStateB = static_cast<ObjectMotionState*>(contactKey._b);
-            // const btCollisionObject* objectA =
-            //     objectMotionStateA ? static_cast<const btCollisionObject*>(objectMotionStateA->getRigidBody()) : NULL;
-            // const btCollisionObject* objectB =
-            //     objectMotionStateB ? static_cast<const btCollisionObject*>(objectMotionStateB->getRigidBody()) : NULL;
-            // doOwnershipInfection(objectA, objectB);
-
             _contactMap.erase(iterToDelete);
         } else {
             ++contactItr;
@@ -600,16 +590,9 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->getRigidBody();
 
-    // activate this before deleting it so that anything resting on it will begin to fall.
-    //
-    // body->activate();
-    //
-    // motionState->setShouldClaimSimulationOwnership(true);
-    // computeCollisionEvents();
-    //
+    // wake up anything touching this object
     EntityItem* entityItem = motionState ? motionState->getEntity() : NULL;
     bump(entityItem);
-
 
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
