@@ -6,13 +6,15 @@ import "../styles"
 Item {
     id: root
     HifiConstants { id: hifi }
-    implicitHeight: 512
-    implicitWidth: 512
+    implicitHeight: contentImplicitHeight + titleBorder.height + hifi.styles.borderWidth
+    implicitWidth: contentImplicitWidth + hifi.styles.borderWidth * 2
     property string title
     property int titleSize: titleBorder.height + 12
     property string frameColor: hifi.colors.hifiBlue
     property string backgroundColor: hifi.colors.dialogBackground
     property bool active: false
+    property real contentImplicitWidth: 800
+    property real contentImplicitHeight: 800
 
     property alias titleBorder: titleBorder
     readonly property alias titleX: titleBorder.x
