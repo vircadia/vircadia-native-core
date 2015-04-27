@@ -548,6 +548,11 @@ Menu::Menu() {
                                             statsRenderer.data(),
                                             SLOT(toggleShowInjectedStreams()));
 
+
+    MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+
     MenuWrapper* helpMenu = addMenu("Help");
     addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
 
