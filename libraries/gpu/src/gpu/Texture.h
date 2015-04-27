@@ -151,8 +151,8 @@ public:
     Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
 
-    const Stamp getStamp() const { return _stamp; }
-    const Stamp getDataStamp(uint16 level = 0) const { return _storage->getStamp(level); }
+    Stamp getStamp() const { return _stamp; }
+    Stamp getDataStamp(uint16 level = 0) const { return _storage->getStamp(level); }
 
     // The size in bytes of data stored in the texture
     Size getSize() const { return _size; }
@@ -264,7 +264,7 @@ public:
     // Own sampler
     void setSampler(const Sampler& sampler);
     const Sampler& getSampler() const { return _sampler; }
-    const Stamp getSamplerStamp() const { return _samplerStamp; }
+    Stamp getSamplerStamp() const { return _samplerStamp; }
 
 protected:
     std::unique_ptr< Storage > _storage;

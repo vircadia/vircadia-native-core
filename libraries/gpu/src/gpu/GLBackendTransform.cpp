@@ -109,7 +109,7 @@ void GLBackend::updateTransform() {
         }
         glLoadMatrixf(reinterpret_cast< const GLfloat* >(&_transform._projection));
 
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
     }
 
     if (_transform._invalidModel || _transform._invalidView) {
@@ -141,7 +141,7 @@ void GLBackend::updateTransform() {
                 // glLoadIdentity();
             }
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
     }
 #endif
 

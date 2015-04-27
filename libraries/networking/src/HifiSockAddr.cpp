@@ -33,6 +33,7 @@ HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
 }
 
 HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
+    QObject(),
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {

@@ -91,7 +91,7 @@ void Overlays::renderHUD() {
                         lodManager->getOctreeSizeScale(),
                         lodManager->getBoundaryLevelAdjust(),
                         RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
@@ -126,7 +126,7 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
                         lodManager->getOctreeSizeScale(),
                         lodManager->getBoundaryLevelAdjust(),
                         renderMode, renderSide,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
     foreach(Overlay* thisOverlay, _overlaysWorld) {
