@@ -83,7 +83,7 @@ void GLBackend::updateInput() {
                             glDisableVertexAttribArray(i);
                         }
                     }
-                    CHECK_GL_ERROR();
+                    (void) CHECK_GL_ERROR();
 
                     _input._attributeActivation.flip(i);
                 }
@@ -108,7 +108,7 @@ void GLBackend::updateInput() {
                     if (_input._buffersState.test(bufferNum) || _input._invalidFormat) {
                         GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
                         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                        CHECK_GL_ERROR();
+                        (void) CHECK_GL_ERROR();
                         _input._buffersState[bufferNum] = false;
 
                         for (unsigned int i = 0; i < channel._slots.size(); i++) {
@@ -142,7 +142,7 @@ void GLBackend::updateInput() {
                                 glVertexAttribPointer(slot, count, type, isNormalized, stride,
                                     reinterpret_cast<GLvoid*>(pointer));
                             }
-                            CHECK_GL_ERROR();
+                            (void) CHECK_GL_ERROR();
                         }
                     }
                 }
@@ -219,5 +219,5 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
     } else {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }

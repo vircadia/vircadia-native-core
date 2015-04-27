@@ -1,5 +1,5 @@
 //
-//  HifiMenu.h
+//  VrMenu.h
 //
 //  Created by Bradley Austin Davis on 2015/04/21
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,8 +9,8 @@
 //
 
 #pragma once
-#ifndef hifi_HifiMenu_h
-#define hifi_HifiMenu_h
+#ifndef hifi_VrMenu_h
+#define hifi_VrMenu_h
 
 #include <QQuickItem>
 #include <QHash>
@@ -20,7 +20,7 @@
 #include <QMenu>
 #include "OffscreenUi.h"
 
-// FIXME rename the compilation files to VrMenu.h and VrMenu.cpp after upstream pull requests are merged.
+// FIXME break up the rendering code (VrMenu) and the code for mirroring a Widget based menu in QML
 class VrMenu : public QQuickItem {
     Q_OBJECT
     HIFI_QML_DECL_LAMBDA
@@ -45,4 +45,4 @@ protected:
     friend class MenuUserData;
 };
 
-#endif // hifi_HifiMenu_h
+#endif // hifi_VrMenu_h

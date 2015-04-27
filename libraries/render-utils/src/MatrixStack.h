@@ -38,7 +38,7 @@ public:
     push(glm::mat4());
   }
 
-  explicit MatrixStack(const MatrixStack& other) {
+  explicit MatrixStack(const MatrixStack& other) : std::stack<glm::mat4>() {
     *((std::stack<glm::mat4>*)this) = *((std::stack<glm::mat4>*)&other);
   }
 

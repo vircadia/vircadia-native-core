@@ -46,7 +46,7 @@ public:
     void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
     void setCapsuleY(float radius, float halfHeight);
 
-    const int getType() const { return _type; }
+    int getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
 

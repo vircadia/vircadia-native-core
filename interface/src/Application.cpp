@@ -63,7 +63,7 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <HifiMenu.h>
+#include <VrMenu.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <ModelEntityItem.h>
@@ -1326,13 +1326,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 }
 
+
+//#define VR_MENU_ONLY_IN_HMD
+
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
-#ifndef DEBUG
+#ifdef VR_MENU_ONLY_IN_HMD
         if (OculusManager::isConnected()) {
 #endif
             VrMenu::toggle();
-#ifndef DEBUG
+#ifdef VR_MENU_ONLY_IN_HMD
         }
 #endif
     }

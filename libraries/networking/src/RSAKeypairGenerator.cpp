@@ -18,7 +18,9 @@
 #include "NetworkLogging.h"
 
 #include "RSAKeypairGenerator.h"
+#ifndef __GNUC__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
     QObject(parent)
