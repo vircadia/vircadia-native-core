@@ -82,6 +82,7 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
+#include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -143,6 +144,23 @@ extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
+
+enum CustomEventTypes {
+    Lambda = QEvent::User + 1
+};
+
+class LambdaEvent : public QEvent {
+    std::function<void()> _fun;
+public:
+    LambdaEvent(const std::function<void()> & fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    LambdaEvent(std::function<void()> && fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    void call() { _fun(); }
+};
+
 
 using namespace std;
 
@@ -705,6 +723,13 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // The UI can't be created until the primary OpenGL 
+    // context is created, because it needs to share 
+    // texture resources
+    initializeUi();
+    qCDebug(interfaceapp, "Initialized Offscreen UI.");
+    _glWidget->makeCurrent();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -733,17 +758,13 @@ void Application::initializeGL() {
     // update before the first render
     update(1.0f / _fps);
    
-    // The UI can't be created until the primary OpenGL 
-    // context is created, because it needs to share 
-    // texture resources
-    initializeUi();
-
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
+    MessageDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -751,6 +772,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
+    offscreenUi->load("RootMenu.qml");
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
@@ -962,6 +984,10 @@ bool Application::importSVOFromURL(const QString& urlString) {
 
 bool Application::event(QEvent* event) {
     switch (event->type()) {
+        case Lambda:
+            ((LambdaEvent*)event)->call();
+            return true;
+
         case QEvent::MouseMove:
             mouseMoveEvent((QMouseEvent*)event);
             return true;
@@ -1058,6 +1084,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
                 break;
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);

@@ -17,7 +17,7 @@
 class LoginDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
-    QML_DIALOG_DECL
+    HIFI_QML_DECL
 
     Q_PROPERTY(QString statusText READ statusText WRITE setStatusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString rootUrl READ rootUrl)

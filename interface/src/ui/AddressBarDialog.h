@@ -17,7 +17,7 @@
 class AddressBarDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
-    QML_DIALOG_DECL
+    HIFI_QML_DECL
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
