@@ -41,7 +41,7 @@ public:
     State();
     virtual ~State();
 
-    const Stamp getStamp() const { return _stamp; }
+    Stamp getStamp() const { return _stamp; }
  
     typedef ::gpu::ComparisonFunction ComparisonFunction;
 
