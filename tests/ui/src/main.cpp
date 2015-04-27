@@ -35,7 +35,7 @@
 #include <QDir>
 
 #include "MessageDialog.h"
-#include "HifiMenu.h"
+#include "VrMenu.h"
 
 class RateCounter {
     std::vector<float> times;

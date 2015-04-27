@@ -1,5 +1,5 @@
 //
-//  HifiMenu.cpp
+//  VrMenu.cpp
 //
 //  Created by Bradley Austin Davis on 2015/04/21
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,11 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "HifiMenu.h"
+#include "VrMenu.h"
 #include <QtQml>
 #include <QMenuBar>
 
 // Binds together a Qt Action or Menu with the QML Menu or MenuItem
+//
+// TODO On reflection, it may be pointless to use the UUID.  Perhaps
+// simply creating the bidirectional link pointing to both the widget
+// and qml object and inject the pointer into both objects
 class MenuUserData : public QObjectUserData {
     static const int USER_DATA_ID;
 
@@ -69,7 +73,7 @@ VrMenu::VrMenu(QQuickItem* parent) : QQuickItem(parent) {
 }
 
 // QML helper functions
-QObject* addMenu(QObject* parent, const QString & text) {
+QObject* addMenu(QObject* parent, const QString& text) {
     // FIXME add more checking here to ensure no name conflicts
     QVariant returnedValue;
     QMetaObject::invokeMethod(parent, "addMenu", Qt::DirectConnection,
@@ -94,7 +98,7 @@ QObject* addItem(QObject* parent, const QString& text) {
     return result;
 }
 
-const QObject* VrMenu::findMenuObject(const QString & menuOption) const {
+const QObject* VrMenu::findMenuObject(const QString& menuOption) const {
     if (menuOption.isEmpty()) {
         return _rootMenu;
     }
@@ -102,7 +106,7 @@ const QObject* VrMenu::findMenuObject(const QString & menuOption) const {
     return result;
 }
 
-QObject* VrMenu::findMenuObject(const QString & menuOption) {
+QObject* VrMenu::findMenuObject(const QString& menuOption) {
     if (menuOption.isEmpty()) {
         return _rootMenu;
     }

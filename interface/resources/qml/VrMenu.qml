@@ -94,6 +94,9 @@ Hifi.VrMenu {
                     var newWidth = minWidth;
                     for (var i = 0; i < children.length; ++i) {
                         var item = children[i];
+                        if (!item.visible) {
+                            continue
+                        }
                         newHeight += item.height
                     }
                     parent.height = newHeight + outerMargin * 2;
@@ -152,8 +155,23 @@ Hifi.VrMenu {
             height: implicitHeight
             width: implicitWidth
             color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
-            enabled: source.enabled
-            
+            enabled: source.enabled && source.visible
+            // FIXME uncommenting this line results in menus that have blank spots
+            // rather than having the correct size
+            // visible: source.visible
+
+            onListViewChanged: {
+                if (listView) {
+                    listView.minWidth = Math.max(listView.minWidth, implicitWidth + 64);
+                    listView.recalculateSize();
+                }
+            }
+
+            onVisibleChanged: {
+                if (listView) {
+                    listView.recalculateSize();
+                }
+            }
 
             onImplicitWidthChanged: {
                 if (listView) {

@@ -20,7 +20,7 @@
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
-#include <HifiMenu.h>
+#include <VrMenu.h>
 
 #include "Application.h"
 #include "AccountManager.h"
