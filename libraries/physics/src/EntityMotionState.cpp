@@ -219,7 +219,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     const QUuid& myNodeID = nodeList->getSessionUUID();
     const QUuid& simulatorID = _entity->getSimulatorID();
 
-    if (simulatorID != myNodeID /* && !simulatorID.isNull() */) {
+    if (simulatorID != myNodeID) {
         // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
         return false;
     }
@@ -302,13 +302,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid myNodeID = nodeList->getSessionUUID();
         QUuid simulatorID = _entity->getSimulatorID();
 
-        // if (simulatorID.isNull() && !(zeroSpeed && zeroSpin)) {
-        //     // the entity is moving and no node has claimed simulation ownership.  try to claim it.
-        //     setShouldClaimSimulationOwnership(true);
-        // }
-
         if (getShouldClaimSimulationOwnership()) {
-            // _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
             setShouldClaimSimulationOwnership(false);
         } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
