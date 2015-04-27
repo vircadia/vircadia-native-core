@@ -3104,14 +3104,15 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
 
-            RenderArgs::DebugFlags renderDebugFlags = 0;
+            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
             RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags |= RenderArgs::RENDER_DEBUG_HULLS;
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
             }
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-                renderDebugFlags |= RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
+                renderDebugFlags =
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
