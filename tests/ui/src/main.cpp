@@ -239,11 +239,7 @@ public:
     }
 };
 
-<<<<<<< HEAD
-const QString & getResourcesDir() {
-=======
-const QString& getQmlDir() {
->>>>>>> vr_menus
+const QString& getResourcesDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -254,7 +250,7 @@ const QString& getQmlDir() {
     return dir;
 }
 
-const QString & getQmlDir() {
+const QString& getQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         dir = getResourcesDir() + "qml/";
