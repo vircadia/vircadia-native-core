@@ -124,9 +124,9 @@ void OffscreenUi::resize(const QSize& newSize) {
 
     if (_quickWindow) {
         _quickWindow->setGeometry(QRect(QPoint(), newSize));
+        _quickWindow->contentItem()->setSize(newSize);
     }
 
-    _quickWindow->contentItem()->setSize(newSize);
 
     // Update our members
     if (_rootItem) {

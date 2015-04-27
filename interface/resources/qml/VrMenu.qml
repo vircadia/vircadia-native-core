@@ -108,7 +108,7 @@ Hifi.VrMenu {
                     height: 32
                     color: hifi.colors.hifiBlue
                     y: (listView.currentItem) ? listView.currentItem.y : 0;
-                    x: 32
+                    x: (listView.currentItem) ? listView.currentItem.height : 0;
                     Behavior on y { 
                           NumberAnimation {
                               duration: 100
@@ -132,6 +132,12 @@ Hifi.VrMenu {
                         property: "source"
                         value: modelData
                         when: loader.status == Loader.Ready
+                    } 
+                    Binding {
+                        target: loader.item
+                        property: "border"
+                        value: listView.parent
+                        when: loader.status == Loader.Ready
                     }        
                     Binding {
                         target: loader.item
@@ -147,10 +153,11 @@ Hifi.VrMenu {
     property var itemBuilder: Component {
         Text {
             id: thisText
-            x: 32
+            x: height
             property var source
             property var root
             property var listView
+            property var border
             text: typedText()
             height: implicitHeight
             width: implicitWidth
@@ -167,12 +174,6 @@ Hifi.VrMenu {
                 }
             }
 
-            onVisibleChanged: {
-                if (listView) {
-                    listView.recalculateSize();
-                }
-            }
-
             onImplicitWidthChanged: {
                 if (listView) {
                     listView.minWidth = Math.max(listView.minWidth, implicitWidth + 64);
@@ -182,12 +183,13 @@ Hifi.VrMenu {
 
             FontAwesome {
                 visible: source.type == 1 && source.checkable
-                x: -32
+                x: -parent.height
+                size: parent.height
                 text: checkText();  
                 color: parent.color
                 function checkText() {
-                    if (source.type != 1) {
-                        return;
+                    if (!source || source.type != 1) {
+                        return "";
                     }
                     // FIXME this works for native QML menus but I don't think it will
                     // for proxied QML menus
@@ -199,6 +201,7 @@ Hifi.VrMenu {
             }
 
             FontAwesome {
+                size: parent.height
                 visible: source.type == 2
                 x: listView.width - 32 - (hifi.layout.spacing * 2)
                 text: "\uF0DA"
@@ -206,14 +209,17 @@ Hifi.VrMenu {
             }
 
             function typedText() {
-                switch(source.type) {
-                case 2:
-                    return source.title;
-                case 1: 
-                    return source.text;
-                case 0:
-                    return "-----"
+                if (source) {
+                    switch(source.type) {
+                    case 2:
+                        return source.title;
+                    case 1: 
+                        return source.text;
+                    case 0:
+                        return "-----"
+                    }
                 }
+                return ""
             }
             
             MouseArea {
