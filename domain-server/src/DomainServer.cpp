@@ -505,10 +505,6 @@ void DomainServer::populateStaticScriptedAssignmentsFromSettings() {
                                                                   scriptPool);
                     scriptAssignment->setPayload(scriptURL.toUtf8());
 
-                    // we want a script added by the domain owner to be able to do what it wants with entities.
-                    scriptAssignment->setCanRez(true);
-                    scriptAssignment->setCanAdjustLocks(true);
-
                     // add it to static hash so we know we have to keep giving it back out
                     addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
