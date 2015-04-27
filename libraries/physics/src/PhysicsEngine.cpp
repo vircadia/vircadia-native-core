@@ -173,9 +173,9 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
                 // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
                 // but it also handles all EASY changes
-                bool success = updateObjectHard(body, motionState, flags);
+                bool success = updateBodyHard(body, motionState, flags);
                 if (!success) {
-                    // NOTE: since updateObjectHard() failed we know that motionState has been removed 
+                    // NOTE: since updateBodyHard() failed we know that motionState has been removed 
                     // from simulation and body has been deleted.  Depending on what else has changed
                     // we might need to remove motionState altogether...
                     if (flags & EntityItem::DIRTY_VELOCITY) {
@@ -195,7 +195,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             } else if (flags) {
                 // an EASY update does NOT require that the body be pulled out of physics engine
                 // hence the MotionState has all the knowledge and authority to perform the update.
-                motionState->updateObjectEasy(flags, _numSubsteps);
+                motionState->updateBodyEasy(flags, _numSubsteps);
             }
             if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
                 motionState->resetMeasuredBodyAcceleration();
@@ -608,7 +608,7 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
 }
 
 // private
-bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
+bool PhysicsEngine::updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
     MotionType newType = motionState->computeObjectMotionType();
 
     // pull body out of physics engine
@@ -653,7 +653,7 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
-        motionState->updateObjectEasy(flags, _numSubsteps);
+        motionState->updateBodyEasy(flags, _numSubsteps);
     }
 
     // update the motion parameters

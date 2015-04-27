@@ -100,7 +100,7 @@ private:
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
 
     // return 'true' of update was successful
-    bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+    bool updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
 
     btClock _clock;

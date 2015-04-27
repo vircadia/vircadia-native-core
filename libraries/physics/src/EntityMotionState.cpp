@@ -138,7 +138,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
+void EntityMotionState::updateBodyEasy(uint32_t flags, uint32_t step) {
     if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_PHYSICS_NO_WAKE)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = getObjectPosition() - ObjectMotionState::getWorldOffset();
