@@ -28,7 +28,7 @@ void InfoView::registerType() {
     qmlRegisterType<InfoView>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); 
 } 
 
-QString fetchVersion(const QUrl & url) {
+QString fetchVersion(const QUrl& url) {
     QXmlQuery query;
     query.bindVariable("file", QVariant(url)); 
     query.setQuery("string((doc($file)//input[@id='version'])[1]/@value)");
@@ -65,7 +65,7 @@ QUrl InfoView::url() {
     return _url;
 }
 
-void InfoView::setUrl(const QUrl & url) {
+void InfoView::setUrl(const QUrl& url) {
     if (url != _url) {
         _url = url;
         emit urlChanged();

@@ -26,7 +26,7 @@ public:
 
     InfoView(QQuickItem* parent = nullptr);
     QUrl url();
-    void setUrl(const QUrl & url);
+    void setUrl(const QUrl& url);
 
 signals:
     void urlChanged();
