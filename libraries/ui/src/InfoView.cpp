@@ -14,7 +14,7 @@
 #include <SettingHandle.h>
 #include <PathUtils.h>
 #include <QXmlQuery>
-
+#include <QDir>
 const QUrl InfoView::QML{ "InfoView.qml" };
 const QString InfoView::NAME{ "InfoView" };
 
@@ -37,9 +37,19 @@ QString fetchVersion(const QUrl& url) {
     return r.trimmed();
 }
 
-void InfoView::show(const QString& path, bool forced) {
-    QUrl url = QUrl::fromLocalFile(path);
-    if (!forced) {
+void InfoView::show(const QString& path, bool firstOrChangedOnly) {
+    static bool registered{ false };
+    if (!registered) {
+        registerType();
+        registered = true;
+    }
+    QUrl url;
+    if (QDir(path).isRelative()) {
+        url = QUrl::fromLocalFile(PathUtils::resourcesPath() + path); 
+    } else {
+        url = QUrl::fromLocalFile(path);
+    }
+    if (firstOrChangedOnly) {
         const QString lastVersion = infoVersion.get();
         // If we have version information stored
         if (lastVersion != QString::null) {
@@ -54,6 +64,9 @@ void InfoView::show(const QString& path, bool forced) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QString infoViewName(NAME + "_" + path);
     offscreenUi->show(QML, NAME + "_" + path, [=](QQmlContext* context, QObject* newObject){
+        QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
+        item->setWidth(720);
+        item->setHeight(720);
         InfoView* newInfoView = newObject->findChild<InfoView*>();
         Q_ASSERT(newInfoView);
         newInfoView->parent()->setObjectName(infoViewName);

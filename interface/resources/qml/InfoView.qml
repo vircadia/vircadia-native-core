@@ -1,4 +1,4 @@
-import Hifi 1.0
+import Hifi 1.0 as Hifi
 import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtQuick.Controls.Styles 1.3
@@ -7,11 +7,11 @@ import "controls"
 
 Dialog {
     id: root
-    width: 720
-    height: 1024
+    width: 800
+    height: 800
     resizable: true
     
-    InfoView {
+    Hifi.InfoView {
         id: infoView
         // Fille the client area
         anchors.fill: parent

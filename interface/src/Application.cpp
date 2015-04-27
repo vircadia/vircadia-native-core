@@ -84,7 +84,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <MessageDialog.h>
-
+#include <InfoView.h>
 #include <SceneScriptingInterface.h>
 
 #include "Application.h"
@@ -132,7 +132,6 @@
 
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
-#include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
@@ -761,8 +760,8 @@ void Application::initializeGL() {
 
     // update before the first render
     update(1.0f / _fps);
-   
-    InfoView::showFirstTime(INFO_HELP_PATH);
+
+    InfoView::show(INFO_HELP_PATH, true);
 }
 
 void Application::initializeUi() {
@@ -910,11 +909,11 @@ void Application::audioMuteToggled() {
 }
 
 void Application::aboutApp() {
-    InfoView::forcedShow(INFO_HELP_PATH);
+    InfoView::show(INFO_HELP_PATH);
 }
 
 void Application::showEditEntitiesHelp() {
-    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
+    InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
