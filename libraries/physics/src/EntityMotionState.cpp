@@ -111,7 +111,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     glm::vec3 av;
     getAngularVelocity(av);
-    _entity->setAngularVelocity(v);
+    _entity->setAngularVelocity(av);
 
     _entity->setLastSimulated(usecTimestampNow());
 
