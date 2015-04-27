@@ -15,6 +15,7 @@
 #include "ShapeInfoUtil.h"
 #include "PhysicsHelpers.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "PhysicsLogging.h"
 
 static uint32_t _numSubsteps;
 
@@ -172,9 +173,9 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
                 // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
                 // but it also handles all EASY changes
-                bool success = updateObjectHard(body, motionState, flags);
+                bool success = updateBodyHard(body, motionState, flags);
                 if (!success) {
-                    // NOTE: since updateObjectHard() failed we know that motionState has been removed 
+                    // NOTE: since updateBodyHard() failed we know that motionState has been removed 
                     // from simulation and body has been deleted.  Depending on what else has changed
                     // we might need to remove motionState altogether...
                     if (flags & EntityItem::DIRTY_VELOCITY) {
@@ -194,10 +195,10 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             } else if (flags) {
                 // an EASY update does NOT require that the body be pulled out of physics engine
                 // hence the MotionState has all the knowledge and authority to perform the update.
-                motionState->updateObjectEasy(flags, _numSubsteps);
+                motionState->updateBodyEasy(flags, _numSubsteps);
             }
             if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
-                motionState->resetMeasuredAcceleration();
+                motionState->resetMeasuredBodyAcceleration();
             }
         } else {
             // the only way we should ever get here (motionState exists but no body) is when the object
@@ -207,7 +208,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             // it is possible that the changes are such that the object can now be added to the physical simulation
             if (flags & EntityItem::DIRTY_SHAPE) {
                 ShapeInfo shapeInfo;
-                motionState->computeShapeInfo(shapeInfo);
+                motionState->computeObjectShapeInfo(shapeInfo);
                 btCollisionShape* shape = _shapeManager.getShape(shapeInfo);
                 if (shape) {
                     addObject(shapeInfo, shape, motionState);
@@ -341,7 +342,7 @@ void PhysicsEngine::stepSimulation() {
         // lock on the tree before we re-lock ourselves.
         //
         // TODO: untangle these lock sequences.
-        ObjectMotionState::setSimulationStep(_numSubsteps);
+        ObjectMotionState::setWorldSimulationStep(_numSubsteps);
         _entityTree->lockForWrite();
         lock();
         _dynamicsWorld->synchronizeMotionStates();
@@ -498,7 +499,7 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
     btVector3 inertia(0.0f, 0.0f, 0.0f);
     float mass = 0.0f;
     btRigidBody* body = NULL;
-    switch(motionState->computeMotionType()) {
+    switch(motionState->computeObjectMotionType()) {
         case MOTION_TYPE_KINEMATIC: {
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -511,13 +512,13 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
-            mass = motionState->computeMass(shapeInfo);
+            mass = motionState->computeObjectMass(shapeInfo);
             shape->calculateLocalInertia(mass, inertia);
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->updateInertiaTensor();
             motionState->setRigidBody(body);
             motionState->setKinematic(false, _numSubsteps);
-            motionState->updateObjectVelocities();
+            motionState->updateBodyVelocities();
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
             const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
@@ -540,11 +541,10 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
         }
     }
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
-    body->setRestitution(motionState->_restitution);
-    body->setFriction(motionState->_friction);
-    body->setDamping(motionState->_linearDamping, motionState->_angularDamping);
+    motionState->updateBodyMaterialProperties();
+
     _dynamicsWorld->addRigidBody(body);
-    motionState->resetMeasuredAcceleration();
+    motionState->resetMeasuredBodyAcceleration();
 }
 
 void PhysicsEngine::bump(EntityItem* bumpEntity) {
@@ -608,8 +608,8 @@ void PhysicsEngine::removeObjectFromBullet(ObjectMotionState* motionState) {
 }
 
 // private
-bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
-    MotionType newType = motionState->computeMotionType();
+bool PhysicsEngine::updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
+    MotionType newType = motionState->computeObjectMotionType();
 
     // pull body out of physics engine
     _dynamicsWorld->removeRigidBody(body);
@@ -621,7 +621,7 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
         // get new shape
         btCollisionShape* oldShape = body->getCollisionShape();
         ShapeInfo shapeInfo;
-        motionState->computeShapeInfo(shapeInfo);
+        motionState->computeObjectShapeInfo(shapeInfo);
         btCollisionShape* newShape = _shapeManager.getShape(shapeInfo);
         if (!newShape) {
             // FAIL! we are unable to support these changes!
@@ -640,7 +640,7 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
             _shapeManager.releaseShape(oldShape);
 
             // compute mass properties
-            float mass = motionState->computeMass(shapeInfo);
+            float mass = motionState->computeObjectMass(shapeInfo);
             btVector3 inertia(0.0f, 0.0f, 0.0f);
             body->getCollisionShape()->calculateLocalInertia(mass, inertia);
             body->setMassProps(mass, inertia);
@@ -653,7 +653,7 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
     }
     bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
     if (easyUpdate) {
-        motionState->updateObjectEasy(flags, _numSubsteps);
+        motionState->updateBodyEasy(flags, _numSubsteps);
     }
 
     // update the motion parameters
@@ -675,8 +675,8 @@ bool PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motio
             if (! (flags & EntityItem::DIRTY_MASS)) {
                 // always update mass properties when going dynamic (unless it's already been done above)
                 ShapeInfo shapeInfo;
-                motionState->computeShapeInfo(shapeInfo);
-                float mass = motionState->computeMass(shapeInfo);
+                motionState->computeObjectShapeInfo(shapeInfo);
+                float mass = motionState->computeObjectMass(shapeInfo);
                 btVector3 inertia(0.0f, 0.0f, 0.0f);
                 body->getCollisionShape()->calculateLocalInertia(mass, inertia);
                 body->setMassProps(mass, inertia);

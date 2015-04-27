@@ -4425,7 +4425,6 @@ void Application::checkSkeleton() {
         
         _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
     } else {
-        _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }
