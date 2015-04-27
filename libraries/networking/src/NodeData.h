@@ -26,8 +26,18 @@ public:
     
     QMutex& getMutex() { return _mutex; }
 
+    void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
+    bool getCanAdjustLocks() { return _canAdjustLocks; }
+
+    void setCanRez(bool canRez) { _canRez = canRez; }
+    bool getCanRez() { return _canRez; }
+
 private:
     QMutex _mutex;
+
+protected:
+    bool _canAdjustLocks = false; /// will this node be allowed to adjust locks on entities?
+    bool _canRez = false; /// will this node be allowed to rez in new entities?
 };
 
 #endif // hifi_NodeData_h

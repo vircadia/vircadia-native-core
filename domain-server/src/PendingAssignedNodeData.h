@@ -18,16 +18,25 @@
 class PendingAssignedNodeData : public QObject {
     Q_OBJECT
 public:
-    PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID);
+    PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID, bool canAdjustLocks, bool canRez);
     
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
+
+    void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
+    bool getCanAdjustLocks() { return _canAdjustLocks; }
+
+    void setCanRez(bool canRez) { _canRez = canRez; }
+    bool getCanRez() { return _canRez; }
+
 private:
     QUuid _assignmentUUID;
     QUuid _walletUUID;
+    bool _canAdjustLocks = false; /// will this node be allowed to adjust locks on entities?
+    bool _canRez = false; /// will this node be allowed to rez in new entities?
 };
 
 #endif // hifi_PendingAssignedNodeData_h

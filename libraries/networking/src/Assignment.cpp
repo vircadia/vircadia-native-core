@@ -153,6 +153,8 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
     if (assignment._command == Assignment::RequestCommand) {
         out << assignment._walletUUID;
     }
+
+    out << assignment._canAdjustLocks << assignment._canRez;
     
     return out;
 }
@@ -167,6 +169,8 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     if (assignment._command == Assignment::RequestCommand) {
         in >> assignment._walletUUID;
     }
-    
+
+    in >> assignment._canAdjustLocks >> assignment._canRez;
+
     return in;
 }
