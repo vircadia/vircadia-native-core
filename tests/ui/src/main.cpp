@@ -28,13 +28,11 @@
 #include <QQmlContext>
 #include <QtQml/QQmlApplicationEngine>
 #include <PathUtils.h>
-#include <QXmlQuery>
 #include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 #include <QDir>
-#include <QXmlResultItems>
 #include "MessageDialog.h"
 #include "VrMenu.h"
 #include "InfoView.h"
