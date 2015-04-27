@@ -18,8 +18,6 @@ Dialog {
     onImplicitHeightChanged: root.height = implicitHeight
     onImplicitWidthChanged: root.width = implicitWidth
 
-    SystemPalette { id: palette }
-
     function calculateImplicitWidth() {
         if (buttons.visibleChildren.length < 2)
             return;

@@ -1,11 +1,12 @@
 import QtQuick 2.3
 
 Rectangle {
-    SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
-    property int margin: 5
-    color: myPalette.window
-    border.color: myPalette.dark
-    border.width: 5
-    radius: border.width * 2
+    HifiConstants { id: hifi }
+    implicitHeight: 64
+    implicitWidth: 64
+    color: hifi.colors.window
+    border.color: hifi.colors.hifiBlue
+    border.width: hifi.styles.borderWidth
+    radius: hifi.styles.borderRadius
 }
 

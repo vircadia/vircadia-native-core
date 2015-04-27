@@ -11,28 +11,21 @@ import "../styles"
  * Examine the QML ApplicationWindow.qml source for how it does this
  * 
  */
-Item {
+DialogBase {
     id: root
-
-    HifiPalette { id: hifiPalette }
-    SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
+    HifiConstants { id: hifi }
+    // FIXME better placement via a window manager
     x: parent ? parent.width / 2 - width / 2 : 0
     y: parent ? parent.height / 2 - height / 2 : 0
 
-    property int animationDuration: 400
     property bool destroyOnInvisible: false
     property bool destroyOnCloseButton: true
     property bool resizable: false
+
+    property int animationDuration: hifi.effects.fadeInDuration
     property int minX: 256
     property int minY: 256
-    property int topMargin: root.height - clientBorder.height + 8
-    property int margins: 8
-    property string title
-    property int titleSize: titleBorder.height + 12
-    property string frameColor: hifiPalette.hifiBlue
-    property string backgroundColor: sysPalette.window
-    property string headerBackgroundColor: sysPalette.dark
-    clip: true
+    readonly property int topMargin: root.height - clientBorder.height + hifi.layout.spacing
 
     /*
      * Support for animating the dialog in and out. 
@@ -44,7 +37,8 @@ Item {
     // visibility, so that we can do animations in both directions.  Because 
     // visibility and enabled are boolean flags, they cannot be animated.  So when 
     // enabled is change, we modify a property that can be animated, like scale or 
-    // opacity.  
+    // opacity, and then when the target animation value is reached, we can
+    // modify the visibility
     onEnabledChanged: {
         scale = enabled ? 1.0 : 0.0
     }
@@ -57,13 +51,13 @@ Item {
         }
     }
 
-    // We remove any load the dialog might have on the QML by toggling it's 
-    // visibility based on the state of the animated property
+    // Once we're scaled to 0, disable the dialog's visibility
     onScaleChanged: {
         visible = (scale != 0.0);
     }
-    
-    // Some dialogs should be destroyed when they become invisible, so handle that
+
+    // Some dialogs should be destroyed when they become invisible,
+    // so handle that
     onVisibleChanged: {
         if (!visible && destroyOnInvisible) {
             destroy();
@@ -91,6 +85,7 @@ Item {
 
     MouseArea {
         id: sizeDrag
+        enabled: root.resizable
         property int startX
         property int startY
         anchors.right: parent.right
@@ -103,7 +98,7 @@ Item {
             startY = mouseY
         }
         onPositionChanged: {
-            if (pressed && root.resizable) {
+            if (pressed) {
                 root.deltaSize((mouseX - startX), (mouseY - startY))
                 startX = mouseX
                 startY = mouseY
@@ -111,83 +106,41 @@ Item {
         }
     }
 
-    /* 
-     * Window decorations, with a title bar and frames
-     */
-    Border {
-        id: windowBorder
-        anchors.fill: parent
-        border.color: root.frameColor
-        color: root.backgroundColor
+    MouseArea {
+        id: titleDrag
+        x: root.titleX
+        y: root.titleY
+        width: root.titleWidth
+        height: root.titleHeight
 
-        Border {
-            id: titleBorder
-            height: 48
+        drag {
+            target: root
+            minimumX: 0
+            minimumY: 0
+            maximumX: root.parent ? root.parent.width - root.width : 0
+            maximumY: root.parent ? root.parent.height - root.height : 0
+        }
+
+        Row {
+            id: windowControls
+            anchors.bottom: parent.bottom
+            anchors.top: parent.top
             anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            border.color: root.frameColor
-            color: root.headerBackgroundColor
-
-            Text {
-                id: titleText
-                // FIXME move all constant colors to our own palette class HifiPalette
-                color: "white"
-                text: root.title
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                anchors.fill: parent
-            }
-
-            MouseArea {
-                id: titleDrag
-                anchors.right: closeButton.left
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.rightMargin: 4
-                drag {
-                    target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? root.parent.width - root.width : 0
-                    maximumY: root.parent ? root.parent.height - root.height : 0
-                }
-            }
-            Image {
-                id: closeButton
-                x: 360
-                height: 16
+            anchors.rightMargin: hifi.layout.spacing
+            FontAwesome {
+                id: icon
                 anchors.verticalCenter: parent.verticalCenter
-                width: 16
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                source: "../../styles/close.svg"
+                size: root.titleHeight - hifi.layout.spacing * 2
+                color: "red"
+                text: "\uf00d"
                 MouseArea {
+                    anchors.margins: hifi.layout.spacing / 2
                     anchors.fill: parent
                     onClicked: {
                         root.close();
                     }
                 }
             }
-        } // header border
-
-        Border {
-            id: clientBorder
-            border.color: root.frameColor
-            // FIXME move all constant colors to our own palette class HifiPalette
-            color: "#00000000"
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-            anchors.top: titleBorder.bottom
-            anchors.topMargin: -titleBorder.border.width
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.leftMargin: 0
-            clip: true
-        } // client border
-    } // window border
-
+        }
+    }
 }

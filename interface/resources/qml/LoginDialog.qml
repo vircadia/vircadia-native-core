@@ -5,9 +5,8 @@ import "controls"
 import "styles"
 
 Dialog {
+    HifiConstants { id: hifi }
     title: "Login"
-    HifiPalette { id: hifiPalette }
-    SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     objectName: "LoginDialog"
     height: 512
     width: 384
@@ -117,7 +116,7 @@ Dialog {
                 width: 192
                 height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
                 border.width: 0
                 radius: 10
 
@@ -160,7 +159,7 @@ Dialog {
                 text:"Create Account"
                 font.pointSize: 12
                 font.bold: true
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent
@@ -177,7 +176,7 @@ Dialog {
                 verticalAlignment: Text.AlignVCenter
                 font.pointSize: 12
                 text: "Recover Password"
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent

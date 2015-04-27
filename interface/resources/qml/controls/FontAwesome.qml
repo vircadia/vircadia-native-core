@@ -8,9 +8,9 @@ Text {
     property int size: 32
     width: size
     height: size
+    font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
-    horizontalAlignment: Text.AlignHCenter
+    horizontalAlignment: Text.AlignLeft
     font.family: iconFont.name
-    font.pointSize: 18
 }
 

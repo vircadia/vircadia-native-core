@@ -1,34 +1,36 @@
-import QtQuick 2.3
-import QtQuick.Controls 1.2
+import QtQuick 2.3 as Original
+import "../styles"
+import "."
 
-TextInput {
-    SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
+Original.TextInput {
+    id: root
+    HifiConstants { id: hifi }
     property string helperText
-    font.family: "Helvetica"
-    font.pointSize: 18
-    width: 256
-    height: 64
-    color: myPalette.text
+    height: hifi.layout.rowHeight
     clip: true
-    verticalAlignment: TextInput.AlignVCenter
+    color: hifi.colors.text
+    verticalAlignment: Original.TextInput.AlignVCenter
+    font.family: hifi.fonts.fontFamily
+    font.pointSize: hifi.fonts.fontSize
 
-    onTextChanged: {
-        if (text == "") {
-            helperText.visible = true;
-        } else {
-            helperText.visible = false;
-        }
+
+    Original.Rectangle {
+        // Render the rectangle as background
+        z: -1
+        anchors.fill: parent
+        color: hifi.colors.inputBackground
     }
 
     Text {
-        id: helperText
         anchors.fill: parent
         font.pointSize: parent.font.pointSize
         font.family: parent.font.family
-        verticalAlignment: TextInput.AlignVCenter
-        text: parent.helperText
-        color: myPalette.dark
-        clip: true
+        verticalAlignment: parent.verticalAlignment
+        horizontalAlignment: parent.horizontalAlignment
+        text: root.helperText
+        color: hifi.colors.hintText
+        visible: !root.text
     }
 }
+
 
