@@ -39,8 +39,7 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     
 }
 
-NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) {
-    
+NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) : QObject() {
     _uuid = otherPeer._uuid;
     _publicSocket = otherPeer._publicSocket;
     _localSocket = otherPeer._localSocket;

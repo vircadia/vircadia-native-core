@@ -391,7 +391,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
 
         RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
-                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
         _tree->lockForRead();
