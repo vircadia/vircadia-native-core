@@ -257,10 +257,6 @@ void DynamicCharacterController::setEnabled(bool enabled) {
     }
 }
 
-bool DynamicCharacterController::isEnabled() const { 
-    return _enabled && _dynamicsWorld;
-}
-
 void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld != world) {
         if (_dynamicsWorld) { 
