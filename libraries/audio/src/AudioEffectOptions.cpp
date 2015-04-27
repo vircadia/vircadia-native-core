@@ -64,7 +64,7 @@ AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) :
         }
 }
 
-AudioEffectOptions::AudioEffectOptions(const AudioEffectOptions &other) {
+AudioEffectOptions::AudioEffectOptions(const AudioEffectOptions &other) : QObject() {
     *this = other;
 }
 
