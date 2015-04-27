@@ -38,7 +38,8 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 EntityMotionState::EntityMotionState(EntityItem* entity) :
     _entity(entity),
     _accelerationNearlyGravityCount(0),
-    _shouldClaimSimulationOwnership(false)
+    _shouldClaimSimulationOwnership(false),
+    _movingStepsWithoutSimulationOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
@@ -108,10 +109,22 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     getVelocity(v);
     _entity->setVelocity(v);
 
-    getAngularVelocity(v);
-    _entity->setAngularVelocity(v);
+    glm::vec3 av;
+    getAngularVelocity(av);
+    _entity->setAngularVelocity(av);
 
     _entity->setLastSimulated(usecTimestampNow());
+
+    if (_entity->getSimulatorID().isNull() && isMoving()) {
+        // object is moving and has no owner.  attempt to claim simulation ownership.
+        _movingStepsWithoutSimulationOwner++;
+    } else {
+        _movingStepsWithoutSimulationOwner = 0;
+    }
+
+    if (_movingStepsWithoutSimulationOwner > 4) { // XXX maybe meters from our characterController ?
+        setShouldClaimSimulationOwnership(true);
+    }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
@@ -126,7 +139,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 }
 
 void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
-    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_PHYSICS_NO_WAKE)) {
         if (flags & EntityItem::DIRTY_POSITION) {
             _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
@@ -141,6 +154,10 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
             updateObjectVelocities();
         }
         _sentStep = step;
+
+        if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            _body->activate();
+        }
     }
 
     // TODO: entity support for friction and restitution
@@ -160,7 +177,6 @@ void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-    _body->activate();
 };
 
 void EntityMotionState::updateObjectVelocities() {
@@ -287,13 +303,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid simulatorID = _entity->getSimulatorID();
 
         if (getShouldClaimSimulationOwnership()) {
-            _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
             setShouldClaimSimulationOwnership(false);
-        }
-
-        if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
-            // we are the simulator and the object has stopped.  give up "simulator" status
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the entity has stopped.  give up "simulator" status
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
+        } else if (simulatorID == myNodeID && !_body->isActive()) {
+            // it's not active.  don't keep simulation ownership.
             _entity->setSimulatorID(QUuid());
             properties.setSimulatorID(QUuid());
         }
