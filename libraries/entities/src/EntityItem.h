@@ -55,7 +55,8 @@ public:
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
         DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_MATERIAL = 0x00100
+        DIRTY_MATERIAL = 0x00100,
+        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -133,7 +134,7 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed);
+    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
 
     virtual bool needsToCallUpdate() const { return false; }
 

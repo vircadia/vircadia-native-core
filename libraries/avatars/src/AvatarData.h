@@ -105,6 +105,10 @@ const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/h
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
 const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
 
+const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
+const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
+
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).

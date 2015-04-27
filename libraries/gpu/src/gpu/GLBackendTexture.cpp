@@ -16,8 +16,8 @@ GLBackend::GLTexture::GLTexture() :
     _storageStamp(0),
     _contentStamp(0),
     _texture(0),
-    _size(0),
-    _target(GL_TEXTURE_2D)
+    _target(GL_TEXTURE_2D),
+    _size(0)
 {}
 
 GLBackend::GLTexture::~GLTexture() {
@@ -176,6 +176,9 @@ public:
                         texel.internalFormat = GL_DEPTH_COMPONENT24;
                         break;
                         }
+                    case gpu::NUM_TYPES: { // quiet compiler
+                        Q_UNREACHABLE();
+                    }
                     }
                     break;
                 default:
@@ -279,7 +282,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
     if (!object) {
         object = new GLTexture();
         glGenTextures(1, &object->_texture);
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
         Backend::setGPUObject(texture, object);
     }
 
@@ -363,7 +366,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
     default:
         qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
     }
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 
     return object;
 }
@@ -446,6 +449,6 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
     glTexParameterf(object->_target, GL_TEXTURE_MIN_LOD, (float) sampler.getMinMip());
     glTexParameterf(object->_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
     glTexParameterf(object->_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 
 }

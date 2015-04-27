@@ -111,7 +111,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-    bool makeResult = gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::Shader::makeProgram(*program, slotBindings);
     
     
     auto locations = std::shared_ptr<Locations>(new Locations());
@@ -139,7 +139,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    auto it = insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
+    insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
 
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
     if (!key.isShadow()) {
@@ -1947,14 +1947,14 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
         return false;
     }
 
-    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+    if (args->_debugFlags == RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == false) {
         // turning collision hull rendering on
         _renderCollisionHull = true;
         _nextGeometry = _collisionGeometry;
         _saveNonCollisionGeometry = _geometry;
         updateGeometry();
         simulate(0.0, true);
-    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+    } else if (args->_debugFlags != RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == true) {
         // turning collision hull rendering off
         _renderCollisionHull = false;
         _nextGeometry = _saveNonCollisionGeometry;

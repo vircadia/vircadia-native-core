@@ -15,7 +15,7 @@
 #include "DependencyManager.h"
 #include "AddressManager.h"
 
-QML_DIALOG_DEF(AddressBarDialog)
+HIFI_QML_DEF(AddressBarDialog)
 
 AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto addressManager = DependencyManager::get<AddressManager>();

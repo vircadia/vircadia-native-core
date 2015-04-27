@@ -85,6 +85,7 @@ protected:
     EntityItem* _entity;
     quint8 _accelerationNearlyGravityCount;
     bool _shouldClaimSimulationOwnership;
+    quint32 _movingStepsWithoutSimulationOwner;
 };
 
 #endif // hifi_EntityMotionState_h

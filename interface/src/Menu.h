@@ -187,6 +187,8 @@ namespace MenuOption {
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
+    const QString PhysicsShowOwned = "Highlight Simulation Ownership";
+    const QString PhysicsShowHulls = "Draw Collision Hulls";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
