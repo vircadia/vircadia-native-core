@@ -234,12 +234,12 @@ public:
     };
 
 public:
-    MenuConstants(QObject * parent = nullptr) : QObject(parent) {
+    MenuConstants(QObject* parent = nullptr) : QObject(parent) {
 
     }
 };
 
-const QString & getQmlDir() {
+const QString& getQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -250,7 +250,7 @@ const QString & getQmlDir() {
     return dir;
 }
 
-const QString & getTestQmlDir() {
+const QString& getTestQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -265,7 +265,7 @@ const QString & getTestQmlDir() {
 class QTestWindow : public QWindow, private QOpenGLFunctions  {
     Q_OBJECT
 
-    QOpenGLContext * _context{ nullptr };
+    QOpenGLContext* _context{ nullptr };
     QSize _size;
     bool _altPressed{ false };
     RateCounter fps;
@@ -273,7 +273,7 @@ class QTestWindow : public QWindow, private QOpenGLFunctions  {
     int testQmlTexture{ 0 };
 
 public:
-    QObject * rootMenu;
+    QObject* rootMenu;
 
     QTestWindow() {
         _timer.setInterval(1);
@@ -304,7 +304,7 @@ public:
         initializeOpenGLFunctions();
 
         {
-            QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
             logger->enableMessages();
             connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
@@ -396,12 +396,12 @@ private:
 
 
 protected:
-    void resizeEvent(QResizeEvent * ev) override {
+    void resizeEvent(QResizeEvent* ev) override {
         resizeWindow(ev->size());
     }
 
   
-    void keyPressEvent(QKeyEvent *event) {
+    void keyPressEvent(QKeyEvent* event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
         case Qt::Key_L:
@@ -432,7 +432,7 @@ protected:
         }
     }
 
-    void moveEvent(QMoveEvent *event) {
+    void moveEvent(QMoveEvent* event) {
         static qreal oldPixelRatio = 0.0;
         if (devicePixelRatio() != oldPixelRatio) {
             oldPixelRatio = devicePixelRatio();

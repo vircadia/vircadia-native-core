@@ -20,9 +20,9 @@ class MarketplaceDialog : public OffscreenQmlDialog
     HIFI_QML_DECL
 
 public:
-    MarketplaceDialog(QQuickItem *parent = 0);
+    MarketplaceDialog(QQuickItem* parent = nullptr);
 
-    Q_INVOKABLE bool navigationRequested(const QString & url);
+    Q_INVOKABLE bool navigationRequested(const QString& url);
 
 };
 

@@ -15,10 +15,10 @@
 HIFI_QML_DEF(MarketplaceDialog)
 
 
-MarketplaceDialog::MarketplaceDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
+MarketplaceDialog::MarketplaceDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
 }
 
-bool MarketplaceDialog::navigationRequested(const QString & url) {
+bool MarketplaceDialog::navigationRequested(const QString& url) {
     qDebug() << url;
     if (Application::getInstance()->canAcceptURL(url)) {
         if (Application::getInstance()->acceptURL(url)) {
