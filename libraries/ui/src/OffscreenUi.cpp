@@ -426,7 +426,6 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
         item = _rootItem->findChild<QQuickItem*>(name);
     }
     if (item) {
-        qDebug() << "Turning item " << !item->isEnabled();
         item->setEnabled(!item->isEnabled());
     }
 }

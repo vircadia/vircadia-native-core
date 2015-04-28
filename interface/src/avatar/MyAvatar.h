@@ -138,7 +138,6 @@ public:
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
     DynamicCharacterController* getCharacterController() { return &_characterController; }
-    void updateCharacterController();
     
     void clearJointAnimationPriorities();
 
@@ -192,6 +191,8 @@ public slots:
     void stopRecording();
     void saveRecording(QString filename);
     void loadLastRecording();
+
+    virtual void rebuildSkeletonBody();
     
 signals:
     void transformChanged();

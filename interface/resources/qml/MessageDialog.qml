@@ -325,7 +325,6 @@ Dialog {
 
             case Qt.Key_Enter:
             case Qt.Key_Return:
-                console.log("Accepting");
                 event.accepted = true
                 content.accept()
                 break

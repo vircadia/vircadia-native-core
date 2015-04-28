@@ -192,6 +192,14 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = NULL;
 
+    if (getIsClient()) {
+        // if our Node isn't allowed to create entities in this domain, don't try.
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (!nodeList->getThisNodeCanRez()) {
+            return NULL;
+        }
+    }
+
     // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
     // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
     bool recordCreationTime = false;

@@ -94,7 +94,7 @@ void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
     }
 }
 
-void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar dt) {
+void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 actualVelocity = _rigidBody->getLinearVelocity();
     btScalar actualSpeed = actualVelocity.length();
 
@@ -315,10 +315,10 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             float mass = 1.0f;
             btVector3 inertia(1.0f, 1.0f, 1.0f);
             _rigidBody = new btRigidBody(mass, NULL, _shape, inertia);
-            _rigidBody->setSleepingThresholds (0.0f, 0.0f);
-            _rigidBody->setAngularFactor (0.0f);
+            _rigidBody->setSleepingThresholds(0.0f, 0.0f);
+            _rigidBody->setAngularFactor(0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                            glmToBullet(_avatarData->getPosition())));
+                                                      glmToBullet(_avatarData->getPosition())));
             if (_isHovering) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
             } else {

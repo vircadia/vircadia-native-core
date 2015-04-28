@@ -358,7 +358,7 @@ public:
 #else 
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
         offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->load(QUrl("InterfaceMenu.qml"));
+        offscreenUi->load(QUrl("TestMenu.qml"));
         // Requires a root menu to have been loaded before it can load
         VrMenu::load();
 #endif
@@ -481,7 +481,7 @@ void QTestWindow::renderQml() {
 
 
 const char * LOG_FILTER_RULES = R"V0G0N(
-*.debug=false
+hifi.offscreen.focus.debug=false
 qt.quick.mouse.debug=false
 )V0G0N";
 
@@ -495,7 +495,7 @@ qt.quick.mouse.debug=false
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
-    //    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     app.exec();
     return 0;

@@ -36,7 +36,7 @@ enum MotionStateType {
 // and re-added to the physics engine and "easy" which just updates the body properties.
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY |
-                EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
+                EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP | EntityItem::DIRTY_MATERIAL);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
 const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS;
@@ -59,32 +59,30 @@ public:
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
-    static void setSimulationStep(uint32_t step);
+    // The WorldSimulationStep is a cached copy of number of SubSteps of the simulation, used for local time measurements.
+    static void setWorldSimulationStep(uint32_t step);
 
     ObjectMotionState();
     ~ObjectMotionState();
 
-    void measureAcceleration();
-    void resetMeasuredAcceleration();
+    void measureBodyAcceleration();
+    void resetMeasuredBodyAcceleration();
 
     // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
-    virtual void updateObjectVelocities() = 0;
+    virtual void updateBodyEasy(uint32_t flags, uint32_t frame) = 0;
+
+    virtual void updateBodyMaterialProperties() = 0;
+    virtual void updateBodyVelocities() = 0;
 
     MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual void computeShapeInfo(ShapeInfo& info) = 0;
-    virtual float computeMass(const ShapeInfo& shapeInfo) const = 0;
+    virtual void computeObjectShapeInfo(ShapeInfo& info) = 0;
+    virtual float computeObjectMass(const ShapeInfo& shapeInfo) const = 0;
 
-    void setFriction(float friction);
-    void setRestitution(float restitution);
-    void setLinearDamping(float damping);
-    void setAngularDamping(float damping);
-
-    void setVelocity(const glm::vec3& velocity) const;
-    void setAngularVelocity(const glm::vec3& velocity) const;
-    void setGravity(const glm::vec3& gravity) const;
+    void setBodyVelocity(const glm::vec3& velocity) const;
+    void setBodyAngularVelocity(const glm::vec3& velocity) const;
+    void setBodyGravity(const glm::vec3& gravity) const;
 
     void getVelocity(glm::vec3& velocityOut) const;
     void getAngularVelocity(glm::vec3& angularVelocityOut) const;
@@ -97,7 +95,7 @@ public:
     virtual bool shouldSendUpdate(uint32_t simulationStep);
     virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
-    virtual MotionType computeMotionType() const = 0;
+    virtual MotionType computeObjectMotionType() const = 0;
 
     virtual void updateKinematicState(uint32_t substep) = 0;
 
@@ -117,18 +115,26 @@ public:
     virtual void setShouldClaimSimulationOwnership(bool value) { }
     virtual bool getShouldClaimSimulationOwnership() { return false; }
 
+    // These pure virtual methods must be implemented for each MotionState type
+    // and make it possible to implement more complicated methods in this base class.
+
+    virtual float getObjectRestitution() const = 0;
+    virtual float getObjectFriction() const = 0;
+    virtual float getObjectLinearDamping() const = 0;
+    virtual float getObjectAngularDamping() const = 0;
+    
+    virtual const glm::vec3& getObjectPosition() const = 0;
+    virtual const glm::quat& getObjectRotation() const = 0;
+    virtual const glm::vec3& getObjectLinearVelocity() const = 0;
+    virtual const glm::vec3& getObjectAngularVelocity() const = 0;
+    virtual const glm::vec3& getObjectGravity() const = 0;
+
 protected:
     void setRigidBody(btRigidBody* body);
 
-    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
+    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN; // type of MotionState
 
-    // TODO: move these materials properties outside of ObjectMotionState
-    float _friction;
-    float _restitution;
-    float _linearDamping;
-    float _angularDamping;
-
-    MotionType _motionType;
+    MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
     btRigidBody* _body;
 

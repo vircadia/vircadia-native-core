@@ -22,11 +22,13 @@ Item {
     readonly property alias titleWidth: titleBorder.width
     readonly property alias titleHeight: titleBorder.height
 
+    // readonly property real borderWidth: hifi.styles.borderWidth
+    readonly property real borderWidth: 0
     property alias clientBorder: clientBorder
-    readonly property real clientX: clientBorder.x + hifi.styles.borderWidth
-    readonly property real clientY: clientBorder.y + hifi.styles.borderWidth
-    readonly property real clientWidth: clientBorder.width - hifi.styles.borderWidth * 2
-    readonly property real clientHeight: clientBorder.height - hifi.styles.borderWidth * 2
+    readonly property real clientX: clientBorder.x + borderWidth
+    readonly property real clientY: clientBorder.y + borderWidth
+    readonly property real clientWidth: clientBorder.width - borderWidth * 2
+    readonly property real clientHeight: clientBorder.height - borderWidth * 2
 
     /*
      * Window decorations, with a title bar and frames
@@ -35,6 +37,7 @@ Item {
         id: windowBorder
         anchors.fill: parent
         border.color: root.frameColor
+        border.width: 0
         color: "#00000000"
 
         Border {
@@ -43,10 +46,12 @@ Item {
             anchors.right: parent.right
             anchors.left: parent.left
             border.color: root.frameColor
+            border.width: 0
             clip: true
             color: root.active ?
                        hifi.colors.activeWindow.headerBackground :
                        hifi.colors.inactiveWindow.headerBackground
+
 
             Text {
                 id: titleText
@@ -60,8 +65,26 @@ Item {
             }
         } // header border
 
+        // These two rectangles hide the curves between the title area 
+        // and the client area 
+        Rectangle {
+            y: titleBorder.height - titleBorder.radius
+            height: titleBorder.radius
+            width: titleBorder.width
+            color: titleBorder.color
+            visible: borderWidth == 0
+        }
+        
+        Rectangle {
+            y: titleBorder.height
+            width: clientBorder.width
+            height: clientBorder.radius 
+            color: clientBorder.color
+        }
+
         Border {
             id: clientBorder
+            border.width: 0
             border.color: root.frameColor
             color: root.backgroundColor
             anchors.bottom: parent.bottom
@@ -69,7 +92,6 @@ Item {
             anchors.topMargin: -titleBorder.border.width
             anchors.right: parent.right
             anchors.left: parent.left
-            clip: true
         } // client border
     } // window border
 

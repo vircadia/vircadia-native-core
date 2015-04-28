@@ -987,6 +987,13 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const QUrl&, fullAvatarURL),
+                                  Q_ARG(const QString&, modelName));
+        return;
+    }
+
     _useFullAvatar = true;
     
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
@@ -1019,6 +1026,15 @@ void MyAvatar::useBodyURL(const QUrl& bodyURL, const QString& modelName) {
 }
 
 void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName, const QString& bodyName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const QUrl&, headURL),
+                                  Q_ARG(const QUrl&, bodyURL),
+                                  Q_ARG(const QString&, headName),
+                                  Q_ARG(const QString&, bodyName));
+        return;
+    }
+
     _useFullAvatar = false;
 
     if (_headURLFromPreferences != headURL) {
@@ -1079,7 +1095,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
-void MyAvatar::updateCharacterController() {
+void MyAvatar::rebuildSkeletonBody() {
     // compute localAABox
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     float radius = capsule.getRadius();

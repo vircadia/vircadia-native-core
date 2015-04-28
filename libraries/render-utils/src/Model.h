@@ -244,7 +244,7 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    virtual void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();

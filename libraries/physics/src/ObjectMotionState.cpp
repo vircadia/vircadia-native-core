@@ -36,17 +36,13 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
 }
 
 // static 
-uint32_t _simulationStep = 0;
-void ObjectMotionState::setSimulationStep(uint32_t step) {
-    assert(step > _simulationStep);
-    _simulationStep = step;
+uint32_t _worldSimulationStep = 0;
+void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
+    assert(step > _worldSimulationStep);
+    _worldSimulationStep = step;
 }
 
 ObjectMotionState::ObjectMotionState() : 
-    _friction(DEFAULT_FRICTION), 
-    _restitution(DEFAULT_RESTITUTION), 
-    _linearDamping(0.0f),
-    _angularDamping(0.0f),
     _motionType(MOTION_TYPE_STATIC),
     _body(NULL),
     _sentMoving(false),
@@ -69,52 +65,36 @@ ObjectMotionState::~ObjectMotionState() {
     assert(_body == NULL);
 }
 
-void ObjectMotionState::measureAcceleration() {
+void ObjectMotionState::measureBodyAcceleration() {
     // try to manually measure the true acceleration of the object
-    uint32_t numSubsteps = _simulationStep - _lastSimulationStep;
+    uint32_t numSubsteps = _worldSimulationStep - _lastSimulationStep;
     if (numSubsteps > 0) {
         float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
         float invDt = 1.0f / dt;
-        _lastSimulationStep = _simulationStep;
+        _lastSimulationStep = _worldSimulationStep;
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
         glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
-        _measuredAcceleration = (velocity / powf(1.0f - _linearDamping, dt) - _lastVelocity) * invDt;
+        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
     }
 }
 
-void ObjectMotionState::resetMeasuredAcceleration() {
-    _lastSimulationStep = _simulationStep;
+void ObjectMotionState::resetMeasuredBodyAcceleration() {
+    _lastSimulationStep = _worldSimulationStep;
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }
 
-void ObjectMotionState::setFriction(float friction) {
-    _friction = btMax(btMin(fabsf(friction), MAX_FRICTION), 0.0f);
-}
-
-void ObjectMotionState::setRestitution(float restitution) {
-    _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setLinearDamping(float damping) {
-    _linearDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setAngularDamping(float damping) {
-    _angularDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setAngularVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyAngularVelocity(const glm::vec3& velocity) const {
     _body->setAngularVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setGravity(const glm::vec3& gravity) const {
+void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 
@@ -181,7 +161,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
-        _sentVelocity *= powf(1.0f - _linearDamping, dt);
+        _sentVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
         _sentPosition += dt * _sentVelocity;
     }
 
@@ -206,7 +186,7 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     
     if (glm::length2(_sentAngularVelocity) > 0.0f) {
         // compute rotation error
-        float attenuation = powf(1.0f - _angularDamping, dt);
+        float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
         _sentAngularVelocity *= attenuation;
    
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 

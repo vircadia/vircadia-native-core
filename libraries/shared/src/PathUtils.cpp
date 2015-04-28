@@ -19,19 +19,10 @@
 
 
 QString& PathUtils::resourcesPath() {
-#ifdef DEBUG
-    static QString staticResourcePath;
-    if (staticResourcePath.isEmpty()) {
-        QDir path(__FILE__);
-        path.cdUp();
-        staticResourcePath = path.cleanPath(path.absoluteFilePath("../../../interface/resources/")) + "/";
-    }
-#else
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
-#endif
 #endif
 
     return staticResourcePath;
