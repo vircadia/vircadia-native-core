@@ -463,6 +463,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     addressManager->setOrientationGetter(getOrientationForPath);
     
     connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
+    connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     #ifdef _WIN32
     WSADATA WsaData;
