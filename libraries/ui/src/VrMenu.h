@@ -26,7 +26,8 @@ class VrMenu : public QQuickItem {
     HIFI_QML_DECL_LAMBDA
 
 public:
-    static VrMenu* instance();
+    static void executeOrQueue(std::function<void(VrMenu*)> f);
+    static void executeQueuedLambdas();
     VrMenu(QQuickItem* parent = nullptr);
     void addMenu(QMenu* menu);
     void addAction(QMenu* parent, QAction* action);
