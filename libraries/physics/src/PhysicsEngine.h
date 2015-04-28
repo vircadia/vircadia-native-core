@@ -25,12 +25,13 @@
 #include "DynamicCharacterController.h"
 #include "ContactInfo.h"
 #include "EntityMotionState.h"
-#include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
 class ObjectMotionState;
+
+typedef QSet<ObjectMotionState*> SetOfMotionStates;
 
 // simple class for keeping track of contacts
 class ContactKey {
@@ -64,7 +65,7 @@ public:
     void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
-    virtual void init(EntityEditPacketSender* packetSender);
+    virtual void init();
 
     void stepSimulation();
     void stepNonPhysicalKinematics(const quint64& now);
@@ -107,15 +108,14 @@ private:
     btSequentialImpulseConstraintSolver* _constraintSolver = NULL;
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     btGhostPairCallback* _ghostPairCallback = NULL;
-    ShapeManager _shapeManager;
 
     glm::vec3 _originOffset;
 
     // EntitySimulation stuff
     QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
-    QSet<ObjectMotionState*> _nonPhysicalKinematicObjects; // not in physics simulation, but still need kinematic simulation
-    QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
-    QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
+    SetOfMotionStates _nonPhysicalKinematicObjects; // not in physics simulation, but still need kinematic simulation
+    SetOfMotionStates _incomingChanges; // entities with pending physics changes by script or packet
+    SetOfMotionStates _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 
     EntityEditPacketSender* _entityPacketSender = NULL;
 

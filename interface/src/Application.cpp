@@ -2032,11 +2032,11 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    EntityTree* tree = _entities.getTree();
-    _physicsEngine.setEntityTree(tree);
-    tree->setSimulation(&_physicsEngine);
-    _physicsEngine.init(&_entityEditSender);
+    _physicsEngine.init();
 
+    EntityTree* tree = _entities.getTree();
+    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
@@ -2325,7 +2325,16 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
+
+        _physicsEngine.removeObjects(_entitySimulation.getObjectsToRemove());
+        _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
+        _physicsEngine.updateObjects(_entitySimulation.getObjectsToUpdate());
+        _entitySimulation.clearIncomingChanges();
+
         _physicsEngine.stepSimulation();
+
+        _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+        _physicsEngine.clearOutgoingChanges();
         _physicsEngine.dumpStatsIfNecessary();
     }
 

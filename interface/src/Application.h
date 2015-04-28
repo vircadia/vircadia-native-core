@@ -32,8 +32,10 @@
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PacketHeaders.h>
+#include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
+#include <ShapeManager.h>
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
@@ -498,6 +500,8 @@ private:
     bool _justStarted;
     Stars _stars;
 
+    ShapeManager _shapeManager;
+    PhysicalEntitySimulation _entitySimulation;
     PhysicsEngine _physicsEngine;
 
     EntityTreeRenderer _entities;

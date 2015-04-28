@@ -268,7 +268,7 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
 }
 
 // virtual
-void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
+void PhysicsEngine::init() {
     // _entityTree should be set prior to the init() call
     assert(_entityTree);
 
@@ -287,9 +287,11 @@ void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
     }
 
+    /* TODO: move this to PhysicalEntitySimulation
     assert(packetSender);
     _entityPacketSender = packetSender;
     EntityMotionState::setOutgoingEntityList(&_entitiesToBeSorted);
+    */ 
 }
 
 void PhysicsEngine::stepSimulation() {
