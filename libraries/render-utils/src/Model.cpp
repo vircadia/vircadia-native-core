@@ -589,13 +589,13 @@ bool Model::convexHullContains(glm::vec3 point) {
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
     
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
+    glm::vec3 corner = -(dimensions * _registrationPoint);
     AABox modelFrameBox(corner, dimensions);
     
     glm::vec3 modelFramePoint = glm::vec3(worldToModelMatrix * glm::vec4(point, 1.0f));
     
-    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
-    // and testing intersection there.
+    // we can use the AABox's contains() by mapping our point into the model frame
+    // and testing there.
     if (modelFrameBox.contains(modelFramePoint)){
         if (!_calculatedMeshTrianglesValid) {
             recalculateMeshBoxes(true);
