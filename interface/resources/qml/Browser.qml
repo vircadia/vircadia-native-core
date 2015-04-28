@@ -11,29 +11,37 @@ Dialog {
     resizable: true
     contentImplicitWidth: clientArea.implicitWidth
     contentImplicitHeight: clientArea.implicitHeight
+    backgroundColor: "#7f000000"
 
 
     Component.onCompleted: {
         enabled = true
         addressBar.text = webview.url
-        
     }
 
     onParentChanged: {
         if (visible && enabled) {
-            forceActiveFocus();
+            addressBar.forceActiveFocus();
+            addressBar.selectAll()
         }
     }
 
     Item {
         id: clientArea
-        implicitHeight: 400
-        implicitWidth: 600
+        implicitHeight: 600
+        implicitWidth: 800
         x: root.clientX
         y: root.clientY
         width: root.clientWidth
         height: root.clientHeight
         
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: scrollView.top
+            color: "white"
+        }
         Row {
             id: buttons
             spacing: 4
@@ -42,11 +50,13 @@ Dialog {
             anchors.left: parent.left
             anchors.leftMargin: 8
             FontAwesome { 
-                id: back; size: 48; enabled: webview.canGoBack; text: "\uf0a8"
+                id: back; text: "\uf0a8"; size: 48; enabled: webview.canGoBack; 
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
                 MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
             }
             FontAwesome { 
-                id: forward; size: 48; enabled: webview.canGoForward; text: "\uf0a9" 
+                id: forward; text: "\uf0a9"; size: 48; enabled: webview.canGoForward;  
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
                 MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
             }
             FontAwesome { 
@@ -54,11 +64,10 @@ Dialog {
                 MouseArea { anchors.fill: parent;  onClicked: webview.loading ? webview.stop() : webview.reload() }
             }
         }
+
         Border {
-            id: border1
             height: 48
             radius: 8
-            color: "gray"
             anchors.top: parent.top
             anchors.topMargin: 8
             anchors.right: parent.right
@@ -87,23 +96,29 @@ Dialog {
                 anchors.left: barIcon.right
                 anchors.leftMargin: 0
                 anchors.verticalCenter: parent.verticalCenter
-                onAccepted: {
-                    if (text.indexOf("http") != 0) {
-                        text = "http://" + text;
+
+                Keys.onPressed: {
+                    switch(event.key) {
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true
+                            if (text.indexOf("http") != 0) {
+                                text = "http://" + text
+                            }
+                            webview.url = text
+                            break;
                     }
-                    webview.url = text
                 }
             }
-    
         }
-    
+
         ScrollView {
+            id: scrollView
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            Rectangle { anchors.fill: parent; color: "#7500ff00" }
             WebView {
                 id: webview
                 url: "http://highfidelity.com"
@@ -119,4 +134,17 @@ Dialog {
             }
         }
     } // item
+    
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_L:
+                if (event.modifiers == Qt.ControlModifier) {
+                    event.accepted = true
+                    addressBar.selectAll()
+                    addressBar.forceActiveFocus()
+                }
+                break;
+        }
+    }
+    
 } // dialog

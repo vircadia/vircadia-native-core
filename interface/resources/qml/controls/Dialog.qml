@@ -144,4 +144,15 @@ DialogBase {
             }
         }
     }
+
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_W:
+                if (event.modifiers == Qt.ControlModifier) {
+                    event.accepted = true
+                    enabled = false
+                }
+                break;
+        }
+    }
 }
