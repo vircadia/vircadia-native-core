@@ -162,6 +162,8 @@ public:
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
+    virtual void rebuildSkeletonBody();
+
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -228,6 +230,8 @@ private:
     static int _jointConesID;
 
     int _voiceSphereID;
+
+    //AvatarMotionState* _motionState = nullptr;
 };
 
 #endif // hifi_Avatar_h
