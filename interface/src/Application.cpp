@@ -63,6 +63,7 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
+#include <VrMenu.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <ModelEntityItem.h>
@@ -355,9 +356,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
-
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
@@ -730,6 +728,10 @@ void Application::initializeGL() {
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _glWidget->makeCurrent();
 
+    // call Menu getInstance static method to set up the menu
+    // Needs to happen AFTER the QML UI initialization
+    _window->setMenuBar(Menu::getInstance());
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -765,6 +767,7 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
+    VrMenu::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -773,6 +776,8 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+    VrMenu::load();
+    VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
@@ -1067,8 +1072,10 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-void Application::keyPressEvent(QKeyEvent* event) {
+static bool _altPressed{ false };
 
+void Application::keyPressEvent(QKeyEvent* event) {
+    _altPressed = event->key() == Qt::Key_Alt;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1316,7 +1323,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 }
 
+
+//#define VR_MENU_ONLY_IN_HMD
+
 void Application::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
+#ifdef VR_MENU_ONLY_IN_HMD
+        if (OculusManager::isConnected()) {
+#endif
+            VrMenu::toggle();
+#ifdef VR_MENU_ONLY_IN_HMD
+        }
+#endif
+    }
 
     _keysPressed.remove(event->key());
 
@@ -1326,6 +1345,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
     }
+
 
     switch (event->key()) {
         case Qt::Key_E:
@@ -4445,4 +4465,8 @@ void Application::showFriendsWindow() {
 void Application::friendsWindowClosed() {
     delete _friendsWindow;
     _friendsWindow = NULL;
+}
+
+void Application::postLambdaEvent(std::function<void()> f) {
+    QCoreApplication::postEvent(this, new LambdaEvent(f));
 }

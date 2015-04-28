@@ -169,11 +169,11 @@ public:
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
-protected:
+private:
+    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
 
 private slots:
     void updateQuick();
-    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
 
 public slots:
     void requestUpdate();

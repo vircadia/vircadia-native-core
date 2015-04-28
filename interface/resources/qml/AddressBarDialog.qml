@@ -4,11 +4,15 @@ import "controls"
 import "styles"
 
 Dialog {
+    id: root
+    HifiConstants { id: hifi }
+    
     title: "Go to..."
     objectName: "AddressBarDialog"
-    height: 128
-    width: 512
+    contentImplicitWidth: addressBarDialog.implicitWidth
+    contentImplicitHeight: addressBarDialog.implicitHeight
     destroyOnCloseButton: false
+
 
     onVisibleChanged: {
         if (!visible) {
@@ -21,6 +25,11 @@ Dialog {
             addressLine.forceActiveFocus();
         }
     }
+    onParentChanged: {
+        if (enabled && visible) {
+            addressLine.forceActiveFocus();
+        }
+    }
 
     function reset() {
         addressLine.text = ""
@@ -29,26 +38,28 @@ Dialog {
 
     AddressBarDialog {
         id: addressBarDialog
-
         // The client area
-        anchors.fill: parent
-        anchors.margins: parent.margins
-        anchors.topMargin: parent.topMargin
+        x: root.clientX
+        y: root.clientY
+        implicitWidth: 512
+        implicitHeight: border.height + hifi.layout.spacing * 4
+
 
         Border {
+            id: border
             height: 64
             anchors.left: parent.left
-            anchors.leftMargin: 0
+            anchors.leftMargin: hifi.layout.spacing * 2
             anchors.right: goButton.left
-            anchors.rightMargin: 8
+            anchors.rightMargin: hifi.layout.spacing
             anchors.verticalCenter: parent.verticalCenter
             TextInput {
                 id: addressLine
                 anchors.fill: parent
                 helperText: "domain, location, @user, /x,y,z"
-                anchors.margins: 8
+                anchors.margins: hifi.layout.spacing
                 onAccepted: {
-                	event.accepted
+                    event.accepted
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
@@ -59,7 +70,7 @@ Dialog {
             width: 32
             height: 32
             anchors.right: parent.right
-            anchors.rightMargin: 8
+            anchors.rightMargin: hifi.layout.spacing * 2
             source: "../images/address-bar-submit.svg"
             anchors.verticalCenter: parent.verticalCenter
 

@@ -4,7 +4,7 @@ import "."
 import "../controls"
         
 OriginalStyles.ButtonStyle {
-    Original.SystemPalette { id: myPalette; colorGroup: Original.SystemPalette.Active }
+    HifiConstants { id: hifi }
     padding {
         top: 8
         left: 12
@@ -15,10 +15,9 @@ OriginalStyles.ButtonStyle {
         anchors.fill: parent
     }
     label: Text {
-       renderType: Original.Text.NativeRendering
        verticalAlignment: Original.Text.AlignVCenter
        horizontalAlignment: Original.Text.AlignHCenter
        text: control.text
-       color: control.enabled ? myPalette.text : myPalette.dark
+       color: control.enabled ? hifi.colors.text : hifi.colors.disabledText
     }
 }
