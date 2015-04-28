@@ -28,7 +28,7 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
     ~SkeletonModel();
    
-    void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
 
     void simulate(float deltaTime, bool fullUpdate = true);
 

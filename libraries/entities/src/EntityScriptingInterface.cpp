@@ -16,6 +16,7 @@
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
+#include "EntitiesLogging.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -78,19 +79,27 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 
     EntityItemProperties propertiesWithSimID = properties;
 
-    EntityItemID id(NEW_ENTITY, creatorTokenID, false );
+    EntityItemID id(NEW_ENTITY, creatorTokenID, false);
 
     // If we have a local entity tree set, then also update it.
+    bool success = true;
     if (_entityTree) {
         _entityTree->lockForWrite();
         EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
-        // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-        setSimId(propertiesWithSimID, entity);
+        if (entity) {
+            // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+            setSimId(propertiesWithSimID, entity);
+        } else {
+            qCDebug(entities) << "script failed to add new Entity to local Octree";
+            success = false;
+        }
         _entityTree->unlock();
     }
 
     // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
+    if (success) {
+        queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
+    }
 
     return id;
 }
