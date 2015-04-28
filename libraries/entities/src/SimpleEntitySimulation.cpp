@@ -19,7 +19,7 @@ const quint64 AUTO_REMOVE_SIMULATION_OWNER_USEC = 2 * USECS_PER_SECOND;
 
 void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // now is usecTimestampNow()
-    QSet<EntityItem*>::iterator itemItr = _movingEntities.begin();
+    SetOfEntities::iterator itemItr = _movingEntities.begin();
     while (itemItr != _movingEntities.end()) {
         EntityItem* entity = *itemItr;
         if (!entity->isMoving()) {
@@ -65,11 +65,23 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
     _movingEntities.remove(entity);
     _movableButStoppedEntities.remove(entity);
     _hasSimulationOwnerEntities.remove(entity);
+    entity->_simulation = nullptr;
+}
+
+void SimpleEntitySimulation::deleteEntityInternal(EntityItem* entity) {
+    _movingEntities.remove(entity);
+    _movableButStoppedEntities.remove(entity);
+    _hasSimulationOwnerEntities.remove(entity);
+    entity->_simulation = nullptr;
+    if (!entity->_tree) {
+        // we held the last reference to this entity, so delete it
+        delete entity;
+    }
 }
 
 const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_MOTION_TYPE;
 
-void SimpleEntitySimulation::entityChangedInternal(EntityItem* entity) {
+void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
     int dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & SIMPLE_SIMULATION_DIRTY_FLAGS) {
         if (entity->isMoving()) {
