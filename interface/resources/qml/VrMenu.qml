@@ -128,13 +128,16 @@ Hifi.VrMenu {
             // visible: source.visible
             Row {
                 id: row
-                spacing: 4
+                spacing: 2
                 anchors {
                     top: parent.top
                     topMargin: 2
                 }
+                Spacer { size: 4 }
                 FontAwesome {
                     id: check
+                    verticalAlignment: Text.AlignVCenter
+                    y: 2
                     size: label.height
                     text: checkText()
                     color: label.color
@@ -191,6 +194,7 @@ Hifi.VrMenu {
                    bottom: parent.bottom
                    left: parent.left
                    right: tag.right
+                   rightMargin: -4
                }
                acceptedButtons: Qt.LeftButton
                hoverEnabled: true
@@ -263,23 +267,22 @@ Hifi.VrMenu {
     function popColumn() {
         if (columns.length > 0) {
             var curColumn = columns.pop();
-            console.log(curColumn);
             curColumn.visible = false;
             curColumn.destroy();
             models.pop();
-        } 
-        
+        }
+
         if (columns.length == 0) {
             enabled = false;
             return;
-        } 
+        }
 
         curColumn = lastColumn();
         curColumn.enabled = true;
         curColumn.opacity = 1.0;
         curColumn.forceActiveFocus();
     }
-    
+
     function selectItem(source) {
         switch (source.type) {
         case 2:
@@ -317,7 +320,7 @@ Hifi.VrMenu {
                 root.popColumn();
             } else {
                 root.enabled = false;
-            }            
+            }
         }
     }
 }
