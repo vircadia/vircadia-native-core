@@ -683,12 +683,12 @@ void MyAvatar::loadData() {
 
     _useFullAvatar = settings.value("useFullAvatar").toBool();
     _headURLFromPreferences = settings.value("faceModelURL", DEFAULT_HEAD_MODEL_URL).toUrl();
-    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL").toUrl();
-    _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
-    _headModelName = settings.value("headModelName").toString();
-    _bodyModelName = settings.value("bodyModelName").toString();
-    _fullAvatarModelName = settings.value("fullAvatarModelName").toString();;
-
+    _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", DEFAULT_FULL_AVATAR_MODEL_URL).toUrl();
+    _skeletonURLFromPreferences = settings.value("skeletonModelURL", DEFAULT_BODY_MODEL_URL).toUrl();
+    _headModelName = settings.value("headModelName", DEFAULT_HEAD_MODEL_NAME).toString();
+    _bodyModelName = settings.value("bodyModelName", DEFAULT_BODY_MODEL_NAME).toString();
+    _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
+    
     if (isOldSettings) {
         bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
         _useFullAvatar = assumeFullAvatar;
@@ -706,13 +706,22 @@ void MyAvatar::loadData() {
 
         } else {
             _fullAvatarURLFromPreferences = DEFAULT_FULL_AVATAR_MODEL_URL;
-            _skeletonURLFromPreferences = settings.value("skeletonModelURL").toUrl();
+            _skeletonURLFromPreferences = settings.value("skeletonModelURL", DEFAULT_BODY_MODEL_URL).toUrl();
 
-            QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
-            QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
-
-            _headModelName = headFST["name"].toString();
-            _bodyModelName = bodyFST["name"].toString();
+            if (_skeletonURLFromPreferences == DEFAULT_BODY_MODEL_URL) {
+                _bodyModelName = DEFAULT_BODY_MODEL_NAME;
+            } else {
+                QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
+                _bodyModelName = bodyFST["name"].toString();
+            }
+            
+            if (_headURLFromPreferences == DEFAULT_HEAD_MODEL_URL) {
+                _headModelName = DEFAULT_HEAD_MODEL_NAME;
+            } else {
+                QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
+                _headModelName = headFST["name"].toString();
+            }
+            
             _fullAvatarModelName = "Default";
         }
     }
@@ -978,6 +987,13 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const QUrl&, fullAvatarURL),
+                                  Q_ARG(const QString&, modelName));
+        return;
+    }
+
     _useFullAvatar = true;
     
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
@@ -1010,6 +1026,15 @@ void MyAvatar::useBodyURL(const QUrl& bodyURL, const QString& modelName) {
 }
 
 void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName, const QString& bodyName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const QUrl&, headURL),
+                                  Q_ARG(const QUrl&, bodyURL),
+                                  Q_ARG(const QString&, headName),
+                                  Q_ARG(const QString&, bodyName));
+        return;
+    }
+
     _useFullAvatar = false;
 
     if (_headURLFromPreferences != headURL) {

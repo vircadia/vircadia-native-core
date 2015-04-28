@@ -111,7 +111,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-    bool makeResult = gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::Shader::makeProgram(*program, slotBindings);
     
     
     auto locations = std::shared_ptr<Locations>(new Locations());
@@ -139,7 +139,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    auto it = insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
+    insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
 
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
     if (!key.isShadow()) {
@@ -571,6 +571,61 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     }
 
     return intersectedSomething;
+}
+
+bool Model::convexHullContains(glm::vec3 point) {
+    // if we aren't active, we can't compute that yet...
+    if (!isActive()) {
+        return false;
+    }
+    
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::vec3 position = _translation;
+    glm::mat4 rotation = glm::mat4_cast(_rotation);
+    glm::mat4 translation = glm::translate(position);
+    glm::mat4 modelToWorldMatrix = translation * rotation;
+    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+    
+    Extents modelExtents = getMeshExtents(); // NOTE: unrotated
+    
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+    glm::vec3 corner = -(dimensions * _registrationPoint);
+    AABox modelFrameBox(corner, dimensions);
+    
+    glm::vec3 modelFramePoint = glm::vec3(worldToModelMatrix * glm::vec4(point, 1.0f));
+    
+    // we can use the AABox's contains() by mapping our point into the model frame
+    // and testing there.
+    if (modelFrameBox.contains(modelFramePoint)){
+        if (!_calculatedMeshTrianglesValid) {
+            recalculateMeshBoxes(true);
+        }
+        
+        // If we are inside the models box, then consider the submeshes...
+        int subMeshIndex = 0;
+        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+            if (subMeshBox.contains(point)) {
+                bool insideMesh = true;
+                // To be inside the sub mesh, we need to be behind every triangles' planes
+                const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
+                foreach (const Triangle& triangle, meshTriangles) {
+                    if (!isPointBehindTrianglesPlane(point, triangle.v0, triangle.v1, triangle.v2)) {
+                        // it's not behind at least one so we bail
+                        insideMesh = false;
+                        break;
+                    }
+                    
+                }
+                if (insideMesh) {
+                    // It's inside this mesh, return true.
+                    return true;
+                }
+            }
+            subMeshIndex++;
+        }
+    }
+    // It wasn't in any mesh, return false.
+    return false;
 }
 
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
@@ -1047,7 +1102,7 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 
 void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
-    if (_url == url) {
+    if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
     _url = url;
@@ -1947,14 +2002,14 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
         return false;
     }
 
-    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+    if (args->_debugFlags == RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == false) {
         // turning collision hull rendering on
         _renderCollisionHull = true;
         _nextGeometry = _collisionGeometry;
         _saveNonCollisionGeometry = _geometry;
         updateGeometry();
         simulate(0.0, true);
-    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+    } else if (args->_debugFlags != RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == true) {
         // turning collision hull rendering off
         _renderCollisionHull = false;
         _nextGeometry = _saveNonCollisionGeometry;

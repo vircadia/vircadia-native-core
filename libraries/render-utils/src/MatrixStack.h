@@ -38,7 +38,7 @@ public:
     push(glm::mat4());
   }
 
-  explicit MatrixStack(const MatrixStack & other) {
+  explicit MatrixStack(const MatrixStack& other) : std::stack<glm::mat4>() {
     *((std::stack<glm::mat4>*)this) = *((std::stack<glm::mat4>*)&other);
   }
 
@@ -173,12 +173,12 @@ public:
   }
 
   template <typename Function>
-  static void withPush(MatrixStack & stack, Function f) {
+  static void withPush(MatrixStack& stack, Function f) {
     stack.withPush(f);
   }
 
   template <typename Function>
-  static void withPush(MatrixStack & stack1, MatrixStack & stack2, Function f) {
+  static void withPush(MatrixStack& stack1, MatrixStack& stack2, Function f) {
     stack1.withPush([&]{
       stack2.withPush(f);
     });

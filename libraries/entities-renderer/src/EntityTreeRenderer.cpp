@@ -383,7 +383,9 @@ void EntityTreeRenderer::leaveAllEntities() {
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     }
 }
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
+                                RenderArgs::RenderSide renderSide,
+                                RenderArgs::DebugFlags renderDebugFlags) {
     if (_tree && !_shuttingDown) {
         Model::startScene(renderSide);
 
@@ -391,8 +393,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::R
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
 
         RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
-                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
+                            renderDebugFlags, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
         _tree->lockForRead();
 
@@ -643,7 +644,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             // NOTE: Zone Entities are a special case we handle here... Zones don't render
             // like other entity types. So we will skip the normal rendering tests
             if (entityItem->getType() == EntityTypes::Zone) {
-                if (entityItem->contains(args->_viewFrustum->getPosition())) {
+                if (entityItem->contains(_viewState->getAvatarPosition())) {
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
                     if (entityVolumeEstimate < _bestZoneVolume) {
                         _bestZoneVolume = entityVolumeEstimate;

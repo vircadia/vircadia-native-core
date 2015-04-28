@@ -82,6 +82,7 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
+#include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -144,6 +145,23 @@ extern "C" {
 }
 #endif
 
+enum CustomEventTypes {
+    Lambda = QEvent::User + 1
+};
+
+class LambdaEvent : public QEvent {
+    std::function<void()> _fun;
+public:
+    LambdaEvent(const std::function<void()> & fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    LambdaEvent(std::function<void()> && fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    void call() { _fun(); }
+};
+
+
 using namespace std;
 
 //  Starfield information
@@ -163,8 +181,6 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
-
-bool renderCollisionHulls = false;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -707,6 +723,13 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // The UI can't be created until the primary OpenGL 
+    // context is created, because it needs to share 
+    // texture resources
+    initializeUi();
+    qCDebug(interfaceapp, "Initialized Offscreen UI.");
+    _glWidget->makeCurrent();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -735,17 +758,13 @@ void Application::initializeGL() {
     // update before the first render
     update(1.0f / _fps);
    
-    // The UI can't be created until the primary OpenGL 
-    // context is created, because it needs to share 
-    // texture resources
-    initializeUi();
-
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
+    MessageDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -753,6 +772,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
+    offscreenUi->load("RootMenu.qml");
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
@@ -964,6 +984,10 @@ bool Application::importSVOFromURL(const QString& urlString) {
 
 bool Application::event(QEvent* event) {
     switch (event->type()) {
+        case Lambda:
+            ((LambdaEvent*)event)->call();
+            return true;
+
         case QEvent::MouseMove:
             mouseMoveEvent((QMouseEvent*)event);
             return true;
@@ -1028,6 +1052,11 @@ bool Application::event(QEvent* event) {
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::ShortcutOverride) {
+        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+            event->accept();
+            return true;
+        }
+
         // Filter out captured keys before they're used for shortcut actions.
         if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
@@ -1053,9 +1082,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
-        bool isKeypad = event->modifiers().testFlag(Qt::KeypadModifier);
         switch (event->key()) {
                 break;
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
@@ -1273,11 +1306,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     sendEvent(this, &startBackEvent);
                 }
                 
-                break;
-            }
-
-            case Qt::Key_Comma: {
-                renderCollisionHulls = !renderCollisionHulls;
                 break;
             }
 
@@ -3115,13 +3143,21 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            if (renderCollisionHulls) {
-                _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
-            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
-            } else {
-                _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+
+            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
             }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
+                renderDebugFlags =
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+            }
+            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                renderMode = RenderArgs::MIRROR_RENDER_MODE;
+            }
+            _entities.render(renderMode, renderSide, renderDebugFlags);
         }
 
         // render JS/scriptable overlays

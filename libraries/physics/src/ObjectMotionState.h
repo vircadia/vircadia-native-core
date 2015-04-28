@@ -69,7 +69,8 @@ public:
     void resetMeasuredBodyAcceleration();
 
     // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
+    virtual void updateBodyEasy(uint32_t flags, uint32_t frame) = 0;
+
     virtual void updateBodyMaterialProperties() = 0;
     virtual void updateBodyVelocities() = 0;
 

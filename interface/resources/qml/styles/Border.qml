@@ -1,6 +1,5 @@
 import QtQuick 2.3
 
-
 Rectangle {
     SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     property int margin: 5

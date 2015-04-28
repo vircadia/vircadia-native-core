@@ -1,12 +1,12 @@
 import Hifi 1.0
 import QtQuick 2.3
-import QtQuick.Controls 1.2
-import QtQuick.Window 2.2
 import QtQuick.Controls.Styles 1.3
-import "hifiConstants.js" as HifiConstants
+import "controls"
+import "styles"
 
-CustomDialog {
+Dialog {
     title: "Login"
+    HifiPalette { id: hifiPalette }
     SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     objectName: "LoginDialog"
     height: 512
@@ -50,11 +50,11 @@ CustomDialog {
                 source: "../images/hifi-logo.svg"
             }
 
-            CustomBorder {
+            Border {
                 width: 304
                 height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                CustomTextInput {
+                TextInput {
                     id: username
                     anchors.fill: parent
                     helperText: "Username or Email"
@@ -67,11 +67,11 @@ CustomDialog {
                 }
             }
 
-            CustomBorder {
+            Border {
                 width: 304
                 height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                CustomTextInput {
+                TextInput {
                     id: password
                     anchors.fill: parent
                     echoMode: TextInput.Password
@@ -94,7 +94,7 @@ CustomDialog {
                 }
             }
 
-            CustomText {
+            Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 textFormat: Text.StyledText
                 width: parent.width
@@ -117,7 +117,7 @@ CustomDialog {
                 width: 192
                 height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                color: HifiConstants.color
+                color: hifiPalette.hifiBlue
                 border.width: 0
                 radius: 10
 
@@ -142,7 +142,7 @@ CustomDialog {
                         width: 32
                         source: "../images/login.svg"
                     }
-                    CustomText {
+                    Text {
                         text: "Login"
                         color: "white"
                         width: 64
@@ -152,7 +152,7 @@ CustomDialog {
 
             }
 
-            CustomText {
+            Text {
                 width: parent.width
                 height: 24
                 horizontalAlignment: Text.AlignHCenter
@@ -160,7 +160,7 @@ CustomDialog {
                 text:"Create Account"
                 font.pointSize: 12
                 font.bold: true
-                color: HifiConstants.color
+                color: hifiPalette.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent
@@ -170,14 +170,14 @@ CustomDialog {
                 }
             }
 
-            CustomText {
+            Text {
                 width: parent.width
                 height: 24
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 font.pointSize: 12
                 text: "Recover Password"
-                color: HifiConstants.color
+                color: hifiPalette.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent

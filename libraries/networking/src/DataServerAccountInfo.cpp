@@ -17,7 +17,9 @@
 #include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"
 
+#ifndef __GNUC__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
@@ -33,7 +35,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
 
 }
 
-DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
+DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;

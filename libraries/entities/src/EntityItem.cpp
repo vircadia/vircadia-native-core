@@ -308,6 +308,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     glm::vec3 savePosition = _position;
     glm::quat saveRotation = _rotation;
     glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveAngularVelocity = _angularVelocity;
     glm::vec3 saveGravity = _gravity;
     glm::vec3 saveAcceleration = _acceleration;
 
@@ -592,7 +593,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 #ifdef WANT_DEBUG
                     qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
                 #endif
-                simulateKinematicMotion(skipTimeForward);
+
+                // we want to extrapolate the motion forward to compensate for packet travel time, but
+                // we don't want the side effect of flag setting.
+                simulateKinematicMotion(skipTimeForward, false);
             }
             _lastSimulated = now;
         }
@@ -607,6 +611,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _position = savePosition;
         _rotation = saveRotation;
         _velocity = saveVelocity;
+        _angularVelocity = saveAngularVelocity;
         _gravity = saveGravity;
         _acceleration = saveAcceleration;
     }
@@ -736,7 +741,7 @@ void EntityItem::simulate(const quint64& now) {
     _lastSimulated = now;
 }
 
-void EntityItem::simulateKinematicMotion(float timeElapsed) {
+void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     if (hasAngularVelocity()) {
         // angular damping
         if (_angularDamping > 0.0f) {
@@ -751,7 +756,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            if (angularSpeed > 0.0f) {
+            if (setFlags && angularSpeed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
@@ -813,7 +818,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
             setVelocity(ENTITY_ITEM_ZERO_VEC3);
-            if (speed > 0.0f) {
+            if (setFlags && speed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
         } else {
@@ -1100,9 +1105,10 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
+    if (value != _position) {
+        auto distance = glm::distance(_position, value);
+        _dirtyFlags |= (distance > MIN_POSITION_DELTA) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _position = value;
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -1119,9 +1125,10 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (glm::dot(_rotation, rotation) < MIN_ALIGNMENT_DOT) {
-        _rotation = rotation; 
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
+    if (rotation != _rotation) {
+        auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
+        _dirtyFlags |= (alignmentDot < MIN_ALIGNMENT_DOT) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+        _rotation = rotation;
     }
 }
 
@@ -1178,21 +1185,28 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if ( glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
+    if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
-    _acceleration = value;
-    _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+    if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
+        _acceleration = value;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+    }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
-        _angularVelocity = value; 
+    auto distance = glm::distance(_angularVelocity, value);
+    if (distance > MIN_SPIN_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        if (glm::length(value) < MIN_SPIN_DELTA) {
+            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            _angularVelocity = value;
+        }
     }
 }
 

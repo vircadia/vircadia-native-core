@@ -33,7 +33,7 @@ DomainServerWebSessionData::DomainServerWebSessionData(const QJsonObject& userOb
     }
 }
 
-DomainServerWebSessionData::DomainServerWebSessionData(const DomainServerWebSessionData& otherSessionData) {
+DomainServerWebSessionData::DomainServerWebSessionData(const DomainServerWebSessionData& otherSessionData) : QObject() {
     _username = otherSessionData._username;
     _roles = otherSessionData._roles;
 }

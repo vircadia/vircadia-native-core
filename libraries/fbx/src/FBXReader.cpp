@@ -133,7 +133,7 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     
     auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
-        for (unsigned int j = 0; j < indices.size(); j += primitiveSize) {
+        for (int j = 0; j < indices.size(); j += primitiveSize) {
             if (!isPointBehindTrianglesPlane(point,
                                              mesh.vertices[indices[j]],
                                              mesh.vertices[indices[j + 1]],
@@ -1469,7 +1469,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
                     glm::vec3 rotationMin, rotationMax;
-                    FBXModel model = { name, -1 };
+                    FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
+                                       glm::mat4(), glm::vec3(), glm::vec3()};
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1685,7 +1686,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f,
+                                          QString(""), QSharedPointer<model::Material>(NULL)};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;

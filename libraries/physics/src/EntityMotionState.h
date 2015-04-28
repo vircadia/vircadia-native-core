@@ -49,7 +49,7 @@ public:
     virtual void setWorldTransform(const btTransform& worldTrans);
 
     // these relay incoming values to the RigidBody
-    virtual void updateObjectEasy(uint32_t flags, uint32_t step);
+    virtual void updateBodyEasy(uint32_t flags, uint32_t step);
     virtual void updateBodyMaterialProperties();
     virtual void updateBodyVelocities();
 
@@ -85,6 +85,7 @@ protected:
     EntityItem* _entity;
     quint8 _accelerationNearlyGravityCount;
     bool _shouldClaimSimulationOwnership;
+    quint32 _movingStepsWithoutSimulationOwner;
 };
 
 #endif // hifi_EntityMotionState_h
