@@ -583,71 +583,28 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
 
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
 
-
-    // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
-    QJsonObject statsObject2;
-
-    // add stats for each listerner
-    bool somethingToSend = false;
-    int sizeOfStats = 0;
-    int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
-    
-    QString property = "readPendingDatagram_calls_stats";
-    QString value = getReadPendingDatagramsCallsPerSecondsStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_packets_per_call_stats";
-    value = getReadPendingDatagramsPacketsPerCallStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_packets_time_per_call_stats";
-    value = getReadPendingDatagramsTimeStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_hashmatch_time_per_call_stats";
-    value = getReadPendingDatagramsHashMatchTimeStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
+    statsObject["readPendingDatagram_calls_stats"] = getReadPendingDatagramsCallsPerSecondsStatsString();
+    statsObject["readPendingDatagram_packets_per_call_stats"] = getReadPendingDatagramsPacketsPerCallStatsString(); 
+    statsObject["readPendingDatagram_packets_time_per_call_stats"] = getReadPendingDatagramsTimeStatsString();
+    statsObject["readPendingDatagram_hashmatch_time_per_call_stats"] = getReadPendingDatagramsHashMatchTimeStatsString();
     
     auto nodeList = DependencyManager::get<NodeList>();
-    int clientNumber = 0;
+    int clientNumber = 0; 
     
-    
+    // add stats for each listerner
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        // if we're too large, send the packet
-        if (sizeOfStats > TOO_BIG_FOR_MTU) {
-            nodeList->sendStatsToDomainServer(statsObject2);
-            sizeOfStats = 0;
-            statsObject2 = QJsonObject(); // clear it
-            somethingToSend = false;
-        }
-
         clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QString property = "jitterStats." + node->getUUID().toString();
-            QString value = clientData->getAudioStreamStatsString();
-            statsObject2[qPrintable(property)] = value;
-            somethingToSend = true;
-            sizeOfStats += property.size() + value.size();
+            statsObject["jitterStats." + node->getUUID().toString()] = clientData->getAudioStreamStatsString();
         }
     });
 
-    if (somethingToSend) {
-        nodeList->sendStatsToDomainServer(statsObject2);
-    }
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void AudioMixer::run() {
