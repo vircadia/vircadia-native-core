@@ -73,19 +73,19 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
+    //  Update audio trailing average for rendering facial animations
+    const float AUDIO_AVERAGING_SECS = 0.05f;
+    const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
+    _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
+
+    if (_longTermAverageLoudness == -1.0) {
+        _longTermAverageLoudness = _averageLoudness;
+    } else {
+        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
+    }
+
     if (isMine) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-        
-        //  Update audio trailing average for rendering facial animations
-        const float AUDIO_AVERAGING_SECS = 0.05f;
-        const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
-        _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
-
-        if (_longTermAverageLoudness == -1.0) {
-            _longTermAverageLoudness = _averageLoudness;
-        } else {
-            _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
-        }
         
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
