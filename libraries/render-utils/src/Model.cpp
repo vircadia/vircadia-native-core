@@ -1047,7 +1047,7 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 
 void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
     // don't recreate the geometry if it's the same URL
-    if (_url == url) {
+    if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
     _url = url;
