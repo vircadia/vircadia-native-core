@@ -672,8 +672,6 @@ void MyAvatar::loadData() {
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
-    Application::getInstance()->getCamera()->setScale(_scale);
-
 
     // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls 
     // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
