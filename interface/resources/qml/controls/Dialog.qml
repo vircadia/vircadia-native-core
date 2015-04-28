@@ -92,6 +92,7 @@ DialogBase {
         anchors.bottom: parent.bottom
         width: 16
         height: 16
+        z: 1000
         hoverEnabled: true
         onPressed: {
             startX = mouseX
@@ -141,6 +142,17 @@ DialogBase {
                     }
                 }
             }
+        }
+    }
+
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_W:
+                if (event.modifiers == Qt.ControlModifier) {
+                    event.accepted = true
+                    enabled = false
+                }
+                break;
         }
     }
 }
