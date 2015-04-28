@@ -50,6 +50,7 @@ Hifi.VrMenu {
 
     property var menuBuilder: Component {
         Border {
+            HifiConstants { id: hifi }
             Component.onCompleted: {
                 menuDepth = root.models.length - 1
                 if (menuDepth == 0) {
@@ -64,213 +65,181 @@ Hifi.VrMenu {
             border.color: hifi.colors.hifiBlue
             color: hifi.colors.window
             property int menuDepth
-/*
-            MouseArea {
-//                Rectangle { anchors.fill: parent; color: "#7f0000FF"; visible: enabled }
-                anchors.fill: parent
-                onClicked: {
-                    while (parent.menuDepth != root.models.length - 1) {
-                        root.popColumn()
-                    }
-                }
-            }
-*/
+            implicitHeight: listView.implicitHeight + 16
+            implicitWidth: listView.implicitWidth + 16
 
-            ListView {
-                spacing: 6
-                property int outerMargin: 8 
-                property real minWidth: 0
-                anchors.fill: parent
-                anchors.margins: outerMargin
+            Column {
                 id: listView
-                height: root.height
-
-                onCountChanged: {
-                    recalculateSize()
+                property real minWidth: 0
+                anchors {
+                    top: parent.top
+                    topMargin: 8
+                    left: parent.left
+                    leftMargin: 8
+                    right: parent.right
+                    rightMargin: 8
                 }
 
-                function recalculateSize() {
-                    var newHeight = 0
-                    var newWidth = minWidth;
-                    for (var i = 0; i < children.length; ++i) {
-                        var item = children[i];
-                        if (!item.visible) {
-                            continue
-                        }
-                        newHeight += item.height
+                Repeater {
+                    model: root.models[menuDepth]
+                    delegate: Loader {
+                        id: loader
+                        sourceComponent: root.itemBuilder
+                        Binding {
+                            target: loader.item
+                            property: "root"
+                            value: root
+                            when: loader.status == Loader.Ready
+                        }        
+                        Binding {
+                            target: loader.item
+                            property: "source"
+                            value: modelData
+                            when: loader.status == Loader.Ready
+                        } 
+                        Binding {
+                            target: loader.item
+                            property: "border"
+                            value: listView.parent
+                            when: loader.status == Loader.Ready
+                        }        
+                        Binding {
+                            target: loader.item
+                            property: "listView"
+                            value: listView
+                            when: loader.status == Loader.Ready
+                        }        
                     }
-                    parent.height = newHeight + outerMargin * 2;
-                    parent.width = newWidth + outerMargin * 2
-                }
-
-                highlight: Rectangle {
-                    width: listView.minWidth - 32; 
-                    height: 32
-                    color: hifi.colors.hifiBlue
-                    y: (listView.currentItem) ? listView.currentItem.y : 0;
-                    x: (listView.currentItem) ? listView.currentItem.height : 0;
-                    Behavior on y { 
-                          NumberAnimation {
-                              duration: 100
-                              easing.type: Easing.InOutQuint
-                          }
-                    }
-                }
-
-                model: root.models[menuDepth]
-                delegate: Loader {
-                    id: loader
-                    sourceComponent: root.itemBuilder
-                    Binding {
-                        target: loader.item
-                        property: "root"
-                        value: root
-                        when: loader.status == Loader.Ready
-                    }        
-                    Binding {
-                        target: loader.item
-                        property: "source"
-                        value: modelData
-                        when: loader.status == Loader.Ready
-                    } 
-                    Binding {
-                        target: loader.item
-                        property: "border"
-                        value: listView.parent
-                        when: loader.status == Loader.Ready
-                    }        
-                    Binding {
-                        target: loader.item
-                        property: "listView"
-                        value: listView
-                        when: loader.status == Loader.Ready
-                    }        
                 }
             }
         }
     }
 
     property var itemBuilder: Component {
-        Text {
-            id: thisText
-            x: height
+        Item {
             property var source
             property var root
             property var listView
             property var border
-            text: typedText()
-            height: implicitHeight
-            width: implicitWidth
-            color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
-            enabled: source.enabled && source.visible
+            implicitHeight: row.implicitHeight + 4
+            implicitWidth: row.implicitWidth + label.height 
             // FIXME uncommenting this line results in menus that have blank spots
             // rather than having the correct size
             // visible: source.visible
-
-            onListViewChanged: {
-                if (listView) {
-                    listView.minWidth = Math.max(listView.minWidth, implicitWidth + 64);
-                    listView.recalculateSize();
+            Row {
+                id: row
+                spacing: 4
+                anchors {
+                    top: parent.top
+                    topMargin: 2
                 }
-            }
+                FontAwesome {
+                    id: check
+                    size: label.height
+                    text: checkText()
+                    color: label.color
+                    function checkText() {
+                        if (!source || source.type != 1 || !source.checkable) {
+                            return "";
+                        }
 
-            onImplicitWidthChanged: {
-                if (listView) {
-                    listView.minWidth = Math.max(listView.minWidth, implicitWidth + 64);
-                    listView.recalculateSize();
-                }
-            }
-
-            FontAwesome {
-                visible: source.type == 1 && source.checkable
-                x: -parent.height
-                size: parent.height
-                text: checkText();  
-                color: parent.color
-                function checkText() {
-                    if (!source || source.type != 1) {
-                        return "";
-                    }
-                    // FIXME this works for native QML menus but I don't think it will
-                    // for proxied QML menus
-                    if (source.exclusiveGroup) {
-                        return source.checked ? "\uF05D" : "\uF10C"
-                    }
-                    return source.checked ? "\uF046" : "\uF096"
-                }
-            }
-
-            FontAwesome {
-                size: parent.height
-                visible: source.type == 2
-                x: listView.width - 32 - (hifi.layout.spacing * 2)
-                text: "\uF0DA"
-                color: parent.color
-            }
-
-            function typedText() {
-                if (source) {
-                    switch(source.type) {
-                    case 2:
-                        return source.title;
-                    case 1: 
-                        return source.text;
-                    case 0:
-                        return "-----"
+                        // FIXME this works for native QML menus but I don't think it will
+                        // for proxied QML menus
+                        if (source.exclusiveGroup) {
+                            return source.checked ? "\uF05D" : "\uF10C"
+                        }
+                        return source.checked ? "\uF046" : "\uF096"
                     }
                 }
-                return ""
-            }
+                Text {
+                  id: label
+                  text: typedText()
+                  color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
+                  enabled: source.enabled && source.visible
+                  function typedText() {
+                      if (source) {
+                          switch(source.type) {
+                          case 2:
+                              return source.title;
+                          case 1: 
+                              return source.text;
+                          case 0:
+                              return "-----"
+                          }
+                      }
+                      return ""
+                  }
+              }
+           } // row
+
+           FontAwesome {
+               anchors {
+                   top: row.top
+               }
+               id: tag
+               size: label.height
+               width: implicitWidth
+               visible: source.type == 2
+               x: listView.width - width - 4
+               text: "\uF0DA"
+               color: label.color
+           }
             
-            MouseArea {
-                id: mouseArea
-                acceptedButtons: Qt.LeftButton
-                anchors.left: parent.left
-                anchors.leftMargin: -32
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 0
-                anchors.top: parent.top
-                anchors.topMargin: 0
-                width: listView.width
-                hoverEnabled: true
-                Timer {
-                    id: timer
-                    interval: 1000
-                    onTriggered: parent.select();
-                }
-                /*  
-                 * Uncomment below to have menus auto-popup
-                 * 
-                 * FIXME if we enabled timer based menu popup, either the timer has 
-                 * to be very very short or after auto popup there has to be a small 
-                 * amount of time, or a test if the mouse has moved before a click 
-                 * will be accepted, otherwise it's too easy to accidently click on
-                 * something immediately after the auto-popup appears underneath your 
-                 * cursor
-                 *
-                 */
-                //onEntered: {
-                //    if (source.type == 2 && enabled) {
-                //        timer.start()
-                //    }
-                //}
-                //onExited: {
-                //    timer.stop()
-                //}
-                onClicked: {
-                    select();
-                }
-                function select() {
-                    timer.stop();
-                    var popped = false;
-                    while (columns.length - 1 > listView.parent.menuDepth) {
-                        popColumn();
-                        popped = true;
-                    }
+           MouseArea {
+               anchors {
+                   top: parent.top
+                   bottom: parent.bottom
+                   left: parent.left
+                   right: tag.right
+               }
+               acceptedButtons: Qt.LeftButton
+               hoverEnabled: true
+               Rectangle {
+                   id: highlight
+                   visible: false
+                   anchors.fill: parent 
+                   color: "#7f0e7077"
+               }
+               Timer {
+                   id: timer
+                   interval: 1000
+                   onTriggered: parent.select();
+               }
+               onEntered: {
+                   /*  
+                    * Uncomment below to have menus auto-popup
+                    * 
+                    * FIXME if we enabled timer based menu popup, either the timer has 
+                    * to be very very short or after auto popup there has to be a small 
+                    * amount of time, or a test if the mouse has moved before a click 
+                    * will be accepted, otherwise it's too easy to accidently click on
+                    * something immediately after the auto-popup appears underneath your 
+                    * cursor
+                    *
+                    */
+                   //if (source.type == 2 && enabled) {
+                   //    timer.start()
+                   //}
+                   highlight.visible = source.enabled
+               }
+               onExited: {
+                   timer.stop()
+                   highlight.visible = false
+               }
+               onClicked: {
+                   select();
+               }
+               function select() {
+                   //timer.stop();
+                   var popped = false;
+                   while (columns.length - 1 > listView.parent.menuDepth) {
+                       popColumn();
+                       popped = true;
+                   }
 
-                    if (!popped || source.type != 1) {
-                        parent.root.selectItem(parent.source);
-                    }
+                   if (!popped || source.type != 1) {
+                       parent.root.selectItem(parent.source);
+                   }
                 }
             }
         }
