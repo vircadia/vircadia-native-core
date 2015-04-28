@@ -136,9 +136,6 @@ struct Packet {
 
 const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
-const int FPS_TIMER_DELAY = 2000;  // ms
-const int FPS_TIMER_DURATION = 2000;  // ms
-
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -147,6 +144,7 @@ DdeFaceTracker::DdeFaceTracker() :
 
 DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort) :
     _ddeProcess(NULL),
+    _ddeStopping(false),
     _host(host),
     _serverPort(serverPort),
     _controlPort(controlPort),
@@ -171,9 +169,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastLeftEyeBlink(0.0f),
     _filteredLeftEyeBlink(0.0f),
     _lastRightEyeBlink(0.0f),
-    _filteredRightEyeBlink(0.0f),
-    _isCalculatingFPS(false),
-    _frameCount(0)
+    _filteredRightEyeBlink(0.0f)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -201,46 +197,50 @@ void DdeFaceTracker::setEnabled(bool enabled) {
     if (enabled && !_ddeProcess) {
         // Terminate any existing DDE process, perhaps left running after an Interface crash
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        _ddeStopping = false;
 
-        qDebug() << "[Info] DDE Face Tracker Starting";
+        qCDebug(interfaceapp) << "DDE Face Tracker: Starting";
         _ddeProcess = new QProcess(qApp);
         connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
         _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
     }
 
     if (!enabled && _ddeProcess) {
+        _ddeStopping = true;
         _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
-        delete _ddeProcess;
-        _ddeProcess = NULL;
-        qDebug() << "[Info] DDE Face Tracker Stopped";
+        qCDebug(interfaceapp) << "DDE Face Tracker: Stopping";
     }
 #endif
 }
 
 void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     if (_ddeProcess) {
-        // DDE crashed or was manually terminated
-        qDebug() << "[Info] DDE Face Tracker Stopped Unexpectedly";
+        if (_ddeStopping) {
+            qCDebug(interfaceapp) << "DDE Face Tracker: Stopped";
+
+        } else {
+            qCWarning(interfaceapp) << "DDE Face Tracker: Stopped unexpectedly";
+            Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
+        }
         _udpSocket.close();
+        delete _ddeProcess;
         _ddeProcess = NULL;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
     }
 }
 
 void DdeFaceTracker::reset() {
-    _reset = true;
+    if (_udpSocket.state() == QAbstractSocket::BoundState) {
+        _reset = true;
 
-    qDebug() << "[Info] Reset DDE Tracking";
-    const char* DDE_RESET_COMMAND = "reset";
-    _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        qCDebug(interfaceapp) << "DDE Face Tracker: Reset";
 
-    // Log camera FPS after a reset
-    if (!_isCalculatingFPS) {
-        QTimer::singleShot(FPS_TIMER_DELAY, this, SLOT(startFPSTimer()));
-        _isCalculatingFPS = true;
+        const char* DDE_RESET_COMMAND = "reset";
+        _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+        FaceTracker::reset();
+
+        _reset = true;
     }
-
-    _reset = true;
 }
 
 bool DdeFaceTracker::isActive() const {
@@ -250,7 +250,7 @@ bool DdeFaceTracker::isActive() const {
 
 //private slots and methods
 void DdeFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
-    qCDebug(interfaceapp) << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
+    qCWarning(interfaceapp) << "DDE Face Tracker: Socket error: " << _udpSocket.errorString();
 }
 
 void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
@@ -278,7 +278,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    qCDebug(interfaceapp) << "[Info] DDE Face Tracker Socket: " << state;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {
@@ -419,23 +419,10 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
         _lastMessageReceived = usecsNow;
 
-        // Count frames if timing
-        if (_isCalculatingFPS) {
-            _frameCount++;
-        }
-    
+        FaceTracker::countFrame();
+        
     } else {
-        qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
+        qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
-}
-
-void DdeFaceTracker::startFPSTimer() {
-    _frameCount = 0;
-    QTimer::singleShot(FPS_TIMER_DURATION, this, SLOT(finishFPSTimer()));
-}
-
-void DdeFaceTracker::finishFPSTimer() {
-    qDebug() << "[Info] DDE FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
-    _isCalculatingFPS = false;
 }
