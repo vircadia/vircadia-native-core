@@ -40,7 +40,9 @@ public:
     void renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
-    
+   
+    bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
+
     class LocalLight {
     public:
         glm::vec3 color;
@@ -49,7 +51,10 @@ public:
     
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
-    
+   
+public slots:
+    void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+
 private:
     AvatarManager(QObject* parent = 0);
     AvatarManager(const AvatarManager& other);
@@ -67,6 +72,8 @@ private:
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;
+
+    bool _shouldShowReceiveStats = false;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

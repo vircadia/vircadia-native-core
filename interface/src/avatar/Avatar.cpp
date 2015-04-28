@@ -713,14 +713,16 @@ void Avatar::renderDisplayName() {
     
     // optionally render timing stats for this avatar with the display name
     QString renderedDisplayName = _displayName;
-
-    const float BYTES_PER_KILOBYTE = 1000.0f;
-    float kilobytesPerSecond = getAverageBytesReceivedPerSecond() / BYTES_PER_KILOBYTE;
     
-    renderedDisplayName += QString(" - (%1 KBps, %2 Hz)")
-                                  .arg(QString::number(kilobytesPerSecond, 'f', 2))
-                                  .arg(getReceiveRate());
-
+    if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
+        const float BYTES_PER_KILOBYTE = 1000.0f;
+        float kilobytesPerSecond = getAverageBytesReceivedPerSecond() / BYTES_PER_KILOBYTE;
+    
+        renderedDisplayName += QString(" - (%1 KBps, %2 Hz)")
+                               .arg(QString::number(kilobytesPerSecond, 'f', 2))
+                               .arg(getReceiveRate());
+    }
+ 
     QByteArray ba = _displayName.toLocal8Bit();
     const char* text = ba.data();
     
