@@ -108,8 +108,6 @@ public:
     
     bool isMuted() { return _muted; }
     
-    void setIsStereoInput(bool isStereoInput);
-    
     const AudioIOStats& getStats() const { return _stats; }
 
     float getInputRingBufferMsecsAvailable() const;
@@ -146,14 +144,14 @@ public slots:
     virtual void enableAudioSourceInject(bool enable);
     virtual void selectAudioSourcePinkNoise();
     virtual void selectAudioSourceSine440();
-    
+
+    virtual void setIsStereoInput(bool stereo);
+
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
     
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
     
-    void toggleStereoInput() { setIsStereoInput(!_isStereoInput); }
-  
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
