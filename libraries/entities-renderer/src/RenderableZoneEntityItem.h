@@ -12,6 +12,7 @@
 #ifndef hifi_RenderableZoneEntityItem_h
 #define hifi_RenderableZoneEntityItem_h
 
+#include <Model.h>
 #include <ZoneEntityItem.h>
 
 class NetworkGeometry;
@@ -21,7 +22,9 @@ public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
     RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ZoneEntityItem(entityItemID, properties)
+    ZoneEntityItem(entityItemID, properties),
+    _model(NULL),
+    _needsInitialSimulation(true)
     { }
     
     virtual bool setProperties(const EntityItemProperties& properties);
@@ -32,8 +35,14 @@ public:
     virtual bool contains(const glm::vec3& point) const;
     
 private:
+    Model* getModel();
+    void initialSimulation();
     
-    QSharedPointer<NetworkGeometry> _compoundShapeModel;
+    template<typename Lambda>
+    void changeProperties(Lambda functor);
+    
+    Model* _model;
+    bool _needsInitialSimulation;
 };
 
 #endif // hifi_RenderableZoneEntityItem_h
