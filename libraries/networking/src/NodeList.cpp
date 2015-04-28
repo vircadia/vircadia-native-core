@@ -21,6 +21,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
+#include "JSONBreakableMarshal.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
@@ -63,13 +64,17 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, HifiSockAddr destination) {
+qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
     QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
     QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
+   
+    // get a QStringList using JSONBreakableMarshal
+    QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
+
+    qDebug() << "Stats string list is" << statsStringList;
     
-    statsPacketStream << statsObject.toVariantMap();
-    
-    return writeUnverifiedDatagram(statsPacket, destination);
+    // enumerate the resulting strings, breaking them into MTU sized packets
+    return 0;
 }
 
 qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
