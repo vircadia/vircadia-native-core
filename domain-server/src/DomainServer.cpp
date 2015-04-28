@@ -676,8 +676,6 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
 
             // always allow assignment clients to create and destroy entities
-            nodeData->setCanAdjustLocks(true);
-            nodeData->setCanRez(true);
             newNode->setCanAdjustLocks(true);
             newNode->setCanRez(true);
 
@@ -1058,9 +1056,7 @@ void DomainServer::readAvailableDatagrams() {
 
                 // add the information for that deployed assignment to the hash of pending assigned nodes
                 PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
-                                                                                       requestAssignment.getWalletUUID(),
-                                                                                       true, true
-                                                                                       );
+                                                                                       requestAssignment.getWalletUUID());
                 _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
             } else {
                 if (requestAssignment.getType() != Assignment::AgentType

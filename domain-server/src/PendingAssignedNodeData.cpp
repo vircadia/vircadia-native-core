@@ -11,12 +11,9 @@
 
 #include "PendingAssignedNodeData.h"
 
-PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID,
-                                                 bool canAdjustLocks, bool canRez) :
+PendingAssignedNodeData::PendingAssignedNodeData(const QUuid& assignmentUUID, const QUuid& walletUUID) :
     _assignmentUUID(assignmentUUID),
-    _walletUUID(walletUUID),
-    _canAdjustLocks(canAdjustLocks),
-    _canRez(canRez)
+    _walletUUID(walletUUID)
 {
     
 }
