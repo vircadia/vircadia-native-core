@@ -12,6 +12,8 @@
 #ifndef hifi_AvatarMixerClientData_h
 #define hifi_AvatarMixerClientData_h
 
+#include <cfloat>
+
 #include <QtCore/QUrl>
 
 #include <AvatarData.h>
@@ -32,12 +34,14 @@ public:
     
     quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
-    
+   
+    float getFullRateDistance() const { return _fullRateDistance; } 
 private:
     AvatarData _avatar;
     bool _hasReceivedFirstPackets;
     quint64 _billboardChangeTimestamp;
     quint64 _identityChangeTimestamp;
+    float _fullRateDistance = FLT_MAX;
 };
 
 #endif // hifi_AvatarMixerClientData_h

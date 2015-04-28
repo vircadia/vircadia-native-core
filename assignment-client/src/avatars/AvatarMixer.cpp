@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <random>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
@@ -76,7 +78,12 @@ void AvatarMixer::broadcastAvatarData() {
     
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-    
+   
+    // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
+    // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
+    // is unused as it is assumed this should not be hit before the avatar-mixer hits the desired bandwidth limit per client.
+    // It is reported in the domain-server stats for the avatar-mixer.
+     
     _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
         + (idleTime * CURRENT_FRAME_RATIO / (float) AVATAR_DATA_SEND_INTERVAL_MSECS);
     
@@ -85,14 +92,14 @@ void AvatarMixer::broadcastAvatarData() {
     
     if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
         if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-            // we're struggling - change our min required loudness to reduce some load
+            // we're struggling - change our performance throttling ratio
             _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
             
             qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
             hasRatioChanged = true;
         } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-            // we've recovered and can back off the required loudness
+            // we've recovered and can back off the performance throttling
             _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
             
             if (_performanceThrottlingRatio < 0) {
@@ -100,7 +107,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
             
             qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
             hasRatioChanged = true;
         }
         
@@ -118,6 +125,11 @@ void AvatarMixer::broadcastAvatarData() {
     int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
     
     auto nodeList = DependencyManager::get<NodeList>();
+   
+    // setup for distributed random floating point values 
+    std::random_device randomDevice;
+    std::mt19937 generator(randomDevice());
+    std::uniform_real_distribution<float> distribution;
     
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
@@ -151,6 +163,9 @@ void AvatarMixer::broadcastAvatarData() {
             // over them?
             // float outputBandwidth =
             node->getOutboundBandwidth();
+
+            // reset the internal state for correct random number distribution
+            distribution.reset();
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -163,10 +178,6 @@ void AvatarMixer::broadcastAvatarData() {
                         return false;
                     }
 
-                    //  Check throttling value
-                    if (!(_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))) {
-                        return false;
-                    }
                     return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
@@ -177,13 +188,14 @@ void AvatarMixer::broadcastAvatarData() {
                     }
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
                     //  Decide whether to send this avatar's data based on it's distance from us
+                    
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
-                    //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    const float FULL_RATE_DISTANCE = 2.0f;
+                    //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
                     glm::vec3 otherPosition = otherAvatar.getPosition();
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
-
-                    if (!(distanceToAvatar == 0.0f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
+                    
+                    if (distanceToAvatar != 0.0f 
+                        && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
 
