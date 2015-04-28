@@ -88,18 +88,15 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  # grab the directories in resources and put them in the right spot in Resources
-  file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
-  foreach(DIR ${RESOURCE_SUBDIRS})
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/resources/${DIR}")
-      FILE(GLOB DIR_CONTENTS "resources/${DIR}/*")
-      SET_SOURCE_FILES_PROPERTIES(${DIR_CONTENTS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${DIR}")
+  set(DISCOVERED_RESOURCES "") 
 
-      SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${DIR_CONTENTS}")
-    endif()
-  endforeach()
+  # use the add_resources_to_os_x_bundle macro to recurse into resources
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources") 
 
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+  # append the discovered resources to our list of interface sources
+  list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
+  
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
