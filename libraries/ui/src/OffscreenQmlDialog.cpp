@@ -13,6 +13,30 @@
 OffscreenQmlDialog::OffscreenQmlDialog(QQuickItem* parent)
   : QQuickItem(parent) { }
 
+OffscreenQmlDialog::~OffscreenQmlDialog() {
+}
+
 void OffscreenQmlDialog::hide() {
     static_cast<QQuickItem*>(parent())->setEnabled(false);
+}
+
+QString OffscreenQmlDialog::title() const {
+    return _title;
+}
+
+void OffscreenQmlDialog::setTitle(const QString& title) {
+    if (title != _title) {
+        _title = title;
+        emit titleChanged();
+    }
+}
+
+void OffscreenQmlDialog::accept() {
+    hide();
+    emit accepted();
+}
+
+void OffscreenQmlDialog::reject() {
+    hide();
+    emit rejected();
 }

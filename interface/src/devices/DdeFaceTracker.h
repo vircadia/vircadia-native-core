@@ -59,15 +59,13 @@ private slots:
     void readPendingDatagrams();
     void socketStateChanged(QAbstractSocket::SocketState socketState);
 
-    void startFPSTimer();
-    void finishFPSTimer();
-    
 private:
     DdeFaceTracker();
     DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort);
-    ~DdeFaceTracker();
+    virtual ~DdeFaceTracker();
 
     QProcess* _ddeProcess;
+    bool _ddeStopping;
 
     QHostAddress _host;
     quint16 _serverPort;
@@ -111,9 +109,6 @@ private:
     float _filteredLeftEyeBlink;
     float _lastRightEyeBlink;
     float _filteredRightEyeBlink;
-
-    bool _isCalculatingFPS;
-    int _frameCount;
 };
 
 #endif // hifi_DdeFaceTracker_h

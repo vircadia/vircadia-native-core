@@ -18,39 +18,77 @@ EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, cons
     return new RenderableZoneEntityItem(entityID, properties);
 }
 
-bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& properties) {
+template<typename Lambda>
+void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
     QString oldShapeURL = getCompoundShapeURL();
-    bool somethingChanged = ZoneEntityItem::setProperties(properties);
-    if (somethingChanged && oldShapeURL != getCompoundShapeURL()) {
-        _compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
+    glm::vec3 oldPosition = getPosition(), oldDimensions = getDimensions();
+    glm::quat oldRotation = getRotation();
+    
+    setNewProperties();
+    
+    if (oldShapeURL != getCompoundShapeURL()) {
+        if (!_model) {
+            _model = getModel();
+            _needsInitialSimulation = true;
+        }
+        _model->setURL(getCompoundShapeURL(), QUrl(), true, true);
     }
+    if (oldPosition != getPosition() ||
+        oldRotation != getRotation() ||
+        oldDimensions != getDimensions()) {
+        _needsInitialSimulation = true;
+    }
+}
+
+bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
+    changeProperties([&]() {
+        somethingChanged = this->ZoneEntityItem::setProperties(properties);
+    });
     return somethingChanged;
 }
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                 ReadBitstreamToTreeParams& args,
                                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-    QString oldShapeURL = getCompoundShapeURL();
-    int bytesRead = ZoneEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
-                                                                      args, propertyFlags, overwriteLocalData);
-    if (oldShapeURL != getCompoundShapeURL()) {
-        _compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
-    }
+    int bytesRead = 0;
+    changeProperties([&]() {
+        bytesRead = ZoneEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
+                                                                     args, propertyFlags, overwriteLocalData);
+    });
     return bytesRead;
+}
+
+Model* RenderableZoneEntityItem::getModel() {
+    Model* model = new Model();
+    model->init();
+    return model;
+}
+
+void RenderableZoneEntityItem::initialSimulation() {
+    _model->setScaleToFit(true, getDimensions());
+    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+    _model->setRotation(getRotation());
+    _model->setTranslation(getPosition());
+    _model->simulate(0.0f);
+    _needsInitialSimulation = false;
 }
 
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() != SHAPE_TYPE_COMPOUND) {
         return EntityItem::contains(point);
     }
-    if (!_compoundShapeModel && hasCompoundShapeURL()) {
-        const_cast<RenderableZoneEntityItem*>(this)->_compoundShapeModel = DependencyManager::get<GeometryCache>()->getGeometry(getCompoundShapeURL(), QUrl(), true);
+    
+    if (_model && !_model->isActive() && hasCompoundShapeURL()) {
+        // Since we have a delayload, we need to update the geometry if it has been downloaded
+        _model->setURL(getCompoundShapeURL(), QUrl(), true);
     }
     
-    if (EntityItem::contains(point) && _compoundShapeModel && _compoundShapeModel->isLoaded()) {
-        const FBXGeometry& geometry = _compoundShapeModel->getFBXGeometry();
-        glm::vec3 meshDimensions = geometry.getUnscaledMeshExtents().maximum - geometry.getUnscaledMeshExtents().minimum;
-        return geometry.convexHullContains(worldToEntity(point) * meshDimensions);
+    if (_model && _model->isActive() && EntityItem::contains(point)) {
+        if (_needsInitialSimulation) {
+            const_cast<RenderableZoneEntityItem*>(this)->initialSimulation();
+        }
+        return _model->convexHullContains(point);
     }
     
     return false;

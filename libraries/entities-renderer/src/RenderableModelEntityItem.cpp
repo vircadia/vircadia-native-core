@@ -118,8 +118,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     float size = glm::length(dimensions);
-    
-    if (drawAsModel) {
+
+    bool highlightSimulationOwnership = false;
+    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
+    }
+
+    if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
         glPushMatrix();
         {

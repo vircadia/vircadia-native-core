@@ -8,11 +8,9 @@
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
-const float TERMINAL_VELOCITY = 55.0f;
 const float JUMP_SPEED = 3.5f;
 
 const float MAX_FALL_HEIGHT = 20.0f;
-const float MIN_HOVER_HEIGHT = 3.0f;
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -96,7 +94,7 @@ void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
     }
 }
 
-void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar dt) {
+void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 actualVelocity = _rigidBody->getLinearVelocity();
     btScalar actualSpeed = actualVelocity.length();
 
@@ -317,10 +315,10 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             float mass = 1.0f;
             btVector3 inertia(1.0f, 1.0f, 1.0f);
             _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
-            _rigidBody->setSleepingThresholds (0.0f, 0.0f);
-            _rigidBody->setAngularFactor (0.0f);
+            _rigidBody->setSleepingThresholds(0.0f, 0.0f);
+            _rigidBody->setAngularFactor(0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                            glmToBullet(_avatarData->getPosition())));
+                                                      glmToBullet(_avatarData->getPosition())));
             if (_isHovering) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
             } else {

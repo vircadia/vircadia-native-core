@@ -38,7 +38,8 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
 EntityMotionState::EntityMotionState(EntityItem* entity) :
     _entity(entity),
     _accelerationNearlyGravityCount(0),
-    _shouldClaimSimulationOwnership(false)
+    _shouldClaimSimulationOwnership(false),
+    _movingStepsWithoutSimulationOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
@@ -50,7 +51,7 @@ EntityMotionState::~EntityMotionState() {
     _entity = NULL;
 }
 
-MotionType EntityMotionState::computeMotionType() const {
+MotionType EntityMotionState::computeObjectMotionType() const {
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
@@ -67,7 +68,7 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
-    // TODO: we can't use ObjectMotionState::measureAcceleration() here because the entity
+    // TODO: we can't use measureBodyAcceleration() here because the entity
     // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
     // Hence we must manually measure kinematic velocity and acceleration.
 }
@@ -100,7 +101,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    measureAcceleration();
+    measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
@@ -108,10 +109,22 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     getVelocity(v);
     _entity->setVelocity(v);
 
-    getAngularVelocity(v);
-    _entity->setAngularVelocity(v);
+    glm::vec3 av;
+    getAngularVelocity(av);
+    _entity->setAngularVelocity(av);
 
     _entity->setLastSimulated(usecTimestampNow());
+
+    if (_entity->getSimulatorID().isNull() && isMoving()) {
+        // object is moving and has no owner.  attempt to claim simulation ownership.
+        _movingStepsWithoutSimulationOwner++;
+    } else {
+        _movingStepsWithoutSimulationOwner = 0;
+    }
+
+    if (_movingStepsWithoutSimulationOwner > 4) { // XXX maybe meters from our characterController ?
+        setShouldClaimSimulationOwnership(true);
+    }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
@@ -125,73 +138,76 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t step) {
-    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+void EntityMotionState::updateBodyEasy(uint32_t flags, uint32_t step) {
+    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_PHYSICS_NO_WAKE)) {
         if (flags & EntityItem::DIRTY_POSITION) {
-            _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
+            _sentPosition = getObjectPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
             worldTrans.setOrigin(glmToBullet(_sentPosition));
 
-            _sentRotation = _entity->getRotation();
+            _sentRotation = getObjectRotation();
             worldTrans.setRotation(glmToBullet(_sentRotation));
 
             _body->setWorldTransform(worldTrans);
         }
         if (flags & EntityItem::DIRTY_VELOCITY) {
-            updateObjectVelocities();
+            updateBodyVelocities();
         }
         _sentStep = step;
+
+        if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            _body->activate();
+        }
     }
 
-    // TODO: entity support for friction and restitution
-    //_restitution = _entity->getRestitution();
-    _body->setRestitution(_restitution);
-    //_friction = _entity->getFriction();
-    _body->setFriction(_friction);
-
-    _linearDamping = _entity->getDamping();
-    _angularDamping = _entity->getAngularDamping();
-    _body->setDamping(_linearDamping, _angularDamping);
+    if (flags & EntityItem::DIRTY_MATERIAL) {
+        updateBodyMaterialProperties();
+    }
 
     if (flags & EntityItem::DIRTY_MASS) {
-        float mass = _entity->computeMass();
+        ShapeInfo shapeInfo;
+        _entity->computeShapeInfo(shapeInfo);
+        float mass = computeObjectMass(shapeInfo);
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-    _body->activate();
-};
+}
 
-void EntityMotionState::updateObjectVelocities() {
+void EntityMotionState::updateBodyMaterialProperties() {
+    _body->setRestitution(getObjectRestitution());
+    _body->setFriction(getObjectFriction());
+    _body->setDamping(fabsf(btMin(getObjectLinearDamping(), 1.0f)), fabsf(btMin(getObjectAngularDamping(), 1.0f)));
+}
+
+void EntityMotionState::updateBodyVelocities() {
     if (_body) {
-        _sentVelocity = _entity->getVelocity();
-        setVelocity(_sentVelocity);
+        _sentVelocity = getObjectLinearVelocity();
+        setBodyVelocity(_sentVelocity);
 
-        _sentAngularVelocity = _entity->getAngularVelocity();
-        setAngularVelocity(_sentAngularVelocity);
+        _sentAngularVelocity = getObjectAngularVelocity();
+        setBodyAngularVelocity(_sentAngularVelocity);
 
-        _sentGravity = _entity->getGravity();
-        setGravity(_sentGravity);
+        _sentGravity = getObjectGravity();
+        setBodyGravity(_sentGravity);
 
         _body->setActivationState(ACTIVE_TAG);
     }
 }
 
-void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
+void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
     if (_entity->isReadyToComputeShape()) {
         _entity->computeShapeInfo(shapeInfo);
     }
 }
 
-float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
+float EntityMotionState::computeObjectMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    bool baseResult = this->ObjectMotionState::shouldSendUpdate(simulationFrame);
-
-    if (!baseResult) {
+    if (!ObjectMotionState::shouldSendUpdate(simulationFrame)) {
         return false;
     }
 
@@ -287,13 +303,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         QUuid simulatorID = _entity->getSimulatorID();
 
         if (getShouldClaimSimulationOwnership()) {
-            _entity->setSimulatorID(myNodeID);
             properties.setSimulatorID(myNodeID);
             setShouldClaimSimulationOwnership(false);
-        }
-
-        if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
-            // we are the simulator and the object has stopped.  give up "simulator" status
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the entity has stopped.  give up "simulator" status
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
+        } else if (simulatorID == myNodeID && !_body->isActive()) {
+            // it's not active.  don't keep simulation ownership.
             _entity->setSimulatorID(QUuid());
             properties.setSimulatorID(QUuid());
         }

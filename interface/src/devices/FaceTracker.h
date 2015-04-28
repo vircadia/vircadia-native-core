@@ -28,7 +28,7 @@ public:
     
     virtual void init() {}
     virtual void update(float deltaTime);
-    virtual void reset() {}
+    virtual void reset();
     
     float getFadeCoefficient() const;
     
@@ -44,6 +44,9 @@ public:
     float getBlendshapeCoefficient(int index) const;
     
 protected:
+    FaceTracker();
+    virtual ~FaceTracker() {};
+
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
     float _estimatedEyePitch = 0.0f;
@@ -52,6 +55,16 @@ protected:
     
     float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
     float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
+
+    void countFrame();
+
+private slots:
+    void startFPSTimer();
+    void finishFPSTimer();
+
+private:
+    bool _isCalculatingFPS;
+    int _frameCount;
 };
 
 #endif // hifi_FaceTracker_h

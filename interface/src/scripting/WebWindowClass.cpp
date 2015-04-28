@@ -16,6 +16,7 @@
 #include <QWebFrame>
 #include <QWebView>
 #include <QListWidget>
+#include <QStyleFactory>
 
 #include "Application.h"
 #include "ui/DataWebPage.h"
@@ -70,6 +71,11 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         addEventBridgeToWindowObject();
 
         _windowWidget = dialogWidget;
+    }
+
+    auto style = QStyleFactory::create("fusion");
+    if (style) {
+        _webView->setStyle(style);
     }
 
     _webView->setPage(new DataWebPage());

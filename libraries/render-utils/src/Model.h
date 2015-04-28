@@ -213,6 +213,7 @@ public:
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                 BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
+    bool convexHullContains(glm::vec3 point);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -244,7 +245,7 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    virtual void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();

@@ -39,8 +39,8 @@ public:
     ContactKey(void* a, void* b) : _a(a), _b(b) {}
     bool operator<(const ContactKey& other) const { return _a < other._a || (_a == other._a && _b < other._b); }
     bool operator==(const ContactKey& other) const { return _a == other._a && _b == other._b; }
-    void* _a;
-    void* _b;
+    void* _a; // EntityMotionState pointer
+    void* _b; // EntityMotionState pointer
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
@@ -89,16 +89,19 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
+    void bump(EntityItem* bumpEntity);
+
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
 
     void removeContacts(ObjectMotionState* motionState);
 
+    void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
+
     // return 'true' of update was successful
-    bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+    bool updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
-    void bump(EntityItem* bumpEntity);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig = NULL;

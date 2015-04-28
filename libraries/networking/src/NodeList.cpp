@@ -58,6 +58,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     
     // handle ICE signal from DS so connection is attempted immediately
     connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
+
+    // clear out NodeList when login is finished
+    connect(&AccountManager::getInstance(), &AccountManager::loginComplete , this, &NodeList::reset);
     
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);

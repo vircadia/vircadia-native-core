@@ -54,7 +54,9 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080
+        DIRTY_UPDATEABLE = 0x0080,
+        DIRTY_MATERIAL = 0x00100,
+        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -132,7 +134,7 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed);
+    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
 
     virtual bool needsToCallUpdate() const { return false; }
 
@@ -173,7 +175,7 @@ public:
 
     float getDensity() const { return _density; }
 
-    const glm::vec3 getVelocity() const { return _velocity; } /// get velocity in meters
+    const glm::vec3& getVelocity() const { return _velocity; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
@@ -181,12 +183,15 @@ public:
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
+    const glm::vec3& getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
     void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
+
+    float getRestitution() const;
+    float getFriction() const;
 
     // lifetime related properties.
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
@@ -297,8 +302,8 @@ public:
 
     glm::mat4 getEntityToWorldMatrix() const;
     glm::mat4 getWorldToEntityMatrix() const;
-    glm::vec3 worldToEntity(const glm::vec3 point) const;
-    glm::vec3 entityToWorld(const glm::vec3 point) const;
+    glm::vec3 worldToEntity(const glm::vec3& point) const;
+    glm::vec3 entityToWorld(const glm::vec3& point) const;
     
 protected:
 

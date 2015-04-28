@@ -1,12 +1,10 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtQuick.Window 2.2
-import QtQuick.Dialogs 1.2
-import QtQuick.Controls.Styles 1.3
 import QtWebKit 3.0
+import "controls"
 
-CustomDialog {
-    title: "Test Dlg"
+Dialog {
+    title: "Browser Window"
     id: testDialog
     objectName: "Browser"
     width: 1280
@@ -18,7 +16,6 @@ CustomDialog {
         anchors.fill: parent
         anchors.margins: parent.margins
         anchors.topMargin: parent.topMargin
-        
  
         ScrollView {
             anchors.fill: parent
@@ -30,16 +27,4 @@ CustomDialog {
         }        
         
      }
-
-
 }
-
-
-/*
-
-// This is the behavior, and it applies a NumberAnimation to any attempt to set the x property
-
-MouseArea {
-    anchors.fill: parent
-}
-*/
