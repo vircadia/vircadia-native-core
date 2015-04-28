@@ -124,9 +124,9 @@ void OffscreenUi::resize(const QSize& newSize) {
 
     if (_quickWindow) {
         _quickWindow->setGeometry(QRect(QPoint(), newSize));
+        _quickWindow->contentItem()->setSize(newSize);
     }
 
-    _quickWindow->contentItem()->setSize(newSize);
 
     // Update our members
     if (_rootItem) {
@@ -145,13 +145,12 @@ void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
 }
 
 QObject* OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    qDebug() << "Loading QML from URL " << qmlSource;
     _qmlComponent->loadUrl(qmlSource);
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
-        [this, f](QQmlComponent::Status){
-            finishQmlLoad(f);
-        });
+            [this, f](QQmlComponent::Status){
+                finishQmlLoad(f);
+            });
         return nullptr;
     }
     
@@ -360,10 +359,14 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPointF originalPos = mouseEvent->localPos();
             QPointF transformedPos = _mouseTranslator(originalPos);
+            transformedPos = mapWindowToUi(transformedPos, originalDestination);
             QMouseEvent mappedEvent(mouseEvent->type(),
-                    mapWindowToUi(transformedPos, originalDestination),
+                    transformedPos,
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
+            if (event->type() == QEvent::MouseMove) {
+                _qmlEngine->rootContext()->setContextProperty("lastMousePosition", transformedPos);
+            }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
                 return mappedEvent.isAccepted();

@@ -285,6 +285,7 @@ void OctreePersistThread::restoreFromMostRecentBackup() {
             qCDebug(octree) << "DONE restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
         } else {
             qCDebug(octree) << "ERROR while restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
+            perror("ERROR while restoring backup file");
         }
     } else {
         qCDebug(octree) << "NO BEST backup file found.";
@@ -366,6 +367,7 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
                         qCDebug(octree) << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
                     } else {
                         qCDebug(octree) << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
+                        perror("ERROR in rolling backup file");
                     }
                 }
             }
@@ -425,6 +427,7 @@ void OctreePersistThread::backup() {
                             rule.lastBackup = now; // only record successful backup in this case.
                         } else {
                             qCDebug(octree) << "ERROR in backing up persist file...";
+                            perror("ERROR in backing up persist file");
                         }
                     } else {
                         qCDebug(octree) << "persist file " << _filename << " does not exist. " << 

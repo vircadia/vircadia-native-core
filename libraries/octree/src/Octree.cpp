@@ -380,9 +380,9 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     }
     
     // if this is the root, and there is more data to read, allow it to read it's element data...
-    if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
+    if (destinationElement == _rootElement  && rootElementHasData() && bytesLeftToRead > 0) {
         // tell the element to read the subsequent data
-        int rootDataSize = _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
+        int rootDataSize = _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
         bytesRead += rootDataSize;
         bytesLeftToRead -= rootDataSize;
     }

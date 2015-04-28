@@ -1072,3 +1072,20 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 }
 
+// virtual
+void Avatar::rebuildSkeletonBody() {
+    /* TODO: implement this and remove override from MyAvatar (when we have AvatarMotionStates working)
+    if (_motionState) {
+        // compute localAABox
+        const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
+        float radius = capsule.getRadius();
+        float height = 2.0f * (capsule.getHalfHeight() + radius);
+        glm::vec3 corner(-radius, -0.5f * height, -radius);
+        corner += _skeletonModel.getBoundingShapeOffset();
+        glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
+        //_characterController.setLocalBoundingBox(corner, scale);
+        _motionState->setBoundingBox(corner, scale);
+    }
+    */
+}
+

@@ -64,7 +64,7 @@ private:
     
     AvatarSharedPointer newSharedAvatar();
     
-    // virtual override
+    // virtual overrides
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
     QVector<AvatarSharedPointer> _avatarFades;
