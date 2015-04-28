@@ -44,10 +44,18 @@ Item {
             anchors.left: parent.left
             border.color: root.frameColor
             clip: true
+            radius: 10
             color: root.active ?
                        hifi.colors.activeWindow.headerBackground :
                        hifi.colors.inactiveWindow.headerBackground
 
+            Rectangle {
+              y: titleBorder.height / 2
+              width: titleBorder.width
+              height: titleBorder.height /2 
+              color: titleBorder.color
+            }
+            
             Text {
                 id: titleText
                 color: root.active ?
@@ -69,7 +77,6 @@ Item {
             anchors.topMargin: -titleBorder.border.width
             anchors.right: parent.right
             anchors.left: parent.left
-            clip: true
         } // client border
     } // window border
 

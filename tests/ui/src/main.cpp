@@ -406,6 +406,8 @@ protected:
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
+                auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                offscreenUi->load("Browser.qml");
             }
             break;
         case Qt::Key_K:

@@ -50,7 +50,7 @@ Item {
 
     QtObject {
         id: styles
-        readonly property int borderWidth: 5
+        readonly property int borderWidth: 0
         readonly property int borderRadius: borderWidth * 2
     }
 

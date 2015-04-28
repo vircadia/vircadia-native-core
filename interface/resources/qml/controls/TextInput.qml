@@ -13,14 +13,14 @@ Original.TextInput {
     font.family: hifi.fonts.fontFamily
     font.pointSize: hifi.fonts.fontSize
 
-
+/*
     Original.Rectangle {
         // Render the rectangle as background
         z: -1
         anchors.fill: parent
         color: hifi.colors.inputBackground
     }
-
+*/
     Text {
         anchors.fill: parent
         font.pointSize: parent.font.pointSize

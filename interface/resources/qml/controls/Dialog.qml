@@ -92,6 +92,7 @@ DialogBase {
         anchors.bottom: parent.bottom
         width: 16
         height: 16
+        z: 1000
         hoverEnabled: true
         onPressed: {
             startX = mouseX
