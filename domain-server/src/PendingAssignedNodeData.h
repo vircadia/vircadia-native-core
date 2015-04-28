@@ -25,7 +25,6 @@ public:
     
     void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
     const QUuid& getWalletUUID() const { return _walletUUID; }
-
 private:
     QUuid _assignmentUUID;
     QUuid _walletUUID;

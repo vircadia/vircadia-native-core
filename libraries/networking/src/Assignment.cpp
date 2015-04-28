@@ -167,6 +167,6 @@ QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     if (assignment._command == Assignment::RequestCommand) {
         in >> assignment._walletUUID;
     }
-
+    
     return in;
 }
