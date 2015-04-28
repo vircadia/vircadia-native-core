@@ -767,6 +767,7 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
+    VrMenu::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -775,6 +776,8 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+    VrMenu::load();
+    VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
             glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));

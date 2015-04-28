@@ -42,7 +42,7 @@ private:
         qmlObject->setUserData(USER_DATA_ID, this);
         qmlObject->setObjectName(uuid.toString());
         // Make sure we can find it again in the future
-        Q_ASSERT(VrMenu::instance()->findMenuObject(uuid.toString()));
+        Q_ASSERT(VrMenu::_instance->findMenuObject(uuid.toString()));
     }
 };
 
@@ -57,20 +57,32 @@ HIFI_QML_DEF_LAMBDA(VrMenu, [&](QQmlContext* context, QObject* newItem) {
 });
 
 VrMenu* VrMenu::_instance{ nullptr };
+static QQueue<std::function<void(VrMenu*)>> queuedLambdas;
 
-VrMenu* VrMenu::instance() {
-    if (!_instance) {
-        VrMenu::registerType();
-        VrMenu::load();
-        Q_ASSERT(_instance);
+void VrMenu::executeOrQueue(std::function<void(VrMenu*)> f) {
+    if (_instance) {
+        foreach(std::function<void(VrMenu*)> priorLambda, queuedLambdas) {
+            priorLambda(_instance);
+        }
+        f(_instance);
+    } else {
+        queuedLambdas.push_back(f);
     }
-    return _instance;
+}
+
+void VrMenu::executeQueuedLambdas() {
+    Q_ASSERT(_instance);
+    foreach(std::function<void(VrMenu*)> f, queuedLambdas) {
+        f(_instance);
+    }
+    queuedLambdas.clear();
 }
 
 VrMenu::VrMenu(QQuickItem* parent) : QQuickItem(parent) {
     _instance = this;
     this->setEnabled(false);
 }
+
 
 // QML helper functions
 QObject* addMenu(QObject* parent, const QString& text) {

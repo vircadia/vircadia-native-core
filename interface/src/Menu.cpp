@@ -975,7 +975,9 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
 
 
 MenuWrapper::MenuWrapper(QMenu* menu) : _realMenu(menu) {
-    VrMenu::instance()->addMenu(menu);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addMenu(menu);
+    });
     _backMap[menu] = this;
 }
 
@@ -997,18 +999,24 @@ void MenuWrapper::addSeparator() {
 
 void MenuWrapper::addAction(QAction* action) {
     _realMenu->addAction(action);
-    VrMenu::instance()->addAction(_realMenu, action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
 }
 
 QAction* MenuWrapper::addAction(const QString& menuName) {
     QAction* action = _realMenu->addAction(menuName);
-    VrMenu::instance()->addAction(_realMenu, action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
     return action;
 }
 
 QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut) {
     QAction* action = _realMenu->addAction(menuName, receiver, member, shortcut);
-    VrMenu::instance()->addAction(_realMenu, action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
     return action;
 }
 
@@ -1018,7 +1026,9 @@ void MenuWrapper::removeAction(QAction* action) {
 
 void MenuWrapper::insertAction(QAction* before, QAction* action) {
     _realMenu->insertAction(before, action);
-    VrMenu::instance()->insertAction(before, action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->insertAction(before, action);
+    });
 }
 
 QHash<QMenu*, MenuWrapper*> MenuWrapper::_backMap;
