@@ -1947,14 +1947,14 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
         return false;
     }
 
-    if (args->_renderMode == RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == false) {
+    if (args->_debugFlags == RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == false) {
         // turning collision hull rendering on
         _renderCollisionHull = true;
         _nextGeometry = _collisionGeometry;
         _saveNonCollisionGeometry = _geometry;
         updateGeometry();
         simulate(0.0, true);
-    } else if (args->_renderMode != RenderArgs::DEBUG_RENDER_MODE && _renderCollisionHull == true) {
+    } else if (args->_debugFlags != RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == true) {
         // turning collision hull rendering off
         _renderCollisionHull = false;
         _nextGeometry = _saveNonCollisionGeometry;

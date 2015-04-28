@@ -182,8 +182,6 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
-bool renderCollisionHulls = false;
-
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -1311,11 +1309,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     sendEvent(this, &startBackEvent);
                 }
                 
-                break;
-            }
-
-            case Qt::Key_Comma: {
-                renderCollisionHulls = !renderCollisionHulls;
                 break;
             }
 
@@ -3157,13 +3150,21 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            if (renderCollisionHulls) {
-                _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
-            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
-            } else {
-                _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+
+            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
             }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
+                renderDebugFlags =
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+            }
+            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                renderMode = RenderArgs::MIRROR_RENDER_MODE;
+            }
+            _entities.render(renderMode, renderSide, renderDebugFlags);
         }
 
         // render JS/scriptable overlays

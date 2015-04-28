@@ -58,7 +58,8 @@ public:
 
     virtual void init();
     virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
+                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);

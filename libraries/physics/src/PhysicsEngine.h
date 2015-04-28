@@ -89,16 +89,19 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
+    void bump(EntityItem* bumpEntity);
+
 private:
     /// \param motionState pointer to Object's MotionState
     void removeObjectFromBullet(ObjectMotionState* motionState);
 
     void removeContacts(ObjectMotionState* motionState);
 
+    void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
+
     // return 'true' of update was successful
     bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
-    void bump(EntityItem* bumpEntity);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig = NULL;
