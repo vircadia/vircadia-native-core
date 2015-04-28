@@ -163,7 +163,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             if (_simulation) { 
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
-                    _simulation->entityChanged(entity);
+                    _simulation->changeEntity(entity);
                     _simulation->unlock();
                 }
             } else {
@@ -349,10 +349,12 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _recentlyDeletedEntitiesLock.unlock();
         }
 
-        if (_simulation) {
-            _simulation->removeEntity(theEntity);
+        if (_simulation && theEntity->getSimulation()) {
+            // delegate entity destruction to the simulation so it can clean up its own pointers
+            _simulation->deleteEntity(theEntity);
+        } else {
+            delete theEntity; // we can delete the entity directly now
         }
-        delete theEntity; // now actually delete the entity!
     }
     if (_simulation) {
         _simulation->unlock();
@@ -742,7 +744,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 void EntityTree::entityChanged(EntityItem* entity) {
     if (_simulation) {
         _simulation->lock();
-        _simulation->entityChanged(entity);
+        _simulation->changeEntity(entity);
         _simulation->unlock();
     }
 }
@@ -750,10 +752,12 @@ void EntityTree::entityChanged(EntityItem* entity) {
 void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
-        QSet<EntityItem*> entitiesToDelete;
         _simulation->lock();
-        _simulation->updateEntities(entitiesToDelete);
+        _simulation->updateEntities();
+        SetOfEntities entitiesToDelete;
+        _simulation->getEntitiesToDelete(entitiesToDelete);
         _simulation->unlock();
+
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;

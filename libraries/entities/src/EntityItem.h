@@ -28,7 +28,7 @@
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
-class EntityTree;
+class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
@@ -44,7 +44,12 @@ class EntityTreeElementExtraEncodeData;
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem {
+    // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
+    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
+    // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
+    // do cleanup.
     friend class EntityTreeElement;
+    friend class EntitySimulation;
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
@@ -293,9 +298,9 @@ public:
     bool isMoving() const;
 
     void* getPhysicsInfo() const { return _physicsInfo; }
-    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
     EntityTreeElement* getElement() const { return _element; }
+    EntitySimulation* getSimulation() const { return _simulation; }
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -306,6 +311,7 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
     
 protected:
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
@@ -365,14 +371,13 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
-    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
-    // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo = NULL; // only set by EntitySimulation
-
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
-    EntityTreeElement* _element;    // back pointer to containing Element
+    // these backpointers are only ever set/cleared by friends:
+    EntityTreeElement* _element = nullptr; // set by EntityTreeElement
+    EntitySimulation* _simulation = nullptr; // set by EntitySimulation
+    void* _physicsInfo = nullptr; // set by EntitySimulation
 };
 
 

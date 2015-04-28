@@ -20,6 +20,8 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
+typedef QSet<EntityItem*> SetOfEntities;
+
 // the EntitySimulation needs to know when these things change on an entity, 
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
 const int DIRTY_SIMULATION_FLAGS = 
@@ -44,20 +46,25 @@ public:
     /// \param tree pointer to EntityTree which is stored internally
     void setEntityTree(EntityTree* tree);
 
-    /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
-    void updateEntities(QSet<EntityItem*>& entitiesToDelete);
+    void updateEntities();
 
-    /// \param entity pointer to EntityItem to add to the simulation
-    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
+    /// \param entity pointer to EntityItem to be added
+    /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
     void addEntity(EntityItem* entity);
 
-    /// \param entity pointer to EntityItem to removed from the simulation
-    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
+    /// \param entity pointer to EntityItem to be removed
+    /// \brief the actual removal may happen later when appropriate data structures are locked
+    /// \sideeffect nulls relevant backpointers in entity
     void removeEntity(EntityItem* entity);
+
+    /// \param pointer to EntityItem to be removed from simulation, and deleted if possible
+    /// \brief actual removal/delete may happen later when appropriate data structures are locked
+    /// \sideeffect nulls relevant backpointers in entity
+    void deleteEntity(EntityItem* entity);
 
     /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
-    void entityChanged(EntityItem* entity);
+    void changeEntity(EntityItem* entity);
 
     void clearEntities();
 
@@ -78,7 +85,9 @@ protected:
 
     virtual void removeEntityInternal(EntityItem* entity) = 0;
 
-    virtual void entityChangedInternal(EntityItem* entity) = 0;
+    virtual void deleteEntityInternal(EntityItem* entity) = 0;
+
+    virtual void changeEntityInternal(EntityItem* entity) = 0;
 
     virtual void sortEntitiesThatMovedInternal() {}
 
@@ -95,11 +104,11 @@ protected:
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.
-    QSet<EntityItem*> _mortalEntities; // entities that have an expiry
+    SetOfEntities _mortalEntities; // entities that have an expiry
     quint64 _nextExpiry;
-    QSet<EntityItem*> _updateableEntities; // entities that need update() called
-    QSet<EntityItem*> _entitiesToBeSorted; // entities that were moved by THIS simulation and might need to be resorted in the tree
-    QSet<EntityItem*> _entitiesToDelete;
+    SetOfEntities _entitiesToUpdate; // entities that need update() called
+    SetOfEntities _entitiesToSort; // entities that were moved by THIS simulation and might need to be resorted in the tree
+    SetOfEntities _entitiesToDelete;
 };
 
 #endif // hifi_EntitySimulation_h

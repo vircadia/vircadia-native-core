@@ -2356,8 +2356,7 @@ void Application::update(float deltaTime) {
 
         _physicsEngine.removeObjects(_entitySimulation.getObjectsToRemove());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
-        _physicsEngine.updateObjects(_entitySimulation.getObjectsToUpdate());
-        _entitySimulation.clearIncomingChanges();
+        _physicsEngine.updateObjects(_entitySimulation.getObjectsToChange());
 
         _physicsEngine.stepSimulation();
 

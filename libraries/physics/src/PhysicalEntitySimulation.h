@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <QSet>
+#include <QVector>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
@@ -23,7 +24,8 @@
 
 #include "PhysicsEngine.h"
 
-typedef QSet<EntityItem*> SetOfEntities;
+typedef QSet<ObjectMotionState*> SetOfMotionStates;
+typedef QVector<ObjectMotionState*> VectorOfMotionStates;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
@@ -36,22 +38,21 @@ public:
     void updateEntitiesInternal(const quint64& now);
     void addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
+    void deleteEntityInternal(EntityItem* entity);
     void entityChangedInternal(EntityItem* entity);
     void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
-    SetOfMotionState& getObjectsToRemove();
-    SetOfMotionState& getObjectsToAdd();
-    SetOfMotionState& getObjectsToUpdate();
-
-    void clearIncomingChanges();
+    VectorOfMotionStates& getObjectsToRemove();
+    VectorOfMotionStates& getObjectsToAdd();
+    VectorOfMotionStates& getObjectsToChange();
 
 private:
     void bump(EntityItem* bumpEntity);
 
     SetOfEntities _pendingRemoves; // entities to be removed from simulation
     SetOfEntities _pendingAdds; // entities to be be added to simulation
-    SetOfEntities _pendingUpdates; // entities to be updated in simulation
+    SetOfEntities _pendingChanges; // entities already in simulation that need to be changed
 
     SetOfMotionStates _physicalEntities; // MotionStates of entities in PhysicsEngine
     VectorOfMotionStates _tempSet; // temporary list valid immediately after call to getObjectsToRemove/Add/Update()

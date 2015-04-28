@@ -74,28 +74,26 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
     }
 }
 
-void PhysicalEntitySimulation::get {
-        if (entity->isReadyToComputeShape()) {
-            ShapeInfo shapeInfo;
-            entity->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = _physicsEngine->getShape(shapeInfo);
-            if (shape) {
-                EntityMotionState* motionState = new EntityMotionState(entity);
-                entity->setPhysicsInfo(static_cast<void*>(motionState));
-                _physicalEntities.insert(motionState);
-                _physicsEngine->addObject(shapeInfo, shape, motionState);
-                motionState->setPhysical(true);
-            } 
-        }
-    }
-}
-
 void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         _pendingRemoves.insert(motionState);
+    } else {
+        entity->_simulation = nullptr;
+    }
+}
+
+void PhysicalEntitySimulation::deleteEntityInternal(EntityItem* entity) {
+    assert(entity);
+    void* physicsInfo = entity->getPhysicsInfo();
+    if (physicsInfo) {
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        _pendingRemoves.insert(motionState);
+    } else {
+        entity->_simulation = nullptr;
+        delete entity;
     }
 }
 
@@ -105,7 +103,7 @@ void PhysicalEntitySimulation::entityChangedInternal(EntityItem* entity) {
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _pendingUpdates.insert(motionState);
+        _pendingChanges.insert(motionState);
     } else { 
         if (!entity->ignoreForCollisions()) {
             // The intent is for this object to be in the PhysicsEngine.  
@@ -119,49 +117,52 @@ void PhysicalEntitySimulation::sortEntitiesThatMovedInternal() {
     // entities that have been simulated forward (hence in the _entitiesToBeSorted list) 
     // also need to be put in the outgoingPackets list
     QSet<EntityItem*>::iterator entityItr = _entitiesToBeSorted.begin();
-    while (entityItr != _entitiesToBeSorted.end()) {
+    for (auto entityItr : _entitiesToBeSorted) {
         EntityItem* entity = *entityItr;
         void* physicsInfo = entity->getPhysicsInfo();
         assert(physicsInfo);
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _outgoingPackets.insert(motionState);
-        ++entityItr;
+        // BOOKMARK XXX -- Andrew to fix this next
+        _outgoingPackets.insert(static_cast<ObjectMotionState*>(physicsInfo));
     }
 }
 
 void PhysicalEntitySimulation::clearEntitiesInternal() {
+    // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
+    // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
+    // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
     SetOfMotionStates::const_iterator stateItr = _physicalEntities.begin();
-    for (stateItr = _physicalEntities.begin(); stateItr != _physicalEntities.end(); ++stateItr) {
-        removeObjectFromBullet(*stateItr);
-        delete (*stateItr);
+    for (auto stateItr : _physicalEntities) {
+        EntityMotionState motionState = static_cast<EntityMotionState*>(*stateItr);
+        _physicsEngine->removeObjectFromBullet(motionState);
+        EntityItem* entity = motionState->_entity;
+        _entity->setPhysicsInfo(nullptr);
+        delete motionState;
     }
     _physicalEntities.clear();
     _pendingRemoves.clear();
     _pendingAdds.clear();
-    _pendingUpdates.clear();
+    _pendingChanges.clear();
 }
 // end EntitySimulation overrides
 
 
-SetOfMotionState& PhysicalEntitySimulation::getObjectsToRemove() {
+VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemove() {
     _tempSet.clear();
     for (auto entityItr : _pendingRemoves) {
         EntityItem* entity = *entityItr;
+        _physicalEntities.remove(entity);
         _pendingAdds.remove(entity);
-        _pendingUpdates.remove(entity);
+        _pendingChanges.remove(entity);
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _tempSet.push_back(motionState);
         }
     }
-    // DO NOT clear _pendingRemoves -- we still need to remove from _physicalEntities 
-    // and then communicate to the EntityTree that they can really can be deleted.
-    // TODO: build the pipeline for this.
-    //_pendingRemoves.clear();
+    _pendingRemoves.clear();
     return _tempSet;
 }
 
-SetOfMotionState& PhysicalEntitySimulation::getObjectsToAdd() {
+VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
     _tempSet.clear();
     SetOfEntities::iterator entityItr = _pendingAdds.begin();
     while (entityItr != _pendingAdds.end()) {
@@ -189,23 +190,17 @@ SetOfMotionState& PhysicalEntitySimulation::getObjectsToAdd() {
     return _tempSet;
 }
 
-SetOfMotionState& PhysicalEntitySimulation::getObjectsToUpdate() {
+VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     _tempSet.clear();
-    for (auto entityItr : _pendingUpdates) {
+    for (auto entityItr : _pendingChanges) {
         EntityItem* entity = *entityItr;
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _tempSet.push_back(motionState);
         }
     }
-    _pendingUpdates.clear();
+    _pendingChanges.clear();
     return _tempSet;
-}
-
-void PhysicalEntitySimulation::clearIncomingChanges() {
-    // TODO: finalize deletes in the EntityTree?  
-    // or should we allow EntityMotionState::_entity to be NULL during normal operation?
-    // (In order to do this _pendingDeletes would have to be list of MotionStates, or something)
 }
 
 void PhysicalEntitySimulation::bump(EntityItem* bumpEntity) {

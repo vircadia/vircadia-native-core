@@ -63,9 +63,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
     _simulatorIDChangedTime(0),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
-    _physicsInfo(NULL),
-    _dirtyFlags(0),
-    _element(NULL)
+    _dirtyFlags(0)
 {
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
@@ -78,9 +76,11 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
-    // be sure to clean up _physicsInfo before calling this dtor
-    assert(_physicsInfo == NULL);
-    assert(_element == NULL);
+    // these pointers MUST be NULL at delete, else we probably have a dangling backpointer 
+    // to this EntityItem in the corresponding data structure.
+    assert(!_element);
+    assert(!_simulation);
+    assert(!_physicsInfo);
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
