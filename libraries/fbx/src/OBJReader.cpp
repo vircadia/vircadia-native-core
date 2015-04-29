@@ -108,7 +108,7 @@ glm::vec2 OBJTokenizer::getVec2() {
 }
 
 
-void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
+void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
     meshPart.diffuseColor = glm::vec3(1, 1, 1);
     meshPart.specularColor = glm::vec3(1, 1, 1);
     meshPart.emissiveColor = glm::vec3(0, 0, 0);
@@ -165,21 +165,21 @@ QVector<OBJFace> OBJFace::triangulate() {
     }
     return newFaces;
 }
-void OBJFace::addFrom(OBJFace const * f, int i) { // add using data from f at index i
-    vertexIndices.append(f->vertexIndices[i]);
-    if (f->textureUVIndices.count() > 0) { // Any at all. Runtime error if not consistent.
-        textureUVIndices.append(f->textureUVIndices[i]);
+void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f at index i
+    vertexIndices.append(face->vertexIndices[index]);
+    if (face->textureUVIndices.count() > 0) { // Any at all. Runtime error if not consistent.
+        textureUVIndices.append(face->textureUVIndices[index]);
     }
-    if (f->normalIndices.count() > 0) {
-        normalIndices.append(f->normalIndices[i]);
+    if (face->normalIndices.count() > 0) {
+        normalIndices.append(face->normalIndices[index]);
     }
 }
 
-bool OBJReader::parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeometry &geometry, float& scaleGuess) {
+bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess) {
     FaceGroup faces;
-    FBXMesh &mesh = geometry.meshes[0];
+    FBXMesh& mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
-    FBXMeshPart &meshPart = mesh.parts.last();
+    FBXMeshPart& meshPart = mesh.parts.last();
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
@@ -292,7 +292,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
         // add a new meshPart to the geometry's single mesh.
         while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
 
-        FBXMesh &mesh = geometry.meshes[0];
+        FBXMesh& mesh = geometry.meshes[0];
         mesh.meshIndex = 0;
  
         geometry.joints.resize(1);
@@ -320,7 +320,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
         
         int meshPartCount = 0;
         for (int i = 0; i < mesh.parts.count(); i++) {
-            FBXMeshPart & meshPart = mesh.parts[i];
+            FBXMeshPart& meshPart = mesh.parts[i];
             //qCDebug(modelformat) << "part:" << meshPartCount << " faces:" << faceGroups[meshPartCount].count() << "triangle indices will start with:" << mesh.vertices.count();
             foreach(OBJFace face, faceGroups[meshPartCount]) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];

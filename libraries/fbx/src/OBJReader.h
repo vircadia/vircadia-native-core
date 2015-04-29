@@ -41,7 +41,7 @@ public:
     // Even though FBXMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
     QVector<OBJFace> triangulate();
 private:
-    void addFrom(OBJFace const * f, int i);
+    void addFrom(const OBJFace* face, int index);
 };
 
 class OBJReader {
@@ -54,5 +54,5 @@ public:
     FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping);
     FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping);
     void fbxDebugDump(const FBXGeometry& fbxgeo);
-    bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeometry &geometry, float& scaleGuess);
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
 };
