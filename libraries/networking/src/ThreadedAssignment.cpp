@@ -73,15 +73,6 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     }
 }
 
-
-// void ThreadedAssignment::stop() {
-//     setFinished(true);
-//     qDebug() << "ThreadedAssignment::stop";
-//     QThread *thisThread = QThread::currentThread();
-//     thisThread->quit();
-// }
-
-
 void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
     LogHandler::getInstance().setTargetName(targetName);

@@ -25,7 +25,6 @@ public:
 public slots:
     /// runs the avatar mixer
     void run();
-    // Q_INVOKABLE virtual void stop();
 
     void nodeAdded(SharedNodePointer nodeAdded);
     void nodeKilled(SharedNodePointer killedNode);
@@ -33,8 +32,6 @@ public slots:
     void readPendingDatagrams();
     
     void sendStatsPacket();
-
-    void finished();
     
 private:
     void broadcastAvatarData();

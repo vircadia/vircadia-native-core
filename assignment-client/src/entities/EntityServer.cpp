@@ -163,14 +163,3 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     EntityTree* tree = static_cast<EntityTree*>(_tree);
     tree->setWantEditLogging(wantEditLogging);
 }
-
-
-// void EntityServer::stop() {
-//     qDebug() << "EntityServer::stop";
-//     if (_pruneDeletedEntitiesTimer) {
-//         _pruneDeletedEntitiesTimer->stop();
-//         delete _pruneDeletedEntitiesTimer;
-//         _pruneDeletedEntitiesTimer = nullptr;
-//     }
-//     OctreeServer::stop();
-// }

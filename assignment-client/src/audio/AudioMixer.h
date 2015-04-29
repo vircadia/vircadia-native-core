@@ -110,15 +110,6 @@ private:
     MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
 
     MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
-
-    /* // loop variables */
-    /* // QTimer* _idleTimer = nullptr; */
-    /* int _nextFrame = 0; */
-    /* QElapsedTimer _timer; */
-    /* char _clientMixBuffer[MAX_PACKET_SIZE]; */
-    /* int _usecToSleep = AudioConstants::NETWORK_FRAME_USECS; */
-    /* const int TRAILING_AVERAGE_FRAMES = 100; */
-    /* int _framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES; */
 };
 
 #endif // hifi_AudioMixer_h

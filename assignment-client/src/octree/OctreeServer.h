@@ -123,7 +123,6 @@ public:
 public slots:
     /// runs the octree server assignment
     void run();
-    // Q_INVOKABLE virtual void stop();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();

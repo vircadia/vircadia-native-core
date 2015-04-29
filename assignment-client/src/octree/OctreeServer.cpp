@@ -1236,40 +1236,6 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
 
-
-// void OctreeServer::stop() {
-//     qDebug() << "OctreeServer::stop";
-//     // setFinished(true);
-//     // QThread *thisThread = QThread::currentThread();
-//     // thisThread->quit();
-
-//     if (_jurisdictionSender) {
-//         _jurisdictionSender->terminating();
-//         _jurisdictionSender->terminate();
-//         // delete _jurisdictionSender;
-//         // _jurisdictionSender = nullptr;
-//     }
-
-//     _datagramProcessingThread->quit();
-//     if (_octreeInboundPacketProcessor) {
-//         _octreeInboundPacketProcessor->terminating();
-//         _octreeInboundPacketProcessor->terminate();
-//         // delete _octreeInboundPacketProcessor;
-//         // _octreeInboundPacketProcessor = nullptr;
-//     }
-
-//     // _persistThread
-//     if (_persistThread) {
-//         _persistThread->terminating();
-//         _persistThread->terminate();
-//         // delete _persistThread;
-//         // _persistThread = nullptr;
-//     }
-
-//     ThreadedAssignment::stop();
-// }
-
-
 QString OctreeServer::getUptime() {
     QString formattedUptime;
     quint64 now  = usecTimestampNow();
