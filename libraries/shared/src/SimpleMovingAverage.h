@@ -25,7 +25,7 @@ public:
     
     int getSampleCount() const { return _numSamples; };
     float getAverage() const { return _average; };
-    float getEventDeltaAverage() const; // returned in microseconds
+    float getEventDeltaAverage() const; // returned in seconds
     float getAverageSampleValuePerSecond() const { return _average * (1.0f / getEventDeltaAverage()); }
     
     uint64_t getUsecsSinceLastEvent() const;
