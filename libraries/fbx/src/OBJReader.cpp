@@ -152,7 +152,8 @@ bool OBJFace::add(QByteArray vertexIndex, QByteArray textureIndex, QByteArray no
 }
 QVector<OBJFace> OBJFace::triangulate() {
     QVector<OBJFace> newFaces;
-    if (vertexIndices.count() == 3) {
+    const int nVerticesInATriangle = 3;
+    if (vertexIndices.count() == nVerticesInATriangle) {
         newFaces.append(*this);
     } else {
         for (int i = 1; i < vertexIndices.count() - 1; i++) {
