@@ -47,8 +47,8 @@ Item {
         }
    }
 
-    implicitHeight: label.implicitHeight + 4
-    implicitWidth: label.implicitWidth + label.height * 2
+    implicitHeight: label.implicitHeight * 1.5
+    implicitWidth: label.implicitWidth + label.height * 2.5
 
     Timer {
         id: timer
@@ -60,13 +60,13 @@ Item {
     FontAwesome {
         clip: true
         id: check
-        verticalAlignment:  Text.AlignBottom
+        verticalAlignment:  Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
         anchors.verticalCenter: parent.verticalCenter
         color: label.color
         text: checkText()
         size: label.height
-        font.pixelSize: size - 4
+        font.pixelSize: size
         function checkText() {
             if (!source || source.type != 1 || !source.checkable) {
                 return ""
