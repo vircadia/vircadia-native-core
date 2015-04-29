@@ -2114,7 +2114,7 @@ void GeometryReader::run() {
                     // with separate material files, too.
                     QString filename = _url.fileName();
                     int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
-                    QString basename = filename.remove(extIndex + 1, 3);
+                    QString basename = filename.remove(extIndex + 1, sizeof("obj"));
                     QByteArray defaultTexture = basename.toUtf8() + "jpg";
                     //qCDebug(renderutils) << "basename for " << filename << " is " << basename << ", default:" << defaultTexture;
                     QVector<FBXMeshPart> & meshParts = mesh.parts;
