@@ -620,6 +620,8 @@ void AudioMixer::sendStatsPacket() {
     hashMatchTimePerCallStats["prct_time_in_hashmatch_1s"] 
         = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0; 
     readPendingDatagramStats["hashmatch_time_per_call"] = hashMatchTimePerCallStats;
+    
+    statsObject["read_pending_datagrams"] = readPendingDatagramStats;
 
     auto nodeList = DependencyManager::get<NodeList>();
     int clientNumber = 0; 
