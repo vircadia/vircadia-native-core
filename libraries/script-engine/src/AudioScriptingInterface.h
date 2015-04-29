@@ -32,6 +32,8 @@ protected:
     Q_INVOKABLE void injectGeneratedNoise(bool inject);
     Q_INVOKABLE void selectPinkNoise();
     Q_INVOKABLE void selectSine440();
+
+    Q_INVOKABLE void setStereoInput(bool stereo);
     
 signals:
     void mutedByMixer();
