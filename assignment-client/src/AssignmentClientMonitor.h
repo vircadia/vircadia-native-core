@@ -32,7 +32,8 @@ public:
                             QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
                             quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
-    
+
+    void waitOnChildren(int msecs);
     void stopChildProcesses();
 private slots:
     void readPendingDatagrams();
@@ -55,6 +56,7 @@ private:
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
 
+    QList<QProcess*> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

@@ -27,8 +27,6 @@ EntityServer::EntityServer(const QByteArray& packet)
 }
 
 EntityServer::~EntityServer() {
-    qDebug() << "EntityServer::~EntityServer";
-
     if (_pruneDeletedEntitiesTimer) {
         _pruneDeletedEntitiesTimer->stop();
         _pruneDeletedEntitiesTimer->deleteLater();
