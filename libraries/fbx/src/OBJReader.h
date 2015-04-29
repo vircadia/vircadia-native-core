@@ -36,7 +36,7 @@ public:
     QVector<int> normalIndices;
     //materialName groupName  // FIXME
     // Add one more set of vertex data. Answers true if successful
-    bool add(QByteArray vertexIndex, QByteArray textureIndex = nullptr, QByteArray normalIndex = nullptr);
+    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
     // Even though FBXMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
     QVector<OBJFace> triangulate();

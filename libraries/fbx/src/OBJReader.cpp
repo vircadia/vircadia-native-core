@@ -127,21 +127,21 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
 }
 
 // OBJFace
-bool OBJFace::add(QByteArray vertexIndex, QByteArray textureIndex, QByteArray normalIndex) {
+bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
     if (!ok) {
         return false;
     }
     vertexIndices.append(index - 1);
-    if (textureIndex != nullptr) {
+    if (!textureIndex.isEmpty()) {
         index = textureIndex.toInt(&ok);
         if (!ok) {
             return false;
         }
         textureUVIndices.append(index - 1);
     }
-    if (normalIndex != nullptr) {
+    if (!normalIndex.isEmpty()) {
         index = normalIndex.toInt(&ok);
         if (!ok) {
             return false;
@@ -250,7 +250,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
                 // FIXME: if we want to handle negative indices, it has to be done here.
-                face.add(parts[0], (parts.count() > 1) ? parts[1] : nullptr, (parts.count() > 2) ? parts[2] : nullptr);
+                const QByteArray noData {};
+                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData);
                 // FIXME: preserve current name, material and such
             }
             originalFaceCountForDebugging++;
