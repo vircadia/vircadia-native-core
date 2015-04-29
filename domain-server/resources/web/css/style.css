@@ -3,12 +3,8 @@ body {
   padding-bottom: 30px;
 }
 
-.table-lead {
-  color: #66CCCC;
-}
-
 .table-lead .lead-line {
-  background-color: #66CCCC;
+  background-color: black;
 }
 
 .table-lead h3 {

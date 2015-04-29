@@ -30,5 +30,5 @@ $(document).ready(function(){
   // do the first GET on page load
   getNodeStats();
   // grab the new assignments JSON every second
-  // var getNodeStatsInterval = setInterval(getNodeStats, 1000);
+  var getNodeStatsInterval = setInterval(getNodeStats, 1000);
 });
