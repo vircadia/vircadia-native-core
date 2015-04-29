@@ -586,12 +586,41 @@ void AudioMixer::sendStatsPacket() {
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
-
-    statsObject["readPendingDatagram_calls_stats"] = getReadPendingDatagramsCallsPerSecondsStatsString();
-    statsObject["readPendingDatagram_packets_per_call_stats"] = getReadPendingDatagramsPacketsPerCallStatsString(); 
-    statsObject["readPendingDatagram_packets_time_per_call_stats"] = getReadPendingDatagramsTimeStatsString();
-    statsObject["readPendingDatagram_hashmatch_time_per_call_stats"] = getReadPendingDatagramsHashMatchTimeStatsString();
     
+    QJsonObject readPendingDatagramStats;
+    
+    QJsonObject rpdCallsStats;
+    rpdCallsStats["calls_per_sec_avg_30s"] = _readPendingCallsPerSecondStats.getWindowAverage();
+    rpdCallsStats["calls_last_sec"] = _readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5;
+    
+    readPendingDatagramStats["calls"] = rpdCallsStats;
+
+    QJsonObject packetsPerCallStats;
+    packetsPerCallStats["avg_30s"] = _datagramsReadPerCallStats.getWindowAverage();
+    packetsPerCallStats["avg_1s"] = _datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage();
+    
+    readPendingDatagramStats["packets_per_call"] = packetsPerCallStats;
+    
+    QJsonObject packetsTimePerCallStats;
+    packetsTimePerCallStats["usecs_per_call_avg_30s"] = _timeSpentPerCallStats.getWindowAverage();
+    packetsTimePerCallStats["usecs_per_call_avg_1s"] = _timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage();
+    packetsTimePerCallStats["prct_time_in_call_30s"] = 
+        _timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS * USECS_PER_SECOND) * 100.0;
+    packetsTimePerCallStats["prct_time_in_call_1s"] = 
+        _timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0;
+
+    readPendingDatagramStats["packets_time_per_call"] = packetsTimePerCallStats;
+   
+    QJsonObject hashMatchTimePerCallStats;
+    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_30s"] = _timeSpentPerHashMatchCallStats.getWindowAverage();
+    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_1s"] 
+        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage();
+    hashMatchTimePerCallStats["prct_time_in_hashmatch_30s"] 
+        = _timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0;
+    hashMatchTimePerCallStats["prct_time_in_hashmatch_1s"] 
+        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0; 
+    readPendingDatagramStats["hashmatch_time_per_call"] = hashMatchTimePerCallStats;
+
     auto nodeList = DependencyManager::get<NodeList>();
     int clientNumber = 0; 
     
@@ -600,7 +629,7 @@ void AudioMixer::sendStatsPacket() {
         clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            statsObject["jitterStats." + node->getUUID().toString()] = clientData->getAudioStreamStatsString();
+            statsObject["jitterStats." + node->getUUID().toString()] = clientData->getAudioStreamStats();
         }
     });
 
@@ -881,34 +910,6 @@ void AudioMixer::perSecondActions() {
     _datagramsReadPerCallStats.currentIntervalComplete();
     _timeSpentPerCallStats.currentIntervalComplete();
     _timeSpentPerHashMatchCallStats.currentIntervalComplete();
-}
-
-QString AudioMixer::getReadPendingDatagramsCallsPerSecondsStatsString() const {
-    QString result = "calls_per_sec_avg_30s: " + QString::number(_readPendingCallsPerSecondStats.getWindowAverage(), 'f', 2)
-        + " calls_last_sec: " + QString::number(_readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5, 'f', 0);
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsPacketsPerCallStatsString() const {
-    QString result = "pkts_per_call_avg_30s: " + QString::number(_datagramsReadPerCallStats.getWindowAverage(), 'f', 2)
-        + " pkts_per_call_avg_1s: " + QString::number(_datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2);
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsTimeStatsString() const {
-    QString result = "usecs_per_call_avg_30s: " + QString::number(_timeSpentPerCallStats.getWindowAverage(), 'f', 2)
-        + " usecs_per_call_avg_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + " prct_time_in_call_30s: " + QString::number(_timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + " prct_time_in_call_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsHashMatchTimeStatsString() const {
-    QString result = "usecs_per_hashmatch_avg_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowAverage(), 'f', 2)
-        + " usecs_per_hashmatch_avg_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + " prct_time_in_hashmatch_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + " prct_time_in_hashmatch_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
-    return result;
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {

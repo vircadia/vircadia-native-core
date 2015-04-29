@@ -73,8 +73,10 @@ qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& d
    
     // get a QStringList using JSONBreakableMarshal
     QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
-
-    qDebug() << "Stats string list is" << statsStringList;
+    
+    foreach(const QString& statsItem, statsStringList) {
+        qDebug() << statsItem;
+    }
     
     // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;

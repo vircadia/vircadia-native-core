@@ -196,68 +196,68 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     }
 }
 
-QString AudioMixerClientData::getAudioStreamStatsString() const {
-    QString result;
+QJsonObject AudioMixerClientData::getAudioStreamStats() const {
+    QJsonObject result;
     AudioStreamStats streamStats = _downstreamAudioStreamStats;
-    result += "DOWNSTREAM.desired:" + QString::number(streamStats._desiredJitterBufferFrames)
-        + " available_avg_10s:" + QString::number(streamStats._framesAvailableAverage)
-        + " available:" + QString::number(streamStats._framesAvailable)
-        + " starves:" + QString::number(streamStats._starveCount)
-        + " not_mixed:" + QString::number(streamStats._consecutiveNotMixedCount)
-        + " overflows:" + QString::number(streamStats._overflowCount)
-        + " silents_dropped: ?"
-        + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
-        + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-        + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
-        + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
-        + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
-        + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
-        + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
-        + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
+    result["DOWNSTREAM.desired"] = streamStats._desiredJitterBufferFrames;
+    result["DOWNSTREAM.available_avg_10s"] = streamStats._framesAvailableAverage;
+    result["DOWNSTREAM.available"] = (double) streamStats._framesAvailable;
+    result["DOWNSTREAM.starves"] = (double) streamStats._starveCount;
+    result["DOWNSTREAM.not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
+    result["DOWNSTREAM.overflows"] = (double) streamStats._overflowCount;
+    result["DOWNSTREAM.lost%"] = streamStats._packetStreamStats.getLostRate() * 100.0f;
+    result["DOWNSTREAM.lost%_30s"] = streamStats._packetStreamWindowStats.getLostRate() * 100.0f;
+    result["DOWNSTREAM.min_gap"] = formatUsecTime(streamStats._timeGapMin);
+    result["DOWNSTREAM.max_gap"] = formatUsecTime(streamStats._timeGapMax);
+    result["DOWNSTREAM.avg_gap"] = formatUsecTime(streamStats._timeGapAverage);
+    result["DOWNSTREAM.min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
+    result["DOWNSTREAM.max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
+    result["DOWNSTREAM.avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
 
     AvatarAudioStream* avatarAudioStream = getAvatarAudioStream();
     if (avatarAudioStream) {
         AudioStreamStats streamStats = avatarAudioStream->getAudioStreamStats();
-        result += " UPSTREAM.mic.desired:" + QString::number(streamStats._desiredJitterBufferFrames)
-            + " desired_calc:" + QString::number(avatarAudioStream->getCalculatedJitterBufferFrames())
-            + " available_avg_10s:" + QString::number(streamStats._framesAvailableAverage)
-            + " available:" + QString::number(streamStats._framesAvailable)
-            + " starves:" + QString::number(streamStats._starveCount)
-            + " not_mixed:" + QString::number(streamStats._consecutiveNotMixedCount)
-            + " overflows:" + QString::number(streamStats._overflowCount)
-            + " silents_dropped:" + QString::number(streamStats._framesDropped)
-            + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
-            + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-            + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
-            + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
-            + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
-            + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
-            + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
-            + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
+        result["UPSTREAM.mic.desired"] = streamStats._desiredJitterBufferFrames;
+        result["UPSTREAM.desired_calc"] = avatarAudioStream->getCalculatedJitterBufferFrames();
+        result["UPSTREAM.available_avg_10s"] = streamStats._framesAvailableAverage;
+        result["UPSTREAM.available"] = (double) streamStats._framesAvailable;
+        result["UPSTREAM.starves"] = (double) streamStats._starveCount;
+        result["UPSTREAM.not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
+        result["UPSTREAM.overflows"] = (double) streamStats._overflowCount;
+        result["UPSTREAM.silents_dropped"] = (double) streamStats._framesDropped;
+        result["UPSTREAM.lost%"] = streamStats._packetStreamStats.getLostRate() * 100.0f;
+        result["UPSTREAM.lost%_30s"] = streamStats._packetStreamWindowStats.getLostRate() * 100.0f;
+        result["UPSTREAM.min_gap"] = formatUsecTime(streamStats._timeGapMin);
+        result["UPSTREAM.max_gap"] = formatUsecTime(streamStats._timeGapMax);
+        result["UPSTREAM.avg_gap"] = formatUsecTime(streamStats._timeGapAverage);
+        result["UPSTREAM.min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
+        result["UPSTREAM.max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
+        result["UPSTREAM.avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
     } else {
-        result = "mic unknown";
+        // TOOD: How should we handle this case?
+        // result = "mic unknown";
     }
     
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
         if (i.value()->getType() == PositionalAudioStream::Injector) {
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
-            result += " UPSTREAM.inj.desired:" + QString::number(streamStats._desiredJitterBufferFrames)
-                + " desired_calc:" + QString::number(i.value()->getCalculatedJitterBufferFrames())
-                + " available_avg_10s:" + QString::number(streamStats._framesAvailableAverage)
-                + " available:" + QString::number(streamStats._framesAvailable)
-                + " starves:" + QString::number(streamStats._starveCount)
-                + " not_mixed:" + QString::number(streamStats._consecutiveNotMixedCount)
-                + " overflows:" + QString::number(streamStats._overflowCount)
-                + " silents_dropped:" + QString::number(streamStats._framesDropped)
-                + " lost%:" + QString::number(streamStats._packetStreamStats.getLostRate() * 100.0f, 'f', 2)
-                + " lost%_30s:" + QString::number(streamStats._packetStreamWindowStats.getLostRate() * 100.0f, 'f', 2)
-                + " min_gap:" + formatUsecTime(streamStats._timeGapMin)
-                + " max_gap:" + formatUsecTime(streamStats._timeGapMax)
-                + " avg_gap:" + formatUsecTime(streamStats._timeGapAverage)
-                + " min_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMin)
-                + " max_gap_30s:" + formatUsecTime(streamStats._timeGapWindowMax)
-                + " avg_gap_30s:" + formatUsecTime(streamStats._timeGapWindowAverage);
+            result["UPSTREAM.inj.desired"]  = streamStats._desiredJitterBufferFrames;
+            result["UPSTREAM.desired_calc"] = i.value()->getCalculatedJitterBufferFrames();
+            result["UPSTREAM.available_avg_10s"] = streamStats._framesAvailableAverage;
+            result["UPSTREAM.available"] = (double) streamStats._framesAvailable;
+            result["UPSTREAM.starves"] = (double) streamStats._starveCount;
+            result["UPSTREAM.not_mixed"] = (double) streamStats._consecutiveNotMixedCount;
+            result["UPSTREAM.overflows"] = (double) streamStats._overflowCount;
+            result["UPSTREAM.silents_dropped"] = (double) streamStats._framesDropped;
+            result["UPSTREAM.lost%"] = streamStats._packetStreamStats.getLostRate() * 100.0f;
+            result["UPSTREAM.lost%_30s"] = streamStats._packetStreamWindowStats.getLostRate() * 100.0f;
+            result["UPSTREAM.min_gap"] = formatUsecTime(streamStats._timeGapMin);
+            result["UPSTREAM.max_gap"] = formatUsecTime(streamStats._timeGapMax);
+            result["UPSTREAM.avg_gap"] = formatUsecTime(streamStats._timeGapAverage);
+            result["UPSTREAM.min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
+            result["max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
+            result["avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
         }
     }
     return result;
