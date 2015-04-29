@@ -396,7 +396,7 @@ protected:
 
     AABox _localAABox;
 
-    SimpleMovingAverage _averageBytesReceived {};
+    SimpleMovingAverage _averageBytesReceived;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
