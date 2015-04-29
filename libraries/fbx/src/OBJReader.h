@@ -22,7 +22,7 @@ public:
     glm::vec2 getVec2();
     
 private:
-    float getFloat() { return std::stof((this->nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : this->getDatum().data()); }
+    float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
     QIODevice* _device;
     QByteArray _datum;
     int _pushedBackToken;

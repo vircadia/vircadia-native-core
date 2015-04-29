@@ -91,18 +91,18 @@ bool OBJTokenizer::isNextTokenFloat() {
 }
 
 glm::vec3 OBJTokenizer::getVec3() {
-    auto v = glm::vec3(this->getFloat(), this->getFloat(), this->getFloat());
-    while (this->isNextTokenFloat()) {
+    auto v = glm::vec3(getFloat(), getFloat(), getFloat());  // N.B.: getFloat() has side-effect
+    while (isNextTokenFloat()) {
         // the spec(s) get(s) vague here.  might be w, might be a color... chop it off.
-        this->nextToken();
+        nextToken();
     }
     return v;
 }
 glm::vec2 OBJTokenizer::getVec2() {
-    auto v = glm::vec2(this->getFloat(), 1.0f - this->getFloat());  // OBJ has an odd sense of u, v
-    while (this->isNextTokenFloat()) {
+    auto v = glm::vec2(getFloat(), 1.0f - getFloat());  // OBJ has an odd sense of u, v. Also N.B.: getFloat() has side-effect
+    while (isNextTokenFloat()) {
         // there can be a w, but we don't handle that
-        this->nextToken();
+        nextToken();
     }
     return v;
 }
@@ -275,7 +275,7 @@ done:
 FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return this->readOBJ(&buffer, mapping);
+    return readOBJ(&buffer, mapping);
 }
 
 
@@ -364,7 +364,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
             mesh.meshExtents.addPoint(vertex);
             geometry.meshExtents.addPoint(vertex);
         }
-        //this->fbxDebugDump(geometry);
+        //fbxDebugDump(geometry);
     }
     catch(const std::exception& e) {
         qCDebug(modelformat) << "something went wrong in OBJ reader: " << e.what();
