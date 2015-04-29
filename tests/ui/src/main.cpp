@@ -341,7 +341,11 @@ public:
 
         offscreenUi->setProxyWindow(this);
         QDesktopWidget* desktop = QApplication::desktop();
-        setGeometry(desktop->availableGeometry(desktop->screenCount()-1));
+        QRect rect = desktop->availableGeometry(desktop->screenCount() - 1);
+        int height = rect.height();
+        //rect.setHeight(height / 2);
+        rect.setY(rect.y() + height / 2);
+        setGeometry(rect);
 //        setFramePosition(QPoint(-1000, 0));
 //        resize(QSize(800, 600));
 
