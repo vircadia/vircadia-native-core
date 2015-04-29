@@ -78,7 +78,8 @@ qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& d
     
     // enumerate the resulting strings - pack them and send off packets once we hit MTU size 
     foreach(const QString& statsItem, statsStringList) {
-        QByteArray utf8String = statsItem.toUtf8(); 
+        QByteArray utf8String = statsItem.toUtf8();
+        utf8String.append('\0');
 
         if (numBytesWritten + utf8String.size() > MAX_PACKET_SIZE) {
             // send off the current packet since the next string will make us too big

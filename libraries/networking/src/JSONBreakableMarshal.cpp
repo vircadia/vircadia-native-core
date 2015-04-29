@@ -96,3 +96,33 @@ QString JSONBreakableMarshal::toString(const QJsonValue& jsonValue, const QStrin
 
     return QString("%1=%2").arg(keypath, valueAsString);
 }
+
+QJsonObject JSONBreakableMarshal::fromStringBuffer(const QByteArray& buffer) {
+    QJsonObject result;
+    
+    // this is a packet of strings sep by null terminators - pull out each string and create a stringlist
+    QStringList packetList;
+    int currentIndex = 0;
+    int currentSeparator = buffer.indexOf('\0');
+    
+    while (currentIndex < buffer.size() - 1) {
+        packetList << QString::fromUtf8(buffer.mid(currentIndex, currentSeparator));
+
+        if (currentSeparator == -1) {
+            // no more separators to be found, break out of here so we're not looping for nothing
+            break;
+        }
+        
+        // bump the currentIndex up to the last found separator
+        currentIndex = currentSeparator + 1;
+
+        // find the index of the next separator, assuming this one wasn't the last one in the packet
+        if (currentSeparator < buffer.size() - 1) {
+            currentSeparator = buffer.indexOf('\0', currentIndex); 
+        }
+    }
+
+
+
+    return result;
+}

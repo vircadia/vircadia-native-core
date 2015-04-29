@@ -22,6 +22,7 @@ class JSONBreakableMarshal {
 public:
     static QStringList toStringList(const QJsonValue& jsonValue, const QString& keypath);
     static QString toString(const QJsonValue& jsonValue, const QString& keyPath); 
+    static QJsonObject fromStringBuffer(const QByteArray& buffer);
 };
 
 #endif // hifi_JSONBreakableMarshal_h
