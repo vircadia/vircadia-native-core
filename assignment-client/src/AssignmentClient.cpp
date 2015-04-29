@@ -117,18 +117,14 @@ void AssignmentClient::stopAssignmentClient() {
     if (_currentAssignment) {
         _currentAssignment->aboutToQuit();
         QThread* currentAssignmentThread = _currentAssignment->thread();
-        qDebug() << "main thread waiting on _currentAssignment->thread()" << currentAssignmentThread->objectName();
         currentAssignmentThread->quit();
         currentAssignmentThread->wait();
-        qDebug() << "done waiting.";
     }
 }
 
 
 void AssignmentClient::aboutToQuit() {
-    qDebug() << "AssignmentClient::aboutToQuit start";
     stopAssignmentClient();
-    qDebug() << "AssignmentClient::aboutToQuit end";
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
     // clear out pointer to the assignment so the destructor gets called.  if we don't do this here,

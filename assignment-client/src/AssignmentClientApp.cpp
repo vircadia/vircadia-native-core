@@ -167,6 +167,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     }
 
 
+
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
             qCritical() << "--min can't be more than -n";

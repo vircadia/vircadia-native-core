@@ -238,9 +238,6 @@ protected:
     static QMutex _threadsDidPacketDistributorMutex;
     static QMutex _threadsDidHandlePacketSendMutex;
     static QMutex _threadsDidCallWriteDatagramMutex;
-
-    // keep a pointer to node list so that it doesn't get shut down before this class.
-    QSharedPointer<NodeList> _nodeList;
 };
 
 #endif // hifi_OctreeServer_h

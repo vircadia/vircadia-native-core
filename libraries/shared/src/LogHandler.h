@@ -19,8 +19,6 @@
 #include <qset.h>
 #include <qstring.h>
 
-#include <iostream>
-
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
 enum LogMsgType {
@@ -36,10 +34,6 @@ class LogHandler : public QObject {
     Q_OBJECT
 public:
     static LogHandler& getInstance();
-
-    virtual ~LogHandler() {
-        std::cerr << "XXXXXXXX ~LogHandler()\n";
-    }
     
     /// sets the target name to output via the verboseMessageHandler, called once before logging begins
     /// \param targetName the desired target name to output in logs

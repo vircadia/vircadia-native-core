@@ -20,7 +20,6 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(const QByteArray& packet);
-    virtual ~ThreadedAssignment();
     
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };

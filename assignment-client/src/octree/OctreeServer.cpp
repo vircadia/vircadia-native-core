@@ -239,10 +239,8 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _octreeInboundPacketProcessor(NULL),
     _persistThread(NULL),
     _started(time(0)),
-    _startedUSecs(usecTimestampNow()),
-    _nodeList(DependencyManager::get<NodeList>())
+    _startedUSecs(usecTimestampNow())
 {
-
     if (_instance) {
         qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
     }
@@ -1100,8 +1098,6 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
-    // qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...

@@ -221,10 +221,6 @@ protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-
-    virtual ~LimitedNodeList() {
-        qDebug() << "XXXXXXXXXXXXXXXXXXXX ~LimitedNodeList called";
-    }
     
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
                          const QUuid& connectionSecret);
