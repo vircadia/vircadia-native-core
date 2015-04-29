@@ -126,7 +126,15 @@ void AssignmentClient::stopAssignmentClient() {
 
 
 void AssignmentClient::aboutToQuit() {
+    qDebug() << "AssignmentClient::aboutToQuit start";
     stopAssignmentClient();
+    qDebug() << "AssignmentClient::aboutToQuit end";
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
+    // clear out pointer to the assignment so the destructor gets called.  if we don't do this here,
+    // it will get destroyed along with all the other "static" stuff.  various static member variables
+    // will be destroyed first and things go wrong.
+    _currentAssignment.clear();
 }
 
 

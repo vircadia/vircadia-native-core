@@ -163,3 +163,5 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     EntityTree* tree = static_cast<EntityTree*>(_tree);
     tree->setWantEditLogging(wantEditLogging);
 }
+
+

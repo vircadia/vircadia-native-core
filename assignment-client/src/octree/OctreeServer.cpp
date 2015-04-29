@@ -239,8 +239,10 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     _octreeInboundPacketProcessor(NULL),
     _persistThread(NULL),
     _started(time(0)),
-    _startedUSecs(usecTimestampNow())
+    _startedUSecs(usecTimestampNow()),
+    _nodeList(DependencyManager::get<NodeList>())
 {
+
     if (_instance) {
         qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
     }
@@ -1098,7 +1100,7 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    // qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
     _safeServerName = getMyServerName();
 
@@ -1222,8 +1224,15 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
-    _octreeInboundPacketProcessor->terminating();
-    
+
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
+    }
+
+    if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
+    }
+
     DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
@@ -1231,6 +1240,7 @@ void OctreeServer::aboutToFinish() {
     
     if (_persistThread) {
         _persistThread->aboutToFinish();
+        _persistThread->terminating();
     }
 
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";

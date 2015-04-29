@@ -167,7 +167,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     }
 
 
-
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
             qCritical() << "--min can't be more than -n";
@@ -189,8 +188,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         AssignmentClientMonitor monitor(numForks, minForks, maxForks, requestAssignmentType, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);
         connect(this, &QCoreApplication::aboutToQuit, &monitor, &AssignmentClientMonitor::aboutToQuit);
-
-
         exec();
     } else {
         AssignmentClient client(ppid, requestAssignmentType, assignmentPool,

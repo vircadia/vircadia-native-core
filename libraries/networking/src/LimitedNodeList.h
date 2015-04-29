@@ -222,7 +222,7 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
 
-    ~LimitedNodeList() {
+    virtual ~LimitedNodeList() {
         qDebug() << "XXXXXXXXXXXXXXXXXXXX ~LimitedNodeList called";
     }
     
@@ -241,8 +241,6 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
-    
-    QTimer* _silentNodeTimer;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;

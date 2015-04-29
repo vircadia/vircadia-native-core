@@ -45,6 +45,11 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
     
 public:
+    virtual ~NodeList() {
+        qDebug() << "XXXXXXXXXXXXXXXXXXXX ~NodeList called";
+    }
+
+
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 

@@ -83,6 +83,8 @@ void AssignmentClientMonitor::stopChildProcesses() {
 
 void AssignmentClientMonitor::aboutToQuit() {
     stopChildProcesses();
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
 }
 
 
