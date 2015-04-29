@@ -97,19 +97,17 @@ QString JSONBreakableMarshal::toString(const QJsonValue& jsonValue, const QStrin
     return QString("%1=%2").arg(keypath, valueAsString);
 }
 
-QJsonValue JSONBreakableMarshal::fromString(const QString& marshalValue) {
+QVariant JSONBreakableMarshal::fromString(const QString& marshalValue) {
     // default the value to null
-    QJsonValue result;
-
-    qDebug() << "Current value called with" << marshalValue;
+    QVariant result;
     
     // attempt to match the value with our expected strings
     if (marshalValue == JSON_NULL_AS_STRING) {
         // this is already our default, we don't need to do anything here
     } else if (marshalValue == JSON_TRUE_AS_STRING || marshalValue == JSON_FALSE_AS_STRING) {
-        result = QJsonValue(marshalValue == JSON_TRUE_AS_STRING ? true : false);
+        result = QVariant(marshalValue == JSON_TRUE_AS_STRING ? true : false);
     } else if (marshalValue == JSON_UNDEFINED_AS_STRING) {
-        result = QJsonValue(QJsonValue::Undefined);  
+        result = JSON_UNDEFINED_AS_STRING;  
     } else if (marshalValue == JSON_UNKNOWN_AS_STRING) {
         // we weren't able to marshal this value at the other end, set it as our unknown string"
         result = JSON_UNKNOWN_AS_STRING;
@@ -117,7 +115,7 @@ QJsonValue JSONBreakableMarshal::fromString(const QString& marshalValue) {
         // this might be a double, see if it converts
         bool didConvert = false;
         double convertResult = marshalValue.toDouble(&didConvert);
-        
+
         if (didConvert) {
             result = convertResult;
         } else {
@@ -139,18 +137,18 @@ QJsonValue JSONBreakableMarshal::fromString(const QString& marshalValue) {
     return result;
 }
 
-QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) {
-    QJsonObject result;
+QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) {
+    QVariant result = QVariantMap();
 
     foreach(const QString& marshalString, stringList) {
+        
         // find the equality operator
         int equalityIndex = marshalString.indexOf('=');
         
         // bail on parsing if we didn't find the equality operator
         if (equalityIndex != -1) {
             
-            QJsonValue tempValue;
-            QJsonValue& currentValue = tempValue;
+            QVariant* currentValue = &result; 
 
             // pull the key (everything left of the equality sign)
             QString keypath = marshalString.left(equalityIndex);
@@ -167,11 +165,11 @@ QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                 if (arrayBracketIndex == 0) {
                     // we're here because we think the current value should be an array
                     // if it isn't then make one
-                    if (!currentValue.isArray()) {
-                        currentValue = QJsonArray();
+                    if (!currentValue->canConvert(QMetaType::QVariantList) || currentValue->isNull()) {
+                        *currentValue = QVariantList();
                     }
 
-                    QJsonArray currentArray = currentValue.toArray();
+                    QVariantList& currentList = *static_cast<QVariantList*>(currentValue->data());
                     
                     // figure out what index we want to get the QJsonValue& for
                     bool didConvert = false;
@@ -179,15 +177,16 @@ QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
 
                     if (didConvert) {
                         // check if we need to resize the array
-                        if (currentArray.size() < arrayIndex + 1) {
-                            for (int i = currentArray.size() - 1; i < arrayIndex + 1; i++) {
+                        if (currentList.size() < arrayIndex + 1) {
+
+                            for (int i = currentList.size() - 1; i < arrayIndex + 1; i++) {
                                 // add the null QJsonValue at this array index to get the array to the right size
-                                currentArray.push_back(QJsonValue());                                
+                                currentList.push_back(QJsonValue());                                
                             }
                         }
 
                         // set our currentValue to the QJsonValue& from the array at this index
-                        currentValue = currentArray.at(arrayIndex);
+                        currentValue = &currentList[arrayIndex];
 
                         // update the keypath by bumping past the array index
                         keypath = keypath.mid(keypath.indexOf(']'));
@@ -200,7 +199,7 @@ QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                     int keySeparatorIndex = keypath.indexOf('.');
                     
                     // we need to figure out what the key to look at is
-                    QString currentKey = keypath;
+                    QString subKey = keypath;
 
                     if (keySeparatorIndex != -1 || arrayBracketIndex != -1) {
                         int nextBreakIndex = -1;
@@ -219,10 +218,11 @@ QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                         }
                         
                         // set the current key from the determined index
-                        QString currentKey = keypath.left(nextBreakIndex);
+                        subKey = keypath.left(nextBreakIndex);
                         
                         // update the keypath being processed
                         keypath = keypath.mid(nextKeypathStartIndex);
+
                     } else {
                         // update the keypath being processed, since we have no more separators in the keypath, it should
                         // be an empty string
@@ -232,32 +232,31 @@ QJsonObject JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                     // we're here becuase we know the current value should be an object
                     // if it isn't then make it one
                     
-                    if (!currentValue.isObject()) {
-                        currentValue = QJsonObject();
+                    if (!currentValue->canConvert(QMetaType::QVariantMap) || currentValue->isNull()) {
+                        *currentValue = QVariantMap();
                     }
                     
-                    QJsonObject currentObject = currentValue.toObject();
+                    QVariantMap& currentMap = *static_cast<QVariantMap*>(currentValue->data());
 
                     // is there a QJsonObject for this key yet?
                     // if not then we make it now
-                    if (!currentObject.contains(currentKey)) {
-                        currentObject[currentKey] = QJsonValue();
+                    if (!currentMap.contains(subKey)) {
+                        currentMap[subKey] = QVariant();
                     }
-
-                    // change the currentValue to the QJsonValue for this key
-                    currentValue = currentObject[currentKey];
                     
+                    // change the currentValue to the QJsonValue for this key
+                    currentValue = &currentMap[subKey];
                 }    
             }
 
-            currentValue = fromString(marshalString.right(equalityIndex));
+            *currentValue = fromString(marshalString.mid(equalityIndex + 1));
         }
     }
 
-    return result;
+    return result.toMap();
 }
 
-QJsonObject JSONBreakableMarshal::fromStringBuffer(const QByteArray& buffer) {
+QVariantMap JSONBreakableMarshal::fromStringBuffer(const QByteArray& buffer) {
     // this is a packet of strings sep by null terminators - pull out each string and create a stringlist
     QStringList packetList;
     int currentIndex = 0;

@@ -32,9 +32,8 @@ DomainServerNodeData::DomainServerNodeData() :
 }
 
 void DomainServerNodeData::parseJSONStatsPacket(const QByteArray& statsPacket) {
-    QJsonObject packetJson = JSONBreakableMarshal::fromStringBuffer(statsPacket.mid(numBytesForPacketHeader(statsPacket)));
-    
-    // _statsJSONObject = mergeJSONStatsFromNewObject(unpackedStatsJSON, _statsJSONObject);
+    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.mid(numBytesForPacketHeader(statsPacket)));
+    _statsJSONObject = mergeJSONStatsFromNewObject(QJsonObject::fromVariantMap(packetVariantMap), _statsJSONObject);
 }
 
 QJsonObject DomainServerNodeData::mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject) {
