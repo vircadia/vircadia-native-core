@@ -11,6 +11,7 @@
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
 #include "AvatarLogging.h"
 #include "AvatarHashMap.h"
@@ -25,7 +26,7 @@ AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) 
     return _avatarHash.erase(iterator);
 }
 
-const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * 1000 * 1000;
+const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
     return (sharedAvatar->getOwningAvatarMixer() == NULL

@@ -52,7 +52,7 @@ void SimpleMovingAverage::reset() {
 
 float SimpleMovingAverage::getEventDeltaAverage() const {
     return (ONE_MINUS_WEIGHTING * _eventDeltaAverage) +
-        (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000.0f ));
+        (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000.0f));
 }
 
 uint64_t SimpleMovingAverage::getUsecsSinceLastEvent() const {
