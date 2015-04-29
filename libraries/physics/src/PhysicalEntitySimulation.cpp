@@ -46,16 +46,16 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // TODO: add back non-physical kinematic objects and step them forward here
 }
 
-/* {
+void PhysicalEntitySimulation::sendOutgoingPackets() {
     uint32_t numSubsteps = _physicsEngine->getNumSubsteps();
     if (_lastNumSubstepsAtUpdateInternal != numSubsteps) {
         _lastNumSubstepsAtUpdateInternal = numSubsteps;
 
-        SetOfMotionStates::iterator stateItr = _outgoingPackets.begin();
-        while (stateItr != _outgoingPackets.end()) {
-            ObjectMotionState* state = *stateItr;
+        SetOfMotionStates::iterator stateItr = _outgoingChanges.begin();
+        while (stateItr != _outgoingChanges.end()) {
+            EntityMotionState* state = static_cast<EntityMotionState*>(*stateItr);
             if (state->doesNotNeedToSendUpdate()) {
-                stateItr = _outgoingPackets.erase(stateItr);
+                stateItr = _outgoingChanges.erase(stateItr);
             } else if (state->shouldSendUpdate(numSubsteps)) {
                 state->sendUpdate(_entityPacketSender, numSubsteps);
                 ++stateItr;
@@ -64,7 +64,7 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
             }
         }
     }
-} */
+}
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
     assert(entity);
@@ -114,15 +114,15 @@ void PhysicalEntitySimulation::entityChangedInternal(EntityItem* entity) {
 }
 
 void PhysicalEntitySimulation::sortEntitiesThatMovedInternal() {
-    // entities that have been simulated forward (hence in the _entitiesToBeSorted list) 
+    // entities that have been simulated forward (hence in the _entitiesToSort list) 
     // also need to be put in the outgoingPackets list
-    QSet<EntityItem*>::iterator entityItr = _entitiesToBeSorted.begin();
-    for (auto entityItr : _entitiesToBeSorted) {
+    QSet<EntityItem*>::iterator entityItr = _entitiesToSort.begin();
+    for (auto entityItr : _entitiesToSort) {
         EntityItem* entity = *entityItr;
         void* physicsInfo = entity->getPhysicsInfo();
         assert(physicsInfo);
         // BOOKMARK XXX -- Andrew to fix this next
-        _outgoingPackets.insert(static_cast<ObjectMotionState*>(physicsInfo));
+        _outgoingChanges.insert(static_cast<ObjectMotionState*>(physicsInfo));
     }
 }
 
@@ -201,6 +201,21 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     }
     _pendingChanges.clear();
     return _tempSet;
+}
+
+void PhysicalEntitySimulation::handleOutgoingChanges(SetOfMotionStates& motionStates) {
+    SetOfMotionStates::iterator stateItr = motionStates.begin();
+    while (stateItr != motionStates.end()) {
+        ObjectMotionState* state = *stateItr;
+        if (state->getType() == MOTION_STATE_TYPE_ENTITY) {
+            EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
+            _outgoingChanges.insert(entityState);
+            stateItr = motionStates.erase(stateItr);
+        } else {
+            ++stateItr;
+        }
+    }
+    sendOutgoingPackets();
 }
 
 void PhysicalEntitySimulation::bump(EntityItem* bumpEntity) {

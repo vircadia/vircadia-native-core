@@ -27,7 +27,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
             _movableButStoppedEntities.insert(entity);
         } else {
             entity->simulate(now);
-            _entitiesToBeSorted.insert(entity);
+            _entitiesToSort.insert(entity);
             ++itemItr;
         }
     }

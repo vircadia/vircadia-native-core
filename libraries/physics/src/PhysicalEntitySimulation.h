@@ -47,12 +47,18 @@ public:
     VectorOfMotionStates& getObjectsToAdd();
     VectorOfMotionStates& getObjectsToChange();
 
+    void handleOutgoingChanges(SetOfMotionStates& motionStates);
+
 private:
     void bump(EntityItem* bumpEntity);
 
+    // incoming changes
     SetOfEntities _pendingRemoves; // entities to be removed from simulation
     SetOfEntities _pendingAdds; // entities to be be added to simulation
     SetOfEntities _pendingChanges; // entities already in simulation that need to be changed
+
+    // outgoing changes
+    SetOfEntities _outgoingChanges; // entities for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalEntities; // MotionStates of entities in PhysicsEngine
     VectorOfMotionStates _tempSet; // temporary list valid immediately after call to getObjectsToRemove/Add/Update()
