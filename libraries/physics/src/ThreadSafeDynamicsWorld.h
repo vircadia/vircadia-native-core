@@ -20,6 +20,8 @@
 
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
+#include "PhysicsTypedefs.h"
+
 ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld {
 public:
     BT_DECLARE_ALIGNED_ALLOCATOR();
@@ -37,6 +39,11 @@ public:
     // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide 
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
+
+    VectorOfMotionStates& getChangedMotionStates() const { return _changedMotionStates; }
+
+private:
+    VectorOfMotionStates _changedMotionStates;
 };
 
 #endif // hifi_ThreadSafeDynamicsWorld_h

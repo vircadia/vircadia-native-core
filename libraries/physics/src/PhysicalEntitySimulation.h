@@ -14,18 +14,15 @@
 
 #include <stdint.h>
 
-#include <QSet>
-#include <QVector>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 
-#include "PhysicsEngine.h"
+#include "PhysicsTypedefs.h"
 
-typedef QSet<ObjectMotionState*> SetOfMotionStates;
-typedef QVector<ObjectMotionState*> VectorOfMotionStates;
+class PhysicsEngine;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
@@ -47,7 +44,7 @@ public:
     VectorOfMotionStates& getObjectsToAdd();
     VectorOfMotionStates& getObjectsToChange();
 
-    void handleOutgoingChanges(SetOfMotionStates& motionStates);
+    void handleOutgoingChanges(VectorOfMotionStates& motionStates);
 
 private:
     void bump(EntityItem* bumpEntity);

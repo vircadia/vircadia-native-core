@@ -62,7 +62,7 @@ public:
     // The WorldSimulationStep is a cached copy of number of SubSteps of the simulation, used for local time measurements.
     static void setWorldSimulationStep(uint32_t step);
 
-    ObjectMotionState();
+    ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
     void measureBodyAcceleration();
@@ -77,8 +77,8 @@ public:
     MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual void computeObjectShapeInfo(ShapeInfo& info) = 0;
-    virtual float computeObjectMass(const ShapeInfo& shapeInfo) const = 0;
+    void setMass(float mass) { _mass = fabsf(mass); }
+    float getMass() { return _mass; }
 
     void setBodyVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -89,31 +89,15 @@ public:
 
     virtual uint32_t getIncomingDirtyFlags() const = 0;
     virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
-    void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
-
-    bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationStep);
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
 
-    virtual void updateKinematicState(uint32_t substep) = 0;
-
+    btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
-
-    bool isKinematic() const { return _isKinematic; }
-
-    void setKinematic(bool kinematic, uint32_t substep);
-    virtual void stepKinematicSimulation(quint64 now) = 0;
 
     virtual bool isMoving() const = 0;
 
     friend class PhysicsEngine;
-
-    // these are here so we can call into EntityMotionObject with a base-class pointer
-    virtual EntityItem* getEntity() const { return NULL; }
-    virtual void setShouldClaimSimulationOwnership(bool value) { }
-    virtual bool getShouldClaimSimulationOwnership() { return false; }
 
     // These pure virtual methods must be implemented for each MotionState type
     // and make it possible to implement more complicated methods in this base class.
@@ -136,22 +120,10 @@ protected:
 
     MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
+    btCollisionShape* _shape;
     btRigidBody* _body;
 
-    bool _isKinematic = false;
-    uint32_t _lastKinematicSubstep = 0;
-
-    bool _sentMoving;   // true if last update was moving
-    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
-
-    uint32_t _outgoingPacketFlags;
-    uint32_t _sentStep;
-    glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
-    glm::quat _sentRotation;;
-    glm::vec3 _sentVelocity;
-    glm::vec3 _sentAngularVelocity; // radians per second
-    glm::vec3 _sentGravity;
-    glm::vec3 _sentAcceleration;
+    float _mass;
 
     uint32_t _lastSimulationStep;
     glm::vec3 _lastVelocity;

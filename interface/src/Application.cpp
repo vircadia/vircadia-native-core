@@ -2356,13 +2356,14 @@ void Application::update(float deltaTime) {
 
         _physicsEngine.removeObjects(_entitySimulation.getObjectsToRemove());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
-        _physicsEngine.updateObjects(_entitySimulation.getObjectsToChange());
+        _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
 
         _physicsEngine.stepSimulation();
 
-        _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
-        _physicsEngine.clearOutgoingChanges();
-        _physicsEngine.dumpStatsIfNecessary();
+        if (_physicsEngine.hasOutgoingChanges()) {
+            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _physicsEngine.dumpStatsIfNecessary();
+        }
     }
 
     if (!_aboutToQuit) {

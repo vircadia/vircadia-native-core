@@ -25,13 +25,7 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    // The OutgoingEntityQueue is a pointer to a QSet (owned by an EntitySimulation) of EntityItem*'s 
-    // that have been changed by the physics simulation.
-    // All ObjectMotionState's with outgoing changes put themselves on the list.
-    static void setOutgoingEntityList(QSet<EntityItem*>* list);
-    static void enqueueOutgoingEntity(EntityItem* entity);
-
-    EntityMotionState(EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItem* item);
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
@@ -56,8 +50,13 @@ public:
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
     virtual float computeObjectMass(const ShapeInfo& shapeInfo) const;
 
-    virtual bool shouldSendUpdate(uint32_t simulationFrame);
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
+    bool doesNotNeedToSendUpdate() const;
+    bool remoteSimulationOutOfSync(uint32_t simulationStep);
+    bool shouldSendUpdate(uint32_t simulationFrame);
+    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
+
+    void setShouldClaimSimulationOwnership(bool value) { }
+    bool getShouldClaimSimulationOwnership() { return false; }
 
     virtual uint32_t getIncomingDirtyFlags() const;
     virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
@@ -65,10 +64,6 @@ public:
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
     quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
-
-    virtual EntityItem* getEntity() const { return _entity; }
-    virtual void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
-    virtual bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
 
     virtual float getObjectRestitution() const { return _entity->getRestitution(); }
     virtual float getObjectFriction() const { return _entity->getFriction(); }
@@ -81,8 +76,23 @@ public:
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
+    void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
+
 protected:
     EntityItem* _entity;
+
+    bool _sentMoving;   // true if last update was moving
+    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
+
+    uint32_t _outgoingPacketFlags;
+    uint32_t _sentStep;
+    glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
+    glm::quat _sentRotation;;
+    glm::vec3 _sentVelocity;
+    glm::vec3 _sentAngularVelocity; // radians per second
+    glm::vec3 _sentGravity;
+    glm::vec3 _sentAcceleration;
+
     quint8 _accelerationNearlyGravityCount;
     bool _shouldClaimSimulationOwnership;
     quint32 _movingStepsWithoutSimulationOwner;

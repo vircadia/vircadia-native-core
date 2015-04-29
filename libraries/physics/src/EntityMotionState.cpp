@@ -21,33 +21,31 @@
 static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
-QSet<EntityItem*>* _outgoingEntityList;
 
-// static 
-void EntityMotionState::setOutgoingEntityList(QSet<EntityItem*>* list) {
-    assert(list);
-    _outgoingEntityList = list;
-}
-
-// static 
-void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
-    assert(_outgoingEntityList);
-    _outgoingEntityList->insert(entity);
-}
-
-EntityMotionState::EntityMotionState(EntityItem* entity) :
+EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity) :
+    ObjectMotionState(shape),
     _entity(entity),
+    _sentMoving(false),
+    _numNonMovingUpdates(0),
+    _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
+    _sentStep(0),
+    _sentPosition(0.0f),
+    _sentRotation(),
+    _sentVelocity(0.0f),
+    _sentAngularVelocity(0.0f),
+    _sentGravity(0.0f),
+    _sentAcceleration(0.0f),
     _accelerationNearlyGravityCount(0),
     _shouldClaimSimulationOwnership(false),
     _movingStepsWithoutSimulationOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
-    assert(entity != NULL);
+    assert(entity != nullptr);
 }
 
 EntityMotionState::~EntityMotionState() {
     assert(_entity);
-    _entity = NULL;
+    _entity = nullptr;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {
@@ -126,7 +124,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
-    EntityMotionState::enqueueOutgoingEntity(_entity);
 
     #ifdef WANT_DEBUG
         quint64 now = usecTimestampNow();
@@ -195,18 +192,119 @@ void EntityMotionState::updateBodyVelocities() {
     }
 }
 
-void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
-    if (_entity->isReadyToComputeShape()) {
-        _entity->computeShapeInfo(shapeInfo);
-    }
+// RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
+// we alwasy resend packets for objects that have stopped moving up to some max limit.
+const int MAX_NUM_NON_MOVING_UPDATES = 5;
+
+bool EntityMotionState::doesNotNeedToSendUpdate() const { 
+    return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
 }
 
-float EntityMotionState::computeObjectMass(const ShapeInfo& shapeInfo) const {
-    return _entity->computeMass();
+bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
+    assert(_body);
+    // if we've never checked before, our _sentStep will be 0, and we need to initialize our state
+    if (_sentStep == 0) {
+        btTransform xform = _body->getWorldTransform();
+        _sentPosition = bulletToGLM(xform.getOrigin());
+        _sentRotation = bulletToGLM(xform.getRotation());
+        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
+        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _sentStep = simulationStep;
+        return false;
+    }
+    
+    #ifdef WANT_DEBUG
+    glm::vec3 wasPosition = _sentPosition;
+    glm::quat wasRotation = _sentRotation;
+    glm::vec3 wasAngularVelocity = _sentAngularVelocity;
+    #endif
+
+    int numSteps = simulationStep - _sentStep;
+    float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+    _sentStep = simulationStep;
+    bool isActive = _body->isActive();
+
+    if (!isActive) {
+        if (_sentMoving) { 
+            // this object just went inactive so send an update immediately
+            return true;
+        } else {
+            const float NON_MOVING_UPDATE_PERIOD = 1.0f;
+            if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
+                // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
+                // at a faster rate than the MAX period above, and only send a limited number of them.
+                return true;
+            }
+        }
+    }
+
+    // Else we measure the error between current and extrapolated transform (according to expected behavior 
+    // of remote EntitySimulation) and return true if the error is significant.
+
+    // NOTE: math is done in the simulation-frame, which is NOT necessarily the same as the world-frame 
+    // due to _worldOffset.
+
+    // compute position error
+    if (glm::length2(_sentVelocity) > 0.0f) {
+        _sentVelocity += _sentAcceleration * dt;
+        _sentVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+        _sentPosition += dt * _sentVelocity;
+    }
+
+    btTransform worldTrans = _body->getWorldTransform();
+    glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
+    
+    float dx2 = glm::distance2(position, _sentPosition);
+
+    const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
+    if (dx2 > MAX_POSITION_ERROR_SQUARED) {
+
+        #ifdef WANT_DEBUG
+            qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
+            qCDebug(physics) << "wasPosition:" << wasPosition;
+            qCDebug(physics) << "bullet position:" << position;
+            qCDebug(physics) << "_sentPosition:" << _sentPosition;
+            qCDebug(physics) << "dx2:" << dx2;
+        #endif
+
+        return true;
+    }
+    
+    if (glm::length2(_sentAngularVelocity) > 0.0f) {
+        // compute rotation error
+        float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
+        _sentAngularVelocity *= attenuation;
+   
+        // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 
+        // we must integrate with the same algorithm and timestep in order achieve similar results.
+        for (int i = 0; i < numSteps; ++i) {
+            _sentRotation = glm::normalize(computeBulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
+        }
+    }
+    const float MIN_ROTATION_DOT = 0.99f; // 0.99 dot threshold coresponds to about 16 degrees of slop
+    glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
+
+    #ifdef WANT_DEBUG
+        if ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) {
+            qCDebug(physics) << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
+        
+            qCDebug(physics) << "wasAngularVelocity:" << wasAngularVelocity;
+            qCDebug(physics) << "_sentAngularVelocity:" << _sentAngularVelocity;
+
+            qCDebug(physics) << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
+            qCDebug(physics) << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
+
+            qCDebug(physics) << "wasRotation:" << wasRotation;
+            qCDebug(physics) << "bullet actualRotation:" << actualRotation;
+            qCDebug(physics) << "_sentRotation:" << _sentRotation;
+        }
+    #endif
+
+    return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    if (!ObjectMotionState::shouldSendUpdate(simulationFrame)) {
+    if (!remoteSimulationOutOfSync(simulationFrame)) {
         return false;
     }
 

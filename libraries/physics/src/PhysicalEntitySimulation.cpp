@@ -9,13 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AABox.h> 
-
 #include "PhysicalEntitySimulation.h"
-#include "ShapeInfoUtil.h"
+#include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
-#include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
+#include "ShapeInfoUtil.h"
 
 PhysicalEntitySimulation::PhysicalEntitySimulation() :
 }
@@ -174,8 +172,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             entity->computeShapeInfo(shapeInfo);
             btCollisionShape* shape = _shapeManager->getShape(shapeInfo);
             if (shape) {
-                shapeInfo.setShape(shape);
-                EntityMotionState* motionState = new EntityMotionState(entity);
+                EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 _physicalEntities.insert(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
@@ -203,16 +200,16 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     return _tempSet;
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(SetOfMotionStates& motionStates) {
-    SetOfMotionStates::iterator stateItr = motionStates.begin();
-    while (stateItr != motionStates.end()) {
+void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
+    for (auto stateItr : motionStates) {
         ObjectMotionState* state = *stateItr;
         if (state->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             _outgoingChanges.insert(entityState);
-            stateItr = motionStates.erase(stateItr);
-        } else {
-            ++stateItr;
+            // BOOKMARK TODO: 
+            // * process _outgoingChanges.  
+            // * move entityUpdate stuff out of EntityMotionState::setWorldTransform() and into new function.
+            // * lock entityTree in new function
         }
     }
     sendOutgoingPackets();
