@@ -55,10 +55,10 @@ private:
     SetOfEntities _pendingChanges; // entities already in simulation that need to be changed
 
     // outgoing changes
-    SetOfEntities _outgoingChanges; // entities for which we need to send updates to entity-server
+    QSet<EntityMotionState*> _outgoingChanges; // entities for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalEntities; // MotionStates of entities in PhysicsEngine
-    VectorOfMotionStates _tempSet; // temporary list valid immediately after call to getObjectsToRemove/Add/Update()
+    VectorOfMotionStates _tempVector; // temporary list, valid by reference immediately after call to getObjectsToRemove/Add/Update()
 
     ShapeManager* _shapeManager = nullptr;
     PhysicsEngine* _physicsEngine = nullptr;

@@ -14,7 +14,6 @@
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
-#include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
@@ -81,75 +80,18 @@ void PhysicsEngine::removeObjects(VectorOfMotionStates& objects) {
 void PhysicsEngine::addObjects(VectorOfMotionStates& objects) {
     for (auto object : objects) {
         assert(object);
-        btCollisionShape* shape = object->getShape();
-        assert(shape);
-
-        btVector3 inertia(0.0f, 0.0f, 0.0f);
-        float mass = 0.0f;
-        btRigidBody* body = nullptr;
-        switch(object->computeObjectMotionType()) {
-            case MOTION_TYPE_KINEMATIC: {
-                body = new btRigidBody(mass, object, shape, inertia);
-                body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-                body->updateInertiaTensor();
-                object->setRigidBody(body);
-                const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-                const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-                body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
-                break;
-            }
-            case MOTION_TYPE_DYNAMIC: {
-                mass = object->getMass();
-                shape->calculateLocalInertia(mass, inertia);
-                body = new btRigidBody(mass, object, shape, inertia);
-                body->updateInertiaTensor();
-                object->setRigidBody(body);
-                object->updateBodyVelocities();
-                // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
-                // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-                const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-                const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-                body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-                if (!object->isMoving()) {
-                    // try to initialize this object as inactive
-                    body->forceActivationState(ISLAND_SLEEPING);
-                }
-                break;
-            }
-            case MOTION_TYPE_STATIC:
-            default: {
-                body = new btRigidBody(mass, object, shape, inertia);
-                body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-                body->updateInertiaTensor();
-                object->setRigidBody(body);
-                break;
-            }
-        }
-        body->setFlags(BT_DISABLE_WORLD_GRAVITY);
-        object->updateBodyMaterialProperties();
-    
-        _dynamicsWorld->addRigidBody(body);
-        object->resetMeasuredBodyAcceleration();
+        addObject(object);
     }
 }
 
 void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
     for (auto object : objects) {
         uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
-
-        btRigidBody* body = object->getRigidBody();
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-            // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
-            // but it also handles all EASY changes
-            updateBodyHard(body, object, flags);
-        } else if (flags) {
-            // an EASY update does NOT require that the body be pulled out of physics engine
-            // hence the MotionState has all the knowledge and authority to perform the update.
-            object->updateBodyEasy(flags, _numSubsteps);
+            object->handleHardAndEasyChanges(flags, this);
+        } else {
+            object->handleEasyChanges(flags);
         }
-        if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
-            object->resetMeasuredBodyAcceleration();
-        } 
     }
 }
 
@@ -168,7 +110,6 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::stepSimulation() {
-    lock();
     CProfileManager::Reset();
     BT_PROFILE("stepSimulation");
     // NOTE: the grand order of operations is:
@@ -210,6 +151,7 @@ void PhysicsEngine::stepSimulation() {
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
+    BT_PROFILE("ownershipInfection");
     assert(objectA);
     assert(objectB);
 
@@ -315,6 +257,7 @@ void PhysicsEngine::computeCollisionEvents() {
 }
 
 VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
+    BT_PROFILE("copyOutgoingChanges");
     _dynamicsWorld.synchronizeMotionStates();
     _hasOutgoingChanges = false;
     return _dynamicsWorld.getChangedMotionStates();
@@ -336,9 +279,10 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState) {
-    assert(shape);
+void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     assert(motionState);
+    btCollisionShape* shape = motionState->getShape();
+    assert(shape);
 
     btVector3 inertia(0.0f, 0.0f, 0.0f);
     float mass = 0.0f;
@@ -349,13 +293,14 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
             motionState->setRigidBody(body);
+            motionState->updateBodyVelocities();
             const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
             const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
             body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
-            mass = motionState->computeObjectMass(shapeInfo);
+            mass = motionState->getMass();
             shape->calculateLocalInertia(mass, inertia);
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->updateInertiaTensor();
@@ -393,7 +338,6 @@ void PhysicsEngine::addObject(const ShapeInfo& shapeInfo, btCollisionShape* shap
 void PhysicsEngine::bump(EntityItem* bumpEntity) {
     // If this node is doing something like deleting an entity, scan for contacts involving the
     // entity.  For each found, flag the other entity involved as being simulated by this node.
-    lock();
     int numManifolds = _collisionDispatcher->getNumManifolds();
     for (int i = 0; i < numManifolds; ++i) {
         btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
@@ -426,60 +370,15 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
             }
         }
     }
-    unlock();
 }
 
-// private
-bool PhysicsEngine::updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
-    // BOOKMARK TODO: move as much of this stuff into MotionState as possible.
-    MotionType newType = motionState->computeObjectMotionType();
-
+void PhysicsEngine::removeRigidBody(btRigidBody* body) {
     // pull body out of physics engine
     _dynamicsWorld->removeRigidBody(body);
+}
 
-    if (flags & EntityItem::DIRTY_SHAPE) {
-        // MASS bit should be set whenever SHAPE is set
-        assert(flags & EntityItem::DIRTY_MASS);
-
-        // get new shape
-        btCollisionShape* oldShape = body->getCollisionShape();
-        ShapeInfo shapeInfo;
-        motionState->computeObjectShapeInfo(shapeInfo);
-        btCollisionShape* newShape = _shapeManager.getShape(shapeInfo);
-        if (!newShape) {
-            // FAIL! we are unable to support these changes!
-            _shapeManager.releaseShape(oldShape);
-
-            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
-            motionState->setRigidBody(nullptr);
-            delete body;
-            removeContacts(motionState);
-            return false;
-        } else if (newShape != oldShape) {
-            // BUG: if shape doesn't change but density does then we won't compute new mass properties
-            // TODO: fix this BUG by replacing DIRTY_MASS with DIRTY_DENSITY and then fix logic accordingly.
-            body->setCollisionShape(newShape);
-            _shapeManager.releaseShape(oldShape);
-
-            // compute mass properties
-            float mass = motionState->computeObjectMass(shapeInfo);
-            btVector3 inertia(0.0f, 0.0f, 0.0f);
-            body->getCollisionShape()->calculateLocalInertia(mass, inertia);
-            body->setMassProps(mass, inertia);
-            body->updateInertiaTensor();
-        } else {
-            // whoops, shape hasn't changed after all so we must release the reference
-            // that was created when looking it up
-            _shapeManager.releaseShape(newShape);
-        }
-    }
-    bool easyUpdate = flags & EASY_DIRTY_PHYSICS_FLAGS;
-    if (easyUpdate) {
-        motionState->updateBodyEasy(flags, _numSubsteps);
-    }
-
-    // update the motion parameters
-    switch (newType) {
+void PhysicsEngine::addRigidBody(btRigidBody* body, MotionType motionType, float mass) {
+    switch (motionType) {
         case MOTION_TYPE_KINEMATIC: {
             int collisionFlags = body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT;
             collisionFlags &= ~(btCollisionObject::CF_STATIC_OBJECT);
@@ -495,9 +394,6 @@ bool PhysicsEngine::updateBodyHard(btRigidBody* body, ObjectMotionState* motionS
             body->setCollisionFlags(collisionFlags);
             if (! (flags & EntityItem::DIRTY_MASS)) {
                 // always update mass properties when going dynamic (unless it's already been done above)
-                ShapeInfo shapeInfo;
-                motionState->computeObjectShapeInfo(shapeInfo);
-                float mass = motionState->computeObjectMass(shapeInfo);
                 btVector3 inertia(0.0f, 0.0f, 0.0f);
                 body->getCollisionShape()->calculateLocalInertia(mass, inertia);
                 body->setMassProps(mass, inertia);
@@ -522,16 +418,13 @@ bool PhysicsEngine::updateBodyHard(btRigidBody* body, ObjectMotionState* motionS
         }
     }
 
-    // reinsert body into physics engine
     _dynamicsWorld->addRigidBody(body);
 
     body->activate();
-    return true;
 }
 
 void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
     if (_characterController != character) {
-        lock();
         if (_characterController) {
             // remove the character from the DynamicsWorld immediately
             _characterController->setDynamicsWorld(nullptr);
@@ -539,7 +432,6 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
         }
         // the character will be added to the DynamicsWorld later
         _characterController = character;
-        unlock();
     }
 }
 

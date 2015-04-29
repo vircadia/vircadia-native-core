@@ -42,6 +42,18 @@ void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     _worldSimulationStep = step;
 }
 
+// static 
+ShapeManager* _shapeManager = nullptr;
+void ObjectMotionState::setShapeManager(ShapeManager* shapeManager) {
+    assert(shapeManager);
+    _shapeManager = shapeManager;
+}
+
+ShapeManager* ObjectMotionState::getShapeManager() {
+    assert(_shapeManager); // you must properly set _shapeManager before calling getShapeManager()
+    return _shapeManager;
+}
+
 ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
     _shape(shape),
@@ -57,6 +69,12 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 ObjectMotionState::~ObjectMotionState() {
     // NOTE: you MUST remove this MotionState from the world before you call the dtor.
     assert(_body == nullptr);
+    if (_shape) {
+        // the ObjectMotionState owns a reference to its shape in the ShapeManager
+        // se we must release it
+        getShapeManager()->releaseShape(_shape);
+        _shape = nullptr;
+    }
 }
 
 void ObjectMotionState::measureBodyAcceleration() {
@@ -80,7 +98,7 @@ void ObjectMotionState::resetMeasuredBodyAcceleration() {
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }
 
-void ObjectMotionState::setBodyVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
 
@@ -92,12 +110,12 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 
-void ObjectMotionState::getVelocity(glm::vec3& velocityOut) const {
-    velocityOut = bulletToGLM(_body->getLinearVelocity());
+glm::vec3 ObjectMotionState::getBodyVelocity() const {
+    return bulletToGLM(_body->getLinearVelocity());
 }
 
-void ObjectMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const {
-    angularVelocityOut = bulletToGLM(_body->getAngularVelocity());
+glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
+    return bulletToGLM(_body->getAngularVelocity());
 }
 
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
@@ -113,3 +131,91 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
+void ObjectMotionState::handleEasyChanges(uint32_t flags) {
+    if (flags & EntityItem::DIRTY_POSITION) {
+        btTransform worldTrans;
+        if (flags & EntityItem::DIRTY_ROTATION) {
+            worldTrans = getObjectTransform();
+        } else {
+            worldTrans = _body->getWorldTransform();
+            worldTrans.setOrigin(getObjectPosition());
+        }
+        _body->setWorldTransform(worldTrans);
+    } else {
+        btTransform worldTrans = _body->getWorldTransform();
+        worldTrans.setRotation(getObjectRotation());
+        _body->setWorldTransform(worldTrans);
+    }
+
+    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
+        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+    }
+    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
+        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+    }
+
+    if (flags & EntityItem::DIRTY_MATERIAL) {
+        updateBodyMaterialProperties();
+    }
+
+    if (flags & EntityItem::DIRTY_MASS) {
+        float mass = getMass();
+        btVector3 inertia(0.0f, 0.0f, 0.0f);
+        _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+        _body->setMassProps(mass, inertia);
+        _body->updateInertiaTensor();
+    }
+
+    if (flags & EntityItem::DIRTY_ACTIVATION) {
+        _body->activate();
+    }
+}
+
+void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+    if (flags & EntityItem::DIRTY_SHAPE) {
+        // make sure the new shape is valid
+        ShapeInfo shapeInfo;
+        motionState->computeObjectShapeInfo(shapeInfo);
+        btCollisionShape* newShape = getShapeManager()->getShape(shapeInfo);
+        if (!newShape) {
+            // failed to generate new shape!
+            // remove shape-change flag
+            flags &= ~EntityItem::DIRTY_SHAPE;
+            // TODO: force this object out of PhysicsEngine rather than just use the old shape
+            if (flags & HARD_DIRTY_PHYSICS_FLAGS == 0) {
+                // no HARD flags remain, so do any EASY changes
+                if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+                    handleEasyChanges(flags);
+                }
+                return;
+            }
+        }
+        engine->removeRigidBody(_body);
+        getShapeManager()->removeReference(_shape);
+        _shape = newShape;
+        _body->setShape(_shape);
+        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+            handleEasyChanges(flags);
+        }
+        engine->addRigidBody(_body, motionType, mass);
+    } else {
+        engine->removeRigidBody(_body);
+        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+            handleEasyChanges(flags);
+        }
+        engine->addRigidBody(_body, motionType, mass);
+    }
+}
+
+void ObjectMotionState::updateBodyMaterialProperties() {
+    _body->setRestitution(getObjectRestitution());
+    _body->setFriction(getObjectFriction());
+    _body->setDamping(fabsf(btMin(getObjectLinearDamping(), 1.0f)), fabsf(btMin(getObjectAngularDamping(), 1.0f)));
+}
+
+void ObjectMotionState::updateBodyVelocities() {
+    setBodyVelocity(getObjectLinearVelocity());
+    setBodyAngularVelocity(getObjectAngularVelocity();
+    setBodyGravity(getObjectGravity();
+    _body->setActivationState(ACTIVE_TAG);
+}

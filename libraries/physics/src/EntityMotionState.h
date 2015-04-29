@@ -42,11 +42,6 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    // these relay incoming values to the RigidBody
-    virtual void updateBodyEasy(uint32_t flags, uint32_t step);
-    virtual void updateBodyMaterialProperties();
-    virtual void updateBodyVelocities();
-
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
     virtual float computeObjectMass(const ShapeInfo& shapeInfo) const;
 
@@ -76,7 +71,7 @@ public:
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
-    void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
+    EntityItem* getEntityItem() const { return _entityItem; }
 
 protected:
     EntityItem* _entity;
@@ -84,7 +79,6 @@ protected:
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
-    uint32_t _outgoingPacketFlags;
     uint32_t _sentStep;
     glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
     glm::quat _sentRotation;;

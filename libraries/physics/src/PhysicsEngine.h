@@ -82,9 +82,6 @@ private:
 
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
 
-    // return 'true' of update was successful
-    bool updateBodyHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
-
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig = NULL;
     btCollisionDispatcher* _collisionDispatcher = NULL;

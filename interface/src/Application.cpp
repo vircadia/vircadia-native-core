@@ -2060,6 +2060,7 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
+    ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine.init();
 
     EntityTree* tree = _entities.getTree();
