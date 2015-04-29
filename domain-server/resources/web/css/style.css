@@ -1,5 +1,6 @@
 body {
   position: relative;
+  padding-bottom: 30px;
 }
 
 .table-lead {
@@ -8,14 +9,6 @@ body {
 
 .table-lead .lead-line {
   background-color: #66CCCC;
-}
-
-#queued-lead {
-  color: #F77777;
-}
-
-#queued-lead .lead-line {
-  background-color: #F77777;
 }
 
 .table-lead h3 {

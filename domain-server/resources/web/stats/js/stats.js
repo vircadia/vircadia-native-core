@@ -10,8 +10,6 @@ $(document).ready(function(){
     
     var uuid = qs("uuid");
     
-    var statsTableBody = "";
-    
     $.getJSON("/nodes/" + uuid + ".json", function(json){
       
       // update the table header with the right node type
@@ -19,15 +17,9 @@ $(document).ready(function(){
       
       delete json.node_type;
       
-      $.each(json, function(key, value) {
-        statsTableBody += "<tr>";
-        statsTableBody += "<td class='stats-key'>" + key + "</td>";
-        var formattedValue = (typeof value == 'number' ? value.toLocaleString() : value);
-        statsTableBody += "<td>" + formattedValue + "</td>";
-        statsTableBody += "</tr>";
-      });
-      
-      $('#stats-table tbody').html(statsTableBody);
+      var stats = JsonHuman.format(json);
+
+      $('#stats-container').html(stats);
     }).fail(function(data) {
       $('#stats-table td').each(function(){
         $(this).addClass('stale');
@@ -38,5 +30,5 @@ $(document).ready(function(){
   // do the first GET on page load
   getNodeStats();
   // grab the new assignments JSON every second
-  var getNodeStatsInterval = setInterval(getNodeStats, 1000);
+  // var getNodeStatsInterval = setInterval(getNodeStats, 1000);
 });
