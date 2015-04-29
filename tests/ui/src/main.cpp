@@ -414,25 +414,31 @@ protected:
     void keyPressEvent(QKeyEvent* event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
-        case Qt::Key_L:
-            if (event->modifiers() & Qt::CTRL) {
-                InfoView::show(getResourcesDir() + "html/interface-welcome.html", true);
-            }
-            break;
-        case Qt::Key_K:
-            if (event->modifiers() & Qt::CTRL) {
-                OffscreenUi::question("Message title", "Message contents", [](QMessageBox::Button b){
-                    qDebug() << b;
-                });
-            }
-            break;
-        case Qt::Key_J:
-            if (event->modifiers() & Qt::CTRL) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-                QMetaObject::invokeMethod(rootMenu, "popup");
-            }
-            break;
+            case Qt::Key_B:
+                if (event->modifiers() & Qt::CTRL) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("Browser.qml");
+                }
+                break;
+            case Qt::Key_L:
+                if (event->modifiers() & Qt::CTRL) {
+                    InfoView::show(getResourcesDir() + "html/interface-welcome.html", true);
+                }
+                break;
+            case Qt::Key_K:
+                if (event->modifiers() & Qt::CTRL) {
+                    OffscreenUi::question("Message title", "Message contents", [](QMessageBox::Button b){
+                        qDebug() << b;
+                    });
+                }
+                break;
+            case Qt::Key_J:
+                if (event->modifiers() & Qt::CTRL) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+                    QMetaObject::invokeMethod(rootMenu, "popup");
+                }
+                break;
         }
         QWindow::keyPressEvent(event);
     }
@@ -448,7 +454,7 @@ protected:
         if (devicePixelRatio() != oldPixelRatio) {
             oldPixelRatio = devicePixelRatio();
             resizeWindow(size());
-        }		
+        }
         QWindow::moveEvent(event);
     }
 };
@@ -484,14 +490,6 @@ const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.offscreen.focus.debug=false
 qt.quick.mouse.debug=false
 )V0G0N";
-
-//int main(int argc, char *argv[]) {
-//    QGuiApplication app(argc, argv);
-//    QQmlApplicationEngine engine;
-//    engine.setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
-//    engine.load(QUrl("Main.qml"));
-//    return app.exec();
-//}
 
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);

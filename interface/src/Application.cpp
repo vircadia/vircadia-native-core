@@ -1095,6 +1095,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 break;
 
+            case Qt::Key_B:
+                if (isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("Browser.qml");
+                }
+                break;
+
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
