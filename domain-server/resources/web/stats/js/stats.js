@@ -21,7 +21,7 @@ $(document).ready(function(){
 
       $('#stats-container').html(stats);
     }).fail(function(data) {
-      $('#stats-table td').each(function(){
+      $('#stats-container th').each(function(){
         $(this).addClass('stale');
       });
     });    

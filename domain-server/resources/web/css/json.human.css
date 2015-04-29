@@ -71,8 +71,12 @@
  margin: 0.2em;
 }
 
-th.jh-key{
- text-align: left;
+th.jh-key {
+  text-align: left;
+}
+
+th.jh-key.stale {
+  color: red;
 }
 
 .jh-type-object tr, .jh-type-array tr {

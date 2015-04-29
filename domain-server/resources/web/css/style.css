@@ -33,14 +33,6 @@ span.port {
   color: #666666;
 }
 
-.stats-key {
-  width: 400px;
-}
-
-.stale {
-  color: red;
-}
-
 .locked {
   color: #428bca;
 }
