@@ -38,6 +38,9 @@ private slots:
     void readPendingDatagrams();
     void checkSpares();
 
+public slots:
+    void aboutToQuit();
+
 private:
     void spawnChildClient();
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children

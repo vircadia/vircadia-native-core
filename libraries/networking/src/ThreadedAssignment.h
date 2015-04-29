@@ -28,8 +28,16 @@ public:
 public slots:
     /// threaded run of assignment
     virtual void run() = 0;
+    Q_INVOKABLE void stop() { setFinished(true); }
     virtual void readPendingDatagrams() = 0;
     virtual void sendStatsPacket();
+
+public slots:
+    virtual void aboutToQuit() {
+        // emit finished();
+        QMetaObject::invokeMethod(this, "stop");
+    }
+
 signals:
     void finished();
     
@@ -38,6 +46,8 @@ protected:
     void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
     bool _isFinished;
     QThread* _datagramProcessingThread;
+    QTimer* _domainServerTimer = nullptr;
+    QTimer* _statsTimer = nullptr;
     
 private slots:
     void checkInWithDomainServerOrExit();

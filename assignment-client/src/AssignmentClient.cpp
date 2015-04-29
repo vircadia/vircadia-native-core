@@ -114,7 +114,16 @@ void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Exiting.";
     _requestTimer.stop();
     _statsTimerACM.stop();
-    QCoreApplication::quit();
+    if (_currentAssignment) {
+        _currentAssignment->aboutToQuit();
+        // _currentAssignment->aboutToFinish();
+        _currentAssignment->thread()->wait();
+    }
+}
+
+
+void AssignmentClient::aboutToQuit() {
+    stopAssignmentClient();
 }
 
 
@@ -197,6 +206,7 @@ void AssignmentClient::readPendingDatagrams() {
 
                     // start the deployed assignment
                     AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
+                    workerThread->setObjectName("worker");
 
                     connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
                     connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);

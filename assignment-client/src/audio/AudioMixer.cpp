@@ -588,7 +588,6 @@ void AudioMixer::sendStatsPacket() {
     _sumMixes = 0;
     _numStatFrames = 0;
 
-
     // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
     QJsonObject statsObject2;
 
@@ -712,78 +711,90 @@ void AudioMixer::run() {
     // check the settings object to see if we have anything we can parse out
     parseSettingsObject(settingsObject);
     
-    int nextFrame = 0;
-    QElapsedTimer timer;
-    timer.start();
+    _nextFrame = 0;
+    _timer.start();
 
-    char clientMixBuffer[MAX_PACKET_SIZE];
-    
-    int usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
-    
-    const int TRAILING_AVERAGE_FRAMES = 100;
-    int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
+    _idleTimer = new QTimer();
+    connect(_idleTimer, SIGNAL(timeout()), this, SLOT(insideLoop()));
+    _idleTimer->start(0);
+}
 
-    while (!_isFinished) {
-        const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
-        const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
+
+void AudioMixer::insideLoop() {
+    if (_isFinished) {
+        qDebug() << "AudioMixer::insideLoop stoping _idleTimer";
+        _idleTimer->stop();
+        delete _idleTimer;
+        _idleTimer = nullptr;
+
+        QThread *thisThread = QThread::currentThread();
+        thisThread->quit();
+
+        return;
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
+    const float BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.20f;
         
-        const float RATIO_BACK_OFF = 0.02f;
+    const float RATIO_BACK_OFF = 0.02f;
         
-        const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
-        const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
         
-        if (usecToSleep < 0) {
-            usecToSleep = 0;
-        }
+    if (_usecToSleep < 0) {
+        _usecToSleep = 0;
+    }
         
-        _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (usecToSleep * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
+    _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
+        + (_usecToSleep * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
         
-        float lastCutoffRatio = _performanceThrottlingRatio;
-        bool hasRatioChanged = false;
+    float lastCutoffRatio = _performanceThrottlingRatio;
+    bool hasRatioChanged = false;
         
-        if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
-            if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-                // we're struggling - change our min required loudness to reduce some load
-                _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
+    if (_framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
+        if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
+            // we're struggling - change our min required loudness to reduce some load
+            _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
                 
-                qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
-            } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-                // we've recovered and can back off the required loudness
-                _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
+            qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+                     << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+            hasRatioChanged = true;
+        } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
+            // we've recovered and can back off the required loudness
+            _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
                 
-                if (_performanceThrottlingRatio < 0) {
-                    _performanceThrottlingRatio = 0;
-                }
-                
-                qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-                    << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
-                hasRatioChanged = true;
+            if (_performanceThrottlingRatio < 0) {
+                _performanceThrottlingRatio = 0;
             }
-            
-            if (hasRatioChanged) {
-                // set out min audability threshold from the new ratio
-                _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
-                qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
                 
-                framesSinceCutoffEvent = 0;
-            }
+            qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
+                     << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+            hasRatioChanged = true;
         }
-        
-        if (!hasRatioChanged) {
-            ++framesSinceCutoffEvent;
-        }
-
-        quint64 now = usecTimestampNow();
-        if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
-            perSecondActions();
-            _lastPerSecondCallbackTime = now;
-        }
-        
-        nodeList->eachNode([&](const SharedNodePointer& node) {
             
+        if (hasRatioChanged) {
+            // set out min audability threshold from the new ratio
+            _minAudibilityThreshold = LOUDNESS_TO_DISTANCE_RATIO / (2.0f * (1.0f - _performanceThrottlingRatio));
+            qDebug() << "Minimum audability required to be mixed is now" << _minAudibilityThreshold;
+                
+            _framesSinceCutoffEvent = 0;
+        }
+    }
+        
+    if (!hasRatioChanged) {
+        ++_framesSinceCutoffEvent;
+    }
+
+    quint64 now = usecTimestampNow();
+    if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
+        perSecondActions();
+        _lastPerSecondCallbackTime = now;
+    }
+        
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
@@ -807,8 +818,8 @@ void AudioMixer::run() {
                     char* mixDataAt;
                     if (streamsMixed > 0) {
                         // pack header
-                        int numBytesMixPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                        mixDataAt = clientMixBuffer + numBytesMixPacketHeader;
+                        int numBytesMixPacketHeader = populatePacketHeader(_clientMixBuffer, PacketTypeMixedAudio);
+                        mixDataAt = _clientMixBuffer + numBytesMixPacketHeader;
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
@@ -820,8 +831,8 @@ void AudioMixer::run() {
                         mixDataAt += AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                     } else {
                         // pack header
-                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
-                        mixDataAt = clientMixBuffer + numBytesPacketHeader;
+                        int numBytesPacketHeader = populatePacketHeader(_clientMixBuffer, PacketTypeSilentAudioFrame);
+                        mixDataAt = _clientMixBuffer + numBytesPacketHeader;
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
@@ -833,12 +844,12 @@ void AudioMixer::run() {
                         memcpy(mixDataAt, &numSilentSamples, sizeof(quint16));
                         mixDataAt += sizeof(quint16);
                     }
-                    
+
                     // Send audio environment
                     sendAudioEnvironmentPacket(node);
 
                     // send mixed audio packet
-                    nodeList->writeDatagram(clientMixBuffer, mixDataAt - clientMixBuffer, node);
+                    nodeList->writeDatagram(_clientMixBuffer, mixDataAt - _clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time
@@ -852,21 +863,21 @@ void AudioMixer::run() {
             }
         });
         
-        ++_numStatFrames;
+    ++_numStatFrames;
         
-        QCoreApplication::processEvents();
+    QCoreApplication::processEvents();
         
-        if (_isFinished) {
-            break;
-        }
+    if (_isFinished) {
+        return;
+    }
 
-        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000; // ns to us
+    _usecToSleep = (++_nextFrame * AudioConstants::NETWORK_FRAME_USECS) - _timer.nsecsElapsed() / 1000; // ns to us
 
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+    if (_usecToSleep > 0) {
+        usleep(_usecToSleep);
     }
 }
+
 
 void AudioMixer::perSecondActions() {
     _sendAudioStreamStats = true;

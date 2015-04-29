@@ -30,6 +30,17 @@ void ThreadedAssignment::setFinished(bool isFinished) {
     _isFinished = isFinished;
 
     if (_isFinished) {
+        if (_domainServerTimer) {
+            _domainServerTimer->stop();
+            delete _domainServerTimer;
+            _domainServerTimer = nullptr;
+        }
+        if (_statsTimer) {
+            _statsTimer->stop();
+            delete _statsTimer;
+            _statsTimer = nullptr;
+        }
+
         aboutToFinish();
         
         auto nodeList = DependencyManager::get<NodeList>();
@@ -63,15 +74,15 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     // this is a temp fix for Qt 5.3 - rebinding the node socket gives us readyRead for the socket on this thread
     nodeList->rebindNodeSocket();
     
-    QTimer* domainServerTimer = new QTimer(this);
-    connect(domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
-    domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    _domainServerTimer = new QTimer(this);
+    connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
+    _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     if (shouldSendStats) {
         // send a stats packet every 1 second
-        QTimer* statsTimer = new QTimer(this);
-        connect(statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
-        statsTimer->start(1000);
+        _statsTimer = new QTimer(this);
+        connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
+        _statsTimer->start(1000);
     }
 }
 

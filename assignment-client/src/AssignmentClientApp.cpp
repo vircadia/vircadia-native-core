@@ -10,6 +10,7 @@
 //
 
 #include <QCommandLineParser>
+#include <QThread>
 
 #include <LogHandler.h>
 #include <SharedUtil.h>
@@ -180,14 +181,19 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         }
     }
 
+    QThread::currentThread()->setObjectName("main thread");
 
     if (numForks || minForks || maxForks) {
         AssignmentClientMonitor monitor(numForks, minForks, maxForks, requestAssignmentType, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);
+        connect(this, &QCoreApplication::aboutToQuit, &monitor, &AssignmentClientMonitor::aboutToQuit);
+
+
         exec();
     } else {
         AssignmentClient client(ppid, requestAssignmentType, assignmentPool,
                                 walletUUID, assignmentServerHostname, assignmentServerPort);
+        connect(this, &QCoreApplication::aboutToQuit, &client, &AssignmentClient::aboutToQuit);
         exec();
     }
 }

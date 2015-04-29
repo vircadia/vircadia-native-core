@@ -80,6 +80,12 @@ void AssignmentClientMonitor::stopChildProcesses() {
     });
 }
 
+
+void AssignmentClientMonitor::aboutToQuit() {
+    stopChildProcesses();
+}
+
+
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
 
