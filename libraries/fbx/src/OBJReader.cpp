@@ -256,7 +256,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             foreach(OBJFace face, face.triangulate()) {
                 faces.append(face);
             }
-         } else {
+        } else {
             // something we don't (yet) care about
             // qCDebug(modelformat) << "OBJ parser is skipping a line with" << token;
             tokenizer.skipLine();
