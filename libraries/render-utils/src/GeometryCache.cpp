@@ -1796,9 +1796,7 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     
     if (url.isEmpty()) {
         // make the minimal amount of dummy geometry to satisfy Model
-        FBXJoint joint = { false, QVector<int>(), -1, 0.0f, 0.0f, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(),
-                           glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
-                           glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
+        FBXJoint joint = { false, QVector<int>(), -1 };
         _geometry.joints.append(joint);
         _geometry.leftEyeJointIndex = -1;
         _geometry.rightEyeJointIndex = -1;
@@ -2107,7 +2105,26 @@ void GeometryReader::run() {
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = readOBJ(_reply, _mapping);
+                fbxgeo = OBJReader().readOBJ(_reply, _mapping);
+                FBXMesh & mesh = fbxgeo.meshes[0]; // only one, by construction
+                if (mesh.texCoords.count() > 0) { // If we have uv texture coordinates....
+                    // ... then ensure that every meshPart has a texture filename.
+                    // For now, that's defined directly, using the popular .obj convention that
+                    // the texture is the same as the model basename. Later, we'll extend that
+                    // with separate material files, too.
+                    QString filename = _url.fileName();
+                    int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
+                    QString basename = filename.remove(extIndex + 1, 3);
+                    QByteArray defaultTexture = basename.toUtf8() + "jpg";
+                    //qCDebug(renderutils) << "basename for " << filename << " is " << basename << ", default:" << defaultTexture;
+                    QVector<FBXMeshPart> & meshParts = mesh.parts;
+                    for (int i = 0; i < meshParts.count(); i++) {
+                        FBXMeshPart & meshPart = meshParts[i];
+                        if (meshPart.diffuseTexture.filename.count() == 0) {
+                            meshPart.diffuseTexture.filename = defaultTexture;
+                        }
+                    }
+                }
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

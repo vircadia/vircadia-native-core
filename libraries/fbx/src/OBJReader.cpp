@@ -26,34 +26,8 @@ QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as uni
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
 
-class OBJTokenizer {
-public:
-    OBJTokenizer(QIODevice* device);
-    enum SpecialToken {
-        NO_TOKEN = -1,
-        NO_PUSHBACKED_TOKEN = -1,
-        DATUM_TOKEN = 0x100,
-        COMMENT_TOKEN = 0x101
-    };
-    int nextToken();
-    const QByteArray& getDatum() const { return _datum; }
-    bool isNextTokenFloat();
-    void skipLine() { _device->readLine(); }
-    void pushBackToken(int token) { _pushedBackToken = token; }
-    void ungetChar(char ch) { _device->ungetChar(ch); }
-    const QString getComment() const { return _comment; }
-
-private:
-    QIODevice* _device;
-    QByteArray _datum;
-    int _pushedBackToken;
-    QString _comment;
-};
-
-
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
 }
-
 
 int OBJTokenizer::nextToken() {
     if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
@@ -116,6 +90,24 @@ bool OBJTokenizer::isNextTokenFloat() {
     return ok;
 }
 
+glm::vec3 OBJTokenizer::getVec3() {
+    auto v = glm::vec3(this->getFloat(), this->getFloat(), this->getFloat());
+    while (this->isNextTokenFloat()) {
+        // the spec(s) get(s) vague here.  might be w, might be a color... chop it off.
+        this->nextToken();
+    }
+    return v;
+}
+glm::vec2 OBJTokenizer::getVec2() {
+    auto v = glm::vec2(this->getFloat(), 1.0f - this->getFloat());  // OBJ has an odd sense of u, v
+    while (this->isNextTokenFloat()) {
+        // there can be a w, but we don't handle that
+        this->nextToken();
+    }
+    return v;
+}
+
+
 void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
     meshPart.diffuseColor = glm::vec3(1, 1, 1);
     meshPart.specularColor = glm::vec3(1, 1, 1);
@@ -123,7 +115,7 @@ void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
     meshPart.emissiveParams = glm::vec2(0, 1);
     meshPart.shininess = 40;
     meshPart.opacity = 1;
-
+ 
     meshPart.materialID = materialID;
     meshPart.opacity = 1.0;
     meshPart._material = model::MaterialPointer(new model::Material());
@@ -134,14 +126,57 @@ void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
     meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
 }
 
-bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
-                   FBXGeometry &geometry, QVector<glm::vec3>& faceNormals, QVector<int>& faceNormalIndexes,
-                   float& scaleGuess) {
+// OBJFace
+bool OBJFace::add(QByteArray vertexIndex, QByteArray textureIndex, QByteArray normalIndex) {
+    bool ok;
+    int index = vertexIndex.toInt(&ok);
+    if (!ok) { return false; }
+    vertexIndices.append(index - 1);
+    if (textureIndex != nullptr) {
+        index = textureIndex.toInt(&ok);
+        if (!ok) { return false; }
+        textureUVIndices.append(index - 1);
+    }
+    if (normalIndex != nullptr) {
+        index = normalIndex.toInt(&ok);
+        if (!ok) { return false; }
+        normalIndices.append(index - 1);
+    }
+    return true;
+}
+QVector<OBJFace> OBJFace::triangulate() {
+    QVector<OBJFace> newFaces;
+    if (vertexIndices.count() == 3) {
+        newFaces.append(*this);
+    } else {
+        for (int i = 1; i < vertexIndices.count() - 1; i++) {
+            OBJFace newFace; // FIXME: also copy materialName, groupName
+            newFace.addFrom(this, 0);
+            newFace.addFrom(this, i);
+            newFace.addFrom(this, i + 1);
+            newFaces.append(newFace);
+        }
+    }
+    return newFaces;
+}
+void OBJFace::addFrom(OBJFace const * f, int i) { // add using data from f at index i
+    vertexIndices.append(f->vertexIndices[i]);
+    if (f->textureUVIndices.count() > 0) { // Any at all. Runtime error if not consistent.
+        textureUVIndices.append(f->textureUVIndices[i]);
+    }
+    if (f->normalIndices.count() > 0) {
+        normalIndices.append(f->normalIndices[i]);
+    }
+}
+
+bool OBJReader::parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping, FBXGeometry &geometry, float& scaleGuess) {
+    FaceGroup faces;
     FBXMesh &mesh = geometry.meshes[0];
     mesh.parts.append(FBXMeshPart());
     FBXMeshPart &meshPart = mesh.parts.last();
     bool sawG = false;
     bool result = true;
+    int originalFaceCountForDebugging = 0;
 
     setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
@@ -165,6 +200,7 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             break;
         }
         QByteArray token = tokenizer.getDatum();
+        //qCDebug(modelformat) << token;
         if (token == "g") {
             if (sawG) {
                 // we've encountered the beginning of the next group.
@@ -177,53 +213,18 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
             }
             QByteArray groupName = tokenizer.getDatum();
             meshPart.materialID = groupName;
+            //qCDebug(modelformat) << "new group:" << groupName;
         } else if (token == "v") {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float x = std::stof(tokenizer.getDatum().data());
-
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float y = std::stof(tokenizer.getDatum().data());
-
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float z = std::stof(tokenizer.getDatum().data());
-
-            while (tokenizer.isNextTokenFloat()) {
-                // the spec(s) get(s) vague here.  might be w, might be a color... chop it off.
-                tokenizer.nextToken();
-            }
-            mesh.vertices.append(glm::vec3(x, y, z));
+            vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float x = std::stof(tokenizer.getDatum().data());
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float y = std::stof(tokenizer.getDatum().data());
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                break;
-            }
-            float z = std::stof(tokenizer.getDatum().data());
-
-            while (tokenizer.isNextTokenFloat()) {
-                // the spec gets vague here.  might be w
-                tokenizer.nextToken();
-            }
-            faceNormals.append(glm::vec3(x, y, z));
+            normals.append(tokenizer.getVec3());
+        } else if (token == "vt") {
+            textureUVs.append(tokenizer.getVec2());
         } else if (token == "f") {
-            // a face can have 3 or more vertices
-            QVector<int> indices;
-            QVector<int> normalIndices;
+            OBJFace face;
             while (true) {
                 if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                    if (indices.count() == 0) {
+                    if (face.vertexIndices.count() == 0) {
                         // nonsense, bail out.
                         goto done;
                     }
@@ -233,103 +234,49 @@ bool parseOBJGroup(OBJTokenizer &tokenizer, const QVariantHash& mapping,
                 //   vertex-index
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
-
                 QByteArray token = tokenizer.getDatum();
-                QList<QByteArray> parts = token.split('/');
-                assert(parts.count() >= 1);
-                assert(parts.count() <= 3);
-                QByteArray vertIndexBA = parts[ 0 ];
-
-                bool ok;
-                int vertexIndex = vertIndexBA.toInt(&ok);
-                if (!ok) {
-                    // it wasn't #/#/#, put it back and exit this loop.
+                if (!std::isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
-
-                // if (parts.count() > 1) {
-                //     QByteArray textureIndexBA = parts[ 1 ];
-                // }
-
-                if (parts.count() > 2) {
-                    QByteArray normalIndexBA = parts[ 2 ];
-                    bool ok;
-                    int normalIndex = normalIndexBA.toInt(&ok);
-                    if (ok) {
-                        normalIndices.append(normalIndex - 1);
-                    }
-                }
-
-                // negative indexes count backward from the current end of the vertex list
-                vertexIndex = (vertexIndex >= 0 ? vertexIndex : mesh.vertices.count() + vertexIndex + 1);
-                // obj index is 1 based
-                assert(vertexIndex >= 1);
-                indices.append(vertexIndex - 1);
+                QList<QByteArray> parts = token.split('/');
+                assert(parts.count() >= 1);
+                assert(parts.count() <= 3);
+                // FIXME: if we want to handle negative indices, it has to be done here.
+                face.add(parts[0], (parts.count() > 1) ? parts[1] : nullptr, (parts.count() > 2) ? parts[2] : nullptr);
+                // FIXME: preserve current name, material and such
             }
-
-            if (indices.count() == 3) {
-                meshPart.triangleIndices.append(indices[0]);
-                meshPart.triangleIndices.append(indices[1]);
-                meshPart.triangleIndices.append(indices[2]);
-                if (normalIndices.count() == 3) {
-                    faceNormalIndexes.append(normalIndices[0]);
-                    faceNormalIndexes.append(normalIndices[1]);
-                    faceNormalIndexes.append(normalIndices[2]);
-                } else {
-                    // hmm.
-                }
-            } else if (indices.count() == 4) {
-                meshPart.quadIndices << indices;
-            } else {
-                // some obj writers (maya) will write a face with lots of points.
-                for (int i = 1; i < indices.count() - 1; i++) {
-                    // break the face into triangles
-                    meshPart.triangleIndices.append(indices[0]);
-                    meshPart.triangleIndices.append(indices[i]);
-                    meshPart.triangleIndices.append(indices[i+1]);
-                }
-                if (indices.count() == normalIndices.count()) {
-                    for (int i = 1; i < normalIndices.count() - 1; i++) {
-                        faceNormalIndexes.append(normalIndices[0]);
-                        faceNormalIndexes.append(normalIndices[i]);
-                        faceNormalIndexes.append(normalIndices[i+1]);
-                    }
-                }
+            originalFaceCountForDebugging++;
+            foreach(OBJFace face, face.triangulate()) {
+                faces.append(face);
             }
-        } else {
+         } else {
             // something we don't (yet) care about
             // qCDebug(modelformat) << "OBJ parser is skipping a line with" << token;
             tokenizer.skipLine();
         }
     }
-
- done:
-
-    if (meshPart.triangleIndices.size() == 0 && meshPart.quadIndices.size() == 0) {
-        // empty mesh?
+done:
+    if (faces.count() == 0) { // empty mesh
         mesh.parts.pop_back();
     }
-
+    faceGroups.append(faces); // We're done with this group. Add the faces.
+    //qCDebug(modelformat) << "end group:" << meshPart.materialID << " original faces:" << originalFaceCountForDebugging << " triangles:" << faces.count() << " keep going:" << result;
     return result;
 }
 
 
-FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping) {
+FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return readOBJ(&buffer, mapping);
+    return this->readOBJ(&buffer, mapping);
 }
 
 
-FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
+FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
     FBXGeometry geometry;
     OBJTokenizer tokenizer(device);
-    QVector<int> faceNormalIndexes;
-    QVector<glm::vec3> faceNormals;
     float scaleGuess = 1.0f;
-
-    faceNormalIndexes.clear();
 
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
@@ -337,27 +284,11 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
-        bool success = true;
-        while (success) {
-            success = parseOBJGroup(tokenizer, mapping, geometry, faceNormals, faceNormalIndexes, scaleGuess);
-        }
+        while (parseOBJGroup(tokenizer, mapping, geometry, scaleGuess)) {}
 
         FBXMesh &mesh = geometry.meshes[0];
         mesh.meshIndex = 0;
-
-        // if we got a hint about units, scale all the points
-        if (scaleGuess != 1.0f) {
-            for (int i = 0; i < mesh.vertices.size(); i++) {
-                mesh.vertices[i] *= scaleGuess;
-            }
-        }
-
-        mesh.meshExtents.reset();
-        foreach (const glm::vec3& vertex, mesh.vertices) {
-            mesh.meshExtents.addPoint(vertex);
-            geometry.meshExtents.addPoint(vertex);
-        }
-
+ 
         geometry.joints.resize(1);
         geometry.joints[0].isFree = false;
         geometry.joints[0].parentIndex = -1;
@@ -380,63 +311,57 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
                                               0, 0, 1, 0,
                                               0, 0, 0, 1);
         mesh.clusters.append(cluster);
-
-        // The OBJ format has normals for faces.  The FBXGeometry structure has normals for points.
-        // run through all the faces, look-up (or determine) a normal and set the normal for the points
-        // that make up each face.
-        QVector<glm::vec3> pointNormalsSums;
-
-        mesh.normals.fill(glm::vec3(0,0,0), mesh.vertices.count());
-        pointNormalsSums.fill(glm::vec3(0,0,0), mesh.vertices.count());
-
-        foreach (FBXMeshPart meshPart, mesh.parts) {
-            int triCount = meshPart.triangleIndices.count() / 3;
-            for (int i = 0; i < triCount; i++) {
-                int p0Index = meshPart.triangleIndices[i*3];
-                int p1Index = meshPart.triangleIndices[i*3+1];
-                int p2Index = meshPart.triangleIndices[i*3+2];
-
-                assert(p0Index < mesh.vertices.count());
-                assert(p1Index < mesh.vertices.count());
-                assert(p2Index < mesh.vertices.count());
-
+        
+        int meshPartCount = 0;
+        for (int i = 0; i < mesh.parts.count(); i++) {
+            FBXMeshPart & meshPart = mesh.parts[i];
+            //qCDebug(modelformat) << "part:" << meshPartCount << " faces:" << faceGroups[meshPartCount].count() << "triangle indices will start with:" << mesh.vertices.count();
+            foreach(OBJFace face, faceGroups[meshPartCount]) {
+                glm::vec3 v0 = vertices[face.vertexIndices[0]];
+                glm::vec3 v1 = vertices[face.vertexIndices[1]];
+                glm::vec3 v2 = vertices[face.vertexIndices[2]];
+                meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
+                mesh.vertices << v0;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v1;
+                meshPart.triangleIndices.append(mesh.vertices.count());
+                mesh.vertices << v2;
+                
                 glm::vec3 n0, n1, n2;
-                if (i < faceNormalIndexes.count()) {
-                    int n0Index = faceNormalIndexes[i*3];
-                    int n1Index = faceNormalIndexes[i*3+1];
-                    int n2Index = faceNormalIndexes[i*3+2];
-                    n0 = faceNormals[n0Index];
-                    n1 = faceNormals[n1Index];
-                    n2 = faceNormals[n2Index];
-                } else {
-                    // We didn't read normals, add bogus normal data for this face
-                    glm::vec3 p0 = mesh.vertices[p0Index];
-                    glm::vec3 p1 = mesh.vertices[p1Index];
-                    glm::vec3 p2 = mesh.vertices[p2Index];
-                    n0 = glm::cross(p1 - p0, p2 - p0);
-                    n1 = n0;
-                    n2 = n0;
+                if (face.normalIndices.count()) {
+                    n0 = normals[face.normalIndices[0]];
+                    n1 = normals[face.normalIndices[1]];
+                    n2 = normals[face.normalIndices[2]];
+                } else { // generate normals from triangle plane if not provided
+                    n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
                 }
-
-                // we sum up the normal for each point and then divide by the count to get an average
-                pointNormalsSums[p0Index] += n0;
-                pointNormalsSums[p1Index] += n1;
-                pointNormalsSums[p2Index] += n2;
-            }
-
-            int vertCount = mesh.vertices.count();
-            for (int i = 0; i < vertCount; i++) {
-                float length = glm::length(pointNormalsSums[i]);
-                if (length > FLT_EPSILON) {
-                    mesh.normals[i] = glm::normalize(pointNormalsSums[i]);
+                mesh.normals << n0 << n1 << n2;
+                if (face.textureUVIndices.count()) {
+                    mesh.texCoords
+                    << textureUVs[face.textureUVIndices[0]]
+                    << textureUVs[face.textureUVIndices[1]]
+                    << textureUVs[face.textureUVIndices[2]];
                 }
             }
-
-            // XXX do same normal calculation for quadCount
+            meshPartCount++;
         }
+
+        // if we got a hint about units, scale all the points
+        if (scaleGuess != 1.0f) {
+            for (int i = 0; i < mesh.vertices.size(); i++) {
+                mesh.vertices[i] *= scaleGuess;
+            }
+        }
+            
+        mesh.meshExtents.reset();
+        foreach (const glm::vec3& vertex, mesh.vertices) {
+            mesh.meshExtents.addPoint(vertex);
+            geometry.meshExtents.addPoint(vertex);
+        }
+        //this->fbxDebugDump(geometry);
     }
     catch(const std::exception& e) {
-        qCDebug(modelformat) << "something went wrong in OBJ reader";
+        qCDebug(modelformat) << "something went wrong in OBJ reader: " << e.what();
     }
 
     return geometry;
@@ -444,7 +369,7 @@ FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping) {
 
 
 
-void fbxDebugDump(const FBXGeometry& fbxgeo) {
+void OBJReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
