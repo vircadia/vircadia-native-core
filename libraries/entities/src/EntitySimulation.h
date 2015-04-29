@@ -70,6 +70,8 @@ public:
 
     EntityTree* getEntityTree() { return _entityTree; }
 
+    void getEntitiesToDelete(SetOfEntities& entitiesToDelete);
+
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

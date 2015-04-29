@@ -160,15 +160,15 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
         _entitiesToUpdate.remove(entity);
         _mortalEntities.remove(entity);
         _entitiesToSort.remove(entity);
-        if (entity->_tree) {
-            // the tree still references this entity, but it's being removed from this simulation
+        if (entity->_element) {
+            // some EntityTreeElement still references this entity, but it's being removed from this simulation
             _entitiesToDelete.remove(entity);
             removeEntityInternal(entity);
         } else {
             // we're the last to reference this entity, so we really need to delete it
             deleteEntityInternal(entity);
         }
-    } else if (!entity->_tree) {
+    } else if (!entity->_element) {
         // nothing else is referencing this entity, so we delete it now
         delete entity;
     }
@@ -182,8 +182,8 @@ void EntitySimulation::deleteEntity(EntityItem* entity) {
         _entitiesToSort.remove(entity);
         deleteEntityInternal(entity);
     } else {
-        if (entity->_tree) {
-            // the tree still references this entity, so we put it on the list 
+        if (entity->_element) {
+            // some EntityTreeElement still references this entity, so we put it on the list 
             // which will be harvested by the tree later
             _entitiesToDelete.insert(entity);
         } else {
@@ -246,3 +246,4 @@ void EntitySimulation::clearEntities() {
     _entitiesToSort.clear();
     clearEntitiesInternal();
 }
+
