@@ -189,7 +189,12 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                         currentValue = &currentList[arrayIndex];
 
                         // update the keypath by bumping past the array index
-                        keypath = keypath.mid(keypath.indexOf(']'));
+                        keypath = keypath.mid(keypath.indexOf(']') + 1);
+                        
+                        // check if there is a key after the array index - if so push the keypath forward by a char
+                        if (keypath.startsWith(".")) {
+                            keypath = keypath.mid(1);
+                        }
                     } else {
                         qDebug() << "Failed to convert array index from keypath" << keypath << "to int. Will not add"
                             << "value to resulting QJsonObject.";
