@@ -130,16 +130,22 @@ void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID) {
 bool OBJFace::add(QByteArray vertexIndex, QByteArray textureIndex, QByteArray normalIndex) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
-    if (!ok) { return false; }
+    if (!ok) {
+        return false;
+    }
     vertexIndices.append(index - 1);
     if (textureIndex != nullptr) {
         index = textureIndex.toInt(&ok);
-        if (!ok) { return false; }
+        if (!ok) {
+            return false;
+        }
         textureUVIndices.append(index - 1);
     }
     if (normalIndex != nullptr) {
         index = normalIndex.toInt(&ok);
-        if (!ok) { return false; }
+        if (!ok) {
+            return false;
+        }
         normalIndices.append(index - 1);
     }
     return true;
