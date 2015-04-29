@@ -31,6 +31,8 @@ public slots:
     virtual void enableAudioSourceInject(bool enable) = 0;
     virtual void selectAudioSourcePinkNoise() = 0;
     virtual void selectAudioSourceSine440() = 0;
+
+    virtual void setIsStereoInput(bool stereo) = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)
