@@ -25,6 +25,7 @@ public:
 public slots:
     /// runs the avatar mixer
     void run();
+    // Q_INVOKABLE virtual void stop();
 
     void nodeAdded(SharedNodePointer nodeAdded);
     void nodeKilled(SharedNodePointer killedNode);
@@ -32,6 +33,8 @@ public slots:
     void readPendingDatagrams();
     
     void sendStatsPacket();
+
+    void finished();
     
 private:
     void broadcastAvatarData();
@@ -47,6 +50,8 @@ private:
     int _numStatFrames;
     int _sumBillboardPackets;
     int _sumIdentityPackets;
+
+    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_AvatarMixer_h

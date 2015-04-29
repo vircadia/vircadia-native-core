@@ -266,16 +266,19 @@ OctreeServer::~OctreeServer() {
     }
 
     if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
         _jurisdictionSender->terminate();
         _jurisdictionSender->deleteLater();
     }
 
     if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
         _octreeInboundPacketProcessor->terminate();
         _octreeInboundPacketProcessor->deleteLater();
     }
 
     if (_persistThread) {
+        _persistThread->terminating();
         _persistThread->terminate();
         _persistThread->deleteLater();
     }
@@ -1219,7 +1222,7 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
-    _octreeInboundPacketProcessor->shuttingDown();
+    _octreeInboundPacketProcessor->terminating();
     
     DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
@@ -1232,6 +1235,40 @@ void OctreeServer::aboutToFinish() {
 
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
+
+
+// void OctreeServer::stop() {
+//     qDebug() << "OctreeServer::stop";
+//     // setFinished(true);
+//     // QThread *thisThread = QThread::currentThread();
+//     // thisThread->quit();
+
+//     if (_jurisdictionSender) {
+//         _jurisdictionSender->terminating();
+//         _jurisdictionSender->terminate();
+//         // delete _jurisdictionSender;
+//         // _jurisdictionSender = nullptr;
+//     }
+
+//     _datagramProcessingThread->quit();
+//     if (_octreeInboundPacketProcessor) {
+//         _octreeInboundPacketProcessor->terminating();
+//         _octreeInboundPacketProcessor->terminate();
+//         // delete _octreeInboundPacketProcessor;
+//         // _octreeInboundPacketProcessor = nullptr;
+//     }
+
+//     // _persistThread
+//     if (_persistThread) {
+//         _persistThread->terminating();
+//         _persistThread->terminate();
+//         // delete _persistThread;
+//         // _persistThread = nullptr;
+//     }
+
+//     ThreadedAssignment::stop();
+// }
+
 
 QString OctreeServer::getUptime() {
     QString formattedUptime;

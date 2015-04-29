@@ -116,8 +116,11 @@ void AssignmentClient::stopAssignmentClient() {
     _statsTimerACM.stop();
     if (_currentAssignment) {
         _currentAssignment->aboutToQuit();
-        // _currentAssignment->aboutToFinish();
-        _currentAssignment->thread()->wait();
+        QThread* currentAssignmentThread = _currentAssignment->thread();
+        qDebug() << "main thread waiting on _currentAssignment->thread()" << currentAssignmentThread->objectName();
+        currentAssignmentThread->quit();
+        currentAssignmentThread->wait();
+        qDebug() << "done waiting.";
     }
 }
 

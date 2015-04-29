@@ -45,6 +45,10 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 }
 
 AvatarMixer::~AvatarMixer() {
+    qDebug() << "AvatarMixer::~AvatarMixer";
+    if (_broadcastTimer) {
+        _broadcastTimer->deleteLater();
+    }
     _broadcastThread.quit();
     _broadcastThread.wait();
 }
@@ -61,9 +65,7 @@ const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
-    
     int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
-    
     ++_numStatFrames;
     
     const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
@@ -334,6 +336,22 @@ void AvatarMixer::sendStatsPacket() {
     _numStatFrames = 0;
 }
 
+// void AvatarMixer::stop() {
+//     qDebug() << "AvatarMixer::stop";
+//     if (_broadcastTimer) {
+//         // _broadcastTimer->stop();
+//         // delete _broadcastTimer;
+//         _broadcastTimer->deleteLater();
+//         // _broadcastTimer = nullptr;
+//     }
+
+//     _broadcastThread.quit();
+//     _broadcastThread.wait();
+
+//     ThreadedAssignment::stop();
+// }
+
+
 void AvatarMixer::run() {
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
     
@@ -343,13 +361,13 @@ void AvatarMixer::run() {
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
     // setup the timer that will be fired on the broadcast thread
-    QTimer* broadcastTimer = new QTimer();
-    broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
-    broadcastTimer->moveToThread(&_broadcastThread);
+    _broadcastTimer = new QTimer();
+    _broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
+    _broadcastTimer->moveToThread(&_broadcastThread);
     
     // connect appropriate signals and slots
-    connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
-    connect(&_broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
+    connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
+    connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
     
     // start the broadcastThread
     _broadcastThread.start();

@@ -26,15 +26,21 @@
 class Dependency {
 public:
     typedef std::function<void(Dependency* pointer)> DeleterFunction;
+    const QString& getDependencyName() { return _name; }
     
 protected:
-    virtual ~Dependency() {}
+    virtual ~Dependency() {
+        qDebug() << "DESTRUCTING" << _name;
+    }
     virtual void customDeleter() {
         _customDeleter(this);
     }
     
     void setCustomDeleter(DeleterFunction customDeleter) { _customDeleter = customDeleter; }
     DeleterFunction _customDeleter = [](Dependency* pointer) { delete pointer; };
+
+    void setDependencyName(QString name) { _name = name; }
+    QString _name;
     
     friend class DependencyManager;
 };
@@ -95,6 +101,7 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
     QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
     QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
     instance.swap(storedInstance);
+    newInstance->setDependencyName(typeid(T).name());
     
     return newInstance;
 }
@@ -102,6 +109,7 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 template <typename T>
 void DependencyManager::destroy() {
     static size_t hashCode = _manager.getHashCode<T>();
+    qDebug() << "DESTROYING" << _manager.safeGet(hashCode)->getDependencyName();
     _manager.safeGet(hashCode).clear();
 }
 

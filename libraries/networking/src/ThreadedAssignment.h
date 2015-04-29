@@ -20,6 +20,7 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(const QByteArray& packet);
+    virtual ~ThreadedAssignment();
     
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
@@ -28,14 +29,13 @@ public:
 public slots:
     /// threaded run of assignment
     virtual void run() = 0;
-    Q_INVOKABLE void stop() { setFinished(true); }
+    Q_INVOKABLE virtual void stop() { setFinished(true); }
     virtual void readPendingDatagrams() = 0;
     virtual void sendStatsPacket();
 
 public slots:
     virtual void aboutToQuit() {
-        // emit finished();
-        QMetaObject::invokeMethod(this, "stop");
+       QMetaObject::invokeMethod(this, "stop");
     }
 
 signals:

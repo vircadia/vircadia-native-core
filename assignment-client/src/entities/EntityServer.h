@@ -44,6 +44,7 @@ public:
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject);
 
 public slots:
+    // Q_INVOKABLE virtual void stop();
     void pruneDeletedEntities();
 
 protected:
@@ -51,6 +52,7 @@ protected:
 
 private:
     EntitySimulation* _entitySimulation;
+    QTimer* _pruneDeletedEntitiesTimer = nullptr;
 };
 
 #endif // hifi_EntityServer_h

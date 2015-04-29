@@ -183,6 +183,8 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     QThread::currentThread()->setObjectName("main thread");
 
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+
     if (numForks || minForks || maxForks) {
         AssignmentClientMonitor monitor(numForks, minForks, maxForks, requestAssignmentType, assignmentPool,
                                         walletUUID, assignmentServerHostname, assignmentServerPort);

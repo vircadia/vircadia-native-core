@@ -26,7 +26,14 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     
 }
 
+ThreadedAssignment::~ThreadedAssignment() {
+    // setFinished(true);
+}
+
 void ThreadedAssignment::setFinished(bool isFinished) {
+
+    qDebug() << "------------- ThreadedAssignment::setFinished" << isFinished << " -------------------";
+
     _isFinished = isFinished;
 
     if (_isFinished) {
@@ -50,8 +57,10 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         
         if (_datagramProcessingThread) {
             // tell the datagram processing thread to quit and wait until it is done, then return the node socket to the NodeList
+            qDebug() << "stopping datagramProcessingThread...";
             _datagramProcessingThread->quit();
             _datagramProcessingThread->wait();
+            qDebug() << "done stopping datagramProcessingThread.";
             
             // set node socket parent back to NodeList
             nodeList->getNodeSocket().setParent(nodeList.data());
@@ -63,6 +72,15 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         emit finished();
     }
 }
+
+
+// void ThreadedAssignment::stop() {
+//     setFinished(true);
+//     qDebug() << "ThreadedAssignment::stop";
+//     QThread *thisThread = QThread::currentThread();
+//     thisThread->quit();
+// }
+
 
 void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
