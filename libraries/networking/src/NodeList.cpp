@@ -68,14 +68,38 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
-    QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
-    QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
-   
+    QByteArray statsPacket(MAX_PACKET_SIZE, 0);
+    int numBytesForPacketHeader = populatePacketHeader(statsPacket, PacketTypeNodeJsonStats);
+
     // get a QStringList using JSONBreakableMarshal
     QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
     
+    int numBytesWritten = numBytesForPacketHeader;
+    
+    // enumerate the resulting strings - pack them and send off packets once we hit MTU size 
     foreach(const QString& statsItem, statsStringList) {
-        qDebug() << statsItem;
+        QByteArray utf8String = statsItem.toUtf8(); 
+
+        if (numBytesWritten + utf8String.size() > MAX_PACKET_SIZE) {
+            // send off the current packet since the next string will make us too big
+            statsPacket.resize(numBytesWritten);
+            writeUnverifiedDatagram(statsPacket, destination);
+           
+            // reset the number of bytes written to the size of our packet header
+            numBytesWritten = numBytesForPacketHeader;
+        }
+        
+        // write this string into the stats packet
+        statsPacket.replace(numBytesWritten, utf8String.size(), utf8String);
+        
+        // keep track of the number of bytes we have written
+        numBytesWritten += utf8String.size();
+    }
+
+    if (numBytesWritten > numBytesForPacketHeader) {
+        // always send the last packet, if it has data
+        statsPacket.resize(numBytesWritten);
+        writeUnverifiedDatagram(statsPacket, destination);
     }
     
     // enumerate the resulting strings, breaking them into MTU sized packets
