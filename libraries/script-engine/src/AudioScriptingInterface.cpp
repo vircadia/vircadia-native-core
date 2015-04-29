@@ -89,4 +89,8 @@ void AudioScriptingInterface::selectSine440() {
     }
 }
 
-
+void AudioScriptingInterface::setStereoInput(bool stereo) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setIsStereoInput(stereo);
+    }
+}

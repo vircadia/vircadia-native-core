@@ -44,8 +44,9 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(&_scriptsModelFilter, &QSortFilterProxyModel::modelReset,
             this, &RunningScriptsWidget::selectFirstInList);
 
-    QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
-    ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
+    // FIXME: menu isn't prepared at this point.
+    //QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
+    //ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
 
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);

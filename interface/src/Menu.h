@@ -25,6 +25,35 @@
 
 class Settings;
 
+class MenuWrapper : public QObject {
+public:
+    QList<QAction*> actions();
+    MenuWrapper* addMenu(const QString& menuName);
+    void setEnabled(bool enabled = true);
+    void addSeparator();
+    void addAction(QAction* action);
+
+    QAction* addAction(const QString& menuName);
+    void insertAction(QAction* before, QAction* menuName);
+
+    QAction* addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut = 0);
+    void removeAction(QAction* action);
+
+    QAction* newAction() {
+        return new QAction(_realMenu);
+    }
+private:
+    MenuWrapper(QMenu* menu);
+
+    static MenuWrapper* fromMenu(QMenu* menu) {
+        return _backMap[menu];
+    }
+
+    QMenu* const _realMenu;
+    static QHash<QMenu*, MenuWrapper*> _backMap;
+    friend class Menu;
+};
+
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
@@ -33,29 +62,29 @@ public:
     void loadSettings();
     void saveSettings();
     
-    QMenu* getMenu(const QString& menuName);
+    MenuWrapper* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            QAction* action,
                                            const QString& actionName = QString(),
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
     
-    void removeAction(QMenu* menu, const QString& actionName);
+    void removeAction(MenuWrapper* menu, const QString& actionName);
     
 public slots:
-    QMenu* addMenu(const QString& menuName);
+    MenuWrapper* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
@@ -77,10 +106,10 @@ private:
     void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
     
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
+    void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
     
-    QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
@@ -88,13 +117,13 @@ private:
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
     
-    QAction* getActionFromName(const QString& menuName, QMenu* menu);
-    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
-    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+    QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
+    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
+    MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
     
     QAction* getMenuAction(const QString& menuName);
-    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
-    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
+    int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
     
     QHash<QString, QAction*> _actionHash;
 };
@@ -238,7 +267,6 @@ namespace MenuOption {
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
-    const QString StereoAudio = "Stereo Audio (disables spatial sound)";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";

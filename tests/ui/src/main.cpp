@@ -35,7 +35,7 @@
 #include <QDir>
 
 #include "MessageDialog.h"
-#include "HifiMenu.h"
+#include "VrMenu.h"
 
 class RateCounter {
     std::vector<float> times;
@@ -74,7 +74,172 @@ public:
 };
 
 
-const QString & getQmlDir() {
+class MenuConstants : public QObject{
+    Q_OBJECT
+    Q_ENUMS(Item)
+
+public:
+    enum Item {
+        AboutApp,
+        AddRemoveFriends,
+        AddressBar,
+        AlignForearmsWithWrists,
+        AlternateIK,
+        AmbientOcclusion,
+        Animations,
+        Atmosphere,
+        Attachments,
+        AudioNoiseReduction,
+        AudioScope,
+        AudioScopeFiftyFrames,
+        AudioScopeFiveFrames,
+        AudioScopeFrames,
+        AudioScopePause,
+        AudioScopeTwentyFrames,
+        AudioStats,
+        AudioStatsShowInjectedStreams,
+        BandwidthDetails,
+        BlueSpeechSphere,
+        BookmarkLocation,
+        Bookmarks,
+        CascadedShadows,
+        CachesSize,
+        Chat,
+        Collisions,
+        Console,
+        ControlWithSpeech,
+        CopyAddress,
+        CopyPath,
+        DecreaseAvatarSize,
+        DeleteBookmark,
+        DisableActivityLogger,
+        DisableLightEntities,
+        DisableNackPackets,
+        DiskCacheEditor,
+        DisplayHands,
+        DisplayHandTargets,
+        DisplayModelBounds,
+        DisplayModelTriangles,
+        DisplayModelElementChildProxies,
+        DisplayModelElementProxy,
+        DisplayDebugTimingDetails,
+        DontDoPrecisionPicking,
+        DontFadeOnOctreeServerChanges,
+        DontRenderEntitiesAsScene,
+        EchoLocalAudio,
+        EchoServerAudio,
+        EditEntitiesHelp,
+        Enable3DTVMode,
+        EnableCharacterController,
+        EnableGlowEffect,
+        EnableVRMode,
+        ExpandMyAvatarSimulateTiming,
+        ExpandMyAvatarTiming,
+        ExpandOtherAvatarTiming,
+        ExpandPaintGLTiming,
+        ExpandUpdateTiming,
+        Faceshift,
+        FilterSixense,
+        FirstPerson,
+        FrameTimer,
+        Fullscreen,
+        FullscreenMirror,
+        GlowWhenSpeaking,
+        NamesAboveHeads,
+        GoToUser,
+        HMDTools,
+        IncreaseAvatarSize,
+        KeyboardMotorControl,
+        LeapMotionOnHMD,
+        LoadScript,
+        LoadScriptURL,
+        LoadRSSDKFile,
+        LodTools,
+        Login,
+        Log,
+        LowVelocityFilter,
+        Mirror,
+        MuteAudio,
+        MuteEnvironment,
+        NoFaceTracking,
+        NoShadows,
+        OctreeStats,
+        OffAxisProjection,
+        OnlyDisplayTopTen,
+        PackageModel,
+        Pair,
+        PipelineWarnings,
+        Preferences,
+        Quit,
+        ReloadAllScripts,
+        RenderBoundingCollisionShapes,
+        RenderFocusIndicator,
+        RenderHeadCollisionShapes,
+        RenderLookAtVectors,
+        RenderSkeletonCollisionShapes,
+        RenderTargetFramerate,
+        RenderTargetFramerateUnlimited,
+        RenderTargetFramerate60,
+        RenderTargetFramerate50,
+        RenderTargetFramerate40,
+        RenderTargetFramerate30,
+        RenderTargetFramerateVSyncOn,
+        RenderResolution,
+        RenderResolutionOne,
+        RenderResolutionTwoThird,
+        RenderResolutionHalf,
+        RenderResolutionThird,
+        RenderResolutionQuarter,
+        RenderAmbientLight,
+        RenderAmbientLightGlobal,
+        RenderAmbientLight0,
+        RenderAmbientLight1,
+        RenderAmbientLight2,
+        RenderAmbientLight3,
+        RenderAmbientLight4,
+        RenderAmbientLight5,
+        RenderAmbientLight6,
+        RenderAmbientLight7,
+        RenderAmbientLight8,
+        RenderAmbientLight9,
+        ResetAvatarSize,
+        ResetSensors,
+        RunningScripts,
+        RunTimingTests,
+        ScriptEditor,
+        ScriptedMotorControl,
+        ShowBordersEntityNodes,
+        ShowIKConstraints,
+        SimpleShadows,
+        SixenseEnabled,
+        SixenseMouseInput,
+        SixenseLasers,
+        ShiftHipsForIdleAnimations,
+        Stars,
+        Stats,
+        StereoAudio,
+        StopAllScripts,
+        SuppressShortTimings,
+        TestPing,
+        ToolWindow,
+        TransmitterDrive,
+        TurnWithHead,
+        UseAudioForMouth,
+        UseCamera,
+        VelocityFilter,
+        VisibleToEveryone,
+        VisibleToFriends,
+        VisibleToNoOne,
+        Wireframe,
+    };
+
+public:
+    MenuConstants(QObject* parent = nullptr) : QObject(parent) {
+
+    }
+};
+
+const QString& getQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -85,7 +250,7 @@ const QString & getQmlDir() {
     return dir;
 }
 
-const QString & getTestQmlDir() {
+const QString& getTestQmlDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
@@ -100,7 +265,7 @@ const QString & getTestQmlDir() {
 class QTestWindow : public QWindow, private QOpenGLFunctions  {
     Q_OBJECT
 
-    QOpenGLContext * _context{ nullptr };
+    QOpenGLContext* _context{ nullptr };
     QSize _size;
     bool _altPressed{ false };
     RateCounter fps;
@@ -108,7 +273,7 @@ class QTestWindow : public QWindow, private QOpenGLFunctions  {
     int testQmlTexture{ 0 };
 
 public:
-    QObject * rootMenu;
+    QObject* rootMenu;
 
     QTestWindow() {
         _timer.setInterval(1);
@@ -139,7 +304,7 @@ public:
         initializeOpenGLFunctions();
 
         {
-            QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
             logger->initialize(); // initializes in the current context, i.e. ctx
             logger->enableMessages();
             connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
@@ -155,7 +320,9 @@ public:
         glDisable(GL_DEPTH_TEST);
 
         MessageDialog::registerType();
-        HifiMenu::registerType();
+        VrMenu::registerType();
+        qmlRegisterType<MenuConstants>("Hifi", 1, 0, "MenuConstants");
+
 
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); 
         offscreenUi->create(_context);
@@ -181,24 +348,9 @@ public:
 #else 
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
         offscreenUi->load(QUrl("TestRoot.qml"));
-        offscreenUi->load(QUrl("RootMenu.qml"));
-        HifiMenu::load();
-        QObject* menuObject = offscreenUi->getRootItem()->findChild<QObject*>("HifiMenu");
-        HifiMenu* menu = offscreenUi->getRootItem()->findChild<HifiMenu*>(); 
-        menu->addMenu("", "File");
-        menu->addItem("File", "Quit", []{
-            QApplication::quit();
-        });
-        menu->addCheckableItem("File", "Toggle", false, [](bool toggled) {
-            qDebug() << "Toggle is " << toggled;
-        });
-        menu->addMenu("", "Edit");
-        menu->addItem("Edit", "Undo");
-        menu->addItem("Edit", "Redo");
-        menu->addItem("Edit", "Copy");
-        menu->addItem("Edit", "Cut");
-        menu->addItem("Edit", "Paste");
-        menu->addMenu("", "Long Menu Name...");
+        offscreenUi->load(QUrl("TestMenu.qml"));
+        // Requires a root menu to have been loaded before it can load
+        VrMenu::load();
 #endif
         installEventFilter(offscreenUi.data());
         offscreenUi->resume();
@@ -244,20 +396,16 @@ private:
 
 
 protected:
-    void resizeEvent(QResizeEvent * ev) override {
+    void resizeEvent(QResizeEvent* ev) override {
         resizeWindow(ev->size());
     }
 
   
-    void keyPressEvent(QKeyEvent *event) {
+    void keyPressEvent(QKeyEvent* event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
         case Qt::Key_L:
             if (event->modifiers() & Qt::CTRL) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                HifiMenu * menu = offscreenUi->findChild<HifiMenu*>();
-                menu->addItem("", "Test 3");
-                menu->addItem("File", "Test 3");
             }
             break;
         case Qt::Key_K:
@@ -280,11 +428,11 @@ protected:
     QQmlContext* menuContext{ nullptr };
     void keyReleaseEvent(QKeyEvent *event) {
         if (_altPressed && Qt::Key_Alt == event->key()) {
-            HifiMenu::toggle();
+            VrMenu::toggle();
         }
     }
 
-    void moveEvent(QMoveEvent *event) {
+    void moveEvent(QMoveEvent* event) {
         static qreal oldPixelRatio = 0.0;
         if (devicePixelRatio() != oldPixelRatio) {
             oldPixelRatio = devicePixelRatio();
@@ -322,7 +470,7 @@ void QTestWindow::renderQml() {
 
 
 const char * LOG_FILTER_RULES = R"V0G0N(
-*.debug=false
+hifi.offscreen.focus.debug=false
 qt.quick.mouse.debug=false
 )V0G0N";
 
@@ -334,11 +482,9 @@ qt.quick.mouse.debug=false
 //    return app.exec();
 //}
 
-
-
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
-//    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     app.exec();
     return 0;

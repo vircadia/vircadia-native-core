@@ -1,7 +1,9 @@
-import QtQuick 2.3 as Original
+import QtQuick.Controls 2.3 as Original
+import "../styles"
 
 Original.TextArea {
-    font.family: "Helvetica"
-    font.pointSize: 18
+    HifiConstants { id: hifi }
+    font.family: hifi.fonts.fontFamily
+    font.pointSize: hifi.fonts.fontSize
 }
 

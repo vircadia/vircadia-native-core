@@ -13,8 +13,12 @@
 #include "ScriptAudioInjector.h"
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in) {
+    // The AudioScriptingInterface::playSound method can return null, so we need to account for that.
+    if (!in) {
+        return QScriptValue(QScriptValue::NullValue);
+    }
+
     // when the script goes down we want to cleanup the injector
-    
     QObject::connect(engine, &QScriptEngine::destroyed, in, &ScriptAudioInjector::stopInjectorImmediately,
                      Qt::DirectConnection);
     

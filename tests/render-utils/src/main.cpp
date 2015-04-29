@@ -205,7 +205,7 @@ void QTestWindow::renderText() {
         { size.x + QUAD_OFFSET.x, QUAD_OFFSET.y },
         { size.x + QUAD_OFFSET.x, size.y + QUAD_OFFSET.y },
         { QUAD_OFFSET.x, size.y + QUAD_OFFSET.y },
-    };
+    };	
 
     QString str = QString::fromWCharArray(EXAMPLE_TEXT);
     for (int i = 0; i < 4; ++i) {

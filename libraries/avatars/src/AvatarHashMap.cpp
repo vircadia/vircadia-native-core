@@ -55,6 +55,17 @@ bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
     return !avatarWithDisplayName(displayName).isNull();
 }
 
+bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
+    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+        glm::vec3 avatarPosition = sharedAvatar->getPosition();
+        float distance = glm::distance(avatarPosition, position);
+        if (distance < range) {
+            return true;
+        }
+    }
+    return false;
+}
+
 AvatarWeakPointer AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
     foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
         if (sharedAvatar->getDisplayName() == displayName) {
