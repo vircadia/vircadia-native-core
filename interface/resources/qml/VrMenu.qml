@@ -121,6 +121,9 @@ Hifi.VrMenu {
             property var root
             property var listView
             property var border
+
+
+
             implicitHeight: row.implicitHeight + 4
             implicitWidth: row.implicitWidth + label.height 
             // FIXME uncommenting this line results in menus that have blank spots
@@ -137,8 +140,7 @@ Hifi.VrMenu {
                 FontAwesome {
                     id: check
                     verticalAlignment: Text.AlignVCenter
-                    y: 2
-                    size: label.height
+                    size: row.height
                     text: checkText()
                     color: label.color
                     function checkText() {
@@ -156,7 +158,10 @@ Hifi.VrMenu {
                 }
                 Text {
                   id: label
+//                  anchors.top: parent.top
+//                  anchors.bottom: parent.bottom
                   text: typedText()
+                  verticalAlignment: Text.AlignVCenter
                   color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
                   enabled: source.enabled && source.visible
                   function typedText() {
@@ -189,13 +194,11 @@ Hifi.VrMenu {
            }
             
            MouseArea {
-               anchors {
-                   top: parent.top
-                   bottom: parent.bottom
-                   left: parent.left
-                   right: tag.right
-                   rightMargin: -4
-               }
+               anchors.top: parent.top
+               anchors.bottom: parent.bottom
+               anchors.right: tag.right
+               anchors.left: parent.left
+               anchors.rightMargin: -4
                acceptedButtons: Qt.LeftButton
                hoverEnabled: true
                Rectangle {
