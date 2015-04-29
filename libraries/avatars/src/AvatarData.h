@@ -46,9 +46,9 @@ typedef unsigned long long quint64;
 #include <QReadWriteLock>
 
 #include <CollisionInfo.h>
-#include <RegisteredMetaTypes.h>
-
 #include <Node.h>
+#include <RegisteredMetaTypes.h>
+#include <SimpleMovingAverage.h>
 
 #include "AABox.h"
 #include "HandData.h"
@@ -293,10 +293,12 @@ public:
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
-    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
-     
     const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
+
+    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
+    int getAverageBytesReceivedPerSecond() const;
+    int getReceiveRate() const;
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
@@ -382,7 +384,6 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
     QWeakPointer<Node> _owningAvatarMixer;
-    QElapsedTimer _lastUpdateTimer;
     
     PlayerPointer _player;
     
@@ -394,6 +395,8 @@ protected:
     glm::vec3 _targetVelocity;
 
     AABox _localAABox;
+
+    SimpleMovingAverage _averageBytesReceived;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

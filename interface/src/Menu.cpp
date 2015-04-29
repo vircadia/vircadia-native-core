@@ -285,9 +285,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats,
-        0); // QML Qt::Key_Slash);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, 
         Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
@@ -397,6 +394,10 @@ Menu::Menu() {
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
 #endif
+    
+    auto avatarManager = DependencyManager::get<AvatarManager>(); 
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
+                                           avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);

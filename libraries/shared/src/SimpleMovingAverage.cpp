@@ -55,6 +55,6 @@ float SimpleMovingAverage::getEventDeltaAverage() const {
         (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000.0f));
 }
 
-float SimpleMovingAverage::getAverageSampleValuePerSecond() const {
-    return _average * (1.0f / getEventDeltaAverage());
+uint64_t SimpleMovingAverage::getUsecsSinceLastEvent() const {
+    return usecTimestampNow() - _lastEventTimestamp; 
 }
