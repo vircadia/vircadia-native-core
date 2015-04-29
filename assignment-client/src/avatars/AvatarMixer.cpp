@@ -45,7 +45,6 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 }
 
 AvatarMixer::~AvatarMixer() {
-    qDebug() << "AvatarMixer::~AvatarMixer";
     if (_broadcastTimer) {
         _broadcastTimer->deleteLater();
     }
@@ -65,9 +64,9 @@ const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
-
+    
     int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
-
+    
     ++_numStatFrames;
     
     const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;

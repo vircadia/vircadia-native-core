@@ -35,7 +35,7 @@ protected:
     
     void setCustomDeleter(DeleterFunction customDeleter) { _customDeleter = customDeleter; }
     DeleterFunction _customDeleter = [](Dependency* pointer) { delete pointer; };
-
+    
     friend class DependencyManager;
 };
 
