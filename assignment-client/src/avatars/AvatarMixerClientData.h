@@ -12,6 +12,7 @@
 #ifndef hifi_AvatarMixerClientData_h
 #define hifi_AvatarMixerClientData_h
 
+#include <algorithm>
 #include <cfloat>
 
 #include <QtCore/QJsonObject>
@@ -37,6 +38,11 @@ public:
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
    
     float getFullRateDistance() const { return _fullRateDistance; }
+    void setMaxFullRateDistance(float distance) { _maxFullRateDistance = distance; }
+
+    void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
+    void increaseNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
+    int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
@@ -45,6 +51,8 @@ private:
     quint64 _billboardChangeTimestamp;
     quint64 _identityChangeTimestamp;
     float _fullRateDistance = FLT_MAX;
+    float _maxFullRateDistance = FLT_MAX;
+    int _numAvatarsSentLastFrame = 0;
 };
 
 #endif // hifi_AvatarMixerClientData_h

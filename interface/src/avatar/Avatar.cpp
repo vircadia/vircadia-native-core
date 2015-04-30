@@ -715,11 +715,11 @@ void Avatar::renderDisplayName() {
     QString renderedDisplayName = _displayName;
     
     if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
-        const float BYTES_PER_KILOBYTE = 1000.0f;
-        float kilobytesPerSecond = getAverageBytesReceivedPerSecond() / BYTES_PER_KILOBYTE;
+        const float KILOBITS_PER_BYTE = 125.0f;
+        float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / KILOBITS_PER_BYTE;
     
-        renderedDisplayName += QString(" - (%1 KBps, %2 Hz)")
-                               .arg(QString::number(kilobytesPerSecond, 'f', 2))
+        renderedDisplayName += QString(" - (%1 Kbps, %2 Hz)")
+                               .arg(QString::number(kilobitsPerSecond, 'f', 2))
                                .arg(getReceiveRate());
     }
  

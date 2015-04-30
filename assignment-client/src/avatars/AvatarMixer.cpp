@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cfloat>
 #include <random>
 
 #include <QtCore/QCoreApplication>
@@ -157,16 +158,14 @@ void AvatarMixer::broadcastAvatarData() {
             
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
-            // TODO use this along with the distance in the calculation of whether to send an update 
-            // about a given otherNode to this node
-            // FIXME does this mean we should sort the othernodes by distance before iterating 
-            // over them?
-            // float outputBandwidth =
-            node->getOutboundBandwidth();
 
             // reset the internal state for correct random number distribution
             distribution.reset();
-            
+            // reset the max distance for this frame
+            float maxDistanceThisFrame = 0.0f;
+            // reset the number of sent avatars
+            nodeData->resetNumAvatarsSentLastFrame();
+
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
@@ -193,7 +192,10 @@ void AvatarMixer::broadcastAvatarData() {
                     //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
                     glm::vec3 otherPosition = otherAvatar.getPosition();
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
-                    
+
+                    // potentially update the max full rate distance for this frame
+                    maxDistanceThisFrame = std::max(maxDistanceThisFrame, distanceToAvatar);
+
                     if (distanceToAvatar != 0.0f 
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
@@ -249,7 +251,15 @@ void AvatarMixer::broadcastAvatarData() {
                     }
             });
             nodeList->writeDatagram(mixedAvatarByteArray, node);
-    });
+
+            if (nodeData->getNumAvatarsSentLastFrame() == 0) {
+                // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
+                nodeData->setMaxFullRateDistance(FLT_MAX);
+            } else {
+                nodeData->setMaxFullRateDistance(maxDistanceThisFrame);
+            }
+        }
+    );
     
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }
