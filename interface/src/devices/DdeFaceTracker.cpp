@@ -393,9 +393,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         // Use BrowsU_C to control both brows' up and down
         float browUp = _coefficients[_browUpCenterIndex];
         if (isFiltering) {
-            const float BROW_VELOCITY_FILTER_STRENGHT = 0.75f;
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
             float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
-            float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGHT, 0.0f, 1.0f);
+            float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
             _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
             _lastBrowUp = browUp;
             browUp = _filteredBrowUp;
