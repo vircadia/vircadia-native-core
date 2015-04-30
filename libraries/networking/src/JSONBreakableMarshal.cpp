@@ -154,7 +154,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
             QString keypath = marshalString.left(equalityIndex);
 
             // setup for array index checking
-            const QString ARRAY_INDEX_REGEX_STRING = "\[\\d+\\]";
+            const QString ARRAY_INDEX_REGEX_STRING = "^[\\d+]";
             QRegExp arrayRegex(ARRAY_INDEX_REGEX_STRING);
  
             // as long as we have a keypath we need to recurse downwards

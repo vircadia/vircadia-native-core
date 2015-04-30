@@ -1,7 +1,7 @@
 set(TARGET_NAME domain-server)
 
 if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
-  set(_SHOULD_SYMLINK_RESOURCES FALSE)
+  set(_SHOULD_SYMLINK_RESOURCES TRUE)
 else ()
   set(_SHOULD_SYMLINK_RESOURCES FALSE)
 endif ()
@@ -9,7 +9,9 @@ endif ()
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 
-
+# TODO: find a solution that will handle web file changes in resources on windows without a re-build.
+# Currently the resources are only copied on post-build. If one is changed but the domain-server is not, they will
+# not be re-copied. This is worked-around on OS X/UNIX by using a symlink.
 symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
 
 # link the shared hifi libraries
