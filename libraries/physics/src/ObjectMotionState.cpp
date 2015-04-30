@@ -146,7 +146,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
         _body->updateInertiaTensor();
     }
 
-    if (flags & EntityItem::DIRTY_ACTIVATION) {
+    if (flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) {
         _body->activate();
     }
 }

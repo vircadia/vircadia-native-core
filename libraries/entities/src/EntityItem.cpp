@@ -579,7 +579,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
         }
 
-        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY))) {
+        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES))) {
             // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
             // closely match where the entities should be if they'd stepped forward in time to "now". The server
             // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
@@ -940,7 +940,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         if (_created != UNKNOWN_CREATED_TIME) {
             setLastEdited(now);
         }
-        if (getDirtyFlags() & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+        if (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES)) {
             // TODO: Andrew & Brad to discuss. Is this correct? Maybe it is. Need to think through all cases.
             _lastSimulated = now;
         }
@@ -1107,7 +1107,10 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) { 
     if (value != _position) {
         auto distance = glm::distance(_position, value);
-        _dirtyFlags |= (distance > MIN_POSITION_DELTA) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+        _dirtyFlags |= EntityItem::DIRTY_POSITION;
+        if (distance > MIN_POSITION_DELTA) {
+            dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+        }
         _position = value;
     }
 }
@@ -1127,7 +1130,10 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 void EntityItem::updateRotation(const glm::quat& rotation) { 
     if (rotation != _rotation) {
         auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
-        _dirtyFlags |= (alignmentDot < MIN_ALIGNMENT_DOT) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+        _dirtyFlags |= EntityItem::DIRTY_ROTATION;
+        if (alignmentDot < MIN_ALIGNMENT_DOT) {
+            dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+        }
         _rotation = rotation;
     }
 }
@@ -1168,7 +1174,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
         } else {
             _velocity = value;
         }
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
     }
 }
 
@@ -1187,21 +1193,20 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
     }
 }
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
     if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
         _acceleration = value;
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
     auto distance = glm::distance(_angularVelocity, value);
     if (distance > MIN_SPIN_DELTA) {
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_ANGULAR_VELOCITY;
         if (glm::length(value) < MIN_SPIN_DELTA) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {

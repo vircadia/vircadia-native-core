@@ -53,15 +53,19 @@ class EntityItem {
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
-        DIRTY_VELOCITY = 0x0002,
-        DIRTY_MASS = 0x0004,
-        DIRTY_COLLISION_GROUP = 0x0008,
-        DIRTY_MOTION_TYPE = 0x0010,
-        DIRTY_SHAPE = 0x0020,
-        DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_MATERIAL = 0x00100,
-        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
+        DIRTY_ROTATOION = 0x0002;
+        DIRTY_LINEAR_VELOCITY = 0x0004,
+        DIRTY_ANGULAR_VELOCITY = 0x0008,
+        DIRTY_MASS = 0x0010,
+        DIRTY_COLLISION_GROUP = 0x0020,
+        DIRTY_MOTION_TYPE = 0x0040,
+        DIRTY_SHAPE = 0x0080,
+        DIRTY_LIFETIME = 0x0100,
+        DIRTY_UPDATEABLE = 0x0200,
+        DIRTY_MATERIAL = 0x00400,
+        DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
+        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
+        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
