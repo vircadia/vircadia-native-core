@@ -103,6 +103,7 @@
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 
+#include "devices/CameraToolBox.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
@@ -266,6 +267,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    auto cameraToolBox = DependencyManager::set<CameraToolBox>();
     auto avatarManager = DependencyManager::set<AvatarManager>();
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
@@ -1504,7 +1506,12 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                     // stop propagation
                     return;
                 }
-                
+
+                if (DependencyManager::get<CameraToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+
                 if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
                     return;
