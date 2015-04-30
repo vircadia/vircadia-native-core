@@ -176,6 +176,12 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
+// Hmmm. Build report for Windows (which I don't have) reports that MSVC thinks isdigit isn't part of std lib.
+// Fine. I'll roll my own.
+bool fakeIsDigit(int character) {
+    return ('0' <= character) && (character <= '9');
+}
+
 bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess) {
     FaceGroup faces;
     FBXMesh& mesh = geometry.meshes[0];
@@ -242,7 +248,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
                 QByteArray token = tokenizer.getDatum();
-                if (!std::isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
+                if (!fakeIsDigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
