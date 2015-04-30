@@ -391,6 +391,7 @@ public slots:
 
     void resetSensors();
     void setActiveFaceTracker();
+    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -432,6 +433,7 @@ private slots:
     void runTests();
     
     void audioMuteToggled();
+    void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
 

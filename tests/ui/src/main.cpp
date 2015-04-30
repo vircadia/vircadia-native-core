@@ -161,6 +161,7 @@ public:
         Mirror,
         MuteAudio,
         MuteEnvironment,
+        MuteFaceTracking,
         NoFaceTracking,
         NoShadows,
         OctreeStats,

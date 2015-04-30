@@ -585,6 +585,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // The offscreen UI needs to intercept the mouse and keyboard 
     // events coming from the onscreen window
     _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+
+    // initialize our face trackers after loading the menu settings
+    auto faceshiftTracker = DependencyManager::get<Faceshift>();
+    faceshiftTracker->init();
+    connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+    auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
+    ddeTracker->init();
+    connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 }
 
 
@@ -909,6 +917,12 @@ void Application::audioMuteToggled() {
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
     Q_CHECK_PTR(muteAction);
     muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
+}
+
+void Application::faceTrackerMuteToggled() {
+    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
+    Q_CHECK_PTR(muteAction);
+    muteAction->setChecked(getActiveFaceTracker()->isMuted());
 }
 
 void Application::aboutApp() {
@@ -1889,15 +1903,27 @@ FaceTracker* Application::getActiveFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() {
+    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
 #ifdef HAVE_FACESHIFT
-    DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+    auto faceshiftTracker = DependencyManager::get<Faceshift>();
+    faceshiftTracker->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+    faceshiftTracker->setIsMuted(isMuted);
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
-    DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
+    auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
+    ddeTracker->setEnabled(isUsingDDE);
+    ddeTracker->setIsMuted(isMuted);
 #endif
+}
+
+void Application::toggleFaceTrackerMute() {
+    FaceTracker* faceTracker = getActiveFaceTracker();
+    if (faceTracker) {
+        faceTracker->toggleMute();
+    }
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
@@ -2068,10 +2094,6 @@ void Application::init() {
     SixenseManager::getInstance().toggleSixense(true);
 #endif
 
-    // initialize our face trackers after loading the menu settings
-    DependencyManager::get<Faceshift>()->init();
-    DependencyManager::get<DdeFaceTracker>()->init();
-
     Leapmotion::init();
     RealSense::init();
 
@@ -2209,7 +2231,7 @@ void Application::updateMyAvatarLookAtPosition() {
             
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
-            if (tracker) {
+            if (tracker && !tracker->isMuted()) {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
@@ -2235,7 +2257,7 @@ void Application::updateMyAvatarLookAtPosition() {
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
     //
-    if (tracker) {
+    if (tracker && !tracker->isMuted()) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
@@ -2290,7 +2312,7 @@ void Application::updateCamera(float deltaTime) {
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
             Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
         FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             const float EYE_OFFSET_SCALE = 0.025f;
             glm::vec3 position = tracker->getHeadTranslation() * EYE_OFFSET_SCALE;
             float xSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 1.0f : -1.0f;
@@ -2353,7 +2375,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
         FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
         }
         SixenseManager::getInstance().update(deltaTime);

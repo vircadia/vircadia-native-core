@@ -243,7 +243,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             estimatedPosition = tracker->getHeadTranslation();
             _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));

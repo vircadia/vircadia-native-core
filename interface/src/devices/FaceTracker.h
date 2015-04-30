@@ -26,7 +26,7 @@ public:
     virtual bool isActive() const { return false; }
     virtual bool isTracking() const { return false; }
     
-    virtual void init() {}
+    virtual void init();
     virtual void update(float deltaTime);
     virtual void reset();
     
@@ -42,6 +42,13 @@ public:
     bool isValidBlendshapeIndex(int index) const { return index >= 0 && index < getNumBlendshapes(); }
     const QVector<float>& getBlendshapeCoefficients() const;
     float getBlendshapeCoefficient(int index) const;
+
+    bool isMuted() const { return _isMuted; }
+    void setIsMuted(bool isMuted) { _isMuted = isMuted; }
+    void toggleMute();
+
+signals:
+    void muteToggled();
     
 protected:
     FaceTracker();
@@ -55,6 +62,8 @@ protected:
     
     float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
     float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
+
+    bool _isMuted;
 
     void countFrame();
 

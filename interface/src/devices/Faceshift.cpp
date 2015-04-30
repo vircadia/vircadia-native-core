@@ -50,6 +50,7 @@ Faceshift::Faceshift() :
 #ifdef HAVE_FACESHIFT
 void Faceshift::init() {
     setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+    FaceTracker::init();
 }
 
 void Faceshift::update(float deltaTime) {
@@ -92,7 +93,7 @@ void Faceshift::reset() {
 
 bool Faceshift::isActive() const {
     const quint64 ACTIVE_TIMEOUT_USECS = 1000000;
-    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
+    return (usecTimestampNow() - _lastReceiveTimestamp) < ACTIVE_TIMEOUT_USECS;
 }
 
 bool Faceshift::isTracking() const {
@@ -196,6 +197,12 @@ void Faceshift::send(const std::string& message) {
 
 void Faceshift::receive(const QByteArray& buffer) {
 #ifdef HAVE_FACESHIFT
+    _lastReceiveTimestamp = usecTimestampNow();
+
+    if (_isMuted) {
+        return;
+    }
+
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -240,11 +247,11 @@ void Faceshift::receive(const QByteArray& buffer) {
 
                     const float FRAME_AVERAGING_FACTOR = 0.99f;
                     quint64 usecsNow = usecTimestampNow();
-                    if (_lastTrackingStateReceived != 0) {
+                    if (_lastMessageReceived != 0) {
                         _averageFrameTime = FRAME_AVERAGING_FACTOR * _averageFrameTime +
-                        (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastTrackingStateReceived) / 1000000.0f;
+                            (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastMessageReceived) / 1000000.0f;
                     }
-                    _lastTrackingStateReceived = usecsNow;
+                    _lastMessageReceived = usecsNow;
                 }
                 break;
             }
