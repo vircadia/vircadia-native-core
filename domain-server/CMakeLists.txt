@@ -3,37 +3,21 @@ set(TARGET_NAME domain-server)
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 
-# remove current resources dir
-add_custom_command(
-  TARGET ${TARGET_NAME} POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E remove_directory
-  $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-)
-# copy all files in resources, including web
-add_custom_command(
-  TARGET ${TARGET_NAME} POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E copy_directory
-  "${PROJECT_SOURCE_DIR}/resources"
-  $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-)
-
-if (NOT WIN32)
-  # remove the web directory so we can make it a symlink
-  add_custom_command(
-    TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources/web
-  )
-  
-  # make the web directory a symlink
-  add_custom_command(
-    TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink
-    "${PROJECT_SOURCE_DIR}/resources/web"
-    $<TARGET_FILE_DIR:${TARGET_NAME}>/resources/web
-  )
-  
+if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
+  set(SHOULD_SYMLINK_RESOURCES FALSE)
+else ()
+  set(SHOULD_SYMLINK_RESOURCES FALSE)
 endif ()
+
+copy_directory_beside_target(${SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
+
+# copy all files in resources, including web
+# add_custom_command(
+#   TARGET ${TARGET_NAME} POST_BUILD
+#   COMMAND "${CMAKE_COMMAND}" -E copy_directory
+#   "${PROJECT_SOURCE_DIR}/resources"
+#   $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+# )
 
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared)
