@@ -15,7 +15,7 @@
 
 #include <QBuffer>
 #include <QIODevice>
-#include <locale>  // This is the documented header for isdigit on MSVC. It should be unnecessary but safe on other platforms
+#include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
 
 #include "FBXReader.h"
 #include "OBJReader.h"
@@ -243,7 +243,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
                 QByteArray token = tokenizer.getDatum();
-                if (!std::isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
+                if (!isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
