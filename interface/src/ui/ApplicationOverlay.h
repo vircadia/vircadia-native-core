@@ -21,7 +21,7 @@ const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
+const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
 
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
@@ -44,10 +44,8 @@ public:
     bool hasMagnifier() const { return _magnifier; }
     void toggleMagnifier() { _magnifier = !_magnifier; }
 
-#if 0
-    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
-    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; }
-#endif
+    float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
+    void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
 
     // Converter from one frame of reference to another.
     // Frame of reference:
@@ -97,7 +95,7 @@ private:
         VerticesIndices _vbo;
     };
     
-    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
+    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;

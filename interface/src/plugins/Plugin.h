@@ -4,8 +4,6 @@
 #include <QObject>
 
 class Plugin : public QObject {
-private:
-    bool _active{ false };
 public:
     virtual const QString & getName() = 0;
     virtual bool isSupported() { return true; }

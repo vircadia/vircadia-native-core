@@ -9,3 +9,35 @@
 //
 
 #include "Tv3dRenderPlugin.h"
+
+const QString Tv3dRenderPlugin::NAME("Tv3dRenderPlugin");
+
+const QString & Tv3dRenderPlugin::getName() {
+    return NAME;
+}
+
+
+void Tv3dRenderPlugin::overrideOffAxisFrustum(
+    float& left, float& right, float& bottom, float& top,
+    float& nearVal, float& farVal,
+    glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+
+#if 0
+    if (_activeEye) {
+        left = _activeEye->left;
+        right = _activeEye->right;
+        bottom = _activeEye->bottom;
+        top = _activeEye->top;
+    }
+#endif
+
+}
+
+
+#if 0
+    } else if (TV3DManager::isConnected()) {
+
+        TV3DManager::display(_myCamera);
+
+    } else {
+#endif

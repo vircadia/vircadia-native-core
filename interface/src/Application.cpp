@@ -795,19 +795,20 @@ void Application::paintGL() {
     primaryFbo->release();
     
     QOpenGLFramebufferObject * finalFbo = DependencyManager::get<GlowEffect>()->render();
-    // This might not be needed *right now*.  We want to ensure that the FBO rendering
-    // has completed before we start trying to read from it in another context.  However
-    // once we have multi-threaded rendering, this will almost certainly be critical,
-    // but may be better handled with a fence object
-    glFinish();
 
-#if 0
+    finalFbo->bind();
     {
         PerformanceTimer perfTimer("renderOverlay");
         _applicationOverlay.renderOverlay();
         _applicationOverlay.displayOverlayTexture();
     }
-#endif
+    finalFbo->release();
+
+    // This might not be needed *right now*.  We want to ensure that the FBO rendering
+    // has completed before we start trying to read from it in another context.  However
+    // once we have multi-threaded rendering, this will almost certainly be critical,
+    // but may be better handled with a fence object
+    glFinish();
 
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
@@ -3161,16 +3162,9 @@ void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
 
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
-
-    // allow 3DTV/Oculus to override parameters from camera
     _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-#if 0
-    if (OculusManager::isConnected()) {
-        OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    } else if (TV3DManager::isConnected()) {
-        TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
-    }
-#endif
+    // allow 3DTV/Oculus to override parameters from camera
+    getActiveRenderPlugin()->overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
 bool Application::getShadowsEnabled() {
@@ -3263,10 +3257,6 @@ void Application::resetSensors() {
     DependencyManager::get<DdeFaceTracker>()->reset();
 
     getActiveRenderPlugin()->resetSensors();
-#if 0
-    OculusManager::reset();
-#endif
-
     //_leapmotion.reset();
 
 #if 0

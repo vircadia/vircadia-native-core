@@ -133,7 +133,7 @@ void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
 }
 
 ApplicationOverlay::ApplicationOverlay() :
-    _textureFov(glm::radians(DEFAULT_OCULUS_UI_ANGULAR_SIZE)),
+    _textureFov(glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE)),
     _textureAspectRatio(1.0f),
     _lastMouseMove(0),
     _magnifier(true),
@@ -172,7 +172,7 @@ void ApplicationOverlay::renderOverlay() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Overlays& overlays = qApp->getOverlays();
     
-    _textureFov = glm::radians(_oculusUIAngularSize);
+    _textureFov = glm::radians(_hmdUIAngularSize);
     glm::vec2 canvasSize = Application::getInstance()->getCanvasSize();
     _textureAspectRatio = canvasSize.x / canvasSize.y;;
 
@@ -187,7 +187,7 @@ void ApplicationOverlay::renderOverlay() {
     _overlays.buildFramebufferObject();
     _overlays.bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     glPushMatrix(); {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
@@ -450,9 +450,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
-#if 0
-    if (OculusManager::isConnected()) {
-        auto glCanvas = Application::getInstance()->getGLWidget();
+    if (qApp->getActiveRenderPlugin()->isHmd()) {
         float t;
 
         //We back the ray up by dir to ensure that it will not start inside the UI.
@@ -470,9 +468,10 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
                 float u = asin(collisionPos.x) / (_textureFov)+0.5f;
                 float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
+                auto size = qApp->getActiveRenderPlugin()->getCanvasSize();
 
-                rv.setX(u * glCanvas->width());
-                rv.setY(v * glCanvas->height());
+                rv.setX(u * size.x);
+                rv.setY(v * size.y);
             }
         } else {
             //if they did not click on the overlay, just set the coords to INT_MAX
@@ -480,7 +479,6 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
             rv.setY(INT_MAX);
         }
     } else {
-#endif
         glm::dmat4 projection;
         qApp->getProjectionMatrix(&projection);
 
@@ -493,9 +491,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
         glm::ivec2 canvasSize = Application::getInstance()->getCanvasSize();
         rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * canvasSize.x);
         rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * canvasSize.y);
-#if 0
     }
-#endif
     return rv;
 }
 
@@ -528,20 +524,20 @@ void ApplicationOverlay::renderPointers() {
     
     glActiveTexture(GL_TEXTURE0);
     _crosshairTexture->bind();
-#if 0
 
-    if (OculusManager::isConnected() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
-        auto glCanvas = Application::getInstance()->getGLWidget();
+    if (qApp->getActiveRenderPlugin()->isHmd() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
+        glm::ivec2 trueMouse = qApp->getActiveRenderPlugin()->getTrueMousePosition();
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
         }
-        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
+        QPoint position(trueMouse.x, trueMouse.y);
         
         static const int MAX_IDLE_TIME = 3;
         if (_reticlePosition[MOUSE] != position) {
             _lastMouseMove = usecTimestampNow();
         } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
+#if 0
             float pitch = 0.0f, yaw = 0.0f, roll = 0.0f; // radians
             OculusManager::getEulerAngles(yaw, pitch, roll);
             glm::quat orientation(glm::vec3(pitch, yaw, roll));
@@ -559,6 +555,7 @@ void ApplicationOverlay::renderPointers() {
             } else {
                 qDebug() << "No collision point";
             }
+#endif
         }
         
         _reticlePosition[MOUSE] = position;
@@ -566,9 +563,7 @@ void ApplicationOverlay::renderPointers() {
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else 
-#endif
-    if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else  if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
         _lastMouseMove = 0;
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
@@ -916,7 +911,6 @@ void ApplicationOverlay::renderStatsAndLogs() {
     Application* application = Application::getInstance();
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
     const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
@@ -944,7 +938,10 @@ void ApplicationOverlay::renderStatsAndLogs() {
         int timerBottom =
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
-        drawText(glCanvas->width() - 100, glCanvas->height() - timerBottom,
+
+        auto size = qApp->getActiveRenderPlugin()->getCanvasSize();
+//        auto glCanvas = Application::getInstance()->getGLWidget();
+        drawText(size.x - 100, size.y - timerBottom,
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();

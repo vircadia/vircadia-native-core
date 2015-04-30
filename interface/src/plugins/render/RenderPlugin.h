@@ -30,13 +30,31 @@ public:
     virtual void postRender() {};
 
     // Pointer support
+
+    // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
+    // The size of the rendering surface
     virtual QSize getRecommendedFramebufferSize() const = 0;
+    // The size of the window (differs from the framebuffers size in instances like Retina macs)
     virtual glm::ivec2 getCanvasSize() const = 0;
-    virtual glm::ivec2 getUiMousePosition() const = 0;
+
+    // The mouse position relative to the window (or proxy window) surface
     virtual glm::ivec2 getTrueMousePosition() const = 0;
+
+    // The mouse position relative to the UI elements
+    virtual glm::ivec2 getUiMousePosition() const {
+        return trueMouseToUiMouse(getTrueMousePosition()); 
+    }
+
+    // Convert from screen mouse coordinates to UI mouse coordinates
+    virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const { return position; };
+
     virtual PickRay computePickRay(const glm::vec2 & pos) const = 0;
     virtual bool isMouseOnScreen() const;
+    virtual void overrideOffAxisFrustum(
+        float& left, float& right, float& bottom, float& top,
+        float& nearVal, float& farVal,
+        glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const { }
 
     // HMD specific methods
     // TODO move these into another class

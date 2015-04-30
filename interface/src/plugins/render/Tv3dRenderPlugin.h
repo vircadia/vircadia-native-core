@@ -11,3 +11,16 @@
 #pragma once
 
 #include "StereoRenderPlugin.h"
+
+class Tv3dRenderPlugin : public StereoRenderPlugin {
+    Q_OBJECT
+public:
+    static const QString NAME;
+    virtual const QString & getName();
+
+    virtual void overrideOffAxisFrustum(
+        float& left, float& right, float& bottom, float& top,
+        float& nearVal, float& farVal,
+        glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+};

@@ -10,68 +10,31 @@
 #pragma once
 
 #include "HmdRenderPlugin.h"
+#include <functional>
 
-class OculusRenderPluginBase : public HmdRenderPlugin {
+class OculusBaseRenderPlugin : public HmdRenderPlugin {
+public:
+    virtual bool isSupported();
 
+    virtual void init();
+    virtual void deinit();
+
+    virtual void activate();
+    virtual void deactivate();
+
+    virtual void overrideOffAxisFrustum(
+        float& left, float& right, float& bottom, float& top,
+        float& nearVal, float& farVal,
+        glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
+
+protected:
+    virtual bool isRiftPresent();
+    virtual bool isDirectMode();
+
+    static bool sdkInitialized;
+
+    static void withSdkActive(std::function<void()> f);
+    static bool enableSdk();
+    static void disableSdk();
 };
-
-#if 0
-// Set the desired FBO texture size. If it hasn't changed, this does nothing.
-// Otherwise, it must rebuild the FBOs
-if (OculusManager::isConnected()) {
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
-} else {
-
-
-
-
-#endif
-
-#if 0
-    // Update camera position
-    if (!OculusManager::isConnected()) {
-        _myCamera.update(1.0f / _fps);
-    }
-#endif
-
-#if 0
-    if (OculusManager::isConnected()) {
-        //When in mirror mode, use camera rotation. Otherwise, use body rotation
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
-        } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
-        }
-        _myCamera.update(1.0f / _fps);
-
-    } else if (TV3DManager::isConnected()) {
-
-        TV3DManager::display(_myCamera);
-
-    } else {
-#endif
-
-#if 0
-        OculusManager::abandonCalibration();
-#endif
-
-#if 0
-        if (OculusManager::isConnected()) {
-            return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
-                getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
-        }
-#endif
-
-#if 0
-        if (OculusManager::isConnected()) {
-            glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-            return pos.x;
-        }
-#endif
-#if 0
-        if (OculusManager::isConnected()) {
-            glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-            return pos.y;
-        }
-#endif
-
