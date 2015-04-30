@@ -388,7 +388,42 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
+
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
     
+    qDebug() << "Waiting for domain settings from domain-server.";
+    
+    // block until we get the settingsRequestComplete signal
+    QEventLoop loop;
+    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
+    domainHandler.requestDomainSettings();
+    loop.exec();
+    
+    if (domainHandler.getSettingsObject().isEmpty()) {
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return;
+    }
+    
+    // parse the settings to pull out the values we need
+    parseDomainServerSettings(domainHandler.getSettingsObject());
+
     // start the broadcastThread
     _broadcastThread.start();
+}
+
+void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
+    const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
+    const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
+    
+    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
+    QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
+    if (!nodeBandwidthValue.isDouble()) {
+        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value of" 
+            << DEFAULT_NODE_SEND_BANDWIDTH;
+    }
+
+    _maxMbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH);
 }
