@@ -56,3 +56,7 @@ public:
     void fbxDebugDump(const FBXGeometry& fbxgeo);
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
 };
+
+// What are these utilities doing here? Apparently used by fbx loading code in VHACD Utils.
+void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID);
+void fbxDebugDump(const FBXGeometry& fbxgeo);
