@@ -79,7 +79,7 @@ void SimpleEntitySimulation::deleteEntityInternal(EntityItem* entity) {
     }
 }
 
-const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_MOTION_TYPE;
+const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITIES | EntityItem::DIRTY_MOTION_TYPE;
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
     int dirtyFlags = entity->getDirtyFlags();

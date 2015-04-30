@@ -53,7 +53,7 @@ class EntityItem {
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
-        DIRTY_ROTATOION = 0x0002;
+        DIRTY_ROTATION = 0x0002,
         DIRTY_LINEAR_VELOCITY = 0x0004,
         DIRTY_ANGULAR_VELOCITY = 0x0008,
         DIRTY_MASS = 0x0010,

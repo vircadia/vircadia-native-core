@@ -26,13 +26,16 @@ typedef QSet<EntityItem*> SetOfEntities;
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
 const int DIRTY_SIMULATION_FLAGS = 
         EntityItem::DIRTY_POSITION |
-        EntityItem::DIRTY_VELOCITY |
+        EntityItem::DIRTY_ROTATION |
+        EntityItem::DIRTY_LINEAR_VELOCITY |
+        EntityItem::DIRTY_ANGULAR_VELOCITY |
         EntityItem::DIRTY_MASS |
         EntityItem::DIRTY_COLLISION_GROUP |
         EntityItem::DIRTY_MOTION_TYPE |
         EntityItem::DIRTY_SHAPE |
         EntityItem::DIRTY_LIFETIME |
-        EntityItem::DIRTY_UPDATEABLE;
+        EntityItem::DIRTY_UPDATEABLE |
+        EntityItem::DIRTY_MATERIAL;
 
 class EntitySimulation : public QObject {
 Q_OBJECT

@@ -1109,7 +1109,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
         auto distance = glm::distance(_position, value);
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
         if (distance > MIN_POSITION_DELTA) {
-            dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         }
         _position = value;
     }
@@ -1132,7 +1132,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
         _dirtyFlags |= EntityItem::DIRTY_ROTATION;
         if (alignmentDot < MIN_ALIGNMENT_DOT) {
-            dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         }
         _rotation = rotation;
     }
