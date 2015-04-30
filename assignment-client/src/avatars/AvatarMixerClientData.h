@@ -24,8 +24,6 @@
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    AvatarMixerClientData();
-
     int parseData(const QByteArray& packet);
     AvatarData& getAvatar() { return _avatar; }
     
@@ -44,15 +42,20 @@ public:
     void increaseNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
+    int getNumFramesSinceAdjustment() const { return _numFramesSinceAdjustment; }
+    void increaseNumFramesSinceAdjustment() { ++_numFramesSinceAdjustment; }
+    void resetNumFramesSinceAdjustment() { _numFramesSinceAdjustment = 0; }
+
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
-    bool _hasReceivedFirstPackets;
-    quint64 _billboardChangeTimestamp;
-    quint64 _identityChangeTimestamp;
+    bool _hasReceivedFirstPackets = false;
+    quint64 _billboardChangeTimestamp = 0;
+    quint64 _identityChangeTimestamp = 0;
     float _fullRateDistance = FLT_MAX;
     float _maxFullRateDistance = FLT_MAX;
     int _numAvatarsSentLastFrame = 0;
+    int _numFramesSinceAdjustment = 0;
 };
 
 #endif // hifi_AvatarMixerClientData_h

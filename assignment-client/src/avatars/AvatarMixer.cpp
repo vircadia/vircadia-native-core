@@ -30,7 +30,8 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / 60.0f) * 1000;
+const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60; 
+const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -54,6 +55,8 @@ AvatarMixer::~AvatarMixer() {
 
 void attachAvatarDataToNode(Node* newNode) {
     if (!newNode->getLinkedData()) {
+        // setup the client linked data - default the number of frames since adjustment
+        // to our number of frames per second
         newNode->setLinkedData(new AvatarMixerClientData());
     }
 }
@@ -166,6 +169,17 @@ void AvatarMixer::broadcastAvatarData() {
             // reset the number of sent avatars
             nodeData->resetNumAvatarsSentLastFrame();
 
+            // Check if it is time to adjust what we send this client based on the observed
+            // bandwidth to this node. We do this once a second, which is also the window for
+            // the bandwidth reported by node->getOutboundBandwidth();
+            if (nodeData->getNumFramesSinceAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
+                qDebug() << "Consider adjustment for avatar whose current send rate is" << node->getOutboundBandwidth();
+            
+                nodeData->resetNumFramesSinceAdjustment();
+            } else {
+                nodeData->increaseNumFramesSinceAdjustment();
+            }
+
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
@@ -185,6 +199,7 @@ void AvatarMixer::broadcastAvatarData() {
                     if (!lock.isLocked()) {
                         return;
                     }
+                    
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
                     //  Decide whether to send this avatar's data based on it's distance from us
                     
