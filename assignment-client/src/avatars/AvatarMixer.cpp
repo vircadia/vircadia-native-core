@@ -344,7 +344,7 @@ void AvatarMixer::sendStatsPacket() {
     // add stats for each listerner
     nodeList->eachNode([&](const SharedNodePointer& node) {
         QJsonObject avatarStats;
-        avatarStats["bytes_per_second"] = node->getOutboundBandwidth();
+        avatarStats["kbps"] = node->getOutboundBandwidth();
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
             clientData->loadJSONStats(avatarStats);
