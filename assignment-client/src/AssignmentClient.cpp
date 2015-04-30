@@ -18,6 +18,7 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
+#include <AvatarHashMap.h>
 #include <EntityScriptingInterface.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
@@ -53,7 +54,10 @@ AssignmentClient::AssignmentClient(int ppid, Assignment::Type requestAssignmentT
     // create a NodeList as an unassigned client
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned); // Order is important
+    
+    auto animationCache = DependencyManager::set<AnimationCache>();
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 
     // make up a uuid for this child so the parent can tell us apart.  This id will be changed
