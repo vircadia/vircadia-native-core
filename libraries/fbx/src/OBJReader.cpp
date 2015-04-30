@@ -368,8 +368,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
             geometry.meshExtents.addPoint(vertex);
         }
         //fbxDebugDump(geometry);
-    }
-    catch(const std::exception& e) {
+    } catch(const std::exception& e) {
         qCDebug(modelformat) << "something went wrong in OBJ reader: " << e.what();
     }
 
@@ -378,7 +377,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
 
 
 
-void OBJReader::fbxDebugDump(const FBXGeometry& fbxgeo) {
+void fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << fbxgeo.offset;

@@ -53,10 +53,9 @@ public:
     QVector<FaceGroup> faceGroups;
     FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping);
     FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping);
-    void fbxDebugDump(const FBXGeometry& fbxgeo);
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
 };
 
-// What are these utilities doing here? Apparently used by fbx loading code in VHACD Utils.
-void setMeshPartDefaults(FBXMeshPart &meshPart, QString materialID);
+// What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
+void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID);
 void fbxDebugDump(const FBXGeometry& fbxgeo);
