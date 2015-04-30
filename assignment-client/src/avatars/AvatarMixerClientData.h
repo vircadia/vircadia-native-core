@@ -14,6 +14,7 @@
 
 #include <cfloat>
 
+#include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
 
 #include <AvatarData.h>
@@ -35,7 +36,9 @@ public:
     quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
    
-    float getFullRateDistance() const { return _fullRateDistance; } 
+    float getFullRateDistance() const { return _fullRateDistance; }
+
+    void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
     bool _hasReceivedFirstPackets;

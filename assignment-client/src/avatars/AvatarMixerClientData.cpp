@@ -33,3 +33,8 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
     _hasReceivedFirstPackets = true;
     return oldValue;
 }
+
+void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
+    jsonObject["display_name"] = _avatar.getDisplayName();
+    jsonObject["full_rate_distance"] = _fullRateDistance;
+}

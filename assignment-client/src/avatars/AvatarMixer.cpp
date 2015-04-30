@@ -337,9 +337,25 @@ void AvatarMixer::sendStatsPacket() {
     
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+
+    QJsonObject avatarsObject;
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    // add stats for each listerner
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        QJsonObject avatarStats;
+        avatarStats["bytes_per_second"] = node->getOutboundBandwidth();
+        AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            clientData->loadJSONStats(avatarStats);
+        }
+
+        avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
+    });
+
+    statsObject["avatars"] = avatarsObject;
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
-    
+     
     _sumListeners = 0;
     _sumBillboardPackets = 0;
     _sumIdentityPackets = 0;

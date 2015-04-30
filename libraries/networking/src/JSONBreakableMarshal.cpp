@@ -121,10 +121,10 @@ QVariant JSONBreakableMarshal::fromString(const QString& marshalValue) {
         } else {
             // we need to figure out if this is a string
             // use a regex to look for surrounding quotes first
-            const QString JSON_STRING_REGEX = "\\A\"([\\w\\W]*)\"\\z";
+            const QString JSON_STRING_REGEX = "^\"([\\s\\S]*)\"$";
             QRegExp stringRegex(JSON_STRING_REGEX);
-            
-            if (stringRegex.indexIn(marshalValue)) {
+             
+            if (stringRegex.indexIn(marshalValue) != -1) {
                 // set the result to the string value
                 result = stringRegex.cap(1);
             } else {
