@@ -369,7 +369,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Translate DDE coefficients to Faceshift compatible coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
             _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
 
@@ -393,7 +393,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         float eyeBlinks[] = { DDE_EYEBLINK_SCALE * _coefficients[_leftBlinkIndex], DDE_EYEBLINK_SCALE * _coefficients[_rightBlinkIndex] };
         if (isFiltering) {
             const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
-            for (int i = 0; i < 2; i += 1) {
+            for (int i = 0; i < 2; i++) {
                 float velocity = fabs(eyeBlinks[i] - _lastEyeBlinks[i]) / _averageMessageTime;
                 float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
                 _filteredEyeBlinks[i] = velocityFilter * eyeBlinks[i] + (1.0f - velocityFilter) * _filteredEyeBlinks[i];
@@ -403,7 +403,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         // Finesse EyeBlink values
         float eyeCoefficients[2];
-        for (int i = 0; i < 2; i += 1) {
+        for (int i = 0; i < 2; i++) {
             // Scale EyeBlink values so that they can be used to control both EyeBlink and EyeOpen
             // -ve values control EyeOpen; +ve values control EyeBlink
             static const float EYE_CONTROL_THRESHOLD = 0.5f;  // Resting eye value
@@ -472,7 +472,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Scale all coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
             _blendshapeCoefficients[i]
                 = glm::clamp(DDE_COEFFICIENT_SCALES[i] * _coefficients[i], 0.0f, 1.0f);
         }
