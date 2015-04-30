@@ -53,7 +53,7 @@ Octree* EntityServer::createTree() {
 }
 
 void EntityServer::beforeRun() {
-    _pruneDeletedEntitiesTimer = new QTimer(this);
+    _pruneDeletedEntitiesTimer = new QTimer();
     connect(_pruneDeletedEntitiesTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntities()));
     const int PRUNE_DELETED_MODELS_INTERVAL_MSECS = 1 * 1000; // once every second
     _pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);

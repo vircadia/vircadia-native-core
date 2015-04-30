@@ -74,13 +74,13 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     // this is a temp fix for Qt 5.3 - rebinding the node socket gives us readyRead for the socket on this thread
     nodeList->rebindNodeSocket();
     
-    _domainServerTimer = new QTimer(this);
+    _domainServerTimer = new QTimer();
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
     if (shouldSendStats) {
         // send a stats packet every 1 second
-        _statsTimer = new QTimer(this);
+        _statsTimer = new QTimer();
         connect(_statsTimer, &QTimer::timeout, this, &ThreadedAssignment::sendStatsPacket);
         _statsTimer->start(1000);
     }
