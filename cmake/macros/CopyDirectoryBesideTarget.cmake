@@ -1,0 +1,36 @@
+#
+#  CopyDirectoryBesideTarget.cmake 
+#  cmake/macros
+#
+#  Created by Stephen Birarda on 04/30/15.
+#  Copyright 2015 High Fidelity, Inc.
+#
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+#
+
+macro(COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY _DESTINATION)
+  if (${_SHOULD_SYMLINK})
+    # the caller wants a symlink, so just add a command to symlink the DIR beside target
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E create_symlink
+      "${_DIRECTORY}"
+      $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+    ) 
+  else ()
+    # remove the current directory
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E remove_directory $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+    )
+
+    # copy the directory
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD 
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${_DIRECTORY} 
+        $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+    )
+  endif ()
+  # glob everything in this directory - add a custom command to copy any files
+endmacro(COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY)

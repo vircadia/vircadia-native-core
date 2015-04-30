@@ -4,9 +4,9 @@ set(TARGET_NAME domain-server)
 setup_hifi_project(Network)
 
 if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
-  set(SHOULD_SYMLINK_RESOURCES FALSE)
+  set(SHOULD_SYMLINK_RESOURCES TRUE)
 else ()
-  set(SHOULD_SYMLINK_RESOURCES FALSE)
+  set(SHOULD_SYMLINK_RESOURCES TRUE)
 endif ()
 
 copy_directory_beside_target(${SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
