@@ -118,8 +118,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     float size = glm::length(dimensions);
-    
-    if (drawAsModel) {
+
+    bool highlightSimulationOwnership = false;
+    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
+    }
+
+    if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
         glPushMatrix();
         {
@@ -224,10 +231,10 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCollisionModelURL());
+            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL(), getCollisionModelURL());
+            result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else { // we already have the model we want...
             result = _model;
@@ -267,61 +274,56 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
-void RenderableModelEntityItem::setCollisionModelURL(const QString& url) {
-    ModelEntityItem::setCollisionModelURL(url);
+void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    ModelEntityItem::setCompoundShapeURL(url);
     if (_model) {
         _model->setCollisionModelURL(QUrl(url));
     }
 }
 
-bool RenderableModelEntityItem::hasCollisionModel() const {
-    if (_model) {
-        return ! _model->getCollisionURL().isEmpty();
-    } else {
-        return !_collisionModelURL.isEmpty();
-    }
-}
-
-const QString& RenderableModelEntityItem::getCollisionModelURL() const {
-    // assert (!_model || _collisionModelURL == _model->getCollisionURL().toString());
-    return _collisionModelURL;
-}
-
 bool RenderableModelEntityItem::isReadyToComputeShape() {
+    ShapeType type = getShapeType();
+    if (type == SHAPE_TYPE_COMPOUND) {
 
-    if (!_model) {
-        return false; // hmm...
+        if (!_model) {
+            return false; // hmm...
+        }
+
+        assert(!_model->getCollisionURL().isEmpty());
+    
+        if (_model->getURL().isEmpty()) {
+            // we need a render geometry with a scale to proceed, so give up.
+            return false;
+        }
+    
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+    
+        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
+            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+            // we have both URLs AND both geometries AND they are both fully loaded.
+            return true;
+        }
+
+        // the model is still being downloaded.
+        return false;
     }
-
-    if (_model->getCollisionURL().isEmpty()) {
-        // no collision-model url, so we're ready to compute a shape (of type None).
-        return true;
-    }
-    if (_model->getURL().isEmpty()) {
-        // we need a render geometry with a scale to proceed, so give up.
-        return true;
-    }
-
-    const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-    const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-
-    if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
-        (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
-        // we have both URLs AND both geometries AND they are both fully loaded.
-        return true;
-    }
-
-    // the model is still being downloaded.
-    return false;
+    return true;
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
-    if (_model->getCollisionURL().isEmpty() || _model->getURL().isEmpty()) {
-        info.setParams(getShapeType(), 0.5f * getDimensions());
+    ShapeType type = getShapeType();
+    if (type != SHAPE_TYPE_COMPOUND) {
+        ModelEntityItem::computeShapeInfo(info);
+        info.setParams(type, 0.5f * getDimensions());
     } else {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
 
+        // should never fall in here when collision model not fully loaded
+        // hence we assert collisionNetworkGeometry is not NULL
+        assert(!collisionNetworkGeometry.isNull());
+
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
         const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
 
@@ -415,18 +417,17 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(getShapeType(), collisionModelDimensions, _collisionModelURL);
+        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
     }
 }
 
-ShapeType RenderableModelEntityItem::getShapeType() const {
-    // XXX make hull an option in edit.js ?
-    if (!_model || _model->getCollisionURL().isEmpty()) {
-        return _shapeType;
-    } else if (_points.size() == 1) {
-        return SHAPE_TYPE_CONVEX_HULL;
-    } else {
-        return SHAPE_TYPE_COMPOUND;
+bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
+    if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+        return collisionGeometry.convexHullContains(worldToEntity(point));
     }
+    
+    return false;
 }

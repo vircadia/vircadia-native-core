@@ -54,8 +54,7 @@ Camera::Camera() :
     _nearClip(DEFAULT_NEAR_CLIP), // default
     _farClip(DEFAULT_FAR_CLIP), // default
     _hmdPosition(),
-    _hmdRotation(),
-    _scale(1.0f)
+    _hmdRotation()
 {
 }
 
@@ -76,8 +75,8 @@ void Camera::setHmdRotation(const glm::quat& hmdRotation) {
 }
 
 float Camera::getFarClip() const {
-    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
-            ? _scale * _farClip
+    return (_farClip < std::numeric_limits<int16_t>::max())
+            ? _farClip
             : std::numeric_limits<int16_t>::max() - 1;
 }
 

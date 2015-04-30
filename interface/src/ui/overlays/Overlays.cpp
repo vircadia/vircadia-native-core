@@ -90,8 +90,8 @@ void Overlays::renderHUD() {
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
                         lodManager->getOctreeSizeScale(),
                         lodManager->getBoundaryLevelAdjust(),
-                        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
@@ -108,7 +108,10 @@ void Overlays::renderHUD() {
     }
 }
 
-void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
+void Overlays::renderWorld(bool drawFront,
+                           RenderArgs::RenderMode renderMode,
+                           RenderArgs::RenderSide renderSide,
+                           RenderArgs::DebugFlags renderDebugFlags) {
     QReadLocker lock(&_lock);
     if (_overlaysWorld.size() == 0) {
         return;
@@ -125,8 +128,8 @@ void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, Re
     RenderArgs args = { NULL, Application::getInstance()->getDisplayViewFrustum(),
                         lodManager->getOctreeSizeScale(),
                         lodManager->getBoundaryLevelAdjust(),
-                        renderMode, renderSide,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        renderMode, renderSide, renderDebugFlags,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
     foreach(Overlay* thisOverlay, _overlaysWorld) {

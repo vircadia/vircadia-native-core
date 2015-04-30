@@ -14,7 +14,7 @@
 #include <QVector>
 #include <QDateTime>
 #include <QFileInfo>
-
+#include <QDir>
 #include "PathUtils.h"
 
 
@@ -24,6 +24,7 @@ QString& PathUtils::resourcesPath() {
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
+
     return staticResourcePath;
 }
 

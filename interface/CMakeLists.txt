@@ -106,18 +106,15 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  # grab the directories in resources and put them in the right spot in Resources
-  file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
-  foreach(DIR ${RESOURCE_SUBDIRS})
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/resources/${DIR}")
-      FILE(GLOB DIR_CONTENTS "resources/${DIR}/*")
-      SET_SOURCE_FILES_PROPERTIES(${DIR_CONTENTS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${DIR}")
+  set(DISCOVERED_RESOURCES "") 
 
-      SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${DIR_CONTENTS}")
-    endif()
-  endforeach()
+  # use the add_resources_to_os_x_bundle macro to recurse into resources
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources") 
 
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+  # append the discovered resources to our list of interface sources
+  list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
+  
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
@@ -146,7 +143,7 @@ target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
-                    render-utils entities-renderer)
+                    render-utils entities-renderer ui)
 
 add_dependency_external_projects(sdl2)
 
@@ -187,15 +184,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
     endif ()
   endif ()
 endforeach()
-
-# special APPLE modifications for Visage library
-if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
-  add_definitions(-DMAC_OS_X)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
-  find_library(AVFoundation AVFoundation)
-  find_library(CoreMedia CoreMedia)
-  target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-endif ()
 
 # special OS X modifications for RtMidi library
 if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  

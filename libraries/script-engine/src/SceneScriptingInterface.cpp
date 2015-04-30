@@ -46,20 +46,44 @@ int SceneScriptingInterface::getStageYearTime() const {
     return _skyStage->getYearTime();
 }
 
-void SceneScriptingInterface::setSunColor(const glm::vec3& color) {
+void SceneScriptingInterface::setKeyLightColor(const glm::vec3& color) {
     _skyStage->setSunColor(color);
 }
 
-const glm::vec3& SceneScriptingInterface::getSunColor() const {
+glm::vec3 SceneScriptingInterface::getKeyLightColor() const {
     return _skyStage->getSunColor();
 }
 
-void SceneScriptingInterface::setSunIntensity(float intensity) {
+void SceneScriptingInterface::setKeyLightIntensity(float intensity) {
     _skyStage->setSunIntensity(intensity);
 }
 
-float SceneScriptingInterface::getSunIntensity() const {
+float SceneScriptingInterface::getKeyLightIntensity() const {
     return _skyStage->getSunIntensity();
+}
+
+void SceneScriptingInterface::setKeyLightAmbientIntensity(float intensity) {
+    _skyStage->setSunAmbientIntensity(intensity);
+}
+
+float SceneScriptingInterface::getKeyLightAmbientIntensity() const {
+    return _skyStage->getSunAmbientIntensity();
+}
+
+void SceneScriptingInterface::setKeyLightDirection(const glm::vec3& direction) {
+    _skyStage->setSunDirection(direction);
+}
+
+glm::vec3 SceneScriptingInterface::getKeyLightDirection() const {
+    return _skyStage->getSunDirection();
+}
+
+void SceneScriptingInterface::setStageSunModelEnable(bool isEnabled) {
+    _skyStage->setSunModelEnable(isEnabled);
+}
+
+bool SceneScriptingInterface::isStageSunModelEnabled() const {
+    return _skyStage->isSunModelEnabled();
 }
 
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {

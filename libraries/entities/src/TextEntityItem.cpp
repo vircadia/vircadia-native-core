@@ -48,11 +48,6 @@ void TextEntityItem::setDimensions(const glm::vec3& value) {
     _dimensions = glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
 }
 
-void TextEntityItem::setDimensionsInDomainUnits(const glm::vec3& value) {
-    // NOTE: Text Entities always have a "depth" of 1cm.
-    _dimensions = glm::vec3(value.x * (float)TREE_SCALE, value.y * (float)TREE_SCALE, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
-}
-
 EntityItemProperties TextEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 

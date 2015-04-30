@@ -23,6 +23,8 @@
 
 #include "Pipeline.h"
 
+#include "Framebuffer.h"
+
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
     class ProfileRange {
@@ -112,6 +114,8 @@ public:
     void setUniformTexture(uint32 slot, const TexturePointer& view);
     void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
 
+    // Framebuffer Stage
+    void setFramebuffer(const FramebufferPointer& framebuffer);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -169,6 +173,8 @@ public:
 
         COMMAND_setUniformBuffer,
         COMMAND_setUniformTexture,
+
+        COMMAND_setFramebuffer,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -266,6 +272,7 @@ public:
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
+    typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -289,6 +296,7 @@ public:
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
     PipelineCaches _pipelines;
+    FramebufferCaches _framebuffers;
 
 protected:
 };

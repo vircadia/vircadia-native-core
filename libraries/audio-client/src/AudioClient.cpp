@@ -493,7 +493,7 @@ void AudioClient::start() {
     _sourceGain.initialize();
     _noiseSource.initialize();
     _toneSource.initialize();
-    _sourceGain.setParameters(0.25f, 0.0f);
+    _sourceGain.setParameters(0.05f, 0.0f);
     _inputGain.setParameters(1.0f, 0.0f);
 }
 
@@ -726,9 +726,9 @@ void AudioClient::handleAudioInput() {
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     QByteArray inputByteArray = _inputDevice->readAll();
-
+    
+    //  Add audio source injection if enabled
     if (!_muted && _audioSourceInjectEnabled) {
-        
         int16_t* inputFrameData = (int16_t*)inputByteArray.data();
         const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
 
@@ -737,17 +737,12 @@ void AudioClient::handleAudioInput() {
 #if ENABLE_INPUT_GAIN
         _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
 #endif
-        //  Add audio source injection if enabled
-        if (_audioSourceInjectEnabled) {
-         
-            if (_toneSourceEnabled) {  // sine generator
-                _toneSource.render(_inputFrameBuffer);
-            }
-            else if(_noiseSourceEnabled) { // pink noise generator
-                _noiseSource.render(_inputFrameBuffer);
-            }
-            _sourceGain.render(_inputFrameBuffer); // post gain
+        if (_toneSourceEnabled) {  // sine generator
+            _toneSource.render(_inputFrameBuffer);
+        } else if(_noiseSourceEnabled) { // pink noise generator
+            _noiseSource.render(_inputFrameBuffer);
         }
+        _sourceGain.render(_inputFrameBuffer); // post gain
         _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
     }
     
@@ -972,8 +967,8 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
     }
 }
 
-void AudioClient::toggleAudioSourceInject() {
-    _audioSourceInjectEnabled = !_audioSourceInjectEnabled;
+void AudioClient::enableAudioSourceInject(bool enable) {
+    _audioSourceInjectEnabled = enable;
 }
 
 void AudioClient::selectAudioSourcePinkNoise() {

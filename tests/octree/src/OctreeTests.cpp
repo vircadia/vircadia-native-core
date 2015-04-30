@@ -74,7 +74,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
         props.setHasProperty(PROP_POSITION);
         props.setHasProperty(PROP_RADIUS);
         props.setHasProperty(PROP_MODEL_URL);
-        props.setHasProperty(PROP_COLLISION_MODEL_URL);
+        props.setHasProperty(PROP_COMPOUND_SHAPE_URL);
         props.setHasProperty(PROP_ROTATION);
     
         QByteArray encoded = props.encode();

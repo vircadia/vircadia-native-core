@@ -13,14 +13,13 @@
 #define hifi_GlowEffect_h
 
 #include <gpu/GPUConfig.h>
+#include <gpu/Framebuffer.h>
 
 #include <QObject>
 #include <QGLWidget>
 #include <QStack>
 
 #include <DependencyManager.h>
-
-class QOpenGLFramebufferObject;
 
 class ProgramObject;
 
@@ -33,7 +32,7 @@ public:
    
     /// Returns a pointer to the framebuffer object that the glow effect is *not* using for persistent state
     /// (either the secondary or the tertiary).
-    QOpenGLFramebufferObject* getFreeFramebufferObject() const;
+    gpu::FramebufferPointer getFreeFramebuffer() const;
     
     void init(bool enabled);
     
@@ -53,7 +52,7 @@ public:
     /// Renders the glow effect.  To be called after rendering the scene.
     /// \param toTexture whether to render to a texture, rather than to the frame buffer
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
-    QOpenGLFramebufferObject* render();
+    gpu::FramebufferPointer render();
 
 public slots:
     void toggleGlowEffect(bool enabled);

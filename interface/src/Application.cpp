@@ -35,7 +35,6 @@
 #include <QMouseEvent>
 #include <QNetworkReply>
 #include <QNetworkDiskCache>
-#include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
 #include <QScreen>
@@ -64,6 +63,7 @@
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
+#include <VrMenu.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <ModelEntityItem.h>
@@ -83,6 +83,7 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
+#include <MessageDialog.h>
 
 #include <SceneScriptingInterface.h>
 
@@ -109,7 +110,6 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-#include "devices/Visage.h"
 
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
@@ -137,6 +137,7 @@
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
+#include "ui/AddressBarDialog.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -144,6 +145,23 @@ extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
+
+enum CustomEventTypes {
+    Lambda = QEvent::User + 1
+};
+
+class LambdaEvent : public QEvent {
+    std::function<void()> _fun;
+public:
+    LambdaEvent(const std::function<void()> & fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    LambdaEvent(std::function<void()> && fun) :
+        QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    }
+    void call() { _fun(); }
+};
+
 
 using namespace std;
 
@@ -164,8 +182,6 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
-
-bool renderCollisionHulls = false;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -209,8 +225,12 @@ public:
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
-    
+
     if (!logMessage.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(logMessage.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#endif
         Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
@@ -243,7 +263,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto visage = DependencyManager::set<Visage>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
@@ -260,6 +279,7 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
+    auto offscreenUi = DependencyManager::set<OffscreenUi>();
 
     return true;
 }
@@ -317,8 +337,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
+    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
+
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
@@ -335,9 +357,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     qCDebug(interfaceapp) << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
-
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     
@@ -445,6 +464,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     addressManager->setOrientationGetter(getOrientationForPath);
     
     connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
+    connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     #ifdef _WIN32
     WSADATA WsaData;
@@ -562,7 +582,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+    // The offscreen UI needs to intercept the mouse and keyboard 
+    // events coming from the onscreen window
+    _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 }
+
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
@@ -612,6 +636,10 @@ void Application::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+
+#ifdef HAVE_DDE
+    DependencyManager::destroy<DdeFaceTracker>();
+#endif
 }
 
 Application::~Application() {    
@@ -632,6 +660,7 @@ Application::~Application() {
 
     getActiveRenderPlugin()->deactivate();
 
+    DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<TextureCache>();
@@ -692,6 +721,17 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // The UI can't be created until the primary OpenGL 
+    // context is created, because it needs to share 
+    // texture resources
+    initializeUi();
+    qCDebug(interfaceapp, "Initialized Offscreen UI.");
+    _glWidget->makeCurrent();
+
+    // call Menu getInstance static method to set up the menu
+    // Needs to happen AFTER the QML UI initialization
+    _window->setMenuBar(Menu::getInstance());
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -719,8 +759,43 @@ void Application::initializeGL() {
 
     // update before the first render
     update(1.0f / _fps);
-
+   
     InfoView::showFirstTime(INFO_HELP_PATH);
+}
+
+void Application::initializeUi() {
+    AddressBarDialog::registerType();
+    LoginDialog::registerType();
+    MessageDialog::registerType();
+    VrMenu::registerType();
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->create(_glWidget->context()->contextHandle());
+    offscreenUi->resize(_glWidget->size());
+    offscreenUi->setProxyWindow(_window->windowHandle());
+    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+    offscreenUi->load("Root.qml");
+    offscreenUi->load("RootMenu.qml");
+    VrMenu::load();
+    VrMenu::executeQueuedLambdas();
+    offscreenUi->setMouseTranslator([this](const QPointF& p){
+        if (OculusManager::isConnected()) {
+            glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
+            return QPointF(pos.x, pos.y);
+        }
+        return QPointF(p);
+    });
+    offscreenUi->resume();
+    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
+        static qreal oldDevicePixelRatio = 0;
+        qreal devicePixelRatio = _glWidget->devicePixelRatio();
+        if (devicePixelRatio != oldDevicePixelRatio) {
+            oldDevicePixelRatio = devicePixelRatio;
+            qDebug() << "Device pixel ratio changed, triggering GL resize";
+            resizeGL(_glWidget->width(),
+                     _glWidget->height());
+        }
+    });
 }
 
 void Application::paintGL() {
@@ -777,7 +852,7 @@ void Application::paintGL() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->size();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
@@ -789,7 +864,19 @@ void Application::paintGL() {
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+<<<<<<< HEAD
             renderRearViewMirror(_mirrorViewRect);
+=======
+            renderRearViewMirror(_mirrorViewRect);       
+        }
+
+        DependencyManager::get<GlowEffect>()->render();
+
+        {
+            PerformanceTimer perfTimer("renderOverlay");
+            _applicationOverlay.renderOverlay();
+            _applicationOverlay.displayOverlayTexture();
+>>>>>>> master
         }
     }
     primaryFbo->release();
@@ -864,6 +951,9 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->resize(_glWidget->size());
+
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
@@ -913,6 +1003,7 @@ bool Application::importSVOFromURL(const QString& urlString) {
 
 bool Application::event(QEvent* event) {
     switch (event->type()) {
+<<<<<<< HEAD
     case QEvent::MouseMove:
         mouseMoveEvent((QMouseEvent*)event);
         return true;
@@ -948,6 +1039,48 @@ bool Application::event(QEvent* event) {
 
     default: 
         break;
+=======
+        case Lambda:
+            ((LambdaEvent*)event)->call();
+            return true;
+
+        case QEvent::MouseMove:
+            mouseMoveEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonPress:
+            mousePressEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonRelease:
+            mouseReleaseEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::KeyPress:
+            keyPressEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::KeyRelease:
+            keyReleaseEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::FocusOut:
+            focusOutEvent((QFocusEvent*)event);
+            return true;
+        case QEvent::TouchBegin:
+            touchBeginEvent(static_cast<QTouchEvent*>(event));
+            event->accept();
+            return true;
+        case QEvent::TouchEnd:
+            touchEndEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::TouchUpdate:
+            touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Wheel:
+            wheelEvent(static_cast<QWheelEvent*>(event));
+            return true;
+        case QEvent::Drop:
+            dropEvent(static_cast<QDropEvent*>(event));
+            return true;
+        default:
+            break;
+>>>>>>> master
     }
 
     // handle custom URL
@@ -969,13 +1102,18 @@ bool Application::event(QEvent* event) {
     if (HFActionEvent::types().contains(event->type())) {
         _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
     }
-     
+
     return QApplication::event(event);
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::ShortcutOverride) {
+        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+            event->accept();
+            return true;
+        }
+
         // Filter out captured keys before they're used for shortcut actions.
         if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
@@ -986,8 +1124,10 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-void Application::keyPressEvent(QKeyEvent* event) {
+static bool _altPressed{ false };
 
+void Application::keyPressEvent(QKeyEvent* event) {
+    _altPressed = event->key() == Qt::Key_Alt;
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
@@ -1003,12 +1143,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
         switch (event->key()) {
                 break;
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
             case Qt::Key_L:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
-                } else if (isMeta) {
+                if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
-                }
+                } else if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                } else if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                } 
                 break;
 
             case Qt::Key_E:
@@ -1068,11 +1215,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Return:
-            case Qt::Key_Enter:
-                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
-                break;
-                
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
@@ -1226,11 +1368,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_Comma: {
-                renderCollisionHulls = !renderCollisionHulls;
-                break;
-            }
-
             default:
                 event->ignore();
                 break;
@@ -1238,7 +1375,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 }
 
+
+//#define VR_MENU_ONLY_IN_HMD
+
 void Application::keyReleaseEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
+#ifdef VR_MENU_ONLY_IN_HMD
+        if (OculusManager::isConnected()) {
+#endif
+            VrMenu::toggle();
+#ifdef VR_MENU_ONLY_IN_HMD
+        }
+#endif
+    }
 
     _keysPressed.remove(event->key());
 
@@ -1248,6 +1397,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
     }
+
 
     switch (event->key()) {
         case Qt::Key_E:
@@ -1440,9 +1590,11 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
-    TouchEvent thisEvent(*event, _lastTouchEvent);
-    _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
-    _lastTouchEvent = thisEvent;
+    if (event->type() == QEvent::TouchUpdate) {
+        TouchEvent thisEvent(*event, _lastTouchEvent);
+        _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+        _lastTouchEvent = thisEvent;
+    }
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isTouchCaptured()) {
@@ -1527,6 +1679,17 @@ void Application::dropEvent(QDropEvent *event) {
     
     if (atLeastOneFileAccepted) {
         event->acceptProposedAction();
+    }
+}
+
+void Application::dragEnterEvent(QDragEnterEvent* event) {
+    const QMimeData* mimeData = event->mimeData();
+    foreach(QUrl url, mimeData->urls()) {
+        auto urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            event->acceptProposedAction();
+            break;
+        }
     }
 }
 
@@ -1767,21 +1930,21 @@ int Application::getMouseDragStartedY() const {
 
 FaceTracker* Application::getActiveFaceTracker() {
     auto faceshift = DependencyManager::get<Faceshift>();
-    auto visage = DependencyManager::get<Visage>();
     auto dde = DependencyManager::get<DdeFaceTracker>();
     
     return (dde->isActive() ? static_cast<FaceTracker*>(dde.data()) :
-            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) :
-             (visage->isActive() ? static_cast<FaceTracker*>(visage.data()) : NULL)));
+            (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : NULL));
 }
 
 void Application::setActiveFaceTracker() {
 #ifdef HAVE_FACESHIFT
     DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
-#endif 
-    DependencyManager::get<DdeFaceTracker>()->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::DDEFaceRegression));
-#ifdef HAVE_VISAGE
-    DependencyManager::get<Visage>()->updateEnabled();
+#endif
+#ifdef HAVE_DDE
+    bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
+    Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
+    DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
 #endif
 }
 
@@ -1958,7 +2121,6 @@ void Application::init() {
     // initialize our face trackers after loading the menu settings
     DependencyManager::get<Faceshift>()->init();
     DependencyManager::get<DdeFaceTracker>()->init();
-    DependencyManager::get<Visage>()->init();
 
     Leapmotion::init();
     RealSense::init();
@@ -2268,6 +2430,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
         _physicsEngine.stepSimulation();
+        _physicsEngine.dumpStatsIfNecessary();
     }
 
     if (!_aboutToQuit) {
@@ -2675,8 +2838,9 @@ void Application::updateShadowMap() {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
-    QOpenGLFramebufferObject* fbo = DependencyManager::get<TextureCache>()->getShadowFramebufferObject();
-    fbo->bind();
+    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -2692,16 +2856,18 @@ void Application::updateShadowMap() {
     loadViewFrustum(_myCamera, _viewFrustum);
     
     int matrixCount = 1;
-    int targetSize = fbo->width();
+    //int targetSize = fbo->width();
+    int sourceSize = shadowFramebuffer->getWidth();
+    int targetSize = shadowFramebuffer->getWidth();
     float targetScale = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
         matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = fbo->width() / 2;
+        targetSize = sourceSize / 2;
         targetScale = 0.5f;
     }
     for (int i = 0; i < matrixCount; i++) {
         const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * fbo->width(), coord.t * fbo->height(), targetSize, targetSize);
+        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
 
         // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
         int regionIncrement = (matrixCount == 1 ? 2 : 1);
@@ -2824,7 +2990,13 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
+<<<<<<< HEAD
     fbo->release();
+=======
+   // fbo->release();
+    
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+>>>>>>> master
     activeRenderingThread = nullptr;
 }
 
@@ -2864,7 +3036,8 @@ int Application::getBoundaryLevelAdjust() const {
 }
 
 QImage Application::renderAvatarBillboard() {
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->bind();
+    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
     Glower glower;
@@ -2879,7 +3052,7 @@ QImage Application::renderAvatarBillboard() {
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
 
-    DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject()->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return image;
 }
@@ -3036,13 +3209,21 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            if (renderCollisionHulls) {
-                _entities.render(RenderArgs::DEBUG_RENDER_MODE, renderSide);
-            } else if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                _entities.render(RenderArgs::MIRROR_RENDER_MODE, renderSide);
-            } else {
-                _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
+
+            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
             }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
+                renderDebugFlags =
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+            }
+            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
+                renderMode = RenderArgs::MIRROR_RENDER_MODE;
+            }
+            _entities.render(renderMode, renderSide, renderDebugFlags);
         }
 
         // render JS/scriptable overlays
@@ -3071,7 +3252,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         PROFILE_RANGE("DeferredLighting"); 
@@ -3253,7 +3434,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
-    DependencyManager::get<Visage>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
 
     getActiveRenderPlugin()->resetSensors();
@@ -3715,17 +3895,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     }
     
     // Download the FST file, to attempt to determine its model type
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest networkRequest = QNetworkRequest(url);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    qCDebug(interfaceapp) << "Downloading avatar file at " << url;
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-    QByteArray fstContents = reply->readAll();
-    delete reply;
-    QVariantHash fstMapping = FSTReader::readMapping(fstContents);
+    QVariantHash fstMapping = FSTReader::downloadMapping(url);
     
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
     
@@ -3736,26 +3906,27 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QPushButton* bodyButton = NULL;
     QPushButton* bodyAndHeadButton = NULL;
     
+    QString modelName = fstMapping["name"].toString();
     QString message;
     QString typeInfo;
     switch (modelType) {
         case FSTReader::HEAD_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar head?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar head?");
             headButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
 
         case FSTReader::BODY_ONLY_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar body?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar body?");
             bodyButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
 
         case FSTReader::HEAD_AND_BODY_MODEL:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for your avatar?");
+            message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
             bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
         break;
         
         default:
-            message = QString("Would you like to use '") + fstMapping["name"].toString() + QString("' for some part of your avatar head?");
+            message = QString("Would you like to use '") + modelName + QString("' for some part of your avatar head?");
             headButton = msgBox.addButton(tr("Use for Head"), QMessageBox::ActionRole);
             bodyButton = msgBox.addButton(tr("Use for Body"), QMessageBox::ActionRole);
             bodyAndHeadButton = msgBox.addButton(tr("Use for Body and Head"), QMessageBox::ActionRole);
@@ -3768,34 +3939,18 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     msgBox.exec();
 
     if (msgBox.clickedButton() == headButton) {
-        qCDebug(interfaceapp) << "Chose to use for head: " << url;
-        _myAvatar->setFaceModelURL(url);
-        UserActivityLogger::getInstance().changedModel("head", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(url);
+        _myAvatar->useHeadURL(url, modelName);
+        emit headURLChanged(url, modelName);
     } else if (msgBox.clickedButton() == bodyButton) {
-        qCDebug(interfaceapp) << "Chose to use for body: " << url;
-        _myAvatar->setSkeletonModelURL(url);
-        // if the head is empty, reset it to the default head.
-        if (_myAvatar->getFaceModelURLString().isEmpty()) {
-            _myAvatar->setFaceModelURL(DEFAULT_HEAD_MODEL_URL);
-            emit faceURLChanged(DEFAULT_HEAD_MODEL_URL.toString());
-            UserActivityLogger::getInstance().changedModel("head", DEFAULT_HEAD_MODEL_URL.toString());
-        }
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit skeletonURLChanged(url);
+        _myAvatar->useBodyURL(url, modelName);
+        emit bodyURLChanged(url, modelName);
     } else if (msgBox.clickedButton() == bodyAndHeadButton) {
-        qCDebug(interfaceapp) << "Chose to use for body + head: " << url;
-        _myAvatar->setFaceModelURL(QString());
-        _myAvatar->setSkeletonModelURL(url);
-        UserActivityLogger::getInstance().changedModel("skeleton", url);
-        _myAvatar->sendIdentityPacket();
-        emit faceURLChanged(QString());
-        emit skeletonURLChanged(url);
+        _myAvatar->useFullAvatarURL(url, modelName);
+        emit fullAvatarURLChanged(url, modelName);
     } else {
         qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
     }
+    
     return true;
 }
 
@@ -3885,6 +4040,9 @@ void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
+        if (it.value()->isFinished()) {
+            continue;
+        }
         if (restart && it.value()->isUserLoaded()) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
@@ -4307,10 +4465,8 @@ void Application::checkSkeleton() {
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
         
-        _myAvatar->setSkeletonModelURL(DEFAULT_BODY_MODEL_URL);
-        _myAvatar->sendIdentityPacket();
+        _myAvatar->useBodyURL(DEFAULT_BODY_MODEL_URL, "Default");
     } else {
-        _myAvatar->updateCharacterController();
         _physicsEngine.setCharacterController(_myAvatar->getCharacterController());
     }
 }
@@ -4333,6 +4489,10 @@ void Application::friendsWindowClosed() {
     _friendsWindow = NULL;
 }
 
+
+void Application::postLambdaEvent(std::function<void()> f) {
+    QCoreApplication::postEvent(this, new LambdaEvent(f));
+}
 
 PickRay Application::computePickRay() const {
     return computePickRay(getTrueMouseX(), getTrueMouseY());

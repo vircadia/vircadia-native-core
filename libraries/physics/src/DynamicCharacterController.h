@@ -30,7 +30,7 @@ protected:
 
     glm::vec3 _shapeLocalOffset;
     glm::vec3 _boxScale; // used to compute capsule shape
-    AvatarData* _avatarData = NULL;
+    AvatarData* _avatarData = nullptr;
 
     bool _enabled;
     bool _isOnGround;
@@ -41,7 +41,7 @@ protected:
     quint64 _jumpToHoverStart;
     uint32_t _pendingFlags;
 
-    btDynamicsWorld* _dynamicsWorld = NULL;
+    btDynamicsWorld* _dynamicsWorld = nullptr;
 
     btScalar _jumpSpeed;
 
@@ -78,7 +78,8 @@ public:
     bool needsRemoval() const;
     bool needsAddition() const;
     void setEnabled(bool enabled);
-    bool isEnabled() const { return _enabled; }
+    bool isEnabled() const { return _enabled && _dynamicsWorld; }
+
     void setDynamicsWorld(btDynamicsWorld* world);
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);

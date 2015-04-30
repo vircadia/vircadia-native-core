@@ -24,13 +24,15 @@ const float MAGNIFY_MULT = 2.0f;
 const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
 
 // Handles the drawing of the overlays to the screen
-class ApplicationOverlay {
+// TODO, move divide up the rendering, displaying and input handling
+// facilities of this class
+class ApplicationOverlay : public QObject {
+    Q_OBJECT
 public:
     ApplicationOverlay();
     ~ApplicationOverlay();
 
     void renderOverlay();
-
     void displayOverlayTexture();
 #if 0
     void displayOverlayTextureOculus(Camera& whichCamera);
@@ -79,8 +81,7 @@ private:
         
         void bind();
         void release();
-        void bindTexture();
-        void releaseTexture();
+        GLuint getTexture();
         
         void buildFramebufferObject();
         void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
@@ -126,6 +127,7 @@ private:
     float _trailingAudioLoudness;
 
     QOpenGLTexture * _crosshairTexture;
+    GLuint _newUiTexture{ 0 };
     
     int _reticleQuad;
     int _magnifierQuad;

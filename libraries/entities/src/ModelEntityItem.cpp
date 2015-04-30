@@ -21,7 +21,7 @@
 #include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
-const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
+const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
 const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
@@ -47,7 +47,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionModelURL, getCollisionModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationURL, getAnimationURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
@@ -65,7 +65,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionModelURL, setCollisionModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationURL, setAnimationURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
@@ -98,11 +98,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        setCollisionModelURL("");
+        setCompoundShapeURL("");
     } else if (args.bitstreamVersion == VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL_OLD_VERSION, setCollisionModelURL);
+        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
     } else {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
+        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
     }
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
     
@@ -140,7 +140,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_MODEL_URL;
-    requestedProperties += PROP_COLLISION_MODEL_URL;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_ANIMATION_URL;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -164,7 +164,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
-    APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, getCollisionModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
@@ -272,20 +272,40 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    position:" << getPosition();
     qCDebug(entities) << "    dimensions:" << getDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
-    qCDebug(entities) << "    collision model URL:" << getCollisionModelURL();
+    qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {
+    // BEGIN_TEMPORARY_WORKAROUND
+    // we have allowed inconsistent ShapeType's to be stored in SVO files in the past (this was a bug)
+    // but we are now enforcing the entity properties to be consistent.  To make the possible we're 
+    // introducing a temporary workaround: we will ignore ShapeType updates that conflict with the
+    // _compoundShapeURL.
+    if (hasCompoundShapeURL()) {
+        type = SHAPE_TYPE_COMPOUND;
+    }
+    // END_TEMPORARY_WORKAROUND
+
     if (type != _shapeType) {
         _shapeType = type;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
 }
 
-void ModelEntityItem::setCollisionModelURL(const QString& url) {
-    if (_collisionModelURL != url) {
-        _collisionModelURL = url;
+// virtual 
+ShapeType ModelEntityItem::getShapeType() const {
+    if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+    } else {
+        return _shapeType;
+    }
+}
+
+void ModelEntityItem::setCompoundShapeURL(const QString& url) {
+    if (_compoundShapeURL != url) {
+        _compoundShapeURL = url;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
     }
 }
 

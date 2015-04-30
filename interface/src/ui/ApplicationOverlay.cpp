@@ -18,6 +18,7 @@
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <OffscreenUi.h>
 
 #include "AudioClient.h"
 #include "audio/AudioIOStatsRenderer.h"
@@ -162,6 +163,20 @@ ApplicationOverlay::ApplicationOverlay() :
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
     
+    // Once we move UI rendering and screen rendering to different
+    // threads, we need to use a sync object to deteremine when
+    // the current UI texture is no longer being read from, and only 
+    // then release it back to the UI for re-use
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->lockTexture(textureId);
+        assert(!glGetError());
+        std::swap(_newUiTexture, textureId);
+        if (textureId) {
+            offscreenUi->releaseTexture(textureId);
+        }
+    });
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
@@ -216,7 +231,26 @@ void ApplicationOverlay::renderOverlay() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+
     _overlays.release();
+}
+
+// A quick and dirty solution for compositing the old overlay 
+// texture with the new one
+template <typename F>
+void with_each_texture(GLuint firstPassTexture, GLuint secondPassTexture, F f) {
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    if (firstPassTexture) {
+        glBindTexture(GL_TEXTURE_2D, firstPassTexture);
+        f();
+    }
+    if (secondPassTexture) {
+        glBindTexture(GL_TEXTURE_2D, secondPassTexture);
+        f();
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
 }
 
 // Draws the FBO texture for the screen
@@ -224,30 +258,24 @@ void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
         return;
     }
-
-    glEnable(GL_TEXTURE_2D);
-    glActiveTexture(GL_TEXTURE0);
-    _overlays.bindTexture();
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix(); {
         glLoadIdentity();
-        glOrtho(0, 1, 1, 0, -1.0, 1.0);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
-        glEnable(GL_BLEND);
-        
-        static const glm::vec2 topLeft(0);
-        static const glm::vec2 bottomRight(1);
-        static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
-        static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+        if (_alpha < 1.0) {
+            glEnable(GL_BLEND);
+        }
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, 
-                                                                glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
-        
+        with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+            static const glm::vec2 topLeft(-1, 1);
+            static const glm::vec2 bottomRight(1, -1);
+            static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+            static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
+        });
     } glPopMatrix();
-    
-    glDisable(GL_TEXTURE_2D);
 }
 
 #if 0
@@ -256,10 +284,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     if (_alpha == 0.0f) {
         return;
     }
-    glEnable(GL_TEXTURE_2D);
-    glActiveTexture(GL_TEXTURE0);
-    _overlays.bindTexture();
-    
+
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
@@ -267,8 +292,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
     glDisable(GL_LIGHTING);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
-    
-    
+
+
     //Update and draw the magnifiers
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
@@ -299,8 +324,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
                 //Render magnifier, but dont show border for mouse magnifier
                 glm::vec2 projection = screenToOverlay(glm::vec2(_reticlePosition[MOUSE].x(),
                                                                  _reticlePosition[MOUSE].y()));
-                
-                renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
+                with_each_texture(_overlays.getTexture(), 0, [&] {
+                    renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
+                });
             }
         }
         
@@ -315,12 +341,15 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
         }
-        _overlays.render();
+
+        with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+            _overlays.render();
+        });
+
         if (!Application::getInstance()->isMouseHidden()) {
             renderPointersOculus(myAvatar->getDefaultEyePosition());
         }
         glDepthMask(GL_TRUE);
-        _overlays.releaseTexture();
         glDisable(GL_TEXTURE_2D);
         
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -337,14 +366,10 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const glm::vec3& viewMatrixTranslation = qApp->getViewMatrixTranslation();
     
-    glActiveTexture(GL_TEXTURE0);
-    
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    _overlays.bindTexture();
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
-    glEnable(GL_TEXTURE_2D);
     
     glMatrixMode(GL_MODELVIEW);
     
@@ -378,13 +403,15 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     GLfloat y = -halfQuadHeight;
     glDisable(GL_DEPTH_TEST);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance), 
+    with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+        DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance),
                                                 glm::vec3(x + quadWidth, y + quadHeight, -distance),
                                                 glm::vec3(x + quadWidth, y, -distance),
                                                 glm::vec3(x, y, -distance),
                                                 glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 1.0f), 
                                                 glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f),
                                                 overlayColor);
+    });
     
     auto glCanvas = Application::getInstance()->getGLWidget();
     if (_crosshairTexture == 0) {
@@ -1003,14 +1030,6 @@ void ApplicationOverlay::TexturedHemisphere::release() {
     _framebufferObject->release();
 }
 
-void ApplicationOverlay::TexturedHemisphere::bindTexture() {
-    glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-}
-
-void ApplicationOverlay::TexturedHemisphere::releaseTexture() {
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
 void ApplicationOverlay::TexturedHemisphere::buildVBO(const float fov,
                                                       const float aspectRatio,
                                                       const int slices,
@@ -1109,14 +1128,14 @@ void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
     }
     
     _framebufferObject = new QOpenGLFramebufferObject(size, QOpenGLFramebufferObject::Depth);
-    bindTexture();
+    glBindTexture(GL_TEXTURE_2D, getTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    releaseTexture();
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 //Renders a hemisphere with texture coordinates.
@@ -1145,6 +1164,10 @@ void ApplicationOverlay::TexturedHemisphere::render() {
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+GLuint ApplicationOverlay::TexturedHemisphere::getTexture() {
+    return _framebufferObject->texture();
 }
 
 glm::vec2 ApplicationOverlay::directionToSpherical(glm::vec3 direction) const {

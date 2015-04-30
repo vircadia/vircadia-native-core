@@ -302,6 +302,9 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
                 return false;
             }
+        } else {
+            qDebug() << "Using access token from DOMAIN_SERVER_ACCESS_TOKEN in env. This overrides any access token present"
+                << " in the user or master config.";
         }
         
         // give this access token to the AccountManager
@@ -501,7 +504,7 @@ void DomainServer::populateStaticScriptedAssignmentsFromSettings() {
                                                                   Assignment::AgentType,
                                                                   scriptPool);
                     scriptAssignment->setPayload(scriptURL.toUtf8());
-                    
+
                     // add it to static hash so we know we have to keep giving it back out
                     addStaticAssignmentToAssignmentHash(scriptAssignment);
                 }
@@ -671,6 +674,10 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         if (isAssignment) {
             nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
             nodeData->setWalletUUID(pendingAssigneeData->getWalletUUID());
+
+            // always allow assignment clients to create and destroy entities
+            newNode->setCanAdjustLocks(true);
+            newNode->setCanRez(true);
 
             // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
             delete pendingAssigneeData;
@@ -2116,10 +2123,10 @@ SharedAssignmentPointer DomainServer::deployableAssignmentForRequest(const Assig
         Assignment* assignment = sharedAssignment->data();
         bool requestIsAllTypes = requestAssignment.getType() == Assignment::AllTypes;
         bool assignmentTypesMatch = assignment->getType() == requestAssignment.getType();
-        bool nietherHasPool = assignment->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
+        bool neitherHasPool = assignment->getPool().isEmpty() && requestAssignment.getPool().isEmpty();
         bool assignmentPoolsMatch = assignment->getPool() == requestAssignment.getPool();
 
-        if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
+        if ((requestIsAllTypes || assignmentTypesMatch) && (neitherHasPool || assignmentPoolsMatch)) {
 
             // remove the assignment from the queue
             SharedAssignmentPointer deployableAssignment = _unfulfilledAssignments.takeAt(sharedAssignment

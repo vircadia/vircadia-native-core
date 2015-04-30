@@ -17,9 +17,15 @@ class OctreeRenderer;
 
 class RenderArgs {
 public:
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE, DEBUG_RENDER_MODE };
+    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
 
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
+
+    enum DebugFlags {
+        RENDER_DEBUG_NONE=0,
+        RENDER_DEBUG_HULLS=1,
+        RENDER_DEBUG_SIMULATION_OWNERSHIP=2
+    };
 
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
@@ -27,6 +33,7 @@ public:
     int _boundaryLevelAdjust;
     RenderMode _renderMode;
     RenderSide _renderSide;
+    DebugFlags _debugFlags;
 
     int _elementsTouched;
     int _itemsRendered;

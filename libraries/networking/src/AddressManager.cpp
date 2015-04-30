@@ -35,7 +35,6 @@ AddressManager::AddressManager() :
     _positionGetter(NULL),
     _orientationGetter(NULL)
 {
-    connect(qApp, &QCoreApplication::aboutToQuit, this, &AddressManager::storeCurrentAddress);
 }
 
 bool AddressManager::isConnected() {

@@ -21,6 +21,7 @@
 #include <QSet>
 #include <QStringList>
 #include <QUndoStack>
+#include <functional>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -30,6 +31,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
+#include <OffscreenUi.h>
 #include <PacketHeaders.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
@@ -120,9 +122,9 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES = 
-    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}");
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
 static const UINT UWM_SHOW_APPLICATION =
-    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}");
+    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
 #endif
 
 class Application;
@@ -149,11 +151,14 @@ public:
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
+    void postLambdaEvent(std::function<void()> f);
+
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
     void clearScriptsBeforeRunning();
     void initializeGL();
+    void initializeUi();
     void paintGL();
     void resizeGL(int width, int height);
 
@@ -174,7 +179,8 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-    void dropEvent(QDropEvent *event);
+    void dropEvent(QDropEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
 
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
@@ -221,6 +227,7 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
@@ -348,8 +355,9 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
-    void faceURLChanged(const QString& newValue);
-    void skeletonURLChanged(const QString& newValue);
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
     
     void beforeAboutToQuit();
 
@@ -395,6 +403,8 @@ public slots:
     void setVSyncEnabled();
 
     void resetSensors();
+    void setActiveFaceTracker();
+
     void aboutApp();
     void showEditEntitiesHelp();
     
@@ -402,8 +412,6 @@ public slots:
     void saveSettings();
 
     void notifyPacketVersionMismatch();
-
-    void setActiveFaceTracker();
 
     void domainConnectionDenied(const QString& reason);
 

@@ -32,6 +32,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setUniformBuffer),
     (&::gpu::GLBackend::do_setUniformTexture),
 
+    (&::gpu::GLBackend::do_setFramebuffer),
+
+
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
 
@@ -67,7 +70,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 GLBackend::GLBackend() :
     _input(),
     _transform(),
-    _pipeline()
+    _pipeline(),
+    _output()
 {
     initTransform();
 }
@@ -139,7 +143,7 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
 
     glDrawArrays(mode, startVertex, numVertices);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
@@ -155,15 +159,15 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     GLenum glType = _elementTypeToGLType[_input._indexBufferType];
 
     glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset));
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
@@ -185,7 +189,7 @@ void Batch::_glEnable(GLenum cap) {
 }
 void GLBackend::do_glEnable(Batch& batch, uint32 paramOffset) {
     glEnable(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDisable(GLenum cap) {
@@ -197,7 +201,7 @@ void Batch::_glDisable(GLenum cap) {
 }
 void GLBackend::do_glDisable(Batch& batch, uint32 paramOffset) {
     glDisable(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glEnableClientState(GLenum array) {
@@ -209,7 +213,7 @@ void Batch::_glEnableClientState(GLenum array) {
 }
 void GLBackend::do_glEnableClientState(Batch& batch, uint32 paramOffset) {
     glEnableClientState(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDisableClientState(GLenum array) {
@@ -221,7 +225,7 @@ void Batch::_glDisableClientState(GLenum array) {
 }
 void GLBackend::do_glDisableClientState(Batch& batch, uint32 paramOffset) {
     glDisableClientState(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glCullFace(GLenum mode) {
@@ -233,7 +237,7 @@ void Batch::_glCullFace(GLenum mode) {
 }
 void GLBackend::do_glCullFace(Batch& batch, uint32 paramOffset) {
     glCullFace(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glAlphaFunc(GLenum func, GLclampf ref) {
@@ -248,7 +252,7 @@ void GLBackend::do_glAlphaFunc(Batch& batch, uint32 paramOffset) {
     glAlphaFunc(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDepthFunc(GLenum func) {
@@ -260,7 +264,7 @@ void Batch::_glDepthFunc(GLenum func) {
 }
 void GLBackend::do_glDepthFunc(Batch& batch, uint32 paramOffset) {
     glDepthFunc(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDepthMask(GLboolean flag) {
@@ -272,7 +276,7 @@ void Batch::_glDepthMask(GLboolean flag) {
 }
 void GLBackend::do_glDepthMask(Batch& batch, uint32 paramOffset) {
     glDepthMask(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDepthRange(GLfloat zNear, GLfloat zFar) {
@@ -287,7 +291,7 @@ void GLBackend::do_glDepthRange(Batch& batch, uint32 paramOffset) {
     glDepthRange(
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glBindBuffer(GLenum target, GLuint buffer) {
@@ -302,7 +306,7 @@ void GLBackend::do_glBindBuffer(Batch& batch, uint32 paramOffset) {
     glBindBuffer(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glBindTexture(GLenum target, GLuint texture) {
@@ -317,7 +321,7 @@ void GLBackend::do_glBindTexture(Batch& batch, uint32 paramOffset) {
     glBindTexture(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glActiveTexture(GLenum texture) {
@@ -329,7 +333,7 @@ void Batch::_glActiveTexture(GLenum texture) {
 }
 void GLBackend::do_glActiveTexture(Batch& batch, uint32 paramOffset) {
     glActiveTexture(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDrawBuffers(GLsizei n, const GLenum* bufs) {
@@ -344,7 +348,7 @@ void GLBackend::do_glDrawBuffers(Batch& batch, uint32 paramOffset) {
     glDrawBuffers(
         batch._params[paramOffset + 1]._uint,
         (const GLenum*)batch.editData(batch._params[paramOffset + 0]._uint));
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glUseProgram(GLuint program) {
@@ -361,7 +365,7 @@ void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
     _pipeline._invalidProgram = false;
     glUseProgram(_pipeline._program);
 
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glUniform1f(GLint location, GLfloat v0) {
@@ -381,7 +385,7 @@ void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
     glUniform1f(
         batch._params[paramOffset + 1]._int,
         batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
@@ -398,7 +402,7 @@ void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
@@ -417,7 +421,7 @@ void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
 
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
@@ -437,7 +441,7 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glEnableVertexAttribArray(GLint location) {
@@ -449,7 +453,7 @@ void Batch::_glEnableVertexAttribArray(GLint location) {
 }
 void GLBackend::do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset) {
     glEnableVertexAttribArray(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glDisableVertexAttribArray(GLint location) {
@@ -461,7 +465,7 @@ void Batch::_glDisableVertexAttribArray(GLint location) {
 }
 void GLBackend::do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset) {
     glDisableVertexAttribArray(batch._params[paramOffset]._uint);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
@@ -480,6 +484,6 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 

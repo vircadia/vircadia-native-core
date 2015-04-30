@@ -549,14 +549,18 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
             
             nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
         } else if (mixerPacketType == PacketTypeMuteEnvironment) {
-            QByteArray packet = receivedPacket;
-            populatePacketHeader(packet, PacketTypeMuteEnvironment);
-            
-            nodeList->eachNode([&](const SharedNodePointer& node){
-                if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
-                    nodeList->writeDatagram(packet, packet.size(), node);
-                }
-            });
+            SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            if (sendingNode->getCanAdjustLocks()) {
+                QByteArray packet = receivedPacket;
+                populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                
+                nodeList->eachNode([&](const SharedNodePointer& node){
+                    if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
+                        node->getLinkedData() && node != sendingNode) {
+                        nodeList->writeDatagram(packet, packet.size(), node);
+                    }
+                });
+            }
         } else {
             // let processNodeData handle it.
             nodeList->processNodeData(senderSockAddr, receivedPacket);

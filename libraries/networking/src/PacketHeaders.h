@@ -119,6 +119,7 @@ PacketType packetTypeForPacket(const char* packet);
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
+const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
 const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
@@ -135,6 +136,8 @@ const PacketVersion VERSION_ENTITIES_HAS_COLLISION_MODEL = 12;
 const PacketVersion VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED = 13;
 const PacketVersion VERSION_ENTITIES_HAS_MARKETPLACE_ID = 14;
 const PacketVersion VERSION_ENTITIES_HAVE_ACCELERATION = 15;
-const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
+const PacketVersion VERSION_ENTITIES_HAVE_UUIDS = 16;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_EXIST = 17;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_DYNAMIC_SHAPE = 18;
 
 #endif // hifi_PacketHeaders_h

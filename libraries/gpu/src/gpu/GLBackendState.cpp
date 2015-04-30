@@ -237,26 +237,26 @@ void GLBackend::resetPipelineState(State::Signature nextSignature) {
     }
 }
 
-State::ComparisonFunction comparisonFuncFromGL(GLenum func) {
+ComparisonFunction comparisonFuncFromGL(GLenum func) {
     if (func == GL_NEVER) {
-        return State::NEVER;
+        return NEVER;
     } else if (func == GL_LESS) {
-        return State::LESS;
+        return LESS;
     } else if (func == GL_EQUAL) {
-        return State::EQUAL;
+        return EQUAL;
     } else if (func == GL_LEQUAL) {
-        return State::LESS_EQUAL;
+        return LESS_EQUAL;
     } else if (func == GL_GREATER) {
-        return State::GREATER;
+        return GREATER;
     } else if (func == GL_NOTEQUAL) {
-        return State::NOT_EQUAL;
+        return NOT_EQUAL;
     } else if (func == GL_GEQUAL) {
-        return State::GREATER_EQUAL;
+        return GREATER_EQUAL;
     } else if (func == GL_ALWAYS) {
-        return State::ALWAYS;
+        return ALWAYS;
     }
 
-    return State::ALWAYS;
+    return ALWAYS;
 }
 
 State::StencilOp stencilOpFromGL(GLenum stencilOp) {
@@ -458,7 +458,7 @@ void GLBackend::getCurrentGLState(State::Data& state) {
                              | (mask[3] ? State::WRITE_ALPHA : 0);
     }
 
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::syncPipelineStateCache() {
@@ -485,7 +485,7 @@ void GLBackend::do_setStateFillMode(int32 mode) {
     if (_pipeline._stateCache.fillMode != mode) {
         static GLenum GL_FILL_MODES[] = { GL_POINT, GL_LINE, GL_FILL };
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL_MODES[mode]);
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.fillMode = State::FillMode(mode);
     }
@@ -501,7 +501,7 @@ void GLBackend::do_setStateCullMode(int32 mode) {
             glEnable(GL_CULL_FACE);
             glCullFace(GL_CULL_MODES[mode]);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.cullMode = State::CullMode(mode);
     }
@@ -511,7 +511,7 @@ void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
     if (_pipeline._stateCache.frontFaceClockwise != isClockwise) {
         static GLenum  GL_FRONT_FACES[] = { GL_CCW, GL_CW };
         glFrontFace(GL_FRONT_FACES[isClockwise]);
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
     
         _pipeline._stateCache.frontFaceClockwise = isClockwise;
     }
@@ -524,7 +524,7 @@ void GLBackend::do_setStateDepthClipEnable(bool enable) {
         } else {
             glDisable(GL_DEPTH_CLAMP);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.depthClipEnable = enable;
     }
@@ -537,7 +537,7 @@ void GLBackend::do_setStateScissorEnable(bool enable) {
         } else {
             glDisable(GL_SCISSOR_TEST);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.scissorEnable = enable;
     }
@@ -550,7 +550,7 @@ void GLBackend::do_setStateMultisampleEnable(bool enable) {
         } else {
             glDisable(GL_MULTISAMPLE);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.multisampleEnable = enable;
     }
@@ -565,7 +565,7 @@ void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
             glDisable(GL_POINT_SMOOTH);
             glDisable(GL_LINE_SMOOTH);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.antialisedLineEnable = enable;
     }
@@ -637,7 +637,7 @@ void GLBackend::do_setStateStencil(State::StencilActivation activation, State::S
         } else {
             glDisable(GL_STENCIL_TEST);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.stencilActivation = activation;
         _pipeline._stateCache.stencilTestFront = frontTest;
@@ -652,7 +652,7 @@ void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
         } else {
             glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         }
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
         _pipeline._stateCache.alphaToCoverageEnable = enable;
     }
 }
@@ -684,7 +684,7 @@ void GLBackend::do_setStateBlend(State::BlendFunction function) {
                 GL_MAX };
 
             glBlendEquationSeparate(GL_BLEND_OPS[function.getOperationColor()], GL_BLEND_OPS[function.getOperationAlpha()]);
-            CHECK_GL_ERROR();
+            (void) CHECK_GL_ERROR();
 
             static GLenum BLEND_ARGS[] = {
                 GL_ZERO,
@@ -706,7 +706,7 @@ void GLBackend::do_setStateBlend(State::BlendFunction function) {
 
             glBlendFuncSeparate(BLEND_ARGS[function.getSourceColor()], BLEND_ARGS[function.getDestinationColor()],
                                 BLEND_ARGS[function.getSourceAlpha()], BLEND_ARGS[function.getDestinationAlpha()]);
-            CHECK_GL_ERROR();
+            (void) CHECK_GL_ERROR();
         } else {
             glDisable(GL_BLEND);
         }
@@ -735,5 +735,5 @@ void GLBackend::do_setStateBlendFactor(Batch& batch, uint32 paramOffset) {
                 batch._params[paramOffset + 3]._float);
 
     glBlendColor(factor.x, factor.y, factor.z, factor.w);
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }

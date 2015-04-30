@@ -18,6 +18,7 @@
 #include <UUID.h>
 
 #include "DiscoverabilityManager.h"
+#include "Menu.h"
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::All;
 
@@ -95,5 +96,33 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         }
 
         emit discoverabilityModeChanged(discoverabilityMode);
+    }
+}
+
+void DiscoverabilityManager::setVisibility() {
+    Menu* menu = Menu::getInstance();
+
+    if (menu->isOptionChecked(MenuOption::VisibleToEveryone)) {
+        this->setDiscoverabilityMode(Discoverability::All);
+    } else if (menu->isOptionChecked(MenuOption::VisibleToFriends)) {
+        this->setDiscoverabilityMode(Discoverability::Friends);
+    } else if (menu->isOptionChecked(MenuOption::VisibleToNoOne)) {
+        this->setDiscoverabilityMode(Discoverability::None);
+    } else {
+        qDebug() << "ERROR DiscoverabilityManager::setVisibility() called with unrecognized value.";
+    }
+}
+
+void DiscoverabilityManager::visibilityChanged(Discoverability::Mode discoverabilityMode) {
+    Menu* menu = Menu::getInstance();
+
+    if (discoverabilityMode == Discoverability::All) {
+        menu->setIsOptionChecked(MenuOption::VisibleToEveryone, true);
+    } else if (discoverabilityMode == Discoverability::Friends) {
+        menu->setIsOptionChecked(MenuOption::VisibleToFriends, true);
+    } else if (discoverabilityMode == Discoverability::None) {
+        menu->setIsOptionChecked(MenuOption::VisibleToNoOne, true);
+    } else {
+        qDebug() << "ERROR DiscoverabilityManager::visibilityChanged() called with unrecognized value.";
     }
 }

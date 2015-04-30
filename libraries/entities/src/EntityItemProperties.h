@@ -93,16 +93,15 @@ enum EntityPropertyList {
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
     
-    PROP_COLLISION_MODEL_URL,
+    PROP_COMPOUND_SHAPE_URL,
     PROP_MARKETPLACE_ID,
     PROP_ACCELERATION,
     PROP_SIMULATOR_ID,
-    
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // WARNING! Do not add props here unless you intentionally mean to reuse PROP_ indexes
@@ -113,7 +112,22 @@ enum EntityPropertyList {
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1
+    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1,
+
+    // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. We do this so that we don't have to expand
+    // the size of the properties bitflags mask
+    PROP_KEYLIGHT_COLOR = PROP_COLOR,
+    PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
+    PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
+    PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
+    PROP_STAGE_SUN_MODEL_ENABLED = PROP_IS_SPOTLIGHT,
+    PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR_UNUSED,
+    PROP_STAGE_LONGITUDE = PROP_AMBIENT_COLOR_UNUSED,
+    PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
+    PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
+    PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
+
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 
@@ -137,6 +151,7 @@ class EntityItemProperties {
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -182,7 +197,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
-    DEFINE_PROPERTY_REF(PROP_COLLISION_MODEL_URL, CollisionModelURL, collisionModelURL, QString);
+    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
@@ -200,7 +215,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
     DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
-    DEFINE_PROPERTY_REF(PROP_SIMULATOR_ID, SimulatorID, simulatorID, QString);
+    DEFINE_PROPERTY_REF(PROP_SIMULATOR_ID, SimulatorID, simulatorID, QUuid);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
@@ -214,6 +229,17 @@ public:
     DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, StageSunModelEnabled, stageSunModelEnabled, bool);
+    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, StageLatitude, stageLatitude, float);
+    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, StageLongitude, stageLongitude, float);
+    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
+    DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
+    DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
+
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
@@ -257,6 +283,7 @@ public:
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
+    QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
 
 private:
     QUuid _id;
@@ -313,7 +340,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionModelURL, collisionModelURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
@@ -330,7 +357,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, QUuid());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");

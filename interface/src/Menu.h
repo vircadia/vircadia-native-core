@@ -25,6 +25,35 @@
 
 class Settings;
 
+class MenuWrapper : public QObject {
+public:
+    QList<QAction*> actions();
+    MenuWrapper* addMenu(const QString& menuName);
+    void setEnabled(bool enabled = true);
+    void addSeparator();
+    void addAction(QAction* action);
+
+    QAction* addAction(const QString& menuName);
+    void insertAction(QAction* before, QAction* menuName);
+
+    QAction* addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut = 0);
+    void removeAction(QAction* action);
+
+    QAction* newAction() {
+        return new QAction(_realMenu);
+    }
+private:
+    MenuWrapper(QMenu* menu);
+
+    static MenuWrapper* fromMenu(QMenu* menu) {
+        return _backMap[menu];
+    }
+
+    QMenu* const _realMenu;
+    static QHash<QMenu*, MenuWrapper*> _backMap;
+    friend class Menu;
+};
+
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
@@ -33,29 +62,29 @@ public:
     void loadSettings();
     void saveSettings();
     
-    QMenu* getMenu(const QString& menuName);
+    MenuWrapper* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
     
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            QAction* action,
                                            const QString& actionName = QString(),
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
     
-    void removeAction(QMenu* menu, const QString& actionName);
+    void removeAction(MenuWrapper* menu, const QString& actionName);
     
 public slots:
-    QMenu* addMenu(const QString& menuName);
+    MenuWrapper* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
     void addSeparator(const QString& menuName, const QString& separatorName);
@@ -66,9 +95,6 @@ public slots:
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     
-private slots:
-    void setVisibility();
-
 private:
     static Menu* _instance;
     Menu();
@@ -80,10 +106,10 @@ private:
     void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
     
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName,
+    void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
     
-    QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
@@ -91,15 +117,13 @@ private:
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
     
-    QAction* getActionFromName(const QString& menuName, QMenu* menu);
-    QMenu* getSubMenuFromName(const QString& menuName, QMenu* menu);
-    QMenu* getMenuParent(const QString& menuName, QString& finalMenuPart);
+    QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
+    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
+    MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
     
     QAction* getMenuAction(const QString& menuName);
-    int findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem);
-    int positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition);
-    
-    void visibilityChanged(Discoverability::Mode discoverabilityMode);
+    int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
+    int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
     
     QHash<QString, QAction*> _actionHash;
 };
@@ -123,9 +147,7 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSourceInject = "Generated Audio";
-    const QString AudioSourcePinkNoise = "Pink Noise";
-    const QString AudioSourceSine440 = "Sine 440hz";
+    const QString AvatarReceiveStats = "Show Receive Stats";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
@@ -138,7 +160,6 @@ namespace MenuOption {
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
-    const QString DDEFaceRegression = "DDE Face Regression";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -194,7 +215,10 @@ namespace MenuOption {
     const QString OctreeStats = "Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
+    const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
+    const QString PhysicsShowOwned = "Highlight Simulation Ownership";
+    const QString PhysicsShowHulls = "Draw Collision Hulls";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
@@ -244,15 +268,15 @@ namespace MenuOption {
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
-    const QString StereoAudio = "Stereo Audio (disables spatial sound)";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
-    const QString PackageModel = "Package Model...";
-    const QString Visage = "Visage";
+    const QString UseAudioForMouth = "Use Audio for Mouth";
+    const QString UseCamera = "Use Camera";
+    const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";

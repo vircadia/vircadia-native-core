@@ -11,6 +11,8 @@
 
 #include <QtCore/QObject>
 
+#include <glm/gtx/transform.hpp>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -25,72 +27,53 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
-void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
-    _id = entityItemID.id;
-    _creatorTokenID = entityItemID.creatorTokenID;
-
-    // init values with defaults before calling setProperties
+EntityItem::EntityItem(const EntityItemID& entityItemID) :
+    _type(EntityTypes::Unknown),
+    _id(entityItemID.id),
+    _creatorTokenID(entityItemID.creatorTokenID),
+    _newlyCreated(false),
+    _lastSimulated(0),
+    _lastUpdated(0),
+    _lastEdited(0),
+    _lastEditedFromRemote(0),
+    _lastEditedFromRemoteInRemoteTime(0),
+    _created(UNKNOWN_CREATED_TIME),
+    _changedOnServer(0),
+    _position(ENTITY_ITEM_ZERO_VEC3),
+    _dimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS),
+    _rotation(ENTITY_ITEM_DEFAULT_ROTATION),
+    _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
+    _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
+    _density(ENTITY_ITEM_DEFAULT_DENSITY),
+    _volumeMultiplier(1.0f),
+    _velocity(ENTITY_ITEM_DEFAULT_VELOCITY),
+    _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
+    _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
+    _damping(ENTITY_ITEM_DEFAULT_DAMPING),
+    _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
+    _script(ENTITY_ITEM_DEFAULT_SCRIPT),
+    _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
+    _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
+    _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
+    _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
+    _ignoreForCollisions(ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
+    _locked(ENTITY_ITEM_DEFAULT_LOCKED),
+    _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
+    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+    _simulatorIDChangedTime(0),
+    _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
+    _physicsInfo(NULL),
+    _dirtyFlags(0),
+    _element(NULL)
+{
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _changedOnServer = 0;
-
-    _position = ENTITY_ITEM_ZERO_VEC3;
-    _dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
-    _density = ENTITY_ITEM_DEFAULT_DENSITY;
-    _rotation = ENTITY_ITEM_DEFAULT_ROTATION;
-    _glowLevel = ENTITY_ITEM_DEFAULT_GLOW_LEVEL;
-    _localRenderAlpha = ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA;
-    _velocity = ENTITY_ITEM_DEFAULT_VELOCITY;
-    _gravity = ENTITY_ITEM_DEFAULT_GRAVITY;
-    _acceleration = ENTITY_ITEM_DEFAULT_ACCELERATION;
-    _damping = ENTITY_ITEM_DEFAULT_DAMPING;
-    _lifetime = ENTITY_ITEM_DEFAULT_LIFETIME;
-    _script = ENTITY_ITEM_DEFAULT_SCRIPT;
-    _registrationPoint = ENTITY_ITEM_DEFAULT_REGISTRATION_POINT;
-    _angularVelocity = ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY;
-    _angularDamping = ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING;
-    _visible = ENTITY_ITEM_DEFAULT_VISIBLE;
-    _ignoreForCollisions = ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS;
-    _collisionsWillMove = ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE;
-    _locked = ENTITY_ITEM_DEFAULT_LOCKED;
-    _userData = ENTITY_ITEM_DEFAULT_USER_DATA;
-    _simulatorID = ENTITY_ITEM_DEFAULT_SIMULATOR_ID;
-    _marketplaceID = ENTITY_ITEM_DEFAULT_MARKETPLACE_ID;
 }
 
-EntityItem::EntityItem(const EntityItemID& entityItemID) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _element = NULL;
-    initFromEntityItemID(entityItemID);
-}
-
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
-    _type = EntityTypes::Unknown;
-    quint64 now = usecTimestampNow();
-    _lastSimulated = now;
-    _lastUpdated = now;
-    _lastEdited = 0;
-    _lastEditedFromRemote = 0;
-    _lastEditedFromRemoteInRemoteTime = 0;
-    _created = UNKNOWN_CREATED_TIME;
-    _dirtyFlags = 0;
-    _changedOnServer = 0;
-    _element = NULL;
-    initFromEntityItemID(entityItemID);
+EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
+{
     setProperties(properties);
 }
 
@@ -321,6 +304,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
+    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
+    glm::vec3 savePosition = _position;
+    glm::quat saveRotation = _rotation;
+    glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveAngularVelocity = _angularVelocity;
+    glm::vec3 saveGravity = _gravity;
+    glm::vec3 saveAcceleration = _acceleration;
+
+
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -420,7 +412,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         #endif
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
-        
+
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
         if (fromSameServerEdit) {
@@ -567,7 +559,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_STRING(PROP_SIMULATOR_ID, setSimulatorID);
+            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, setSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -601,11 +593,29 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 #ifdef WANT_DEBUG
                     qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
                 #endif
-                simulateKinematicMotion(skipTimeForward);
+
+                // we want to extrapolate the motion forward to compensate for packet travel time, but
+                // we don't want the side effect of flag setting.
+                simulateKinematicMotion(skipTimeForward, false);
             }
             _lastSimulated = now;
         }
     }
+
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
+        // the packet that produced this bitstream originally came from physics simulations performed by
+        // this node, so our version has to be newer than what the packet contained.
+        _position = savePosition;
+        _rotation = saveRotation;
+        _velocity = saveVelocity;
+        _angularVelocity = saveAngularVelocity;
+        _gravity = saveGravity;
+        _acceleration = saveAcceleration;
+    }
+
     return bytesRead;
 }
 
@@ -670,6 +680,17 @@ void EntityItem::setMass(float mass) {
     }
 }
 
+const float DEFAULT_ENTITY_RESTITUTION = 0.5f;
+const float DEFAULT_ENTITY_FRICTION = 0.5f;                                                                                
+
+float EntityItem::getRestitution() const { 
+    return DEFAULT_ENTITY_RESTITUTION; 
+}
+
+float EntityItem::getFriction() const { 
+    return DEFAULT_ENTITY_FRICTION;
+}
+
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {
         _lastSimulated = now;
@@ -680,6 +701,7 @@ void EntityItem::simulate(const quint64& now) {
     #ifdef WANT_DEBUG
         qCDebug(entities) << "********** EntityItem::simulate()";
         qCDebug(entities) << "    entity ID=" << getEntityItemID();
+        qCDebug(entities) << "    simulator ID=" << getSimulatorID();
         qCDebug(entities) << "    now=" << now;
         qCDebug(entities) << "    _lastSimulated=" << _lastSimulated;
         qCDebug(entities) << "    timeElapsed=" << timeElapsed;
@@ -697,6 +719,7 @@ void EntityItem::simulate(const quint64& now) {
             qCDebug(entities) << "    MOVING...=";
             qCDebug(entities) << "        hasVelocity=" << hasVelocity();
             qCDebug(entities) << "        hasGravity=" << hasGravity();
+            qCDebug(entities) << "        hasAcceleration=" << hasAcceleration();
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
             qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
         }
@@ -718,7 +741,7 @@ void EntityItem::simulate(const quint64& now) {
     _lastSimulated = now;
 }
 
-void EntityItem::simulateKinematicMotion(float timeElapsed) {
+void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     if (hasAngularVelocity()) {
         // angular damping
         if (_angularDamping > 0.0f) {
@@ -733,7 +756,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            if (angularSpeed > 0.0f) {
+            if (setFlags && angularSpeed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
@@ -766,7 +789,6 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
                 qCDebug(entities) << "    damping:" << _damping;
                 qCDebug(entities) << "    velocity AFTER dampingResistance:" << velocity;
                 qCDebug(entities) << "    glm::length(velocity):" << glm::length(velocity);
-                qCDebug(entities) << "    velocityEspilon :" << ENTITY_ITEM_EPSILON_VELOCITY_LENGTH;
             #endif
         }
 
@@ -787,13 +809,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         
         position = newPosition;
 
-        // apply gravity
-        if (hasGravity()) { 
-            // handle resting on surface case, this is definitely a bit of a hack, and it only works on the
-            // "ground" plane of the domain, but for now it's what we've got
-            velocity += getGravity() * timeElapsed;
-        }
-
+        // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
         if (hasAcceleration()) {
             velocity += getAcceleration() * timeElapsed;
         }
@@ -802,7 +818,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed) {
         const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
             setVelocity(ENTITY_ITEM_ZERO_VEC3);
-            if (speed > 0.0f) {
+            if (setFlags && speed > 0.0f) {
                 _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
             }
         } else {
@@ -823,7 +839,27 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
-bool EntityItem::lifetimeHasExpired() const { 
+glm::mat4 EntityItem::getEntityToWorldMatrix() const {
+    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+    return translation * rotation * scale * registration;
+}
+
+glm::mat4 EntityItem::getWorldToEntityMatrix() const {
+    return glm::inverse(getEntityToWorldMatrix());
+}
+
+glm::vec3 EntityItem::entityToWorld(const glm::vec3& point) const {
+    return glm::vec3(getEntityToWorldMatrix() * glm::vec4(point, 1.0f));
+}
+
+glm::vec3 EntityItem::worldToEntity(const glm::vec3& point) const {
+    return glm::vec3(getWorldToEntityMatrix() * glm::vec4(point, 1.0f));
+}
+
+bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
@@ -1013,12 +1049,6 @@ AABox EntityItem::getAABox() const {
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
-AABox EntityItem::getAABoxInDomainUnits() const { 
-    AABox box = getAABox();
-    box.scale(1.0f / (float)TREE_SCALE);
-    return box;
-}
-
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
 //    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
@@ -1046,6 +1076,16 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(_dimensions);
 }
 
+bool EntityItem::contains(const glm::vec3& point) const {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
+        return getAABox().contains(point);
+    } else {
+        ShapeInfo info;
+        info.setParams(getShapeType(), glm::vec3(0.5f));
+        return info.contains(worldToEntity(point));
+    }
+}
+
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
@@ -1065,9 +1105,10 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    if (glm::distance(_position, value) > MIN_POSITION_DELTA) {
+    if (value != _position) {
+        auto distance = glm::distance(_position, value);
+        _dirtyFlags |= (distance > MIN_POSITION_DELTA) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
         _position = value;
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -1084,9 +1125,10 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (glm::dot(_rotation, rotation) < MIN_ALIGNMENT_DOT) {
-        _rotation = rotation; 
-        _dirtyFlags |= EntityItem::DIRTY_POSITION;
+    if (rotation != _rotation) {
+        auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
+        _dirtyFlags |= (alignmentDot < MIN_ALIGNMENT_DOT) ? EntityItem::DIRTY_POSITION : EntityItem::DIRTY_PHYSICS_NO_WAKE;
+        _rotation = rotation;
     }
 }
 
@@ -1133,7 +1175,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
 void EntityItem::updateDamping(float value) { 
     if (fabsf(_damping - value) > MIN_DAMPING_DELTA) {
         _damping = glm::clamp(value, 0.0f, 1.0f);
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_MATERIAL;
     }
 }
 
@@ -1143,7 +1185,7 @@ void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
-    if ( glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
+    if (glm::distance(_gravity, value) > MIN_GRAVITY_DELTA) {
         _gravity = value;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
@@ -1151,26 +1193,27 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 
 void EntityItem::updateAcceleration(const glm::vec3& value) { 
     if (glm::distance(_acceleration, value) > MIN_ACCELERATION_DELTA) {
-        if (glm::length(value) < MIN_ACCELERATION_DELTA) {
-            _acceleration = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _acceleration = value;
-        }
+        _acceleration = value;
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
-    if (glm::distance(_angularVelocity, value) > MIN_SPIN_DELTA) {
-        _angularVelocity = value; 
+    auto distance = glm::distance(_angularVelocity, value);
+    if (distance > MIN_SPIN_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        if (glm::length(value) < MIN_SPIN_DELTA) {
+            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            _angularVelocity = value;
+        }
     }
 }
 
 void EntityItem::updateAngularDamping(float value) { 
     if (fabsf(_angularDamping - value) > MIN_DAMPING_DELTA) {
         _angularDamping = glm::clamp(value, 0.0f, 1.0f);
-        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_MATERIAL;
     }
 }
 
@@ -1195,3 +1238,9 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
+void EntityItem::setSimulatorID(const QUuid& value) {
+    if (_simulatorID != value) {
+        _simulatorID = value;
+        _simulatorIDChangedTime = usecTimestampNow();
+    }
+}

@@ -30,6 +30,7 @@ protected:
 
     QSet<EntityItem*> _movingEntities;
     QSet<EntityItem*> _movableButStoppedEntities;
+    QSet<EntityItem*> _hasSimulationOwnerEntities;
 };
 
 #endif // hifi_SimpleEntitySimulation_h

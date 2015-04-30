@@ -12,18 +12,20 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
+#include <QSet>
+#include <QStack>
+
 #include <EntityTree.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
 
+class AbstractScriptingServicesInterface;
+class AbstractViewStateInterface;
 class Model;
 class ScriptEngine;
-class AbstractViewStateInterface;
-class AbstractScriptingServicesInterface;
-
-class ScriptEngine;
+class ZoneEntityItem;
 
 class EntityScriptDetails {
 public:
@@ -56,7 +58,8 @@ public:
 
     virtual void init();
     virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
+                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
@@ -164,6 +167,21 @@ private:
     bool _shuttingDown = false;
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
+
+    bool _hasPreviousZone = false;
+    const ZoneEntityItem* _bestZone;
+    float _bestZoneVolume;
+
+    glm::vec3 _previousKeyLightColor;
+    float _previousKeyLightIntensity;
+    float _previousKeyLightAmbientIntensity;
+    glm::vec3 _previousKeyLightDirection;
+    bool _previousStageSunModelEnabled;
+    float _previousStageLongitude;
+    float _previousStageLatitude;
+    float _previousStageAltitude;
+    float _previousStageHour;
+    int _previousStageDay;
     
 };
 
