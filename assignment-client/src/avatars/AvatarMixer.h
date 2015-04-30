@@ -47,6 +47,8 @@ private:
     int _numStatFrames;
     int _sumBillboardPackets;
     int _sumIdentityPackets;
+
+    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_AvatarMixer_h
