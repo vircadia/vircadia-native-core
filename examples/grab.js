@@ -100,7 +100,6 @@ function flingObject() {
 
   flingVelocity = Vec3.subtract(entityProps.position, prevPosition);
   flingVelocity = Vec3.multiply(flingMultiplier, flingVelocity);
-  flingVelocity.y = 0;
   Entities.editEntity(grabbedEntity, {
     velocity: flingVelocity
   });
