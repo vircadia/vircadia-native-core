@@ -8,4 +8,7 @@
 <script src='js/stats.js'></script>
 <script src='js/json.human.js'></script>
 <script src='js/highcharts-custom.js'></script>
+<script src='/js/underscore-min.js'></script>
+<script src='js/underscore-keypath.min.js'></script>
+<script src='/js/bootbox.min.js'></script>
 <!--#include virtual="page-end.html"-->
