@@ -421,9 +421,9 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
     QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
-        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value of" 
-            << DEFAULT_NODE_SEND_BANDWIDTH;
+        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
     }
 
     _maxMbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH);
+    qDebug() << "The maximum send bandwidth per node is" << _maxMbpsPerNode << "Mbps."; 
 }
