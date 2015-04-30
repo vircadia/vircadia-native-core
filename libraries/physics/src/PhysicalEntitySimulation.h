@@ -22,14 +22,16 @@
 
 #include "PhysicsTypedefs.h"
 
+class EntityMotionState;
 class PhysicsEngine;
+class ShapeManager;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();
 
-    void init(EntityTree* tree, PhysicsEngine* engine, EntityEditPacketSender* packetSender);
+    void init(EntityTree* tree, PhysicsEngine* engine, ShapeManager* shapeManager, EntityEditPacketSender* packetSender);
 
     // overrides for EntitySimulation
     void updateEntitiesInternal(const quint64& now);
@@ -64,7 +66,7 @@ private:
     PhysicsEngine* _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
-    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
+    uint32_t _lastStepSendPackets = 0;
 };
 
 #endif // hifi_PhysicalEntitySimulation_h

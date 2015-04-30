@@ -56,7 +56,7 @@ void EntitySimulation::getEntitiesToDelete(SetOfEntities& entitiesToDelete) {
     }
 }
 
-// private
+// protected
 void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {
         // only search for expired entities if we expect to find one
@@ -82,7 +82,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
     }
 }
 
-// private
+// protected
 void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     PerformanceTimer perfTimer("updatingEntities");
     SetOfEntities::iterator itemItr = _entitiesToUpdate.begin();
@@ -99,7 +99,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     }
 }
 
-// private
+// protected
 void EntitySimulation::sortEntitiesThatMoved() {
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.

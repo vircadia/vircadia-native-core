@@ -36,22 +36,26 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
 }
 
 // static 
-uint32_t _worldSimulationStep = 0;
+uint32_t worldSimulationStep = 0;
 void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
-    assert(step > _worldSimulationStep);
-    _worldSimulationStep = step;
+    assert(step > worldSimulationStep);
+    worldSimulationStep = step;
+}
+
+uint32_t ObjectMotionState::getWorldSimulationStep() {
+    return worldSimulationStep;
 }
 
 // static 
-ShapeManager* _shapeManager = nullptr;
-void ObjectMotionState::setShapeManager(ShapeManager* shapeManager) {
-    assert(shapeManager);
-    _shapeManager = shapeManager;
+ShapeManager* shapeManager = nullptr;
+void ObjectMotionState::setShapeManager(ShapeManager* manager) {
+    assert(manager);
+    shapeManager = manager;
 }
 
 ShapeManager* ObjectMotionState::getShapeManager() {
-    assert(_shapeManager); // you must properly set _shapeManager before calling getShapeManager()
-    return _shapeManager;
+    assert(shapeManager); // you must properly set shapeManager before calling getShapeManager()
+    return shapeManager;
 }
 
 ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
@@ -59,43 +63,8 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
     _shape(shape),
     _body(nullptr),
     _mass(0.0f),
-    _lastSimulationStep(0),
-    _lastVelocity(0.0f),
-    _measuredAcceleration(0.0f)
+    _lastKinematicStep(worldSimulationStep)
 {
-    assert(_shape);
-}
-
-ObjectMotionState::~ObjectMotionState() {
-    // NOTE: you MUST remove this MotionState from the world before you call the dtor.
-    assert(_body == nullptr);
-    if (_shape) {
-        // the ObjectMotionState owns a reference to its shape in the ShapeManager
-        // se we must release it
-        getShapeManager()->releaseShape(_shape);
-        _shape = nullptr;
-    }
-}
-
-void ObjectMotionState::measureBodyAcceleration() {
-    // try to manually measure the true acceleration of the object
-    uint32_t numSubsteps = _worldSimulationStep - _lastSimulationStep;
-    if (numSubsteps > 0) {
-        float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
-        float invDt = 1.0f / dt;
-        _lastSimulationStep = _worldSimulationStep;
-
-        // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
-        // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
-        glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
-        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
-        _lastVelocity = velocity;
-    }
-}
-
-void ObjectMotionState::resetMeasuredBodyAcceleration() {
-    _lastSimulationStep = _worldSimulationStep;
-    _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }
 
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
@@ -110,12 +79,23 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 
-glm::vec3 ObjectMotionState::getBodyVelocity() const {
+glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
     return bulletToGLM(_body->getLinearVelocity());
 }
 
 glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
     return bulletToGLM(_body->getAngularVelocity());
+}
+
+void ObjectMotionState::releaseShape() {
+    if (_shape) {
+        shapeManager->releaseShape(_shape);
+        _shape = nullptr;
+    }
+}
+
+void ObjectMotionState::setMotionType(MotionType motionType) {
+    _motionType = motionType;
 }
 
 void ObjectMotionState::setRigidBody(btRigidBody* body) {

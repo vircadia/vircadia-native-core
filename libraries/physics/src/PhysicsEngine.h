@@ -53,11 +53,13 @@ public:
 
     /// process queue of changed from external sources
     void removeObjects(VectorOfMotionStates& objects);
+    void deleteObjects(SetOfMotionStates& objects);
     void addObjects(VectorOfMotionStates& objects);
     void changeObjects(VectorOfMotionStates& objects);
 
     void stepSimulation();
     void computeCollisionEvents();
+    void fireCollisionEvents();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
     VectorOfMotionStates& getOutgoingChanges();
@@ -71,7 +73,11 @@ public:
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object added
-    void addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState);
+    void addObject(ObjectMotionState* motionState);
+
+    void bump(ObjectMotionState* motionState);
+
+    void removeRigidBody(btRigidBody* body);
 
     void setCharacterController(DynamicCharacterController* character);
 

@@ -77,6 +77,8 @@ signals:
 
 protected:
 
+    void clearEntitySimulation(EntityItem* entity) { entity->_simulation = nullptr; }
+
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
 

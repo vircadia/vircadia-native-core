@@ -17,6 +17,7 @@
 
 #include <LinearMath/btQuickprof.h>
 
+#include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
@@ -95,7 +96,7 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
             btRigidBody* body = btRigidBody::upcast(colObj);
             if (body) {
                 synchronizeSingleMotionState(body);
-                _changedMotionStates.push_back(body->getMotionState());
+                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
             }
         }
     } else  {       
@@ -104,7 +105,7 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
             btRigidBody* body = m_nonStaticRigidBodies[i];
             if (body->isActive()) {
                 synchronizeSingleMotionState(body);
-                _changedMotionStates.push_back(body->getMotionState());
+                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
             }
         }
     }   

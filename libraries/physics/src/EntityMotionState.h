@@ -31,9 +31,6 @@ public:
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     virtual MotionType computeObjectMotionType() const;
 
-    virtual void updateKinematicState(uint32_t substep);
-    virtual void stepKinematicSimulation(quint64 now);
-
     virtual bool isMoving() const;
 
     // this relays incoming position/rotation to the RigidBody
@@ -65,15 +62,20 @@ public:
     virtual float getObjectLinearDamping() const { return _entity->getDamping(); }
     virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
 
-    virtual const glm::vec3& getObjectPosition() const { return _entity->getPosition(); }
+    virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
     virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
     virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
-    EntityItem* getEntityItem() const { return _entityItem; }
+    EntityItem* getEntity() const { return _entity; }
+
+    void resetMeasuredBodyAcceleration();
+    void measureBodyAcceleration();
 
 protected:
+    virtual void setMotionType(MotionType motionType);
+
     EntityItem* _entity;
 
     bool _sentMoving;   // true if last update was moving
@@ -86,6 +88,10 @@ protected:
     glm::vec3 _sentAngularVelocity; // radians per second
     glm::vec3 _sentGravity;
     glm::vec3 _sentAcceleration;
+
+    uint32_t _lastMeasureStep;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _measuredAcceleration;
 
     quint8 _accelerationNearlyGravityCount;
     bool _shouldClaimSimulationOwnership;

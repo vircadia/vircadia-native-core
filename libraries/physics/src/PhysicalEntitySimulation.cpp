@@ -9,13 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityMotionState.h"
 #include "PhysicalEntitySimulation.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 #include "ShapeInfoUtil.h"
+#include "ShapeManager.h"
 
-PhysicalEntitySimulation::PhysicalEntitySimulation() :
+PhysicalEntitySimulation::PhysicalEntitySimulation() {
 }
 
 PhysicalEntitySimulation::~PhysicalEntitySimulation() {
@@ -29,10 +31,10 @@ void PhysicalEntitySimulation::init(
     assert(tree);
     setEntityTree(tree);
 
-    assert(*physicsEngine);
+    assert(physicsEngine);
     _physicsEngine = physicsEngine;
 
-    assert(*shapeManager);
+    assert(shapeManager);
     _shapeManager = shapeManager;
 
     assert(packetSender);
@@ -42,26 +44,6 @@ void PhysicalEntitySimulation::init(
 // begin EntitySimulation overrides
 void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // TODO: add back non-physical kinematic objects and step them forward here
-}
-
-void PhysicalEntitySimulation::sendOutgoingPackets() {
-    uint32_t numSubsteps = _physicsEngine->getNumSubsteps();
-    if (_lastNumSubstepsAtUpdateInternal != numSubsteps) {
-        _lastNumSubstepsAtUpdateInternal = numSubsteps;
-
-        SetOfMotionStates::iterator stateItr = _outgoingChanges.begin();
-        while (stateItr != _outgoingChanges.end()) {
-            EntityMotionState* state = *stateItr;
-            if (state->doesNotNeedToSendUpdate()) {
-                stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps)) {
-                state->sendUpdate(_entityPacketSender, numSubsteps);
-                ++stateItr;
-            } else {
-                ++stateItr;
-            }
-        }
-    }
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
@@ -76,10 +58,9 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _pendingRemoves.insert(motionState);
+        _pendingRemoves.insert(entity);
     } else {
-        entity->_simulation = nullptr;
+        clearEntitySimulation(entity);
     }
 }
 
@@ -87,10 +68,9 @@ void PhysicalEntitySimulation::deleteEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _pendingRemoves.insert(motionState);
+        _pendingRemoves.insert(entity);
     } else {
-        entity->_simulation = nullptr;
+        clearEntitySimulation(entity);
         delete entity;
     }
 }
@@ -100,10 +80,9 @@ void PhysicalEntitySimulation::entityChangedInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        _pendingChanges.insert(motionState);
+        _pendingChanges.insert(entity);
     } else { 
-        if (!entity->ignoreForCollisions()) {
+        if (!entity->getIgnoreForCollisions()) {
             // The intent is for this object to be in the PhysicsEngine.  
             // Perhaps it's shape has changed and it can now be added?
             _pendingAdds.insert(entity);
@@ -130,14 +109,16 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
-    SetOfMotionStates::const_iterator stateItr = _physicalEntities.begin();
+
+    _physicsEngine->deleteObjects(_physicalEntities);
+
     for (auto stateItr : _physicalEntities) {
-        EntityMotionState motionState = static_cast<EntityMotionState*>(*stateItr);
-        _physicsEngine->removeObjectFromBullet(motionState);
-        EntityItem* entity = motionState->_entity;
-        _entity->setPhysicsInfo(nullptr);
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
+        EntityItem* entity = motionState->getEntity();
+        entity->setPhysicsInfo(nullptr);
         delete motionState;
     }
+
     _physicalEntities.clear();
     _pendingRemoves.clear();
     _pendingAdds.clear();
@@ -149,13 +130,13 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemove() {
     _tempVector.clear();
     for (auto entityItr : _pendingRemoves) {
-        EntityItem* entity = *entityItr;
-        _physicalEntities.remove(entity);
+        EntityItem* entity = &(*entityItr);
         _pendingAdds.remove(entity);
         _pendingChanges.remove(entity);
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _tempVector.push_back(motionState);
+            _physicalEntities.remove(motionState);
         }
     }
     _pendingRemoves.clear();
@@ -176,15 +157,14 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
+                motionState->setMass(entity->computeMass());
                 _physicalEntities.insert(motionState);
+                _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
-                // TODO: figure out how to get shapeInfo (or relevant info) to PhysicsEngine during add
-                //_physicsEngine->addObject(shapeInfo, motionState);
             } else {
                 ++entityItr;
             }
         }
-        _tempVector.push_back(motionState);
     }
     return _tempVector;
 }
@@ -192,7 +172,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
 VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     _tempVector.clear();
     for (auto entityItr : _pendingChanges) {
-        EntityItem* entity = *entityItr;
+        EntityItem* entity = &(*entityItr);
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _tempVector.push_back(motionState);
@@ -205,14 +185,32 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
 void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
-        ObjectMotionState* state = *stateItr;
+        ObjectMotionState* state = &(*stateItr);
         if (state->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             _outgoingChanges.insert(entityState);
-            _entitiesToSort.insert(entityState->getEntityItem());
+            _entitiesToSort.insert(entityState->getEntity());
         }
     }
-    sendOutgoingPackets();
+   
+    // send outgoing packets
+    uint32_t numSubsteps = _physicsEngine->getNumSubsteps();
+    if (_lastStepSendPackets != numSubsteps) {
+        _lastStepSendPackets = numSubsteps;
+
+        QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
+        while (stateItr != _outgoingChanges.end()) {
+            EntityMotionState* state = *stateItr;
+            if (state->doesNotNeedToSendUpdate()) {
+                stateItr = _outgoingChanges.erase(stateItr);
+            } else if (state->shouldSendUpdate(numSubsteps)) {
+                state->sendUpdate(_entityPacketSender, numSubsteps);
+                ++stateItr;
+            } else {
+                ++stateItr;
+            }
+        }
+    }
 }
 
 void PhysicalEntitySimulation::bump(EntityItem* bumpEntity) {

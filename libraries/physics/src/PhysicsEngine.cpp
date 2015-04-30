@@ -68,11 +68,26 @@ void PhysicsEngine::removeObjects(VectorOfMotionStates& objects) {
 
         btRigidBody* body = object->getRigidBody();
         _dynamicsWorld->removeRigidBody(body);
+        removeContacts(object);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
         delete body;
+        object->releaseShape();
+    }
+}
+
+void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
+    for (auto object : objects) {
+        assert(object);
+    
+        btRigidBody* body = object->getRigidBody();
+        _dynamicsWorld->removeRigidBody(body);
         removeContacts(object);
+
+        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+        object->setRigidBody(nullptr);
+        delete body;
         object->releaseShape();
     }
 }
@@ -151,6 +166,7 @@ void PhysicsEngine::stepSimulation() {
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
+    /* TODO: Andrew to make this work for ObjectMotionState
     BT_PROFILE("ownershipInfection");
     assert(objectA);
     assert(objectB);
@@ -184,6 +200,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
             a->setShouldClaimSimulationOwnership(true);
         }
     }
+    */
 }
 
 void PhysicsEngine::computeCollisionEvents() {
@@ -215,7 +232,13 @@ void PhysicsEngine::computeCollisionEvents() {
             doOwnershipInfection(objectA, objectB);
         }
     }
-    
+
+    fireCollisionEvents();
+    ++_numContactFrames;
+}
+
+void PhysicsEngine::fireCollisionEvents() {
+    /* TODO: Andrew to make this work for ObjectMotionStates
     const uint32_t CONTINUE_EVENT_FILTER_FREQUENCY = 10;
 
     // scan known contacts and trigger events
@@ -253,14 +276,14 @@ void PhysicsEngine::computeCollisionEvents() {
             ++contactItr;
         }
     }
-    ++_numContactFrames;
+    */
 }
 
 VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
-    _dynamicsWorld.synchronizeMotionStates();
+    _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;
-    return _dynamicsWorld.getChangedMotionStates();
+    return _dynamicsWorld->getChangedMotionStates();
 }
 
 void PhysicsEngine::dumpStatsIfNecessary() {
@@ -287,7 +310,9 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     btVector3 inertia(0.0f, 0.0f, 0.0f);
     float mass = 0.0f;
     btRigidBody* body = nullptr;
-    switch(motionState->computeObjectMotionType()) {
+    MotionType motionType = motionState->computeObjectMotionType();
+    motionState->setMotionType(motionType);
+    switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {
             body = new btRigidBody(mass, motionState, shape, inertia);
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -330,11 +355,50 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     motionState->updateBodyMaterialProperties();
 
     _dynamicsWorld->addRigidBody(body);
-    motionState->resetMeasuredBodyAcceleration();
 }
 
-/* TODO: convert bump() to take an ObjectMotionState.
-* Expose SimulationID to ObjectMotionState*/
+void PhysicsEngine::bump(ObjectMotionState* object) {
+    /* TODO: Andrew to implement this
+    // If this node is doing something like deleting an entity, scan for contacts involving the
+    // entity.  For each found, flag the other entity involved as being simulated by this node.
+    int numManifolds = _collisionDispatcher->getNumManifolds();
+    for (int i = 0; i < numManifolds; ++i) {
+        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
+        if (contactManifold->getNumContacts() > 0) {
+            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+            if (objectA && objectB) {
+                void* a = objectA->getUserPointer();
+                void* b = objectB->getUserPointer();
+                if (a && b) {
+                    EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
+                    EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
+                    EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : nullptr;
+                    EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : nullptr;
+                    if (entityA && entityB) {
+                        if (entityA == bumpEntity) {
+                            entityMotionStateB->setShouldClaimSimulationOwnership(true);
+                            if (!objectB->isActive()) {
+                                objectB->setActivationState(ACTIVE_TAG);
+                            }
+                        }
+                        if (entityB == bumpEntity) {
+                            entityMotionStateA->setShouldClaimSimulationOwnership(true);
+                            if (!objectA->isActive()) {
+                                objectA->setActivationState(ACTIVE_TAG);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    */
+}
+
+/*
+// TODO: convert bump() to take an ObjectMotionState.
+// Expose SimulationID to ObjectMotionState
 void PhysicsEngine::bump(EntityItem* bumpEntity) {
     // If this node is doing something like deleting an entity, scan for contacts involving the
     // entity.  For each found, flag the other entity involved as being simulated by this node.
@@ -371,56 +435,11 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
         }
     }
 }
+*/
 
 void PhysicsEngine::removeRigidBody(btRigidBody* body) {
     // pull body out of physics engine
     _dynamicsWorld->removeRigidBody(body);
-}
-
-void PhysicsEngine::addRigidBody(btRigidBody* body, MotionType motionType, float mass) {
-    switch (motionType) {
-        case MOTION_TYPE_KINEMATIC: {
-            int collisionFlags = body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT;
-            collisionFlags &= ~(btCollisionObject::CF_STATIC_OBJECT);
-            body->setCollisionFlags(collisionFlags);
-            body->forceActivationState(DISABLE_DEACTIVATION);
-
-            body->setMassProps(0.0f, btVector3(0.0f, 0.0f, 0.0f));
-            body->updateInertiaTensor();
-            break;
-        }
-        case MOTION_TYPE_DYNAMIC: {
-            int collisionFlags = body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT | btCollisionObject::CF_STATIC_OBJECT);
-            body->setCollisionFlags(collisionFlags);
-            if (! (flags & EntityItem::DIRTY_MASS)) {
-                // always update mass properties when going dynamic (unless it's already been done above)
-                btVector3 inertia(0.0f, 0.0f, 0.0f);
-                body->getCollisionShape()->calculateLocalInertia(mass, inertia);
-                body->setMassProps(mass, inertia);
-                body->updateInertiaTensor();
-            }
-            body->forceActivationState(ACTIVE_TAG);
-            break;
-        }
-        default: {
-            // MOTION_TYPE_STATIC
-            int collisionFlags = body->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT;
-            collisionFlags &= ~(btCollisionObject::CF_KINEMATIC_OBJECT);
-            body->setCollisionFlags(collisionFlags);
-            body->forceActivationState(DISABLE_SIMULATION);
-
-            body->setMassProps(0.0f, btVector3(0.0f, 0.0f, 0.0f));
-            body->updateInertiaTensor();
-
-            body->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
-            body->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
-            break;
-        }
-    }
-
-    _dynamicsWorld->addRigidBody(body);
-
-    body->activate();
 }
 
 void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {

@@ -54,21 +54,6 @@ MotionType EntityMotionState::computeObjectMotionType() const {
     return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
-void EntityMotionState::updateKinematicState(uint32_t substep) {
-    setKinematic(_entity->isMoving(), substep);
-}
-
-void EntityMotionState::stepKinematicSimulation(quint64 now) {
-    assert(_isKinematic);
-    // NOTE: this is non-physical kinematic motion which steps to real run-time (now)
-    // which is different from physical kinematic motion (inside getWorldTransform())
-    // which steps in physics simulation time.
-    _entity->simulate(now);
-    // TODO: we can't use measureBodyAcceleration() here because the entity
-    // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
-    // Hence we must manually measure kinematic velocity and acceleration.
-}
-
 bool EntityMotionState::isMoving() const {
     return _entity->isMoving();
 }
@@ -79,18 +64,18 @@ bool EntityMotionState::isMoving() const {
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
-    if (_isKinematic) {
+    if (_motionType == MOTION_TYPE_KINEMATIC) {
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation.
-        uint32_t substep = PhysicsEngine::getNumSubsteps();
-        float dt = (substep - _lastKinematicSubstep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
+        float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->simulateKinematicMotion(dt);
         _entity->setLastSimulated(usecTimestampNow());
 
-        // bypass const-ness so we can remember the substep
-        const_cast<EntityMotionState*>(this)->_lastKinematicSubstep = substep;
+        // bypass const-ness so we can remember the step
+        const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
     }
-    worldTrans.setOrigin(glmToBullet(_entity->getPosition() - ObjectMotionState::getWorldOffset()));
+    worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
@@ -101,13 +86,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
-    glm::vec3 v;
-    getVelocity(v);
-    _entity->setVelocity(v);
-
-    glm::vec3 av;
-    getAngularVelocity(av);
-    _entity->setAngularVelocity(av);
+    _entity->setVelocity(getBodyLinearVelocity());
+    _entity->setAngularVelocity(getBodyAngularVelocity());
 
     _entity->setLastSimulated(usecTimestampNow());
 
@@ -404,4 +384,33 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() const {
     }
     return dirtyFlags;
 */
+}
+
+void EntityMotionState::resetMeasuredBodyAcceleration() {
+    _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
+    _lastVelocity = bulletToGLM(_body->getLinearVelocity());                                                        
+    _measuredAcceleration = glm::vec3(0.0f);
+} 
+
+void EntityMotionState::measureBodyAcceleration() {
+    // try to manually measure the true acceleration of the object
+    uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
+    uint32_t numSubsteps = thisStep - _lastMeasureStep;
+    if (numSubsteps > 0) {
+        float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
+        float invDt = 1.0f / dt;
+        _lastMeasureStep = thisStep;
+
+        // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
+        // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
+        glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
+        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
+        _lastVelocity = velocity;
+    }
+}
+
+// virtual 
+void EntityMotionState::setMotionType(MotionType motionType) {
+    ObjectMotionState::setMotionType(motionType);
+    resetMeasuredBodyAcceleration();
 }

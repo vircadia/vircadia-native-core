@@ -299,6 +299,7 @@ public:
 
     void* getPhysicsInfo() const { return _physicsInfo; }
     
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
     EntitySimulation* getSimulation() const { return _simulation; }
 
@@ -311,7 +312,6 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
     
 protected:
-    void setPhysicsInfo(void* data) { _physicsInfo = data; }
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;

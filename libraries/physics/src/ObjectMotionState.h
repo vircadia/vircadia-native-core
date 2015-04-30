@@ -18,7 +18,7 @@
 #include <EntityItem.h>
 
 #include "ContactInfo.h"
-#include "ShapeInfo.h"
+#include "ShapeManager.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -46,6 +46,7 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | Entit
 
 
 class OctreeEditPacketSender;
+class PhysicsEngine;
 
 extern const int MAX_NUM_NON_MOVING_UPDATES;
 
@@ -56,18 +57,18 @@ public:
     // ObjectMotionState context.
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
+
     static void setWorldSimulationStep(uint32_t step);
-    static void setShapeManager(ShapeManager* shapeManager);
+    static uint32_t getWorldSimulationStep();
+
+    static void setShapeManager(ShapeManager* manager);
     static ShapeManager* getShapeManager();
 
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    void measureBodyAcceleration();
-    void resetMeasuredBodyAcceleration();
-
-    void handleEasyChanges();
-    void handleHardAndEasyChanges();
+    void handleEasyChanges(uint32_t flags);
+    void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     virtual void updateBodyMaterialProperties();
     virtual void updateBodyVelocities();
@@ -82,7 +83,7 @@ public:
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
     void setBodyGravity(const glm::vec3& gravity) const;
 
-    glm::vec3 getBodyVelocity() const;
+    glm::vec3 getBodyLinearVelocity() const;
     glm::vec3 getBodyAngularVelocity() const;
 
     virtual uint32_t getIncomingDirtyFlags() const = 0;
@@ -92,6 +93,8 @@ public:
 
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
+
+    void releaseShape();
 
     virtual bool isMoving() const = 0;
 
@@ -103,7 +106,7 @@ public:
     virtual float getObjectLinearDamping() const = 0;
     virtual float getObjectAngularDamping() const = 0;
     
-    virtual const glm::vec3& getObjectPosition() const = 0;
+    virtual glm::vec3 getObjectPosition() const = 0;
     virtual const glm::quat& getObjectRotation() const = 0;
     virtual const glm::vec3& getObjectLinearVelocity() const = 0;
     virtual const glm::vec3& getObjectAngularVelocity() const = 0;
@@ -112,6 +115,7 @@ public:
     friend class PhysicsEngine;
 
 protected:
+    virtual void setMotionType(MotionType motionType);
     void setRigidBody(btRigidBody* body);
 
     MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN; // type of MotionState
@@ -121,9 +125,7 @@ protected:
     btRigidBody* _body;
     float _mass;
 
-    uint32_t _lastSimulationStep;
-    glm::vec3 _lastVelocity;
-    glm::vec3 _measuredAcceleration;
+    uint32_t _lastKinematicStep;
 };
 
 #endif // hifi_ObjectMotionState_h

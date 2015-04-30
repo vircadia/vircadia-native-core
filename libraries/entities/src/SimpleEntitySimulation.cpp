@@ -65,15 +65,15 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
     _movingEntities.remove(entity);
     _movableButStoppedEntities.remove(entity);
     _hasSimulationOwnerEntities.remove(entity);
-    entity->_simulation = nullptr;
+    clearEntitySimulation(entity);
 }
 
 void SimpleEntitySimulation::deleteEntityInternal(EntityItem* entity) {
     _movingEntities.remove(entity);
     _movableButStoppedEntities.remove(entity);
     _hasSimulationOwnerEntities.remove(entity);
-    entity->_simulation = nullptr;
-    if (!entity->_tree) {
+    clearEntitySimulation(entity);
+    if (!entity->getElement()) {
         // we held the last reference to this entity, so delete it
         delete entity;
     }

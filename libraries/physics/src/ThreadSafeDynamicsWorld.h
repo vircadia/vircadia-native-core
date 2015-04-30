@@ -18,6 +18,7 @@
 #ifndef hifi_ThreadSafeDynamicsWorld_h
 #define hifi_ThreadSafeDynamicsWorld_h
 
+#include <BulletDynamics/Dynamics/btRigidBody.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
 #include "PhysicsTypedefs.h"
@@ -34,13 +35,14 @@ public:
 
     // virtual overrides from btDiscreteDynamicsWorld
     int stepSimulation( btScalar timeStep, int maxSubSteps=1, btScalar fixedTimeStep=btScalar(1.)/btScalar(60.));
+    void synchronizeMotionStates();
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated
     // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide 
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
 
-    VectorOfMotionStates& getChangedMotionStates() const { return _changedMotionStates; }
+    VectorOfMotionStates& getChangedMotionStates() { return _changedMotionStates; }
 
 private:
     VectorOfMotionStates _changedMotionStates;
