@@ -59,7 +59,13 @@ function mousePressEvent(event) {
     isGrabbing = true;
     savedGravity = props.gravity;
     Overlays.editOverlay(dropLine, {
-      visible: true
+      visible: true,
+      start: props.position,
+      end: Vec3.sum(props.position, {
+        x: 0,
+        y: -DROP_DISTANCE,
+        z: 0
+      })
     });
     Entities.editEntity(grabbedEntity, {
       gravity: {
