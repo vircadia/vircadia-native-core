@@ -47,6 +47,8 @@ public:
     /// How many received packets waiting are to be processed
     int packetsToProcessCount() const { return _packets.size(); }
 
+    virtual void terminating();
+
 public slots:
     void nodeKilled(SharedNodePointer node);
 
@@ -70,8 +72,6 @@ protected:
 
     /// Override to do work after the packets processing loop.  Default does nothing.
     virtual void postProcess() { }
-
-    virtual void terminating();
 
 protected:
 
