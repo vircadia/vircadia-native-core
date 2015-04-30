@@ -109,6 +109,8 @@ private:
     float _filteredLeftEyeBlink;
     float _lastRightEyeBlink;
     float _filteredRightEyeBlink;
+    float _lastBrowUp;
+    float _filteredBrowUp;
 };
 
 #endif // hifi_DdeFaceTracker_h
