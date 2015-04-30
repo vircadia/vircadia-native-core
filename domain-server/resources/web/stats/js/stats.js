@@ -34,6 +34,6 @@ $(document).ready(function(){
 
   // handle clicks on numerical values - this lets the user show a line graph in a modal
   $('#stats-container').on('click', '.jh-type-number', function(){
-    var key = $(this).closest('tr').children('.jh-key').html();
+    var keypath = $(this).data('keypath');
   });
 });
