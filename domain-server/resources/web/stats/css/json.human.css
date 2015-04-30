@@ -18,6 +18,7 @@
 .jh-type-number {
   text-align: center;
   color: #5286BC;
+  cursor: pointer;
 }
 
 .jh-type-bool-true {

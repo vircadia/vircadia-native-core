@@ -31,4 +31,9 @@ $(document).ready(function(){
   getNodeStats();
   // grab the new assignments JSON every second
   var getNodeStatsInterval = setInterval(getNodeStats, 1000);
+
+  // handle clicks on numerical values - this lets the user show a line graph in a modal
+  $('#stats-container').on('click', '.jh-type-number', function(){
+    var key = $(this).closest('tr').children('.jh-key').html();
+  });
 });
