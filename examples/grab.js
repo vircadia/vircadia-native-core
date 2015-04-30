@@ -160,11 +160,6 @@ function keyPressEvent(event) {
   }
 }
 
-function cleanup() {
-  Entities.deleteEntity(box);
-  Entities.deleteEntity(box2);
-  Entities.deleteEntity(ground);
-}
 
 function setUpTestObjects() {
   var distance = 4;
@@ -235,4 +230,3 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Script.scriptEnding.connect(cleanup);
