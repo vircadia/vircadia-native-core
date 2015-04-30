@@ -23,10 +23,15 @@
         return toString.call(obj) === '[object Array]';
     }
 
-    function sn(tagName, className, data) {
+    function sn(tagName, className, data, keypath) {
         var result = document.createElement(tagName);
 
         result.className = className;
+        
+        if (keypath) {
+            result.setAttribute('data-keypath', keypath);
+        }
+        
         result.appendChild(document.createTextNode("" + data));
 
         return result;
@@ -116,7 +121,7 @@
         }
     }
 
-    function _format(data, options, parentKey) {
+    function _format(data, options, parentKey, keypath) {
 
         var result, container, key, keyNode, valNode, len, childs, tr, value,
             isEmpty = true,
@@ -143,8 +148,8 @@
 
             if(boolOpt.showText){
                 container.appendChild(data ?
-                    sn("span", BOOL_TRUE_CLASS_NAME, boolOpt.text.true) :
-                    sn("span", BOOL_FALSE_CLASS_NAME, boolOpt.text.false));
+                    sn("span", BOOL_TRUE_CLASS_NAME, boolOpt.text.true, keypath) :
+                    sn("span", BOOL_FALSE_CLASS_NAME, boolOpt.text.false, keypath));
             }
 
             result = container;
@@ -152,16 +157,16 @@
 
         case STRING:
             if (data === "") {
-                result = sn("span", STRING_EMPTY_CLASS_NAME, "(Empty Text)");
+                result = sn("span", STRING_EMPTY_CLASS_NAME, "(Empty Text)", keypath);
             } else {
-                result = sn("span", STRING_CLASS_NAME, data);
+                result = sn("span", STRING_CLASS_NAME, data, keypath);
             }
             break;
         case INT:
-            result = sn("span", INT_CLASS_NAME, data);
+            result = sn("span", INT_CLASS_NAME, data, keypath);
             break;
         case FLOAT:
-            result = sn("span", FLOAT_CLASS_NAME, data);
+            result = sn("span", FLOAT_CLASS_NAME, data, keypath);
             break;
         case OBJECT:
             childs = [];
@@ -180,7 +185,9 @@
 
                 value = data[key];
 
-                valNode = _format(value, options, key);
+                var objectKeypath = keypath ? keypath + "." + key : key;
+
+                valNode = _format(value, options, key, objectKeypath);
                 keyNode = sn("th", OBJ_KEY_CLASS_NAME, key);
 
                 if( hyperlinksEnabled &&
@@ -200,13 +207,13 @@
             }
 
             if (isEmpty) {
-                result = sn("span", OBJ_EMPTY_CLASS_NAME, "(Empty Object)");
+                result = sn("span", OBJ_EMPTY_CLASS_NAME, "(Empty Object)", keypath);
             } else {
                 result = scn("table", OBJECT_CLASS_NAME, scn("tbody", '', childs));
             }
             break;
         case FUNCTION:
-            result = sn("span", FUNCTION_CLASS_NAME, data);
+            result = sn("span", FUNCTION_CLASS_NAME, data, keypath);
             break;
         case ARRAY:
             if (data.length > 0) {
@@ -226,12 +233,14 @@
 
                     keyNode = sn("th", ARRAY_KEY_CLASS_NAME, key);
                     value = data[key];
+                    
+                    var arrayKeypath = keypath + "[" +  key + "]";
 
                     if(hyperlinksEnabled && typeof(value) === "string") {
-                        valNode = _format(value, options, key);
+                        valNode = _format(value, options, key, arrayKeypath);
                         valNode = scn("td", ARRAY_VAL_CLASS_NAME, linkNode(valNode, value, aTarget));
                     } else {
-                        valNode = scn("td", ARRAY_VAL_CLASS_NAME, _format(value, options, key));
+                        valNode = scn("td", ARRAY_VAL_CLASS_NAME, _format(value, options, key, arrayKeypath));
                     }
 
                     tr = document.createElement("tr");
@@ -246,11 +255,11 @@
 
                 result = scn("table", ARRAY_CLASS_NAME, scn("tbody", '', childs));
             } else {
-                result = sn("span", ARRAY_EMPTY_CLASS_NAME, "(Empty List)");
+                result = sn("span", ARRAY_EMPTY_CLASS_NAME, "(Empty List)", keypath);
             }
             break;
         default:
-            result = sn("span", UNKNOWN_CLASS_NAME, data);
+            result = sn("span", UNKNOWN_CLASS_NAME, data, keypath);
             break;
         }
 
