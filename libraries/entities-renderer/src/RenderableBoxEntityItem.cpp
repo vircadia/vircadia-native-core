@@ -43,23 +43,19 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
     }
 
-    if (highlightSimulationOwnership) {
-        float size = glm::length(dimensions);
-        glPushMatrix();
+    glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, cubeColor);
-        glPopMatrix();
-    } else {
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
+            glm::vec3 positionToCenter = center - position;
+            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            if (highlightSimulationOwnership) {
+                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
+            } else {
                 DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
-            glPopMatrix();
+            }
         glPopMatrix();
-    }
+    glPopMatrix();
 };
