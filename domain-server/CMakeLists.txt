@@ -6,12 +6,6 @@ else ()
   set(_SHOULD_SYMLINK_RESOURCES FALSE)
 endif ()
 
-if (NOT ${_SHOULD_SYMLINK_RESOURCES}) 
-  # since we aren't going to symlink the resources, we should add them as sources for this target
-  # this should cause the target to be re-built should one of the files change
-  file(GLOB_RECURSE TARGET_RSRCS "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
-endif ()
-
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 

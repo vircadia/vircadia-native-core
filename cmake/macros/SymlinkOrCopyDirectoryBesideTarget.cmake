@@ -21,13 +21,13 @@ macro(SYMLINK_OR_COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY _DESTIN
   else ()
     # remove the current directory
     add_custom_command(
-      TARGET ${TARGET_NAME} POST_BUILD
+      TARGET ${TARGET_NAME} PRE_BUILD
       COMMAND "${CMAKE_COMMAND}" -E remove_directory $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
     )
 
     # copy the directory
     add_custom_command(
-      TARGET ${TARGET_NAME} POST_BUILD 
+      TARGET ${TARGET_NAME} PRE_BUILD 
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${_DIRECTORY} 
         $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
     )
