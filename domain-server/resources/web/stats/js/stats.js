@@ -29,7 +29,8 @@ $(document).ready(function(){
         // get the last value using underscore-keypath
         var y = _(json).valueForKeyPath(graphKeypath); 
         
-        var shift = currentHighchart.series[0].length > 20;
+        // start shifting the chart once we hit 20 data points
+        var shift = currentHighchart.series[0].data.length > 20;
         currentHighchart.series[0].addPoint([x, y], true, shift);
       }
     }).fail(function(data) {
@@ -58,7 +59,8 @@ $(document).ready(function(){
     bootbox.dialog({
       title: graphKeypath,
       message: "<div id='highchart-container'></div>",
-      buttons: {}
+      buttons: {},
+      className: 'highchart-modal'
     });
 
     currentHighchart = new Highcharts.Chart({
