@@ -35,16 +35,31 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
 
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
-        glPopMatrix();
-    glPopMatrix();
 
+    bool highlightSimulationOwnership = false;
+    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
+    }
+
+    if (highlightSimulationOwnership) {
+        float size = glm::length(dimensions);
+        glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, cubeColor);
+        glPopMatrix();
+    } else {
+        glPushMatrix();
+            glTranslatef(position.x, position.y, position.z);
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+            glPushMatrix();
+                glm::vec3 positionToCenter = center - position;
+                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+                glScalef(dimensions.x, dimensions.y, dimensions.z);
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
+            glPopMatrix();
+        glPopMatrix();
+    }
 };
