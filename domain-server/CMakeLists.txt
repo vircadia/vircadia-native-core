@@ -1,23 +1,22 @@
 set(TARGET_NAME domain-server)
 
+if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
+  set(_SHOULD_SYMLINK_RESOURCES FALSE)
+else ()
+  set(_SHOULD_SYMLINK_RESOURCES FALSE)
+endif ()
+
+if (NOT ${_SHOULD_SYMLINK_RESOURCES}) 
+  # since we aren't going to symlink the resources, we should add them as sources for this target
+  # this should cause the target to be re-built should one of the files change
+  file(GLOB_RECURSE TARGET_RSRCS "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
+endif ()
+
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 
-if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG AND NOT WIN32)
-  set(SHOULD_SYMLINK_RESOURCES TRUE)
-else ()
-  set(SHOULD_SYMLINK_RESOURCES TRUE)
-endif ()
 
-copy_directory_beside_target(${SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
-
-# copy all files in resources, including web
-# add_custom_command(
-#   TARGET ${TARGET_NAME} POST_BUILD
-#   COMMAND "${CMAKE_COMMAND}" -E copy_directory
-#   "${PROJECT_SOURCE_DIR}/resources"
-#   $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-# )
+symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
 
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared)
