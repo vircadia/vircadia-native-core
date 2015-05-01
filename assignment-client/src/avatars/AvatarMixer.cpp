@@ -435,8 +435,7 @@ void AvatarMixer::sendStatsPacket() {
 
             // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
             avatarStats["delta_full_vs_avatar_data_kbps"] = 
-                avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble(); 
-            
+                avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();  
         }
 
         avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
@@ -501,9 +500,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
-    }
-    
-    const int KILO_PER_MEGA = 1000;
+    } 
 
     _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
     qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps."; 

@@ -37,6 +37,7 @@ const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE = 8;
 const int BYTES_PER_KILOBYTE = 1000;
-const int BYTES_PER_KILOBIT = BYTES_PER_KILOBYTE / BITS_IN_BYTE; 
+const int BYTES_PER_KILOBIT = BYTES_PER_KILOBYTE / BITS_IN_BYTE;
+const int KILO_PER_MEGA = 1000;
 
 #endif // hifi_NumericalConstants_h
