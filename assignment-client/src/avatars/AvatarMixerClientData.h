@@ -39,11 +39,11 @@ public:
     quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
    
-    float getFullRateDistance() const { return _fullRateDistance; }
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
-
-    void setMaxFullRateDistance(float maxFullRateDistance) { _maxFullRateDistance = maxFullRateDistance; }
-    float getMaxFullRateDistance() const { return _maxFullRateDistance; }
+    float getFullRateDistance() const { return _fullRateDistance; }
+    
+    void setMaxAvatarDistance(float maxAvatarDistance) { _maxAvatarDistance = maxAvatarDistance; }
+    float getMaxAvatarDistance() const { return _maxAvatarDistance; }
 
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
@@ -65,7 +65,7 @@ private:
     quint64 _billboardChangeTimestamp = 0;
     quint64 _identityChangeTimestamp = 0;
     float _fullRateDistance = FLT_MAX;
-    float _maxFullRateDistance = FLT_MAX;
+    float _maxAvatarDistance = FLT_MAX;
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
     SimpleMovingAverage _avgOtherAvatarDataRate;

@@ -166,7 +166,7 @@ void AvatarMixer::broadcastAvatarData() {
             distribution.reset();
             
             // reset the max distance for this frame
-            float maxDistanceThisFrame = 0.0f;
+            float maxAvatarDistanceThisFrame = 0.0f;
             
             // reset the number of sent avatars
             nodeData->resetNumAvatarsSentLastFrame();
@@ -186,48 +186,44 @@ void AvatarMixer::broadcastAvatarData() {
             if (nodeData->getNumFramesSinceFRDAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
                 
                 const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
+                const float HYSTERISIS_GAP = (1 - FRD_ADJUSTMENT_ACCEPTABLE_RATIO);
+                const float HYSTERISIS_MIDDLE_PERCENTAGE =  (1 - (HYSTERISIS_GAP * 0.5f));
+                const float FRD_RECOVERY_EPSILON = 0.0001;
+
+                // get the current full rate distance so we can work with it
+                float currentFullRateDistance = nodeData->getFullRateDistance();
 
                 // qDebug() << "current node outbound bandwidth is" << avatarDataRateLastSecond; 
 
                 if (avatarDataRateLastSecond > _maxKbpsPerNode) {
 
                     qDebug() << "Adjustment down required for avatar" << node->getUUID() << "whose current send rate is" 
-                        << avatarDataRateLastSecond;
+                        << avatarDataRateLastSecond; 
 
-                    // is the FRD greater than the MAX FRD? if so, before we calculate anything, set it to the MAX FRD
-                    float newFullRateDistance = nodeData->getFullRateDistance();
+                    // is the FRD greater than the farthest avatar? 
+                    // if so, before we calculate anything, set it to that distance
+                    currentFullRateDistance = std::min(currentFullRateDistance, nodeData->getMaxAvatarDistance());
+
+                    // we're adjusting the full rate distance to target a bandwidth in the middle
+                    // of the hysterisis gap
+
+                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond; 
                     
-                    if (newFullRateDistance > nodeData->getMaxFullRateDistance()) {
-                        newFullRateDistance = nodeData->getMaxFullRateDistance();
-                    }
-                    
-                    // we're adjusting, so we want to drop half the distance to FRD=0
-                    newFullRateDistance /= 2.0f; 
-                    
-                    qDebug() << "max FRD is" << nodeData->getMaxFullRateDistance();
+                    qDebug() << "farthest possible FRD is" << nodeData->getMaxAvatarDistance();
                     qDebug() << "current FRD is" << nodeData->getFullRateDistance();
-                    nodeData->setFullRateDistance(newFullRateDistance);
+                    nodeData->setFullRateDistance(currentFullRateDistance);
 
                     qDebug() << "new FRD is" << nodeData->getFullRateDistance(); 
 
                     nodeData->resetNumFramesSinceFRDAdjustment();
-                } else if (nodeData->getFullRateDistance() < nodeData->getMaxFullRateDistance() 
+                } else if (currentFullRateDistance < nodeData->getMaxAvatarDistance() 
                            && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
-                    // we are constrained AND we've recovered to below the acceptable ratio, adjust the FRD upwards
-                    // by covering half the distance to the max FRD
+                    // we are constrained AND we've recovered to below the acceptable ratio
                     
-                    qDebug() << "Adjustment up required for avatar" << node->getUUID() << "whose current send rate is" 
-                        << node->getOutboundBandwidth();
-                    
-                    float newFullRateDistance = nodeData->getFullRateDistance();
-                    newFullRateDistance += (nodeData->getMaxFullRateDistance() - newFullRateDistance) / 2.0f;
+                    // lets adjust the full rate distance to target a bandwidth in the middle of the hyterisis gap
+                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
                      
-                    qDebug() << "max FRD is" << nodeData->getMaxFullRateDistance();
-                    qDebug() << "current FRD is" << nodeData->getFullRateDistance();
-                    nodeData->setFullRateDistance(newFullRateDistance);
-
-                    qDebug() << "new FRD is" << nodeData->getFullRateDistance();
-
+                    nodeData->setFullRateDistance(currentFullRateDistance);
                     nodeData->resetNumFramesSinceFRDAdjustment();
                 }
             } else {
@@ -265,7 +261,7 @@ void AvatarMixer::broadcastAvatarData() {
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
 
                     // potentially update the max full rate distance for this frame
-                    maxDistanceThisFrame = std::max(maxDistanceThisFrame, distanceToAvatar);
+                    maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
                     if (distanceToAvatar != 0.0f 
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
@@ -305,7 +301,6 @@ void AvatarMixer::broadcastAvatarData() {
                         billboardPacket.append(otherNode->getUUID().toRfc4122());
                         billboardPacket.append(otherNodeData->getAvatar().getBillboard());
 
-                        qDebug() << "Sending a billboard packet to" << node->getUUID();
                         nodeList->writeDatagram(billboardPacket, node);
                             
                         ++_sumBillboardPackets;
@@ -322,8 +317,6 @@ void AvatarMixer::broadcastAvatarData() {
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
                         identityPacket.append(individualData);
                         
-                        qDebug() << "Sending an identity packet to" << node->getUUID();
-
                         nodeList->writeDatagram(identityPacket, node);
                                 
                         ++_sumIdentityPackets;
@@ -338,9 +331,9 @@ void AvatarMixer::broadcastAvatarData() {
 
             if (numOtherAvatars == 0) {
                 // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
-                nodeData->setMaxFullRateDistance(FLT_MAX);
+                nodeData->setMaxAvatarDistance(FLT_MAX);
             } else {
-                nodeData->setMaxFullRateDistance(maxDistanceThisFrame);
+                nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
             }
         }
     );

@@ -28,7 +28,7 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar.getDisplayName();
     jsonObject["full_rate_distance"] = _fullRateDistance;
-    jsonObject["max_full_rate_distance"] = _maxFullRateDistance;
+    jsonObject["max_avatar_distance"] = _maxAvatarDistance;
     jsonObject["num_avatars_sent_last_frame"] = _numAvatarsSentLastFrame;
     
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
