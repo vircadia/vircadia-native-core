@@ -55,4 +55,6 @@ const float ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale
 const bool ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE = false;
 
+const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
+
 #endif // hifi_EntityItemPropertiesDefaults_h
