@@ -383,10 +383,11 @@ std::once_flag onceListSuppoertedFormatsflag;
 void listSupportedImageFormats() {
     std::call_once(onceListSuppoertedFormatsflag, [](){
         auto supportedFormats = QImageReader::supportedImageFormats();
-        qCDebug(renderutils) << "ImageReader:: List of supported formats:";
+        QString formats;
         foreach(const QByteArray& f, supportedFormats) {
-            qCDebug(renderutils) << "format = " << f;
+            formats += QString(f) + ",";
         }
+        qCDebug(renderutils) << "List of supported Image formats:" << formats;
     });
 }
 
