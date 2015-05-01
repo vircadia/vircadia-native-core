@@ -114,7 +114,23 @@ void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Exiting.";
     _requestTimer.stop();
     _statsTimerACM.stop();
-    QCoreApplication::quit();
+    if (_currentAssignment) {
+        _currentAssignment->aboutToQuit();
+        QThread* currentAssignmentThread = _currentAssignment->thread();
+        currentAssignmentThread->quit();
+        currentAssignmentThread->wait();
+    }
+}
+
+
+void AssignmentClient::aboutToQuit() {
+    stopAssignmentClient();
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
+    // clear out pointer to the assignment so the destructor gets called.  if we don't do this here,
+    // it will get destroyed along with all the other "static" stuff.  various static member variables
+    // will be destroyed first and things go wrong.
+    _currentAssignment.clear();
 }
 
 
@@ -197,6 +213,7 @@ void AssignmentClient::readPendingDatagrams() {
 
                     // start the deployed assignment
                     AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
+                    workerThread->setObjectName("worker");
 
                     connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
                     connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);

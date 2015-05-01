@@ -198,26 +198,41 @@
 
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
-    QScriptValue P = vec3toScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue P = vec3toScriptValue(engine, _##P); \
+        properties.setProperty(#P, P); \
+    }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(P) \
-    QScriptValue P = quatToScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue P = quatToScriptValue(engine, _##P); \
+        properties.setProperty(#P, P); \
+    }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(P) \
-    QScriptValue P = xColorToScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue P = xColorToScriptValue(engine, _##P); \
+        properties.setProperty(#P, P); \
+    }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(P,G) \
-    QScriptValue P = xColorToScriptValue(engine, G); \
-    properties.setProperty(#P, P);
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue P = xColorToScriptValue(engine, G); \
+        properties.setProperty(#P, P); \
+    }
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
     properties.setProperty(#P, G);
 
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        properties.setProperty(#P, G); \
+    }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
-    properties.setProperty(#P, _##P);
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        properties.setProperty(#P, _##P); \
+    }
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
     QScriptValue P = object.property(#P);           \
