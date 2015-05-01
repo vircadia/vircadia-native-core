@@ -80,6 +80,8 @@ EntityItemProperties ZoneEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
 
+    _atmospherePropeties.getProperties(properties);
+
     return properties;
 }
 
@@ -99,6 +101,10 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageHour, setStageHour);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
+
+    bool somethingChangedInAtmosphere = _atmospherePropeties.setProperties(properties);
+
+    somethingChanged = somethingChanged || somethingChangedInAtmosphere;
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -133,6 +139,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
 
+    bytesRead += _atmospherePropeties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
+                                                                           propertyFlags, overwriteLocalData);
+
     return bytesRead;
 }
 
@@ -153,6 +162,8 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_STAGE_HOUR;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
+
+    requestedProperties += _atmospherePropeties.getEntityProperties(params);
     
     return requestedProperties;
 }
@@ -179,6 +190,10 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getStageHour());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
+    
+    _atmospherePropeties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -197,6 +212,8 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "            _stageAltitude:" << _stageAltitude;
     qCDebug(entities) << "                 _stageDay:" << _stageDay;
     qCDebug(entities) << "                _stageHour:" << _stageHour;
+
+    _atmospherePropeties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {

@@ -12,6 +12,7 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include "AtmospherePropertyGroup.h"
 #include "EntityItem.h" 
 
 class ZoneEntityItem : public EntityItem {
@@ -135,6 +136,8 @@ protected:
     
     ShapeType _shapeType = SHAPE_TYPE_NONE;
     QString _compoundShapeURL;
+    
+    AtmospherePropertyGroup _atmospherePropeties;
 
     static bool _zonesArePickable;
 };

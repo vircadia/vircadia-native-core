@@ -51,6 +51,8 @@ enum EntityPropertyList {
 
     // these properties are supported by some derived classes
     PROP_COLOR,
+    
+    // these are used by models only
     PROP_MODEL_URL,
     PROP_ANIMATION_URL,
     PROP_ANIMATION_FPS,
@@ -78,11 +80,10 @@ enum EntityPropertyList {
     // available to all entities
     PROP_LOCKED,
     
-    // used by Model entities
-    PROP_TEXTURES,
-    PROP_ANIMATION_SETTINGS,
-    PROP_USER_DATA,
-    PROP_SHAPE_TYPE,
+    PROP_TEXTURES,  // used by Model entities
+    PROP_ANIMATION_SETTINGS,  // used by Model entities
+    PROP_USER_DATA,  // all entities
+    PROP_SHAPE_TYPE, // used by Model + zones entities
 
     // used by ParticleEffect entities
     PROP_MAX_PARTICLES,
@@ -93,10 +94,10 @@ enum EntityPropertyList {
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
     
-    PROP_COMPOUND_SHAPE_URL,
-    PROP_MARKETPLACE_ID,
-    PROP_ACCELERATION,
-    PROP_SIMULATOR_ID,
+    PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
+    PROP_MARKETPLACE_ID, // all entities
+    PROP_ACCELERATION, // all entities
+    PROP_SIMULATOR_ID, // all entities
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
@@ -127,6 +128,15 @@ enum EntityPropertyList {
     PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
+    PROP_ATMOSPHERE_CENTER = PROP_MAX_PARTICLES,
+    PROP_ATMOSPHERE_INNER_RADIUS = PROP_LIFESPAN,
+    PROP_ATMOSPHERE_OUTER_RADIUS = PROP_EMIT_RATE,
+    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_DIRECTION,
+    PROP_ATMOSPHERE_RAYLEIGH_SCATTERING = PROP_EMIT_STRENGTH,
+    PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_LOCAL_GRAVITY,
+    PROP_SKYBOX_MODE = PROP_PARTICLE_RADIUS,
+    // SunBrightness - same as KeyLight Intensity?
+    // SunLocation (or direction) - same as KeyLight
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
