@@ -390,6 +390,11 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() const {
 */
 }
 
+// virtual
+void EntityMotionState::bump() {
+    setShouldClaimSimulationOwnership(true);
+}
+
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
     _lastVelocity = bulletToGLM(_body->getLinearVelocity());                                                        

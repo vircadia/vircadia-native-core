@@ -381,86 +381,35 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-void PhysicsEngine::bump(ObjectMotionState* object) {
-    assert(object);
-    /* TODO: Andrew to implement this
-    // If this node is doing something like deleting an entity, scan for contacts involving the
-    // entity.  For each found, flag the other entity involved as being simulated by this node.
-    int numManifolds = _collisionDispatcher->getNumManifolds();
-    for (int i = 0; i < numManifolds; ++i) {
-        btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
-        if (contactManifold->getNumContacts() > 0) {
-            const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
-            const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
-            if (objectA && objectB) {
-                void* a = objectA->getUserPointer();
-                void* b = objectB->getUserPointer();
-                if (a && b) {
-                    EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
-                    EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
-                    EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : nullptr;
-                    EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : nullptr;
-                    if (entityA && entityB) {
-                        if (entityA == bumpEntity) {
-                            entityMotionStateB->setShouldClaimSimulationOwnership(true);
-                            if (!objectB->isActive()) {
-                                objectB->setActivationState(ACTIVE_TAG);
-                            }
-                        }
-                        if (entityB == bumpEntity) {
-                            entityMotionStateA->setShouldClaimSimulationOwnership(true);
-                            if (!objectA->isActive()) {
-                                objectA->setActivationState(ACTIVE_TAG);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
-}
+void PhysicsEngine::bump(ObjectMotionState* motionState) {
+    // Find all objects that touch the object corresponding to motionState and flag the other objects
+    // for simulation ownership by the local simulation.
 
-/*
-// TODO: convert bump() to take an ObjectMotionState.
-// Expose SimulationID to ObjectMotionState
-void PhysicsEngine::bump(EntityItem* bumpEntity) {
-    // If this node is doing something like deleting an entity, scan for contacts involving the
-    // entity.  For each found, flag the other entity involved as being simulated by this node.
+    assert(motionState);
+    btCollisionObject* object = motionState->getRigidBody();
+
     int numManifolds = _collisionDispatcher->getNumManifolds();
     for (int i = 0; i < numManifolds; ++i) {
         btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
         if (contactManifold->getNumContacts() > 0) {
             const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
             const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
-            if (objectA && objectB) {
-                void* a = objectA->getUserPointer();
-                void* b = objectB->getUserPointer();
-                if (a && b) {
-                    EntityMotionState* entityMotionStateA = static_cast<EntityMotionState*>(a);
-                    EntityMotionState* entityMotionStateB = static_cast<EntityMotionState*>(b);
-                    EntityItem* entityA = entityMotionStateA ? entityMotionStateA->getEntity() : nullptr;
-                    EntityItem* entityB = entityMotionStateB ? entityMotionStateB->getEntity() : nullptr;
-                    if (entityA && entityB) {
-                        if (entityA == bumpEntity) {
-                            entityMotionStateB->setShouldClaimSimulationOwnership(true);
-                            if (!objectB->isActive()) {
-                                objectB->setActivationState(ACTIVE_TAG);
-                            }
-                        }
-                        if (entityB == bumpEntity) {
-                            entityMotionStateA->setShouldClaimSimulationOwnership(true);
-                            if (!objectA->isActive()) {
-                                objectA->setActivationState(ACTIVE_TAG);
-                            }
-                        }
-                    }
+            if (objectB == object) {
+                ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
+                if (motionStateA) {
+                    motionStateA->bump();
+                    objectA->setActivationState(ACTIVE_TAG);
+                }
+            } else if (objectA == object) {
+                ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
+                if (motionStateB) {
+                    motionStateB->bump();
+                    objectB->setActivationState(ACTIVE_TAG);
                 }
             }
         }
     }
 }
-*/
 
 void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
     if (_characterController != character) {
