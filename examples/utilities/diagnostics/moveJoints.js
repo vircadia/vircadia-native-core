@@ -19,8 +19,8 @@ var isAnimating = false;
 Controller.keyPressEvent.connect(function(event) {
   if (event.text == "SHIFT") {
     if (isAnimating) {
-			isAnimating = false;
-		  MyAvatar.stopAnimation(testAnimation);
+      isAnimating = false;
+      MyAvatar.stopAnimation(testAnimation);
     } else {
       isAnimating = true;
       MyAvatar.startAnimation(testAnimation, FRAME_RATE, 1.0, true, false);
