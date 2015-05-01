@@ -26,18 +26,18 @@ QStringList JSONBreakableMarshal::toStringList(const QJsonValue& jsonValue, cons
         
         // enumerate the keys of the QJsonObject
         foreach(const QString& key, jsonObject.keys()) {
-            QJsonValue jsonValue = jsonObject[key];
-            
+            QJsonValue childValue = jsonObject[key];
+
             // setup the keypath for this key
             QString valueKeypath = (keypath.isEmpty() ? "" : keypath + ".") + key;
             
-            if (jsonValue.isObject() || jsonValue.isArray()) {
+            if (childValue.isObject() || childValue.isArray()) {
                 // recursion is required since the value is a QJsonObject or QJsonArray
-                result << toStringList(jsonValue, valueKeypath);
+                result << toStringList(childValue, valueKeypath);
             } else {
                 // no recursion required, call our toString method to get the string representation
                 // append the QStringList resulting from that to our QStringList
-                result << toString(jsonValue, valueKeypath);  
+                result << toString(childValue, valueKeypath);  
             }
         } 
     } else if (jsonValue.isArray()) {
@@ -46,10 +46,10 @@ QStringList JSONBreakableMarshal::toStringList(const QJsonValue& jsonValue, cons
         // enumerate the elements in this QJsonArray
         for (int i = 0; i < jsonArray.size(); i++) {
             QJsonValue arrayValue = jsonArray[i];
-            
+
             // setup the keypath for this object with the array index
-            QString valueKeypath = (keypath.isEmpty() ? "" : keypath + ".") + "[" + i + "]";
-            
+            QString valueKeypath = QString("%1[%2]").arg(keypath).arg(i);
+
             if (arrayValue.isObject() || arrayValue.isArray()) {
                 // recursion is required since the value is a QJsonObject or QJsonArray
                 // append the QStringList resulting from that to our QStringList
@@ -154,7 +154,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
             QString keypath = marshalString.left(equalityIndex);
 
             // setup for array index checking
-            const QString ARRAY_INDEX_REGEX_STRING = "^\[\\d+\\]";
+            const QString ARRAY_INDEX_REGEX_STRING = "\\[(\\d+)\\]";
             QRegExp arrayRegex(ARRAY_INDEX_REGEX_STRING);
  
             // as long as we have a keypath we need to recurse downwards
@@ -198,6 +198,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                     } else {
                         qDebug() << "Failed to convert array index from keypath" << keypath << "to int. Will not add"
                             << "value to resulting QJsonObject.";
+                        break;
                     }
 
                 } else {
@@ -220,6 +221,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                         } else {
                             qDebug() << "Unrecognized key format while trying to parse " << keypath << " - will not add" 
                                 << "value to resulting QJsonObject.";
+                            break;
                         }
                         
                         // set the current key from the determined index
