@@ -67,6 +67,8 @@ protected: // these only called by the EntityTree?
 
     void clearEntities();
 
+    void moveSimpleKinematics(const quint64& now);
+
 public:
 
     EntityTree* getEntityTree() { return _entityTree; }
@@ -83,10 +85,9 @@ protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(const quint64& now) = 0;
-    virtual void addEntityInternal(EntityItem* entity) = 0;
+    virtual void addEntityInternal(EntityItem* entity);
     virtual void removeEntityInternal(EntityItem* entity) = 0;
-    virtual void changeEntityInternal(EntityItem* entity) = 0;
-    virtual void sortEntitiesThatMovedInternal() {}
+    virtual void changeEntityInternal(EntityItem* entity);
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);
@@ -102,9 +103,13 @@ protected:
     // An entity may be in more than one list.
     SetOfEntities _mortalEntities; // entities that have an expiry
     quint64 _nextExpiry;
-    SetOfEntities _entitiesToUpdate; // entities that need update() called
-    SetOfEntities _entitiesToSort; // entities that were moved by THIS simulation and might need to be resorted in the tree
-    SetOfEntities _entitiesToDelete;
+    SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
+    SetOfEntities _entitiesToSort; // entities that were moved by simulation (and might need resort in EntityTree)
+    SetOfEntities _entitiesToDelete; // entities that this simulation decided to delete (EntityTree will do the actual deletes)
+    SetOfEntities _simpleKinematicEntities; // entities that are undergoing (non-colliding) kinematic motion"
+
+private:
+    void moveSimpleKinematics();
 };
 
 #endif // hifi_EntitySimulation_h

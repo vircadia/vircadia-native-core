@@ -39,7 +39,6 @@ protected: // only called by EntitySimulation
     void addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
     void changeEntityInternal(EntityItem* entity);
-    void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
 public:

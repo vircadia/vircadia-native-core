@@ -75,21 +75,6 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
     }
 }
 
-void PhysicalEntitySimulation::sortEntitiesThatMovedInternal() {
-    /*
-    // entities that have been simulated forward (hence in the _entitiesToSort list) 
-    // also need to be put in the outgoingPackets list
-    QSet<EntityItem*>::iterator entityItr = _entitiesToSort.begin();
-    for (auto entityItr : _entitiesToSort) {
-        EntityItem* entity = *entityItr;
-        void* physicsInfo = entity->getPhysicsInfo();
-        assert(physicsInfo);
-        // BOOKMARK XXX -- Andrew to fix this next
-        _outgoingChanges.insert(static_cast<ObjectMotionState*>(physicsInfo));
-    }
-    */
-}
-
 void PhysicalEntitySimulation::clearEntitiesInternal() {
     // TODO: we should probably wait to lock the _physicsEngine so we don't mess up data structures
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode

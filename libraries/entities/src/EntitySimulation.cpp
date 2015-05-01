@@ -21,6 +21,7 @@ void EntitySimulation::setEntityTree(EntityTree* tree) {
         _nextExpiry = quint64(-1);
         _entitiesToUpdate.clear();
         _entitiesToSort.clear();
+        _simpleKinematicEntities.clear();
     }
     _entityTree = tree;
 }
@@ -31,6 +32,7 @@ void EntitySimulation::updateEntities() {
     // these methods may accumulate entries in _entitiesToBeDeleted
     expireMortalEntities(now);
     callUpdateOnEntitiesThatNeedIt(now);
+    moveSimpleKinematics(now);
     updateEntitiesInternal(now);
     sortEntitiesThatMoved();
 }
@@ -56,6 +58,20 @@ void EntitySimulation::getEntitiesToDelete(SetOfEntities& entitiesToDelete) {
     }
 }
 
+void EntitySimulation::addEntityInternal(EntityItem* entity) {
+    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+        _simpleKinematicEntities.insert(entity);
+    }
+}
+
+void EntitySimulation::changeEntityInternal(EntityItem* entity) {
+    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+        _simpleKinematicEntities.insert(entity);
+    } else {
+        _simpleKinematicEntities.remove(entity);
+    }
+}
+
 // protected
 void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {
@@ -70,6 +86,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 itemItr = _mortalEntities.erase(itemItr);
                 _entitiesToUpdate.remove(entity);
                 _entitiesToSort.remove(entity);
+                _simpleKinematicEntities.remove(entity);
                 removeEntityInternal(entity);
             } else {
                 if (expiry < _nextExpiry) {
@@ -116,6 +133,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _entitiesToDelete.insert(entity);
             _mortalEntities.remove(entity);
             _entitiesToUpdate.remove(entity);
+            _simpleKinematicEntities.remove(entity);
             removeEntityInternal(entity);
             itemItr = _entitiesToSort.erase(itemItr);
         } else {
@@ -128,7 +146,6 @@ void EntitySimulation::sortEntitiesThatMoved() {
         _entityTree->recurseTreeWithOperator(&moveOperator);
     }
 
-    sortEntitiesThatMovedInternal();
     _entitiesToSort.clear();
 }
 
@@ -160,6 +177,7 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
         _entitiesToUpdate.remove(entity);
         _mortalEntities.remove(entity);
         _entitiesToSort.remove(entity);
+        _simpleKinematicEntities.remove(entity);
         removeEntityInternal(entity);
     }
 }
@@ -181,6 +199,7 @@ void EntitySimulation::changeEntity(EntityItem* entity) {
                 _mortalEntities.remove(entity);
                 _entitiesToUpdate.remove(entity);
                 _entitiesToSort.remove(entity);
+                _simpleKinematicEntities.remove(entity);
                 removeEntityInternal(entity);
                 wasRemoved = true;
             }
@@ -216,6 +235,20 @@ void EntitySimulation::clearEntities() {
     _nextExpiry = quint64(-1);
     _entitiesToUpdate.clear();
     _entitiesToSort.clear();
+    _simpleKinematicEntities.clear();
     clearEntitiesInternal();
 }
 
+void EntitySimulation::moveSimpleKinematics(const quint64& now) {
+    SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
+    while (itemItr != _simpleKinematicEntities.end()) {
+        EntityItem* entity = *itemItr;
+        if (entity->isMoving() && !entity->getPhysicsInfo()) {
+            entity->simulate(now);
+            _entitiesToSort.insert(entity);
+            ++itemItr;
+        } else {
+            itemItr = _simpleKinematicEntities.erase(itemItr);
+        }
+    }
+}

@@ -28,7 +28,6 @@ protected:
     virtual void changeEntityInternal(EntityItem* entity);
     virtual void clearEntitiesInternal();
 
-    SetOfEntities _movingEntities;
     SetOfEntities _hasSimulationOwnerEntities;
 };
 
