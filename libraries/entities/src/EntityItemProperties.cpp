@@ -282,6 +282,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
@@ -292,7 +293,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STAGE_ALTITUDE, stageAltitude);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
-    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
 
     return changedProperties;
 }

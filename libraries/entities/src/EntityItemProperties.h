@@ -189,7 +189,6 @@ public:
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat);
-    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
     DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
@@ -241,6 +240,7 @@ public:
     DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
     DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
     DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
 
 
 public:

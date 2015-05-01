@@ -343,7 +343,6 @@ protected:
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
     float _angularDamping;
-    QString _name;
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
@@ -352,6 +351,7 @@ protected:
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
+    QString _name;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //
