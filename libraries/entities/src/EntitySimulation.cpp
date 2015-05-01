@@ -70,7 +70,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 itemItr = _mortalEntities.erase(itemItr);
                 _entitiesToUpdate.remove(entity);
                 _entitiesToSort.remove(entity);
-                deleteEntityInternal(entity);
+                removeEntityInternal(entity);
             } else {
                 if (expiry < _nextExpiry) {
                     // remeber the smallest _nextExpiry so we know when to start the next search
@@ -116,7 +116,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _entitiesToDelete.insert(entity);
             _mortalEntities.remove(entity);
             _entitiesToUpdate.remove(entity);
-            deleteEntityInternal(entity);
+            removeEntityInternal(entity);
             itemItr = _entitiesToSort.erase(itemItr);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
@@ -160,36 +160,7 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
         _entitiesToUpdate.remove(entity);
         _mortalEntities.remove(entity);
         _entitiesToSort.remove(entity);
-        if (entity->_element) {
-            // some EntityTreeElement still references this entity, but it's being removed from this simulation
-            _entitiesToDelete.remove(entity);
-            removeEntityInternal(entity);
-        } else {
-            // we're the last to reference this entity, so we really need to delete it
-            deleteEntityInternal(entity);
-        }
-    } else if (!entity->_element) {
-        // nothing else is referencing this entity, so we delete it now
-        delete entity;
-    }
-}
-
-void EntitySimulation::deleteEntity(EntityItem* entity) {
-    assert(entity);
-    if (entity->_simulation == this) {
-        _entitiesToUpdate.remove(entity);
-        _mortalEntities.remove(entity);
-        _entitiesToSort.remove(entity);
-        deleteEntityInternal(entity);
-    } else {
-        if (entity->_element) {
-            // some EntityTreeElement still references this entity, so we put it on the list 
-            // which will be harvested by the tree later
-            _entitiesToDelete.insert(entity);
-        } else {
-            // nothing else is referencing this entity, so we delete it now
-            delete entity;
-        }
+        removeEntityInternal(entity);
     }
 }
 
@@ -209,7 +180,8 @@ void EntitySimulation::changeEntity(EntityItem* entity) {
                 _entitiesToDelete.insert(entity);
                 _mortalEntities.remove(entity);
                 _entitiesToUpdate.remove(entity);
-                deleteEntityInternal(entity);
+                _entitiesToSort.remove(entity);
+                removeEntityInternal(entity);
                 wasRemoved = true;
             }
         }

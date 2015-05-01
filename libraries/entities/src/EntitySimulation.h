@@ -20,8 +20,6 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QSet<EntityItem*> SetOfEntities;
-
 // the EntitySimulation needs to know when these things change on an entity, 
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
 const int DIRTY_SIMULATION_FLAGS = 
@@ -51,6 +49,9 @@ public:
 
     void updateEntities();
 
+    friend EntityTree;
+
+protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
     void addEntity(EntityItem* entity);
@@ -60,16 +61,13 @@ public:
     /// \sideeffect nulls relevant backpointers in entity
     void removeEntity(EntityItem* entity);
 
-    /// \param pointer to EntityItem to be removed from simulation, and deleted if possible
-    /// \brief actual removal/delete may happen later when appropriate data structures are locked
-    /// \sideeffect nulls relevant backpointers in entity
-    void deleteEntity(EntityItem* entity);
-
     /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
     void changeEntity(EntityItem* entity);
 
     void clearEntities();
+
+public:
 
     EntityTree* getEntityTree() { return _entityTree; }
 
@@ -84,20 +82,11 @@ protected:
 
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
-
-    // NOTE: updateEntitiesInternal() should clear all dirty flags on each changed entity as side effect
     virtual void updateEntitiesInternal(const quint64& now) = 0;
-
     virtual void addEntityInternal(EntityItem* entity) = 0;
-
     virtual void removeEntityInternal(EntityItem* entity) = 0;
-
-    virtual void deleteEntityInternal(EntityItem* entity) = 0;
-
     virtual void changeEntityInternal(EntityItem* entity) = 0;
-
     virtual void sortEntitiesThatMovedInternal() {}
-
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);

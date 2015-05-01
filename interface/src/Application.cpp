@@ -70,6 +70,7 @@
 #include <NetworkingConstants.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
+#include <ObjectMotionState.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -2069,11 +2070,11 @@ void Application::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -2355,7 +2356,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
 
-        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToRemove());
+        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
 

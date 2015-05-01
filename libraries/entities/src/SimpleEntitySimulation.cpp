@@ -68,17 +68,6 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
     clearEntitySimulation(entity);
 }
 
-void SimpleEntitySimulation::deleteEntityInternal(EntityItem* entity) {
-    _movingEntities.remove(entity);
-    _movableButStoppedEntities.remove(entity);
-    _hasSimulationOwnerEntities.remove(entity);
-    clearEntitySimulation(entity);
-    if (!entity->getElement()) {
-        // we held the last reference to this entity, so delete it
-        delete entity;
-    }
-}
-
 const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITIES | EntityItem::DIRTY_MOTION_TYPE;
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {

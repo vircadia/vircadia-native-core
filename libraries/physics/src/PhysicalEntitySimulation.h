@@ -33,15 +33,16 @@ public:
 
     void init(EntityTree* tree, PhysicsEngine* engine, ShapeManager* shapeManager, EntityEditPacketSender* packetSender);
 
+protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     void updateEntitiesInternal(const quint64& now);
     void addEntityInternal(EntityItem* entity);
     void removeEntityInternal(EntityItem* entity);
-    void deleteEntityInternal(EntityItem* entity);
-    void entityChangedInternal(EntityItem* entity);
+    void changeEntityInternal(EntityItem* entity);
     void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
+public:
     VectorOfMotionStates& getObjectsToDelete();
     VectorOfMotionStates& getObjectsToAdd();
     VectorOfMotionStates& getObjectsToChange();

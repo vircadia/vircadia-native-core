@@ -67,6 +67,11 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 {
 }
 
+ObjectMotionState::~ObjectMotionState() {
+    assert(!_body);
+    assert(!_shape);
+}
+
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
@@ -190,8 +195,8 @@ void ObjectMotionState::updateBodyMaterialProperties() {
 }
 
 void ObjectMotionState::updateBodyVelocities() {
-    setBodyVelocity(getObjectLinearVelocity());
-    setBodyAngularVelocity(getObjectAngularVelocity();
-    setBodyGravity(getObjectGravity();
+    setBodyLinearVelocity(getObjectLinearVelocity());
+    setBodyAngularVelocity(getObjectAngularVelocity());
+    setBodyGravity(getObjectGravity());
     _body->setActivationState(ACTIVE_TAG);
 }

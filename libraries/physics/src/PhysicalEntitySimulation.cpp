@@ -55,22 +55,12 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
 }
 
 void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
-    assert(entity);
-    void* physicsInfo = entity->getPhysicsInfo();
-    if (physicsInfo) {
+    if (entity->getPhysicsInfo()) {
         _pendingRemoves.insert(entity);
     }
 }
 
-void PhysicalEntitySimulation::deleteEntityInternal(EntityItem* entity) {
-    assert(entity);
-    void* physicsInfo = entity->getPhysicsInfo();
-    if (physicsInfo) {
-        _pendingRemoves.insert(entity);
-    }
-}
-
-void PhysicalEntitySimulation::entityChangedInternal(EntityItem* entity) {
+void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();

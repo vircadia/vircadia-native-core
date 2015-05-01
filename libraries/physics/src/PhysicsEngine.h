@@ -58,6 +58,7 @@ public:
     void deleteObjects(SetOfMotionStates& objects); // only called during teardown
     void addObjects(VectorOfMotionStates& objects);
     void changeObjects(VectorOfMotionStates& objects);
+    void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
     void computeCollisionEvents();

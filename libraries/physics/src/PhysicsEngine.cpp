@@ -113,7 +113,8 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
         case MOTION_TYPE_STATIC:
         default: {
             if (!body) {
-                body = new btRigidBody(mass, motionState, shape, inertia);
+                assert(motionState->getShape());
+                body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
             } else {
                 body->setMassProps(mass, inertia);
             }
@@ -144,6 +145,7 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
         removeObject(object);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+        btRigidBody* body = object->getRigidBody();
         object->setRigidBody(nullptr);
         delete body;
         object->releaseShape();
@@ -151,9 +153,10 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
     }
 }
 
-// Same as above, but takes a Set instead of a Vector.  Only called during teardown.
+// Same as above, but takes a Set instead of a Vector and ommits some cleanup operations.  Only called during teardown.
 void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
+        btRigidBody* body = object->getRigidBody();
         _dynamicsWorld->removeRigidBody(body);
     
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
@@ -179,6 +182,11 @@ void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
             object->handleEasyChanges(flags);
         }
     }
+}
+
+void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
+    removeObject(object);
+    addObject(object);
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
@@ -372,11 +380,6 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_CHARACTER_OBJECT = 16,
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
-
-void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
-    removeObject(object);
-    addObject(object);
-}
 
 void PhysicsEngine::bump(ObjectMotionState* object) {
     assert(object);

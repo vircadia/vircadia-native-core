@@ -111,6 +111,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
+void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
+    _entity->computeShapeInfo(shapeInfo);
+}
+
 // RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
 // we alwasy resend packets for objects that have stopped moving up to some max limit.
 const int MAX_NUM_NON_MOVING_UPDATES = 5;
