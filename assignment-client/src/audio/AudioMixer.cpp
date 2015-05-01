@@ -622,19 +622,30 @@ void AudioMixer::sendStatsPacket() {
     readPendingDatagramStats["hashmatch_time_per_call"] = hashMatchTimePerCallStats;
     
     statsObject["read_pending_datagrams"] = readPendingDatagramStats;
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    int clientNumber = 0; 
     
     // add stats for each listerner
+    auto nodeList = DependencyManager::get<NodeList>();
+    QJsonObject listenerStats;
+    
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            statsObject["jitterStats." + node->getUUID().toString()] = clientData->getAudioStreamStats();
+            QJsonObject nodeStats;
+            QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+            
+            nodeStats["outbound_kbps"] = node->getOutboundBandwidth();
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidString;
+
+            nodeStats["jitter"] = clientData->getAudioStreamStats();
+            
+            listenerStats[uuidString] = nodeStats;
         }
     });
-
+    
+    // add the listeners object to the root object
+    statsObject["listeners"] = listenerStats;
+    
+    // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 }
 
