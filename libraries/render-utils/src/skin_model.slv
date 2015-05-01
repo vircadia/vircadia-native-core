@@ -32,7 +32,7 @@ varying vec3 color;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    normal = vec4(0.0, 0.0, 0.0, 0.0);
+    interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[int(clusterIndices[i])];
         float clusterWeight = clusterWeights[i];
