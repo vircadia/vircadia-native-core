@@ -59,8 +59,6 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
         _pendingRemoves.insert(entity);
-    } else {
-        clearEntitySimulation(entity);
     }
 }
 
@@ -69,9 +67,6 @@ void PhysicalEntitySimulation::deleteEntityInternal(EntityItem* entity) {
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
         _pendingRemoves.insert(entity);
-    } else {
-        clearEntitySimulation(entity);
-        delete entity;
     }
 }
 
@@ -110,16 +105,18 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
 
-    _physicsEngine->deleteObjects(_physicalEntities);
-
-    for (auto stateItr : _physicalEntities) {
+    // first disconnect each MotionStates from its Entity
+    for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
         EntityItem* entity = motionState->getEntity();
         entity->setPhysicsInfo(nullptr);
-        delete motionState;
     }
 
-    _physicalEntities.clear();
+    // then delete the objects (aka MotionStates)
+    _physicsEngine->deleteObjects(_physicalObjects);
+
+    // finally clear all lists (which now have only dangling pointers)
+    _physicalObjects.clear();
     _pendingRemoves.clear();
     _pendingAdds.clear();
     _pendingChanges.clear();
@@ -127,7 +124,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 // end EntitySimulation overrides
 
 
-VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemove() {
+VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
     _tempVector.clear();
     for (auto entityItr : _pendingRemoves) {
         EntityItem* entity = &(*entityItr);
@@ -135,8 +132,12 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemove() {
         _pendingChanges.remove(entity);
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
+            _physicalObjects.remove(motionState);
+            // disconnect EntityMotionState from its Entity
+            // NOTE: EntityMotionState still has a back pointer to its Entity, but is about to be deleted
+            // (by PhysicsEngine) and shouldn't actually access its Entity during this process.
+            entity->setPhysicsInfo(nullptr);
             _tempVector.push_back(motionState);
-            _physicalEntities.remove(motionState);
         }
     }
     _pendingRemoves.clear();
@@ -158,7 +159,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 motionState->setMass(entity->computeMass());
-                _physicalEntities.insert(motionState);
+                _physicalObjects.insert(motionState);
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {

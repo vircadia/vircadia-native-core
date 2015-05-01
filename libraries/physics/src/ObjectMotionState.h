@@ -90,6 +90,8 @@ public:
     virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
+    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
+
 
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }

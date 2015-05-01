@@ -115,15 +115,15 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
     if (flags & EntityItem::DIRTY_POSITION) {
         btTransform worldTrans;
         if (flags & EntityItem::DIRTY_ROTATION) {
-            worldTrans = getObjectTransform();
+            worldTrans.setRotation(glmToBullet(getObjectRotation()));
         } else {
             worldTrans = _body->getWorldTransform();
-            worldTrans.setOrigin(getObjectPosition());
         }
+        worldTrans.setOrigin(glmToBullet(getObjectPosition()));
         _body->setWorldTransform(worldTrans);
     } else {
         btTransform worldTrans = _body->getWorldTransform();
-        worldTrans.setRotation(getObjectRotation());
+        worldTrans.setRotation(glmToBullet(getObjectRotation()));
         _body->setWorldTransform(worldTrans);
     }
 
@@ -155,14 +155,13 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
     if (flags & EntityItem::DIRTY_SHAPE) {
         // make sure the new shape is valid
         ShapeInfo shapeInfo;
-        motionState->computeObjectShapeInfo(shapeInfo);
+        computeObjectShapeInfo(shapeInfo);
         btCollisionShape* newShape = getShapeManager()->getShape(shapeInfo);
         if (!newShape) {
-            // failed to generate new shape!
-            // remove shape-change flag
+            // failed to generate new shape! --> keep old shape and remove shape-change flag
             flags &= ~EntityItem::DIRTY_SHAPE;
             // TODO: force this object out of PhysicsEngine rather than just use the old shape
-            if (flags & HARD_DIRTY_PHYSICS_FLAGS == 0) {
+            if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
                     handleEasyChanges(flags);
@@ -170,21 +169,18 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
                 return;
             }
         }
-        engine->removeRigidBody(_body);
-        getShapeManager()->removeReference(_shape);
+        getShapeManager()->releaseShape(_shape);
         _shape = newShape;
-        _body->setShape(_shape);
+        _body->setCollisionShape(_shape);
         if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
             handleEasyChanges(flags);
         }
-        engine->addRigidBody(_body, motionType, mass);
     } else {
-        engine->removeRigidBody(_body);
         if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
             handleEasyChanges(flags);
         }
-        engine->addRigidBody(_body, motionType, mass);
     }
+    engine->reinsertObject(this);
 }
 
 void ObjectMotionState::updateBodyMaterialProperties() {

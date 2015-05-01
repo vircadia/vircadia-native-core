@@ -59,42 +59,113 @@ void PhysicsEngine::init() {
     }
 }
 
-void PhysicsEngine::removeObjects(VectorOfMotionStates& objects) {
-    for (auto object : objects) {
-        assert(object);
-    
-        // wake up anything touching this object
-        bump(object);
+void PhysicsEngine::addObject(ObjectMotionState* motionState) {
+    assert(motionState);
 
-        btRigidBody* body = object->getRigidBody();
-        _dynamicsWorld->removeRigidBody(body);
-        removeContacts(object);
+    btVector3 inertia(0.0f, 0.0f, 0.0f);
+    float mass = 0.0f;
+    // NOTE: the body may or may not already exist, depending on whether this corresponds to a reinsertion, or a new insertion.
+    btRigidBody* body = motionState->getRigidBody();
+    MotionType motionType = motionState->computeObjectMotionType();
+    motionState->setMotionType(motionType);
+    switch(motionType) {
+        case MOTION_TYPE_KINEMATIC: {
+            if (!body) {
+                btCollisionShape* shape = motionState->getShape();
+                assert(shape);
+                body = new btRigidBody(mass, motionState, shape, inertia);
+            } else {
+                body->setMassProps(mass, inertia);
+            }
+            body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            motionState->updateBodyVelocities();
+            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
+            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
+            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
+            break;
+        }
+        case MOTION_TYPE_DYNAMIC: {
+            mass = motionState->getMass();
+            btCollisionShape* shape = motionState->getShape();
+            assert(shape);
+            shape->calculateLocalInertia(mass, inertia);
+            if (!body) {
+                body = new btRigidBody(mass, motionState, shape, inertia);
+            } else {
+                body->setMassProps(mass, inertia);
+            }
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            motionState->updateBodyVelocities();
+            // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
+            // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
+            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            if (!motionState->isMoving()) {
+                // try to initialize this object as inactive
+                body->forceActivationState(ISLAND_SLEEPING);
+            }
+            break;
+        }
+        case MOTION_TYPE_STATIC:
+        default: {
+            if (!body) {
+                body = new btRigidBody(mass, motionState, shape, inertia);
+            } else {
+                body->setMassProps(mass, inertia);
+            }
+            body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+            body->updateInertiaTensor();
+            motionState->setRigidBody(body);
+            break;
+        }
+    }
+    body->setFlags(BT_DISABLE_WORLD_GRAVITY);
+    motionState->updateBodyMaterialProperties();
+
+    _dynamicsWorld->addRigidBody(body);
+}
+    
+void PhysicsEngine::removeObject(ObjectMotionState* object) {
+    // wake up anything touching this object
+    bump(object);
+    removeContacts(object);
+
+    btRigidBody* body = object->getRigidBody();
+    assert(body);
+    _dynamicsWorld->removeRigidBody(body);
+}
+
+void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
+    for (auto object : objects) {
+        removeObject(object);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
         delete body;
         object->releaseShape();
+        delete object;
     }
 }
 
+// Same as above, but takes a Set instead of a Vector.  Only called during teardown.
 void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
-        assert(object);
-    
-        btRigidBody* body = object->getRigidBody();
         _dynamicsWorld->removeRigidBody(body);
-        removeContacts(object);
-
+    
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
         delete body;
         object->releaseShape();
+        delete object;
     }
 }
 
 void PhysicsEngine::addObjects(VectorOfMotionStates& objects) {
     for (auto object : objects) {
-        assert(object);
         addObject(object);
     }
 }
@@ -302,62 +373,13 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-void PhysicsEngine::addObject(ObjectMotionState* motionState) {
-    assert(motionState);
-    btCollisionShape* shape = motionState->getShape();
-    assert(shape);
-
-    btVector3 inertia(0.0f, 0.0f, 0.0f);
-    float mass = 0.0f;
-    btRigidBody* body = nullptr;
-    MotionType motionType = motionState->computeObjectMotionType();
-    motionState->setMotionType(motionType);
-    switch(motionType) {
-        case MOTION_TYPE_KINEMATIC: {
-            body = new btRigidBody(mass, motionState, shape, inertia);
-            body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-            body->updateInertiaTensor();
-            motionState->setRigidBody(body);
-            motionState->updateBodyVelocities();
-            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
-            break;
-        }
-        case MOTION_TYPE_DYNAMIC: {
-            mass = motionState->getMass();
-            shape->calculateLocalInertia(mass, inertia);
-            body = new btRigidBody(mass, motionState, shape, inertia);
-            body->updateInertiaTensor();
-            motionState->setRigidBody(body);
-            motionState->updateBodyVelocities();
-            // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
-            // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-            if (!motionState->isMoving()) {
-                // try to initialize this object as inactive
-                body->forceActivationState(ISLAND_SLEEPING);
-            }
-            break;
-        }
-        case MOTION_TYPE_STATIC:
-        default: {
-            body = new btRigidBody(mass, motionState, shape, inertia);
-            body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-            body->updateInertiaTensor();
-            motionState->setRigidBody(body);
-            break;
-        }
-    }
-    body->setFlags(BT_DISABLE_WORLD_GRAVITY);
-    motionState->updateBodyMaterialProperties();
-
-    _dynamicsWorld->addRigidBody(body);
+void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
+    removeObject(object);
+    addObject(object);
 }
 
 void PhysicsEngine::bump(ObjectMotionState* object) {
+    assert(object);
     /* TODO: Andrew to implement this
     // If this node is doing something like deleting an entity, scan for contacts involving the
     // entity.  For each found, flag the other entity involved as being simulated by this node.
@@ -436,11 +458,6 @@ void PhysicsEngine::bump(EntityItem* bumpEntity) {
     }
 }
 */
-
-void PhysicsEngine::removeRigidBody(btRigidBody* body) {
-    // pull body out of physics engine
-    _dynamicsWorld->removeRigidBody(body);
-}
 
 void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
     if (_characterController != character) {

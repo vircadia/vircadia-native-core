@@ -42,7 +42,7 @@ public:
     void sortEntitiesThatMovedInternal();
     void clearEntitiesInternal();
 
-    VectorOfMotionStates& getObjectsToRemove();
+    VectorOfMotionStates& getObjectsToDelete();
     VectorOfMotionStates& getObjectsToAdd();
     VectorOfMotionStates& getObjectsToChange();
 
@@ -52,15 +52,15 @@ private:
     void bump(EntityItem* bumpEntity);
 
     // incoming changes
-    SetOfEntities _pendingRemoves; // entities to be removed from simulation
-    SetOfEntities _pendingAdds; // entities to be be added to simulation
-    SetOfEntities _pendingChanges; // entities already in simulation that need to be changed
+    SetOfEntities _pendingRemoves; // entities to be removed from PhysicsEngine (and their MotionState deleted)
+    SetOfEntities _pendingAdds; // entities to be be added to PhysicsEngine (and a their MotionState created)
+    SetOfEntities _pendingChanges; // entities already in PhysicsEngine that need their physics changed
 
     // outgoing changes
     QSet<EntityMotionState*> _outgoingChanges; // entities for which we need to send updates to entity-server
 
-    SetOfMotionStates _physicalEntities; // MotionStates of entities in PhysicsEngine
-    VectorOfMotionStates _tempVector; // temporary list, valid by reference immediately after call to getObjectsToRemove/Add/Update()
+    SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
+    VectorOfMotionStates _tempVector; // temporary array, valid by reference immediately after call to getObjectsToRemove/Add/Update()
 
     ShapeManager* _shapeManager = nullptr;
     PhysicsEngine* _physicsEngine = nullptr;

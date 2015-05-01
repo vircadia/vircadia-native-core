@@ -2355,7 +2355,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
 
-        _physicsEngine.removeObjects(_entitySimulation.getObjectsToRemove());
+        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToRemove());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
 

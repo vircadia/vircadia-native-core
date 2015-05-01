@@ -40,7 +40,6 @@ public:
     virtual void setWorldTransform(const btTransform& worldTrans);
 
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
-    virtual float computeObjectMass(const ShapeInfo& shapeInfo) const;
 
     bool doesNotNeedToSendUpdate() const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);

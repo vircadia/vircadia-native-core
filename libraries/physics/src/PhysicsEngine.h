@@ -51,9 +51,11 @@ public:
     ~PhysicsEngine();
     void init();
 
-    /// process queue of changed from external sources
-    void removeObjects(VectorOfMotionStates& objects);
-    void deleteObjects(SetOfMotionStates& objects);
+    void addObject(ObjectMotionState* motionState);
+    void removeObject(ObjectMotionState* motionState);
+
+    void deleteObjects(VectorOfMotionStates& objects);
+    void deleteObjects(SetOfMotionStates& objects); // only called during teardown
     void addObjects(VectorOfMotionStates& objects);
     void changeObjects(VectorOfMotionStates& objects);
 
@@ -70,10 +72,6 @@ public:
 
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
-
-    /// \param motionState pointer to Object's MotionState
-    /// \return true if Object added
-    void addObject(ObjectMotionState* motionState);
 
     void bump(ObjectMotionState* motionState);
 
