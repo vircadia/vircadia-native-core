@@ -75,7 +75,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
-class RenderPlugin;
+class DisplayPlugin;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
@@ -184,7 +184,7 @@ public:
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
-    glm::ivec2 getCanvasSize() const;
+    glm::uvec2 getCanvasSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
     PickRay computePickRay() const;
@@ -217,6 +217,7 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
+    glm::ivec2 getTrueMousePosition() const;
     int getTrueMouseX() const;
     int getTrueMouseY() const;
     int getMouseDragStartedX() const;
@@ -290,8 +291,11 @@ public:
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
-    RenderPlugin * getActiveRenderPlugin();
-    const RenderPlugin * getActiveRenderPlugin() const;
+
+    private:
+    DisplayPlugin * getActiveDisplayPlugin();
+    const DisplayPlugin * getActiveDisplayPlugin() const;
+    public:
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -320,7 +324,9 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
-    
+    glm::quat getHeadOrientation() const;
+    glm::vec3 getHeadPosition() const;
+
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
@@ -366,6 +372,7 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
+    void updateDisplayMode();
 
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);

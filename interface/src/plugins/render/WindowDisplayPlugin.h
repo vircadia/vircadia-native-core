@@ -1,5 +1,5 @@
 //
-//  WindowRenderPlugin.h
+//  WindowDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,18 +9,18 @@
 //
 #pragma once
 
-#include "SimpleRenderPlugin.h"
+#include "SimpleDisplayPlugin.h"
 
 #include <QWindow>
 #include <QOpenGLContext>
 #include <QTimer>
 
-class WindowRenderPlugin : public SimpleRenderPlugin<QWindow> {
+class WindowDisplayPlugin : public SimpleDisplayPlugin<QWindow> {
     Q_OBJECT
 public:
     static const QString NAME;
 
-    WindowRenderPlugin();
+    WindowDisplayPlugin();
 
     virtual const QString & getName();
 

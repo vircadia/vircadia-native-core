@@ -1,5 +1,5 @@
 //
-//  SimpleRenderPlugin.h
+//  SimpleDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,13 +9,13 @@
 //
 #pragma once
 
-#include "RenderPlugin.h"
+#include "DisplayPlugin.h"
 #include <QOpenGLContext>
 #include <GLMHelpers.h>
 #include <RenderUtil.h>
 
 template <typename T>
-class SimpleRenderPlugin : public RenderPlugin {
+class SimpleDisplayPlugin : public DisplayPlugin {
 public:
     virtual void render(int finalSceneTexture) {
         makeCurrent();

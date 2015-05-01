@@ -114,7 +114,7 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
-#include "plugins/render/RenderPlugin.h"
+#include "plugins/render/DisplayPlugin.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -660,7 +660,7 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations();
 
-    getActiveRenderPlugin()->deactivate();
+    getActiveDisplayPlugin()->deactivate();
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -773,22 +773,22 @@ void Application::initializeUi() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
-    offscreenUi->resize(fromGlm(getActiveRenderPlugin()->getCanvasSize()));
+    offscreenUi->resize(fromGlm(getActiveDisplayPlugin()->getCanvasSize()));
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
-    offscreenUi->setMouseTranslator(getActiveRenderPlugin()->getMouseTranslator());
+    offscreenUi->setMouseTranslator(getActiveDisplayPlugin()->getMouseTranslator());
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
         static qreal oldDevicePixelRatio = 0;
-        qreal devicePixelRatio = getActiveRenderPlugin()->devicePixelRatio();
+        qreal devicePixelRatio = getActiveDisplayPlugin()->devicePixelRatio();
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            auto canvasSize = getActiveRenderPlugin()->getCanvasSize();
+            auto canvasSize = getActiveDisplayPlugin()->getCanvasSize();
             resizeGL(canvasSize.x, canvasSize.y);
         }
     });
@@ -803,18 +803,18 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
     _offscreenContext->makeCurrent();
-    QSize fbSize = getActiveRenderPlugin()->getRecommendedFramebufferSize() * getRenderResolutionScale();
+    QSize fbSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize() * getRenderResolutionScale();
     DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
 
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        if (!getActiveRenderPlugin()->isHmd()) {
-            //  If there isn't an HMD, match exactly to avatar's head
+        if (getActiveDisplayPlugin()->isHmd()) {
+            //  For an HMD, set the base position and orientation to that of the avatar body
             _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            //  For an HMD, set the base position and orientation to that of the avatar body
+            //  If there isn't an HMD, match exactly to avatar's head
             _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
@@ -822,7 +822,7 @@ void Application::paintGL() {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
             _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
-        if (getActiveRenderPlugin()->isHmd()) {
+        if (getActiveDisplayPlugin()->isHmd()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
@@ -882,7 +882,7 @@ void Application::paintGL() {
 
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
-    getActiveRenderPlugin()->render(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)));
+    getActiveDisplayPlugin()->render(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)));
     Q_ASSERT(!QOpenGLContext::currentContext());
     _offscreenContext->makeCurrent();
     _frameCount++;
@@ -934,7 +934,7 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    auto canvasSize = getActiveRenderPlugin()->getCanvasSize();
+    auto canvasSize = getActiveDisplayPlugin()->getCanvasSize();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(fromGlm(canvasSize));
 
@@ -1306,7 +1306,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
             case Qt::Key_Escape: {
-                getActiveRenderPlugin()->abandonCalibration();
+                getActiveDisplayPlugin()->abandonCalibration();
                 if (!event->isAutoRepeat()) {
                     // this starts the HFCancelEvent
                     HFBackEvent startBackEvent(HFBackEvent::startType());
@@ -1441,8 +1441,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) 
-        && !Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         // Show/hide menu bar in fullscreen
         if (event->globalY() > _menuBarHeight) {
             _fullscreenMenuWidget->setFixedHeight(0);
@@ -1720,7 +1720,7 @@ void Application::idle() {
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
-            getActiveRenderPlugin()->idle();
+            getActiveDisplayPlugin()->idle();
         }
 
         {
@@ -1753,7 +1753,7 @@ void Application::setFullscreen(bool fullscreen) {
 // app menu in a fullscreen window.  However the OSX mechanism hides the
 // application menu for fullscreen apps, so the check is not required.
 #ifndef Q_OS_MAC
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+    if (getActiveDisplayPlugin()->isHmd()) {
         if (fullscreen) {
             // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
             // So set height instead.
@@ -1843,15 +1843,15 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 bool Application::mouseOnScreen() const {
-    return getActiveRenderPlugin()->isMouseOnScreen();
+    return getActiveDisplayPlugin()->isMouseOnScreen();
 }
 
 int Application::getMouseX() const {
-    return getActiveRenderPlugin()->getUiMousePosition().x;
+    return getActiveDisplayPlugin()->getUiMousePosition().x;
 }
 
 int Application::getMouseY() const {
-    return getActiveRenderPlugin()->getUiMousePosition().x;
+    return getActiveDisplayPlugin()->getUiMousePosition().x;
 }
 
 int Application::getMouseDragStartedX() const {
@@ -2332,9 +2332,7 @@ void Application::updateCursor(float deltaTime) {
 }
 
 void Application::updateCursorVisibility() {
-    if (!_cursorVisible ||
-        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) ||
-        Menu::getInstance()->isOptionChecked(MenuOption::Enable3DTVMode)) {
+    if (!_cursorVisible || getActiveDisplayPlugin()->isStereo()) {
         _window->setCursor(Qt::BlankCursor);
     } else {
         _window->unsetCursor();
@@ -2714,7 +2712,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 }
 
 bool Application::isHMDMode() const {
-    return getActiveRenderPlugin()->isHmd();
+    return getActiveDisplayPlugin()->isHmd();
 }
 
 QRect Application::getDesirableApplicationGeometry() {
@@ -3287,7 +3285,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     // allow 3DTV/Oculus to override parameters from camera
-    getActiveRenderPlugin()->overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    getActiveDisplayPlugin()->overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 }
 
 bool Application::getShadowsEnabled() {
@@ -3378,7 +3376,7 @@ void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
 
-    getActiveRenderPlugin()->resetSensors();
+    getActiveDisplayPlugin()->resetSensors();
     //_leapmotion.reset();
 
 #if 0
@@ -4461,12 +4459,12 @@ PickRay Application::computePickRay(float x, float y) const {
     return computeViewPickRay(x, y);
 }
 
-glm::ivec2 Application::getCanvasSize() const {
-    return getActiveRenderPlugin()->getCanvasSize();
+glm::uvec2 Application::getCanvasSize() const {
+    return getActiveDisplayPlugin()->getCanvasSize();
 }
 
 QSize Application::getDeviceSize() const {
-    return getActiveRenderPlugin()->getRecommendedFramebufferSize();  // _glWidget->getDeviceSize();
+    return getActiveDisplayPlugin()->getRecommendedFramebufferSize();  // _glWidget->getDeviceSize();
 }
 
 void Application::resizeGL() {
@@ -4475,49 +4473,150 @@ void Application::resizeGL() {
 }
 
 bool Application::hasFocus() const {
-    return getActiveRenderPlugin()->hasFocus();
+    return getActiveDisplayPlugin()->hasFocus();
 }
 
 glm::vec2 Application::getViewportDimensions() const {
     return toGlm(getDeviceSize());
 }
 
+
+glm::ivec2 Application::getTrueMousePosition() const {
+    return getActiveDisplayPlugin()->getTrueMousePosition();
+}
+glm::quat Application::getHeadOrientation() const {
+    return getActiveDisplayPlugin()->headOrientation();
+}
+glm::vec3 Application::getHeadPosition() const {
+    return getActiveDisplayPlugin()->headTranslation();
+}
+
 int Application::getTrueMouseX() const { 
-    return getActiveRenderPlugin()->getTrueMousePosition().x;
+    return getActiveDisplayPlugin()->getTrueMousePosition().x;
 }
 
 int Application::getTrueMouseY() const { 
-    return getActiveRenderPlugin()->getTrueMousePosition().y;
+    return getActiveDisplayPlugin()->getTrueMousePosition().y;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveRenderPlugin()->isThrottled();
+    return getActiveDisplayPlugin()->isThrottled();
 }
 
-#include "plugins/render/NullRenderPlugin.h"
-#include "plugins/render/WindowRenderPlugin.h"
-#include "plugins/render/LegacyRenderPlugin.h"
 
-static RenderPlugin * renderPlugin = nullptr;
+using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
 
-RenderPlugin * Application::getActiveRenderPlugin() {
-    if (nullptr == renderPlugin) {
-        //renderPlugin = new WindowRenderPlugin();
-        renderPlugin = new LegacyRenderPlugin();
-        renderPlugin->init();
-        renderPlugin->activate();
-        connect(renderPlugin, &RenderPlugin::requestRender, this, [&] {
-            this->paintGL();
-        });
-        connect(renderPlugin, &RenderPlugin::recommendedFramebufferSizeChanged, this, [&](const QSize & size) {
-            DependencyManager::get<TextureCache>()->setFrameBufferSize(size * getRenderResolutionScale());
-            this->resizeGL(size.width(), size.height());
-        });
+#include "plugins/render/NullDisplayPlugin.h"
+#include "plugins/render/WindowDisplayPlugin.h"
+#include "plugins/render/LegacyDisplayPlugin.h"
+#include "plugins/render/OculusDirectD3DDisplayPlugin.h"
+
+static DisplayPluginPointer _displayPlugin{ nullptr };
+
+DisplayPlugin * Application::getActiveDisplayPlugin() {
+    if (nullptr == _displayPlugin) {
+        updateDisplayMode();
+        Q_ASSERT(_displayPlugin);
+    }
+    return _displayPlugin.data();
+}
+
+const DisplayPlugin * Application::getActiveDisplayPlugin() const {
+    return ((Application*)this)->getActiveDisplayPlugin();
+}
+
+
+/*
+
+QAction* action = NULL;
+QAction* actionBefore = NULL;
+
+if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
+actionBefore = destinationMenu->actions()[menuItemLocation];
+}
+
+if (!actionBefore) {
+if (receiver && member) {
+action = destinationMenu->addAction(actionName, receiver, member, shortcut);
+} else {
+action = destinationMenu->addAction(actionName);
+action->setShortcut(shortcut);
+}
+} else {
+action = new QAction(actionName, destinationMenu);
+action->setShortcut(shortcut);
+destinationMenu->insertAction(actionBefore, action);
+
+if (receiver && member) {
+connect(action, SIGNAL(triggered()), receiver, member);
+}
+}
+action->setMenuRole(role);
+
+*/
+static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
+    auto menu = Menu::getInstance();
+    MenuItemProperties item(MenuOption::OutputMenu, displayPlugin->getName(), "", true, active);
+    item.isSeparator = false;
+    Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, item.menuItemName));
+    menu->addMenuItem(item);
+    Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, item.menuItemName));
+}
+
+using DisplayPluginList = QVector<DisplayPluginPointer>;
+
+// FIXME move to a plugin manager class
+static const DisplayPluginList & getDisplayPlugins() {
+    static DisplayPluginList RENDER_PLUGINS;
+    static bool init = false;
+    if (!init) {
+        DisplayPluginPointer displayPlugin = DisplayPluginPointer(new LegacyDisplayPlugin()); // new WindowDisplayPlugin();
+        if (displayPlugin->isSupported()) {
+            displayPlugin->init();
+            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
+            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [] {
+                qApp->paintGL();
+            });
+            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
+                DependencyManager::get<TextureCache>()->setFrameBufferSize(size * qApp->getRenderResolutionScale());
+                qApp->resizeGL(size.width(), size.height());
+            });
+            addDisplayPluginToMenu(displayPlugin, true);
+        }
+
+        displayPlugin = DisplayPluginPointer(new NullDisplayPlugin());
+        if (displayPlugin->isSupported()) {
+#ifdef DEBUG
+            addDisplayPluginToMenu(displayPlugin);
+#endif
+            displayPlugin->init();
+            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
+        }
+    }
+    return RENDER_PLUGINS;
+}
+
+void Application::updateDisplayMode() {
+    auto menu = Menu::getInstance();
+    DisplayPluginPointer newDisplayPlugin;
+    foreach(DisplayPluginPointer displayPlugin, getDisplayPlugins()) {
+        QString name = displayPlugin->getName();
+        QAction* action = menu->getActionForOption(name);
+        if (action->isChecked()) {
+            newDisplayPlugin = displayPlugin;
+            break;
+        }
+    }
+    if (_displayPlugin != newDisplayPlugin) {
+        if (_displayPlugin) {
+            _displayPlugin->deactivate();
+        }
+        _offscreenContext->makeCurrent();
+        _displayPlugin = newDisplayPlugin;
+        if (_displayPlugin) {
+            _displayPlugin->activate();
+        }
         _offscreenContext->makeCurrent();
     }
-    return renderPlugin;
-}
-
-const RenderPlugin * Application::getActiveRenderPlugin() const {
-    return ((Application*)this)->getActiveRenderPlugin();
+    Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

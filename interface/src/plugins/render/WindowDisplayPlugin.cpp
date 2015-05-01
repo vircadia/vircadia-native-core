@@ -1,5 +1,5 @@
 //
-//  WindowRenderPlugin.cpp
+//  WindowDisplayPlugin.cpp
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -7,24 +7,24 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "WindowRenderPlugin.h"
+#include "WindowDisplayPlugin.h"
 #include "RenderUtil.h"
 
 #include <QCoreApplication>
 
-WindowRenderPlugin::WindowRenderPlugin() {
+WindowDisplayPlugin::WindowDisplayPlugin() {
     connect(&_timer, &QTimer::timeout, this, [&] {
         emit requestRender();
     });
 }
 
-const QString WindowRenderPlugin::NAME("WindowRenderPlugin");
+const QString WindowDisplayPlugin::NAME("WindowDisplayPlugin");
 
-const QString & WindowRenderPlugin::getName() {
+const QString & WindowDisplayPlugin::getName() {
     return NAME;
 }
 
-void WindowRenderPlugin::activate() {
+void WindowDisplayPlugin::activate() {
     Q_ASSERT(nullptr == _window);
 
     _context = new QOpenGLContext;
@@ -52,7 +52,7 @@ void WindowRenderPlugin::activate() {
     _timer.start(8);
 }
 
-void WindowRenderPlugin::deactivate() {
+void WindowDisplayPlugin::deactivate() {
     _timer.stop();
     _context->doneCurrent();
     _context->deleteLater();
@@ -62,7 +62,7 @@ void WindowRenderPlugin::deactivate() {
     _window = nullptr;
 }
 
-bool WindowRenderPlugin::eventFilter(QObject* object, QEvent* event) {
+bool WindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
     switch (event->type()) {
     case QEvent::MouseButtonPress:
     case QEvent::MouseButtonRelease:
@@ -80,21 +80,21 @@ bool WindowRenderPlugin::eventFilter(QObject* object, QEvent* event) {
     return false;
 }
 
-QSize WindowRenderPlugin::getRecommendedFramebufferSize() const {
+QSize WindowDisplayPlugin::getRecommendedFramebufferSize() const {
     return _window->size();
 }
 
-void WindowRenderPlugin::makeCurrent() {
+void WindowDisplayPlugin::makeCurrent() {
     _context->makeCurrent(_window);
     QSize windowSize = _window->size();
     glViewport(0, 0, windowSize.width(), windowSize.height());
 }
 
-void WindowRenderPlugin::doneCurrent() {
+void WindowDisplayPlugin::doneCurrent() {
     _context->doneCurrent();
 }
 
-void WindowRenderPlugin::swapBuffers() {
+void WindowDisplayPlugin::swapBuffers() {
     _context->swapBuffers(_window);
 }
 

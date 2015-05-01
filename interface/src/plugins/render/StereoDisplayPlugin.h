@@ -1,5 +1,5 @@
 //
-//  HmdRenderPlugin.cpp
+//  StereoDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,4 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "HmdRenderPlugin.h"
+#pragma once
+#include "DisplayPlugin.h"
+
+class StereoDisplayPlugin : public DisplayPlugin {
+    virtual bool isStereo() const final { return true; }
+};
+

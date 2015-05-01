@@ -1,5 +1,5 @@
 //
-//  Tv3dRenderPlugin.cpp
+//  Tv3dDisplayPlugin.cpp
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,16 +8,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Tv3dRenderPlugin.h"
+#include "Tv3dDisplayPlugin.h"
 
-const QString Tv3dRenderPlugin::NAME("Tv3dRenderPlugin");
+const QString Tv3dDisplayPlugin::NAME("Tv3dDisplayPlugin");
 
-const QString & Tv3dRenderPlugin::getName() {
+const QString & Tv3dDisplayPlugin::getName() {
     return NAME;
 }
 
 
-void Tv3dRenderPlugin::overrideOffAxisFrustum(
+void Tv3dDisplayPlugin::overrideOffAxisFrustum(
     float& left, float& right, float& bottom, float& top,
     float& nearVal, float& farVal,
     glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {

@@ -1,5 +1,5 @@
 //
-//  LegacyRenderPlugin.cpp
+//  LegacyDisplayPlugin.cpp
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,19 +8,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Application.h"
-#include "LegacyRenderPlugin.h"
+#include "LegacyDisplayPlugin.h"
 #include "MainWindow.h"
 #include <RenderUtil.h>
 
-const QString LegacyRenderPlugin::NAME("LegacyRenderPlugin");
+const QString LegacyDisplayPlugin::NAME("2D Monitor (GL Windgets)");
 
-const QString & LegacyRenderPlugin::getName() {
+const QString & LegacyDisplayPlugin::getName() {
     return NAME;
 }
 
 static QWidget * oldWidget = nullptr;
 
-void LegacyRenderPlugin::activate() {
+void LegacyDisplayPlugin::activate() {
     _window = new GLCanvas();
     QGLFormat format(QGL::NoDepthBuffer | QGL::NoStencilBuffer);
     _window->setContext(new QGLContext(format), 
@@ -37,7 +37,7 @@ void LegacyRenderPlugin::activate() {
     _window->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 }
 
-void LegacyRenderPlugin::deactivate() {
+void LegacyDisplayPlugin::deactivate() {
     _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
     _window->removeEventFilter(qApp);
     qApp->getWindow()->setCentralWidget(oldWidget);
@@ -48,38 +48,38 @@ void LegacyRenderPlugin::deactivate() {
     _window = nullptr;
 }
 
-QSize LegacyRenderPlugin::getRecommendedFramebufferSize() const {
+QSize LegacyDisplayPlugin::getRecommendedFramebufferSize() const {
     return _window->getDeviceSize();
 }
 
-void LegacyRenderPlugin::makeCurrent() {
+void LegacyDisplayPlugin::makeCurrent() {
     _window->makeCurrent();
     QSize windowSize = _window->size();
     glViewport(0, 0, windowSize.width(), windowSize.height());
 }
 
-void LegacyRenderPlugin::doneCurrent() {
+void LegacyDisplayPlugin::doneCurrent() {
     _window->doneCurrent();
 }
 
-void LegacyRenderPlugin::swapBuffers() {
+void LegacyDisplayPlugin::swapBuffers() {
     _window->swapBuffers();
     glFinish();
 }
 
-void LegacyRenderPlugin::idle() {
+void LegacyDisplayPlugin::idle() {
     _window->updateGL();
 }
 
-glm::ivec2 LegacyRenderPlugin::getCanvasSize() const {
+glm::ivec2 LegacyDisplayPlugin::getCanvasSize() const {
     return toGlm(_window->size());
 }
 
-bool LegacyRenderPlugin::hasFocus() const {
+bool LegacyDisplayPlugin::hasFocus() const {
     return _window->hasFocus();
 }
 
-PickRay LegacyRenderPlugin::computePickRay(const glm::vec2 & pos) const {
+PickRay LegacyDisplayPlugin::computePickRay(const glm::vec2 & pos) const {
     return PickRay();
 }
 
@@ -87,6 +87,6 @@ bool isMouseOnScreen() {
     return false;
 }
 
-bool LegacyRenderPlugin::isThrottled() {
+bool LegacyDisplayPlugin::isThrottled() {
     return _window->isThrottleRendering();
 }

@@ -1,5 +1,5 @@
 //
-//  RenderPlugin.h
+//  DisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -19,7 +19,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <RegisteredMetaTypes.h>
 
-class RenderPlugin : public Plugin {
+class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
     virtual bool isHmd() const { return false; }

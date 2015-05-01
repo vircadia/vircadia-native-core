@@ -1,5 +1,5 @@
 //
-//  OculusDirectD3DRenderPlugin.h
+//  HmdDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,5 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #pragma once
+#include "StereoDisplayPlugin.h"
 
-#include "OculusBaseRenderPlugin.h"
+class HmdDisplayPlugin : public StereoDisplayPlugin {
+    virtual bool isHmd() const final { return true; }
+};

@@ -27,7 +27,7 @@
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
-#include "plugins/render/RenderPlugin.h"
+#include "plugins/render/DisplayPlugin.h"
 
 #include "Util.h"
 #include "ui/Stats.h"
@@ -478,7 +478,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
-    if (qApp->getActiveRenderPlugin()->isHmd()) {
+    if (qApp->isHMDMode()) {
         float t;
 
         //We back the ray up by dir to ensure that it will not start inside the UI.
@@ -496,7 +496,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
 
                 float u = asin(collisionPos.x) / (_textureFov)+0.5f;
                 float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
-                auto size = qApp->getActiveRenderPlugin()->getCanvasSize();
+                auto size = qApp->getCanvasSize();
 
                 rv.setX(u * size.x);
                 rv.setY(v * size.y);
@@ -553,8 +553,8 @@ void ApplicationOverlay::renderPointers() {
     glActiveTexture(GL_TEXTURE0);
     _crosshairTexture->bind();
 
-    if (qApp->getActiveRenderPlugin()->isHmd() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
-        glm::ivec2 trueMouse = qApp->getActiveRenderPlugin()->getTrueMousePosition();
+    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
+        glm::ivec2 trueMouse = qApp->getTrueMousePosition();
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
@@ -966,7 +966,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
             (Menu::getInstance()->isOptionChecked(MenuOption::Stats))
             ? 80 : 20;
 
-        auto size = qApp->getActiveRenderPlugin()->getCanvasSize();
+        auto size = qApp->getCanvasSize();
 //        auto glCanvas = Application::getInstance()->getGLWidget();
         drawText(size.x - 100, size.y - timerBottom,
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);

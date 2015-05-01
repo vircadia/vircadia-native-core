@@ -1,5 +1,5 @@
 //
-//  OculusBaseRenderPlugin.cpp
+//  OculusBaseDisplayPlugin.cpp
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -7,23 +7,23 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "OculusBaseRenderPlugin.h"
+#include "OculusBaseDisplayPlugin.h"
 
 #include <OVR_CAPI.h>
 
-bool OculusBaseRenderPlugin::sdkInitialized = false;
+bool OculusBaseDisplayPlugin::sdkInitialized = false;
 
-bool OculusBaseRenderPlugin::enableSdk() {
+bool OculusBaseDisplayPlugin::enableSdk() {
     sdkInitialized = ovr_Initialize();
     return sdkInitialized;
 }
 
-void OculusBaseRenderPlugin::disableSdk() {
+void OculusBaseDisplayPlugin::disableSdk() {
     ovr_Shutdown();
     sdkInitialized = false;
 }
 
-void OculusBaseRenderPlugin::withSdkActive(std::function<void()> f) {
+void OculusBaseDisplayPlugin::withSdkActive(std::function<void()> f) {
     bool activateSdk = !sdkInitialized;
     if (activateSdk && !enableSdk()) {
         return;
@@ -34,7 +34,7 @@ void OculusBaseRenderPlugin::withSdkActive(std::function<void()> f) {
     }
 }
 
-bool OculusBaseRenderPlugin::isSupported() {
+bool OculusBaseDisplayPlugin::isSupported() {
     bool attached = false;
     withSdkActive([&] {
         attached = ovrHmd_Detect();
@@ -42,11 +42,11 @@ bool OculusBaseRenderPlugin::isSupported() {
     return attached; 
 }
 
-void OculusBaseRenderPlugin::activate() {
+void OculusBaseDisplayPlugin::activate() {
     enableSdk();
 }
 
-void OculusBaseRenderPlugin::deactivate() {
+void OculusBaseDisplayPlugin::deactivate() {
     disableSdk();
 }
 

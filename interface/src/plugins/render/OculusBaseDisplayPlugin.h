@@ -1,5 +1,5 @@
 //
-//  OculusBaseRenderPlugin.h
+//  OculusBaseDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,10 +9,10 @@
 //
 #pragma once
 
-#include "HmdRenderPlugin.h"
+#include "HmdDisplayPlugin.h"
 #include <functional>
 
-class OculusBaseRenderPlugin : public HmdRenderPlugin {
+class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
 public:
     virtual bool isSupported();
 

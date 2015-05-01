@@ -1,5 +1,5 @@
 //
-//  NullRenderPlugin.h
+//  NullDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,13 +9,13 @@
 //
 #pragma once
 
-#include "RenderPlugin.h"
+#include "DisplayPlugin.h"
 
-class NullRenderPlugin : public RenderPlugin {
+class NullDisplayPlugin : public DisplayPlugin {
 public:
     static const QString NAME;
 
-    virtual ~NullRenderPlugin() final {}
+    virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName();
 
     virtual QSize getRecommendedFramebufferSize() const;

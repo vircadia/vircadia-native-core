@@ -233,6 +233,11 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
+    {
+        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
+        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
+        displayModeGroup->setExclusive(true);
+    }
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
@@ -265,16 +270,9 @@ Menu::Menu() {
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnableVRMode(bool)));
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Enable3DTVMode, 0,
-                                           false,
-                                           qApp,
-                                           SLOT(setEnable3DTVMode(bool)));
-
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
+        dialogsManager.data(), SLOT(editAttachments()));
+    
 
     MenuWrapper* nodeBordersMenu = viewMenu->addMenu("Server Borders");
     NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();

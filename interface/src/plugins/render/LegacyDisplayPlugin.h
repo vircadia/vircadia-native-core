@@ -1,5 +1,5 @@
 //
-//  LegacyRenderPlugin.h
+//  LegacyDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,10 +9,10 @@
 //
 #pragma once
 
-#include "SimpleRenderPlugin.h"
+#include "SimpleDisplayPlugin.h"
 #include "GLCanvas.h"
 
-class LegacyRenderPlugin : public SimpleRenderPlugin<GLCanvas> {
+class LegacyDisplayPlugin : public SimpleDisplayPlugin<GLCanvas> {
     Q_OBJECT
 public:
     static const QString NAME;

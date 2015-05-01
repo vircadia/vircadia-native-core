@@ -1,5 +1,5 @@
 //
-//  Tv3dRenderPlugin.h
+//  Tv3dDisplayPlugin.h
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "StereoRenderPlugin.h"
+#include "StereoDisplayPlugin.h"
 
-class Tv3dRenderPlugin : public StereoRenderPlugin {
+class Tv3dDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
 public:
     static const QString NAME;
