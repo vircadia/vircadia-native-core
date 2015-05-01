@@ -193,12 +193,7 @@ void AvatarMixer::broadcastAvatarData() {
                 // get the current full rate distance so we can work with it
                 float currentFullRateDistance = nodeData->getFullRateDistance();
 
-                // qDebug() << "current node outbound bandwidth is" << avatarDataRateLastSecond; 
-
                 if (avatarDataRateLastSecond > _maxKbpsPerNode) {
-
-                    qDebug() << "Adjustment down required for avatar" << node->getUUID() << "whose current send rate is" 
-                        << avatarDataRateLastSecond; 
 
                     // is the FRD greater than the farthest avatar? 
                     // if so, before we calculate anything, set it to that distance
@@ -206,20 +201,13 @@ void AvatarMixer::broadcastAvatarData() {
 
                     // we're adjusting the full rate distance to target a bandwidth in the middle
                     // of the hysterisis gap
-
                     currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond; 
                     
-                    qDebug() << "farthest possible FRD is" << nodeData->getMaxAvatarDistance();
-                    qDebug() << "current FRD is" << nodeData->getFullRateDistance();
                     nodeData->setFullRateDistance(currentFullRateDistance);
-
-                    qDebug() << "new FRD is" << nodeData->getFullRateDistance(); 
-
                     nodeData->resetNumFramesSinceFRDAdjustment();
                 } else if (currentFullRateDistance < nodeData->getMaxAvatarDistance() 
                            && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
-                    // we are constrained AND we've recovered to below the acceptable ratio
-                    
+                    // we are constrained AND we've recovered to below the acceptable ratio 
                     // lets adjust the full rate distance to target a bandwidth in the middle of the hyterisis gap
                     currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
                      
