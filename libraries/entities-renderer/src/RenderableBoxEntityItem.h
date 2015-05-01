@@ -1,5 +1,5 @@
 //
-//  RenderableDebugableEntityItem.h
+//  RenderableBoxEntityItem.h
 //  libraries/entities-renderer/src/
 //
 //  Created by Brad Hefta-Gaub on 8/6/14.
