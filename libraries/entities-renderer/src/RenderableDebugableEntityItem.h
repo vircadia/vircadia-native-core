@@ -23,4 +23,4 @@ public:
     virtual void render(RenderArgs* args);
 };
 
-#endif // hifi_RenderableBoxEntityItem_h
+#endif // hifi_RenderableDebugableEntityItem_h
