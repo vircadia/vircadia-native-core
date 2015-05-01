@@ -23,8 +23,6 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
     glm::vec3 center = entity->getCenter();
     glm::vec3 dimensions = entity->getDimensions();
     glm::quat rotation = entity->getRotation();
-    // float size = glm::length(dimensions) / 2.0f;
-
     glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
 
     glPushMatrix();

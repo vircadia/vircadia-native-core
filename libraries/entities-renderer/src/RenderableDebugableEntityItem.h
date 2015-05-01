@@ -1,6 +1,6 @@
 //
 //  RenderableDebugableEntityItem.h
-//  interface/src/entities
+// libraries/entities-renderer/src/
 //
 //  Created by Seth Alves on 5/1/15.
 //  Copyright 2014 High Fidelity, Inc.
