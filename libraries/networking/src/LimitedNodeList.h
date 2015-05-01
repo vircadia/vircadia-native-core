@@ -55,7 +55,7 @@ const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client
 const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
 const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
 
-const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username_for_uuid";
+const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 class HifiSockAddr;
 

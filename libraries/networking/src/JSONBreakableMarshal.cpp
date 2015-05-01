@@ -153,6 +153,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
             QVariant* currentValue = &result; 
 
             // pull the key (everything left of the equality sign)
+            QString parentKeypath;
             QString keypath = marshalString.left(equalityIndex);
 
             // setup for array index checking
@@ -161,6 +162,8 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
  
             // as long as we have a keypath we need to recurse downwards
             while (!keypath.isEmpty()) {
+                parentKeypath = keypath;
+
                 int arrayBracketIndex = arrayRegex.indexIn(keypath);
 
                 // is this an array index
@@ -255,10 +258,19 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                     
                     // change the currentValue to the QJsonValue for this key
                     currentValue = &currentMap[subKey];
-                }    
+                }
             }
 
             *currentValue = fromString(marshalString.mid(equalityIndex + 1));
+             
+            if (_interpolationMap.contains(parentKeypath)) {
+                // we expect the currentValue here to be a string, that's the key we use for interpolation
+                // bail if it isn't
+                if (currentValue->canConvert(QMetaType::QString) 
+                    && _interpolationMap[parentKeypath].canConvert(QMetaType::QVariantMap)) { 
+                    *currentValue = _interpolationMap[parentKeypath].toMap()[currentValue->toString()];
+                }
+            }
         }
     }
 
