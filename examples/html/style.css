@@ -301,3 +301,7 @@ input[type="number"]::-webkit-inner-spin-button:hover,
 input[type="number"]::-webkit-inner-spin-button:active{
     opacity: .8;
 }
+
+input#property-name {
+    width: 100%;
+}
