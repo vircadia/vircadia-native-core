@@ -53,7 +53,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     
     
     float loudness = 0;
-    float thisSample = 0;
+    int thisSample = 0;
     int samplesOverNoiseGate = 0;
     
     const float NOISE_GATE_HEIGHT = 7.0f;
@@ -69,7 +69,7 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     for (int i = 0; i < numSamples; i++) {
         measuredDcOffset += samples[i];
         samples[i] -= (int16_t) _dcOffset;
-        thisSample = fabsf(samples[i]);
+        thisSample = std::abs(samples[i]);
         
         if (thisSample >= ((float) AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
             _didClipInLastFrame = true;

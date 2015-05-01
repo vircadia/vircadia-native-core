@@ -121,8 +121,9 @@ public:
     }
     
     void render(const int16_t* in, int16_t* out, const uint32_t frameCount) {
-        if (!_buffer || (frameCount > _frameCount))
+        if (frameCount > _frameCount) {
             return;
+        }
 
         const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
 

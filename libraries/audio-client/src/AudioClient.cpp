@@ -796,8 +796,8 @@ void AudioClient::handleAudioInput() {
                 float loudness = 0.0f;
                 
                 for (int i = 0; i < numNetworkSamples; i++) {
-                    float thisSample = fabsf(networkAudioSamples[i]);
-                    loudness += thisSample;
+                    int thisSample = std::abs(networkAudioSamples[i]);
+                    loudness += (float) thisSample;
                     
                     if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
