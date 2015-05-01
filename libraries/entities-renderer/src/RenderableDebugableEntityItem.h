@@ -1,5 +1,5 @@
 //
-//  RenderableBoxEntityItem.h
+//  RenderableDebugableEntityItem.h
 //  interface/src/entities
 //
 //  Created by Seth Alves on 5/1/15.
