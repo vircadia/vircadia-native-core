@@ -49,7 +49,7 @@ private:
     int _sumBillboardPackets;
     int _sumIdentityPackets;
 
-    float _maxMbpsPerNode = 0.0f;
+    float _maxKbpsPerNode = 0.0f;
 };
 
 #endif // hifi_AvatarMixer_h

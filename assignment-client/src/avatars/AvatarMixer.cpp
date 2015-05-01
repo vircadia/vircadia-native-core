@@ -164,20 +164,70 @@ void AvatarMixer::broadcastAvatarData() {
 
             // reset the internal state for correct random number distribution
             distribution.reset();
+            
             // reset the max distance for this frame
             float maxDistanceThisFrame = 0.0f;
+            
             // reset the number of sent avatars
             nodeData->resetNumAvatarsSentLastFrame();
+
+            // keep a counter of the number of considered avatars
+            int numOtherAvatars = 0;
+
+            float dataRateLastSecond = node->getOutboundBandwidth();
 
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
             // the bandwidth reported by node->getOutboundBandwidth();
-            if (nodeData->getNumFramesSinceAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
-                qDebug() << "Consider adjustment for avatar whose current send rate is" << node->getOutboundBandwidth();
-            
-                nodeData->resetNumFramesSinceAdjustment();
+            if (nodeData->getNumFramesSinceFRDAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
+                
+                const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
+
+                qDebug() << "current node outbound bandwidth is" << dataRateLastSecond; 
+
+                if(dataRateLastSecond > _maxKbpsPerNode) {
+
+                    qDebug() << "Adjustment down required for avatar" << node->getUUID() << "whose current send rate is" 
+                        << dataRateLastSecond;
+
+                    // is the FRD greater than the MAX FRD? if so, before we calculate anything, set it to the MAX FRD
+                    float newFullRateDistance = nodeData->getFullRateDistance();
+                    
+                    if (newFullRateDistance > nodeData->getMaxFullRateDistance()) {
+                        newFullRateDistance = nodeData->getMaxFullRateDistance();
+                    }
+                    
+                    // we're adjusting, so we want to drop half the distance to FRD=0
+                    newFullRateDistance /= 2.0f; 
+                    
+                    qDebug() << "max FRD is" << nodeData->getMaxFullRateDistance();
+                    qDebug() << "current FRD is" << nodeData->getFullRateDistance();
+                    nodeData->setFullRateDistance(newFullRateDistance);
+
+                    qDebug() << "new FRD is" << nodeData->getFullRateDistance(); 
+
+                    nodeData->resetNumFramesSinceFRDAdjustment();
+                } else if (nodeData->getFullRateDistance() < nodeData->getMaxFullRateDistance() 
+                           && dataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
+                    // we are constrained AND we've recovered to below the acceptable ratio, adjust the FRD upwards
+                    // by covering half the distance to the max FRD
+                    
+                    qDebug() << "Adjustment up required for avatar" << node->getUUID() << "whose current send rate is" 
+                        << node->getOutboundBandwidth();
+                    
+                    float newFullRateDistance = nodeData->getFullRateDistance();
+                    newFullRateDistance += (nodeData->getMaxFullRateDistance() - newFullRateDistance) / 2.0f;
+                     
+                    qDebug() << "max FRD is" << nodeData->getMaxFullRateDistance();
+                    qDebug() << "current FRD is" << nodeData->getFullRateDistance();
+                    nodeData->setFullRateDistance(newFullRateDistance);
+
+                    qDebug() << "new FRD is" << nodeData->getFullRateDistance();
+
+                    nodeData->resetNumFramesSinceFRDAdjustment();
+                }
             } else {
-                nodeData->increaseNumFramesSinceAdjustment();
+                nodeData->incrementNumFramesSinceFRDAdjustment();
             }
 
             // this is an AGENT we have received head data from
@@ -194,6 +244,8 @@ void AvatarMixer::broadcastAvatarData() {
                     return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
+                    ++numOtherAvatars;
+                    
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     MutexTryLocker lock(otherNodeData->getMutex());
                     if (!lock.isLocked()) {
@@ -215,6 +267,8 @@ void AvatarMixer::broadcastAvatarData() {
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
+                    
+                    nodeData->incrementNumAvatarsSentLastFrame();
 
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
@@ -244,6 +298,8 @@ void AvatarMixer::broadcastAvatarData() {
                         QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                         billboardPacket.append(otherNode->getUUID().toRfc4122());
                         billboardPacket.append(otherNodeData->getAvatar().getBillboard());
+
+                        qDebug() << "Sending a billboard packet to" << node->getUUID();
                         nodeList->writeDatagram(billboardPacket, node);
                             
                         ++_sumBillboardPackets;
@@ -259,7 +315,9 @@ void AvatarMixer::broadcastAvatarData() {
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
                         identityPacket.append(individualData);
-                            
+                        
+                        qDebug() << "Sending an identity packet to" << node->getUUID();
+
                         nodeList->writeDatagram(identityPacket, node);
                                 
                         ++_sumIdentityPackets;
@@ -267,7 +325,7 @@ void AvatarMixer::broadcastAvatarData() {
             });
             nodeList->writeDatagram(mixedAvatarByteArray, node);
 
-            if (nodeData->getNumAvatarsSentLastFrame() == 0) {
+            if (numOtherAvatars == 0) {
                 // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
                 nodeData->setMaxFullRateDistance(FLT_MAX);
             } else {
@@ -438,7 +496,9 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     if (!nodeBandwidthValue.isDouble()) {
         qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
     }
+    
+    const int KILO_PER_MEGA = 1000;
 
-    _maxMbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH);
-    qDebug() << "The maximum send bandwidth per node is" << _maxMbpsPerNode << "Mbps."; 
+    _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
+    qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps."; 
 }

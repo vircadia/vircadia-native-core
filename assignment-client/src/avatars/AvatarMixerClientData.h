@@ -36,15 +36,18 @@ public:
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
    
     float getFullRateDistance() const { return _fullRateDistance; }
-    void setMaxFullRateDistance(float distance) { _maxFullRateDistance = distance; }
+    void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
+
+    void setMaxFullRateDistance(float maxFullRateDistance) { _maxFullRateDistance = maxFullRateDistance; }
+    float getMaxFullRateDistance() const { return _maxFullRateDistance; }
 
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
-    void increaseNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
+    void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
-    int getNumFramesSinceAdjustment() const { return _numFramesSinceAdjustment; }
-    void increaseNumFramesSinceAdjustment() { ++_numFramesSinceAdjustment; }
-    void resetNumFramesSinceAdjustment() { _numFramesSinceAdjustment = 0; }
+    int getNumFramesSinceFRDAdjustment() const { return _numFramesSinceAdjustment; }
+    void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
+    void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
