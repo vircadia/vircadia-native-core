@@ -34,6 +34,7 @@
 #include <UserActivityLogger.h>
 
 #include "Application.h"
+#include "plugins/render/RenderPlugin.h"
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
@@ -230,13 +231,15 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
     
-#if 0
-    if (isPlaying() && !OculusManager::isConnected()) {
+    auto renderPlugin = qApp->getActiveRenderPlugin();
+    bool inHmd = renderPlugin->isHmd();
+    
+    if (isPlaying() && inHmd) {
         return;
     }
-    
-    if (OculusManager::isConnected()) {
-        estimatedPosition = OculusManager::getRelativePosition();
+
+    if (inHmd) {
+        estimatedPosition = renderPlugin->headTranslation(); 
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
         
@@ -274,7 +277,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected() || isPlaying()) {
+    if (inHmd || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -294,7 +297,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if (OculusManager::isConnected() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if (inHmd && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
@@ -302,7 +305,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
-#endif
 }
 
 

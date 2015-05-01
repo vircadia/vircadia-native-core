@@ -67,13 +67,10 @@ void GLCanvas::paintGL() {
         }
 #endif
         Application::getInstance()->paintGL();
-        
+
 #if 0
         if (!OculusManager::isConnected()) {
-#endif
-
             swapBuffers();
-#if 0 
         } else {
             if (OculusManager::allowSwap()) {
                 swapBuffers();
@@ -121,13 +118,11 @@ void GLCanvas::throttleRender() {
         if (OculusManager::isConnected()) {
             OculusManager::beginFrameTiming();
         }
-#endif
-
         makeCurrent();
+#endif
         Application::getInstance()->paintGL();
-        swapBuffers();
-
 #if 0
+        swapBuffers();
         if (OculusManager::isConnected()) {
             OculusManager::endFrameTiming();
         }

@@ -32,9 +32,14 @@ void LegacyRenderPlugin::activate() {
     _window->setFocusPolicy(Qt::StrongFocus);
     _window->setFocus();
     _window->setMouseTracking(true);
+
+    _window->installEventFilter(qApp);
+    _window->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 }
 
 void LegacyRenderPlugin::deactivate() {
+    _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
+    _window->removeEventFilter(qApp);
     qApp->getWindow()->setCentralWidget(oldWidget);
     // stop the glWidget frame timer so it doesn't call paintGL
     _window->stopFrameTimer();
