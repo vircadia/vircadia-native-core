@@ -42,6 +42,7 @@ public:
                                                 
     virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
+    void renderBoundingBox(RenderArgs* args);
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

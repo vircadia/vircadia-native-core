@@ -1213,6 +1213,9 @@ PropertiesTool = function(opts) {
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
+                if (data.properties.name != undefined) {
+                    entityListTool.sendUpdate();
+                }
             }
             pushCommandForSelections();
             selectionManager._update();
