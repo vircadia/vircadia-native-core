@@ -19,6 +19,7 @@
 class QAction;
 class QMenu;
 class Menu;
+class MenuWrapper;
 
 class Bookmarks: public QObject {
     Q_OBJECT
@@ -26,7 +27,7 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
-    void setupMenus(Menu* menubar, QMenu* menu);
+    void setupMenus(Menu* menubar, MenuWrapper* menu);
 
 private slots:
     void bookmarkLocation();
@@ -36,7 +37,7 @@ private slots:
 private:
     QVariantMap _bookmarks;  // { name: address, ... }
     
-    QPointer<QMenu> _bookmarksMenu;
+    QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
 
     const QString BOOKMARKS_FILENAME = "bookmarks.json";

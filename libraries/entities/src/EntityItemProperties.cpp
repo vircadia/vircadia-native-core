@@ -295,20 +295,23 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) const {
+QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
     QScriptValue properties = engine->newObject();
+    EntityItemProperties defaultEntityProperties;
 
     if (_idSet) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, (_id != UNKNOWN_ENTITY_ID));
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(isKnownID, (_id != UNKNOWN_ENTITY_ID));
     } else {
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, false);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(isKnownID, false);
     }
 
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(position);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(dimensions);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(naturalDimensions); // gettable, but not settable
+    if (!skipDefaults) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(naturalDimensions); // gettable, but not settable
+    }
     COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
@@ -316,8 +319,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
+    if (!skipDefaults) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
+    }
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(angularVelocity);
@@ -369,31 +374,37 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageHour);
 
     // Sitting properties support
-    QScriptValue sittingPoints = engine->newObject();
-    for (int i = 0; i < _sittingPoints.size(); ++i) {
-        QScriptValue sittingPoint = engine->newObject();
-        sittingPoint.setProperty("name", _sittingPoints.at(i).name);
-        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints.at(i).position));
-        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints.at(i).rotation));
-        sittingPoints.setProperty(i, sittingPoint);
+    if (!skipDefaults) {
+        QScriptValue sittingPoints = engine->newObject();
+        for (int i = 0; i < _sittingPoints.size(); ++i) {
+            QScriptValue sittingPoint = engine->newObject();
+            sittingPoint.setProperty("name", _sittingPoints.at(i).name);
+            sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints.at(i).position));
+            sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints.at(i).rotation));
+            sittingPoints.setProperty(i, sittingPoint);
+        }
+        sittingPoints.setProperty("length", _sittingPoints.size());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
     }
-    sittingPoints.setProperty("length", _sittingPoints.size());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
-    AABox aaBox = getAABox();
-    QScriptValue boundingBox = engine->newObject();
-    QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
-    QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
-    QScriptValue center = vec3toScriptValue(engine, aaBox.calcCenter());
-    QScriptValue boundingBoxDimensions = vec3toScriptValue(engine, aaBox.getDimensions());
-    boundingBox.setProperty("brn", bottomRightNear);
-    boundingBox.setProperty("tfl", topFarLeft);
-    boundingBox.setProperty("center", center);
-    boundingBox.setProperty("dimensions", boundingBoxDimensions);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(boundingBox, boundingBox); // gettable, but not settable
+    if (!skipDefaults) {
+        AABox aaBox = getAABox();
+        QScriptValue boundingBox = engine->newObject();
+        QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
+        QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
+        QScriptValue center = vec3toScriptValue(engine, aaBox.calcCenter());
+        QScriptValue boundingBoxDimensions = vec3toScriptValue(engine, aaBox.getDimensions());
+        boundingBox.setProperty("brn", bottomRightNear);
+        boundingBox.setProperty("tfl", topFarLeft);
+        boundingBox.setProperty("center", center);
+        boundingBox.setProperty("dimensions", boundingBoxDimensions);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(boundingBox, boundingBox); // gettable, but not settable
+    }
 
     QString textureNamesList = _textureNames.join(",\n");
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(originalTextures, textureNamesList); // gettable, but not settable
+    if (!skipDefaults) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesList); // gettable, but not settable
+    }
 
     return properties;
 }
@@ -467,7 +478,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
 }
 
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {
-    return properties.copyToScriptValue(engine);
+    return properties.copyToScriptValue(engine, false);
+}
+
+QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {
+    return properties.copyToScriptValue(engine, true);
 }
 
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {

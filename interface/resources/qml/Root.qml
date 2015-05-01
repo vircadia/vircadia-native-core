@@ -8,7 +8,7 @@ Root {
     anchors.fill: parent
 
     onParentChanged: {
-    	forceActiveFocus();
+        forceActiveFocus();
     }
 }
 

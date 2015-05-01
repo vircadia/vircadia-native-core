@@ -69,6 +69,17 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
 }
 
+void AssignmentClientMonitor::waitOnChildren(int msecs) {
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        bool finished = childProcess->waitForFinished(msecs);
+        if (finished) {
+            i.remove();
+        }
+    }
+}
+
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -78,10 +89,21 @@ void AssignmentClientMonitor::stopChildProcesses() {
         QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
         nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
     });
+
+    // try to give all the children time to shutdown
+    waitOnChildren(15000);
+}
+
+void AssignmentClientMonitor::aboutToQuit() {
+    stopChildProcesses();
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
+
+    _childProcesses.append(assignmentClient);
 
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
@@ -119,8 +141,6 @@ void AssignmentClientMonitor::spawnChildClient() {
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
 
-
-
 void AssignmentClientMonitor::checkSpares() {
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid aSpareId = "";
@@ -156,6 +176,8 @@ void AssignmentClientMonitor::checkSpares() {
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
+
+    waitOnChildren(0);
 }
 
 

@@ -581,7 +581,8 @@ void Avatar::renderBillboard() {
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, 
+                                                        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     
     glPopMatrix();
     
@@ -709,11 +710,24 @@ void Avatar::renderDisplayName() {
             glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
    
     glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    
+    // optionally render timing stats for this avatar with the display name
+    QString renderedDisplayName = _displayName;
+    
+    if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
+        const float BYTES_PER_KILOBYTE = 1000.0f;
+        float kilobytesPerSecond = getAverageBytesReceivedPerSecond() / BYTES_PER_KILOBYTE;
+    
+        renderedDisplayName += QString(" - (%1 KBps, %2 Hz)")
+                               .arg(QString::number(kilobytesPerSecond, 'f', 2))
+                               .arg(getReceiveRate());
+    }
+ 
     QByteArray ba = _displayName.toLocal8Bit();
     const char* text = ba.data();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text, color);
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, renderedDisplayName, color);
 
     glPopMatrix();
 

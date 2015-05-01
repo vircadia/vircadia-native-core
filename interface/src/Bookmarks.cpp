@@ -84,7 +84,7 @@ void Bookmarks::persistToFile() {
     saveFile.write(data);
 }
 
-void Bookmarks::setupMenus(Menu* menubar, QMenu* menu) {
+void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
     menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation, 0,
                                            this, SLOT(bookmarkLocation()));
@@ -192,7 +192,7 @@ void Bookmarks::enableMenuItems(bool enabled) {
 }
 
 void Bookmarks::addLocationToMenu(Menu* menubar, QString& name, QString& address) {
-    QAction* teleportAction = new QAction(_bookmarksMenu);
+    QAction* teleportAction = _bookmarksMenu->newAction();
     teleportAction->setData(address);
     connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));
     
