@@ -23,7 +23,7 @@ uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 attribute vec2 texcoord1;
 
 // the interpolated normal
-varying vec4 normal;
+varying vec4 interpolatedNormal;
 
 // the interpolated texcoord1
 varying vec2 interpolatedTexcoord1;
@@ -44,8 +44,8 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, normal.xyz)$>
+    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
 
-    normal = vec4(normalize(normal.xyz), 0.0);
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
 }
 
