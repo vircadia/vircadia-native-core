@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 
+#include <QUuid>
 #include <QVector>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -50,6 +51,8 @@ public:
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
+
+    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
 
     void addObject(ObjectMotionState* motionState);
     void removeObject(ObjectMotionState* motionState);
@@ -106,6 +109,8 @@ private:
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
+
+    QUuid _sessionID;
 };
 
 #endif // hifi_PhysicsEngine_h

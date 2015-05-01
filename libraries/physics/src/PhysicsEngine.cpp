@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AABox.h> 
-
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
@@ -245,41 +243,24 @@ void PhysicsEngine::stepSimulation() {
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
-    /* TODO: Andrew to make this work for ObjectMotionState
     BT_PROFILE("ownershipInfection");
-    assert(objectA);
-    assert(objectB);
+    if (_sessionID.isNull()) {
+        return;
+    }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    QUuid myNodeID = nodeList->getSessionUUID();
-    const btCollisionObject* characterCollisionObject =
-        _characterController ? _characterController->getCollisionObject() : nullptr;
-
-    assert(!myNodeID.isNull());
-
+    const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
-    EntityItem* entityA = a ? a->getEntity() : nullptr;
-    EntityItem* entityB = b ? b->getEntity() : nullptr;
-    bool aIsDynamic = entityA && !objectA->isStaticOrKinematicObject();
-    bool bIsDynamic = entityB && !objectB->isStaticOrKinematicObject();
 
-    // collisions cause infectious spread of simulation-ownership.  we also attempt to take
-    // ownership of anything that collides with our avatar.
-    if ((aIsDynamic && (entityA->getSimulatorID() == myNodeID)) ||
-        // (a && a->getShouldClaimSimulationOwnership()) ||
-        (objectA == characterCollisionObject)) {
-        if (bIsDynamic) {
-            b->setShouldClaimSimulationOwnership(true);
+    if (b && ((a && !objectA->isStaticOrKinematicObject()) || (objectA == characterObject))) {
+        if (!objectB->isStaticOrKinematicObject()) {
+            b->bump();
         }
-    } else if ((bIsDynamic && (entityB->getSimulatorID() == myNodeID)) ||
-        // (b && b->getShouldClaimSimulationOwnership()) ||
-        (objectB == characterCollisionObject)) {
-        if (aIsDynamic) {
-            a->setShouldClaimSimulationOwnership(true);
+    } else if (a && ((b && !objectB->isStaticOrKinematicObject()) || (objectB == characterObject))) {
+        if (!objectA->isStaticOrKinematicObject()) {
+            a->bump();
         }
     }
-    */
 }
 
 void PhysicsEngine::computeCollisionEvents() {

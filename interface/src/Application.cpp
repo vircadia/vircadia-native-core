@@ -432,6 +432,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
@@ -3870,6 +3871,9 @@ bool Application::acceptURL(const QString& urlString) {
     return false;
 }
 
+void Application::setSessionUUID(const QUuid& sessionUUID) {
+    _physicsEngine.setSessionUUID(sessionUUID);
+}
 
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
@@ -4482,3 +4486,4 @@ void Application::friendsWindowClosed() {
 void Application::postLambdaEvent(std::function<void()> f) {
     QCoreApplication::postEvent(this, new LambdaEvent(f));
 }
+

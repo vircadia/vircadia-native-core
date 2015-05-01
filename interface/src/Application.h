@@ -351,6 +351,7 @@ signals:
     void beforeAboutToQuit();
 
 public slots:
+    void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
