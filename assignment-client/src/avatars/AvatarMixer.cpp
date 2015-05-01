@@ -464,8 +464,8 @@ void AvatarMixer::run() {
     _broadcastTimer->moveToThread(&_broadcastThread);
     
     // connect appropriate signals and slots
-    connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
-    connect(&_broadcastThread, SIGNAL(started()), broadcastTimer, SLOT(start()));
+    connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
+    connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = nodeList->getDomainHandler();
