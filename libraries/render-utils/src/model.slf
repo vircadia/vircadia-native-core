@@ -33,7 +33,7 @@ void main(void) {
     packDeferredFragment(
         normalize(interpolatedNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        /*getMaterialDiffuse(mat) **/ diffuse.rgb /** color*/,
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

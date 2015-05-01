@@ -19,6 +19,7 @@
 #include <QResizeEvent>
 #include <QRunnable>
 #include <QThreadPool>
+#include <qimagereader.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
@@ -27,6 +28,8 @@
 #include "TextureCache.h"
 
 #include "gpu/GLBackend.h"
+
+#include <mutex>
 
 TextureCache::TextureCache() :
     _permutationNormalTexture(0),
@@ -344,27 +347,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
         _loaded = true;
     }
 
-    // default to white/blue/black
-  /*  glBindTexture(GL_TEXTURE_2D, getID());
-    switch (type) {
-        case NORMAL_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLUE);  
-            break;
-        
-        case SPECULAR_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLACK);  
-            break;
-            
-        case SPLAT_TEXTURE:
-            loadSingleColorTexture(TRANSPARENT_WHITE);   
-            break;
-            
-        default:
-            loadSingleColorTexture(OPAQUE_WHITE);        
-            break;
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    */
+    std::string theName = url.toString().toStdString();
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -396,6 +379,17 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* r
     _content(content) {
 }
 
+std::once_flag onceListSuppoertedFormatsflag;
+void listSupportedImageFormats() {
+    std::call_once(onceListSuppoertedFormatsflag, [](){
+        auto supportedFormats = QImageReader::supportedImageFormats();
+        qCDebug(renderutils) << "ImageReader:: List of supported formats:";
+        foreach(const QByteArray& f, supportedFormats) {
+            qCDebug(renderutils) << "format = " << f;
+        }
+    });
+}
+
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
@@ -409,11 +403,29 @@ void ImageReader::run() {
         _content = _reply->readAll();
         _reply->deleteLater();
     }
-    QImage image = QImage::fromData(_content);
 
+    listSupportedImageFormats();
+
+    // try to help the QImage loader by extracting the image file format from the url filename ext
+    // Some tga are not created properly for example without it
+    auto filename = _url.fileName().toStdString();
+    auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    QImage image = QImage::fromData(_content, filenameExtension.c_str());
+
+    // Note that QImage.format is the pixel format which is different from the "format" of the image file...
+    auto imageFormat = image.format(); 
     int originalWidth = image.width();
     int originalHeight = image.height();
     
+    if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
+        if (filenameExtension.empty()) {
+            qCDebug(renderutils) << "QImage failed to create from content, no file extension:" << _url;
+        } else {
+            qCDebug(renderutils) << "QImage failed to create from content" << _url;
+        }
+        return;
+    }
+
     // enforce a fixed maximum area (1024 * 2048)
     const int MAXIMUM_AREA_SIZE = 2097152;
     int imageArea = image.width() * image.height();
