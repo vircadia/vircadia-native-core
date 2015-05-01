@@ -16,11 +16,8 @@
 
 class RenderableDebugableEntityItem {
 public:
-    RenderableDebugableEntityItem() {}
-    virtual ~RenderableDebugableEntityItem() {}
-
-    void renderBoundingBox(RenderArgs* args, bool puffedOut);
-    virtual void render(RenderArgs* args);
+    static void renderBoundingBox(EntityItem* entity, RenderArgs* args, bool puffedOut);
+    static void render(EntityItem* entity, RenderArgs* args);
 };
 
 #endif // hifi_RenderableDebugableEntityItem_h

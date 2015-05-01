@@ -21,7 +21,7 @@
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem, public RenderableDebugableEntityItem  {
+class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 

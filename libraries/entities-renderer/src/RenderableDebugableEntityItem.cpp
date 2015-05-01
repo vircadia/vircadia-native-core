@@ -18,10 +18,7 @@
 #include "RenderableDebugableEntityItem.h"
 
 
-void RenderableDebugableEntityItem::renderBoundingBox(RenderArgs* args, bool puffedOut) {
-
-    EntityItem* entity = dynamic_cast<EntityItem*>(this);
-
+void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args, bool puffedOut) {
     glm::vec3 position = entity->getPosition();
     glm::vec3 center = entity->getCenter();
     glm::vec3 dimensions = entity->getDimensions();
@@ -48,14 +45,13 @@ void RenderableDebugableEntityItem::renderBoundingBox(RenderArgs* args, bool puf
 }
 
 
-void RenderableDebugableEntityItem::render(RenderArgs* args) {
-    EntityItem* entity = dynamic_cast<EntityItem*>(this);
+void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {
     bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
 
     if (debugSimulationOwnership) {
         quint64 now = usecTimestampNow();
         if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
-            renderBoundingBox(args, true);
+            renderBoundingBox(entity, args, true);
         }
     }
 }

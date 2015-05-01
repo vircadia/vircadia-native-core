@@ -192,10 +192,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (!didDraw) {
-        renderBoundingBox(args, false);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, false);
     }
 
-    RenderableDebugableEntityItem::render(args);
+    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {

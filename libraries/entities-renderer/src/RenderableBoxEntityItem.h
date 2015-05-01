@@ -15,7 +15,7 @@
 #include <BoxEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
 
-class RenderableBoxEntityItem : public BoxEntityItem, public RenderableDebugableEntityItem {
+class RenderableBoxEntityItem : public BoxEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
