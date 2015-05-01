@@ -98,6 +98,7 @@
             var allSections = [];
             var elID = document.getElementById("property-id");
             var elType = document.getElementById("property-type");
+            var elName = document.getElementById("property-name");
             var elLocked = document.getElementById("property-locked");
             var elVisible = document.getElementById("property-visible");
             var elPositionX = document.getElementById("property-pos-x");
@@ -262,6 +263,8 @@
                                 enableChildren(document.getElementById("properties-list"), 'input');
                             }
 
+                            elName.value = properties.name;
+
                             elVisible.checked = properties.visible;
 
                             elPositionX.value = properties.position.x.toFixed(2);
@@ -395,6 +398,7 @@
             }
 
             elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
+            elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
             elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
 
             var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
@@ -588,6 +592,12 @@
         <div class="property">
             <div class="value">
                 <label id="property-id" class="selectable"></label>
+            </div>
+        </div>
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">Name</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-name"></input>
             </div>
         </div>
         <div class="property">
