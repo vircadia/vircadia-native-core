@@ -107,6 +107,9 @@ private:
     glm::vec3 _lastHeadTranslation;
     glm::vec3 _filteredHeadTranslation;
 
+    float _lastBrowUp;
+    float _filteredBrowUp;
+
     enum EyeState {
         EYE_OPEN,
         EYE_CLOSING,

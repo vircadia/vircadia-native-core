@@ -1,15 +1,10 @@
 ButtonStyle {
     background:  Item { anchors.fill: parent }
-    label: Text {
+    label: FontAwesome {
         id: icon
-        width: height
-        verticalAlignment: Text.AlignVCenter
-        renderType: Text.NativeRendering
-        font.family: iconFont.name
         font.pointSize: 18
-        property alias unicode: icon.text
-        FontLoader { id: iconFont; source: "../../fonts/fontawesome-webfont.ttf"; }
+        property alias unicode: text
         text: control.text
-        color: control.enabled ? "white" : "dimgray"
+        color: control.enabled ? hifi.colors.text : hifi.colors.disabledText
     }
 }

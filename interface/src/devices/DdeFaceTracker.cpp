@@ -176,6 +176,8 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _averageMessageTime(STARTING_DDE_MESSAGE_TIME),
     _lastHeadTranslation(glm::vec3(0.0f)),
     _filteredHeadTranslation(glm::vec3(0.0f)),
+    _lastBrowUp(0.0f),
+    _filteredBrowUp(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
@@ -374,10 +376,20 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Use BrowsU_C to control both brows' up and down
-        _coefficients[_browDownLeftIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browDownRightIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browUpLeftIndex] = _coefficients[_browUpCenterIndex];
-        _coefficients[_browUpRightIndex] = _coefficients[_browUpCenterIndex];
+        float browUp = _coefficients[_browUpCenterIndex];
+        if (isFiltering) {
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
+            float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
+            float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
+            _lastBrowUp = browUp;
+            browUp = _filteredBrowUp;
+            _coefficients[_browUpCenterIndex] = browUp;
+        }
+        _coefficients[_browUpLeftIndex] = browUp;
+        _coefficients[_browUpRightIndex] = browUp;
+        _coefficients[_browDownLeftIndex] = -browUp;
+        _coefficients[_browDownRightIndex] = -browUp;
 
         // Offset jaw open coefficient
         static const float JAW_OPEN_THRESHOLD = 0.16f;

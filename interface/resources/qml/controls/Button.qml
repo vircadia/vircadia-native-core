@@ -5,6 +5,5 @@ import "."
 import "../styles"
 
 Original.Button {
-    style: ButtonStyle {
-    }
+    style: ButtonStyle { }
 }

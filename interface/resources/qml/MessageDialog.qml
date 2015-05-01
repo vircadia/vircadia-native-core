@@ -3,73 +3,51 @@ import QtQuick 2.2
 import QtQuick.Controls 1.2
 import QtQuick.Dialogs 1.2
 import "controls"
+import "styles"
 
 Dialog {
     id: root
-    property real spacing: 8
-    property real outerSpacing: 16
-
+    HifiConstants { id: hifi }
+    property real spacing: hifi.layout.spacing
+    property real outerSpacing: hifi.layout.spacing * 2
 
     destroyOnCloseButton: true
     destroyOnInvisible: true
-    implicitHeight: content.implicitHeight + outerSpacing * 2 + 48
-    implicitWidth: Math.min(200, Math.max(mainText.implicitWidth, content.buttonsRowImplicitWidth) + outerSpacing * 2);
+    contentImplicitWidth: content.implicitWidth
+    contentImplicitHeight: content.implicitHeight
 
-    onImplicitHeightChanged: root.height = implicitHeight
-    onImplicitWidthChanged: root.width = implicitWidth
-
-    SystemPalette { id: palette }
-
-    function calculateImplicitWidth() {
-        if (buttons.visibleChildren.length < 2)
-            return;
-        var calcWidth = 0;
-        for (var i = 0; i < buttons.visibleChildren.length; ++i) {
-            calcWidth += Math.max(100, buttons.visibleChildren[i].implicitWidth) + root.spacing
-        }
-        content.buttonsRowImplicitWidth = outerSpacing + calcWidth + 48
-    }
-    
     Component.onCompleted: {
         enabled = true
     }
-        
-    onEnabledChanged: {
-        if (enabled) {
-        	root.forceActiveFocus();
+
+    onParentChanged: {
+        if (visible && enabled) {
+            forceActiveFocus();
         }
     }
 
     Hifi.MessageDialog {
         id: content
         clip: true
-        anchors.fill: parent
-        anchors.topMargin: parent.topMargin + root.outerSpacing
-        anchors.leftMargin: parent.margins + root.outerSpacing
-        anchors.rightMargin: parent.margins + root.outerSpacing
-        anchors.bottomMargin: parent.margins + root.outerSpacing
-        implicitHeight: contentColumn.implicitHeight + outerSpacing * 2
-        implicitWidth: Math.max(mainText.implicitWidth, buttonsRowImplicitWidth);
-        property real buttonsRowImplicitWidth: Screen.pixelDensity * 50
 
-        onImplicitWidthChanged: root.width = implicitWidth
+        x: root.clientX
+        y: root.clientY
+        implicitHeight: contentColumn.implicitHeight + outerSpacing * 2
+        implicitWidth: mainText.implicitWidth + outerSpacing * 2
 
         Component.onCompleted: {
             root.title = title
         }
-            
+
         onTitleChanged: {
             root.title = title
         }
-        
+
         Column {
+            anchors.fill: parent
+            anchors.margins: 8
             id: contentColumn
             spacing: root.outerSpacing
-            anchors {
-                top: parent.top
-                left: parent.left
-                right: parent.right
-            }
 
             Item {
                 width: parent.width
@@ -85,7 +63,7 @@ Dialog {
                     horizontalAlignment: Text.AlignLeft
                     color: iconColor()
                     text: iconSymbol()
-                    
+
                     function iconSymbol() {
                         switch (content.icon) {
                             case Hifi.MessageDialog.Information:
@@ -264,7 +242,6 @@ Dialog {
                     onClicked: content.click(StandardButton.Help)
                     visible: content.standardButtons & StandardButton.Help
                 }
-                onVisibleChildrenChanged: root.calculateImplicitWidth()
             }
         }
 
@@ -321,6 +298,7 @@ Dialog {
         ]
     }
 
+
     Keys.onPressed: {
         if (event.modifiers === Qt.ControlModifier)
             switch (event.key) {
@@ -335,7 +313,7 @@ Dialog {
             case Qt.Key_Period:
                 if (Qt.platform.os === "osx") {
                     event.accepted = true
-                	content.reject()
+                    content.reject()
                 }
                 break
         } else switch (event.key) {
@@ -347,7 +325,6 @@ Dialog {
 
             case Qt.Key_Enter:
             case Qt.Key_Return:
-            	console.log("Accepting");
                 event.accepted = true
                 content.accept()
                 break

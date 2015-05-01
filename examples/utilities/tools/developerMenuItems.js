@@ -13,6 +13,7 @@
 
 var createdRenderMenu = false;
 var createdGeneratedAudioMenu = false;
+var createdStereoInputMenuItem = false;
 
 var DEVELOPER_MENU = "Developer";
 
@@ -28,6 +29,7 @@ var AUDIO_SOURCE_INJECT = "Generated Audio";
 var AUDIO_SOURCE_MENU = AUDIO_MENU + " > Generated Audio Source";
 var AUDIO_SOURCE_PINK_NOISE = "Pink Noise";
 var AUDIO_SOURCE_SINE_440 = "Sine 440hz";
+var AUDIO_STEREO_INPUT = "Stereo Input";
 
 
 function setupMenus() {
@@ -78,6 +80,10 @@ function setupMenus() {
         Audio.selectPinkNoise();
         createdGeneratedAudioMenu = true;
     }
+    if (!Menu.menuItemExists(AUDIO_MENU, AUDIO_STEREO_INPUT)) {
+        Menu.addMenuItem({ menuName: AUDIO_MENU, menuItemName: AUDIO_STEREO_INPUT, isCheckable: true, isChecked: false });
+        createdStereoInputMenuItem = true;
+    }
 }
 
 Menu.menuItemEvent.connect(function (menuItem) {
@@ -99,6 +105,8 @@ Menu.menuItemEvent.connect(function (menuItem) {
    } else if (menuItem == AUDIO_SOURCE_SINE_440 && !createdGeneratedAudioMenu) {
        Audio.selectSine440();
        Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, false);
+   } else if (menuItem == AUDIO_STEREO_INPUT) {
+       Audio.setStereoInput(Menu.isOptionChecked(AUDIO_STEREO_INPUT))
    }
 });
 
@@ -124,6 +132,10 @@ function scriptEnding() {
         Audio.injectGeneratedNoise(false);
         Menu.removeMenuItem(AUDIO_MENU, AUDIO_SOURCE_INJECT);
         Menu.removeMenu(AUDIO_SOURCE_MENU);
+    }
+
+    if (createdStereoInputMenuItem) {
+        Menu.removeMenuItem(AUDIO_MENU, AUDIO_STEREO_INPUT);
     }
 }
 

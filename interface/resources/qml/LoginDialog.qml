@@ -5,9 +5,8 @@ import "controls"
 import "styles"
 
 Dialog {
+    HifiConstants { id: hifi }
     title: "Login"
-    HifiPalette { id: hifiPalette }
-    SystemPalette { id: myPalette; colorGroup: SystemPalette.Active }
     objectName: "LoginDialog"
     height: 512
     width: 384
@@ -61,9 +60,6 @@ Dialog {
                     anchors.margins: 8
                     KeyNavigation.tab: password
                     KeyNavigation.backtab: password
-                    onAccepted: {
-                        password.forceActiveFocus()
-                    }
                 }
             }
 
@@ -79,13 +75,6 @@ Dialog {
                     anchors.margins: 8
                     KeyNavigation.tab: username
                     KeyNavigation.backtab: username
-                    onAccepted: {
-                        if (username.text == "") {
-                            username.forceActiveFocus()
-                        } else {
-                            loginDialog.login(username.text, password.text)
-                        }
-                    }
                     onFocusChanged: {
                         if (password.focus) {
                             password.selectAll()
@@ -117,7 +106,7 @@ Dialog {
                 width: 192
                 height: 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
                 border.width: 0
                 radius: 10
 
@@ -160,7 +149,7 @@ Dialog {
                 text:"Create Account"
                 font.pointSize: 12
                 font.bold: true
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent
@@ -177,7 +166,7 @@ Dialog {
                 verticalAlignment: Text.AlignVCenter
                 font.pointSize: 12
                 text: "Recover Password"
-                color: hifiPalette.hifiBlue
+                color: hifi.colors.hifiBlue
 
                 MouseArea {
                     anchors.fill: parent
@@ -186,6 +175,24 @@ Dialog {
                     }
                 }
             }
+        }
+    }
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                if (username.activeFocus) {
+                    event.accepted = true
+                    password.forceActiveFocus()
+                } else if (password.activeFocus) {
+                    event.accepted = true
+                    if (username.text == "") {
+                        username.forceActiveFocus()
+                    } else {
+                        loginDialog.login(username.text, password.text)
+                    }
+                }
+                break;
         }
     }
 }
