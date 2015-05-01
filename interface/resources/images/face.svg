@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" width="45" height="45" viewBox="0 0 45.00 45.00" enable-background="new 0 0 45.00 45.00" xml:space="preserve">
+	<ellipse fill="#FFFFFF" fill-opacity="1" stroke-width="2" stroke-linejoin="round" stroke="#000000" stroke-opacity="1" cx="22.5" cy="22.5" rx="21.5" ry="21.5"/>
+	<ellipse fill="none" stroke-width="2.5" stroke-linejoin="round" stroke="#000000" stroke-opacity="1" cx="22.5" cy="21" rx="11" ry="15"/>
+	<line fill="none" stroke-width="2" stroke-linejoin="round" stroke="#000000" stroke-opacity="1" x1="15.4585" y1="32.625" x2="13.5415" y2="39.375"/>
+	<ellipse fill="#000000" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" cx="18" cy="17.5" rx="3" ry="2"/>
+	<ellipse fill="#000000" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" cx="27" cy="17.5" rx="3" ry="2"/>
+	<ellipse fill="#000000" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" cx="22.5" cy="28" rx="6" ry="2"/>
+	<line fill="none" stroke-width="2" stroke-linejoin="round" stroke="#000000" stroke-opacity="1" x1="29.5415" y1="32.625" x2="31.4585" y2="39.375"/>
+	<rect x="11.9585" y="38.7917" fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" width="21.083" height="1.08333"/>
+	<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" d="M 26.0833,38.875L 25.5833,38.875L 26.0833,38.875 Z "/>
+</svg>

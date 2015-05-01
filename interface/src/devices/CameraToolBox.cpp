@@ -76,10 +76,10 @@ void CameraToolBox::render(int x, int y, bool boxed) {
     
     auto glCanvas = Application::getInstance()->getGLWidget();
     if (_enabledTextureId == 0) {
-        _enabledTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+        _enabledTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/face.svg"));
     }
     if (_mutedTextureId == 0) {
-        _mutedTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+        _mutedTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/face-mute.svg"));
     }
     
     const int MUTE_ICON_SIZE = 24;
