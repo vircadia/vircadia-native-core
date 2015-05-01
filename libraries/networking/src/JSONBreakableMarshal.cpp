@@ -15,6 +15,8 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 
+QVariantMap JSONBreakableMarshal::_interpolationMap = QVariantMap();
+
 QStringList JSONBreakableMarshal::toStringList(const QJsonValue& jsonValue, const QString& keypath) {
     // setup the string list that will hold our result
     QStringList result;
@@ -288,4 +290,35 @@ QVariantMap JSONBreakableMarshal::fromStringBuffer(const QByteArray& buffer) {
 
     // now that we have a QStringList we use our static method to turn that into a QJsonObject
     return fromStringList(packetList);
+}
+
+void JSONBreakableMarshal::addInterpolationForKey(const QString& rootKey, const QString& interpolationKey, 
+        const QJsonValue& interpolationValue) {
+    // if there is no map already beneath this key in our _interpolationMap create a QVariantMap there now
+    
+    if (!_interpolationMap.contains(rootKey)) {
+        _interpolationMap.insert(rootKey, QVariantMap());
+    }
+    
+    if (_interpolationMap[rootKey].canConvert(QMetaType::QVariantMap)) {
+        QVariantMap& mapForRootKey = *static_cast<QVariantMap*>(_interpolationMap[rootKey].data());
+        
+        mapForRootKey.insert(interpolationKey, QVariant(interpolationValue));
+    } else {
+        qDebug() << "JSONBreakableMarshal::addInterpolationForKey could not convert variant at key" << rootKey 
+            << "to a QVariantMap. Can not add interpolation.";
+    }
+}
+
+void JSONBreakableMarshal::removeInterpolationForKey(const QString& rootKey, const QString& interpolationKey) {
+    // make sure the interpolation map contains this root key and that the value is a map
+    
+    if (_interpolationMap.contains(rootKey)) {
+         QVariant& rootValue = _interpolationMap[rootKey];
+    
+        if (!rootValue.isNull() && rootValue.canConvert(QMetaType::QVariantMap)) {
+            // remove the value at the interpolationKey
+            static_cast<QVariantMap*>(rootValue.data())->remove(interpolationKey);
+        }
+    }
 }
