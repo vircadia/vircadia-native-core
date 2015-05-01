@@ -32,7 +32,7 @@ $(document).ready(function(){
         // start shifting the chart once we hit 20 data points
         var shift = currentHighchart.series[0].data.length > 20;
         currentHighchart.series[0].addPoint([x, y], true, shift);
-      }
+      } 
     }).fail(function(data) {
       $('#stats-container th').each(function(){
         $(this).addClass('stale');
@@ -56,12 +56,17 @@ $(document).ready(function(){
   
   // add a function to help create the graph modal
   function createGraphModal() {
-    bootbox.dialog({
+    var chartModal = bootbox.dialog({
       title: graphKeypath,
       message: "<div id='highchart-container'></div>",
       buttons: {},
       className: 'highchart-modal'
     });
+
+    chartModal.on('hidden.bs.modal', function(e) {
+      currentHighchart.destroy();
+      currentHighchart = null;
+    }); 
 
     currentHighchart = new Highcharts.Chart({
       chart: {
