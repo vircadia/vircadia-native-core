@@ -91,7 +91,26 @@ void AssignmentClientMonitor::stopChildProcesses() {
     });
 
     // try to give all the children time to shutdown
-    waitOnChildren(15000);
+    waitOnChildren(200);
+
+    // ask more firmly
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        childProcess->kill();
+    }
+
+    // try to give all the children time to shutdown
+    waitOnChildren(200);
+
+    // ask even more firmly
+    QMutableListIterator<QProcess*> j(_childProcesses);
+    while (j.hasNext()) {
+        QProcess* childProcess = j.next();
+        childProcess->terminate();
+    }
+
+    waitOnChildren(200);
 }
 
 void AssignmentClientMonitor::aboutToQuit() {
