@@ -20,6 +20,8 @@
 
 #include <AvatarData.h>
 #include <NodeData.h>
+#include <NumericalConstants.h>
+#include <SimpleMovingAverage.h>
 
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
@@ -49,6 +51,11 @@ public:
     void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
 
+    void recordSentAvatarData(int numBytes) { _avgOtherAvatarDataRate.updateAverage((float) numBytes); }
+   
+    float getSentAvatarDataKbps() const 
+        { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
+    
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
@@ -59,6 +66,7 @@ private:
     float _maxFullRateDistance = FLT_MAX;
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
+    SimpleMovingAverage _avgOtherAvatarDataRate;
 };
 
 #endif // hifi_AvatarMixerClientData_h

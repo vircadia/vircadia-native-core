@@ -22,8 +22,8 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <NumericalConstants.h>
 #include <PerfStat.h>
-#include <SharedUtil.h>
 #include <PathUtils.h>
 
 #include "OctreeLogging.h"

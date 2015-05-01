@@ -18,6 +18,7 @@
 #include <QTimer>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"

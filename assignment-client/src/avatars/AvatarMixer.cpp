@@ -173,8 +173,12 @@ void AvatarMixer::broadcastAvatarData() {
 
             // keep a counter of the number of considered avatars
             int numOtherAvatars = 0;
-
-            float dataRateLastSecond = node->getOutboundBandwidth();
+            
+            // keep track of outbound data rate specifically for avatar data
+            int numAvatarDataBytes = 0;
+            
+            // use the data rate specifically for avatar data for FRD adjustment checks
+            float avatarDataRateLastSecond = node->getOutboundBandwidth();
 
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
@@ -183,12 +187,12 @@ void AvatarMixer::broadcastAvatarData() {
                 
                 const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
 
-                qDebug() << "current node outbound bandwidth is" << dataRateLastSecond; 
+                qDebug() << "current node outbound bandwidth is" << avatarDataRateLastSecond; 
 
-                if(dataRateLastSecond > _maxKbpsPerNode) {
+                if (avatarDataRateLastSecond > _maxKbpsPerNode) {
 
                     qDebug() << "Adjustment down required for avatar" << node->getUUID() << "whose current send rate is" 
-                        << dataRateLastSecond;
+                        << avatarDataRateLastSecond;
 
                     // is the FRD greater than the MAX FRD? if so, before we calculate anything, set it to the MAX FRD
                     float newFullRateDistance = nodeData->getFullRateDistance();
@@ -208,7 +212,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     nodeData->resetNumFramesSinceFRDAdjustment();
                 } else if (nodeData->getFullRateDistance() < nodeData->getMaxFullRateDistance() 
-                           && dataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
+                           && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
                     // we are constrained AND we've recovered to below the acceptable ratio, adjust the FRD upwards
                     // by covering half the distance to the max FRD
                     
@@ -276,6 +280,8 @@ void AvatarMixer::broadcastAvatarData() {
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
                         nodeList->writeDatagram(mixedAvatarByteArray, node);
+
+                        numAvatarDataBytes += mixedAvatarByteArray.size();
                             
                         // reset the packet
                         mixedAvatarByteArray.resize(numPacketHeaderBytes);
@@ -323,7 +329,12 @@ void AvatarMixer::broadcastAvatarData() {
                         ++_sumIdentityPackets;
                     }
             });
+            
+            // send the last packet
             nodeList->writeDatagram(mixedAvatarByteArray, node);
+            
+            // record the bytes sent for other avatar data in the AvatarMixerClientData
+            nodeData->recordSentAvatarData(numAvatarDataBytes + mixedAvatarByteArray.size());
 
             if (numOtherAvatars == 0) {
                 // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send

@@ -12,9 +12,11 @@
 #ifndef hifi_AudioSourceTone_h
 #define hifi_AudioSourceTone_h
 
+#include "AudioBuffer.h"
+#include "AudioFormat.h"
+
 // Implements a two-pole Gordon-Smith oscillator
-class AudioSourceTone
-{
+class AudioSourceTone {
     float32_t _frequency;
     float32_t _amplitude;
     float32_t _sampleRate;

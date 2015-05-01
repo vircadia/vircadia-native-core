@@ -29,6 +29,7 @@
 #include <QElapsedTimer>
 #include <QThread>
 
+#include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
 #include "SharedUtil.h"

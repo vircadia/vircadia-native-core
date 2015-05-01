@@ -12,6 +12,12 @@
 #ifndef hifi_AudioFilterBank_h
 #define hifi_AudioFilterBank_h
 
+#include <stdint.h>
+
+#include "AudioBuffer.h"
+#include "AudioFilter.h"
+#include "AudioFormat.h"
+
 //
 // Helper/convenience class that implements a bank of Filter objects
 //

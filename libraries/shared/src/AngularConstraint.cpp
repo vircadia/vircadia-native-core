@@ -13,6 +13,7 @@
 
 #include "AngularConstraint.h"
 #include "GLMHelpers.h"
+#include "NumericalConstants.h"
 
 // helper function
 /// \param angle radian angle to be clamped within angleMin and angleMax
