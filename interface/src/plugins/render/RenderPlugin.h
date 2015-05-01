@@ -13,6 +13,8 @@
 
 #include <QSize>
 
+#include <functional>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <RegisteredMetaTypes.h>
@@ -46,6 +48,8 @@ public:
         return trueMouseToUiMouse(getTrueMousePosition()); 
     }
 
+    virtual std::function<QPointF(QPointF)> getMouseTranslator() { return [](const QPointF& p) { return p; }; };
+
     // Convert from screen mouse coordinates to UI mouse coordinates
     virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const { return position; };
 
@@ -69,6 +73,7 @@ public:
     }
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
+    virtual float devicePixelRatio() { return 1.0;  }
     
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);

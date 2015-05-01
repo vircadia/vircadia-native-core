@@ -27,6 +27,7 @@
 #include "Application.h"
 #include "ApplicationOverlay.h"
 #include "devices/OculusManager.h"
+#include "plugins/render/RenderPlugin.h"
 
 #include "Util.h"
 #include "ui/Stats.h"
@@ -934,7 +935,6 @@ void ApplicationOverlay::renderAudioMeter() {
 }
 
 void ApplicationOverlay::renderStatsAndLogs() {
-#if 0
     Application* application = Application::getInstance();
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
@@ -972,7 +972,6 @@ void ApplicationOverlay::renderStatsAndLogs() {
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
-#endif
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder() {

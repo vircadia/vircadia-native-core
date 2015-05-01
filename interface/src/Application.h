@@ -74,9 +74,8 @@
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
-#include "plugins/render/RenderPlugin.h"
 
-
+class RenderPlugin;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;

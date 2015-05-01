@@ -32,8 +32,7 @@ TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
     _blueTexture(0),
-    _frameBufferSize(100, 100),
-    _associatedWidget(NULL)
+    _frameBufferSize(100, 100)
 {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
@@ -290,37 +289,11 @@ GLuint TextureCache::getShadowDepthTextureID() {
     return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
-bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
-    if (event->type() == QEvent::Resize) {
-        QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_frameBufferSize != size) {
-            _primaryFramebuffer.reset();
-            _primaryColorTexture.reset();
-            _primaryDepthTexture.reset();
-            _primaryNormalTexture.reset();
-            _primarySpecularTexture.reset();
-
-            _secondaryFramebuffer.reset();
-
-            _tertiaryFramebuffer.reset();
-        }
-    }
-    return false;
-}
-
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
-}
-
-void TextureCache::associateWithWidget(QGLWidget* widget) {
-    if (_associatedWidget) {
-        _associatedWidget->removeEventFilter(this);
-    }
-    _associatedWidget = widget;
-    _associatedWidget->installEventFilter(this);
 }
 
 Texture::Texture() {

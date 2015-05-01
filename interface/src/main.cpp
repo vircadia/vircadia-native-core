@@ -115,7 +115,10 @@ int main(int argc, const char* argv[]) {
         exitCode = app.exec();
     }
 
+#if 0
     OculusManager::deinit();
+#endif
+
 #ifdef Q_OS_WIN
     ReleaseMutex(mutex);
 #endif

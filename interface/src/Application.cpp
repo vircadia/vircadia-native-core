@@ -114,6 +114,8 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
+#include "plugins/render/RenderPlugin.h"
+
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -584,7 +586,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     this->installEventFilter(this);
     // The offscreen UI needs to intercept the mouse and keyboard 
     // events coming from the onscreen window
-    _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+    //_glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 }
 
 
@@ -726,7 +728,7 @@ void Application::initializeGL() {
     // texture resources
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _glWidget->makeCurrent();
+    _offscreenContext->makeCurrent();
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
@@ -770,30 +772,24 @@ void Application::initializeUi() {
     VrMenu::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_glWidget->context()->contextHandle());
-    offscreenUi->resize(_glWidget->size());
+    offscreenUi->create(_offscreenContext->getContext());
+    offscreenUi->resize(fromGlm(getActiveRenderPlugin()->getCanvasSize()));
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
-    offscreenUi->setMouseTranslator([this](const QPointF& p){
-        if (OculusManager::isConnected()) {
-            glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
-            return QPointF(pos.x, pos.y);
-        }
-        return QPointF(p);
-    });
+    offscreenUi->setMouseTranslator(getActiveRenderPlugin()->getMouseTranslator());
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
         static qreal oldDevicePixelRatio = 0;
-        qreal devicePixelRatio = _glWidget->devicePixelRatio();
+        qreal devicePixelRatio = getActiveRenderPlugin()->devicePixelRatio();
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL(_glWidget->width(),
-                     _glWidget->height());
+            auto canvasSize = getActiveRenderPlugin()->getCanvasSize();
+            resizeGL(canvasSize.x, canvasSize.y);
         }
     });
 }
@@ -846,8 +842,9 @@ void Application::paintGL() {
     DependencyManager::get<GlowEffect>()->prepare();
 
     // Primary rendering pass
-    auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebufferObject();
-    primaryFbo->bind();
+    auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto finalFbo = primaryFbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -864,32 +861,18 @@ void Application::paintGL() {
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-<<<<<<< HEAD
             renderRearViewMirror(_mirrorViewRect);
-=======
-            renderRearViewMirror(_mirrorViewRect);       
         }
 
-        DependencyManager::get<GlowEffect>()->render();
-
+        finalFbo = DependencyManager::get<GlowEffect>()->render();
         {
             PerformanceTimer perfTimer("renderOverlay");
             _applicationOverlay.renderOverlay();
+            glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
             _applicationOverlay.displayOverlayTexture();
->>>>>>> master
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
     }
-    primaryFbo->release();
-    
-    QOpenGLFramebufferObject * finalFbo = DependencyManager::get<GlowEffect>()->render();
-
-    finalFbo->bind();
-    {
-        PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay();
-        _applicationOverlay.displayOverlayTexture();
-    }
-    finalFbo->release();
 
     // This might not be needed *right now*.  We want to ensure that the FBO rendering
     // has completed before we start trying to read from it in another context.  However
@@ -899,7 +882,7 @@ void Application::paintGL() {
 
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
-    getActiveRenderPlugin()->render(finalFbo->texture());
+    getActiveRenderPlugin()->render(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)));
     Q_ASSERT(!QOpenGLContext::currentContext());
     _offscreenContext->makeCurrent();
     _frameCount++;
@@ -951,8 +934,9 @@ void Application::resizeGL(int width, int height) {
     updateProjectionMatrix();
     glLoadIdentity();
 
+    auto canvasSize = getActiveRenderPlugin()->getCanvasSize();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->resize(_glWidget->size());
+    offscreenUi->resize(fromGlm(canvasSize));
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
@@ -1003,43 +987,6 @@ bool Application::importSVOFromURL(const QString& urlString) {
 
 bool Application::event(QEvent* event) {
     switch (event->type()) {
-<<<<<<< HEAD
-    case QEvent::MouseMove:
-        mouseMoveEvent((QMouseEvent*)event);
-        return true;
-
-    case QEvent::MouseButtonPress:
-        mousePressEvent((QMouseEvent*)event);
-        return true;
-
-    case QEvent::MouseButtonRelease:
-        mouseReleaseEvent((QMouseEvent*)event);
-        return true;
-
-    case QEvent::KeyPress:
-        keyPressEvent((QKeyEvent*)event);
-        return true;
-
-    case QEvent::KeyRelease:
-        keyReleaseEvent((QKeyEvent*)event);
-        return true;
-
-    case QEvent::FocusIn:
-        //focusInEvent((QFocusEvent*)event);
-        //return true;
-        break;
-
-    case QEvent::FocusOut:
-        focusOutEvent((QFocusEvent*)event);
-        return true;
-
-    case QEvent::Resize: 
-        resizeEvent((QResizeEvent *)event);
-        return true;
-
-    default: 
-        break;
-=======
         case Lambda:
             ((LambdaEvent*)event)->call();
             return true;
@@ -1080,7 +1027,6 @@ bool Application::event(QEvent* event) {
             return true;
         default:
             break;
->>>>>>> master
     }
 
     // handle custom URL
@@ -2990,13 +2936,7 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
-<<<<<<< HEAD
-    fbo->release();
-=======
-   // fbo->release();
-    
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
->>>>>>> master
+//    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
 }
 

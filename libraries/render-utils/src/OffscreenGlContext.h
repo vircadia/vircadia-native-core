@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #pragma once
-#ifndef hifi_OffscreenGlCanvas_h
-#define hifi_OffscreenGlCanvas_h
+#ifndef hifi_OffscreenGlContext_h
+#define hifi_OffscreenGlContext_h
 
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
