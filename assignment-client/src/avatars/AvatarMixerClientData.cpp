@@ -31,5 +31,5 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["max_full_rate_distance"] = _maxFullRateDistance;
     jsonObject["num_avatars_sent_last_frame"] = _numAvatarsSentLastFrame;
     
-    jsonObject["other_avatar_data_kbps"] = getSentAvatarDataKbps();
+    jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
 }

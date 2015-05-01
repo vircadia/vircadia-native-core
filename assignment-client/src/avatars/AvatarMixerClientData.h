@@ -23,6 +23,8 @@
 #include <NumericalConstants.h>
 #include <SimpleMovingAverage.h>
 
+const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
+
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
@@ -53,7 +55,7 @@ public:
 
     void recordSentAvatarData(int numBytes) { _avgOtherAvatarDataRate.updateAverage((float) numBytes); }
    
-    float getSentAvatarDataKbps() const 
+    float getOutboundAvatarDataKbps() const 
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
     
     void loadJSONStats(QJsonObject& jsonObject) const;

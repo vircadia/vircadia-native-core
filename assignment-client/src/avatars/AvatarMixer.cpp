@@ -178,7 +178,7 @@ void AvatarMixer::broadcastAvatarData() {
             int numAvatarDataBytes = 0;
             
             // use the data rate specifically for avatar data for FRD adjustment checks
-            float avatarDataRateLastSecond = node->getOutboundBandwidth();
+            float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
             // Check if it is time to adjust what we send this client based on the observed
             // bandwidth to this node. We do this once a second, which is also the window for
@@ -187,7 +187,7 @@ void AvatarMixer::broadcastAvatarData() {
                 
                 const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
 
-                qDebug() << "current node outbound bandwidth is" << avatarDataRateLastSecond; 
+                // qDebug() << "current node outbound bandwidth is" << avatarDataRateLastSecond; 
 
                 if (avatarDataRateLastSecond > _maxKbpsPerNode) {
 
@@ -438,10 +438,18 @@ void AvatarMixer::sendStatsPacket() {
     // add stats for each listerner
     nodeList->eachNode([&](const SharedNodePointer& node) {
         QJsonObject avatarStats;
-        avatarStats["kbps"] = node->getOutboundBandwidth();
+
+        const QString NODE_OUTBOUND_KBPS_STAT_KEY = "outbound_kbps";
+
+        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
             clientData->loadJSONStats(avatarStats);
+
+            // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
+            avatarStats["delta_full_vs_avatar_data_kbps"] = 
+                avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble(); 
+            
         }
 
         avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
