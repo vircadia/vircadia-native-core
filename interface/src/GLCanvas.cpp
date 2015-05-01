@@ -131,6 +131,7 @@ bool GLCanvas::event(QEvent* event) {
         case QEvent::MouseMove:
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
         case QEvent::FocusIn:

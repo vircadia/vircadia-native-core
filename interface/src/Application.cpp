@@ -1016,6 +1016,9 @@ bool Application::event(QEvent* event) {
         case QEvent::MouseButtonPress:
             mousePressEvent((QMouseEvent*)event);
             return true;
+        case QEvent::MouseButtonDblClick:
+            mouseDoublePressEvent((QMouseEvent*)event);
+            return true;
         case QEvent::MouseButtonRelease:
             mouseReleaseEvent((QMouseEvent*)event);
             return true;
@@ -1525,6 +1528,24 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
+        }
+    }
+}
+
+void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    // if one of our scripts have asked to capture this event, then stop processing it
+    if (_controllerScriptingInterface.isMouseCaptured()) {
+        return;
+    }
+
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            if (mouseOnScreen()) {
+                if (DependencyManager::get<CameraToolBox>()->mouseDoublePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+            }
         }
     }
 }

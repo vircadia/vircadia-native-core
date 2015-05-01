@@ -12,18 +12,26 @@
 #ifndef hifi_CameraToolBox_h
 #define hifi_CameraToolBox_h
 
+#include <QObject>
+
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 
-class CameraToolBox : public Dependency {
+class CameraToolBox : public QObject, public Dependency {
+    Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
     void render(int x, int y, bool boxed);
     bool mousePressEvent(int x, int y);
+    bool mouseDoublePressEvent(int x, int y);
 
 protected:
     CameraToolBox();
+    ~CameraToolBox();
+
+private slots:
+    void toggleMute();
 
 private:
     GLuint _enabledTextureId = 0;
@@ -31,6 +39,7 @@ private:
     int _boxQuadID = GeometryCache::UNKNOWN_ID;
     QRect _iconBounds;
     qint64 _iconPulseTimeReference = 0;
+    QTimer* _doubleClickTimer;
 };
 
 #endif // hifi_CameraToolBox_h

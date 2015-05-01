@@ -20,19 +20,55 @@
 
 
 CameraToolBox::CameraToolBox() :
-    _iconPulseTimeReference(usecTimestampNow())
+    _iconPulseTimeReference(usecTimestampNow()),
+    _doubleClickTimer(NULL)
 {
+}
+
+CameraToolBox::~CameraToolBox() {
+    if (_doubleClickTimer) {
+        _doubleClickTimer->stop();
+        delete _doubleClickTimer;
+    }
 }
 
 bool CameraToolBox::mousePressEvent(int x, int y) {
     if (_iconBounds.contains(x, y)) {
-        FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-        if (faceTracker) {
-            faceTracker->toggleMute();
+        if (!_doubleClickTimer) {
+            // Toggle mute after waiting to check that it's not a double-click.
+            const int DOUBLE_CLICK_WAIT = 200;  // ms
+            _doubleClickTimer = new QTimer(this);
+            connect(_doubleClickTimer, SIGNAL(timeout()), this, SLOT(toggleMute()));
+            _doubleClickTimer->setSingleShot(true);
+            _doubleClickTimer->setInterval(DOUBLE_CLICK_WAIT);
+            _doubleClickTimer->start();
         }
         return true;
     }
     return false;
+}
+
+bool CameraToolBox::mouseDoublePressEvent(int x, int y) {
+    if (_iconBounds.contains(x, y)) {
+        if (_doubleClickTimer) {
+            _doubleClickTimer->stop();
+            delete _doubleClickTimer;
+            _doubleClickTimer = NULL;
+        }
+        Application::getInstance()->resetSensors();
+        return true;
+    }
+    return false;
+}
+
+void CameraToolBox::toggleMute() {
+    delete _doubleClickTimer;
+    _doubleClickTimer = NULL;
+
+    FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+    if (faceTracker) {
+        faceTracker->toggleMute();
+    }
 }
 
 void CameraToolBox::render(int x, int y, bool boxed) {
