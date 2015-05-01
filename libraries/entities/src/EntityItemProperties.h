@@ -98,6 +98,7 @@ enum EntityPropertyList {
     PROP_MARKETPLACE_ID,
     PROP_ACCELERATION,
     PROP_SIMULATOR_ID,
+    PROP_NAME,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
@@ -160,7 +161,7 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
     virtual void copyFromScriptValue(const QScriptValue& object);
 
     // editing related features supported by all entities
@@ -240,6 +241,7 @@ public:
     DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
     DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
     DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
 
 
 public:
@@ -308,6 +310,7 @@ private:
 };
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
+QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
 
 
@@ -331,6 +334,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");

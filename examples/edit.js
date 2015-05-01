@@ -592,7 +592,11 @@ var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
-function mouseMoveEvent(event) {
+var lastMouseMoveEvent = null;
+function mouseMoveEventBuffered(event) {
+    lastMouseMoveEvent = event;
+}
+function mouseMove(event) {
     mouseHasMovedSincePress = true;
 
     if (placingEntityID) {
@@ -661,6 +665,10 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
+    }
     if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
         return true;
     }
@@ -772,7 +780,7 @@ function mouseClickEvent(event) {
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEventBuffered);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 
@@ -881,6 +889,10 @@ Script.update.connect(function (deltaTime) {
         propertyMenu.hide();
         lastOrientation = Camera.orientation;
         lastPosition = Camera.position;
+    }
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
     }
 });
 
@@ -1201,6 +1213,9 @@ PropertiesTool = function(opts) {
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
+                if (data.properties.name != undefined) {
+                    entityListTool.sendUpdate();
+                }
             }
             pushCommandForSelections();
             selectionManager._update();

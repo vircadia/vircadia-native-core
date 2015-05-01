@@ -43,6 +43,16 @@ inline QDebug& operator<<(QDebug& dbg, const xColor& c) {
     return dbg;
 }
 
+inline bool operator==(const xColor& lhs, const xColor& rhs)
+{
+    return (lhs.red == rhs.red) && (lhs.green == rhs.green) && (lhs.blue == rhs.blue);
+}
+
+inline bool operator!=(const xColor& lhs, const xColor& rhs)
+{
+    return (lhs.red != rhs.red) || (lhs.green != rhs.green) || (lhs.blue != rhs.blue);
+}
+
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
 

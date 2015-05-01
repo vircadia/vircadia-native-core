@@ -103,12 +103,26 @@ private:
 
     quint64 _lastMessageReceived;
     float _averageMessageTime;
+
     glm::vec3 _lastHeadTranslation;
     glm::vec3 _filteredHeadTranslation;
-    float _lastLeftEyeBlink;
-    float _filteredLeftEyeBlink;
-    float _lastRightEyeBlink;
-    float _filteredRightEyeBlink;
+
+    float _lastBrowUp;
+    float _filteredBrowUp;
+
+    enum EyeState {
+        EYE_OPEN,
+        EYE_CLOSING,
+        EYE_CLOSED,
+        EYE_OPENING
+    };
+    EyeState _eyeStates[2];
+    float _lastEyeBlinks[2];
+    float _filteredEyeBlinks[2];
+    float _lastEyeCoefficients[2];
+
+    bool _isCalculatingFPS;
+    int _frameCount;
 };
 
 #endif // hifi_DdeFaceTracker_h

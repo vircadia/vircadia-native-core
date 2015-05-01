@@ -49,6 +49,9 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 }
 
 AvatarMixer::~AvatarMixer() {
+    if (_broadcastTimer) {
+        _broadcastTimer->deleteLater();
+    }
     _broadcastThread.quit();
     _broadcastThread.wait();
 }
@@ -457,9 +460,9 @@ void AvatarMixer::run() {
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
     // setup the timer that will be fired on the broadcast thread
-    QTimer* broadcastTimer = new QTimer();
-    broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
-    broadcastTimer->moveToThread(&_broadcastThread);
+    _broadcastTimer = new QTimer();
+    _broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
+    _broadcastTimer->moveToThread(&_broadcastThread);
     
     // connect appropriate signals and slots
     connect(broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);

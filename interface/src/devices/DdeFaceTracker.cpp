@@ -66,16 +66,16 @@ static const int DDE_TO_FACESHIFT_MAPPING[] = {
 // The DDE coefficients, overall, range from -0.2 to 1.5 or so. However, individual coefficients typically vary much 
 // less than this.
 static const float DDE_COEFFICIENT_SCALES[] = {
-    4.0f, // EyeBlink_L
-    4.0f, // EyeBlink_R
+    1.0f, // EyeBlink_L
+    1.0f, // EyeBlink_R
     1.0f, // EyeSquint_L
     1.0f, // EyeSquint_R
     1.0f, // EyeDown_L
     1.0f, // EyeDown_R
     1.0f, // EyeIn_L
     1.0f, // EyeIn_R
-    4.0f, // EyeOpen_L
-    4.0f, // EyeOpen_R
+    1.0f, // EyeOpen_L
+    1.0f, // EyeOpen_R
     1.0f, // EyeOut_L
     1.0f, // EyeOut_R
     1.0f, // EyeUp_L
@@ -137,6 +137,16 @@ struct Packet {
 
 const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
+const int FPS_TIMER_DELAY = 2000;  // ms
+const int FPS_TIMER_DURATION = 2000;  // ms
+
+#ifdef WIN32
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_filteredEyeBlinks' will be default initialized
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeCoefficients' will be default initialized
+#pragma warning(disable:4351) 
+#endif
+
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -167,23 +177,34 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _averageMessageTime(STARTING_DDE_MESSAGE_TIME),
     _lastHeadTranslation(glm::vec3(0.0f)),
     _filteredHeadTranslation(glm::vec3(0.0f)),
-    _lastLeftEyeBlink(0.0f),
-    _filteredLeftEyeBlink(0.0f),
-    _lastRightEyeBlink(0.0f),
-    _filteredRightEyeBlink(0.0f)
+    _lastBrowUp(0.0f),
+    _filteredBrowUp(0.0f),
+    _lastEyeBlinks(),
+    _filteredEyeBlinks(),
+    _lastEyeCoefficients(),
+    _isCalculatingFPS(false),
+    _frameCount(0)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-    
+
+    _eyeStates[0] = EYE_OPEN;
+    _eyeStates[1] = EYE_OPEN;
+
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
-    connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SLOT(socketStateChanged(QAbstractSocket::SocketState)));
+    connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), 
+        SLOT(socketStateChanged(QAbstractSocket::SocketState)));
 }
 
 DdeFaceTracker::~DdeFaceTracker() {
     setEnabled(false);
 }
+
+#ifdef WIN32
+#pragma warning(default:4351) 
+#endif
 
 void DdeFaceTracker::setEnabled(bool enabled) {
 #ifdef HAVE_DDE
@@ -351,49 +372,25 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Translate DDE coefficients to Faceshift compatible coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
             _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
 
-        // Use EyeBlink values to control both EyeBlink and EyeOpen
-        static const float RELAXED_EYE_VALUE = 0.1f;
-        float leftEye = _coefficients[_leftBlinkIndex];
-        float rightEye = _coefficients[_rightBlinkIndex];
-        if (isFiltering) {
-            const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
-
-            float velocity = fabs(leftEye - _lastLeftEyeBlink) / _averageMessageTime;
-            float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
-            _filteredLeftEyeBlink = velocityFilter * leftEye + (1.0f - velocityFilter) * _filteredLeftEyeBlink;
-            _lastLeftEyeBlink = leftEye;
-            leftEye = _filteredLeftEyeBlink;
-
-            velocity = fabs(rightEye - _lastRightEyeBlink) / _averageMessageTime;
-            velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
-            _filteredRightEyeBlink = velocityFilter * rightEye + (1.0f - velocityFilter) * _filteredRightEyeBlink;
-            _lastRightEyeBlink = rightEye;
-            rightEye = _filteredRightEyeBlink;
-        }
-        if (leftEye > RELAXED_EYE_VALUE) {
-            _coefficients[_leftBlinkIndex] = leftEye - RELAXED_EYE_VALUE;
-            _coefficients[_leftEyeOpenIndex] = 0.0f;
-        } else {
-            _coefficients[_leftBlinkIndex] = 0.0f;
-            _coefficients[_leftEyeOpenIndex] = RELAXED_EYE_VALUE - leftEye;
-        }
-        if (rightEye > RELAXED_EYE_VALUE) {
-            _coefficients[_rightBlinkIndex] = rightEye - RELAXED_EYE_VALUE;
-            _coefficients[_rightEyeOpenIndex] = 0.0f;
-        } else {
-            _coefficients[_rightBlinkIndex] = 0.0f;
-            _coefficients[_rightEyeOpenIndex] = RELAXED_EYE_VALUE - rightEye;
-        }
-
         // Use BrowsU_C to control both brows' up and down
-        _coefficients[_browDownLeftIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browDownRightIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browUpLeftIndex] = _coefficients[_browUpCenterIndex];
-        _coefficients[_browUpRightIndex] = _coefficients[_browUpCenterIndex];
+        float browUp = _coefficients[_browUpCenterIndex];
+        if (isFiltering) {
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
+            float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
+            float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
+            _lastBrowUp = browUp;
+            browUp = _filteredBrowUp;
+            _coefficients[_browUpCenterIndex] = browUp;
+        }
+        _coefficients[_browUpLeftIndex] = browUp;
+        _coefficients[_browUpRightIndex] = browUp;
+        _coefficients[_browDownLeftIndex] = -browUp;
+        _coefficients[_browDownRightIndex] = -browUp;
 
         // Offset jaw open coefficient
         static const float JAW_OPEN_THRESHOLD = 0.16f;
@@ -404,9 +401,91 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
         _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
 
+        // Velocity filter EyeBlink values
+        const float DDE_EYEBLINK_SCALE = 3.0f;
+        float eyeBlinks[] = { DDE_EYEBLINK_SCALE * _coefficients[_leftBlinkIndex], DDE_EYEBLINK_SCALE * _coefficients[_rightBlinkIndex] };
+        if (isFiltering) {
+            const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
+            for (int i = 0; i < 2; i++) {
+                float velocity = fabs(eyeBlinks[i] - _lastEyeBlinks[i]) / _averageMessageTime;
+                float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+                _filteredEyeBlinks[i] = velocityFilter * eyeBlinks[i] + (1.0f - velocityFilter) * _filteredEyeBlinks[i];
+                _lastEyeBlinks[i] = eyeBlinks[i];
+            }
+        }
+
+        // Finesse EyeBlink values
+        float eyeCoefficients[2];
+        for (int i = 0; i < 2; i++) {
+            // Scale EyeBlink values so that they can be used to control both EyeBlink and EyeOpen
+            // -ve values control EyeOpen; +ve values control EyeBlink
+            static const float EYE_CONTROL_THRESHOLD = 0.5f;  // Resting eye value
+            eyeCoefficients[i] = (_filteredEyeBlinks[i] - EYE_CONTROL_THRESHOLD) / (1.0f - EYE_CONTROL_THRESHOLD);
+
+            // Change to closing or opening states
+            const float EYE_CONTROL_HYSTERISIS = 0.25f;
+            const float EYE_CLOSING_THRESHOLD = 0.95f;
+            const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
+            if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
+                _eyeStates[i] = EYE_CLOSING;
+            } else if ((_eyeStates[i] == EYE_CLOSED || _eyeStates[i] == EYE_CLOSING) 
+                    && eyeCoefficients[i] < EYE_OPENING_THRESHOLD) {
+                _eyeStates[i] = EYE_OPENING;
+            }
+
+            const float EYELID_MOVEMENT_RATE = 10.0f;  // units/second
+            const float EYE_OPEN_SCALE = 0.2f;
+            if (_eyeStates[i] == EYE_CLOSING) {
+                // Close eyelid until it's fully closed
+                float closingValue = _lastEyeCoefficients[i] + EYELID_MOVEMENT_RATE * _averageMessageTime;
+                if (closingValue >= 1.0) {
+                    _eyeStates[i] = EYE_CLOSED;
+                    eyeCoefficients[i] = 1.0;
+                } else {
+                    eyeCoefficients[i] = closingValue;
+                }
+            } else if (_eyeStates[i] == EYE_OPENING) {
+                // Open eyelid until it meets the current adjusted value
+                float openingValue = _lastEyeCoefficients[i] - EYELID_MOVEMENT_RATE * _averageMessageTime;
+                if (openingValue < eyeCoefficients[i] * EYE_OPEN_SCALE) {
+                    _eyeStates[i] = EYE_OPEN;
+                    eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
+                } else {
+                    eyeCoefficients[i] = openingValue;
+                }
+            } else  if (_eyeStates[i] == EYE_OPEN) {
+                // Reduce eyelid movement
+                eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
+            } else if (_eyeStates[i] == EYE_CLOSED) {
+                // Keep eyelid fully closed
+                eyeCoefficients[i] = 1.0;
+            }
+        }
+        if (_eyeStates[0] == EYE_OPEN && _eyeStates[1] == EYE_OPEN) {
+            // Couple eyelids
+            eyeCoefficients[0] = eyeCoefficients[1] = (eyeCoefficients[0] + eyeCoefficients[0]) / 2.0f;
+        }
+        _lastEyeCoefficients[0] = eyeCoefficients[0];
+        _lastEyeCoefficients[1] = eyeCoefficients[1];
+
+        // Use EyeBlink values to control both EyeBlink and EyeOpen
+        if (eyeCoefficients[0] > 0) {
+            _coefficients[_leftBlinkIndex] = eyeCoefficients[0];
+            _coefficients[_leftEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_leftBlinkIndex] = 0.0f;
+            _coefficients[_leftEyeOpenIndex] = -eyeCoefficients[0];
+        }
+        if (eyeCoefficients[1] > 0) {
+            _coefficients[_rightBlinkIndex] = eyeCoefficients[1];
+            _coefficients[_rightEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_rightBlinkIndex] = 0.0f;
+            _coefficients[_rightEyeOpenIndex] = -eyeCoefficients[1];
+        }
 
         // Scale all coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
             _blendshapeCoefficients[i]
                 = glm::clamp(DDE_COEFFICIENT_SCALES[i] * _coefficients[i], 0.0f, 1.0f);
         }

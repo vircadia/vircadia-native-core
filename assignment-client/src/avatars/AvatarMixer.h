@@ -50,6 +50,8 @@ private:
     int _sumIdentityPackets;
 
     float _maxKbpsPerNode = 0.0f;
+
+    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_AvatarMixer_h
