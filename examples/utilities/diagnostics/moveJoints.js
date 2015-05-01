@@ -17,13 +17,13 @@ var FRAME_RATE = 24.0; // frames per second
 var isAnimating = false;
 
 Controller.keyPressEvent.connect(function(event) {
-	if (event.text == "SHIFT") {
-		if (isAnimating) {
+  if (event.text == "SHIFT") {
+    if (isAnimating) {
 			isAnimating = false;
 		  MyAvatar.stopAnimation(testAnimation);
     } else {
       isAnimating = true;
-			MyAvatar.startAnimation(testAnimation, FRAME_RATE, 1.0, true, false);
-		}
-	}
+      MyAvatar.startAnimation(testAnimation, FRAME_RATE, 1.0, true, false);
+    }
+  }
 });
