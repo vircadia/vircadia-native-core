@@ -50,6 +50,9 @@ var dropLine = Overlays.addOverlay("line3d", {
 
 
 function mousePressEvent(event) {
+  if(!event.isLeftButton){
+    return;
+  } 
   var pickRay = Camera.computePickRay(event.x, event.y);
   var intersection = Entities.findRayIntersection(pickRay);
   if (intersection.intersects && intersection.properties.collisionsWillMove) {
@@ -83,7 +86,7 @@ function mousePressEvent(event) {
 
 function mouseReleaseEvent() {
   if (isGrabbing) {
-    flingObject();
+    // flingObject();
     Entities.editEntity(grabbedEntity, {
       gravity: savedGravity
     });
@@ -100,7 +103,6 @@ function flingObject() {
 
   flingVelocity = Vec3.subtract(entityProps.position, prevPosition);
   flingVelocity = Vec3.multiply(flingMultiplier, flingVelocity);
-  flingVelocity.y = 0;
   Entities.editEntity(grabbedEntity, {
     velocity: flingVelocity
   });
@@ -109,7 +111,6 @@ function flingObject() {
 function mouseMoveEvent(event) {
   if (isGrabbing) {
     entityProps = Entities.getEntityProperties(grabbedEntity);
-    prevPosition = entityProps.position;
     avatarEntityDistance = Vec3.distance(MyAvatar.position, entityProps.position);
     finalMoveMultiplier = baseMoveFactor * Math.pow(avatarEntityDistance, 1.5);
     deltaMouse.x = event.x - prevMouse.x;
@@ -134,9 +135,17 @@ function mouseMoveEvent(event) {
         z: 0
       })
     });
+
+    flingVelocity = Vec3.subtract(entityProps.position, prevPosition);
+    flingVelocity = Vec3.multiply(flingMultiplier, flingVelocity);
+    Entities.editEntity(grabbedEntity, {
+      velocity: flingVelocity
+    });
+    prevPosition = entityProps.position;
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
+
 }
 
 function keyReleaseEvent(event) {
@@ -151,11 +160,6 @@ function keyPressEvent(event) {
   }
 }
 
-function cleanup() {
-  Entities.deleteEntity(box);
-  Entities.deleteEntity(box2);
-  Entities.deleteEntity(ground);
-}
 
 function setUpTestObjects() {
   var distance = 4;
@@ -226,4 +230,3 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Script.scriptEnding.connect(cleanup);
