@@ -22,13 +22,12 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     SetOfEntities::iterator itemItr = _movingEntities.begin();
     while (itemItr != _movingEntities.end()) {
         EntityItem* entity = *itemItr;
-        if (!entity->isMoving()) {
-            itemItr = _movingEntities.erase(itemItr);
-            _movableButStoppedEntities.insert(entity);
-        } else {
+        if (entity->isMoving()) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);
             ++itemItr;
+        } else {
+            itemItr = _movingEntities.erase(itemItr);
         }
     }
 
@@ -53,9 +52,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
     if (entity->isMoving()) {
         _movingEntities.insert(entity);
-    } else if (entity->getCollisionsWillMove()) {
-        _movableButStoppedEntities.insert(entity);
-    }
+    } 
     if (!entity->getSimulatorID().isNull()) {
         _hasSimulationOwnerEntities.insert(entity);
     }
@@ -63,7 +60,6 @@ void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
     _movingEntities.remove(entity);
-    _movableButStoppedEntities.remove(entity);
     _hasSimulationOwnerEntities.remove(entity);
     clearEntitySimulation(entity);
 }
@@ -75,11 +71,8 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
     if (dirtyFlags & SIMPLE_SIMULATION_DIRTY_FLAGS) {
         if (entity->isMoving()) {
             _movingEntities.insert(entity);
-        } else if (entity->getCollisionsWillMove()) {
-            _movableButStoppedEntities.remove(entity);
         } else {
             _movingEntities.remove(entity);
-            _movableButStoppedEntities.remove(entity);
         }
         if (!entity->getSimulatorID().isNull()) {
             _hasSimulationOwnerEntities.insert(entity);
@@ -90,7 +83,6 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
 
 void SimpleEntitySimulation::clearEntitiesInternal() {
     _movingEntities.clear();
-    _movableButStoppedEntities.clear();
     _hasSimulationOwnerEntities.clear();
 }
 

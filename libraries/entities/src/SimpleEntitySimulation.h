@@ -29,7 +29,6 @@ protected:
     virtual void clearEntitiesInternal();
 
     SetOfEntities _movingEntities;
-    SetOfEntities _movableButStoppedEntities;
     SetOfEntities _hasSimulationOwnerEntities;
 };
 
