@@ -59,7 +59,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001 || abs(stats.getAverage() - average) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < 0.000001 || fabs(stats.getAverage() - average) < 0.000001);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -78,7 +78,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001 || abs(stats.getAverage() - average) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < 0.000001 || fabs(stats.getAverage() - average) < 0.000001);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -123,7 +123,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < 0.000001);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -142,7 +142,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < 0.000001);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -187,7 +187,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < 0.000001);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -206,7 +206,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < 0.000001);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
