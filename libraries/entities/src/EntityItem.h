@@ -229,6 +229,9 @@ public:
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
+    QString getName() const { return _name; }
+    void setName(const QString& value) { _name = value; }
+
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
@@ -340,6 +343,7 @@ protected:
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
     float _angularDamping;
+    QString _name;
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;

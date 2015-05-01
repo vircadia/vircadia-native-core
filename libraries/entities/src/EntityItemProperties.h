@@ -97,6 +97,7 @@ enum EntityPropertyList {
     PROP_MARKETPLACE_ID,
     PROP_ACCELERATION,
     PROP_SIMULATOR_ID,
+    PROP_NAME,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
@@ -188,6 +189,7 @@ public:
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
     DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
@@ -330,6 +332,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
