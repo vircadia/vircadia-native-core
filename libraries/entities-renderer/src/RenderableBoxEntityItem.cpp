@@ -35,6 +35,14 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
 
+
+    bool highlightSimulationOwnership = false;
+    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
+    }
+
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
@@ -43,8 +51,11 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
+            if (highlightSimulationOwnership) {
+                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
+            } else {
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
+            }
         glPopMatrix();
     glPopMatrix();
-
 };
