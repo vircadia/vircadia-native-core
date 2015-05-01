@@ -2,7 +2,7 @@
 //  RenderableDebugableEntityItem.cpp
 //  libraries/entities-renderer/src/
 //
-//  Created by Brad Hefta-Gaub on 8/6/14.
+//  Created by Seth Alves on 5/1/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
