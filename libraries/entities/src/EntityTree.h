@@ -18,6 +18,7 @@
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 
+typedef QSet<EntityItem*> SetOfEntities;
 
 class Model;
 class EntitySimulation;
@@ -197,6 +198,7 @@ private:
     QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
+    SetOfEntities _pendingDeletes;
     
     bool _wantEditLogging = false;
 };

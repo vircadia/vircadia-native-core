@@ -350,10 +350,12 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         }
 
         if (_simulation && theEntity->getSimulation()) {
-            // delegate entity destruction to the simulation so it can clean up its own pointers
-            _simulation->deleteEntity(theEntity);
+            _simulation->removeEntity(theEntity);
+            // we need to give the simulation time to cleanup its own pointers
+            // so we push theEntity onto the _pendingDeletes and check again later.
+            _pendingDeletes.insert(theEntity);
         } else {
-            delete theEntity; // we can delete the entity directly now
+            delete theEntity; // we can delete the entity immediately
         }
     }
     if (_simulation) {
@@ -754,16 +756,30 @@ void EntityTree::update() {
         lockForWrite();
         _simulation->lock();
         _simulation->updateEntities();
-        SetOfEntities entitiesToDelete;
-        _simulation->getEntitiesToDelete(entitiesToDelete);
+        _simulation->getEntitiesToDelete(_pendingDeletes);
         _simulation->unlock();
 
-        if (entitiesToDelete.size() > 0) {
+        if (_pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            foreach (EntityItem* entity, entitiesToDelete) {
-                idsToDelete.insert(entity->getEntityItemID());
+            SetOfEntities::iterator entityItr = _pendingDeletes.begin();
+            while (entityItr != _pendingDeletes.end()) {
+                EntityItem* entity = *entityItr;
+                if (entity->getElement()) {
+                    // this entity is still in an element so we push it's ID on a list (and delete the roundabout way)
+                    idsToDelete.insert(entity->getEntityItemID());
+                    entityItr = _pendingDeletes.erase(entityItr);
+                } else if (!entity->getSimulation()) {
+                    // the entity is not in any simulation so we can delete immediately
+                    delete entity;
+                    entityItr = _pendingDeletes.erase(entityItr);
+                } else {
+                    // we're waiting for the simulation to cleanup its own data structure
+                    // so we leave it on the _pendingDeletes and will try again later
+                    ++entityItr;
+                }
             }
+            // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
         unlock();
