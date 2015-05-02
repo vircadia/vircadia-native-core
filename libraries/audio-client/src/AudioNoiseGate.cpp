@@ -10,6 +10,7 @@
 //
 
 #include <cstdlib>
+#include <string.h>
 
 #include <AudioConstants.h>
 
