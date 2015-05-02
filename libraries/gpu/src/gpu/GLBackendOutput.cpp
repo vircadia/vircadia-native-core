@@ -75,7 +75,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             }
         }
 #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-        // for reasons that i don;t understand yet, it seems that on mac gl, a fbo must have a color buffer...
+        // for reasons that i don't understand yet, it seems that on mac gl, a fbo must have a color buffer...
         else {
             GLuint renderBuffer = 0;
             glGenRenderbuffers(1, &renderBuffer);
