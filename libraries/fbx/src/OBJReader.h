@@ -1,5 +1,5 @@
 
-#include <QNetworkReply>
+#include <QtNetwork/QNetworkReply>
 #include "FBXReader.h"
 
 class OBJTokenizer {

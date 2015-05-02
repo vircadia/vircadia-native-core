@@ -15,8 +15,8 @@
 
 #include <QBuffer>
 #include <QIODevice>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
 #include <QEventLoop>
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
 
