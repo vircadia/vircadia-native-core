@@ -31,7 +31,6 @@ GlowEffect::GlowEffect()
       _isOddFrame(false),
       _isFirstFrame(true),
       _intensity(0.0f),
-      _widget(NULL),
       _enabled(false) {
 }
 
@@ -64,7 +63,7 @@ static ProgramObject* createProgram(const QString& name) {
     return program;
 }
 
-void GlowEffect::init(QGLWidget* widget, bool enabled) {
+void GlowEffect::init(bool enabled) {
     if (_initialized) {
         qCDebug(renderutils, "[ERROR] GlowEffeect is already initialized.");
         return;
@@ -92,18 +91,8 @@ void GlowEffect::init(QGLWidget* widget, bool enabled) {
     _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
 
     _initialized = true;
-    _widget = widget;
     _enabled = enabled;
 }
-
-int GlowEffect::getDeviceWidth() const {
-    return _widget->width() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
-}
-
-int GlowEffect::getDeviceHeight() const {
-    return _widget->height() * (_widget->windowHandle() ? _widget->windowHandle()->devicePixelRatio() : 1.0f);
-}
-
 
 void GlowEffect::prepare() {
     auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
@@ -173,7 +162,8 @@ gpu::FramebufferPointer GlowEffect::render(bool toTexture) {
         } else {
             maybeBind(destFBO);
             if (!destFBO) {
-                glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
+                //destFBO->getSize();
+                glViewport(0, 0, framebufferSize.width(), framebufferSize.height());
             }
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
@@ -219,7 +209,7 @@ gpu::FramebufferPointer GlowEffect::render(bool toTexture) {
         }
         maybeBind(destFBO);
         if (!destFBO) {
-            glViewport(0, 0, getDeviceWidth(), getDeviceHeight());
+            glViewport(0, 0, framebufferSize.width(), framebufferSize.height());
         }
         _addSeparateProgram->bind();
         renderFullscreenQuad();
@@ -228,7 +218,6 @@ gpu::FramebufferPointer GlowEffect::render(bool toTexture) {
         
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
-        
     }
     
     glPopMatrix();
