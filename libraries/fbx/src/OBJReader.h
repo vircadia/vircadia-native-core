@@ -1,5 +1,5 @@
 
-
+#include <QNetworkReply>
 #include "FBXReader.h"
 
 class OBJTokenizer {
@@ -20,9 +20,9 @@ public:
     const QString getComment() const { return _comment; }
     glm::vec3 getVec3();
     glm::vec2 getVec2();
+    float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
     
 private:
-    float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
     QIODevice* _device;
     QByteArray _datum;
     int _pushedBackToken;
@@ -34,7 +34,8 @@ public:
     QVector<int> vertexIndices;
     QVector<int> textureUVIndices;
     QVector<int> normalIndices;
-    //materialName groupName  // FIXME
+    QString groupName; // We don't make use of hierarchical structure, but it can be preserved for debugging and future use.
+    QString materialName;
     // Add one more set of vertex data. Answers true if successful
     bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
@@ -44,16 +45,38 @@ private:
     void addFrom(const OBJFace* face, int index);
 };
 
-class OBJReader {
+// Materials and references to material names can come in any order, and different mesh parts can refer to the same material.
+// Therefore it would get pretty hacky to try to use FBXMeshPart to store these as we traverse the files.
+class OBJMaterial {
+public:
+    float shininess;
+    float opacity;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    QByteArray diffuseTextureFilename;
+    QByteArray specularTextureFilename;
+    OBJMaterial() : opacity(1.0f) {}
+};
+
+class OBJReader: public QObject { // QObject so we can make network requests.
+    Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;
     QVector<glm::vec3> vertices;  // all that we ever encounter while reading
     QVector<glm::vec2> textureUVs;
     QVector<glm::vec3> normals;
     QVector<FaceGroup> faceGroups;
+    QString currentMaterialName;
+    QHash<QString, OBJMaterial> materials;
+    QUrl* url;
+    
+    QNetworkReply* request(QUrl& url, bool isTest);
     FBXGeometry readOBJ(const QByteArray& model, const QVariantHash& mapping);
-    FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping);
+    FBXGeometry readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url);
+private:
+    QHash<QByteArray, bool> librariesSeen;
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
+    void parseMaterialLibrary(QIODevice* device);
 };
 
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.

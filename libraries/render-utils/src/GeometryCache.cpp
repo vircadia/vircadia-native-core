@@ -2107,26 +2107,7 @@ void GeometryReader::run() {
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = OBJReader().readOBJ(_reply, _mapping);
-                FBXMesh& mesh = fbxgeo.meshes[0]; // only one, by construction
-                if (mesh.texCoords.count() > 0) { // If we have uv texture coordinates....
-                    // ... then ensure that every meshPart has a texture filename.
-                    // For now, that's defined directly, using the popular .obj convention that
-                    // the texture is the same as the model basename. Later, we'll extend that
-                    // with separate material files, too.
-                    QString filename = _url.fileName();
-                    int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
-                    QString basename = filename.remove(extIndex + 1, sizeof("obj"));
-                    QByteArray defaultTexture = basename.toUtf8() + "jpg";
-                    //qCDebug(renderutils) << "basename for " << filename << " is " << basename << ", default:" << defaultTexture;
-                    QVector<FBXMeshPart>& meshParts = mesh.parts;
-                    for (int i = 0; i < meshParts.count(); i++) {
-                        FBXMeshPart& meshPart = meshParts[i];
-                        if (meshPart.diffuseTexture.filename.count() == 0) {
-                            meshPart.diffuseTexture.filename = defaultTexture;
-                        }
-                    }
-                }
+                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

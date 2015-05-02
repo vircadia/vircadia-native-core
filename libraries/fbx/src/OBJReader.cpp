@@ -15,8 +15,12 @@
 
 #include <QBuffer>
 #include <QIODevice>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QEventLoop>
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
 
+#include <NetworkAccessManager.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
 #include "Shape.h"
@@ -26,6 +30,7 @@
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
+const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default material name";
 
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
 }
@@ -158,10 +163,12 @@ QVector<OBJFace> OBJFace::triangulate() {
         newFaces.append(*this);
     } else {
         for (int i = 1; i < vertexIndices.count() - 1; i++) {
-            OBJFace newFace; // FIXME: also copy materialName, groupName
+            OBJFace newFace;
             newFace.addFrom(this, 0);
             newFace.addFrom(this, i);
             newFace.addFrom(this, i + 1);
+            newFace.groupName = groupName;
+            newFace.materialName = materialName;
             newFaces.append(newFace);
         }
     }
@@ -177,6 +184,69 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
+void OBJReader::parseMaterialLibrary(QIODevice* device) {
+    OBJTokenizer tokenizer(device);
+    QString matName = SMART_DEFAULT_MATERIAL_NAME;
+    OBJMaterial& currentMaterial = materials[matName];
+    while (true) {
+        switch (tokenizer.nextToken()) {
+            case OBJTokenizer::COMMENT_TOKEN:
+                qCDebug(modelformat) << "OBJ Reader MTLLIB comment:" << tokenizer.getComment();
+                break;
+            case OBJTokenizer::DATUM_TOKEN:
+                break;
+            default:
+                materials[matName] = currentMaterial;
+                qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << currentMaterial.specularColor << " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" << currentMaterial.specularTextureFilename;
+                return;
+        }
+        QByteArray token = tokenizer.getDatum();
+        if (token == "newmtl") {
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                return;
+            }
+            materials[matName] = currentMaterial;
+            matName = tokenizer.getDatum();
+            currentMaterial = materials[matName];
+            currentMaterial.diffuseTextureFilename = "test";
+            qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
+            currentMaterial.diffuseTextureFilename = "";
+        } else if (token == "Ns") {
+            currentMaterial.shininess = tokenizer.getFloat();
+        } else if ((token == "d") || (token == "Tr")) {
+            currentMaterial.opacity = tokenizer.getFloat();
+        } else if (token == "Ka") {
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+        } else if (token == "Kd") {
+            currentMaterial.diffuseColor = tokenizer.getVec3();
+        } else if (token == "Ks") {
+            currentMaterial.specularColor = tokenizer.getVec3();
+        } else if (token == "map_Kd") {
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                return;
+            }
+            currentMaterial.diffuseTextureFilename = tokenizer.getDatum();
+        } else if (token == "map_Ks") {
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                return;
+            }
+            currentMaterial.diffuseTextureFilename = tokenizer.getDatum();
+        }
+    }
+}
+
+QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest netRequest(url);
+    QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
+    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
+    QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
+    netReply->waitForReadyRead(-1); // so we might as well block this thread waiting for the response, rather than
+    return netReply;                // trying to sync later on.
+}
+
+
 bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess) {
     FaceGroup faces;
     FBXMesh& mesh = geometry.meshes[0];
@@ -185,6 +255,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
     bool sawG = false;
     bool result = true;
     int originalFaceCountForDebugging = 0;
+    QString currentGroup;
 
     setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
@@ -220,8 +291,32 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             QByteArray groupName = tokenizer.getDatum();
-            meshPart.materialID = groupName;
+            currentGroup = groupName;
             //qCDebug(modelformat) << "new group:" << groupName;
+        } else if (token == "mtllib") {
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
+            QByteArray libraryName = tokenizer.getDatum();
+            if (librariesSeen.contains(libraryName)) {
+                break; // Some files use mtllib over and over again for the same libraryName
+            }
+            librariesSeen[libraryName] = true;
+            QUrl libraryUrl = url->resolved(QUrl(libraryName));
+            qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
+            QNetworkReply* netReply = request(libraryUrl, false);
+            if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
+                parseMaterialLibrary(netReply);
+            } else {
+                qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got " << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+            }
+            netReply->deleteLater();
+        } else if (token == "usemtl") {
+            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+                break;
+            }
+            currentMaterialName = tokenizer.getDatum();
+            qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
         } else if (token == "v") {
             vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
@@ -253,7 +348,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 // FIXME: if we want to handle negative indices, it has to be done here.
                 const QByteArray noData {};
                 face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData);
-                // FIXME: preserve current name, material and such
+                face.groupName = currentGroup;
+                face.materialName = currentMaterialName;
             }
             originalFaceCountForDebugging++;
             foreach(OBJFace face, face.triangulate()) {
@@ -278,18 +374,19 @@ done:
 FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return readOBJ(&buffer, mapping);
+    return readOBJ(&buffer, mapping, nullptr);
 }
 
 
-FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
+FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
     FBXGeometry geometry;
     OBJTokenizer tokenizer(device);
     float scaleGuess = 1.0f;
 
+    this->url = url;
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
-
+    
     try {
         // call parseOBJGroup as long as it's returning true.  Each successful call will
         // add a new meshPart to the geometry's single mesh.
@@ -321,11 +418,56 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
                                               0, 0, 0, 1);
         mesh.clusters.append(cluster);
         
-        int meshPartCount = 0;
-        for (int i = 0; i < mesh.parts.count(); i++) {
+        // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use a texture with the same basename as the .obj file.
+        QString filename = url->fileName();
+        int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
+        QString basename = filename.remove(extIndex + 1, sizeof("obj"));
+        OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+        preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
+        QVector<QByteArray> extensions = {"jpg", "jpeg", "png", "tga"};
+        QByteArray base = basename.toUtf8(), textName = "";
+        for (int i = 0; i < extensions.count(); i++) {
+            QByteArray candidateString = base + extensions[i];
+            QUrl candidateUrl = url->resolved(QUrl(candidateString));
+            QNetworkReply *netReply = request(candidateUrl, true);
+            if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
+                textName = candidateString;
+                netReply->deleteLater();
+                break;
+            }
+            netReply->deleteLater();
+        }
+        if (!textName.isEmpty()) {
+            preDefinedMaterial.diffuseTextureFilename = textName;
+        }
+        materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
+        
+        for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
             FBXMeshPart& meshPart = mesh.parts[i];
-            //qCDebug(modelformat) << "part:" << meshPartCount << " faces:" << faceGroups[meshPartCount].count() << "triangle indices will start with:" << mesh.vertices.count();
-            foreach(OBJFace face, faceGroups[meshPartCount]) {
+            FaceGroup faceGroup = faceGroups[meshPartCount];
+            OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
+            QString groupMaterialName = leadFace.materialName;
+            if ((leadFace.textureUVIndices.count() > 0) && groupMaterialName.isEmpty()) {
+                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+            }
+            if (!groupMaterialName.isEmpty()) {
+                if (!materials.contains(groupMaterialName)) {
+                    qCDebug(modelformat) << "OBJ Reader:" << url << " references undefined material " << groupMaterialName << ".";
+                } else {
+                    OBJMaterial* material = &materials[groupMaterialName];
+                    // The code behind this is in transition. Some things are set directly in the FXBMeshPart...
+                    meshPart.materialID = groupMaterialName;
+                    meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
+                    meshPart.specularTexture.filename = material->specularTextureFilename;
+                    // ... and some things are set in the underlying material.
+                    meshPart._material->setDiffuse(material->diffuseColor);
+                    meshPart._material->setSpecular(material->specularColor);
+                    meshPart._material->setShininess(material->shininess);
+                    meshPart._material->setOpacity(material->opacity);
+                }
+            }
+            qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
+            foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
                 glm::vec3 v1 = vertices[face.vertexIndices[1]];
                 glm::vec3 v2 = vertices[face.vertexIndices[2]];
@@ -352,7 +494,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
                     << textureUVs[face.textureUVIndices[2]];
                 }
             }
-            meshPartCount++;
         }
 
         // if we got a hint about units, scale all the points
@@ -367,9 +508,9 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping) {
             mesh.meshExtents.addPoint(vertex);
             geometry.meshExtents.addPoint(vertex);
         }
-        //fbxDebugDump(geometry);
+        fbxDebugDump(geometry);
     } catch(const std::exception& e) {
-        qCDebug(modelformat) << "something went wrong in OBJ reader: " << e.what();
+        qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
     return geometry;
@@ -386,11 +527,11 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
     foreach (FBXMesh mesh, fbxgeo.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
         qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
-        if (mesh.normals.count() == mesh.vertices.count()) {
+        /*if (mesh.normals.count() == mesh.vertices.count()) {
             for (int i = 0; i < mesh.normals.count(); i++) {
                 qCDebug(modelformat) << "        " << mesh.vertices[ i ] << mesh.normals[ i ];
             }
-        }
+        }*/
         qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.count();
         qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
@@ -403,13 +544,15 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         foreach (FBXMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
-            qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor;
-            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor;
-            qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor;
+            qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor << "mat =" << meshPart._material->getDiffuse();
+            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getSpecular();
+            qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        shininess =" << meshPart.shininess;
-            qCDebug(modelformat) << "        opacity =" << meshPart.opacity;
+            qCDebug(modelformat) << "        shininess =" << meshPart.shininess << "mat =" << meshPart._material->getShininess();
+            qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
+            qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;
+            qCDebug(modelformat) << "        specular texture =" << meshPart.specularTexture.filename;
         }
         qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
         foreach (FBXCluster cluster, mesh.clusters) {
