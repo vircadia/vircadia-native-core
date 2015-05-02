@@ -376,10 +376,13 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
 
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid myNodeID = nodeList->getSessionUUID();
+
+    if (myNodeID.isNull()) {
+        return;
+    }
+
     const btCollisionObject* characterCollisionObject =
         _characterController ? _characterController->getCollisionObject() : NULL;
-
-    assert(!myNodeID.isNull());
 
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
