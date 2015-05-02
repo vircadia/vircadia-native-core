@@ -14,13 +14,16 @@
 
 #include <QtScript/QScriptEngine>
 
-#include "EntityItemProperties.h"
+//#include "EntityItemProperties.h"
+#include "EntityPropertyFlags.h"
 
 class EntityItemProperties;
 class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+
+#include <OctreeElement.h>
 
 /*
 #include <stdint.h>
@@ -43,6 +46,8 @@ class ReadBitstreamToTreeParams;
 #include "EntityTypes.h"
 */
 
+//typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+
 
 class PropertyGroup {
 public:
@@ -50,13 +55,20 @@ public:
     virtual ~PropertyGroup() {}
 
     // EntityItemProperty related helpers
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const = 0;
-    virtual void copyFromScriptValue(const QScriptValue& object) = 0;
+    virtual void copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const = 0;
+    virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) = 0;
     virtual void debugDump() const { }
 
-    virtual bool appentToEditPacket(unsigned char* bufferOut, int sizeIn, int& sizeOut) = 0;
-    virtual bool decodeFromEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes) = 0;
+    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount, 
+                                    OctreeElement::AppendState& appendState) const = 0;
+
+    virtual bool decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt , int& processedBytes) = 0;
     virtual void markAllChanged() = 0;
+    virtual EntityPropertyFlags getChangedProperties() const = 0;
 
     // EntityItem related helpers
     // methods for getting/setting all properties of an entity

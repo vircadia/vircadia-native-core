@@ -14,9 +14,8 @@
 
 #include <QtScript/QScriptEngine>
 
-#include "EntityItemProperties.h"
-
 #include "PropertyGroup.h"
+#include "EntityItemPropertiesMacros.h"
 
 class EntityItemProperties;
 class EncodeBitstreamParams;
@@ -24,10 +23,12 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-/*
 #include <stdint.h>
-
 #include <glm/glm.hpp>
+
+
+/*
+
 #include <glm/gtx/extented_min_max.hpp>
 
 #include <QtCore/QObject>
@@ -52,13 +53,20 @@ public:
     virtual ~AtmospherePropertyGroup() {}
 
     // EntityItemProperty related helpers
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
-    virtual void copyFromScriptValue(const QScriptValue& object);
+    virtual void copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
+    virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
 
-    virtual bool appentToEditPacket(unsigned char* bufferOut, int sizeIn, int& sizeOut);
-    virtual bool decodeFromEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes);
+    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount, 
+                                    OctreeElement::AppendState& appendState) const;
+
+    virtual bool decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt , int& processedBytes);
     virtual void markAllChanged();
+    virtual EntityPropertyFlags getChangedProperties() const;
 
     // EntityItem related helpers
     // methods for getting/setting all properties of an entity
@@ -88,7 +96,6 @@ public:
     DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, AtmosphereMieScattering, atmosphereMieScattering, float);
     DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, AtmosphereRayleighScattering, atmosphereRayleighScattering, float);
     DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, AtmosphereScatteringWavelengths, atmosphereScatteringWavelengths, glm::vec3);
-
 };
 
 #endif // hifi_AtmospherePropertyGroup_h

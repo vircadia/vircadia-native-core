@@ -197,6 +197,17 @@
     }
 
 
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+        QScriptValue V = vec3toScriptValue(engine, _##p); \
+        properties.setProperty(#p, V); \
+    }
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+        properties.setProperty(#p, _##p); \
+    }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
         QScriptValue P = vec3toScriptValue(engine, _##P); \
@@ -356,6 +367,13 @@
 #define CONSTRUCT_PROPERTY(n, V)        \
     _##n(V),                            \
     _##n##Changed(false)
+
+#define DEFINE_PROPERTY_GROUP(N, n, T)        \
+    public: \
+        const T& get##N() const { return _##n; } \
+    private: \
+        T _##n; \
+        static T _static##N; 
 
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
