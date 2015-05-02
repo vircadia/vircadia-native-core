@@ -22,6 +22,7 @@
 
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
+const int WAIT_FOR_CHILD_MSECS = 500;
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
@@ -91,7 +92,26 @@ void AssignmentClientMonitor::stopChildProcesses() {
     });
 
     // try to give all the children time to shutdown
-    waitOnChildren(15000);
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask more firmly
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        childProcess->terminate();
+    }
+
+    // try to give all the children time to shutdown
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask even more firmly
+    QMutableListIterator<QProcess*> j(_childProcesses);
+    while (j.hasNext()) {
+        QProcess* childProcess = j.next();
+        childProcess->kill();
+    }
+
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
 }
 
 void AssignmentClientMonitor::aboutToQuit() {

@@ -1470,6 +1470,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    // Inhibit the menu if the user is using alt-mouse dragging
+    _altPressed = false;
+
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
@@ -1544,6 +1547,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
+    _altPressed = false;
     if (event->type() == QEvent::TouchUpdate) {
         TouchEvent thisEvent(*event, _lastTouchEvent);
         _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
@@ -1579,6 +1583,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
+    _altPressed = false;
     TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
     _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
 
@@ -1593,6 +1598,7 @@ void Application::touchBeginEvent(QTouchEvent* event) {
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
+    _altPressed = false;
     TouchEvent thisEvent(*event, _lastTouchEvent);
     _controllerScriptingInterface.emitTouchEndEvent(thisEvent); // send events to any registered scripts
     _lastTouchEvent = thisEvent;
@@ -1609,7 +1615,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-
+    _altPressed = false;
     _controllerScriptingInterface.emitWheelEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it

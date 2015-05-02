@@ -20,6 +20,7 @@
 #include "EntityTreeElement.h"
 
 bool ZoneEntityItem::_zonesArePickable = false;
+bool ZoneEntityItem::_drawZoneBoundaries = false;
 
 const xColor ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR = { 255, 255, 255 };
 const float ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY = 1.0f;
