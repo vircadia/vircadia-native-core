@@ -11,7 +11,6 @@
 
 #include "EntityMotionState.h"
 #include "PhysicalEntitySimulation.h"
-#include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 #include "ShapeInfoUtil.h"
@@ -189,6 +188,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
     }
 }
 
-void PhysicalEntitySimulation::bump(EntityItem* bumpEntity) {
+void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionEvents) {
+    // BOOKMARK TODO: emit events 
 }
 

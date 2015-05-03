@@ -41,7 +41,21 @@ public:
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef std::pair<ContactKey, ContactInfo> ContactMapElement;
+
+class CollisionEvent {
+public:
+    CollisionEvent() : _type(CONTACT_EVENT_TYPE_START), _idA(), _idB() {}
+    CollisionEvent(ContactEventType type, const QUuid& idA, const QUuid& idB) : _type(type), _idA(idA), _idB(idB) {}
+        
+    ContactEventType _type; // START, CONTINUE, or END
+    QUuid _idA;
+    QUuid _idB;
+    // TODO: add is info to contact callback
+    //glm::vec3 _position; // world-frame
+    //glm::vec3 _normal; // world-frame
+};
+
+typedef QVector<CollisionEvent> CollisionEvents;
 
 class PhysicsEngine {
 public:
@@ -64,11 +78,17 @@ public:
     void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
-    void computeCollisionEvents();
-    void fireCollisionEvents();
+    void updateContactMap();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
+
+    /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
     VectorOfMotionStates& getOutgoingChanges();
+
+    /// \return reference to list of CollisionEvent's.  The list is only valid until beginning of next simulation loop.
+    CollisionEvents& getCollisionEvents();
+
+    /// \brief prints timings for last frame if stats have been requested.
     void dumpStatsIfNecessary();
 
     /// \param offset position of simulation origin in domain-frame
@@ -77,6 +97,7 @@ public:
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
+    /// \brief call bump on any objects that touch the object corresponding to motionState
     void bump(ObjectMotionState* motionState);
 
     void removeRigidBody(btRigidBody* body);
@@ -111,6 +132,7 @@ private:
     bool _hasOutgoingChanges = false;
 
     QUuid _sessionID;
+    CollisionEvents _collisionEvents;
 };
 
 #endif // hifi_PhysicsEngine_h

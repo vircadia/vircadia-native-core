@@ -20,10 +20,10 @@
 #include <EntityItem.h>
 #include <EntitySimulation.h>
 
+#include "PhysicsEngine.h"
 #include "PhysicsTypedefs.h"
 
 class EntityMotionState;
-class PhysicsEngine;
 class ShapeManager;
 
 class PhysicalEntitySimulation :public EntitySimulation {
@@ -47,10 +47,9 @@ public:
     VectorOfMotionStates& getObjectsToChange();
 
     void handleOutgoingChanges(VectorOfMotionStates& motionStates);
+    void handleCollisionEvents(CollisionEvents& collisionEvents);
 
 private:
-    void bump(EntityItem* bumpEntity);
-
     // incoming changes
     SetOfEntities _pendingRemoves; // entities to be removed from PhysicsEngine (and their MotionState deleted)
     SetOfEntities _pendingAdds; // entities to be be added to PhysicsEngine (and a their MotionState created)

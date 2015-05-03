@@ -237,12 +237,13 @@ void PhysicsEngine::stepSimulation() {
         if (_characterController) {
             _characterController->postSimulation();
         }
-        computeCollisionEvents();
+        updateContactMap();
         _hasOutgoingChanges = true;
     }
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
+    // BOOKMARK TODO: move this to PhysicalEntitySimulation
     BT_PROFILE("ownershipInfection");
     if (_sessionID.isNull()) {
         return;
@@ -263,8 +264,9 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     }
 }
 
-void PhysicsEngine::computeCollisionEvents() {
-    BT_PROFILE("computeCollisionEvents");
+void PhysicsEngine::updateContactMap() {
+    BT_PROFILE("updateContactMap");
+    ++_numContactFrames;
 
     // update all contacts every frame
     int numManifolds = _collisionDispatcher->getNumManifolds();
@@ -292,39 +294,31 @@ void PhysicsEngine::computeCollisionEvents() {
             doOwnershipInfection(objectA, objectB);
         }
     }
-
-    fireCollisionEvents();
-    ++_numContactFrames;
 }
 
-void PhysicsEngine::fireCollisionEvents() {
-    /* TODO: Andrew to make this work for ObjectMotionStates
+CollisionEvents& PhysicsEngine::getCollisionEvents() {
     const uint32_t CONTINUE_EVENT_FILTER_FREQUENCY = 10;
+    _collisionEvents.clear();
 
     // scan known contacts and trigger events
     ContactMap::iterator contactItr = _contactMap.begin();
 
     while (contactItr != _contactMap.end()) {
-        ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
-        ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
-
-        // TODO: make triggering these events clean and efficient.  The code at this context shouldn't 
-        // have to figure out what kind of object (entity, avatar, etc) these are in order to properly 
-        // emit a collision event.
-        // TODO: enable scripts to filter based on contact event type
         ContactEventType type = contactItr->second.computeType(_numContactFrames);
-        if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0){
+        if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0) {
+            ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
+            ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
+
             if (A && A->getType() == MOTION_STATE_TYPE_ENTITY) {
-                EntityItemID idA = static_cast<EntityMotionState*>(A)->getEntity()->getEntityItemID();
-                EntityItemID idB;
+                QUuid idA = A->getObjectID();
+                QUuid idB;
                 if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
-                    idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
+                    idB = B->getObjectID();
                 }
-                emit entityCollisionWithEntity(idA, idB, contactItr->second);
+                _collisionEvents.push_back(CollisionEvent(type, idA, idB));
             } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
-                EntityItemID idA;
-                EntityItemID idB = static_cast<EntityMotionState*>(B)->getEntity()->getEntityItemID();
-                emit entityCollisionWithEntity(idA, idB, contactItr->second);
+                QUuid idB = B->getObjectID();
+                _collisionEvents.push_back(CollisionEvent(type, idB, QUuid()));
             }
         }
 
@@ -336,7 +330,7 @@ void PhysicsEngine::fireCollisionEvents() {
             ++contactItr;
         }
     }
-    */
+    return _collisionEvents;
 }
 
 VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
