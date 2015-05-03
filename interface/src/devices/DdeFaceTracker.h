@@ -12,6 +12,11 @@
 #ifndef hifi_DdeFaceTracker_h
 #define hifi_DdeFaceTracker_h
 
+#if defined(Q_OS_WIN) || defined(Q_OS_OSX)
+    #define HAVE_DDE
+#endif
+
+#include <QProcess>
 #include <QUdpSocket>
 
 #include <DependencyManager.h>
@@ -23,7 +28,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    virtual void reset() { _reset = true; }
+    virtual void reset();
 
     virtual bool isActive() const;
     virtual bool isTracking() const { return isActive(); }
@@ -47,19 +52,24 @@ public slots:
     void setEnabled(bool enabled);
 
 private slots:
-    
+    void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
     //sockets
     void socketErrorOccurred(QAbstractSocket::SocketError socketError);
     void readPendingDatagrams();
     void socketStateChanged(QAbstractSocket::SocketState socketState);
-    
+
 private:
     DdeFaceTracker();
-    DdeFaceTracker(const QHostAddress& host, quint16 port);
-    ~DdeFaceTracker();
+    DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort);
+    virtual ~DdeFaceTracker();
+
+    QProcess* _ddeProcess;
+    bool _ddeStopping;
 
     QHostAddress _host;
-    quint16 _port;
+    quint16 _serverPort;
+    quint16 _controlPort;
     
     float getBlendshapeCoefficient(int index) const;
     void decodePacket(const QByteArray& buffer);
@@ -91,10 +101,28 @@ private:
 
     QVector<float> _coefficients;
 
-    // Previous values for simple smoothing
-    glm::vec3 _previousTranslation;
-    glm::quat _previousRotation;
-    QVector<float> _previousCoefficients;
+    quint64 _lastMessageReceived;
+    float _averageMessageTime;
+
+    glm::vec3 _lastHeadTranslation;
+    glm::vec3 _filteredHeadTranslation;
+
+    float _lastBrowUp;
+    float _filteredBrowUp;
+
+    enum EyeState {
+        EYE_OPEN,
+        EYE_CLOSING,
+        EYE_CLOSED,
+        EYE_OPENING
+    };
+    EyeState _eyeStates[2];
+    float _lastEyeBlinks[2];
+    float _filteredEyeBlinks[2];
+    float _lastEyeCoefficients[2];
+
+    bool _isCalculatingFPS;
+    int _frameCount;
 };
 
 #endif // hifi_DdeFaceTracker_h

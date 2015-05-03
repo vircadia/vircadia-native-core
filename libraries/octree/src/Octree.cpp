@@ -380,9 +380,9 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     }
     
     // if this is the root, and there is more data to read, allow it to read it's element data...
-    if (destinationElement == _rootElement  && rootElementHasData() && (bytesLeftToRead - bytesRead) > 0) {
+    if (destinationElement == _rootElement  && rootElementHasData() && bytesLeftToRead > 0) {
         // tell the element to read the subsequent data
-        int rootDataSize = _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead - bytesRead, args);
+        int rootDataSize = _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
         bytesRead += rootDataSize;
         bytesLeftToRead -= rootDataSize;
     }
@@ -2087,7 +2087,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
     QFile persistFile(fileName);
     QVariantMap entityDescription;
 
-    qCDebug(octree, "Saving to file %s...", fileName);
+    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
     OctreeElement* top;
     if (element) {
@@ -2096,7 +2096,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
         top = _rootElement;
     }
 
-    bool entityDescriptionSuccess = writeToMap(entityDescription, top);
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
     if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
         persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
     } else {
@@ -2108,7 +2108,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        qCDebug(octree, "Saving to file %s...", fileName);
+        qCDebug(octree, "Saving binary SVO to file %s...", fileName);
 
         PacketType expectedType = expectedDataPacketType();
         PacketVersion expectedVersion = versionForPacketType(expectedType);

@@ -39,6 +39,7 @@ Faceshift::Faceshift() :
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
     connect(&_tcpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SIGNAL(connectionStateChanged()));
+    connect(&_tcpSocket, SIGNAL(disconnected()), SLOT(noteDisconnected()));
 
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 
@@ -78,6 +79,10 @@ void Faceshift::update(float deltaTime) {
 
 void Faceshift::reset() {
     if (_tcpSocket.state() == QAbstractSocket::ConnectedState) {
+        qCDebug(interfaceapp, "Faceshift: Reset");
+
+        FaceTracker::reset();
+
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
@@ -127,6 +132,7 @@ void Faceshift::setTCPEnabled(bool enabled) {
     if ((_tcpEnabled = enabled)) {
         connectSocket();
     } else {
+        qCDebug(interfaceapp, "Faceshift: Disconnecting...");
         _tcpSocket.disconnectFromHost();
     }
 #endif
@@ -145,7 +151,7 @@ void Faceshift::connectSocket() {
 
 void Faceshift::noteConnected() {
 #ifdef HAVE_FACESHIFT
-    qCDebug(interfaceapp, "Faceshift: Connected.");
+    qCDebug(interfaceapp, "Faceshift: Connected");
     // request the list of blendshape names
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
@@ -153,10 +159,16 @@ void Faceshift::noteConnected() {
 #endif
 }
 
+void Faceshift::noteDisconnected() {
+#ifdef HAVE_FACESHIFT
+    qCDebug(interfaceapp, "Faceshift: Disconnected");
+#endif
+}
+
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
     if (!_tcpRetryCount) {
        // Only spam log with fail to connect the first time, so that we can keep waiting for server
-       qCDebug(interfaceapp) << "Faceshift: " << _tcpSocket.errorString();
+       qCWarning(interfaceapp) << "Faceshift: " << _tcpSocket.errorString();
     }
     // retry connection after a 2 second delay
     if (_tcpEnabled) {
@@ -283,6 +295,8 @@ void Faceshift::receive(const QByteArray& buffer) {
         }
     }
 #endif
+
+    FaceTracker::countFrame();
 }
 
 void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
@@ -292,3 +306,4 @@ void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
 void Faceshift::setHostname(const QString& hostname) {
     _hostname.set(hostname);
 }
+

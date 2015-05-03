@@ -11,18 +11,32 @@
 
 #include <SharedUtil.h>
 
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <QElapsedTimer>
+#include <QTimer>
+
+#include <GLMHelpers.h>
 
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
+#include "Menu.h"
 
 
-static const QHostAddress DDE_FEATURE_POINT_SERVER_ADDR("127.0.0.1");
-static const quint16 DDE_FEATURE_POINT_SERVER_PORT = 5555;
+static const QHostAddress DDE_SERVER_ADDR("127.0.0.1");
+static const quint16 DDE_SERVER_PORT = 64204;
+static const quint16 DDE_CONTROL_PORT = 64205;
+#if defined(Q_OS_WIN)
+static const QString DDE_PROGRAM_PATH = "/dde/dde.exe";
+#elif defined(Q_OS_MAC)
+static const QString DDE_PROGRAM_PATH = "/dde.app/Contents/MacOS/dde";
+#endif
+static const QStringList DDE_ARGUMENTS = QStringList() 
+    << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
+    << "--receiver=" + QString::number(DDE_CONTROL_PORT)
+    << "--headless";
 
 static const int NUM_EXPRESSIONS = 46;
 static const int MIN_PACKET_SIZE = (8 + NUM_EXPRESSIONS) * sizeof(float) + sizeof(int);
@@ -51,16 +65,16 @@ static const int DDE_TO_FACESHIFT_MAPPING[] = {
 // The DDE coefficients, overall, range from -0.2 to 1.5 or so. However, individual coefficients typically vary much 
 // less than this.
 static const float DDE_COEFFICIENT_SCALES[] = {
-    4.0f, // EyeBlink_L
-    4.0f, // EyeBlink_R
+    1.0f, // EyeBlink_L
+    1.0f, // EyeBlink_R
     1.0f, // EyeSquint_L
     1.0f, // EyeSquint_R
     1.0f, // EyeDown_L
     1.0f, // EyeDown_R
     1.0f, // EyeIn_L
     1.0f, // EyeIn_R
-    4.0f, // EyeOpen_L
-    4.0f, // EyeOpen_R
+    1.0f, // EyeOpen_L
+    1.0f, // EyeOpen_R
     1.0f, // EyeOut_L
     1.0f, // EyeOut_R
     1.0f, // EyeUp_L
@@ -120,15 +134,30 @@ struct Packet {
     char name[MAX_NAME_SIZE + 1];
 };
 
+const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+
+const int FPS_TIMER_DELAY = 2000;  // ms
+const int FPS_TIMER_DURATION = 2000;  // ms
+
+#ifdef WIN32
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_filteredEyeBlinks' will be default initialized
+//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeCoefficients' will be default initialized
+#pragma warning(disable:4351) 
+#endif
+
 DdeFaceTracker::DdeFaceTracker() :
-    DdeFaceTracker(QHostAddress::Any, DDE_FEATURE_POINT_SERVER_PORT)
+    DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
 
 }
 
-DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
+DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, quint16 controlPort) :
+    _ddeProcess(NULL),
+    _ddeStopping(false),
     _host(host),
-    _port(port),
+    _serverPort(serverPort),
+    _controlPort(controlPort),
     _lastReceiveTimestamp(0),
     _reset(false),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
@@ -143,30 +172,95 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 port) :
     _mouthSmileLeftIndex(28),
     _mouthSmileRightIndex(29),
     _jawOpenIndex(21),
-    _previousTranslation(glm::vec3()),
-    _previousRotation(glm::quat())
+    _lastMessageReceived(0),
+    _averageMessageTime(STARTING_DDE_MESSAGE_TIME),
+    _lastHeadTranslation(glm::vec3(0.0f)),
+    _filteredHeadTranslation(glm::vec3(0.0f)),
+    _lastBrowUp(0.0f),
+    _filteredBrowUp(0.0f),
+    _lastEyeBlinks(),
+    _filteredEyeBlinks(),
+    _lastEyeCoefficients(),
+    _isCalculatingFPS(false),
+    _frameCount(0)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-    _previousCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-    
+
+    _eyeStates[0] = EYE_OPEN;
+    _eyeStates[1] = EYE_OPEN;
+
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
-    connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SLOT(socketStateChanged(QAbstractSocket::SocketState)));
+    connect(&_udpSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), 
+        SLOT(socketStateChanged(QAbstractSocket::SocketState)));
 }
 
 DdeFaceTracker::~DdeFaceTracker() {
-    if (_udpSocket.isOpen()) {
-        _udpSocket.close();
-    }
+    setEnabled(false);
 }
 
+#ifdef WIN32
+#pragma warning(default:4351) 
+#endif
+
 void DdeFaceTracker::setEnabled(bool enabled) {
+#ifdef HAVE_DDE
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
-        _udpSocket.bind(_host, _port);
+        _udpSocket.bind(_host, _serverPort);
+    }
+
+    const char* DDE_EXIT_COMMAND = "exit";
+
+    if (enabled && !_ddeProcess) {
+        // Terminate any existing DDE process, perhaps left running after an Interface crash
+        _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        _ddeStopping = false;
+
+        qCDebug(interfaceapp) << "DDE Face Tracker: Starting";
+        _ddeProcess = new QProcess(qApp);
+        connect(_ddeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(processFinished(int, QProcess::ExitStatus)));
+        _ddeProcess->start(QCoreApplication::applicationDirPath() + DDE_PROGRAM_PATH, DDE_ARGUMENTS);
+    }
+
+    if (!enabled && _ddeProcess) {
+        _ddeStopping = true;
+        _udpSocket.writeDatagram(DDE_EXIT_COMMAND, DDE_SERVER_ADDR, _controlPort);
+        qCDebug(interfaceapp) << "DDE Face Tracker: Stopping";
+    }
+#endif
+}
+
+void DdeFaceTracker::processFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+    if (_ddeProcess) {
+        if (_ddeStopping) {
+            qCDebug(interfaceapp) << "DDE Face Tracker: Stopped";
+
+        } else {
+            qCWarning(interfaceapp) << "DDE Face Tracker: Stopped unexpectedly";
+            Menu::getInstance()->setIsOptionChecked(MenuOption::NoFaceTracking, true);
+        }
+        _udpSocket.close();
+        delete _ddeProcess;
+        _ddeProcess = NULL;
+    }
+}
+
+void DdeFaceTracker::reset() {
+    if (_udpSocket.state() == QAbstractSocket::BoundState) {
+        _reset = true;
+
+        qCDebug(interfaceapp) << "DDE Face Tracker: Reset";
+
+        const char* DDE_RESET_COMMAND = "reset";
+        _udpSocket.writeDatagram(DDE_RESET_COMMAND, DDE_SERVER_ADDR, _controlPort);
+
+        FaceTracker::reset();
+
+        _reset = true;
     }
 }
 
@@ -177,7 +271,7 @@ bool DdeFaceTracker::isActive() const {
 
 //private slots and methods
 void DdeFaceTracker::socketErrorOccurred(QAbstractSocket::SocketError socketError) {
-    qCDebug(interfaceapp) << "[Error] DDE Face Tracker Socket Error: " << _udpSocket.errorString();
+    qCWarning(interfaceapp) << "DDE Face Tracker: Socket error: " << _udpSocket.errorString();
 }
 
 void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState) {
@@ -205,7 +299,7 @@ void DdeFaceTracker::socketStateChanged(QAbstractSocket::SocketState socketState
             state = "Unconnected";
             break;
     }
-    qCDebug(interfaceapp) << "[Info] DDE Face Tracker Socket: " << state;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Socket: " << state;
 }
 
 void DdeFaceTracker::readPendingDatagrams() {
@@ -223,6 +317,8 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if(buffer.size() > MIN_PACKET_SIZE) {
+        bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
+
         Packet packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());
         memset(&packet.name, '\n', MAX_NAME_SIZE + 1);
@@ -239,47 +335,61 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         }
 
         // Compute relative translation
-        float LEAN_DAMPING_FACTOR = 200.0f;
+        float LEAN_DAMPING_FACTOR = 75.0f;
         translation -= _referenceTranslation;
         translation /= LEAN_DAMPING_FACTOR;
         translation.x *= -1;
-        _headTranslation = (translation + _previousTranslation) / 2.0f;
-        _previousTranslation = translation;
+        if (isFiltering) {
+            glm::vec3 linearVelocity = (translation - _lastHeadTranslation) / _averageMessageTime;
+            const float LINEAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+            float velocityFilter = glm::clamp(1.0f - glm::length(linearVelocity) *
+                LINEAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredHeadTranslation = velocityFilter * _filteredHeadTranslation + (1.0f - velocityFilter) * translation;
+            _lastHeadTranslation = translation;
+            _headTranslation = _filteredHeadTranslation;
+        } else {
+            _headTranslation = translation;
+        }
 
         // Compute relative rotation
         rotation = glm::inverse(_referenceRotation) * rotation;
-        _headRotation = (rotation + _previousRotation) / 2.0f;
-        _previousRotation = rotation;
+        if (isFiltering) {
+            glm::quat r = rotation * glm::inverse(_headRotation);
+            float theta = 2 * acos(r.w);
+            glm::vec3 angularVelocity;
+            if (theta > EPSILON) {
+                float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
+                angularVelocity = theta / _averageMessageTime * glm::vec3(r.x, r.y, r.z) / rMag;
+            } else {
+                angularVelocity = glm::vec3(0, 0, 0);
+            }
+            const float ANGULAR_VELOCITY_FILTER_STRENGTH = 0.3f;
+            _headRotation = safeMix(_headRotation, rotation, glm::clamp(glm::length(angularVelocity) *
+                ANGULAR_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f));
+        } else {
+            _headRotation = rotation;
+        }
 
         // Translate DDE coefficients to Faceshift compatible coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
             _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
 
-        // Use EyeBlink values to control both EyeBlink and EyeOpen
-        static const float RELAXED_EYE_VALUE = 0.1f;
-        float leftEye = (_coefficients[_leftBlinkIndex] + _previousCoefficients[_leftBlinkIndex]) / 2.0f;
-        float rightEye = (_coefficients[_rightBlinkIndex] + _previousCoefficients[_rightBlinkIndex]) / 2.0f;
-        if (leftEye > RELAXED_EYE_VALUE) {
-            _coefficients[_leftBlinkIndex] = leftEye - RELAXED_EYE_VALUE;
-            _coefficients[_leftEyeOpenIndex] = 0.0f;
-        } else {
-            _coefficients[_leftBlinkIndex] = 0.0f;
-            _coefficients[_leftEyeOpenIndex] = RELAXED_EYE_VALUE - leftEye;
-        }
-        if (rightEye > RELAXED_EYE_VALUE) {
-            _coefficients[_rightBlinkIndex] = rightEye - RELAXED_EYE_VALUE;
-            _coefficients[_rightEyeOpenIndex] = 0.0f;
-        } else {
-            _coefficients[_rightBlinkIndex] = 0.0f;
-            _coefficients[_rightEyeOpenIndex] = RELAXED_EYE_VALUE - rightEye;
-        }
-
         // Use BrowsU_C to control both brows' up and down
-        _coefficients[_browDownLeftIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browDownRightIndex] = -_coefficients[_browUpCenterIndex];
-        _coefficients[_browUpLeftIndex] = _coefficients[_browUpCenterIndex];
-        _coefficients[_browUpRightIndex] = _coefficients[_browUpCenterIndex];
+        float browUp = _coefficients[_browUpCenterIndex];
+        if (isFiltering) {
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
+            float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
+            float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
+            _lastBrowUp = browUp;
+            browUp = _filteredBrowUp;
+            _coefficients[_browUpCenterIndex] = browUp;
+        }
+        _coefficients[_browUpLeftIndex] = browUp;
+        _coefficients[_browUpRightIndex] = browUp;
+        _coefficients[_browDownLeftIndex] = -browUp;
+        _coefficients[_browDownRightIndex] = -browUp;
 
         // Offset jaw open coefficient
         static const float JAW_OPEN_THRESHOLD = 0.16f;
@@ -290,16 +400,108 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
         _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
 
-
-        // Scale all coefficients
-        for (int i = 0; i < NUM_EXPRESSIONS; i += 1) {
-            _blendshapeCoefficients[i]
-                = glm::clamp(DDE_COEFFICIENT_SCALES[i] * (_coefficients[i] + _previousCoefficients[i]) / 2.0f, 0.0f, 1.0f);
-            _previousCoefficients[i] = _coefficients[i];
+        // Velocity filter EyeBlink values
+        const float DDE_EYEBLINK_SCALE = 3.0f;
+        float eyeBlinks[] = { DDE_EYEBLINK_SCALE * _coefficients[_leftBlinkIndex], DDE_EYEBLINK_SCALE * _coefficients[_rightBlinkIndex] };
+        if (isFiltering) {
+            const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
+            for (int i = 0; i < 2; i++) {
+                float velocity = fabs(eyeBlinks[i] - _lastEyeBlinks[i]) / _averageMessageTime;
+                float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+                _filteredEyeBlinks[i] = velocityFilter * eyeBlinks[i] + (1.0f - velocityFilter) * _filteredEyeBlinks[i];
+                _lastEyeBlinks[i] = eyeBlinks[i];
+            }
         }
 
+        // Finesse EyeBlink values
+        float eyeCoefficients[2];
+        for (int i = 0; i < 2; i++) {
+            // Scale EyeBlink values so that they can be used to control both EyeBlink and EyeOpen
+            // -ve values control EyeOpen; +ve values control EyeBlink
+            static const float EYE_CONTROL_THRESHOLD = 0.5f;  // Resting eye value
+            eyeCoefficients[i] = (_filteredEyeBlinks[i] - EYE_CONTROL_THRESHOLD) / (1.0f - EYE_CONTROL_THRESHOLD);
+
+            // Change to closing or opening states
+            const float EYE_CONTROL_HYSTERISIS = 0.25f;
+            const float EYE_CLOSING_THRESHOLD = 0.95f;
+            const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
+            if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
+                _eyeStates[i] = EYE_CLOSING;
+            } else if ((_eyeStates[i] == EYE_CLOSED || _eyeStates[i] == EYE_CLOSING) 
+                    && eyeCoefficients[i] < EYE_OPENING_THRESHOLD) {
+                _eyeStates[i] = EYE_OPENING;
+            }
+
+            const float EYELID_MOVEMENT_RATE = 10.0f;  // units/second
+            const float EYE_OPEN_SCALE = 0.2f;
+            if (_eyeStates[i] == EYE_CLOSING) {
+                // Close eyelid until it's fully closed
+                float closingValue = _lastEyeCoefficients[i] + EYELID_MOVEMENT_RATE * _averageMessageTime;
+                if (closingValue >= 1.0) {
+                    _eyeStates[i] = EYE_CLOSED;
+                    eyeCoefficients[i] = 1.0;
+                } else {
+                    eyeCoefficients[i] = closingValue;
+                }
+            } else if (_eyeStates[i] == EYE_OPENING) {
+                // Open eyelid until it meets the current adjusted value
+                float openingValue = _lastEyeCoefficients[i] - EYELID_MOVEMENT_RATE * _averageMessageTime;
+                if (openingValue < eyeCoefficients[i] * EYE_OPEN_SCALE) {
+                    _eyeStates[i] = EYE_OPEN;
+                    eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
+                } else {
+                    eyeCoefficients[i] = openingValue;
+                }
+            } else  if (_eyeStates[i] == EYE_OPEN) {
+                // Reduce eyelid movement
+                eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
+            } else if (_eyeStates[i] == EYE_CLOSED) {
+                // Keep eyelid fully closed
+                eyeCoefficients[i] = 1.0;
+            }
+        }
+        if (_eyeStates[0] == EYE_OPEN && _eyeStates[1] == EYE_OPEN) {
+            // Couple eyelids
+            eyeCoefficients[0] = eyeCoefficients[1] = (eyeCoefficients[0] + eyeCoefficients[0]) / 2.0f;
+        }
+        _lastEyeCoefficients[0] = eyeCoefficients[0];
+        _lastEyeCoefficients[1] = eyeCoefficients[1];
+
+        // Use EyeBlink values to control both EyeBlink and EyeOpen
+        if (eyeCoefficients[0] > 0) {
+            _coefficients[_leftBlinkIndex] = eyeCoefficients[0];
+            _coefficients[_leftEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_leftBlinkIndex] = 0.0f;
+            _coefficients[_leftEyeOpenIndex] = -eyeCoefficients[0];
+        }
+        if (eyeCoefficients[1] > 0) {
+            _coefficients[_rightBlinkIndex] = eyeCoefficients[1];
+            _coefficients[_rightEyeOpenIndex] = 0.0f;
+        } else {
+            _coefficients[_rightBlinkIndex] = 0.0f;
+            _coefficients[_rightEyeOpenIndex] = -eyeCoefficients[1];
+        }
+
+        // Scale all coefficients
+        for (int i = 0; i < NUM_EXPRESSIONS; i++) {
+            _blendshapeCoefficients[i]
+                = glm::clamp(DDE_COEFFICIENT_SCALES[i] * _coefficients[i], 0.0f, 1.0f);
+        }
+
+        // Calculate average frame time
+        const float FRAME_AVERAGING_FACTOR = 0.99f;
+        quint64 usecsNow = usecTimestampNow();
+        if (_lastMessageReceived != 0) {
+            _averageMessageTime = FRAME_AVERAGING_FACTOR * _averageMessageTime 
+                + (1.0f - FRAME_AVERAGING_FACTOR) * (float)(usecsNow - _lastMessageReceived) / 1000000.0f;
+        }
+        _lastMessageReceived = usecsNow;
+
+        FaceTracker::countFrame();
+        
     } else {
-        qCDebug(interfaceapp) << "[Error] DDE Face Tracker Decode Error";
+        qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
 }

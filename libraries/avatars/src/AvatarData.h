@@ -46,9 +46,9 @@ typedef unsigned long long quint64;
 #include <QReadWriteLock>
 
 #include <CollisionInfo.h>
-#include <RegisteredMetaTypes.h>
-
 #include <Node.h>
+#include <RegisteredMetaTypes.h>
+#include <SimpleMovingAverage.h>
 
 #include "AABox.h"
 #include "HandData.h"
@@ -103,6 +103,12 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
+const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
+
+const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
+const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
+
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -287,13 +293,16 @@ public:
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
-    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
-     
     const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
 
+    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
+    int getAverageBytesReceivedPerSecond() const;
+    int getReceiveRate() const;
+
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
+    glm::vec3 getTargetVelocity() const { return _targetVelocity; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -375,7 +384,6 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
     QWeakPointer<Node> _owningAvatarMixer;
-    QElapsedTimer _lastUpdateTimer;
     
     PlayerPointer _player;
     
@@ -384,8 +392,11 @@ protected:
     void changeReferential(Referential* ref);
 
     glm::vec3 _velocity;
+    glm::vec3 _targetVelocity;
 
     AABox _localAABox;
+
+    SimpleMovingAverage _averageBytesReceived;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

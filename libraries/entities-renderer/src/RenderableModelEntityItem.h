@@ -16,11 +16,12 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem  {
+class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -52,13 +53,12 @@ public:
 
     bool needsToCallUpdate() const;
 
-    virtual void setCollisionModelURL(const QString& url);
-    virtual bool hasCollisionModel() const;
-    virtual const QString& getCollisionModelURL() const;
+    virtual void setCompoundShapeURL(const QString& url);
 
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
-    ShapeType getShapeType() const;
+    
+    virtual bool contains(const glm::vec3& point) const;
 
 private:
     void remapTextures();

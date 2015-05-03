@@ -22,6 +22,7 @@
 
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
+const int WAIT_FOR_CHILD_MSECS = 500;
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
@@ -69,6 +70,17 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
 }
 
+void AssignmentClientMonitor::waitOnChildren(int msecs) {
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        bool finished = childProcess->waitForFinished(msecs);
+        if (finished) {
+            i.remove();
+        }
+    }
+}
+
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -78,10 +90,40 @@ void AssignmentClientMonitor::stopChildProcesses() {
         QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
         nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
     });
+
+    // try to give all the children time to shutdown
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask more firmly
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        childProcess->terminate();
+    }
+
+    // try to give all the children time to shutdown
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask even more firmly
+    QMutableListIterator<QProcess*> j(_childProcesses);
+    while (j.hasNext()) {
+        QProcess* childProcess = j.next();
+        childProcess->kill();
+    }
+
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+}
+
+void AssignmentClientMonitor::aboutToQuit() {
+    stopChildProcesses();
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
+
+    _childProcesses.append(assignmentClient);
 
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
@@ -119,8 +161,6 @@ void AssignmentClientMonitor::spawnChildClient() {
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
 
-
-
 void AssignmentClientMonitor::checkSpares() {
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid aSpareId = "";
@@ -156,6 +196,8 @@ void AssignmentClientMonitor::checkSpares() {
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
+
+    waitOnChildren(0);
 }
 
 

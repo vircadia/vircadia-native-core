@@ -203,6 +203,16 @@ public:
     glm::quat rotation; // relative orientation
 };
 
+inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
+}
+
+inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
+}
+
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
@@ -252,6 +262,7 @@ public:
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
 
+    bool convexHullContains(const glm::vec3& point) const;
 
     QHash<int, QString> meshIndicesToModelNames;
     

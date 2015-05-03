@@ -324,7 +324,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-//
+
     QVector<int> getJointMappings(const AnimationPointer& animation);
 
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);

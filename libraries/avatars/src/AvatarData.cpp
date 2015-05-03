@@ -58,10 +58,11 @@ AvatarData::AvatarData() :
     _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _lastUpdateTimer(),
     _velocity(0.0f),
+    _targetVelocity(0.0f),
     _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
+
 }
 
 AvatarData::~AvatarData() {
@@ -266,9 +267,6 @@ bool AvatarData::shouldLogError(const quint64& now) {
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
-    
-    // reset the last heard timer since we have new data for this AvatarData
-    _lastUpdateTimer.restart();
     
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
@@ -554,7 +552,17 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         }
     } // numJoints * 8 bytes
     
-    return sourceBuffer - startPosition;
+    int numBytesRead = sourceBuffer - startPosition;
+    _averageBytesReceived.updateAverage(numBytesRead); 
+    return numBytesRead;
+}
+
+int AvatarData::getAverageBytesReceivedPerSecond() const {
+    return lrint(_averageBytesReceived.getAverageSampleValuePerSecond()); 
+}
+
+int AvatarData::getReceiveRate() const {
+    return lrint(1.0f / _averageBytesReceived.getEventDeltaAverage()); 
 }
 
 bool AvatarData::hasReferential() {

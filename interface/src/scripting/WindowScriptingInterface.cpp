@@ -45,13 +45,19 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 }
 
 void WindowScriptingInterface::setFocus() {
-    auto window = Application::getInstance()->getWindow();
-    window->activateWindow();
-    window->setFocus();
+    // It's forbidden to call focus() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        auto window = Application::getInstance()->getWindow();
+        window->activateWindow();
+        window->setFocus();
+    });
 }
 
 void WindowScriptingInterface::raiseMainWindow() {
-    Application::getInstance()->getWindow()->raise();
+    // It's forbidden to call raise() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        Application::getInstance()->getWindow()->raise();
+    });
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {

@@ -166,6 +166,9 @@ public:
     /// appends a string value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QString& string);
 
+    /// appends a uuid value to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QUuid& uuid);
+
     /// appends a QByteArray value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QByteArray& bytes);
 

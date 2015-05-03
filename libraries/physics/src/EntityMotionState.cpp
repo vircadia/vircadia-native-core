@@ -18,6 +18,8 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
+static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
+static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 QSet<EntityItem*>* _outgoingEntityList;
 
@@ -33,8 +35,12 @@ void EntityMotionState::enqueueOutgoingEntity(EntityItem* entity) {
     _outgoingEntityList->insert(entity);
 }
 
-EntityMotionState::EntityMotionState(EntityItem* entity) 
-    :   _entity(entity) {
+EntityMotionState::EntityMotionState(EntityItem* entity) :
+    _entity(entity),
+    _accelerationNearlyGravityCount(0),
+    _shouldClaimSimulationOwnership(false),
+    _movingStepsWithoutSimulationOwner(0)
+{
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != NULL);
 }
@@ -45,7 +51,7 @@ EntityMotionState::~EntityMotionState() {
     _entity = NULL;
 }
 
-MotionType EntityMotionState::computeMotionType() const {
+MotionType EntityMotionState::computeObjectMotionType() const {
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
@@ -62,6 +68,9 @@ void EntityMotionState::stepKinematicSimulation(quint64 now) {
     // which is different from physical kinematic motion (inside getWorldTransform())
     // which steps in physics simulation time.
     _entity->simulate(now);
+    // TODO: we can't use measureBodyAcceleration() here because the entity
+    // has no RigidBody and the timestep is a little bit out of sync with the physics simulation anyway.
+    // Hence we must manually measure kinematic velocity and acceleration.
 }
 
 bool EntityMotionState::isMoving() const {
@@ -71,7 +80,7 @@ bool EntityMotionState::isMoving() const {
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
-// (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
+// (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (_isKinematic) {
@@ -89,9 +98,10 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
 }
 
-// This callback is invoked by the physics simulation at the end of each simulation frame...
+// This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
+    measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
@@ -99,10 +109,22 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     getVelocity(v);
     _entity->setVelocity(v);
 
-    getAngularVelocity(v);
-    _entity->setAngularVelocity(v);
+    glm::vec3 av;
+    getAngularVelocity(av);
+    _entity->setAngularVelocity(av);
 
     _entity->setLastSimulated(usecTimestampNow());
+
+    if (_entity->getSimulatorID().isNull() && isMoving()) {
+        // object is moving and has no owner.  attempt to claim simulation ownership.
+        _movingStepsWithoutSimulationOwner++;
+    } else {
+        _movingStepsWithoutSimulationOwner = 0;
+    }
+
+    if (_movingStepsWithoutSimulationOwner > 4) { // XXX maybe meters from our characterController ?
+        setShouldClaimSimulationOwnership(true);
+    }
 
     _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
     EntityMotionState::enqueueOutgoingEntity(_entity);
@@ -116,75 +138,123 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::updateObjectEasy(uint32_t flags, uint32_t frame) {
-    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+void EntityMotionState::updateBodyEasy(uint32_t flags, uint32_t step) {
+    if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY | EntityItem::DIRTY_PHYSICS_NO_WAKE)) {
         if (flags & EntityItem::DIRTY_POSITION) {
-            _sentPosition = _entity->getPosition() - ObjectMotionState::getWorldOffset();
+            _sentPosition = getObjectPosition() - ObjectMotionState::getWorldOffset();
             btTransform worldTrans;
             worldTrans.setOrigin(glmToBullet(_sentPosition));
 
-            _sentRotation = _entity->getRotation();
+            _sentRotation = getObjectRotation();
             worldTrans.setRotation(glmToBullet(_sentRotation));
 
             _body->setWorldTransform(worldTrans);
         }
         if (flags & EntityItem::DIRTY_VELOCITY) {
-            updateObjectVelocities();
+            updateBodyVelocities();
         }
-        _sentFrame = frame;
+        _sentStep = step;
+
+        if (flags & (EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY)) {
+            _body->activate();
+        }
     }
 
-    // TODO: entity support for friction and restitution
-    //_restitution = _entity->getRestitution();
-    _body->setRestitution(_restitution);
-    //_friction = _entity->getFriction();
-    _body->setFriction(_friction);
-
-    _linearDamping = _entity->getDamping();
-    _angularDamping = _entity->getAngularDamping();
-    _body->setDamping(_linearDamping, _angularDamping);
+    if (flags & EntityItem::DIRTY_MATERIAL) {
+        updateBodyMaterialProperties();
+    }
 
     if (flags & EntityItem::DIRTY_MASS) {
-        float mass = _entity->computeMass();
+        ShapeInfo shapeInfo;
+        _entity->computeShapeInfo(shapeInfo);
+        float mass = computeObjectMass(shapeInfo);
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-    _body->activate();
-};
+}
 
-void EntityMotionState::updateObjectVelocities() {
+void EntityMotionState::updateBodyMaterialProperties() {
+    _body->setRestitution(getObjectRestitution());
+    _body->setFriction(getObjectFriction());
+    _body->setDamping(fabsf(btMin(getObjectLinearDamping(), 1.0f)), fabsf(btMin(getObjectAngularDamping(), 1.0f)));
+}
+
+void EntityMotionState::updateBodyVelocities() {
     if (_body) {
-        _sentVelocity = _entity->getVelocity();
-        setVelocity(_sentVelocity);
+        _sentVelocity = getObjectLinearVelocity();
+        setBodyVelocity(_sentVelocity);
 
-        _sentAngularVelocity = _entity->getAngularVelocity();
-        setAngularVelocity(_sentAngularVelocity);
+        _sentAngularVelocity = getObjectAngularVelocity();
+        setBodyAngularVelocity(_sentAngularVelocity);
 
-        _sentAcceleration = _entity->getGravity();
-        setGravity(_sentAcceleration);
+        _sentGravity = getObjectGravity();
+        setBodyGravity(_sentGravity);
 
         _body->setActivationState(ACTIVE_TAG);
     }
 }
 
-void EntityMotionState::computeShapeInfo(ShapeInfo& shapeInfo) {
+void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
     if (_entity->isReadyToComputeShape()) {
         _entity->computeShapeInfo(shapeInfo);
     }
 }
 
-float EntityMotionState::computeMass(const ShapeInfo& shapeInfo) const {
+float EntityMotionState::computeObjectMass(const ShapeInfo& shapeInfo) const {
     return _entity->computeMass();
 }
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) {
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
+    if (!ObjectMotionState::shouldSendUpdate(simulationFrame)) {
+        return false;
+    }
+
+    if (getShouldClaimSimulationOwnership()) {
+        return true;
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    const QUuid& simulatorID = _entity->getSimulatorID();
+
+    if (simulatorID != myNodeID) {
+        // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
+        return false;
+    }
+
+    return true;
+}
+
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     if (!_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
     if (_outgoingPacketFlags) {
         EntityItemProperties properties = _entity->getProperties();
+
+        float gravityLength = glm::length(_entity->getGravity());
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet.  this is to avoid
+                // overflowing the counter.
+                incrementAccelerationNearlyGravityCount();
+            }
+        } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            resetAccelerationNearlyGravityCount();
+        }
+
+        // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
+        // the entity server's estimates include gravity.
+        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
+            _entity->setAcceleration(_entity->getGravity());
+        } else {
+            _entity->setAcceleration(glm::vec3(0.0f));
+        }
 
         if (_outgoingPacketFlags & EntityItem::DIRTY_POSITION) {
             btTransform worldTrans = _body->getWorldTransform();
@@ -194,7 +264,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             _sentRotation = bulletToGLM(worldTrans.getRotation());
             properties.setRotation(_sentRotation);
         }
-    
+
+        bool zeroSpeed = true;
+        bool zeroSpin = true;
+
         if (_outgoingPacketFlags & EntityItem::DIRTY_VELOCITY) {
             if (_body->isActive()) {
                 _sentVelocity = bulletToGLM(_body->getLinearVelocity());
@@ -202,12 +275,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
                 // if the speeds are very small we zero them out
                 const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-                bool zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
+                zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
                 if (zeroSpeed) {
                     _sentVelocity = glm::vec3(0.0f);
                 }
                 const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-                bool zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
+                zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
                 if (zeroSpin) {
                     _sentAngularVelocity = glm::vec3(0.0f);
                 }
@@ -218,9 +291,28 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 _sentMoving = false;
             }
             properties.setVelocity(_sentVelocity);
-            _sentAcceleration = bulletToGLM(_body->getGravity());
-            properties.setGravity(_sentAcceleration);
+            _sentGravity = _entity->getGravity();
+            properties.setGravity(_entity->getGravity());
+            _sentAcceleration = _entity->getAcceleration();
+            properties.setAcceleration(_sentAcceleration);
             properties.setAngularVelocity(_sentAngularVelocity);
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        QUuid myNodeID = nodeList->getSessionUUID();
+        QUuid simulatorID = _entity->getSimulatorID();
+
+        if (getShouldClaimSimulationOwnership()) {
+            properties.setSimulatorID(myNodeID);
+            setShouldClaimSimulationOwnership(false);
+        } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
+            // we are the simulator and the entity has stopped.  give up "simulator" status
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
+        } else if (simulatorID == myNodeID && !_body->isActive()) {
+            // it's not active.  don't keep simulation ownership.
+            _entity->setSimulatorID(QUuid());
+            properties.setSimulatorID(QUuid());
         }
 
         // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
@@ -231,7 +323,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         }
         if (_numNonMovingUpdates <= 1) {
             // we only update lastEdited when we're sending new physics data 
-            // (i.e. NOT when we just simulate the positions forward, nore when we resend non-moving data)
+            // (i.e. NOT when we just simulate the positions forward, nor when we resend non-moving data)
             // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
             quint64 lastSimulated = _entity->getLastSimulated();
             _entity->setLastEdited(lastSimulated);
@@ -240,7 +332,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 quint64 now = usecTimestampNow();
                 qCDebug(physics) << "EntityMotionState::sendUpdate()";
-                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID() << "---------------------------------------------";
+                qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID()
+                                 << "---------------------------------------------";
                 qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
             #endif //def WANT_DEBUG
 
@@ -254,6 +347,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             #ifdef WANT_DEBUG
                 qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
             #endif
+
             entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
         } else {
             #ifdef WANT_DEBUG
@@ -264,7 +358,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         // The outgoing flags only itemized WHAT to send, not WHETHER to send, hence we always set them
         // to the full set.  These flags may be momentarily cleared by incoming external changes.  
         _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
-        _sentFrame = frame;
+        _sentStep = step;
     }
 }
 

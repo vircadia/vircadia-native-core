@@ -51,6 +51,7 @@ public:
 
     static QString getNameFromType(ModelType modelType);
     static FSTReader::ModelType getTypeFromName(const QString& name);
+    static QVariantHash downloadMapping(const QString& url);
 
 private:
     static void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it);

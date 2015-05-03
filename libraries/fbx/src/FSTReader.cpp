@@ -10,6 +10,13 @@
 //
 
 #include <QBuffer>
+#include <QEventLoop>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+
+#include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
+#include <SharedUtil.h>
 
 #include "FSTReader.h"
 
@@ -168,4 +175,18 @@ FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
     }
     
     return ENTITY_MODEL;
+}
+
+QVariantHash FSTReader::downloadMapping(const QString& url) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    qDebug() << "Downloading avatar file at " << url;
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    QByteArray fstContents = reply->readAll();
+    delete reply;
+    return FSTReader::readMapping(fstContents);
 }

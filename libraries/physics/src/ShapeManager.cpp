@@ -35,7 +35,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     // Very small or large objects are not supported.
     float diagonal = 4.0f * glm::length2(info.getHalfExtents());
     const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
-    const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e6f;  // 1000 m cube
+    //const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e6f;  // 1000 m cube
     if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED /* || diagonal > MAX_SHAPE_DIAGONAL_SQUARED*/ ) {
         // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
         return NULL;
@@ -104,11 +104,9 @@ void ShapeManager::collectGarbage() {
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
             // if the shape we're about to delete is compound, delete the children first.
-            auto shapeType = ShapeInfoUtil::fromBulletShapeType(shapeRef->shape->getShapeType());
-            if (shapeType == SHAPE_TYPE_COMPOUND) {
+            if (shapeRef->shape->getShapeType() == COMPOUND_SHAPE_PROXYTYPE) {
                 const btCompoundShape* compoundShape = static_cast<const btCompoundShape*>(shapeRef->shape);
                 const int numChildShapes = compoundShape->getNumChildShapes();
-                QVector<QVector<glm::vec3>> points;
                 for (int i = 0; i < numChildShapes; i ++) {
                     const btCollisionShape* childShape = compoundShape->getChildShape(i);
                     delete childShape;

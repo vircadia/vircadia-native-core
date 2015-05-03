@@ -203,6 +203,7 @@ SunSkyStage::SunSkyStage() :
     _sunLight->setType(Light::SUN);
  
     setSunIntensity(1.0f);
+    setSunAmbientIntensity(0.5f);
     setSunColor(Vec3(1.0f, 1.0f, 1.0f));
 
     // Default origin location is a special place in the world...
@@ -249,11 +250,25 @@ void SunSkyStage::setOriginLocation(float longitude, float latitude, float altit
     invalidate();
 }
 
+void SunSkyStage::setSunModelEnable(bool isEnabled) {
+    _sunModelEnable = isEnabled;
+    invalidate();
+}
+
 void SunSkyStage::setSunColor(const Vec3& color) {
     _sunLight->setColor(color);
 }
 void SunSkyStage::setSunIntensity(float intensity) {
     _sunLight->setIntensity(intensity);
+}
+void SunSkyStage::setSunAmbientIntensity(float intensity) {
+    _sunLight->setAmbientIntensity(intensity);
+}
+
+void SunSkyStage::setSunDirection(const Vec3& direction) {
+    if (!isSunModelEnabled()) {
+        _sunLight->setDirection(direction);
+    }
 }
 
 // THe sun declinaison calculus is taken from https://en.wikipedia.org/wiki/Position_of_the_Sun
@@ -271,19 +286,19 @@ void SunSkyStage::updateGraphicsObject() const {
     // And update the sunLAtitude as the declinaison depending of the time of the year
     _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
-    Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
-    _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
+    if (isSunModelEnabled()) {
+        Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
+        _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
 
-    double originAlt = _earthSunModel.getAltitude();
-    _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+        double originAlt = _earthSunModel.getAltitude();
+        _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+    }
 
     static int firstTime = 0;
     if (firstTime == 0) {
         firstTime++;
         gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
-    
     }
-
 }
 
 void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {

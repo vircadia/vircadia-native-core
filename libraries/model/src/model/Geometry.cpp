@@ -97,7 +97,7 @@ const Box Mesh::evalPartBounds(int partStart, int partEnd, Boxes& bounds) const 
         auto vertices = &_vertexBuffer.get<Vec3>((*part)._baseVertex);
         for (;index != endIndex; index++) {
             // skip primitive restart indices
-            if ((*index) != PRIMITIVE_RESTART_INDEX) {
+            if ((*index) != (uint) PRIMITIVE_RESTART_INDEX) {
                 partBound += vertices[(*index)];
             }
         }

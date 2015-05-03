@@ -125,14 +125,57 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
+// TODO: Move to model::Mesh when Sam's ready
+bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
+    if (!getUnscaledMeshExtents().containsPoint(point)) {
+        return false;
+    }
+    
+    auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
+        // Check whether the point is "behind" all the primitives.
+        for (int j = 0; j < indices.size(); j += primitiveSize) {
+            if (!isPointBehindTrianglesPlane(point,
+                                             mesh.vertices[indices[j]],
+                                             mesh.vertices[indices[j + 1]],
+                                             mesh.vertices[indices[j + 2]])) {
+                // it's not behind at least one so we bail
+                return false;
+            }
+        }
+        return true;
+    };
+    
+    // Check that the point is contained in at least one convex mesh.
+    for (auto mesh : meshes) {
+        bool insideMesh = true;
+        
+        // To be considered inside a convex mesh,
+        // the point needs to be "behind" all the primitives respective planes.
+        for (auto part : mesh.parts) {
+            // run through all the triangles and quads
+            if (!checkEachPrimitive(mesh, part.triangleIndices, 3) ||
+                !checkEachPrimitive(mesh, part.quadIndices, 4)) {
+                // If not, the point is outside, bail for this mesh
+                insideMesh = false;
+                continue;
+            }
+        }
+        if (insideMesh) {
+            // It's inside this mesh, return true.
+            return true;
+        }
+    }
+    
+    // It wasn't in any mesh, return false.
+    return false;
+}
+
 QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
     if (meshIndicesToModelNames.contains(meshIndex)) {
         return meshIndicesToModelNames.value(meshIndex);
     }
     return QString();
 }
-
-
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
@@ -1426,7 +1469,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
                     glm::vec3 rotationMin, rotationMax;
-                    FBXModel model = { name, -1 };
+                    FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
+                                       glm::mat4(), glm::vec3(), glm::vec3()};
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1642,7 +1686,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f,
+                                          QString(""), QSharedPointer<model::Material>(NULL)};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1701,11 +1746,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     material.id = getID(object.properties);
 
                     material._material = model::MaterialPointer(new model::Material());
-                    material._material->setEmissive(material.emissive); 
-                    material._material->setDiffuse(material.diffuse); 
+                    material._material->setEmissive(material.emissive);
+                    if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
+                        material._material->setDiffuse(material.diffuse); 
+                    } else {
+                        material._material->setDiffuse(material.diffuse); 
+                    }
                     material._material->setSpecular(material.specular); 
                     material._material->setShininess(material.shininess); 
-                    material._material->setOpacity(material.opacity); 
+
+                    if (material.opacity <= 0.0f) {
+                        material._material->setOpacity(1.0f); 
+                    } else {
+                        material._material->setOpacity(material.opacity); 
+                    }
 
                     materials.insert(material.id, material);
 

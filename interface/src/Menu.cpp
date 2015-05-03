@@ -20,6 +20,7 @@
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
+#include <VrMenu.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -30,7 +31,6 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -53,7 +53,6 @@ Menu* Menu::getInstance() {
 
     if (!_instance) {
         qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
-
         _instance = new Menu();
     }
 
@@ -63,8 +62,7 @@ Menu* Menu::getInstance() {
 }
 
 Menu::Menu() {
-    QMenu* fileMenu = addMenu("File");
-
+    MenuWrapper * fileMenu = addMenu("File");
 #ifdef Q_OS_MAC
     addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
 #endif
@@ -97,7 +95,7 @@ Menu::Menu() {
     
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
-                                  Qt::Key_Enter,
+                                  Qt::CTRL | Qt::Key_L,
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
     auto addressManager = DependencyManager::get<AddressManager>();
@@ -114,7 +112,7 @@ Menu::Menu() {
                                   QAction::QuitRole);
 
 
-    QMenu* editMenu = addMenu("Edit");
+    MenuWrapper* editMenu = addMenu("Edit");
 
     QUndoStack* undoStack = qApp->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
@@ -137,7 +135,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0,
                                   dialogsManager.data(), SLOT(editAnimations()));
 
-    QMenu* toolsMenu = addMenu("Tools");
+    MenuWrapper* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
                                   dialogsManager.data(), SLOT(showScriptEditor()));
 
@@ -151,33 +149,34 @@ Menu::Menu() {
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
     
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, Qt::Key_Backslash,
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 
+                                  0, // QML Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
                                   qApp, SLOT(showFriendsWindow()));
 
-    QMenu* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
+    MenuWrapper* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
     {
         QActionGroup* visibilityGroup = new QActionGroup(toolsMenu);
         auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
 
         QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToEveryone);
 
         QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToFriends);
 
         QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
             0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            this, SLOT(setVisibility()));
+            discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToNoOne);
 
         connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
-            this, &Menu::visibilityChanged);
+            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
     }
 
     addActionToQMenuAndActionHash(toolsMenu,
@@ -194,30 +193,30 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ResetSensors,
-                                  Qt::Key_Apostrophe,
+                                  0, // QML Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
     
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
-    QMenu* avatarMenu = addMenu("Avatar");
+    MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    QMenu* avatarSizeMenu = avatarMenu->addMenu("Size");
+    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
-                                  Qt::Key_Plus,
+                                  0, // QML Qt::Key_Plus,
                                   avatar,
                                   SLOT(increaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
-                                  Qt::Key_Minus,
+                                  0, // QML Qt::Key_Minus,
                                   avatar,
                                   SLOT(decreaseSize()));
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
-                                  Qt::Key_Equal,
+                                  0, // QML Qt::Key_Equal,
                                   avatar,
                                   SLOT(resetSize()));
 
@@ -233,34 +232,38 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
             avatar, SLOT(updateMotionBehavior()));
 
-    QMenu* viewMenu = addMenu("View");
+    MenuWrapper* viewMenu = addMenu("View");
 
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::Fullscreen,
 #ifdef Q_OS_MAC
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::META | Qt::Key_F,
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
 #else
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
                                            Qt::CTRL | Qt::Key_F,
+#endif
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
-#endif
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true,
-                                            qApp,SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H, true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
-                                            qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, 
+        0, // QML Qt::Key_P, 
+        true, qApp, SLOT(cameraMenuChanged()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, 
+        0, //QML Qt::SHIFT | Qt::Key_H, 
+        true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, 
+        0, // QML Qt::Key_H, 
+        false, qApp, SLOT(cameraMenuChanged()));
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 
+#ifdef Q_OS_MAC
+                                           Qt::META | Qt::Key_H,
+#else
+                                           Qt::CTRL | Qt::Key_H,
+#endif
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
-
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -273,7 +276,7 @@ Menu::Menu() {
                                            SLOT(setEnable3DTVMode(bool)));
 
 
-    QMenu* nodeBordersMenu = viewMenu->addMenu("Server Borders");
+    MenuWrapper* nodeBordersMenu = viewMenu->addMenu("Server Borders");
     NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
@@ -282,23 +285,26 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L, qApp, SLOT(toggleLogDialog()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, 
+        Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
+        qApp, SLOT(toggleLogDialog()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
                                   dialogsManager.data(), SLOT(octreeStatsDetails()));
 
 
-    QMenu* developerMenu = addMenu("Developer");
+    MenuWrapper* developerMenu = addMenu("Developer");
 
-    QMenu* renderOptionsMenu = developerMenu->addMenu("Render");
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+    MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 
+        0, // QML Qt::SHIFT | Qt::Key_A, 
+        true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
 
-    QMenu* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
+    MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
     ambientLightGroup->setExclusive(true);
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLightGlobal, 0, true));
@@ -313,14 +319,14 @@ Menu::Menu() {
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
     
-    QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
+    MenuWrapper* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
 
     {
-        QMenu* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
+        MenuWrapper* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
         QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
         framerateGroup->setExclusive(true);
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
@@ -337,7 +343,7 @@ Menu::Menu() {
     }
 
 
-    QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
+    MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
     resolutionGroup->setExclusive(true);
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, true));
@@ -346,17 +352,20 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 
+        0, // QML Qt::Key_Asterisk,
+        true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L,
-                                  dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 
+        0, // QML Qt::SHIFT | Qt::Key_L,
+        dialogsManager.data(), SLOT(lodTools()));
 
-    QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
+    MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
-    QMenu* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
+    MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
     {
         QActionGroup* faceTrackerGroup = new QActionGroup(avatarDebugMenu);
 
@@ -371,19 +380,24 @@ Menu::Menu() {
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
-
-        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::DDEFaceRegression, 
+#ifdef HAVE_DDE
+        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera, 
             0, false,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
-
-#ifdef HAVE_VISAGE
-        QAction* visageFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::Visage, 
-            0, false,
-            qApp, SLOT(setActiveFaceTracker()));
-        faceTrackerGroup->addAction(visageFaceTracker);
 #endif
     }
+#ifdef HAVE_DDE
+    faceTrackingMenu->addSeparator();
+    QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
+    useAudioForMouth->setVisible(false);
+    QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
+    ddeFiltering->setVisible(false);
+#endif
+    
+    auto avatarManager = DependencyManager::get<AvatarManager>(); 
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
+                                           avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
@@ -391,14 +405,14 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
 
-    QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
+    MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     
-    QMenu* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
+    MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
 #ifdef __APPLE__
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::SixenseEnabled,
@@ -421,7 +435,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
 
-    QMenu* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
+    MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
 #ifdef HAVE_RSSDK
@@ -430,7 +444,7 @@ Menu::Menu() {
                                   RealSense::getInstance(), SLOT(loadRSSDKFile()));
 #endif
 
-    QMenu* networkMenu = developerMenu->addMenu("Network");
+    MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
@@ -443,8 +457,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
                                   dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
 
-    QMenu* timingMenu = developerMenu->addMenu("Timing and Stats");
-    QMenu* perfTimerMenu = timingMenu->addMenu("Performance Timer");
+    MenuWrapper* timingMenu = developerMenu->addMenu("Timing and Stats");
+    MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayDebugTimingDetails, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
@@ -460,7 +474,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
 
     auto audioIO = DependencyManager::get<AudioClient>();
-    QMenu* audioDebugMenu = developerMenu->addMenu("Audio");
+    MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
                                            0,
                                            true,
@@ -471,8 +485,6 @@ Menu::Menu() {
                                            audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
                                            audioIO.data(), SLOT(toggleLocalEcho()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
-                                           audioIO.data(), SLOT(toggleStereoInput()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
                                            Qt::CTRL | Qt::Key_M,
                                            false,
@@ -483,34 +495,10 @@ Menu::Menu() {
                                   0,
                                   audioIO.data(),
                                   SLOT(sendMuteEnvironmentPacket()));
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
-                                           0,
-                                           false,
-                                           audioIO.data(),
-                                           SLOT(toggleAudioSourceInject()));
-    QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
-    {
-        QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
-                                                               0,
-                                                               false,
-                                                               audioIO.data(),
-                                                               SLOT(selectAudioSourcePinkNoise()));
-        
-        QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
-                                                                    0,
-                                                                    true,
-                                                                    audioIO.data(),
-                                                                    SLOT(selectAudioSourceSine440()));
-
-        QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
-        audioSourceGroup->addAction(pinkNoise);
-        audioSourceGroup->addAction(sine440);
-    }
     
     auto scope = DependencyManager::get<AudioScope>();
 
-    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
+    MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            scope.data(),
@@ -559,7 +547,12 @@ Menu::Menu() {
                                             statsRenderer.data(),
                                             SLOT(toggleShowInjectedStreams()));
 
-    QMenu* helpMenu = addMenu("Help");
+
+    MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+
+    MenuWrapper* helpMenu = addMenu("Help");
     addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
 
 #ifndef Q_OS_MAC
@@ -605,7 +598,7 @@ void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& setting
     settings.endGroup();
 }
 
-void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
+void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName, int menuItemLocation) {
     QAction* actionBefore = NULL;
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
         actionBefore = destinationMenu->actions()[menuItemLocation];
@@ -625,7 +618,7 @@ void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& 
     }
 }
 
-QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
+QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              const QString& actionName,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
@@ -662,7 +655,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
     return action;
 }
 
-QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
+QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              QAction* action,
                                              const QString& actionName,
                                              const QKeySequence& shortcut,
@@ -697,7 +690,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
     return action;
 }
 
-QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
+QAction* Menu::addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                       const QString& actionName,
                                                       const QKeySequence& shortcut,
                                                       const bool checked,
@@ -713,7 +706,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
     return action;
 }
 
-void Menu::removeAction(QMenu* menu, const QString& actionName) {
+void Menu::removeAction(MenuWrapper* menu, const QString& actionName) {
     menu->removeAction(_actionHash.value(actionName));
     _actionHash.remove(actionName);
 }
@@ -752,7 +745,7 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
     return _actionHash.value(menuOption);
 }
 
-QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
+QAction* Menu::getActionFromName(const QString& menuName, MenuWrapper* menu) {
     QList<QAction*> menuActions;
     if (menu) {
         menuActions = menu->actions();
@@ -761,6 +754,7 @@ QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
     }
     
     foreach (QAction* menuAction, menuActions) {
+        QString actionText = menuAction->text();
         if (menuName == menuAction->text()) {
             return menuAction;
         }
@@ -768,18 +762,18 @@ QAction* Menu::getActionFromName(const QString& menuName, QMenu* menu) {
     return NULL;
 }
 
-QMenu* Menu::getSubMenuFromName(const QString& menuName, QMenu* menu) {
+MenuWrapper* Menu::getSubMenuFromName(const QString& menuName, MenuWrapper* menu) {
     QAction* action = getActionFromName(menuName, menu);
     if (action) {
-        return action->menu();
+        return MenuWrapper::fromMenu(action->menu());
     }
     return NULL;
 }
 
-QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
+MenuWrapper* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
     QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
-    QMenu* menu = NULL;
+    MenuWrapper* parent = NULL;
+    MenuWrapper* menu = NULL;
     foreach (QString menuTreePart, menuTree) {
         parent = menu;
         finalMenuPart = menuTreePart.trimmed();
@@ -791,10 +785,10 @@ QMenu* Menu::getMenuParent(const QString& menuName, QString& finalMenuPart) {
     return parent;
 }
 
-QMenu* Menu::getMenu(const QString& menuName) {
+MenuWrapper* Menu::getMenu(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
-    QMenu* menu = NULL;
+    MenuWrapper* parent = NULL;
+    MenuWrapper* menu = NULL;
     int item = 0;
     foreach (QString menuTreePart, menuTree) {
         menu = getSubMenuFromName(menuTreePart.trimmed(), parent);
@@ -809,19 +803,19 @@ QMenu* Menu::getMenu(const QString& menuName) {
 
 QAction* Menu::getMenuAction(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
-    QMenu* parent = NULL;
+    MenuWrapper* parent = NULL;
     QAction* action = NULL;
     foreach (QString menuTreePart, menuTree) {
         action = getActionFromName(menuTreePart.trimmed(), parent);
         if (!action) {
             break;
         }
-        parent = action->menu();
+        parent = MenuWrapper::fromMenu(action->menu());
     }
     return action;
 }
 
-int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
+int Menu::findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem) {
     int position = 0;
     foreach(QAction* action, menu->actions()) {
         if (action->text() == searchMenuItem) {
@@ -832,7 +826,7 @@ int Menu::findPositionOfMenuItem(QMenu* menu, const QString& searchMenuItem) {
     return UNSPECIFIED_POSITION; // not found
 }
 
-int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
+int Menu::positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition) {
     QList<QAction*> menuActions = menu->actions();
     if (requestedPosition > 1 && requestedPosition < menuActions.size()) {
         QAction* beforeRequested = menuActions[requestedPosition - 1];
@@ -844,15 +838,15 @@ int Menu::positionBeforeSeparatorIfNeeded(QMenu* menu, int requestedPosition) {
 }
 
 
-QMenu* Menu::addMenu(const QString& menuName) {
+MenuWrapper* Menu::addMenu(const QString& menuName) {
     QStringList menuTree = menuName.split(">");
-    QMenu* addTo = NULL;
-    QMenu* menu = NULL;
+    MenuWrapper* addTo = NULL;
+    MenuWrapper* menu = NULL;
     foreach (QString menuTreePart, menuTree) {
         menu = getSubMenuFromName(menuTreePart.trimmed(), addTo);
         if (!menu) {
             if (!addTo) {
-                menu = QMenuBar::addMenu(menuTreePart.trimmed());
+                menu = new MenuWrapper(QMenuBar::addMenu(menuTreePart.trimmed()));
             } else {
                 menu = addTo->addMenu(menuTreePart.trimmed());
             }
@@ -870,7 +864,7 @@ void Menu::removeMenu(const QString& menuName) {
     // only proceed if the menu actually exists
     if (action) {
         QString finalMenuPart;
-        QMenu* parent = getMenuParent(menuName, finalMenuPart);
+        MenuWrapper* parent = getMenuParent(menuName, finalMenuPart);
         if (parent) {
             parent->removeAction(action);
         } else {
@@ -892,14 +886,14 @@ bool Menu::menuExists(const QString& menuName) {
 }
 
 void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
-    QMenu* menuObj = getMenu(menuName);
+    MenuWrapper* menuObj = getMenu(menuName);
     if (menuObj) {
         addDisabledActionAndSeparator(menuObj, separatorName);
     }
 }
 
 void Menu::removeSeparator(const QString& menuName, const QString& separatorName) {
-    QMenu* menu = getMenu(menuName);
+    MenuWrapper* menu = getMenu(menuName);
     bool separatorRemoved = false;
     if (menu) {
         int textAt = findPositionOfMenuItem(menu, separatorName);
@@ -922,7 +916,7 @@ void Menu::removeSeparator(const QString& menuName, const QString& separatorName
 }
 
 void Menu::addMenuItem(const MenuItemProperties& properties) {
-    QMenu* menuObj = getMenu(properties.menuName);
+    MenuWrapper* menuObj = getMenu(properties.menuName);
     if (menuObj) {
         QShortcut* shortcut = NULL;
         if (!properties.shortcutKeySequence.isEmpty()) {
@@ -963,7 +957,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
 }
 
 void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
-    QMenu* menuObj = getMenu(menu);
+    MenuWrapper* menuObj = getMenu(menu);
     if (menuObj) {
         removeAction(menuObj, menuitem);
         QMenuBar::repaint();
@@ -978,28 +972,62 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     return false;
 };
 
-void Menu::setVisibility() {
-    auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToEveryone)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::All);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToFriends)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::Friends);
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::VisibleToNoOne)) {
-        discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::setVisibility() called with unrecognized value.";
-    }
+MenuWrapper::MenuWrapper(QMenu* menu) : _realMenu(menu) {
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addMenu(menu);
+    });
+    _backMap[menu] = this;
 }
 
-void Menu::visibilityChanged(Discoverability::Mode discoverabilityMode) {
-    if (discoverabilityMode == Discoverability::All) {
-        setIsOptionChecked(MenuOption::VisibleToEveryone, true);
-    } else if (discoverabilityMode == Discoverability::Friends) {
-        setIsOptionChecked(MenuOption::VisibleToFriends, true);
-    } else if (discoverabilityMode == Discoverability::None) {
-        setIsOptionChecked(MenuOption::VisibleToNoOne, true);
-    } else {
-        qCDebug(interfaceapp) << "ERROR Menu::visibilityChanged() called with unrecognized value.";
-    }
+QList<QAction*> MenuWrapper::actions() {
+    return _realMenu->actions();
 }
+
+MenuWrapper* MenuWrapper::addMenu(const QString& menuName) {
+    return new MenuWrapper(_realMenu->addMenu(menuName));
+}
+
+void MenuWrapper::setEnabled(bool enabled) {
+    _realMenu->setEnabled(enabled);
+}
+
+void MenuWrapper::addSeparator() {
+    _realMenu->addSeparator();
+}
+
+void MenuWrapper::addAction(QAction* action) {
+    _realMenu->addAction(action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
+}
+
+QAction* MenuWrapper::addAction(const QString& menuName) {
+    QAction* action = _realMenu->addAction(menuName);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
+    return action;
+}
+
+QAction* MenuWrapper::addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut) {
+    QAction* action = _realMenu->addAction(menuName, receiver, member, shortcut);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addAction(_realMenu, action);
+    });
+    return action;
+}
+
+void MenuWrapper::removeAction(QAction* action) {
+    _realMenu->removeAction(action);
+}
+
+void MenuWrapper::insertAction(QAction* before, QAction* action) {
+    _realMenu->insertAction(before, action);
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->insertAction(before, action);
+    });
+}
+
+QHash<QMenu*, MenuWrapper*> MenuWrapper::_backMap;

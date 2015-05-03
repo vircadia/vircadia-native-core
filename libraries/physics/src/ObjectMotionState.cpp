@@ -22,7 +22,7 @@ const float MAX_FRICTION = 10.0f;
 
 const float DEFAULT_RESTITUTION = 0.5f;
 
-// origin of physics simulation in world frame
+// origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 
 // static 
@@ -35,23 +35,29 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
+// static 
+uint32_t _worldSimulationStep = 0;
+void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
+    assert(step > _worldSimulationStep);
+    _worldSimulationStep = step;
+}
 
 ObjectMotionState::ObjectMotionState() : 
-    _friction(DEFAULT_FRICTION), 
-    _restitution(DEFAULT_RESTITUTION), 
-    _linearDamping(0.0f),
-    _angularDamping(0.0f),
     _motionType(MOTION_TYPE_STATIC),
     _body(NULL),
     _sentMoving(false),
     _numNonMovingUpdates(0),
     _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
-    _sentFrame(0),
+    _sentStep(0),
     _sentPosition(0.0f),
     _sentRotation(),
     _sentVelocity(0.0f),
     _sentAngularVelocity(0.0f),
-    _sentAcceleration(0.0f) {
+    _sentGravity(0.0f),
+    _sentAcceleration(0.0f),
+    _lastSimulationStep(0),
+    _lastVelocity(0.0f),
+    _measuredAcceleration(0.0f) {
 }
 
 ObjectMotionState::~ObjectMotionState() {
@@ -59,31 +65,36 @@ ObjectMotionState::~ObjectMotionState() {
     assert(_body == NULL);
 }
 
-void ObjectMotionState::setFriction(float friction) {
-    _friction = btMax(btMin(fabsf(friction), MAX_FRICTION), 0.0f);
+void ObjectMotionState::measureBodyAcceleration() {
+    // try to manually measure the true acceleration of the object
+    uint32_t numSubsteps = _worldSimulationStep - _lastSimulationStep;
+    if (numSubsteps > 0) {
+        float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
+        float invDt = 1.0f / dt;
+        _lastSimulationStep = _worldSimulationStep;
+
+        // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
+        // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
+        glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
+        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
+        _lastVelocity = velocity;
+    }
 }
 
-void ObjectMotionState::setRestitution(float restitution) {
-    _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
+void ObjectMotionState::resetMeasuredBodyAcceleration() {
+    _lastSimulationStep = _worldSimulationStep;
+    _lastVelocity = bulletToGLM(_body->getLinearVelocity());
 }
 
-void ObjectMotionState::setLinearDamping(float damping) {
-    _linearDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setAngularDamping(float damping) {
-    _angularDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setAngularVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyAngularVelocity(const glm::vec3& velocity) const {
     _body->setAngularVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setGravity(const glm::vec3& gravity) const {
+void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 
@@ -103,15 +114,16 @@ bool ObjectMotionState::doesNotNeedToSendUpdate() const {
     return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
 }
 
-bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
+bool ObjectMotionState::shouldSendUpdate(uint32_t simulationStep) {
     assert(_body);
-    // if we've never checked before, our _sentFrame will be 0, and we need to initialize our state
-    if (_sentFrame == 0) {
-        _sentPosition = bulletToGLM(_body->getWorldTransform().getOrigin());
+    // if we've never checked before, our _sentStep will be 0, and we need to initialize our state
+    if (_sentStep == 0) {
+        btTransform xform = _body->getWorldTransform();
+        _sentPosition = bulletToGLM(xform.getOrigin());
+        _sentRotation = bulletToGLM(xform.getRotation());
         _sentVelocity = bulletToGLM(_body->getLinearVelocity());
-        _sentRotation = bulletToGLM(_body->getWorldTransform().getRotation());
         _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
-        _sentFrame = simulationFrame;
+        _sentStep = simulationStep;
         return false;
     }
     
@@ -121,9 +133,9 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     glm::vec3 wasAngularVelocity = _sentAngularVelocity;
     #endif
 
-    int numFrames = simulationFrame - _sentFrame;
-    float dt = (float)(numFrames) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-    _sentFrame = simulationFrame;
+    int numSteps = simulationStep - _sentStep;
+    float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+    _sentStep = simulationStep;
     bool isActive = _body->isActive();
 
     if (!isActive) {
@@ -143,13 +155,13 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
     // of remote EntitySimulation) and return true if the error is significant.
 
-    // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
+    // NOTE: math is done in the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
 
     // compute position error
     if (glm::length2(_sentVelocity) > 0.0f) {
         _sentVelocity += _sentAcceleration * dt;
-        _sentVelocity *= powf(1.0f - _linearDamping, dt);
+        _sentVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
         _sentPosition += dt * _sentVelocity;
     }
 
@@ -174,12 +186,12 @@ bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
     
     if (glm::length2(_sentAngularVelocity) > 0.0f) {
         // compute rotation error
-        float attenuation = powf(1.0f - _angularDamping, dt);
+        float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
         _sentAngularVelocity *= attenuation;
    
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 
         // we must integrate with the same algorithm and timestep in order achieve similar results.
-        for (int i = 0; i < numFrames; ++i) {
+        for (int i = 0; i < numSteps; ++i) {
             _sentRotation = glm::normalize(computeBulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
         }
     }

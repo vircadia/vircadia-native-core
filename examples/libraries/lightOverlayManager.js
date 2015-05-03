@@ -122,7 +122,7 @@ LightOverlayManager = function() {
     Entities.clearingEntities.connect(clearEntities);
 
     // Add existing entities
-    var ids = Entities.findEntities(MyAvatar.position, 100);
+    var ids = Entities.findEntities(MyAvatar.position, 64000);
     for (var i = 0; i < ids.length; i++) {
         addEntity(ids[i]);
     }

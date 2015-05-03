@@ -82,7 +82,6 @@ public:
     virtual void update();
 
     // The newer API...
-    EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -164,7 +163,7 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
-    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element);
+    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
 
 signals:

@@ -95,8 +95,10 @@
         };
 
         function loaded() {
+            var allSections = [];
             var elID = document.getElementById("property-id");
             var elType = document.getElementById("property-type");
+            var elName = document.getElementById("property-name");
             var elLocked = document.getElementById("property-locked");
             var elVisible = document.getElementById("property-visible");
             var elPositionX = document.getElementById("property-pos-x");
@@ -145,12 +147,13 @@
             var elScriptURL = document.getElementById("property-script-url");
             var elUserData = document.getElementById("property-user-data");
 
-            var elBoxSections = document.querySelectorAll(".box-section");
-            var elBoxColorRed = document.getElementById("property-box-red");
-            var elBoxColorGreen = document.getElementById("property-box-green");
-            var elBoxColorBlue = document.getElementById("property-box-blue");
+            var elColorSection = document.getElementById("color-section");
+            var elColorRed = document.getElementById("property-color-red");
+            var elColorGreen = document.getElementById("property-color-green");
+            var elColorBlue = document.getElementById("property-color-blue");
 
             var elLightSections = document.querySelectorAll(".light-section");
+            allSections.push(elLightSections);
             var elLightSpotLight = document.getElementById("property-light-spot-light");
             var elLightColorRed = document.getElementById("property-light-color-red");
             var elLightColorGreen = document.getElementById("property-light-color-green");
@@ -161,8 +164,10 @@
             var elLightCutoff = document.getElementById("property-light-cutoff");
 
             var elModelSections = document.querySelectorAll(".model-section");
+            allSections.push(elModelSections);
             var elModelURL = document.getElementById("property-model-url");
-            var elCollisionModelURL = document.getElementById("property-collision-model-url");
+            var elShapeType = document.getElementById("property-shape-type");
+            var elCompoundShapeURL = document.getElementById("property-compound-shape-url");
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
@@ -170,9 +175,9 @@
             var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
-            var elModelShapeType = document.getElementById("property-model-shape");
 
             var elTextSections = document.querySelectorAll(".text-section");
+            allSections.push(elTextSections);
             var elTextText = document.getElementById("property-text-text");
             var elTextLineHeight = document.getElementById("property-text-line-height");
             var elTextTextColorRed = document.getElementById("property-text-text-color-red");
@@ -181,6 +186,24 @@
             var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
             var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
             var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
+
+            var elZoneSections = document.querySelectorAll(".zone-section");
+            allSections.push(elZoneSections);
+            var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
+            var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
+            var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
+            var elZoneKeyLightColorBlue = document.getElementById("property-zone-key-light-color-blue");
+            var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
+            var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-ambient-intensity");
+            var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
+            var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
+            var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
+
+            var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
+            var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
+            var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
+            var elZoneStageDay = document.getElementById("property-zone-stage-day");
+            var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -239,6 +262,8 @@
                                 enableChildren(document.getElementById("properties-list"), 'input');
                             }
 
+                            elName.value = properties.name;
+
                             elVisible.checked = properties.visible;
 
                             elPositionX.value = properties.position.x.toFixed(2);
@@ -282,31 +307,29 @@
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
 
-                            if (properties.type != "Box") {
-                                for (var i = 0; i < elBoxSections.length; i++) {
-                                    elBoxSections[i].style.display = 'none';
+                            for (var i = 0; i < allSections.length; i++) {
+                                for (var j = 0; j < allSections[i].length; j++) {
+                                    allSections[i][j].style.display = 'none';
                                 }
-                            } else {
-                                for (var i = 0; i < elBoxSections.length; i++) {
-                                    elBoxSections[i].style.display = 'block';
-                                }
-
-                                elBoxColorRed.value = properties.color.red;
-                                elBoxColorGreen.value = properties.color.green;
-                                elBoxColorBlue.value = properties.color.blue;
                             }
 
-                            if (properties.type != "Model") {
-                                for (var i = 0; i < elModelSections.length; i++) {
-                                    elModelSections[i].style.display = 'none';
-                                }
+                            if (properties.type == "Box" || properties.type == "Sphere") {
+                                elColorSection.style.display = 'block';
+                                elColorRed.value = properties.color.red;
+                                elColorGreen.value = properties.color.green;
+                                elColorBlue.value = properties.color.blue;
                             } else {
+                                elColorSection.style.display = 'none';
+                            }
+
+                            if (properties.type == "Model") {
                                 for (var i = 0; i < elModelSections.length; i++) {
                                     elModelSections[i].style.display = 'block';
                                 }
 
                                 elModelURL.value = properties.modelURL;
-                                elCollisionModelURL.value = properties.collisionModelURL;
+                                elShapeType.value = properties.shapeType;
+                                elCompoundShapeURL.value = properties.compoundShapeURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
                                 elModelAnimationFPS.value = properties.animationFPS;
@@ -314,14 +337,7 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
-                                elModelShapeType.value = properties.shapeType;
-                            }
-
-                            if (properties.type != "Text") {
-                                for (var i = 0; i < elTextSections.length; i++) {
-                                    elTextSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Text") {
                                 for (var i = 0; i < elTextSections.length; i++) {
                                     elTextSections[i].style.display = 'block';
                                 }
@@ -334,13 +350,7 @@
                                 elTextBackgroundColorRed.value = properties.backgroundColor.red;
                                 elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                                 elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
-                            }
-
-                            if (properties.type != "Light") {
-                                for (var i = 0; i < elLightSections.length; i++) {
-                                    elLightSections[i].style.display = 'none';
-                                }
-                            } else {
+                            } else if (properties.type == "Light") {
                                 for (var i = 0; i < elLightSections.length; i++) {
                                     elLightSections[i].style.display = 'block';
                                 }
@@ -354,6 +364,28 @@
                                 elLightIntensity.value = properties.intensity;
                                 elLightExponent.value = properties.exponent;
                                 elLightCutoff.value = properties.cutoff;
+                            } else if (properties.type == "Zone") {
+                                for (var i = 0; i < elZoneSections.length; i++) {
+                                    elZoneSections[i].style.display = 'block';
+                                }
+
+                                elZoneStageSunModelEnabled.checked = properties.stageSunModelEnabled;
+                                elZoneKeyLightColorRed.value = properties.keyLightColor.red;
+                                elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
+                                elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
+                                elZoneKeyLightIntensity.value = properties.keyLightIntensity.toFixed(2);
+                                elZoneKeyLightAmbientIntensity.value = properties.keyLightAmbientIntensity.toFixed(2);
+                                elZoneKeyLightDirectionX.value = properties.keyLightDirection.x.toFixed(2);
+                                elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
+                                elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
+
+                                elZoneStageLatitude.value = properties.stageLatitude.toFixed(2);
+                                elZoneStageLongitude.value = properties.stageLongitude.toFixed(2);
+                                elZoneStageAltitude.value = properties.stageAltitude.toFixed(2);
+                                elZoneStageDay.value = properties.stageDay;
+                                elZoneStageHour.value = properties.stageHour;
+                                elShapeType.value = properties.shapeType;
+                                elCompoundShapeURL.value = properties.compoundShapeURL;
                             }
 
                             if (selected) {
@@ -366,6 +398,7 @@
             }
 
             elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
+            elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
             elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
 
             var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
@@ -425,11 +458,11 @@
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
-            var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
-            elBoxColorRed.addEventListener('change', boxColorChangeFunction);
-            elBoxColorGreen.addEventListener('change', boxColorChangeFunction);
-            elBoxColorBlue.addEventListener('change', boxColorChangeFunction);
+            var colorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'color', elColorRed, elColorGreen, elColorBlue);
+            elColorRed.addEventListener('change', colorChangeFunction);
+            elColorGreen.addEventListener('change', colorChangeFunction);
+            elColorBlue.addEventListener('change', colorChangeFunction);
 
             elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
@@ -444,14 +477,14 @@
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
-            elCollisionModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionModelURL'));
+            elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
+            elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
             elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
             elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
-            elModelShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -467,6 +500,26 @@
             elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
+
+            elZoneStageSunModelEnabled.addEventListener('change', createEmitCheckedPropertyUpdateFunction('stageSunModelEnabled'));
+            var zoneKeyLightColorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'keyLightColor', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
+            elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
+            elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
+            elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
+            elZoneKeyLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('keyLightIntensity'));
+            elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('keyLightAmbientIntensity'));
+            var zoneKeyLightDirectionChangeFunction = createEmitVec3PropertyUpdateFunction(
+                'keyLightDirection', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
+            elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+            elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+            elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+            elZoneStageLatitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLatitude'));
+            elZoneStageLongitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLongitude'));
+            elZoneStageAltitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageAltitude'));
+            elZoneStageDay.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageDay'));
+            elZoneStageHour.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageHour'));
 
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
@@ -508,18 +561,22 @@
             // To make this work we block the first mouseup event after the elements
             // received focus.  If we block all mouseup events the user will not
             // be able to click within the selected text.
+            // We also check to see if the value has changed to make sure we aren't
+            // blocking a mouse-up event when clicking on an input spinner.
             var els = document.querySelectorAll("input, textarea");
             for (var i = 0; i < els.length; i++) {
                 var clicked = false;
+                var originalText;
                 els[i].onfocus = function() {
+                    originalText = this.value;
                     this.select();
                     clicked = false;
                 };
                 els[i].onmouseup = function(e) {
-                    if (!clicked) {
+                    if (!clicked && originalText == this.value) {
                         e.preventDefault();
-                        clicked = true;
                     }
+                    clicked = true;
                 };
             }
         }
@@ -535,6 +592,12 @@
         <div class="property">
             <div class="value">
                 <label id="property-id" class="selectable"></label>
+            </div>
+        </div>
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">Name</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-name"></input>
             </div>
         </div>
         <div class="property">
@@ -690,12 +753,12 @@
         </div>
 
 
-        <div class="box-section property">
+        <div id="color-section" class="property">
             <div class="label">Color</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-box-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-box-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-box-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
             </div>
         </div>
 
@@ -707,10 +770,21 @@
                 <input type="text" id="property-model-url" class="url"></input>
             </div>
         </div>
-        <div class="model-section property">
-            <div class="label">Collision Model URL</div>
+        <div class="model-section zone-section property">
+            <div class="label">Shape Type</div>
             <div class="value">
-                <input type="text" id="property-collision-model-url" class="url"></input>
+                <select name="SelectShapeType" id="property-shape-type" name="SelectShapeType">
+                    <option value='none'>none</option>
+                    <option value='box'>box</option>
+                    <option value='sphere'>sphere</option>
+                    <option value='compound'>compound</option>
+                </select> 
+            </div>
+        </div>
+        <div class="model-section zone-section property">
+            <div class="label">Compound Shape URL</div>
+            <div class="value">
+                <input type="text" id="property-compound-shape-url" class="url"></input>
             </div>
         </div>
         <div class="model-section property">
@@ -755,18 +829,6 @@
                 <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
             </div>
         </div>
-
-        <div class="model-section property">
-            <div class="label">Shape Type</div>
-            <div class="value">
-                <select name="SelectShapeType" id="property-model-shape" name="SelectShapeType">
-                    <option value='none'>none</option>
-                    <option value='box'>box</option>
-                    <option value='sphere'>sphere</option>
-                </select> 
-            </div>
-        </div>
-
 
         <div class="text-section property">
             <div class="label">Text</div>
@@ -827,6 +889,73 @@
             <div class="label">Spot Light Cutoff (degrees)</div>
             <div class="value">
                 <input class="coord" type='number' id="property-light-cutoff"></input>
+            </div>
+        </div>
+
+        <div class="zone-section property">
+            <span class="label">Stage Sun Model Enabled</span>
+            <span class="value">
+                <input type='checkbox' id="property-zone-stage-sun-model-enabled">
+            </span>
+        </div>
+
+        <div class="zone-section property">
+            <div class="label">Key Light Color</div>
+            <div class="value">
+                <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green" min="0" max="255" step="1"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></input></div>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Key Light Intensity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Key Light Ambient Intensity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Key Light Direction</div>
+            <div class="value">
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></input></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></input></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-zone-key-light-direction-z"></input></div>
+            </div>
+        </div>
+
+        <div class="zone-section property">
+            <div class="label">Stage Latitude</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Stage Longitude</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Stage Altitude</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Stage Day</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1"></input>
+            </div>
+        </div>
+        <div class="zone-section property">
+            <div class="label">Stage Hour</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5"></input>
             </div>
         </div>
     </div>

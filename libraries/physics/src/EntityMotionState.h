@@ -31,12 +31,11 @@ public:
     static void setOutgoingEntityList(QSet<EntityItem*>* list);
     static void enqueueOutgoingEntity(EntityItem* entity);
 
-    EntityMotionState() = delete; // prevent compiler from making default ctor
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    virtual MotionType computeMotionType() const;
+    virtual MotionType computeObjectMotionType() const;
 
     virtual void updateKinematicState(uint32_t substep);
     virtual void stepKinematicSimulation(quint64 now);
@@ -50,21 +49,43 @@ public:
     virtual void setWorldTransform(const btTransform& worldTrans);
 
     // these relay incoming values to the RigidBody
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame);
-    virtual void updateObjectVelocities();
+    virtual void updateBodyEasy(uint32_t flags, uint32_t step);
+    virtual void updateBodyMaterialProperties();
+    virtual void updateBodyVelocities();
 
-    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
-    virtual float computeMass(const ShapeInfo& shapeInfo) const;
+    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
+    virtual float computeObjectMass(const ShapeInfo& shapeInfo) const;
 
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
+    virtual bool shouldSendUpdate(uint32_t simulationFrame);
+    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() const;
     virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
 
-    EntityItem* getEntity() const { return _entity; }
+    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
+    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
+    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+
+    virtual EntityItem* getEntity() const { return _entity; }
+    virtual void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
+    virtual bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
+
+    virtual float getObjectRestitution() const { return _entity->getRestitution(); }
+    virtual float getObjectFriction() const { return _entity->getFriction(); }
+    virtual float getObjectLinearDamping() const { return _entity->getDamping(); }
+    virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
+
+    virtual const glm::vec3& getObjectPosition() const { return _entity->getPosition(); }
+    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
+    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
 protected:
     EntityItem* _entity;
+    quint8 _accelerationNearlyGravityCount;
+    bool _shouldClaimSimulationOwnership;
+    quint32 _movingStepsWithoutSimulationOwner;
 };
 
 #endif // hifi_EntityMotionState_h

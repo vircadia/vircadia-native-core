@@ -15,6 +15,8 @@
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "ZoneEntityItem.h"
+#include "EntitiesLogging.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -60,22 +62,44 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 }
 
 
+
+void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+    propertiesWithSimID.setSimulatorID(myNodeID);
+    entity->setSimulatorID(myNodeID);
+}
+
+
+
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
-    EntityItemID id(NEW_ENTITY, creatorTokenID, false );
+    EntityItemProperties propertiesWithSimID = properties;
+
+    EntityItemID id(NEW_ENTITY, creatorTokenID, false);
 
     // If we have a local entity tree set, then also update it.
+    bool success = true;
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->addEntity(id, properties);
+        EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        if (entity) {
+            // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+            setSimId(propertiesWithSimID, entity);
+        } else {
+            qCDebug(entities) << "script failed to add new Entity to local Octree";
+            success = false;
+        }
         _entityTree->unlock();
     }
 
     // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    if (success) {
+        queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
+    }
 
     return id;
 }
@@ -137,30 +161,29 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
             entityID.isKnownID = true;
         }
     }
-    
+
+    EntityItemProperties propertiesWithSimID = properties;
+
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
+        _entityTree->updateEntity(entityID, propertiesWithSimID, canAdjustLocks());
         _entityTree->unlock();
     }
 
     // if at this point, we know the id, send the update to the entity server
     if (entityID.isKnownID) {
         // make sure the properties has a type, so that the encode can know which properties to include
-        if (properties.getType() == EntityTypes::Unknown) {
+        if (propertiesWithSimID.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                EntityItemProperties tempProperties = properties;
-                tempProperties.setType(entity->getType());
-                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, tempProperties);
-                return entityID;
+                propertiesWithSimID.setType(entity->getType());
+                setSimId(propertiesWithSimID, entity);
             }
         }
-        
-        // if the properties already includes the type, then use it as is
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, propertiesWithSimID);
     }
     
     return entityID;
@@ -291,6 +314,22 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setZonesArePickable(bool value) {
+    ZoneEntityItem::setZonesArePickable(value);
+}
+
+bool EntityScriptingInterface::getZonesArePickable() const {
+    return ZoneEntityItem::getZonesArePickable();
+}
+
+void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
+    ZoneEntityItem::setDrawZoneBoundaries(value);
+}
+
+bool EntityScriptingInterface::getDrawZoneBoundaries() const {
+    return ZoneEntityItem::getDrawZoneBoundaries();
 }
 
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {

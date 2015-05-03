@@ -54,7 +54,9 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080
+        DIRTY_UPDATEABLE = 0x0080,
+        DIRTY_MATERIAL = 0x00100,
+        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -132,7 +134,7 @@ public:
     
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed);
+    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
 
     virtual bool needsToCallUpdate() const { return false; }
 
@@ -145,24 +147,15 @@ public:
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
-    glm::vec3 getPositionInDomainUnits() const { return _position / (float)TREE_SCALE; } /// get position in domain scale units (0.0 - 1.0)
     const glm::vec3& getPosition() const { return _position; } /// get position in meters
     
-    /// set position in domain scale units (0.0 - 1.0)
-    void setPositionInDomainUnits(const glm::vec3& value)
-            { setPosition(glm::clamp(value, 0.0f, 1.0f) * (float)TREE_SCALE); }
     void setPosition(const glm::vec3& value) { 
         _position = value; 
     }
 
-    glm::vec3 getCenterInDomainUnits() const { return getCenter() / (float) TREE_SCALE; }
     glm::vec3 getCenter() const;
 
-    glm::vec3 getDimensionsInDomainUnits() const { return _dimensions / (float)TREE_SCALE; } /// get dimensions in domain scale units (0.0 - 1.0)
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in meters
-
-    /// set dimensions in domain scale units (0.0 - 1.0)
-    virtual void setDimensionsInDomainUnits(const glm::vec3& value) { _dimensions = glm::abs(value) * (float)TREE_SCALE; }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE)
     virtual void setDimensions(const glm::vec3& value) { _dimensions = glm::abs(value); }
@@ -182,24 +175,23 @@ public:
 
     float getDensity() const { return _density; }
 
-    glm::vec3 getVelocityInDomainUnits() const { return _velocity / (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
-    const glm::vec3 getVelocity() const { return _velocity; } /// get velocity in meters
-    void setVelocityInDomainUnits(const glm::vec3& value) { _velocity = value * (float)TREE_SCALE; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3& getVelocity() const { return _velocity; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
-    glm::vec3 getGravityInDomainUnits() const { return _gravity / (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
     const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
-    void setGravityInDomainUnits(const glm::vec3& value) { _gravity = value * (float)TREE_SCALE; } /// gravity in domain scale units (0.0-1.0) per second squared
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
 
-    const glm::vec3 getAcceleration() const { return _acceleration; } /// get acceleration in meters/second
-    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second
+    const glm::vec3& getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
+    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
     
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
+
+    float getRestitution() const;
+    float getFriction() const;
 
     // lifetime related properties.
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
@@ -220,7 +212,6 @@ public:
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
     AABox getAABox() const; /// axis aligned bounding box in world-frame (meters)
-    AABox getAABoxInDomainUnits() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
@@ -237,6 +228,9 @@ public:
 
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
+
+    QString getName() const { return _name; }
+    void setName(const QString& value) { _name = value; }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -255,8 +249,9 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
 
-    QString getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QString& id) { _simulatorID = id; }
+    QUuid getSimulatorID() const { return _simulatorID; }
+    void setSimulatorID(const QUuid& value);
+    quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -264,11 +259,11 @@ public:
     // TODO: get rid of users of getRadius()... 
     float getRadius() const;
     
-    virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
-    virtual bool containsInDomainUnits(const glm::vec3& point) const { return getAABoxInDomainUnits().contains(point); }
+    virtual bool contains(const glm::vec3& point) const;
 
     virtual bool isReadyToComputeShape() { return true; }
     virtual void computeShapeInfo(ShapeInfo& info);
+    virtual float getVolumeEstimate() const { return _dimensions.x * _dimensions.y * _dimensions.z; }
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -308,12 +303,16 @@ public:
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
 
+    glm::mat4 getEntityToWorldMatrix() const;
+    glm::mat4 getWorldToEntityMatrix() const;
+    glm::vec3 worldToEntity(const glm::vec3& point) const;
+    glm::vec3 entityToWorld(const glm::vec3& point) const;
+
+    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+
 protected:
 
     static bool _sendPhysicsUpdates;
-
-    virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
-
     EntityTypes::EntityType _type;
     QUuid _id;
     uint32_t _creatorTokenID;
@@ -323,7 +322,7 @@ protected:
     quint64 _lastEdited; // last official local or remote edit time
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
-    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received and edit from the server (in server-time-frame)
+    quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
     quint64 _created;
     quint64 _changedOnServer;
 
@@ -351,8 +350,10 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
-    QString _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
+    quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
+    QString _name;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

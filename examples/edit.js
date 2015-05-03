@@ -28,6 +28,7 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/lightOverlayManager.js",
+    "libraries/zoneOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
@@ -35,6 +36,7 @@ var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
+var zoneOverlayManager = new ZoneOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -47,6 +49,7 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
+    zoneOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -77,11 +80,13 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_IN_EDIT_MODE = "Show Lights in Edit Mode";
+var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
+var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
@@ -135,6 +140,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newZoneButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -201,6 +207,14 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+        newZoneButton = toolBar.addTool({
+            imageURL: toolIconUrl + "zonecube_text.svg",
+            subImage: { x: 0, y: 128, width: 128, height: 128 },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
 
         that.setActive(false);
     }
@@ -232,6 +246,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -241,6 +256,7 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newZoneButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -412,6 +428,21 @@ var toolBar = (function () {
             return true;
         }
 
+        if (newZoneButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Zone",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 10, y: 10, z: 10 },
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
         return false;
     };
 
@@ -486,11 +517,21 @@ function rayPlaneIntersection(pickRay, point, normal) {
 }
 
 function findClickedEntity(event) {
+    var pickZones = event.isControl;
+
+    if (pickZones) {
+        Entities.setZonesArePickable(true);
+    }
+
     var pickRay = Camera.computePickRay(event.x, event.y);
 
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
     var lightResult = lightOverlayManager.findRayIntersection(pickRay);
     lightResult.accurate = true;
+
+    if (pickZones) {
+        Entities.setZonesArePickable(false);
+    }
 
     var result;
 
@@ -551,7 +592,11 @@ var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
-function mouseMoveEvent(event) {
+var lastMouseMoveEvent = null;
+function mouseMoveEventBuffered(event) {
+    lastMouseMoveEvent = event;
+}
+function mouseMove(event) {
     mouseHasMovedSincePress = true;
 
     if (placingEntityID) {
@@ -620,6 +665,10 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
+    }
     if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
         return true;
     }
@@ -731,7 +780,7 @@ function mouseClickEvent(event) {
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEventBuffered);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 
@@ -776,6 +825,8 @@ function setupModelMenus() {
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE, afterItem: MENU_EASE_ON_FOCUS,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE, afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true" });
 
     Entities.setLightsArePickable(false);
 }
@@ -804,12 +855,14 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
+    Menu.removeMenuItem("View", MENU_SHOW_ZONES_IN_EDIT_MODE);
 }
 
 Script.scriptEnding.connect(function() {
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     Settings.setValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
 
     progressDialog.cleanup();
     toolBar.cleanup();
@@ -836,6 +889,10 @@ Script.update.connect(function (deltaTime) {
         propertyMenu.hide();
         lastOrientation = Camera.orientation;
         lastPosition = Camera.position;
+    }
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
     }
 });
 
@@ -942,6 +999,8 @@ function handeMenuEvent(menuItem) {
         selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
+    } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
+        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
@@ -1154,6 +1213,9 @@ PropertiesTool = function(opts) {
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
+                if (data.properties.name != undefined) {
+                    entityListTool.sendUpdate();
+                }
             }
             pushCommandForSelections();
             selectionManager._update();

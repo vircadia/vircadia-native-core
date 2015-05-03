@@ -24,7 +24,6 @@ enum ShapeType {
     SHAPE_TYPE_BOX,
     SHAPE_TYPE_SPHERE,
     SHAPE_TYPE_ELLIPSOID,
-    SHAPE_TYPE_CONVEX_HULL,
     SHAPE_TYPE_PLANE,
     SHAPE_TYPE_COMPOUND,
     SHAPE_TYPE_CAPSULE_X,
@@ -47,16 +46,21 @@ public:
     void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
     void setCapsuleY(float radius, float halfHeight);
 
-    const int getType() const { return _type; }
+    int getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
 
     const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
+    uint32_t getNumSubShapes() const;
 
     void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
 
     float computeVolume() const;
+    
+    /// Returns whether point is inside the shape
+    /// For compound shapes it will only return whether it is inside the bounding box
+    bool contains(const glm::vec3& point) const;
 
     const DoubleHashKey& getHash() const;
 

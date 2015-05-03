@@ -43,6 +43,17 @@ inline QDebug& operator<<(QDebug& dbg, const xColor& c) {
     return dbg;
 }
 
+inline bool operator==(const xColor& lhs, const xColor& rhs)
+{
+    return (lhs.red == rhs.red) && (lhs.green == rhs.green) && (lhs.blue == rhs.blue);
+}
+
+inline bool operator!=(const xColor& lhs, const xColor& rhs)
+{
+    return (lhs.red != rhs.red) || (lhs.green != rhs.green) || (lhs.blue != rhs.blue);
+}
+
+
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;

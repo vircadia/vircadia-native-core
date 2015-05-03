@@ -34,6 +34,9 @@ private slots:
     void sendStatsPacketToACM();
     void stopAssignmentClient();
 
+public slots:
+    void aboutToQuit();
+
 private:
     void setUpStatsToMonitor(int ppid);
     Assignment _requestAssignment;

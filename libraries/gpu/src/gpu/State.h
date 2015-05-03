@@ -41,20 +41,9 @@ public:
     State();
     virtual ~State();
 
-    const Stamp getStamp() const { return _stamp; }
-    
-    enum ComparisonFunction {
-        NEVER = 0,
-        LESS,
-        EQUAL,
-        LESS_EQUAL,
-        GREATER,
-        NOT_EQUAL,
-        GREATER_EQUAL,
-        ALWAYS,
-
-        NUM_COMPARISON_FUNCS,
-    };
+    Stamp getStamp() const { return _stamp; }
+ 
+    typedef ::gpu::ComparisonFunction ComparisonFunction;
 
     enum FillMode {
         FILL_POINT = 0,
@@ -414,6 +403,5 @@ typedef std::shared_ptr< State > StatePointer;
 typedef std::vector< StatePointer > States;
 
 };
-
 
 #endif

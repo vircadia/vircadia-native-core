@@ -8,11 +8,9 @@
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
-const float TERMINAL_VELOCITY = 55.0f;
 const float JUMP_SPEED = 3.5f;
 
 const float MAX_FALL_HEIGHT = 20.0f;
-const float MIN_HOVER_HEIGHT = 3.0f;
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -43,8 +41,8 @@ protected:
 
 DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _halfHeight = 1.0f;
-    _shape = NULL;
-    _rigidBody = NULL;
+    _shape = nullptr;
+    _rigidBody = nullptr;
 
     assert(avatarData);
     _avatarData = avatarData;
@@ -96,7 +94,7 @@ void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
     }
 }
 
-void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld,btScalar dt) {
+void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 actualVelocity = _rigidBody->getLinearVelocity();
     btScalar actualSpeed = actualVelocity.length();
 
@@ -245,7 +243,6 @@ void DynamicCharacterController::setEnabled(bool enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
             // Setting the ADD bit here works for all cases so we don't even bother checking other bits.
             _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
-            setHovering(true);
         } else {
             if (_dynamicsWorld) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
@@ -253,6 +250,7 @@ void DynamicCharacterController::setEnabled(bool enabled) {
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
             _isOnGround = false;
         }
+        setHovering(true);
         _enabled = enabled;
     }
 }
@@ -264,7 +262,7 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
                 _dynamicsWorld->removeRigidBody(_rigidBody);
                 _dynamicsWorld->removeAction(this);
             }
-            _dynamicsWorld = NULL;
+            _dynamicsWorld = nullptr;
         }
         if (world && _rigidBody) {
             _dynamicsWorld = world;
@@ -294,9 +292,9 @@ void DynamicCharacterController::updateShapeIfNecessary() {
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
         // delete shape and RigidBody
         delete _rigidBody;
-        _rigidBody = NULL;
+        _rigidBody = nullptr;
         delete _shape;
-        _shape = NULL;
+        _shape = nullptr;
 
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
@@ -316,11 +314,11 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             // create new body
             float mass = 1.0f;
             btVector3 inertia(1.0f, 1.0f, 1.0f);
-            _rigidBody = new btRigidBody(mass, NULL, _shape, inertia);
-            _rigidBody->setSleepingThresholds (0.0f, 0.0f);
-            _rigidBody->setAngularFactor (0.0f);
+            _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
+            _rigidBody->setSleepingThresholds(0.0f, 0.0f);
+            _rigidBody->setAngularFactor(0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                            glmToBullet(_avatarData->getPosition())));
+                                                      glmToBullet(_avatarData->getPosition())));
             if (_isHovering) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
             } else {
@@ -386,7 +384,7 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
             setHovering(true);
         }
 
-        _walkVelocity = glmToBullet(_avatarData->getVelocity());
+        _walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
 
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
@@ -408,6 +406,7 @@ void DynamicCharacterController::postSimulation() {
 
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(position - rotation * _shapeLocalOffset);
+        _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
     }
 }
 
