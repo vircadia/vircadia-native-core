@@ -989,11 +989,12 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-    switch (event->type()) {
-        case Lambda:
-            ((LambdaEvent*)event)->call();
-            return true;
+    if ((int)event->type() == (int)Lambda) {
+        ((LambdaEvent*)event)->call();
+        return true;
+    }
 
+    switch (event->type()) {
         case QEvent::MouseMove:
             mouseMoveEvent((QMouseEvent*)event);
             return true;
