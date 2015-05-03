@@ -75,7 +75,7 @@ public:
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
-    QUuid getID() const { return _id; }
+    const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
