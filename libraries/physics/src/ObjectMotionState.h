@@ -114,6 +114,8 @@ public:
     virtual const glm::vec3& getObjectAngularVelocity() const = 0;
     virtual const glm::vec3& getObjectGravity() const = 0;
 
+    virtual const QUuid& getObjectID() const = 0;
+
     virtual void bump() = 0;
 
     friend class PhysicsEngine;

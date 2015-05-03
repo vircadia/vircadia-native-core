@@ -67,6 +67,8 @@ public:
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
 
+    virtual const QUuid& getObjectID() const { return _entity->getID(); }
+
     virtual void bump();
 
     EntityItem* getEntity() const { return _entity; }
