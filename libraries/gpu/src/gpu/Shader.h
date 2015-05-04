@@ -20,7 +20,7 @@ namespace gpu {
 class Shader {
 public:
 
-    typedef QSharedPointer< Shader > Pointer;
+    typedef std::shared_ptr< Shader > Pointer;
     typedef std::vector< Pointer > Shaders;
 
     class Source {

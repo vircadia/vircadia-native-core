@@ -117,7 +117,7 @@ public:
         void evaluateCache();
     };
 
-    typedef QSharedPointer<Format> FormatPointer;
+    typedef std::shared_ptr<Format> FormatPointer;
 };
 
 typedef std::vector< Offset > Offsets;
@@ -143,7 +143,7 @@ protected:
     Offsets _offsets;
     Strides _strides;
 };
-typedef QSharedPointer<BufferStream> BufferStreamPointer;
+typedef std::shared_ptr<BufferStream> BufferStreamPointer;
 
 };
 

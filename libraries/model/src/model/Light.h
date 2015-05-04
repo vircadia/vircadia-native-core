@@ -282,7 +282,7 @@ protected:
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
 };
-typedef QSharedPointer< Light > LightPointer;
+typedef std::shared_ptr< Light > LightPointer;
 
 };
 

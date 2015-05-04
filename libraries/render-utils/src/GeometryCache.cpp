@@ -69,7 +69,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereVertices.contains(radiusKey))) {
 
         if (registered && _registeredSphereVertices.contains(id)) {
-            _registeredSphereVertices[id].clear();
+            _registeredSphereVertices[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
             #endif
@@ -133,7 +133,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
 
         if (registered && _registeredSphereIndices.contains(id)) {
-            _registeredSphereIndices[id].clear();
+            _registeredSphereIndices[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
             #endif
@@ -219,7 +219,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereColors.contains(colorKey))) {
 
         if (registered && _registeredSphereColors.contains(id)) {
-            _registeredSphereColors[id].clear();
+            _registeredSphereColors[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
             #endif
@@ -1581,10 +1581,10 @@ GeometryCache::BatchItemDetails::~BatchItemDetails() {
 
 void GeometryCache::BatchItemDetails::clear() {
     isCreated = false;
-    verticesBuffer.clear();
-    colorBuffer.clear();
-    streamFormat.clear();
-    stream.clear();
+    verticesBuffer.reset();
+    colorBuffer.reset();
+    streamFormat.reset();
+    stream.reset();
 }
 
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, 

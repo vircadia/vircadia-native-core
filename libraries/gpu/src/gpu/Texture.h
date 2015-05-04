@@ -109,7 +109,7 @@ public:
         Element _format;
         bool _isGPULoaded;
     };
-    typedef QSharedPointer< Pixels > PixelsPointer;
+    typedef std::shared_ptr< Pixels > PixelsPointer;
 
     class Storage {
     public:
@@ -303,7 +303,7 @@ protected:
     friend class Backend;
 };
 
-typedef QSharedPointer<Texture> TexturePointer;
+typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
 
@@ -344,7 +344,7 @@ public:
     TextureView(const TextureView& view) = default;
     TextureView& operator=(const TextureView& view) = default;
 
-    explicit operator bool() const { return (_texture); }
+    explicit operator bool() const { return bool(_texture); }
     bool operator !() const { return (!_texture); }
 };
 typedef std::vector<TextureView> TextureViews;

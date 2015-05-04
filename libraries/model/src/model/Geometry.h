@@ -47,7 +47,7 @@ public:
     void setVertexBuffer(const BufferView& buffer);
     const BufferView& getVertexBuffer() const { return _vertexBuffer; }
     uint getNumVertices() const { return _vertexBuffer.getNumElements(); }
-    bool hasVertexData() const { return !_vertexBuffer._buffer.isNull(); }
+    bool hasVertexData() const { return !_vertexBuffer._buffer; }
 
     // Attribute Buffers
     int getNumAttributes() const { return _attributeBuffers.size(); }
@@ -126,7 +126,7 @@ protected:
     void evalVertexFormat();
 
 };
-typedef QSharedPointer< Mesh > MeshPointer;
+typedef std::shared_ptr< Mesh > MeshPointer;
 
 
 class Geometry {

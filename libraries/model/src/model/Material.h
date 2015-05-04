@@ -19,7 +19,26 @@
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
+#include <qurl.h>
+
 namespace model {
+
+// TextureStorage is a specialized version of the gpu::Texture::Storage
+// It adds the URL and the notion that it owns the gpu::Texture
+class LoadedTexture : public gpu::Texture::Storage {
+public:
+    LoadedTexture(const QUrl& url);
+    ~LoadedTexture();
+
+    const QUrl& getUrl() const { return _url; }
+    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+
+protected:
+    gpu::TexturePointer _gpuTexture;
+    QUrl _url;
+};
+typedef std::shared_ptr< LoadedTexture > LoadedTexturePointer;
+
 typedef gpu::BufferView UniformBufferView;
 typedef gpu::TextureView TextureView;
 
@@ -102,7 +121,7 @@ protected:
     TextureMap _textureMap;
 
 };
-typedef QSharedPointer< Material > MaterialPointer;
+typedef std::shared_ptr< Material > MaterialPointer;
 
 };
 

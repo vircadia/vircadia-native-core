@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include <QSharedPointer>
+#include <memory>
 #ifdef _DEBUG
 #include <QDebug>
 #endif
@@ -156,7 +156,7 @@ protected:
     friend class Backend;
 };
 
-typedef QSharedPointer<Buffer> BufferPointer;
+typedef std::shared_ptr<Buffer> BufferPointer;
 typedef std::vector< BufferPointer > Buffers;
 
 
@@ -317,7 +317,7 @@ public:
 
     template <typename T> const T& get() const {
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
@@ -333,7 +333,7 @@ public:
 
     template <typename T> T& edit() {
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
@@ -350,7 +350,7 @@ public:
     template <typename T> const T& get(const Index index) const {
         Resource::Size elementOffset = index * sizeof(T) + _offset;
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {
@@ -366,7 +366,7 @@ public:
     template <typename T> T& edit(const Index index) const {
         Resource::Size elementOffset = index * sizeof(T) + _offset;
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {
