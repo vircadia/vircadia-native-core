@@ -101,6 +101,10 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
+    void setSkyboxMode(SkyboxMode value) { _skyboxMode = value; }
+    SkyboxMode getSkyboxMode() const { return _skyboxMode; }
+    
+
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
@@ -137,6 +141,7 @@ protected:
     ShapeType _shapeType = SHAPE_TYPE_NONE;
     QString _compoundShapeURL;
     
+    SkyboxMode _skyboxMode = SKYBOX_MODE_INHERIT;
     AtmospherePropertyGroup _atmospherePropeties;
 
     static bool _zonesArePickable;

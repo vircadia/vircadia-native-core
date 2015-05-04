@@ -89,6 +89,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(stageDay, ZoneEntityItem::DEFAULT_STAGE_DAY),
     CONSTRUCT_PROPERTY(stageHour, ZoneEntityItem::DEFAULT_STAGE_HOUR),
     CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
+    CONSTRUCT_PROPERTY(skyboxMode, SKYBOX_MODE_INHERIT),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -236,6 +237,37 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
+const char* skyboxModeNames[] = {"inherit", "atmosphere", "texture" };
+
+QHash<QString, SkyboxMode> stringToSkyboxModeLookup;
+
+void addSkyboxMode(SkyboxMode type) {
+    stringToSkyboxModeLookup[skyboxModeNames[type]] = type;
+}
+
+void buildStringToSkyboxModeLookup() {
+    addSkyboxMode(SKYBOX_MODE_INHERIT);
+    addSkyboxMode(SKYBOX_MODE_ATMOSPHERE);
+    addSkyboxMode(SKYBOX_MODE_TEXTURE);
+}
+
+QString EntityItemProperties::getSkyboxModeAsString() const {
+    if (_skyboxMode < sizeof(skyboxModeNames) / sizeof(char *))
+        return QString(skyboxModeNames[_skyboxMode]);
+    return QString(skyboxModeNames[SKYBOX_MODE_INHERIT]);
+}
+
+void EntityItemProperties::setSkyboxModeFromString(const QString& shapeName) {
+    if (stringToSkyboxModeLookup.empty()) {
+        buildStringToSkyboxModeLookup();
+    }
+    auto skyboxModeItr = stringToSkyboxModeLookup.find(shapeName.toLower());
+    if (skyboxModeItr != stringToSkyboxModeLookup.end()) {
+        _skyboxMode = skyboxModeItr.value();
+        _skyboxModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
@@ -295,6 +327,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STAGE_ALTITUDE, stageAltitude);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
+
+    CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
     
     changedProperties += _atmosphere.getChangedProperties();
 
@@ -379,6 +413,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageAltitude);
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageDay);
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageHour);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(skyboxMode, getSkyboxModeAsString());
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -483,6 +518,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageAltitude, setStageAltitude);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
+
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
 
@@ -690,6 +727,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
+
+                APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, appendValue, (uint32_t)properties.getSkyboxMode());
                 
                 _staticAtmosphere.setProperties(properties);
                 _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
@@ -942,6 +981,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, SkyboxMode, setSkyboxMode);
         
         qDebug() << "EntityItemProperties::decodeEntityEditPacket()....";
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
@@ -1048,8 +1088,9 @@ void EntityItemProperties::markAllChanged() {
     _stageDayChanged = true;
     _stageHourChanged = true;
     
+    _skyboxModeChanged = true;
     _atmosphere.markAllChanged();
-    
+   
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
