@@ -131,7 +131,7 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
 void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float BUTTON_MOVE_SPEED = 1.0f;
     const float BUTTON_ROTATION_SPEED = 30.0f;
-    const float MOUSE_ROTATION_SPEED = 0.25f;
+    const float MOUSE_ROTATION_SPEED = 1.0f;
     const float BUTTON_BOOM_SPEED = 0.1f;
  
     // AWSD keys mapping
@@ -142,8 +142,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(Qt::Key_C), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(Qt::Key_E), BUTTON_MOVE_SPEED);
 
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+  //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+  //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_A), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
     mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_C), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
@@ -157,12 +157,12 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(Qt::Key_PageDown), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(Qt::Key_PageUp), BUTTON_MOVE_SPEED);
 
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+ //   mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+ //   mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_PageDown), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_PageUp), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
 
     // Mouse move
     mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(MOUSE_AXIS_Y_NEG), makeInput(Qt::RightButton), MOUSE_ROTATION_SPEED);
