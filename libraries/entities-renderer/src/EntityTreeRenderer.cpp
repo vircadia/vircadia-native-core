@@ -434,6 +434,11 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
                 glm::vec3 keyLightLocation = _viewState->getAvatarPosition() + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
                 data.setSunLocation(keyLightLocation);
+
+                consrt float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+                data.setSunBrightness(sunBrightness);
+
                 _viewState->overrideEnvironmentData(data);
             }
         } else {
