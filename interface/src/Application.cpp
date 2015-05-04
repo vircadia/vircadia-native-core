@@ -852,6 +852,11 @@ void Application::paintGL() {
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
+    // Update camera position
+    if (!OculusManager::isConnected()) {
+        _myCamera.update(1.0f / _fps);
+    }
+
     if (getShadowsEnabled()) {
         updateShadowMap();
     }

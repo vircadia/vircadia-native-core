@@ -592,6 +592,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
             glm::vec3(_eyeRenderDesc[eye].HmdToEyeViewOffset.x, _eyeRenderDesc[eye].HmdToEyeViewOffset.y, _eyeRenderDesc[eye].HmdToEyeViewOffset.z));
 
         _eyePositions[eye] = thisEyePosition;
+        _camera->update(1.0f / Application::getInstance()->getFps());
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
