@@ -27,7 +27,7 @@
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 
-AtmospherePropertyGroup EntityItemProperties::_staticAtmosphereProperties;
+AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -296,7 +296,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
     
-    changedProperties += _atmosphereProperties.getChangedProperties();
+    changedProperties += _atmosphere.getChangedProperties();
 
     return changedProperties;
 }
@@ -413,7 +413,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesList); // gettable, but not settable
     }
     
-    _atmosphereProperties.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
+    _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
 
     return properties;
 }
@@ -484,7 +484,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
 
-    _atmosphereProperties.copyFromScriptValue(object, _defaultSettings);
+    _atmosphere.copyFromScriptValue(object, _defaultSettings);
 
     _lastEdited = usecTimestampNow();
 }
@@ -691,7 +691,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
                 
-                _staticAtmosphereProperties.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+                _staticAtmosphere.setProperties(properties);
+                _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
@@ -941,7 +942,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
-        _staticAtmosphereProperties.decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        
+        qDebug() << "EntityItemProperties::decodeEntityEditPacket()....";
+        properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getAtmosphere().debugDump();
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
@@ -1044,7 +1048,7 @@ void EntityItemProperties::markAllChanged() {
     _stageDayChanged = true;
     _stageHourChanged = true;
     
-    _atmosphereProperties.markAllChanged();
+    _atmosphere.markAllChanged();
     
 }
 

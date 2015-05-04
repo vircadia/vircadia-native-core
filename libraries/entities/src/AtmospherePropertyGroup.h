@@ -49,7 +49,7 @@ class ReadBitstreamToTreeParams;
 
 class AtmospherePropertyGroup : public PropertyGroup {
 public:
-    AtmospherePropertyGroup() {}
+    AtmospherePropertyGroup();
     virtual ~AtmospherePropertyGroup() {}
 
     // EntityItemProperty related helpers
@@ -90,12 +90,12 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
 
-    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_CENTER, AtmosphereCenter, atmosphereCenter, glm::vec3);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, AtmosphereInnerRadius, atmosphereInnerRadius, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, AtmosphereOuterRadius, atmosphereOuterRadius, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, AtmosphereMieScattering, atmosphereMieScattering, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, AtmosphereRayleighScattering, atmosphereRayleighScattering, float);
-    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, AtmosphereScatteringWavelengths, atmosphereScatteringWavelengths, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_CENTER, Center, center, glm::vec3);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, InnerRadius, innerRadius, float);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, OuterRadius, outerRadius, float);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, MieScattering, mieScattering, float);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, RayleighScattering, rayleighScattering, float);
+    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, ScatteringWavelengths, scatteringWavelengths, glm::vec3);
 };
 
 #endif // hifi_AtmospherePropertyGroup_h

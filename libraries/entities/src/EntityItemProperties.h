@@ -137,7 +137,7 @@ public:
     DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
     DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
-    DEFINE_PROPERTY_GROUP(AtmosphereProperties, atmosphereProperties, AtmospherePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
 
 
 public:
