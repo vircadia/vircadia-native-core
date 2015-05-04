@@ -30,6 +30,7 @@ const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
+const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
@@ -129,6 +130,8 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
         QJsonObject postedObject = postedDocument.object();
         
+        qDebug() << "The postedObject is" << postedObject;
+
         // we recurse one level deep below each group for the appropriate setting
         recurseJSONObjectAndOverwriteSettings(postedObject, _configMap.getUserConfig(), _descriptionArray);
         
@@ -234,7 +237,7 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 }
 
 bool DomainServerSettingsManager::settingExists(const QString& groupName, const QString& settingName,
-                                                const QJsonArray& descriptionArray, QJsonValue& settingDescription) {
+                                                const QJsonArray& descriptionArray, QJsonObject& settingDescription) {
     foreach(const QJsonValue& groupValue, descriptionArray) {
         QJsonObject groupObject = groupValue.toObject();
         if (groupObject[DESCRIPTION_NAME_KEY].toString() == groupName) {
@@ -242,25 +245,25 @@ bool DomainServerSettingsManager::settingExists(const QString& groupName, const 
             foreach(const QJsonValue& settingValue, groupObject[DESCRIPTION_SETTINGS_KEY].toArray()) {
                 QJsonObject settingObject = settingValue.toObject();
                 if (settingObject[DESCRIPTION_NAME_KEY].toString() == settingName) {
-                    settingDescription = settingObject[SETTING_DEFAULT_KEY];
+                    settingDescription = settingObject;
                     return true;
                 }
             }
         }
     }
-    settingDescription = QJsonValue::Undefined;
+    settingDescription = QJsonObject();
     return false;
 }
 
 void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
-                                                const QJsonValue& settingDescription) {
+                                                const QJsonObject& settingDescription) {
     if (newValue.isString()) {
         if (newValue.toString().isEmpty()) {
             // this is an empty value, clear it in settings variant so the default is sent
             settingMap.remove(key);
         } else {
             // make sure the resulting json value has the right type
-            const QString settingType = settingDescription.toObject()[SETTING_DESCRIPTION_TYPE_KEY].toString();
+            QString settingType = settingDescription[SETTING_DESCRIPTION_TYPE_KEY].toString();
             const QString INPUT_DOUBLE_TYPE = "double";
             const QString INPUT_INTEGER_TYPE = "int";
             
@@ -282,7 +285,24 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
         
         QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
         foreach(const QString childKey, newValue.toObject().keys()) {
-            updateSetting(childKey, newValue.toObject()[childKey], thisMap, settingDescription.toObject()[key]);
+
+            QJsonObject childDescriptionObject = settingDescription;
+            
+            // is this the key? if so we have the description already
+            if (key != settingDescription[DESCRIPTION_NAME_KEY].toString()) {
+                // otherwise find the description object for this childKey under columns
+                foreach(const QJsonValue& column, settingDescription[DESCRIPTION_COLUMNS_KEY].toArray()) {
+                    if (column.isObject()) {
+                        QJsonObject thisDescription = column.toObject();
+                        if (thisDescription[DESCRIPTION_NAME_KEY] == childKey) {
+                            childDescriptionObject = column.toObject();
+                            break;
+                        }
+                    }
+                } 
+            }
+            
+            updateSetting(childKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
         }
         
         if (settingMap[key].toMap().isEmpty()) {
@@ -291,6 +311,7 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
         }
     } else if (newValue.isArray()) {
         // we just assume array is replacement
+        // TODO: we still need to recurse here with the description in case values in the array have special types
         settingMap[key] = newValue.toArray().toVariantList();
     }
 }
@@ -311,7 +332,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         foreach(const QString& settingKey, groupValue.toObject().keys()) {
             QJsonValue settingValue = groupValue.toObject()[settingKey];
             
-            QJsonValue thisDescription;
+            QJsonObject thisDescription;
             if (settingExists(groupKey, settingKey, descriptionArray, thisDescription)) {
                 QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[groupKey].data());
                 updateSetting(settingKey, settingValue, thisMap, thisDescription);

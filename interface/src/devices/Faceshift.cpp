@@ -12,8 +12,8 @@
 #include <QTimer>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <PerfStat.h>
-#include <SharedUtil.h>
 
 #include "Faceshift.h"
 #include "Menu.h"

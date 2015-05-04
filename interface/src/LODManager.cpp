@@ -1,6 +1,6 @@
 //
 //  LODManager.cpp
-//
+//  interface/src/LODManager.h
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.

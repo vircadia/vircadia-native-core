@@ -16,8 +16,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <GLMHelpers.h>
 #include <FBXReader.h>
+#include <GLMHelpers.h>
+#include <NumericalConstants.h>
 
 const float DEFAULT_PRIORITY = 3.0f;
 

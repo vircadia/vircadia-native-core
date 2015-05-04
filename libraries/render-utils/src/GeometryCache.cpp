@@ -22,7 +22,7 @@
 #include <gpu/GLBackend.h>
 
 #include <FSTReader.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
