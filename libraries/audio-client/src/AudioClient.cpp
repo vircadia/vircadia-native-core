@@ -981,7 +981,7 @@ void AudioClient::selectAudioSourceSine440() {
     _noiseSourceEnabled = false;
 }
 
-bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
+bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer()) {
         QAudioFormat localFormat = _desiredOutputFormat;
         localFormat.setChannelCount(isStereo ? 2 : 1);
@@ -989,8 +989,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
                                                      localFormat,
                                                      injector->getLocalBuffer());
-        
-        localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
         localOutput->moveToThread(injector->getLocalBuffer()->thread());

@@ -307,7 +307,9 @@ public:
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
     glm::vec3 entityToWorld(const glm::vec3& point) const;
-    
+
+    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+
 protected:
 
     static bool _sendPhysicsUpdates;

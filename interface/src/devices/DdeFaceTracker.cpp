@@ -137,9 +137,6 @@ struct Packet {
 
 const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
-const int FPS_TIMER_DELAY = 2000;  // ms
-const int FPS_TIMER_DURATION = 2000;  // ms
-
 #ifdef WIN32
 //  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
 //  warning C4351: new behavior: elements of array 'DdeFaceTracker::_filteredEyeBlinks' will be default initialized

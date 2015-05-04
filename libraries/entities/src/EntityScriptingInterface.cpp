@@ -324,6 +324,14 @@ bool EntityScriptingInterface::getZonesArePickable() const {
     return ZoneEntityItem::getZonesArePickable();
 }
 
+void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
+    ZoneEntityItem::setDrawZoneBoundaries(value);
+}
+
+bool EntityScriptingInterface::getDrawZoneBoundaries() const {
+    return ZoneEntityItem::getDrawZoneBoundaries();
+}
+
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
     EntityItem::setSendPhysicsUpdates(value);
 }
