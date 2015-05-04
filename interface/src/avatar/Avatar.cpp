@@ -722,9 +722,6 @@ void Avatar::renderDisplayName() {
                                .arg(getReceiveRate());
     }
  
-    QByteArray ba = _displayName.toLocal8Bit();
-    const char* text = ba.data();
-    
     glDisable(GL_POLYGON_OFFSET_FILL);
     textRenderer(DISPLAYNAME)->draw(text_x, text_y, renderedDisplayName, color);
 
