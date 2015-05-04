@@ -73,16 +73,25 @@ void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
     _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
     
     _lastTouch = evalAverageTouchPoints(event->touchPoints());
+    _lastTouchTime = _clock.now();
 }
 void KeyboardMouseDevice::touchEndEvent(const QTouchEvent* event) {
     _isTouching = false;
     _lastTouch = evalAverageTouchPoints(event->touchPoints());
+    _lastTouchTime = _clock.now();
 }
 void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
     auto currentPos = evalAverageTouchPoints(event->touchPoints());
 
+    auto currentTime = _clock.now();
+    auto sinceLastTouch = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTouchTime);
+    if (sinceLastTouch.count() > 50) {
+        _isTouching = false;
+    }
+
     if (!_isTouching) {
         _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
+        _lastTouchTime = _clock.now();
     } else {
         auto currentMove = currentPos - _lastTouch;
     
@@ -131,7 +140,7 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
 void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float BUTTON_MOVE_SPEED = 1.0f;
     const float BUTTON_ROTATION_SPEED = 30.0f;
-    const float MOUSE_ROTATION_SPEED = 1.0f;
+    const float MOUSE_ROTATION_SPEED = 0.5f;
     const float BUTTON_BOOM_SPEED = 0.1f;
  
     // AWSD keys mapping

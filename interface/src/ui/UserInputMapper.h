@@ -19,7 +19,7 @@
 #include <unordered_set>
 #include <functional>
 #include <memory>
-
+#include <chrono>
 
 class UserInputMapper : public QObject {
     Q_OBJECT
@@ -258,6 +258,8 @@ public:
     }
 
     glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
+    std::chrono::high_resolution_clock _clock;
+    std::chrono::high_resolution_clock::time_point _lastTouchTime;
 };
 
 #endif // hifi_UserInputMapper_h
