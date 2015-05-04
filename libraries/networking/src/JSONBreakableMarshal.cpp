@@ -185,7 +185,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                         // check if we need to resize the array
                         if (currentList.size() < arrayIndex + 1) {
 
-                            for (int i = currentList.size() - 1; i < arrayIndex + 1; i++) {
+                            for (int i = currentList.size(); i < arrayIndex + 1; i++) {
                                 // add the null QJsonValue at this array index to get the array to the right size
                                 currentList.push_back(QJsonValue());                                
                             }
@@ -221,7 +221,7 @@ QVariantMap JSONBreakableMarshal::fromStringList(const QStringList& stringList) 
                             nextBreakIndex = keySeparatorIndex;
                             nextKeypathStartIndex = keySeparatorIndex + 1;  
                         } else if (keySeparatorIndex == -1 || (arrayBracketIndex != -1 
-                                   && keySeparatorIndex < arrayBracketIndex)) {
+                                   && arrayBracketIndex < keySeparatorIndex)) {
                             nextBreakIndex = arrayBracketIndex;
                             nextKeypathStartIndex = arrayBracketIndex;
                         } else {
