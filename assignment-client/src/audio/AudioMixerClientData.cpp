@@ -274,7 +274,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
             injectorArray.push_back(upstreamStats);
         }
     }
-        
+
     result["injectors"] = injectorArray;
 
     return result;
