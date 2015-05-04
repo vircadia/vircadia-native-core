@@ -191,7 +191,6 @@ void AvatarMixer::broadcastAvatarData() {
                 const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
                 const float HYSTERISIS_GAP = (1 - FRD_ADJUSTMENT_ACCEPTABLE_RATIO);
                 const float HYSTERISIS_MIDDLE_PERCENTAGE =  (1 - (HYSTERISIS_GAP * 0.5f));
-                const float FRD_RECOVERY_EPSILON = 0.0001;
 
                 // get the current full rate distance so we can work with it
                 float currentFullRateDistance = nodeData->getFullRateDistance();
