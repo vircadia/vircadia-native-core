@@ -3113,9 +3113,9 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+            // TODO: handle this correctly for zones
             const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            float height = glm::distance(theCamera.getPosition(),
-                closestData.getAtmosphereCenter(theCamera.getPosition()));
+            float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
             if (height < closestData.getAtmosphereInnerRadius()) {
                 alpha = 0.0f;
 
@@ -3126,6 +3126,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         }
 
         // finally render the starfield
+        //qDebug() << "stars alpha:" << alpha;
         _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
     }
 

@@ -280,6 +280,9 @@ public:
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y);
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
+    virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
+    
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

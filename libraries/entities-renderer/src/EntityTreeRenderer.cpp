@@ -427,6 +427,8 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                                     _bestZone->getStageAltitude());
             scene->setStageDayTime(_bestZone->getStageHour());
             scene->setStageYearTime(_bestZone->getStageDay());
+
+            _viewState->overrideEnvironmentData(_bestZone->getEnvironmentData());
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
@@ -440,6 +442,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 scene->setStageYearTime(_previousStageDay);
                 _hasPreviousZone = false;
             }
+            _viewState->endOverrideEnvironmentData();
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model

@@ -66,6 +66,24 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
     setProperties(properties);
 }
 
+
+EnvironmentData ZoneEntityItem::getEnvironmentData() const {
+    EnvironmentData result;
+
+    result.setAtmosphereCenter(_atmospherePropeties.getCenter());
+    result.setAtmosphereInnerRadius(_atmospherePropeties.getInnerRadius());
+    result.setAtmosphereOuterRadius(_atmospherePropeties.getOuterRadius());
+    result.setRayleighScattering(_atmospherePropeties.getRayleighScattering());
+    result.setMieScattering(_atmospherePropeties.getMieScattering());
+    result.setScatteringWavelengths(_atmospherePropeties.getScatteringWavelengths());
+
+    // defaults for now...
+    result.setSunLocation(glm::vec3(1000, 900, 1000));
+    result.setSunBrightness(20.0f);
+    
+    return result;
+}
+
 EntityItemProperties ZoneEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
@@ -123,9 +141,6 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
         setLastEdited(properties._lastEdited);
     }
 
-    qDebug() << "ZoneEntityItem::setProperties()";
-    debugDump();
-
     return somethingChanged;
 }
 
@@ -155,9 +170,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
                                                                            propertyFlags, overwriteLocalData);
 
 
-    qDebug() << "ZoneEntityItem::readEntitySubclassDataFromBuffer()";
-    debugDump();
-    
     return bytesRead;
 }
 

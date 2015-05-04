@@ -12,6 +12,8 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include <EnvironmentData.h>
+
 #include "AtmospherePropertyGroup.h"
 #include "EntityItem.h" 
 
@@ -103,7 +105,8 @@ public:
 
     void setSkyboxMode(SkyboxMode value) { _skyboxMode = value; }
     SkyboxMode getSkyboxMode() const { return _skyboxMode; }
-    
+
+    EnvironmentData getEnvironmentData() const;
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
