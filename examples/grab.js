@@ -137,7 +137,7 @@ function update(deltaTime) {
     var CLOSE_ENOUGH = 0.001;
     var FULL_STRENGTH = 0.025;
     var distanceToTarget = Vec3.length(dPosition);
-    if (distanceToTarget/cameraEntityDistance > CLOSE_ENOUGH) {
+    if (distanceToTarget / cameraEntityDistance > CLOSE_ENOUGH) {
       //  compute current velocity in the direction we want to move 
       var velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
       //  compute the speed we would like to be going toward the target position 
@@ -147,7 +147,7 @@ function update(deltaTime) {
       //  compute how much we want to add to the existing velocity
       var addedVelocity = Vec3.subtract(desiredVelocity, velocityTowardTarget);
       //  If target is too far, roll off the force as inverse square of distance
-      if (distanceToTarget/cameraEntityDistance > FULL_STRENGTH) {
+      if (distanceToTarget / cameraEntityDistance > FULL_STRENGTH) {
         addedVelocity = Vec3.multiply(addedVelocity, Math.pow(FULL_STRENGTH / distanceToTarget, 2.0));
       }
       var newVelocity = Vec3.sum(currentVelocity, addedVelocity); 
