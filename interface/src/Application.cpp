@@ -1538,7 +1538,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mousePressEvent(event);
+    _keyboardMouseDevice.mouseReleaseEvent(event);
 
     if (activeWindow() == _window) {
 

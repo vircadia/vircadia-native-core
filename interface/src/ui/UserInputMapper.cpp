@@ -339,10 +339,10 @@ void UserInputMapper::assignDefaulActionUnitScales() {
     _actionUnitScales[LATERAL_RIGHT] = 1.0f; // 1m per unit
     _actionUnitScales[VERTICAL_DOWN] = 1.0f; // 1m per unit
     _actionUnitScales[VERTICAL_UP] = 1.0f; // 1m per unit
-    _actionUnitScales[YAW_LEFT] = glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[YAW_RIGHT] = glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[PITCH_DOWN] = glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[PITCH_UP] = glm::radians<float>(1.0f); // 3 degree per unit
+    _actionUnitScales[YAW_LEFT] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
+    _actionUnitScales[YAW_RIGHT] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
+    _actionUnitScales[PITCH_DOWN] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
+    _actionUnitScales[PITCH_UP] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
     _actionUnitScales[BOOM_IN] = 1.0f; // 1m per unit
     _actionUnitScales[BOOM_OUT] = 1.0f; // 1m per unit
 }
