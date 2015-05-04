@@ -428,7 +428,9 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setStageDayTime(_bestZone->getStageHour());
             scene->setStageYearTime(_bestZone->getStageDay());
 
-            _viewState->overrideEnvironmentData(_bestZone->getEnvironmentData());
+            if (_bestZone->getSkyboxMode() == SKYBOX_MODE_ATMOSPHERE) {
+                _viewState->overrideEnvironmentData(_bestZone->getEnvironmentData());
+            }
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
