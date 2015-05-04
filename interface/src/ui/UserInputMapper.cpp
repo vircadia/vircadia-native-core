@@ -27,6 +27,10 @@ void KeyboardMouseDevice::update() {
     }
 }
 
+void KeyboardMouseDevice::focusOutEvent(QFocusEvent* event) {
+    _buttonPressedMap.clear();
+};
+
 void KeyboardMouseDevice::keyPressEvent(QKeyEvent* event) {
     auto input = makeInput((Qt::Key) event->key());
     auto result = _buttonPressedMap.insert(input.getChannel());
@@ -114,35 +118,38 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
 }
 
 UserInputMapper::Input KeyboardMouseDevice::makeInput(Qt::Key code) {
-    return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, code & KEYBOARD_MASK, UserInputMapper::ChannelType::BUTTON);
+    return UserInputMapper::Input(_deviceID, code & KEYBOARD_MASK, UserInputMapper::ChannelType::BUTTON);
 }
 UserInputMapper::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) {
     switch (code) {
         case Qt::LeftButton:
-            return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, MOUSE_BUTTON_LEFT, UserInputMapper::ChannelType::BUTTON);
+            return UserInputMapper::Input(_deviceID, MOUSE_BUTTON_LEFT, UserInputMapper::ChannelType::BUTTON);
         case Qt::RightButton:
-            return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, MOUSE_BUTTON_RIGHT, UserInputMapper::ChannelType::BUTTON);
+            return UserInputMapper::Input(_deviceID, MOUSE_BUTTON_RIGHT, UserInputMapper::ChannelType::BUTTON);
         case Qt::MiddleButton:
-            return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, MOUSE_BUTTON_MIDDLE, UserInputMapper::ChannelType::BUTTON);
+            return UserInputMapper::Input(_deviceID, MOUSE_BUTTON_MIDDLE, UserInputMapper::ChannelType::BUTTON);
         default:
             return UserInputMapper::Input();
     };
 }
 UserInputMapper::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::MouseAxisChannel axis) {
-    return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, axis, UserInputMapper::ChannelType::AXIS);
+    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
 }
 UserInputMapper::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchAxisChannel axis) {
-    return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, axis, UserInputMapper::ChannelType::AXIS);
+    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
 }
 UserInputMapper::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchButtonChannel button) {
-    return UserInputMapper::Input(DEFAULT_DESKTOP_DEVICE, button, UserInputMapper::ChannelType::BUTTON);
+    return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
 }
 
 void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
+    // Grab the current free device ID
+    _deviceID = mapper.getFreeDeviceID();
+
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy());
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input._channel); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input._channel); };
-    mapper.registerDevice(DEFAULT_DESKTOP_DEVICE, proxy); // HARDCODED!, the KeyboardMouseDevice always take the DeviceID = 1
+    mapper.registerDevice(_deviceID, proxy);
 }
 
 void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
@@ -206,8 +213,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
     
     // Wheel move
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
+    //mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
+    //mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(MOUSE_AXIS_WHEEL_X_NEG), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_YAW_SPEED);
 

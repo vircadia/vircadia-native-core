@@ -1114,11 +1114,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } 
                 break;
 
-            case Qt::Key_E:
-            case Qt::Key_PageUp:
-            //    _myAvatar->setDriveKeys(UP, 1.0f);
-                break;
-
             case Qt::Key_F: {
                 _physicsEngine.dumpNextStats();
                 break;
@@ -1128,16 +1123,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
 
-            case Qt::Key_C:
-            case Qt::Key_PageDown:
-             //   _myAvatar->setDriveKeys(DOWN, 1.0f);
-                break;
-
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Wireframe);
-                } else {
-                //    _myAvatar->setDriveKeys(FWD, 1.0f);
                 }
                 break;
 
@@ -1148,8 +1136,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
-                } else {
-              //      _myAvatar->setDriveKeys(BACK, 1.0f);
                 }
                 break;
 
@@ -1160,14 +1146,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                } else if (!isMeta) {
-           //         _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
-                }
-                break;
-
-            case Qt::Key_D:
-                if (!isMeta) {
-             //       _myAvatar->setDriveKeys(ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1182,8 +1160,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         _raiseMirror += 0.05f;
                     }
-                } else {
-              //      _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.0f);
                 }
                 break;
 
@@ -1194,24 +1170,18 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         _raiseMirror -= 0.05f;
                     }
-                } else {
-                  //  _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.0f);
                 }
                 break;
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     _rotateMirror += PI / 20.0f;
-                } else {
-                 //   _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     _rotateMirror -= PI / 20.0f;
-                } else {
-                 //   _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1357,57 +1327,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     _keyboardMouseDevice.keyReleaseEvent(event);
 
     switch (event->key()) {
-        case Qt::Key_E:
-        case Qt::Key_PageUp:
-          //  _myAvatar->setDriveKeys(UP, 0.0f);
-            break;
-
-        case Qt::Key_C:
-        case Qt::Key_PageDown:
-          //  _myAvatar->setDriveKeys(DOWN, 0.0f);
-            break;
-
-        case Qt::Key_W:
-          //  _myAvatar->setDriveKeys(FWD, 0.0f);
-            break;
-
-        case Qt::Key_S:
-          //  _myAvatar->setDriveKeys(BACK, 0.0f);
-            break;
-
-        case Qt::Key_A:
-          //  _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
-            break;
-
-        case Qt::Key_D:
-           // _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
-            break;
-
-        case Qt::Key_Up:
-          //  _myAvatar->setDriveKeys(FWD, 0.0f);
-          //  _myAvatar->setDriveKeys(UP, 0.0f);
-            break;
-
-        case Qt::Key_Down:
-          //  _myAvatar->setDriveKeys(BACK, 0.0f);
-          //  _myAvatar->setDriveKeys(DOWN, 0.0f);
-            break;
-
-        case Qt::Key_Left:
-          //  _myAvatar->setDriveKeys(LEFT, 0.0f);
-          //  _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
-            break;
-
-        case Qt::Key_Right:
-          //  _myAvatar->setDriveKeys(RIGHT, 0.0f);
-          //  _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
-            break;
-        case Qt::Key_Control:
-        case Qt::Key_Shift:
-        case Qt::Key_Meta:
-        case Qt::Key_Alt:
-           // _myAvatar->clearDriveKeys();
-            break;
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
@@ -1433,6 +1352,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
+    _keyboardMouseDevice.focusOutEvent(event);
+  
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
         QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);

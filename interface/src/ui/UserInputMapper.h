@@ -84,7 +84,7 @@ public:
     typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
     typedef std::function<JointValue (const Input& input, int timestamp)> JointGetter;
 
-    class DeviceProxy {
+   class DeviceProxy {
     public:
         DeviceProxy() {}
         
@@ -94,6 +94,8 @@ public:
         
         typedef std::shared_ptr<DeviceProxy> Pointer;
     };
+    // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
+    uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
 
@@ -163,7 +165,8 @@ public:
 protected:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
     DevicesMap _registeredDevices;
-    
+    uint16 _nextFreeDeviceID = 1;
+
     typedef std::map<int, Modifiers> InputToMoModifiersMap;
     InputToMoModifiersMap _inputToModifiersMap;
 
@@ -215,6 +218,8 @@ public:
     typedef std::unordered_set<int> ButtonPressedMap;
     typedef std::map<int, float> AxisStateMap; // 8 axes
 
+    void focusOutEvent(QFocusEvent* event);
+ 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
@@ -232,15 +237,12 @@ public:
     float getButton(int channel) const;
     float getAxis(int channel) const;
 
-    // Reserverd device ID for the standard keyboard and mouse
-    const static UserInputMapper::uint16 DEFAULT_DESKTOP_DEVICE = 1;
-
     // Let's make it easy for Qt because we assume we love Qt forever
-    static UserInputMapper::Input makeInput(Qt::Key code);
-    static UserInputMapper::Input makeInput(Qt::MouseButton code);
-    static UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
-    static UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
-    static UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
+    UserInputMapper::Input makeInput(Qt::Key code);
+    UserInputMapper::Input makeInput(Qt::MouseButton code);
+    UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
+    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
+    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
     
     KeyboardMouseDevice() {}
 
@@ -255,6 +257,7 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     
+    int _deviceID = 0;
     QPoint _lastCursor;
     glm::vec2 _lastTouch;
     bool _isTouching = false;
