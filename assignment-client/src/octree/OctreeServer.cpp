@@ -21,6 +21,7 @@
 #include <HTTPConnection.h>
 #include <LogHandler.h>
 #include <NetworkingConstants.h>
+#include <NumericalConstants.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"

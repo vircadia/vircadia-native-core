@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <math.h>
@@ -210,7 +211,7 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
     const int16_t* _bufferLastAt = _buffer + _bufferLength - 1;
 
     for (int i = 0; i < _numFrameSamples; ++i) {
-        loudness += fabsf(*sampleAt);
+        loudness += std::abs(*sampleAt);
         sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
     }
     loudness /= _numFrameSamples;
