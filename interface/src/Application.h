@@ -146,6 +146,8 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    static void initPlugins();
+    static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
@@ -196,6 +198,7 @@ public:
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.  
     ViewFrustum* getViewFrustum();
+    const ViewFrustum* getViewFrustum() const;
     // Represents the view frustum of the current rendering pass, 
     // which might be different from the viewFrustum, i.e. shadowmap 
     // passes, mirror window passes, etc
@@ -230,6 +233,7 @@ public:
 
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
+    const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }

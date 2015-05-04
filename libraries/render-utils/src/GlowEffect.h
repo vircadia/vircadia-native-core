@@ -61,9 +61,6 @@ private:
     GlowEffect();
     virtual ~GlowEffect();
 
-    int getDeviceWidth() const;
-    int getDeviceHeight() const;
-
     bool _initialized;
 
     ProgramObject* _addProgram;

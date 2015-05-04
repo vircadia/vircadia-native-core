@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
-#include "devices/OculusManager.h"
 
 
 CameraMode stringToMode(const QString& mode) {

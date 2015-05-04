@@ -50,6 +50,9 @@ public:
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
 
+    /// Returns a texture version of an image file
+    gpu::TexturePointer getImageTexture(const QString & path);
+
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
         const QByteArray& content = QByteArray());

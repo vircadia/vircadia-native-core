@@ -148,6 +148,7 @@ gpu::FramebufferPointer GlowEffect::render() {
             glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(), 0, 0, framebufferSize.width(), framebufferSize.height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
         } else {
             glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
+			glViewport(0, 0, framebufferSize.width(), framebufferSize.height());
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
             renderFullscreenQuad();

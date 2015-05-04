@@ -15,6 +15,7 @@
 #include <GLCanvas.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
+#include <gpu/GLBackend.h>
 
 #include "Application.h"
 #include "AudioToolBox.h"
@@ -38,14 +39,14 @@ bool AudioToolBox::mousePressEvent(int x, int y) {
 void AudioToolBox::render(int x, int y, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
-    if (_micTextureId == 0) {
-        _micTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/mic.svg"));
+    if (!_micTexture) {
+        _micTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/mic.svg");
     }
-    if (_muteTextureId == 0) {
-        _muteTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/mic-mute.svg"));
+    if (!_muteTexture) {
+        _muteTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/mic-mute.svg");
     }
-    if (_boxTextureId == 0) {
-        _boxTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/audio-box.svg"));
+    if (_boxTexture) {
+        _boxTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/audio-box.svg");
     }
     
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -58,11 +59,8 @@ void AudioToolBox::render(int x, int y, bool boxed) {
         const int BOX_HEIGHT = 44;
         
         QRect boxBounds = QRect(x - BOX_LEFT_PADDING, y - BOX_TOP_PADDING, BOX_WIDTH, BOX_HEIGHT);
-        
-        _boxTextureId->bind();
-        
         glm::vec4 quadColor;
-        
+       
         if (isClipping) {
             quadColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
         } else {
@@ -70,9 +68,9 @@ void AudioToolBox::render(int x, int y, bool boxed) {
         }
         glm::vec2 topLeft(boxBounds.left(), boxBounds.top());
         glm::vec2 bottomRight(boxBounds.right(), boxBounds.bottom());
-        glm::vec2 texCoordTopLeft(1,1);
-        glm::vec2 texCoordBottomRight(0,0);
-
+        static const glm::vec2 texCoordTopLeft(1,1);
+        static const glm::vec2 texCoordBottomRight(0, 0);
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_boxTexture));
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     }
     
@@ -80,10 +78,10 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!audioIO->isMuted()) {
-        _micTextureId->bind();
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_micTexture));
         iconColor = 1.0f;
     } else {
-        _muteTextureId->bind();
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_muteTexture));
         
         // Make muted icon pulsate
         static const float PULSE_MIN = 0.4f;
@@ -111,6 +109,6 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     }
 
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor, _boxQuadID);
-    
+    glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
 }

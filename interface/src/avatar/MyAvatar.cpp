@@ -43,7 +43,6 @@
 #include "Physics.h"
 #include "Recorder.h"
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 

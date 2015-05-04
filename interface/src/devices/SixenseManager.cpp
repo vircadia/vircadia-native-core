@@ -16,7 +16,6 @@
 
 #include "Application.h"
 #include "SixenseManager.h"
-#include "devices/OculusManager.h"
 #include "UserActivityLogger.h"
 #include "InterfaceLogging.h"
 

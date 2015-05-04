@@ -25,9 +25,9 @@ public:
 protected:
     AudioToolBox();
 private:
-    QOpenGLTexture* _micTextureId = 0;
-    QOpenGLTexture* _muteTextureId = 0;
-    QOpenGLTexture* _boxTextureId = 0;
+    gpu::TexturePointer _micTexture;
+    gpu::TexturePointer _muteTexture;
+    gpu::TexturePointer _boxTexture;
     int _boxQuadID = GeometryCache::UNKNOWN_ID;
     QRect _iconBounds;
     qint64 _iconPulseTimeReference = 0;

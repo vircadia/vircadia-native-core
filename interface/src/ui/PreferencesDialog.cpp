@@ -169,9 +169,9 @@ void PreferencesDialog::loadPreferences() {
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
     ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
-#if 0
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
-#endif
+
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
+
     SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
@@ -229,9 +229,9 @@ void PreferencesDialog::savePreferences() {
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
-#if 0
-    qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-#endif
+
+    qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());

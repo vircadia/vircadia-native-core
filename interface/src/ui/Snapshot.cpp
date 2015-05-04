@@ -75,8 +75,8 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot() {
-    QFile* snapshotFile = savedFileForSnapshot(false);
+QString Snapshot::saveSnapshot(QImage image) {
+    QFile* snapshotFile = savedFileForSnapshot(image, false);
     
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
@@ -88,15 +88,12 @@ QString Snapshot::saveSnapshot() {
     return snapshotPath;
 }
 
-QTemporaryFile* Snapshot::saveTempSnapshot() {
+QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(true));;
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));;
 }
 
-QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
-#if 0
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    QImage shot = glCanvas->grabFrameBuffer();
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     
     Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     
@@ -158,7 +155,6 @@ QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
         
         return imageTempFile;
     }
-#endif
     return nullptr; 
 }
 

@@ -32,6 +32,7 @@ public:
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
+    virtual void render(RenderArgs* args);
     virtual bool contains(const glm::vec3& point) const;
     
 private:

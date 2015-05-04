@@ -18,7 +18,6 @@
 
 #include "AddressManager.h"
 #include "Application.h"
-#include "devices/OculusManager.h"
 #include "InterfaceLogging.h"
 
 #ifdef Q_OS_WIN
@@ -95,12 +94,7 @@ int main(int argc, const char* argv[]) {
         qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
 
-#if 0
-    // Oculus initialization MUST PRECEDE OpenGL context creation.
-    // The nature of the Application constructor means this has to be either here,
-    // or in the main window ctor, before GL startup.
-    OculusManager::init();
-#endif
+    Application::initPlugins();
 
     int exitCode;
     {
@@ -115,9 +109,7 @@ int main(int argc, const char* argv[]) {
         exitCode = app.exec();
     }
 
-#if 0
-    OculusManager::deinit();
-#endif
+    Application::shutdownPlugins();
 
 #ifdef Q_OS_WIN
     ReleaseMutex(mutex);

@@ -15,6 +15,7 @@
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
+#include <gpu/GLBackend.h>
 
 #include "Application.h"
 #include "RearMirrorTools.h"
@@ -33,10 +34,11 @@ RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _windowed(false),
     _fullScreen(false)
 {
-    _closeTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/close.svg"));
+    auto textureCache = DependencyManager::get<TextureCache>();
+    _closeTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/close.svg");
 
-    _zoomHeadTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/plus.svg"));
-    _zoomBodyTextureId = new QOpenGLTexture(QImage(PathUtils::resourcesPath() + "images/minus.svg"));
+    _zoomHeadTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/plus.svg");
+    _zoomBodyTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/minus.svg");
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
@@ -45,24 +47,21 @@ RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _headZoomIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
 }
 
-void RearMirrorTools::render(bool fullScreen) {
-#if 0
+void RearMirrorTools::render(bool fullScreen, const QPoint & mousePosition) {
     if (fullScreen) {
         _fullScreen = true;
-        displayIcon(_parent->geometry(), _shrinkIconRect, _closeTextureId);
+        displayIcon(QRect(QPoint(), qApp->getDeviceSize()), _shrinkIconRect, _closeTexture);
     } else {
         // render rear view tools if mouse is in the bounds
-        QPoint mousePosition = _parent->mapFromGlobal(QCursor::pos());
-        _windowed = _bounds.contains(mousePosition.x(), mousePosition.y());
+        _windowed = _bounds.contains(mousePosition);
         if (_windowed) {
-            displayIcon(_bounds, _closeIconRect, _closeTextureId);
+            displayIcon(_bounds, _closeIconRect, _closeTexture);
 
             ZoomLevel zoomLevel = (ZoomLevel)rearViewZoomLevel.get();
-            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, zoomLevel == HEAD);
-            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, zoomLevel == BODY);
+            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTexture, zoomLevel == HEAD);
+            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTexture, zoomLevel == BODY);
         }
     }
-#endif
 }
 
 bool RearMirrorTools::mousePressEvent(int x, int y) {
@@ -100,7 +99,7 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
     return false;
 }
 
-void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, QOpenGLTexture * texture, bool selected) {
+void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, const gpu::TexturePointer& texture, bool selected) {
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -118,7 +117,7 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, QOpenGLTexture
         quadColor = glm::vec4(1, 1, 1, 1);
     }
 
-    texture->bind();
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(texture));
    
     glm::vec2 topLeft(iconBounds.left(), iconBounds.top());
     glm::vec2 bottomRight(iconBounds.right(), iconBounds.bottom());
