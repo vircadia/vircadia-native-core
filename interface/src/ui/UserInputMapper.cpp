@@ -26,6 +26,7 @@ UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Inpu
         return DeviceProxy::Pointer();
     }
 }
+
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
     return addInputChannel(action, input, Input(), scale);
 }
@@ -128,7 +129,6 @@ void UserInputMapper::update(float deltaTime) {
         _actionStates[i] *= _actionScales[i];
     }
 }
-
 
 void UserInputMapper::assignDefaulActionScales() {
     _actionScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
