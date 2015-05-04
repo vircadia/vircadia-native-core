@@ -22,7 +22,7 @@ AtmospherePropertyGroup::AtmospherePropertyGroup() {
     _mieScattering = 0.0f;
     _rayleighScattering = 0.0f;
     _scatteringWavelengths = glm::vec3(0.0f);
-
+    _hasStars = true;
 }
 
 void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
@@ -32,6 +32,7 @@ void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScrip
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, MieScattering, mieScattering);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, RayleighScattering, rayleighScattering);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(Atmosphere, ScatteringWavelengths, scatteringWavelengths);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, HasStars, hasStars);
 }
 
 void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
@@ -41,6 +42,7 @@ void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bo
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, mieScattering, setMieScattering);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, rayleighScattering, setRayleighScattering);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(atmosphere, scatteringWavelengths, setScatteringWavelengths);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(atmosphere, hasStars, setHasStars);
 }
 
 void AtmospherePropertyGroup::debugDump() const {
@@ -51,6 +53,7 @@ void AtmospherePropertyGroup::debugDump() const {
     qDebug() << "       Mie Scattering:" << getMieScattering();
     qDebug() << "       Rayleigh Scattering:" << getRayleighScattering();
     qDebug() << "       Scattering Wavelengths:" << getScatteringWavelengths();
+    qDebug() << "       Has Stars:" << getHasStars();
 }
 
 bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
@@ -68,6 +71,7 @@ bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, appendValue, getMieScattering());
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, appendValue, getRayleighScattering());
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, appendValue, getScatteringWavelengths());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, appendValue, getHasStars());
 
     return true;
 }
@@ -84,6 +88,7 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, _mieScattering);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, _rayleighScattering);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, _scatteringWavelengths);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, _hasStars);
     
     processedBytes += bytesRead;
 
@@ -97,6 +102,7 @@ void AtmospherePropertyGroup::markAllChanged() {
     _mieScatteringChanged = true;
     _rayleighScatteringChanged = true;
     _scatteringWavelengthsChanged = true;
+    _hasStarsChanged = true;
 }
 
 EntityPropertyFlags AtmospherePropertyGroup::getChangedProperties() const {
@@ -108,6 +114,7 @@ EntityPropertyFlags AtmospherePropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ATMOSPHERE_MIE_SCATTERING, mieScattering);
     CHECK_PROPERTY_CHANGE(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, rayleighScattering);
     CHECK_PROPERTY_CHANGE(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, scatteringWavelengths);
+    CHECK_PROPERTY_CHANGE(PROP_ATMOSPHERE_HAS_STARS, hasStars);
 
     return changedProperties;
 }
@@ -120,6 +127,7 @@ void AtmospherePropertyGroup::getProperties(EntityItemProperties& properties) co
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Atmosphere, MieScattering, getMieScattering);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Atmosphere, RayleighScattering, getRayleighScattering);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Atmosphere, ScatteringWavelengths, getScatteringWavelengths);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Atmosphere, HasStars, getHasStars);
 }
 
 bool AtmospherePropertyGroup::setProperties(const EntityItemProperties& properties) {
@@ -131,6 +139,7 @@ bool AtmospherePropertyGroup::setProperties(const EntityItemProperties& properti
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Atmosphere, MieScattering, mieScattering, setMieScattering);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Atmosphere, RayleighScattering, rayleighScattering, setRayleighScattering);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Atmosphere, ScatteringWavelengths, scatteringWavelengths, setScatteringWavelengths);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Atmosphere, HasStars, hasStars, setHasStars);
 
     return somethingChanged;
 }
@@ -144,6 +153,7 @@ EntityPropertyFlags AtmospherePropertyGroup::getEntityProperties(EncodeBitstream
     requestedProperties += PROP_ATMOSPHERE_MIE_SCATTERING;
     requestedProperties += PROP_ATMOSPHERE_RAYLEIGH_SCATTERING;
     requestedProperties += PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS;
+    requestedProperties += PROP_ATMOSPHERE_HAS_STARS;
     
     return requestedProperties;
 }
@@ -164,6 +174,7 @@ void AtmospherePropertyGroup::appendSubclassData(OctreePacketData* packetData, E
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, appendValue, getMieScattering());
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, appendValue, getRayleighScattering());
     APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, appendValue, getScatteringWavelengths());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, appendValue, getHasStars());
 }
 
 int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -179,6 +190,7 @@ int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned cha
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, _mieScattering);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, _rayleighScattering);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, _scatteringWavelengths);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, _hasStars);
 
     return bytesRead;
 }

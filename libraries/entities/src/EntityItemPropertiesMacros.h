@@ -306,6 +306,20 @@
         }                                           \
     }
 
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(G, P, S)  \
+    {                                                         \
+        QScriptValue G = object.property(#G);                 \
+        if (G.isValid()) {                                    \
+            QScriptValue P = G.property(#P);                  \
+            if (P.isValid()) {                                \
+                float newValue = P.toVariant().toBool();      \
+                if (_defaultSettings || newValue != _##P) {   \
+                    S(newValue);                              \
+                }                                             \
+            }                                                 \
+        }                                                     \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \

@@ -96,6 +96,7 @@ public:
     DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, MieScattering, mieScattering, float);
     DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, RayleighScattering, rayleighScattering, float);
     DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, ScatteringWavelengths, scatteringWavelengths, glm::vec3);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, HasStars, hasStars, bool);
 };
 
 #endif // hifi_AtmospherePropertyGroup_h

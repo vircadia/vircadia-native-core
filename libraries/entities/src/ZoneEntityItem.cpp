@@ -76,6 +76,7 @@ EnvironmentData ZoneEntityItem::getEnvironmentData() const {
     result.setRayleighScattering(_atmospherePropeties.getRayleighScattering());
     result.setMieScattering(_atmospherePropeties.getMieScattering());
     result.setScatteringWavelengths(_atmospherePropeties.getScatteringWavelengths());
+    result.setHasStars(_atmospherePropeties.getHasStars());
 
     // defaults for now...
     result.setSunLocation(glm::vec3(1000, 900, 1000));
