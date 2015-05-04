@@ -78,9 +78,10 @@ EnvironmentData ZoneEntityItem::getEnvironmentData() const {
     result.setScatteringWavelengths(_atmospherePropeties.getScatteringWavelengths());
     result.setHasStars(_atmospherePropeties.getHasStars());
 
-    // defaults for now...
-    result.setSunLocation(glm::vec3(1000, 900, 1000));
-    result.setSunBrightness(20.0f);
+    // NOTE: The sunLocation and SunBrightness will be overwritten in the EntityTreeRenderer to use the
+    // keyLight details from the scene interface
+    //result.setSunLocation(1000, 900, 1000));
+    //result.setSunBrightness(20.0f);
     
     return result;
 }

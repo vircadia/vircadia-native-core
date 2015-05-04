@@ -429,7 +429,12 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setStageYearTime(_bestZone->getStageDay());
 
             if (_bestZone->getSkyboxMode() == SKYBOX_MODE_ATMOSPHERE) {
-                _viewState->overrideEnvironmentData(_bestZone->getEnvironmentData());
+                EnvironmentData data = _bestZone->getEnvironmentData();
+                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                data.setSunLocation(keyLightLocation);
+                _viewState->overrideEnvironmentData(data);
             }
         } else {
             if (_hasPreviousZone) {
