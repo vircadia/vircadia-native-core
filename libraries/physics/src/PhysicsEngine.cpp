@@ -243,7 +243,6 @@ void PhysicsEngine::stepSimulation() {
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
-    // BOOKMARK TODO: move this to PhysicalEntitySimulation
     BT_PROFILE("ownershipInfection");
     if (_sessionID.isNull()) {
         return;
