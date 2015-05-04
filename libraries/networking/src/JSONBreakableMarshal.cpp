@@ -111,7 +111,7 @@ QVariant JSONBreakableMarshal::fromString(const QString& marshalValue) {
     } else if (marshalValue == JSON_UNDEFINED_AS_STRING) {
         result = JSON_UNDEFINED_AS_STRING;  
     } else if (marshalValue == JSON_UNKNOWN_AS_STRING) {
-        // we weren't able to marshal this value at the other end, set it as our unknown string"
+        // we weren't able to marshal this value at the other end, set it as our unknown string
         result = JSON_UNKNOWN_AS_STRING;
     } else {
         // this might be a double, see if it converts
@@ -131,6 +131,7 @@ QVariant JSONBreakableMarshal::fromString(const QString& marshalValue) {
                 result = stringRegex.cap(1);
             } else {
                 // we failed to convert the value to anything, set the result to our unknown value 
+                qDebug() << "Unrecognized output from JSONBreakableMarshal - could not convert" << marshalValue << "to QVariant.";
                 result = JSON_UNKNOWN_AS_STRING; 
             }
         }
