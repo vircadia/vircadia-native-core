@@ -27,6 +27,7 @@
 #include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -715,8 +716,7 @@ void Avatar::renderDisplayName() {
     QString renderedDisplayName = _displayName;
     
     if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
-        const float KILOBITS_PER_BYTE = 125.0f;
-        float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / KILOBITS_PER_BYTE;
+        float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
     
         renderedDisplayName += QString(" - (%1 Kbps, %2 Hz)")
                                .arg(QString::number(kilobitsPerSecond, 'f', 2))
