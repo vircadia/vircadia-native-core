@@ -11,6 +11,21 @@
 #include "UserInputMapper.h"
 #include <algorithm>
 
+void KeyboardMouseDevice::update() {
+    _axisStateMap.clear();
+
+    // For touch event, we need to check that the last event is not too long ago
+    // Maybe it's a Qt issue, but the touch event sequence (begin, update, end) is not always called properly
+    // The following is a workaround to detect that the touch sequence is over in case we didn;t see the end event
+    if (_isTouching) {
+        const auto TOUCH_EVENT_MAXIMUM_WAIT = 100; //ms
+        auto currentTime = _clock.now();
+        auto sinceLastTouch = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTouchTime);
+        if (sinceLastTouch.count() > TOUCH_EVENT_MAXIMUM_WAIT) {
+            _isTouching = false;
+        }
+    }
+}
 
 void KeyboardMouseDevice::keyPressEvent(QKeyEvent* event) {
     auto input = makeInput((Qt::Key) event->key());
@@ -71,7 +86,6 @@ glm::vec2 KeyboardMouseDevice::evalAverageTouchPoints(const QList<QTouchEvent::T
 
 void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
     _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
-    
     _lastTouch = evalAverageTouchPoints(event->touchPoints());
     _lastTouchTime = _clock.now();
 }
@@ -82,16 +96,10 @@ void KeyboardMouseDevice::touchEndEvent(const QTouchEvent* event) {
 }
 void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
     auto currentPos = evalAverageTouchPoints(event->touchPoints());
-
-    auto currentTime = _clock.now();
-    auto sinceLastTouch = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTouchTime);
-    if (sinceLastTouch.count() > 50) {
-        _isTouching = false;
-    }
-
+    _lastTouchTime = _clock.now();
+    
     if (!_isTouching) {
         _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
-        _lastTouchTime = _clock.now();
     } else {
         auto currentMove = currentPos - _lastTouch;
     
@@ -139,9 +147,13 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
 
 void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float BUTTON_MOVE_SPEED = 1.0f;
-    const float BUTTON_ROTATION_SPEED = 30.0f;
-    const float MOUSE_ROTATION_SPEED = 0.5f;
-    const float BUTTON_BOOM_SPEED = 0.1f;
+    const float BUTTON_YAW_SPEED = 0.75f;
+    const float BUTTON_PITCH_SPEED = 0.5f;
+    const float MOUSE_YAW_SPEED = 0.5f;
+    const float MOUSE_PITCH_SPEED = 0.25f;
+    const float TOUCH_YAW_SPEED = 0.5f;
+    const float TOUCH_PITCH_SPEED = 0.25f;
+    //const float BUTTON_BOOM_SPEED = 0.1f;
  
     // AWSD keys mapping
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(Qt::Key_S), BUTTON_MOVE_SPEED);
@@ -153,10 +165,10 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
 
   //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
   //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_A), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_C), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_E), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_A), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_C), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_E), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
 
     // Arrow keys mapping
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(Qt::Key_Down), BUTTON_MOVE_SPEED);
@@ -168,36 +180,36 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
 
  //   mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
  //   mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
 
     // Mouse move
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(MOUSE_AXIS_Y_NEG), makeInput(Qt::RightButton), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(MOUSE_AXIS_Y_POS), makeInput(Qt::RightButton), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(MOUSE_AXIS_X_NEG), makeInput(Qt::RightButton), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(MOUSE_AXIS_X_POS), makeInput(Qt::RightButton), MOUSE_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(MOUSE_AXIS_Y_NEG), makeInput(Qt::RightButton), MOUSE_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(MOUSE_AXIS_Y_POS), makeInput(Qt::RightButton), MOUSE_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(MOUSE_AXIS_X_NEG), makeInput(Qt::RightButton), MOUSE_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(MOUSE_AXIS_X_POS), makeInput(Qt::RightButton), MOUSE_YAW_SPEED);
 
     
 #ifdef Q_OS_MAC
     // wheel event modifier on Mac collide with the touchpad scroll event
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), MOUSE_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), TOUCH_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), TOUCH_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), TOUCH_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
 #else
     // Touch pad yaw pitch
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), MOUSE_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), MOUSE_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), TOUCH_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), TOUCH_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), TOUCH_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
     
     // Wheel move
     mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(MOUSE_AXIS_WHEEL_X_NEG), BUTTON_ROTATION_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_ROTATION_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(MOUSE_AXIS_WHEEL_X_NEG), BUTTON_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_YAW_SPEED);
 
 #endif
 
@@ -218,7 +230,7 @@ float KeyboardMouseDevice::getAxis(int channel) const {
     if (axis != _axisStateMap.end()) {
         return (*axis).second;
     } else {
-        return 0.f;
+        return 0.0f;
     }
 }
 
@@ -313,7 +325,7 @@ void UserInputMapper::update(float deltaTime) {
             auto deviceProxy = getDeviceProxy(inputID);
             switch (inputMapping._input.getType()) {
                 case ChannelType::BUTTON: {
-                    _actionStates[channelInput.first] += inputMapping._scale * float(deviceProxy->getButton(inputID, currentTimestamp)) * deltaTime;
+                    _actionStates[channelInput.first] += inputMapping._scale * float(deviceProxy->getButton(inputID, currentTimestamp));// * deltaTime; // weight the impulse by the deltaTime
                     break;
                 }
                 case ChannelType::AXIS: {
@@ -334,24 +346,24 @@ void UserInputMapper::update(float deltaTime) {
         }
     }
 
-    // Scale all the channel step with the the unit scale and the time
+    // Scale all the channel step with the scale
     for (auto i = 0; i < NUM_ACTIONS; i++) {
-        _actionStates[i] *= _actionUnitScales[i];
+        _actionStates[i] *= _actionScales[i];
     }
 }
 
 
-void UserInputMapper::assignDefaulActionUnitScales() {
-    _actionUnitScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
-    _actionUnitScales[LONGITUDINAL_FORWARD] = 1.0f; // 1m per unit
-    _actionUnitScales[LATERAL_LEFT] = 1.0f; // 1m per unit
-    _actionUnitScales[LATERAL_RIGHT] = 1.0f; // 1m per unit
-    _actionUnitScales[VERTICAL_DOWN] = 1.0f; // 1m per unit
-    _actionUnitScales[VERTICAL_UP] = 1.0f; // 1m per unit
-    _actionUnitScales[YAW_LEFT] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[YAW_RIGHT] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[PITCH_DOWN] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[PITCH_UP] = 1.0f;//glm::radians<float>(1.0f); // 3 degree per unit
-    _actionUnitScales[BOOM_IN] = 1.0f; // 1m per unit
-    _actionUnitScales[BOOM_OUT] = 1.0f; // 1m per unit
+void UserInputMapper::assignDefaulActionScales() {
+    _actionScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
+    _actionScales[LONGITUDINAL_FORWARD] = 1.0f; // 1m per unit
+    _actionScales[LATERAL_LEFT] = 1.0f; // 1m per unit
+    _actionScales[LATERAL_RIGHT] = 1.0f; // 1m per unit
+    _actionScales[VERTICAL_DOWN] = 1.0f; // 1m per unit
+    _actionScales[VERTICAL_UP] = 1.0f; // 1m per unit
+    _actionScales[YAW_LEFT] = 1.0f; // 1 degree per unit
+    _actionScales[YAW_RIGHT] = 1.0f; // 1 degree per unit
+    _actionScales[PITCH_DOWN] = 1.0f; // 1 degree per unit
+    _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
+    _actionScales[BOOM_IN] = 1.0f; // 1m per unit
+    _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
 }

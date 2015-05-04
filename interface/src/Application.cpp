@@ -548,7 +548,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
-    _userInputMapper.assignDefaulActionUnitScales();
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings 
     _keyboardMouseDevice.registerToUserInputMapper(_userInputMapper);
     _keyboardMouseDevice.assignDefaultInputMapping(_userInputMapper);
@@ -2395,7 +2394,7 @@ void Application::update(float deltaTime) {
     }
 
     _userInputMapper.update(deltaTime);
-    _keyboardMouseDevice.resetDeltas(); // Probably should be a update call , the place where the deltas are cleaned for th enew loop
+    _keyboardMouseDevice.update();
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();

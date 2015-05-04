@@ -123,7 +123,7 @@ public:
     };
 
     float getActionState(Action action) const { return _actionStates[action]; }
-    void assignDefaulActionUnitScales();
+    void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
     // Return true if theinput channel is created correctly, false either
@@ -158,7 +158,7 @@ public:
     void update(float deltaTime);
 
     // Default contruct allocate the poutput size with the current hardcoded action channels
-    UserInputMapper() { assignDefaulActionUnitScales(); }
+    UserInputMapper() { assignDefaulActionScales(); }
 
 protected:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
@@ -171,7 +171,7 @@ protected:
     ActionToInputsMap _actionToInputsMap;
  
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-    std::vector<float> _actionUnitScales = std::vector<float>(NUM_ACTIONS, 1.0f);
+    std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
 };
 
 
@@ -228,13 +228,7 @@ public:
 
     void wheelEvent(QWheelEvent* event);
 
-    ButtonPressedMap _buttonPressedMap;
-    mutable AxisStateMap _axisStateMap;
-
-    QPoint _lastCursor;
-    glm::vec2 _lastTouch;
-    bool _isTouching = false;
-
+    // Get current state for each channels
     float getButton(int channel) const;
     float getAxis(int channel) const;
 
@@ -253,10 +247,18 @@ public:
     void registerToUserInputMapper(UserInputMapper& mapper);
     void assignDefaultInputMapping(UserInputMapper& mapper);
 
-    void resetDeltas() {
-        _axisStateMap.clear();
-    }
+    // Update call MUST be called once per simulation loop
+    // It takes care of updating the action states and deltas
+    void update();
 
+protected:
+    ButtonPressedMap _buttonPressedMap;
+    AxisStateMap _axisStateMap;
+    
+    QPoint _lastCursor;
+    glm::vec2 _lastTouch;
+    bool _isTouching = false;
+    
     glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
