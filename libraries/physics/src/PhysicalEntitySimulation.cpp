@@ -84,6 +84,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
         EntityItem* entity = motionState->getEntity();
         entity->setPhysicsInfo(nullptr);
+        clearEntitySimulation(entity);
     }
 
     // then delete the objects (aka MotionStates)
@@ -113,6 +114,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
             entity->setPhysicsInfo(nullptr);
             _tempVector.push_back(motionState);
         }
+        clearEntitySimulation(entity);
     }
     _pendingRemoves.clear();
     return _tempVector;
@@ -161,7 +163,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
-        if (state->getType() == MOTION_STATE_TYPE_ENTITY) {
+        if (state && state->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             _outgoingChanges.insert(entityState);
             _entitiesToSort.insert(entityState->getEntity());

@@ -375,8 +375,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 }
 
 uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
-    return _entity->getDirtyFlags(); 
-/* TODO: reimplement this motion-type adjustment
+    uint32_t dirtyFlags = _entity->getDirtyFlags(); 
     if (_body) {
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
@@ -387,7 +386,6 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() const {
         }
     }
     return dirtyFlags;
-*/
 }
 
 // virtual
@@ -397,7 +395,11 @@ void EntityMotionState::bump() {
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
-    _lastVelocity = bulletToGLM(_body->getLinearVelocity());                                                        
+    if (_body) {
+        _lastVelocity = bulletToGLM(_body->getLinearVelocity());                                                        
+    } else {
+        _lastVelocity = glm::vec3(0.0f);
+    }
     _measuredAcceleration = glm::vec3(0.0f);
 } 
 

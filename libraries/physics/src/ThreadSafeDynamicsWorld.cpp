@@ -95,8 +95,10 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
             btCollisionObject* colObj = m_collisionObjects[i];
             btRigidBody* body = btRigidBody::upcast(colObj);
             if (body) {
-                synchronizeSingleMotionState(body);
-                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
             }
         }
     } else  {       
@@ -104,8 +106,10 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
         for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
             btRigidBody* body = m_nonStaticRigidBodies[i];
             if (body->isActive()) {
-                synchronizeSingleMotionState(body);
-                _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
             }
         }
     }   
