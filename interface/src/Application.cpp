@@ -1414,10 +1414,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (activeWindow() == _window) {
-
         _keyboardMouseDevice.mousePressEvent(event);
 
-       if (event->button() == Qt::LeftButton) {
+        if (event->button() == Qt::LeftButton) {
             _mouseDragStartedX = getTrueMouseX();
             _mouseDragStartedY = getTrueMouseY();
             _mousePressed = true;
@@ -1458,9 +1457,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mouseReleaseEvent(event);
-
     if (activeWindow() == _window) {
+        _keyboardMouseDevice.mouseReleaseEvent(event);
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;

@@ -70,6 +70,7 @@
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "ui/UserInputMapper.h"
+#include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
