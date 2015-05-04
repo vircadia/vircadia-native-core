@@ -67,7 +67,7 @@ glm::vec3 Quat::axis(const glm::quat& orientation) {
     return glm::axis(orientation);
 }
 
-float Quat::angle(const glm::quat &orientation) {
+float Quat::angle(const glm::quat& orientation) {
     return glm::angle(orientation);
 }
 
