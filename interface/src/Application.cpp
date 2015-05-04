@@ -3132,7 +3132,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         }
 
         // finally render the starfield
-        //qDebug() << "stars alpha:" << alpha;
         if (hasStars) {
             _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
         }

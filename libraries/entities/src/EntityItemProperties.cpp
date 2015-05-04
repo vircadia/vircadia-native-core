@@ -982,10 +982,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, SkyboxMode, setSkyboxMode);
-        
-        qDebug() << "EntityItemProperties::decodeEntityEditPacket()....";
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
-        properties.getAtmosphere().debugDump();
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
