@@ -22,10 +22,36 @@ public:
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
 
     enum DebugFlags {
-        RENDER_DEBUG_NONE=0,
-        RENDER_DEBUG_HULLS=1,
-        RENDER_DEBUG_SIMULATION_OWNERSHIP=2
+        RENDER_DEBUG_NONE = 0,
+        RENDER_DEBUG_HULLS = 1,
+        RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
+    
+    RenderArgs(OctreeRenderer* _renderer = nullptr,
+               ViewFrustum* _viewFrustum = nullptr,
+               float _sizeScale = 1.0f,
+               int _boundaryLevelAdjust = 0,
+               RenderMode _renderMode = DEFAULT_RENDER_MODE,
+               RenderSide _renderSide = MONO,
+               DebugFlags _debugFlags = RENDER_DEBUG_NONE,
+               
+               int _elementsTouched = 0,
+               int _itemsRendered = 0,
+               int _itemsOutOfView = 0,
+               int _itemsTooSmall = 0,
+               
+               int _meshesConsidered = 0,
+               int _meshesRendered = 0,
+               int _meshesOutOfView = 0,
+               int _meshesTooSmall = 0,
+               
+               int _materialSwitches = 0,
+               int _trianglesRendered = 0,
+               int _quadsRendered = 0,
+               
+               int _translucentMeshPartsRendered = 0,
+               int _opaqueMeshPartsRendered = 0) {
+    }
 
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
