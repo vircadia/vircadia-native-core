@@ -288,7 +288,7 @@ void PhysicsEngine::updateContactMap() {
             ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
             if (a || b) {
                 // the manifold has up to 4 distinct points, but only extract info from the first
-                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0), _originOffset);
+                _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
             doOwnershipInfection(objectA, objectB);
@@ -304,7 +304,8 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
     ContactMap::iterator contactItr = _contactMap.begin();
 
     while (contactItr != _contactMap.end()) {
-        ContactEventType type = contactItr->second.computeType(_numContactFrames);
+        ContactInfo& contact = contactItr->second;
+        ContactEventType type = contact.computeType(_numContactFrames);
         if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0) {
             ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
             ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
@@ -315,10 +316,16 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
                 if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
                     idB = B->getObjectID();
                 }
-                _collisionEvents.push_back(CollisionEvent(type, idA, idB));
+                glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
+                glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
+                _collisionEvents.push_back(Collision(type, idA, idB, position, penetration));
             } else if (B && B->getType() == MOTION_STATE_TYPE_ENTITY) {
                 QUuid idB = B->getObjectID();
-                _collisionEvents.push_back(CollisionEvent(type, idB, QUuid()));
+                glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
+                // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL) 
+                // hence we must negate the penetration.
+                glm::vec3 penetration = - bulletToGLM(contact.distance * contact.normalWorldOnB);
+                _collisionEvents.push_back(Collision(type, idB, QUuid(), position, penetration));
             }
         }
 

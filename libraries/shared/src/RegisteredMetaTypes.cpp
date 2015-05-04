@@ -187,6 +187,9 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
 
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
+    obj.setProperty("type", collision.type);
+    obj.setProperty("idA", quuidToScriptValue(engine, collision.idA));
+    obj.setProperty("idB", quuidToScriptValue(engine, collision.idB));
     obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
     obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
     return obj;

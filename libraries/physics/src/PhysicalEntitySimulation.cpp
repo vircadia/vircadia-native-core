@@ -189,6 +189,12 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
 }
 
 void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionEvents) {
-    // BOOKMARK TODO: emit events 
+    for (auto collision : collisionEvents) {
+        // NOTE: The collision event is always aligned such that idA is never NULL.
+        // however idB may be NULL.
+        if (!collision.idB.isNull()) {
+            emit entityCollisionWithEntity(collision.idA, collision.idB, collision);
+        }
+    }
 }
 

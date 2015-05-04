@@ -41,21 +41,7 @@ public:
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
-
-class CollisionEvent {
-public:
-    CollisionEvent() : _type(CONTACT_EVENT_TYPE_START), _idA(), _idB() {}
-    CollisionEvent(ContactEventType type, const QUuid& idA, const QUuid& idB) : _type(type), _idA(idA), _idB(idB) {}
-        
-    ContactEventType _type; // START, CONTINUE, or END
-    QUuid _idA;
-    QUuid _idB;
-    // TODO: add is info to contact callback
-    //glm::vec3 _position; // world-frame
-    //glm::vec3 _normal; // world-frame
-};
-
-typedef QVector<CollisionEvent> CollisionEvents;
+typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
@@ -85,7 +71,7 @@ public:
     /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
     VectorOfMotionStates& getOutgoingChanges();
 
-    /// \return reference to list of CollisionEvent's.  The list is only valid until beginning of next simulation loop.
+    /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
     CollisionEvents& getCollisionEvents();
 
     /// \brief prints timings for last frame if stats have been requested.
