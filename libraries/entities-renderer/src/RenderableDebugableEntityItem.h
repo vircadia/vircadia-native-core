@@ -17,6 +17,7 @@
 class RenderableDebugableEntityItem {
 public:
     static void renderBoundingBox(EntityItem* entity, RenderArgs* args, bool puffedOut);
+    static void renderHoverDot(EntityItem* entity, RenderArgs* args);
     static void render(EntityItem* entity, RenderArgs* args);
 };
 

@@ -145,8 +145,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
-                properties.setVelocityChanged(false);
-                properties.setAccelerationChanged(false);
+                properties.setRotationChanged(false);
             } else {
                 qCDebug(entities) << "allowing simulatorID change";
             }

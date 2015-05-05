@@ -92,6 +92,8 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
+    static bool physicsInfoIsActive(void* physicsInfo);
+
 private:
     void removeContacts(ObjectMotionState* motionState);
 

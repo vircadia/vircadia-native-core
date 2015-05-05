@@ -405,3 +405,16 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
     }
 }
 
+bool PhysicsEngine::physicsInfoIsActive(void* physicsInfo) {
+    if (!physicsInfo) {
+        return false;
+    }
+
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* body = motionState->getRigidBody();
+    if (!body) {
+        return false;
+    }
+
+    return body->isActive();
+}
