@@ -9,16 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "BulletUtil.h"
 #include "ContactInfo.h"
 
-void ContactInfo::update(uint32_t currentStep, btManifoldPoint& p, const glm::vec3& worldOffset) {
+void ContactInfo::update(uint32_t currentStep, const btManifoldPoint& p) {
     _lastStep = currentStep;
     ++_numSteps;
-    contactPoint = bulletToGLM(p.m_positionWorldOnB) + worldOffset;
-    penetration = bulletToGLM(p.m_distance1 * p.m_normalWorldOnB);
-    // TODO: also report normal
-    //_normal = bulletToGLM(p.m_normalWorldOnB);
+    positionWorldOnB = p.m_positionWorldOnB;
+    normalWorldOnB = p.m_normalWorldOnB;
+    distance = p.m_distance1;
 }   
 
 ContactEventType ContactInfo::computeType(uint32_t thisStep) {

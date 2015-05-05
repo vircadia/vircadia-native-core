@@ -12,12 +12,12 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
-#include <QSet>
+#include <QVector>
 
 #include <Octree.h>
+
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
-
 
 class Model;
 class EntitySimulation;

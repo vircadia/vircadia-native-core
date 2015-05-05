@@ -28,7 +28,7 @@
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
-class EntityTree;
+class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
@@ -44,19 +44,28 @@ class EntityTreeElementExtraEncodeData;
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem {
+    // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
+    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
+    // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
+    // do cleanup.
     friend class EntityTreeElement;
+    friend class EntitySimulation;
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
-        DIRTY_VELOCITY = 0x0002,
-        DIRTY_MASS = 0x0004,
-        DIRTY_COLLISION_GROUP = 0x0008,
-        DIRTY_MOTION_TYPE = 0x0010,
-        DIRTY_SHAPE = 0x0020,
-        DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_MATERIAL = 0x00100,
-        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
+        DIRTY_ROTATION = 0x0002,
+        DIRTY_LINEAR_VELOCITY = 0x0004,
+        DIRTY_ANGULAR_VELOCITY = 0x0008,
+        DIRTY_MASS = 0x0010,
+        DIRTY_COLLISION_GROUP = 0x0020,
+        DIRTY_MOTION_TYPE = 0x0040,
+        DIRTY_SHAPE = 0x0080,
+        DIRTY_LIFETIME = 0x0100,
+        DIRTY_UPDATEABLE = 0x0200,
+        DIRTY_MATERIAL = 0x00400,
+        DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
+        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
+        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -66,7 +75,7 @@ public:
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
-    QUuid getID() const { return _id; }
+    const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
@@ -296,8 +305,8 @@ public:
     bool isMoving() const;
 
     void* getPhysicsInfo() const { return _physicsInfo; }
-    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
@@ -371,14 +380,13 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
-    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
-    // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo = NULL; // only set by EntitySimulation
-
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
-    EntityTreeElement* _element;    // back pointer to containing Element
+    // these backpointers are only ever set/cleared by friends:
+    EntityTreeElement* _element = nullptr; // set by EntityTreeElement
+    void* _physicsInfo = nullptr; // set by EntitySimulation
+    bool _simulated; // set by EntitySimulation
 };
 
 
