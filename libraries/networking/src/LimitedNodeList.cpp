@@ -278,7 +278,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
 
         emit dataSent(destinationNode->getType(), datagram.size());
-        auto bytesWritten = writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr, destinationNode->getConnectionSecret());
         // Keep track of per-destination-node bandwidth
         destinationNode->recordBytesSent(bytesWritten);
         return bytesWritten;
@@ -482,8 +482,11 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
 }
 
 QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
+
+    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
+
     QByteArray pingPacket = byteArrayWithUUIDPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
-                                                             packetHeaderID);
+                                                             packetUUID);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -505,8 +508,10 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
     
     PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
-    
-    QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetHeaderID);
+   
+    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
+
+    QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetUUID);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();

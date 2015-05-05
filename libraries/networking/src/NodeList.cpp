@@ -183,7 +183,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePingReply: {
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
-            
+
             if (sendingNode) {
                 sendingNode->setLastHeardMicrostamp(usecTimestampNow());
                 
@@ -497,7 +497,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
-    
+
     if (!node->getSymmetricSocket().isNull()) {
         QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
         writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());

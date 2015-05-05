@@ -167,7 +167,7 @@ int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUui
         position += NUM_BYTES_MD5_HASH;
     }
 
-    if (!SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
        // Pack zeros for the number of bytes that the sequence number requires.
        // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
        memset(position, 0, sizeof(PacketSequenceNumber));
