@@ -14,7 +14,9 @@
 
 #include <stdint.h>
 #include <iterator>
+#include <map>
 #include <memory>
+#include <unordered_map>
 
 #ifndef _WIN32
 #include <unistd.h> // not on windows, not needed for mac or windows
@@ -34,6 +36,7 @@
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "PacketHeaders.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -75,6 +78,8 @@ namespace PingType {
     const PingType_t Public = 2;
     const PingType_t Symmetric = 3;
 }
+
+typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
@@ -224,8 +229,11 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
+    qint64 writeDatagram(const QByteArray& datagram, 
+                         const HifiSockAddr& destinationSockAddr,
                          const QUuid& connectionSecret);
+
+    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType);
     
     void changeSocketBufferSizes(int numBytes);
     
@@ -247,6 +255,8 @@ protected:
     QElapsedTimer _packetStatTimer;
     bool _thisNodeCanAdjustLocks;
     bool _thisNodeCanRez;
+
+    std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {

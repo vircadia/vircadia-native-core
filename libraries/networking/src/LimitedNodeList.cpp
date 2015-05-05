@@ -231,20 +231,13 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                                      const QUuid& connectionSecret) {
-    QByteArray datagramCopy = datagram;
-    
-    if (!connectionSecret.isNull()) {
-        // setup the MD5 hash for source verification in the header
-        replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
-    }
-    
+                                      const QUuid& connectionSecret) {    
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagram,
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
     if (bytesWritten < 0) {
@@ -268,6 +261,19 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
                 // we don't have a socket to send to, return 0
                 return 0;
             }
+        }
+
+        QByteArray datagramCopy = datagram;
+        PacketType packetType = packetTypeForPacket(datagramCopy);
+        
+        // perform replacement of hash and optionally also sequence number in the header
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+            PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
+            replaceHashAndSequenceNumberInPacketGivenType(datagramCopy, packetType, 
+                                                          destinationNode->getConnectionSecret(),
+                                                          sequenceNumber);
+        } else {
+            replaceHashInPacketGivenType(datagramCopy, packetType, destinationNode->getConnectionSecret());
         }
 
         emit dataSent(destinationNode->getType(), datagram.size());
@@ -316,6 +322,15 @@ qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const Share
 qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
+PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType) {
+    // Thanks to std::map and std::unordered_map this line either default constructs the 
+    // PacketTypeSequenceMap and the PacketSequenceNumber or returns the existing value.
+    // We use the postfix increment so that the stored value is incremented and the next 
+    // return gives the correct value.
+    
+    return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
 void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
