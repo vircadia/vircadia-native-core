@@ -3100,21 +3100,29 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
+        bool hasStars = true;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+            // TODO: handle this correctly for zones
             const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            float height = glm::distance(theCamera.getPosition(),
-                closestData.getAtmosphereCenter(theCamera.getPosition()));
-            if (height < closestData.getAtmosphereInnerRadius()) {
-                alpha = 0.0f;
+            
+            if (closestData.getHasStars()) {
+                float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
+                if (height < closestData.getAtmosphereInnerRadius()) {
+                    alpha = 0.0f;
 
-            } else if (height < closestData.getAtmosphereOuterRadius()) {
-                alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                } else if (height < closestData.getAtmosphereOuterRadius()) {
+                    alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                        (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                }
+            } else {
+                hasStars = false;
             }
         }
 
         // finally render the starfield
-        _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+        if (hasStars) {
+            _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+        }
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {

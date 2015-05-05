@@ -145,8 +145,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
-                properties.setVelocityChanged(false);
-                properties.setAccelerationChanged(false);
+                properties.setRotationChanged(false);
             } else {
                 qCDebug(entities) << "allowing simulatorID change";
             }
@@ -160,7 +159,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) { 
+            if (_simulation) {
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
                     _simulation->changeEntity(entity);

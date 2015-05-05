@@ -111,7 +111,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _movingStepsWithoutSimulationOwner = 0;
     }
 
-    if (_movingStepsWithoutSimulationOwner > 4) { // XXX maybe meters from our characterController ?
+    if (_movingStepsWithoutSimulationOwner > 100) { // XXX maybe meters from our characterController ?
+        qDebug() << "XXX XXX XXX -- claiming something I saw moving";
         setShouldClaimSimulationOwnership(true);
     }
 

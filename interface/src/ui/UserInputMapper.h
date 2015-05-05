@@ -57,7 +57,9 @@ public:
         bool isAxis() const { return getType() == ChannelType::AXIS; }
         bool isJoint() const { return getType() == ChannelType::JOINT; }
 
-        explicit Input() {}
+        // WORKAROUND: the explicit initializer here avoids a bug in GCC-4.8.2 (but not found in 4.9.2)
+        // where the default initializer (a C++-11ism) for the union data above is not applied.
+        explicit Input() : _id(0) {}
         explicit Input(uint32 id) : _id(id) {}
         explicit Input(uint16 device, uint16 channel, ChannelType type) : _device(device), _channel(channel), _type(uint16(type)) {}
         Input(const Input& src) : _id(src._id) {}

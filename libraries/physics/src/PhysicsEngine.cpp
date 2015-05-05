@@ -405,3 +405,34 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
     }
 }
 
+bool PhysicsEngine::physicsInfoIsActive(void* physicsInfo) {
+    if (!physicsInfo) {
+        return false;
+    }
+
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* body = motionState->getRigidBody();
+    if (!body) {
+        return false;
+    }
+
+    return body->isActive();
+}
+
+bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn) {
+    if (!physicsInfo) {
+        return false;
+    }
+
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* body = motionState->getRigidBody();
+    if (!body) {
+        return false;
+    }
+
+    const btTransform& worldTrans = body->getCenterOfMassTransform();
+    positionReturn = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
+    rotationReturn = bulletToGLM(worldTrans.getRotation());
+
+    return true;
+}

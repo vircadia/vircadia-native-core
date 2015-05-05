@@ -14,6 +14,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <gpu/GPUConfig.h>
 #include <DeferredLightingEffect.h>
+#include <PhysicsEngine.h>
 
 #include "RenderableDebugableEntityItem.h"
 
@@ -23,7 +24,6 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
     glm::vec3 center = entity->getCenter();
     glm::vec3 dimensions = entity->getDimensions();
     glm::quat rotation = entity->getRotation();
-    glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
 
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
@@ -34,14 +34,41 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
             if (puffedOut) {
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.2f, greenColor);
+                glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
+                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.2f, redColor);
             } else {
+                glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
                 DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, greenColor);
             }
         glPopMatrix();
     glPopMatrix();
 }
 
+void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArgs* args) {
+    glm::vec3 position = entity->getPosition();
+    glm::vec3 center = entity->getCenter();
+    glm::vec3 dimensions = entity->getDimensions();
+    glm::quat rotation = entity->getRotation();
+    glm::vec4 blueColor(0.0f, 0.0f, 1.0f, 1.0f);
+    float radius = 0.05f;
+
+    glPushMatrix();
+        glTranslatef(position.x, position.y + dimensions.y + radius, position.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+
+        glPushMatrix();
+            glm::vec3 positionToCenter = center - position;
+            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+
+            glScalef(radius, radius, radius);
+
+            const int SLICES = 8;
+            const int STACKS = 8;
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, SLICES, STACKS, blueColor);
+        glPopMatrix();
+    glPopMatrix();
+}
 
 void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {
     bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
@@ -52,4 +79,21 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
             renderBoundingBox(entity, args, true);
         }
     }
+
+    if (PhysicsEngine::physicsInfoIsActive(entity->getPhysicsInfo())) {
+        renderHoverDot(entity, args);
+    }
+
+    glm::vec3 position;
+    glm::quat rotation;
+
+    //
+    // XXX for future debugging
+    //
+    // if (PhysicsEngine::getBodyLocation(entity->getPhysicsInfo(), position, rotation)) {
+        // glm::vec3 positionOffset = glm::abs(position - entity->getPosition());
+        // if (positionOffset[0] > 0.001 || positionOffset[1] > 0.001 || positionOffset[2] > 0.001) {
+        //     qDebug() << positionOffset[0] << positionOffset[1] << positionOffset[2];
+        // }
+    // }
 }

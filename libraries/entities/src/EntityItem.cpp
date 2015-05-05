@@ -313,10 +313,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
     glm::vec3 savePosition = _position;
     glm::quat saveRotation = _rotation;
-    glm::vec3 saveVelocity = _velocity;
-    glm::vec3 saveAngularVelocity = _angularVelocity;
-    glm::vec3 saveGravity = _gravity;
-    glm::vec3 saveAcceleration = _acceleration;
+    // glm::vec3 saveVelocity = _velocity;
+    // glm::vec3 saveAngularVelocity = _angularVelocity;
+    // glm::vec3 saveGravity = _gravity;
+    // glm::vec3 saveAcceleration = _acceleration;
 
 
     // Header bytes
@@ -401,8 +401,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (lastEditedFromBufferAdjusted > now) {
             lastEditedFromBufferAdjusted = now;
         }
-        
+
+#if 0 // XXX
         bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
+#endif
 
         #ifdef WANT_DEBUG
             qCDebug(entities) << "data from server **************** ";
@@ -419,6 +421,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
 
+#if 0 // XXX Trying to eliminate this code as a possible source of deviation between interfaces
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
         if (fromSameServerEdit) {
@@ -435,6 +438,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 ignoreServerPacket = true;
             }
         }
+#endif
         
         if (ignoreServerPacket) {
             overwriteLocalData = false;
@@ -618,10 +622,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // this node, so our version has to be newer than what the packet contained.
         _position = savePosition;
         _rotation = saveRotation;
-        _velocity = saveVelocity;
-        _angularVelocity = saveAngularVelocity;
-        _gravity = saveGravity;
-        _acceleration = saveAcceleration;
+        // _velocity = saveVelocity;
+        // _angularVelocity = saveAngularVelocity;
+        // _gravity = saveGravity;
+        // _acceleration = saveAcceleration;
     }
 
     return bytesRead;
@@ -1185,6 +1189,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
             _velocity = value;
         }
         _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
     }
 }
 
@@ -1217,6 +1222,7 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     auto distance = glm::distance(_angularVelocity, value);
     if (distance > MIN_SPIN_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_ANGULAR_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         if (glm::length(value) < MIN_SPIN_DELTA) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
