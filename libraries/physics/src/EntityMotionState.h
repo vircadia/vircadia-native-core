@@ -76,7 +76,11 @@ public:
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
 
+    friend class PhysicalEntitySimulation;
+
 protected:
+    void clearEntity();
+
     virtual void setMotionType(MotionType motionType);
 
     EntityItem* _entity;

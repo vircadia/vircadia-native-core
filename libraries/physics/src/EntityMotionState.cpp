@@ -43,11 +43,18 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
 }
 
 EntityMotionState::~EntityMotionState() {
-    assert(_entity);
+    // be sure to clear _entity before calling the destructor
+    assert(!_entity);
+}
+
+void EntityMotionState::clearEntity() {
     _entity = nullptr;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {
+    if (!_entity) {
+        return MOTION_TYPE_STATIC;
+    }
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
@@ -55,7 +62,7 @@ MotionType EntityMotionState::computeObjectMotionType() const {
 }
 
 bool EntityMotionState::isMoving() const {
-    return _entity->isMoving();
+    return _entity && _entity->isMoving();
 }
 
 // This callback is invoked by the physics simulation in two cases:
@@ -64,6 +71,9 @@ bool EntityMotionState::isMoving() const {
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
+    if (!_entity) {
+        return;
+    }
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation.
@@ -82,6 +92,9 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
+    if (!_entity) {
+        return;
+    }
     measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
@@ -112,7 +125,9 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 }
 
 void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
-    _entity->computeShapeInfo(shapeInfo);
+    if (_entity) {
+        _entity->computeShapeInfo(shapeInfo);
+    }
 }
 
 // RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
@@ -227,7 +242,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    if (!remoteSimulationOutOfSync(simulationFrame)) {
+    if (!_entity || !remoteSimulationOutOfSync(simulationFrame)) {
         return false;
     }
 
@@ -248,7 +263,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
-    if (!_entity->isKnownID()) {
+    if (!_entity || !_entity->isKnownID()) {
         return; // never update entities that are unknown
     }
 
@@ -375,8 +390,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 }
 
 uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
-    uint32_t dirtyFlags = _entity->getDirtyFlags(); 
-    if (_body) {
+    uint32_t dirtyFlags = 0;
+    if (_body && _entity) {
+        _entity->getDirtyFlags(); 
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMoving();
