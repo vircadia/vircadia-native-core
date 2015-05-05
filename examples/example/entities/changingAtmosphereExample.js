@@ -23,7 +23,7 @@ var zoneEntityA = Entities.addEntity({
     keyLightColor: { red: 255, green: 0, blue: 0 },
     stageSunModelEnabled: false,
     shapeType: "sphere",
-    skyboxMode: "atmosphere",
+    backgroundMode: "atmosphere",
     atmosphere: {
         center: { x: 1000, y: 0, z: 1000}, 
         innerRadius: 1000.0,
