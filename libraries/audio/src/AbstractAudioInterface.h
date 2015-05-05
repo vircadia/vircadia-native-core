@@ -26,7 +26,7 @@ public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
 public slots:
-    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) = 0;
+    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
     
     virtual void enableAudioSourceInject(bool enable) = 0;
     virtual void selectAudioSourcePinkNoise() = 0;

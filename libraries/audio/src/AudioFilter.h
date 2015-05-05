@@ -12,7 +12,8 @@
 #ifndef hifi_AudioFilter_h
 #define hifi_AudioFilter_h
 
-//
+#include <NumericalConstants.h>
+
 // Implements a standard biquad filter in "Direct Form 1"
 // Reference http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 //
@@ -183,10 +184,10 @@ public:
         a2 =        (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha
         */
         const float32_t b0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta) * a;
-        const float32_t b1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO) * a;
+        const float32_t b1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + 0.0f) * a;
         const float32_t b2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta) * a;
         const float32_t a0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta);
-        const float32_t a1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO);
+        const float32_t a1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + 0.0f);
         const float32_t a2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta);
         
         const float32_t normA0 = 1.0f / a0;
@@ -224,10 +225,10 @@ public:
          a2 =        (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha
          */
         const float32_t b0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta) * a;
-        const float32_t b1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO) * a;
+        const float32_t b1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + 0.0f) * a;
         const float32_t b2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta) * a;
         const float32_t a0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta);
-        const float32_t a1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO);
+        const float32_t a1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + 0.0f);
         const float32_t a2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta);
         
         const float32_t normA0 = 1.0f / a0;

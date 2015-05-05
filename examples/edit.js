@@ -208,8 +208,8 @@ var toolBar = (function () {
             visible: false
         });
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube3.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH + 208, width: 256, height: 256 },
+            imageURL: toolIconUrl + "zonecube_text.svg",
+            subImage: { x: 0, y: 128, width: 128, height: 128 },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,

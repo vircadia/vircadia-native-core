@@ -147,11 +147,10 @@
             var elScriptURL = document.getElementById("property-script-url");
             var elUserData = document.getElementById("property-user-data");
 
-            var elBoxSections = document.querySelectorAll(".box-section");
-            allSections.push(elBoxSections);
-            var elBoxColorRed = document.getElementById("property-box-red");
-            var elBoxColorGreen = document.getElementById("property-box-green");
-            var elBoxColorBlue = document.getElementById("property-box-blue");
+            var elColorSection = document.getElementById("color-section");
+            var elColorRed = document.getElementById("property-color-red");
+            var elColorGreen = document.getElementById("property-color-green");
+            var elColorBlue = document.getElementById("property-color-blue");
 
             var elLightSections = document.querySelectorAll(".light-section");
             allSections.push(elLightSections);
@@ -313,16 +312,17 @@
                                     allSections[i][j].style.display = 'none';
                                 }
                             }
-                            
-                            if (properties.type == "Box") {
-                                for (var i = 0; i < elBoxSections.length; i++) {
-                                    elBoxSections[i].style.display = 'block';
-                                }
 
-                                elBoxColorRed.value = properties.color.red;
-                                elBoxColorGreen.value = properties.color.green;
-                                elBoxColorBlue.value = properties.color.blue;
-                            } else if (properties.type == "Model") {
+                            if (properties.type == "Box" || properties.type == "Sphere") {
+                                elColorSection.style.display = 'block';
+                                elColorRed.value = properties.color.red;
+                                elColorGreen.value = properties.color.green;
+                                elColorBlue.value = properties.color.blue;
+                            } else {
+                                elColorSection.style.display = 'none';
+                            }
+
+                            if (properties.type == "Model") {
                                 for (var i = 0; i < elModelSections.length; i++) {
                                     elModelSections[i].style.display = 'block';
                                 }
@@ -458,11 +458,11 @@
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
-            var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
-            elBoxColorRed.addEventListener('change', boxColorChangeFunction);
-            elBoxColorGreen.addEventListener('change', boxColorChangeFunction);
-            elBoxColorBlue.addEventListener('change', boxColorChangeFunction);
+            var colorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'color', elColorRed, elColorGreen, elColorBlue);
+            elColorRed.addEventListener('change', colorChangeFunction);
+            elColorGreen.addEventListener('change', colorChangeFunction);
+            elColorBlue.addEventListener('change', colorChangeFunction);
 
             elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
@@ -753,12 +753,12 @@
         </div>
 
 
-        <div class="box-section property">
+        <div id="color-section" class="property">
             <div class="label">Color</div>
             <div class="value">
-                <div class="input-area">R <input class="coord" type='number' id="property-box-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-box-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-box-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
             </div>
         </div>
 

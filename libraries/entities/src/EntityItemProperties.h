@@ -24,6 +24,7 @@
 
 #include <AACube.h>
 #include <FBXReader.h> // for SittingPoint
+#include <NumericalConstants.h>
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
