@@ -461,7 +461,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #ifdef DEBUG
     // Ensure the frame counter always increments by exactly 1
     static int oldFrameIndex = -1;
-    assert(oldFrameIndex == -1 || oldFrameIndex == _frameIndex - 1);
+    assert(oldFrameIndex == -1 || (unsigned int)oldFrameIndex == _frameIndex - 1);
     oldFrameIndex = _frameIndex;
 #endif
 
@@ -795,7 +795,6 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 glm::vec3 OculusManager::getRelativePosition() {
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
-    
     return glm::vec3(headPosition.x, headPosition.y, headPosition.z);
 }
 

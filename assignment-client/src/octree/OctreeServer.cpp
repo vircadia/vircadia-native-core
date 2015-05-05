@@ -21,6 +21,7 @@
 #include <HTTPConnection.h>
 #include <LogHandler.h>
 #include <NetworkingConstants.h>
+#include <NumericalConstants.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"
@@ -266,16 +267,19 @@ OctreeServer::~OctreeServer() {
     }
 
     if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
         _jurisdictionSender->terminate();
         _jurisdictionSender->deleteLater();
     }
 
     if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
         _octreeInboundPacketProcessor->terminate();
         _octreeInboundPacketProcessor->deleteLater();
     }
 
     if (_persistThread) {
+        _persistThread->terminating();
         _persistThread->terminate();
         _persistThread->deleteLater();
     }
@@ -1095,8 +1099,6 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...
@@ -1219,8 +1221,15 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
-    _octreeInboundPacketProcessor->shuttingDown();
-    
+
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
+    }
+
+    if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
+    }
+
     DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
@@ -1228,6 +1237,7 @@ void OctreeServer::aboutToFinish() {
     
     if (_persistThread) {
         _persistThread->aboutToFinish();
+        _persistThread->terminating();
     }
 
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";

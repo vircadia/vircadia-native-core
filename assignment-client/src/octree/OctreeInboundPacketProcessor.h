@@ -74,7 +74,7 @@ public:
 
     NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
 
-    void shuttingDown() { _shuttingDown = true;}
+    virtual void terminating() { _shuttingDown = true; ReceivedPacketProcessor::terminating(); }
 
 protected:
 

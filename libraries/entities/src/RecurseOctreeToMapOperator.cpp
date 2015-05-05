@@ -12,11 +12,15 @@
 #include "RecurseOctreeToMapOperator.h"
 
 
-RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map, OctreeElement *top, QScriptEngine *engine) :
+RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
+                                                       OctreeElement *top,
+                                                       QScriptEngine *engine,
+                                                       bool skipDefaultValues) :
         RecurseOctreeOperator(),
         _map(map),
         _top(top),
-        _engine(engine)
+        _engine(engine),
+        _skipDefaultValues(skipDefaultValues)
 {
     // if some element "top" was given, only save information for that element and it's children.
     if (_top) {
@@ -36,6 +40,8 @@ bool RecurseOctreeToMapOperator::preRecursion(OctreeElement* element) {
 
 bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
 
+    EntityItemProperties defaultProperties;
+
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     const QList<EntityItem*>& entities = entityTreeElement->getEntities();
 
@@ -43,7 +49,12 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
 
     foreach (EntityItem* entityItem, entities) {
         EntityItemProperties properties = entityItem->getProperties();
-        QScriptValue qScriptValues = EntityItemPropertiesToScriptValue(_engine, properties);
+        QScriptValue qScriptValues;
+        if (_skipDefaultValues) {
+            qScriptValues = EntityItemNonDefaultPropertiesToScriptValue(_engine, properties);
+        } else {
+            qScriptValues = EntityItemPropertiesToScriptValue(_engine, properties);
+        }
         entitiesQList << qScriptValues.toVariant();
     }
     _map["Entities"] = entitiesQList;

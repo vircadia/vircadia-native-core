@@ -17,11 +17,6 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
-const float DEFAULT_FRICTION = 0.5f;
-const float MAX_FRICTION = 10.0f;
-
-const float DEFAULT_RESTITUTION = 0.5f;
-
 // origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 

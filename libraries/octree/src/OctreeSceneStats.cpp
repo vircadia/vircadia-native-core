@@ -14,8 +14,8 @@
 #include <QStringList>
 
 #include <LogHandler.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
-#include <SharedUtil.h>
 
 #include "OctreePacketData.h"
 #include "OctreeElement.h"

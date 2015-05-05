@@ -10,6 +10,8 @@
 //
 
 #include <limits>
+
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 

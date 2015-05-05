@@ -22,8 +22,8 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <NumericalConstants.h>
 #include <PerfStat.h>
-#include <SharedUtil.h>
 #include <PathUtils.h>
 
 #include "OctreeLogging.h"
@@ -228,6 +228,7 @@ void OctreePersistThread::aboutToFinish() {
     qCDebug(octree) << "Persist thread about to finish...";
     persist();
     qCDebug(octree) << "Persist thread done with about to finish...";
+    _stopThread = true;
 }
 
 void OctreePersistThread::persist() {

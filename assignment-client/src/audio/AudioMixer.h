@@ -65,11 +65,6 @@ private:
     
     bool shouldMute(float quietestFrame);
 
-    QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
-    QString getReadPendingDatagramsPacketsPerCallStatsString() const;
-    QString getReadPendingDatagramsTimeStatsString() const;
-    QString getReadPendingDatagramsHashMatchTimeStatsString() const;
-    
     void parseSettingsObject(const QJsonObject& settingsObject);
     
     float _trailingSleepRatio;

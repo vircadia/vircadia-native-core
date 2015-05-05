@@ -27,6 +27,7 @@
 #include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -581,7 +582,8 @@ void Avatar::renderBillboard() {
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, 
+                                                        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     
     glPopMatrix();
     
@@ -709,11 +711,22 @@ void Avatar::renderDisplayName() {
             glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
    
     glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-    QByteArray ba = _displayName.toLocal8Bit();
-    const char* text = ba.data();
+    
+    // optionally render timing stats for this avatar with the display name
+    QString renderedDisplayName = _displayName;
+    
+    if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
+        float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
+    
+        renderedDisplayName += QString(" - (%1 Kbps, %2 Hz)")
+                               .arg(QString::number(kilobitsPerSecond, 'f', 2))
+                               .arg(getReceiveRate());
+    }
+ 
+    QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, text, color);
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, nameUTF8.data(), color);
 
     glPopMatrix();
 

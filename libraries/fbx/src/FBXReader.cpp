@@ -25,6 +25,7 @@
 #include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <OctalCode.h>
 #include <Shape.h>
 
@@ -1746,8 +1747,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     material.id = getID(object.properties);
 
                     material._material = model::MaterialPointer(new model::Material());
-                    material._material->setEmissive(material.emissive); 
-                    material._material->setDiffuse(material.diffuse); 
+                    material._material->setEmissive(material.emissive);
+                    if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
+                        material._material->setDiffuse(material.diffuse); 
+                    } else {
+                        material._material->setDiffuse(material.diffuse); 
+                    }
                     material._material->setSpecular(material.specular); 
                     material._material->setShininess(material.shininess); 
 

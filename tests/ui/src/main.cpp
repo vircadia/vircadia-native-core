@@ -36,6 +36,7 @@
 #include "MessageDialog.h"
 #include "VrMenu.h"
 #include "InfoView.h"
+#include <QDesktopWidget>
 
 class RateCounter {
     std::vector<float> times;
@@ -349,8 +350,14 @@ public:
         makeCurrent();
 
         offscreenUi->setProxyWindow(this);
-        setFramePosition(QPoint(-1000, 0));
-        resize(QSize(800, 600));
+        QDesktopWidget* desktop = QApplication::desktop();
+        QRect rect = desktop->availableGeometry(desktop->screenCount() - 1);
+        int height = rect.height();
+        //rect.setHeight(height / 2);
+        rect.setY(rect.y() + height / 2);
+        setGeometry(rect);
+//        setFramePosition(QPoint(-1000, 0));
+//        resize(QSize(800, 600));
 
 #ifdef QML_CONTROL_GALLERY
         offscreenUi->setBaseUrl(QUrl::fromLocalFile(getTestQmlDir()));
@@ -492,7 +499,7 @@ qt.quick.mouse.debug=false
 )V0G0N";
 
 int main(int argc, char** argv) {    
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     app.exec();
