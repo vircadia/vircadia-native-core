@@ -48,7 +48,6 @@ void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
 }
 
 void EntitySimulation::addEntityInternal(EntityItem* entity) {
-    entity->_simulated = true;
     if (entity->isMoving() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     }
@@ -154,6 +153,7 @@ void EntitySimulation::addEntity(EntityItem* entity) {
         _entitiesToUpdate.insert(entity);
     }
     addEntityInternal(entity);
+    entity->_simulated = true;
 
     // DirtyFlags are used to signal changes to entities that have already been added, 
     // so we can clear them for this entity which has just been added.

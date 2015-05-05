@@ -1189,6 +1189,7 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
             _velocity = value;
         }
         _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
     }
 }
 
@@ -1221,6 +1222,7 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     auto distance = glm::distance(_angularVelocity, value);
     if (distance > MIN_SPIN_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_ANGULAR_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         if (glm::length(value) < MIN_SPIN_DELTA) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
