@@ -1906,13 +1906,13 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, false, args);
-
+        
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, false, args);
         
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, true, args);
 
         // render translucent meshes afterwards
         {
@@ -2044,7 +2044,7 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
         updateGeometry();
         simulate(0.0, true);
     }
-
+    
     renderSetup(args);
     _modelsInScene.push_back(this);
     return true;
@@ -2084,7 +2084,7 @@ void Model::segregateMeshGroups() {
         if (wantDebug) {
             qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
-
+        
         RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe());
 
         // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
@@ -2101,13 +2101,13 @@ void Model::segregateMeshGroups() {
     _meshGroupsKnown = true;
 } 
 
-QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned) {
+QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) {
     PROFILE_RANGE(__FUNCTION__);
 
     // depending on which parameters we were called with, pick the correct mesh group to render
     QVector<int>* whichList = NULL;
 
-    RenderKey key(translucent, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe());
+    RenderKey key(translucent, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
 
     auto bucket = _renderBuckets.find(key.getRaw());
     if (bucket != _renderBuckets.end()) {
@@ -2155,7 +2155,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
     Locations* locations = nullptr;
     
     foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
+        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
         if (whichList) {
             QVector<int>& list = *whichList;
             if (list.size() > 0) {
@@ -2181,7 +2181,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     int meshPartsRendered = 0;
 
     //Pick the mesh list with the requested render flags
-    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);    
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     if (!whichList) {
         return 0;
     }

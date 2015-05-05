@@ -375,7 +375,7 @@ private:
                         bool forceRenderMeshes = false);
                         
     void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
+    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                                         RenderArgs* args, Locations* locations, 
