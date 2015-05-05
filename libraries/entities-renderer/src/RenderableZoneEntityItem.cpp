@@ -13,6 +13,7 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <PerfStat.h>
 
 EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableZoneEntityItem(entityID, properties);
@@ -76,7 +77,10 @@ void RenderableZoneEntityItem::initialSimulation() {
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
     if (_drawZoneBoundaries) {
-        // TODO: Draw the zone boundaries...
+        if (_model->isActive()) {
+            PerformanceTimer perfTimer("zone->render");
+            _model->renderInScene(getLocalRenderAlpha(), args);
+        }
     }
 }
 
