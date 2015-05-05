@@ -13,7 +13,7 @@
         var DESC_STRING = '&nbsp;&#x25B4;';
 
         function loaded() {
-            entityList = new List('entity-list', { valueNames: ['type', 'url']});
+            entityList = new List('entity-list', { valueNames: ['name', 'type', 'url']});
             entityList.clear();
             elEntityTable = document.getElementById("entity-table");
             elEntityTableBody = document.getElementById("entity-table-body");
@@ -22,6 +22,9 @@
             elTeleport = document.getElementById("teleport");
             elNoEntitiesMessage = document.getElementById("no-entities");
 
+            document.getElementById("entity-name").onclick = function() {
+                setSortColumn('name');
+            };
             document.getElementById("entity-type").onclick = function() {
                 setSortColumn('type');
             };
@@ -56,31 +59,34 @@
                 }));
             }
 
-            function addEntity(id, type, url) {
+            function addEntity(id, name, type, url) {
                 if (entities[id] === undefined) {
                     var urlParts = url.split('/');
                     var filename = urlParts[urlParts.length - 1];
 
-                    entityList.add([{ id: id, type: type, url: filename }], function(items) {
+                    entityList.add([{ id: id, name: name, type: type, url: filename }], function(items) {
                             var el = items[0].elm;
                             var id = items[0]._values.id;
                             entities[id] = {
                                 id: id,
-                                name: id,
+                                name: name,
                                 el: el,
+                                item: items[0],
                             };
                             el.setAttribute('id', 'entity_' + id);
                             el.setAttribute('title', url);
                             el.dataset.entityId = id;
                             el.onclick = onRowClicked;
                             el.ondblclick = onRowDoubleClicked;
-                            el.innerHTML
                     });
 
                     if (refreshEntityListTimer) {
                         clearTimeout(refreshEntityListTimer);
                     }
                     refreshEntityListTimer = setTimeout(refreshEntityListObject, 50);
+                } else {
+                    var item = entities[id].item;
+                    item.values({ name: name, url: url });
                 }
             }
 
@@ -90,6 +96,7 @@
             }
 
             var elSortOrder = {
+                name: document.querySelector('#entity-name .sort-order'),
                 type: document.querySelector('#entity-type .sort-order'),
                 url: document.querySelector('#entity-url .sort-order'),
             }
@@ -164,7 +171,7 @@
                             elNoEntitiesMessage.style.display = "none";
                             for (var i = 0; i < newEntities.length; i++) {
                                 var id = newEntities[i].id;
-                                addEntity(id, newEntities[i].type, newEntities[i].url);
+                                addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url);
                             }
                             updateSelectedEntities(data.selectedIDs);
                         }
@@ -190,6 +197,7 @@
             <thead>
                 <tr>
                     <th id="entity-type" data-sort="type">Type <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
+                    <th id="entity-name" data-sort="type">Name <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
                     <th id="entity-url" data-sort="url">URL <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
                 </tr>
             </thead>
@@ -197,6 +205,7 @@
                 <tr>
                     <td class="id" style="display: none">Type</td>
                     <td class="type">Type</td>
+                    <td class="name">Name</td>
                     <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
                 </tr>
             </tbody>

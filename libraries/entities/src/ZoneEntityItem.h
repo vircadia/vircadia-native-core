@@ -12,6 +12,9 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include <EnvironmentData.h>
+
+#include "AtmospherePropertyGroup.h"
 #include "EntityItem.h" 
 
 class ZoneEntityItem : public EntityItem {
@@ -91,6 +94,9 @@ public:
 
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
+
+    static bool getDrawZoneBoundaries() { return _drawZoneBoundaries; }
+    static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
     
     virtual bool isReadyToComputeShape() { return false; }
     void updateShapeType(ShapeType type) { _shapeType = type; }
@@ -99,6 +105,11 @@ public:
     virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
+
+    void setSkyboxMode(SkyboxMode value) { _skyboxMode = value; }
+    SkyboxMode getSkyboxMode() const { return _skyboxMode; }
+
+    EnvironmentData getEnvironmentData() const;
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -135,7 +146,11 @@ protected:
     
     ShapeType _shapeType = SHAPE_TYPE_NONE;
     QString _compoundShapeURL;
+    
+    SkyboxMode _skyboxMode = SKYBOX_MODE_INHERIT;
+    AtmospherePropertyGroup _atmospherePropeties;
 
+    static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
 };
 

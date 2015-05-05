@@ -10,11 +10,11 @@
 //
 
 #include "AABox.h"
+
 #include "AACube.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
-#include "SharedUtil.h"
-
+#include "NumericalConstants.h"
 
 AABox::AABox(const AACube& other) : 
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {

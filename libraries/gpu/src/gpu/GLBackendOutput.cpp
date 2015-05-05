@@ -74,6 +74,19 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
                 }
             }
         }
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+        // for reasons that i don't understand yet, it seems that on mac gl, a fbo must have a color buffer...
+        else {
+            GLuint renderBuffer = 0;
+            glGenRenderbuffers(1, &renderBuffer);
+            glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, framebuffer.getWidth(), framebuffer.getHeight());
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
+            (void) CHECK_GL_ERROR();
+        }
+#endif
+        
 
         if (framebuffer.hasDepthStencil()) {
             auto surface = framebuffer.getDepthStencilBuffer();

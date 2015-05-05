@@ -1,3 +1,16 @@
+
+//  grab.js
+//  examples
+//
+//  Created by Eric Levin on May 1, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Grab's physically moveable entities with the mouse, by applying a spring force. 
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var isGrabbing = false;
 var grabbedEntity = null;
 var prevMouse = {};
@@ -5,17 +18,25 @@ var deltaMouse = {
   z: 0
 }
 var entityProps;
-var box, box2, ground;
-var baseMoveFactor = .001;
-var finalMoveMultiplier;
-var avatarEntityDistance;
-var camYaw, dv;
-var prevPosition;
-var newPosition;
-var flingVelocity;
-var flingMultiplier = 10;
 var moveUpDown = false;
-var savedGravity;
+var CLOSE_ENOUGH = 0.001;
+var FULL_STRENGTH = 0.11;
+var SPRING_RATE = 1.5;
+var DAMPING_RATE = 0.80;
+var ANGULAR_DAMPING_RATE = 0.40;
+var SCREEN_TO_METERS = 0.001;
+var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
+var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
+var shouldRotate = false;
+var dQ, theta, axisAngle, dT;
+var angularVelocity = {
+  x: 0,
+  y: 0,
+  z: 0
+};
+
+var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
+var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
 
 var DROP_DISTANCE = 5.0;
 var DROP_COLOR = {
@@ -23,25 +44,10 @@ var DROP_COLOR = {
   green: 200,
   blue: 200
 };
-var DROP_WIDTH = 4;
+var DROP_WIDTH = 2;
 
-
-var autoBox = false;
-if (autoBox) {
-  setUpTestObjects();
-}
 
 var dropLine = Overlays.addOverlay("line3d", {
-  start: {
-    x: 0,
-    y: 0,
-    z: 0
-  },
-  end: {
-    x: 0,
-    y: 0,
-    z: 0
-  },
   color: DROP_COLOR,
   alpha: 1,
   visible: false,
@@ -50,107 +56,102 @@ var dropLine = Overlays.addOverlay("line3d", {
 
 
 function mousePressEvent(event) {
-  if(!event.isLeftButton){
+  if (!event.isLeftButton) {
     return;
-  } 
+  }
   var pickRay = Camera.computePickRay(event.x, event.y);
   var intersection = Entities.findRayIntersection(pickRay);
   if (intersection.intersects && intersection.properties.collisionsWillMove) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
-    prevPosition = props.position;
     isGrabbing = true;
-    savedGravity = props.gravity;
-    Overlays.editOverlay(dropLine, {
-      visible: true,
-      start: props.position,
-      end: Vec3.sum(props.position, {
-        x: 0,
-        y: -DROP_DISTANCE,
-        z: 0
-      })
+    targetPosition = props.position;
+    currentPosition = props.position;
+    currentVelocity = props.velocity;
+    updateDropLine(targetPosition);
+    Audio.playSound(grabSound, {
+      position: props.position,
+      volume: 0.4
     });
-    Entities.editEntity(grabbedEntity, {
-      gravity: {
-        x: 0,
-        y: 0,
-        z: 0
-      }
-    });
-    //We need to store entity's current gravity, and then disable it while we move
-
   }
+}
 
+function updateDropLine(position) {
+  Overlays.editOverlay(dropLine, {
+    visible: true,
+    start: {
+      x: position.x,
+      y: position.y + DROP_DISTANCE,
+      z: position.z
+    },
+    end: {
+      x: position.x,
+      y: position.y - DROP_DISTANCE,
+      z: position.z
+    }
+  })
 }
 
 
 function mouseReleaseEvent() {
   if (isGrabbing) {
-    // flingObject();
-    Entities.editEntity(grabbedEntity, {
-      gravity: savedGravity
+    isGrabbing = false;
+    Overlays.editOverlay(dropLine, {
+      visible: false
     });
+    targetPosition = null;
+    Audio.playSound(grabSound, {
+      position: entityProps.position,
+      volume: 0.25
+    });
+
   }
-  isGrabbing = false;
-  Overlays.editOverlay(dropLine, {
-    visible: false
-  });
-}
-
-function flingObject() {
-  //calculate velocity to give object base on current and previous position
-  entityProps = Entities.getEntityProperties(grabbedEntity);
-
-  flingVelocity = Vec3.subtract(entityProps.position, prevPosition);
-  flingVelocity = Vec3.multiply(flingMultiplier, flingVelocity);
-  Entities.editEntity(grabbedEntity, {
-    velocity: flingVelocity
-  });
 }
 
 function mouseMoveEvent(event) {
   if (isGrabbing) {
-    entityProps = Entities.getEntityProperties(grabbedEntity);
-    avatarEntityDistance = Vec3.distance(MyAvatar.position, entityProps.position);
-    finalMoveMultiplier = baseMoveFactor * Math.pow(avatarEntityDistance, 1.5);
     deltaMouse.x = event.x - prevMouse.x;
     if (!moveUpDown) {
       deltaMouse.z = event.y - prevMouse.y;
+      deltaMouse.y = 0;
     } else {
       deltaMouse.y = (event.y - prevMouse.y) * -1;
+      deltaMouse.z = 0;
     }
-    finalMoveMultiplier = baseMoveFactor * Math.pow(avatarEntityDistance, 1.5);
-    deltaMouse = Vec3.multiply(deltaMouse, finalMoveMultiplier);
+    //  Update the target position by the amount the mouse moved
     camYaw = Quat.safeEulerAngles(Camera.getOrientation()).y;
-    dv = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), deltaMouse);
-    newPosition = Vec3.sum(entityProps.position, dv);
-    Entities.editEntity(grabbedEntity, {
-      position: newPosition
-    });
-    Overlays.editOverlay(dropLine, {
-      start: newPosition,
-      end: Vec3.sum(newPosition, {
-        x: 0,
-        y: -DROP_DISTANCE,
-        z: 0
-      })
-    });
-
-    flingVelocity = Vec3.subtract(entityProps.position, prevPosition);
-    flingVelocity = Vec3.multiply(flingMultiplier, flingVelocity);
-    Entities.editEntity(grabbedEntity, {
-      velocity: flingVelocity
-    });
-    prevPosition = entityProps.position;
+    dPosition = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), deltaMouse);
+    if (!shouldRotate) {
+      //  Adjust target position for the object by the mouse move 
+      cameraEntityDistance = Vec3.distance(Camera.getPosition(), currentPosition);
+      //  Scale distance we want to move by the distance from the camera to the grabbed object 
+      //  TODO:  Correct SCREEN_TO_METERS to be correct for the actual FOV, resolution
+      targetPosition = Vec3.sum(targetPosition, Vec3.multiply(dPosition, cameraEntityDistance * SCREEN_TO_METERS));
+    } else if (shouldRotate) {
+      var transformedDeltaMouse = {
+        x: deltaMouse.z,
+        y: deltaMouse.x,
+        z: deltaMouse.y
+      };
+      transformedDeltaMouse = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), transformedDeltaMouse);
+      dQ = Quat.fromVec3Degrees(transformedDeltaMouse);
+      theta = 2 * Math.acos(dQ.w);
+      axisAngle = Quat.axis(dQ);
+      angularVelocity = Vec3.multiply((theta / dT), axisAngle);
+    }
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
 
 }
 
+
 function keyReleaseEvent(event) {
   if (event.text === "SHIFT") {
     moveUpDown = false;
+  }
+  if (event.text === "SPACE") {
+    shouldRotate = false;
   }
 }
 
@@ -158,71 +159,52 @@ function keyPressEvent(event) {
   if (event.text === "SHIFT") {
     moveUpDown = true;
   }
+  if (event.text === "SPACE") {
+    shouldRotate = true;
+  }
 }
 
+function update(deltaTime) {
+  dT = deltaTime;
+  if (isGrabbing) {
 
-function setUpTestObjects() {
-  var distance = 4;
-  box = Entities.addEntity({
-    type: 'Box',
-    position: Vec3.sum(MyAvatar.position, Vec3.multiply(distance, Quat.getFront(Camera.getOrientation()))),
-    dimensions: {
-      x: .5,
-      y: .5,
-      z: .5
-    },
-    color: {
-      red: 200,
-      green: 50,
-      blue: 192
-    },
-    collisionsWillMove: true,
-    gravity: {
-      x: 0,
-      y: -1,
-      z: 0
-    }
-  });
+    entityProps = Entities.getEntityProperties(grabbedEntity);
+    currentPosition = entityProps.position;
+    currentVelocity = entityProps.velocity;
+    currentRotation = entityProps.rotation;
 
-  box2 = Entities.addEntity({
-    type: 'Box',
-    position: Vec3.sum(MyAvatar.position, Vec3.multiply(distance + 1, Quat.getFront(Camera.getOrientation()))),
-    dimensions: {
-      x: .5,
-      y: .5,
-      z: .5
-    },
-    color: {
-      red: 200,
-      green: 50,
-      blue: 192
-    },
-    collisionsWillMove: true,
-    gravity: {
-      x: 0,
-      y: -1,
-      z: 0
-    }
-  });
+    var dPosition = Vec3.subtract(targetPosition, currentPosition);
 
-  ground = Entities.addEntity({
-    type: 'Box',
-    position: {
-      x: MyAvatar.position.x,
-      y: MyAvatar.position.y - 5,
-      z: MyAvatar.position.z
-    },
-    dimensions: {
-      x: 100,
-      y: 2,
-      z: 100
-    },
-    color: {
-      red: 20,
-      green: 200,
-      blue: 50
+    distanceToTarget = Vec3.length(dPosition);
+    if (distanceToTarget > CLOSE_ENOUGH) {
+      //  compute current velocity in the direction we want to move 
+      velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
+      velocityTowardTarget = Vec3.multiply(dPosition, velocityTowardTarget);
+      //  compute the speed we would like to be going toward the target position 
+
+      desiredVelocity = Vec3.multiply(dPosition, (1.0 / deltaTime) * SPRING_RATE);
+      //  compute how much we want to add to the existing velocity
+      addedVelocity = Vec3.subtract(desiredVelocity, velocityTowardTarget);
+      //  If target is too far, roll off the force as inverse square of distance
+      if (distanceToTarget / cameraEntityDistance > FULL_STRENGTH) {
+        addedVelocity = Vec3.multiply(addedVelocity, Math.pow(FULL_STRENGTH / distanceToTarget, 2.0));
+      }
+      newVelocity = Vec3.sum(currentVelocity, addedVelocity);
+      //  Add Damping 
+      newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
+      //  Update entity
+
+      //add damping to angular velocity:
     }
-  });
+    if (shouldRotate) {
+      angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
+    }
+    Entities.editEntity(grabbedEntity, {
+      velocity: newVelocity,
+      angularVelocity: angularVelocity
+    })
+    updateDropLine(targetPosition);
+  }
 }
 
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
@@ -230,3 +212,4 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Script.update.connect(update);

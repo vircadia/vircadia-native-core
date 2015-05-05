@@ -106,7 +106,7 @@ public:
     void addLeanDeltas(float sideways, float forward);
     
 private:
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }
 
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);

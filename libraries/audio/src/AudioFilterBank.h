@@ -12,6 +12,12 @@
 #ifndef hifi_AudioFilterBank_h
 #define hifi_AudioFilterBank_h
 
+#include <stdint.h>
+
+#include "AudioBuffer.h"
+#include "AudioFilter.h"
+#include "AudioFormat.h"
+
 //
 // Helper/convenience class that implements a bank of Filter objects
 //
@@ -115,8 +121,9 @@ public:
     }
     
     void render(const int16_t* in, int16_t* out, const uint32_t frameCount) {
-        if (!_buffer || (frameCount > _frameCount))
+        if (frameCount > _frameCount) {
             return;
+        }
 
         const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
 
