@@ -106,8 +106,8 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
-    void setSkyboxMode(SkyboxMode value) { _skyboxMode = value; }
-    SkyboxMode getSkyboxMode() const { return _skyboxMode; }
+    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
+    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
     EnvironmentData getEnvironmentData() const;
 
@@ -147,7 +147,7 @@ protected:
     ShapeType _shapeType = SHAPE_TYPE_NONE;
     QString _compoundShapeURL;
     
-    SkyboxMode _skyboxMode = SKYBOX_MODE_INHERIT;
+    BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
     AtmospherePropertyGroup _atmospherePropeties;
 
     static bool _drawZoneBoundaries;

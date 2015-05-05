@@ -89,7 +89,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(stageDay, ZoneEntityItem::DEFAULT_STAGE_DAY),
     CONSTRUCT_PROPERTY(stageHour, ZoneEntityItem::DEFAULT_STAGE_HOUR),
     CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
-    CONSTRUCT_PROPERTY(skyboxMode, SKYBOX_MODE_INHERIT),
+    CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -237,40 +237,40 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* skyboxModeNames[] = {"inherit", "atmosphere", "texture" };
+const char* backgroundModeNames[] = {"inherit", "atmosphere", "texture" };
 
-QHash<QString, SkyboxMode> stringToSkyboxModeLookup;
+QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
 
-void addSkyboxMode(SkyboxMode type) {
-    stringToSkyboxModeLookup[skyboxModeNames[type]] = type;
+void addBackgroundMode(BackgroundMode type) {
+    stringToBackgroundModeLookup[backgroundModeNames[type]] = type;
 }
 
-void buildStringToSkyboxModeLookup() {
-    addSkyboxMode(SKYBOX_MODE_INHERIT);
-    addSkyboxMode(SKYBOX_MODE_ATMOSPHERE);
-    addSkyboxMode(SKYBOX_MODE_TEXTURE);
+void buildStringToBackgroundModeLookup() {
+    addBackgroundMode(BACKGROUND_MODE_INHERIT);
+    addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
+    addBackgroundMode(BACKGROUND_MODE_TEXTURE);
 }
 
-QString EntityItemProperties::getSkyboxModeAsString() const {
-    if (_skyboxMode < sizeof(skyboxModeNames) / sizeof(char *))
-        return QString(skyboxModeNames[_skyboxMode]);
-    return QString(skyboxModeNames[SKYBOX_MODE_INHERIT]);
+QString EntityItemProperties::getBackgroundModeAsString() const {
+    if (_backgroundMode < sizeof(backgroundModeNames) / sizeof(char *))
+        return QString(backgroundModeNames[_backgroundMode]);
+    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
 }
 
-QString EntityItemProperties::getSkyboxModeString(SkyboxMode mode) {
-    if (mode < sizeof(skyboxModeNames) / sizeof(char *))
-        return QString(skyboxModeNames[mode]);
-    return QString(skyboxModeNames[SKYBOX_MODE_INHERIT]);
+QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
+    if (mode < sizeof(backgroundModeNames) / sizeof(char *))
+        return QString(backgroundModeNames[mode]);
+    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
 }
 
-void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
-    if (stringToSkyboxModeLookup.empty()) {
-        buildStringToSkyboxModeLookup();
+void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
+    if (stringToBackgroundModeLookup.empty()) {
+        buildStringToBackgroundModeLookup();
     }
-    auto skyboxModeItr = stringToSkyboxModeLookup.find(skyboxMode.toLower());
-    if (skyboxModeItr != stringToSkyboxModeLookup.end()) {
-        _skyboxMode = skyboxModeItr.value();
-        _skyboxModeChanged = true;
+    auto backgroundModeItr = stringToBackgroundModeLookup.find(backgroundMode.toLower());
+    if (backgroundModeItr != stringToBackgroundModeLookup.end()) {
+        _backgroundMode = backgroundModeItr.value();
+        _backgroundModeChanged = true;
     }
 }
 
@@ -334,7 +334,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
     CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
 
-    CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
+    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     
     changedProperties += _atmosphere.getChangedProperties();
 
@@ -419,7 +419,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageAltitude);
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageDay);
     COPY_PROPERTY_TO_QSCRIPTVALUE(stageHour);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(skyboxMode, getSkyboxModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -524,7 +524,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageAltitude, setStageAltitude);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(skyboxMode, SkyboxMode);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _lastEdited = usecTimestampNow();
 }
@@ -731,7 +731,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
 
-                APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, appendValue, (uint32_t)properties.getSkyboxMode());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, appendValue, (uint32_t)properties.getBackgroundMode());
                 
                 _staticAtmosphere.setProperties(properties);
                 _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
@@ -984,7 +984,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, SkyboxMode, setSkyboxMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
     
@@ -1088,7 +1088,7 @@ void EntityItemProperties::markAllChanged() {
     _stageDayChanged = true;
     _stageHourChanged = true;
     
-    _skyboxModeChanged = true;
+    _backgroundModeChanged = true;
     _atmosphere.markAllChanged();
    
 }
