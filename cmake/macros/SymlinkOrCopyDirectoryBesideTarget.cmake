@@ -10,21 +10,41 @@
 #
 
 macro(SYMLINK_OR_COPY_DIRECTORY_BESIDE_TARGET _SHOULD_SYMLINK _DIRECTORY _DESTINATION)
+  
+  # remove the current directory
+  add_custom_command(
+    TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
+  )
+  
   if (${_SHOULD_SYMLINK})
-    # the caller wants a symlink, so just add a command to symlink the DIR beside target
+    
+    # first create the destination
     add_custom_command(
       TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E create_symlink
-      "${_DIRECTORY}"
+      COMMAND "${CMAKE_COMMAND}" -E make_directory
       $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
-    ) 
-  else ()
-    # remove the current directory
-    add_custom_command(
-      TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E remove_directory $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}
     )
+    
+    # the caller wants a symlink, so just add a command to symlink all contents of _DIRECTORY
+    # in the destination - we can't simply create a symlink for _DESTINATION
+    # because the remove_directory call above would delete the original files
 
+    file(GLOB _DIR_ITEMS ${_DIRECTORY}/*)
+
+    foreach(_ITEM ${_DIR_ITEMS})
+      # get the filename for this item
+      get_filename_component(_ITEM_FILENAME ${_ITEM} NAME)
+      
+      # add the command to symlink this item
+      add_custom_command(
+        TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E create_symlink
+        ${_ITEM}
+        $<TARGET_FILE_DIR:${TARGET_NAME}>/${_DESTINATION}/${_ITEM_FILENAME}
+      ) 
+    endforeach()    
+  else ()
     # copy the directory
     add_custom_command(
       TARGET ${TARGET_NAME} POST_BUILD 

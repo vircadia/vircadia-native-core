@@ -28,6 +28,9 @@ public:
     void setGravity(float gravity) { _gravity = gravity; }
     float getGravity() const { return _gravity; }
 
+    void setHasStars(bool value) { _hasStars = value; }
+    bool getHasStars() const { return _hasStars; }
+
     void setAtmosphereCenter(const glm::vec3& center) { _atmosphereCenter = center; }
     void setAtmosphereInnerRadius(float radius) { _atmosphereInnerRadius = radius; }
     void setAtmosphereOuterRadius(float radius) { _atmosphereOuterRadius = radius; }
@@ -73,6 +76,8 @@ private:
     
     glm::vec3 _sunLocation;
     float _sunBrightness;
+    
+    bool _hasStars;
 };
 
 #endif // hifi_EnvironmentData_h
