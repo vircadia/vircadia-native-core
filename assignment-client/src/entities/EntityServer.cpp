@@ -64,7 +64,9 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     unsigned char outputBuffer[MAX_PACKET_SIZE];
     unsigned char* copyAt = outputBuffer;
 
-    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityAddResponse);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    int numBytesPacketHeader = nodeList->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityAddResponse);
     int packetLength = numBytesPacketHeader;
     copyAt += numBytesPacketHeader;
 
@@ -81,7 +83,7 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     copyAt += sizeof(entityID);
     packetLength += sizeof(entityID);
 
-    DependencyManager::get<NodeList>()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
+    nodeList->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 

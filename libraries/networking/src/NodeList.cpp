@@ -348,7 +348,7 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
         
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+        QByteArray domainServerPacket = byteArrayWithUUIDPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server

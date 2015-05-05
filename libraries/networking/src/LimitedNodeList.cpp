@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LimitedNodeList.h"
+
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -28,8 +30,6 @@
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "LimitedNodeList.h"
-#include "PacketHeaders.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
 
@@ -269,6 +269,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         // perform replacement of hash and optionally also sequence number in the header
         if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
             PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
+            qDebug() << "Sequence number for this packet is" << sequenceNumber;
             replaceHashAndSequenceNumberInPacketGivenType(datagramCopy, packetType, 
                                                           destinationNode->getConnectionSecret(),
                                                           sequenceNumber);
@@ -481,8 +482,8 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
 }
 
 QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
-    QByteArray pingPacket = byteArrayWithPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
-                                                         packetHeaderID);
+    QByteArray pingPacket = byteArrayWithUUIDPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
+                                                             packetHeaderID);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -505,7 +506,7 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
     PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
     
-    QByteArray replyPacket = byteArrayWithPopulatedHeader(replyType, packetHeaderID);
+    QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetHeaderID);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
@@ -695,7 +696,7 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
         headerID = _sessionUUID;
     }
     
-    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
+    QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
     
     iceDataStream << _publicSockAddr << _localSockAddr;

@@ -117,7 +117,7 @@ void IceServer::sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, Q
     QSet<QUuid>::iterator peerID = connections.begin();
     
     QByteArray outgoingPacket(MAX_PACKET_SIZE, 0);
-    int currentPacketSize = populatePacketHeader(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
+    int currentPacketSize = populatePacketHeaderWithUUID(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
     int numHeaderBytes = currentPacketSize;
     
     // go through the connections, sending packets containing connection information for those nodes
@@ -136,7 +136,7 @@ void IceServer::sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, Q
                                             destinationSockAddr.getAddress(), destinationSockAddr.getPort());
                 
                 // reset the packet size to our number of header bytes
-                currentPacketSize = populatePacketHeader(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
+                currentPacketSize = populatePacketHeaderWithUUID(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
             }
             
             // append the current peer bytes

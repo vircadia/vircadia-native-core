@@ -9,13 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PacketHeaders.h"
+
 #include <math.h>
 
 #include <QtCore/QDebug>
-
-#include "NodeList.h"
-
-#include "PacketHeaders.h"
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
@@ -139,29 +137,27 @@ QString nameForPacketType(PacketType packetType) {
 
 
 
-QByteArray byteArrayWithPopulatedHeader(PacketType packetType, const QUuid& connectionUUID) {
+QByteArray byteArrayWithUUIDPopulatedHeader(PacketType packetType, const QUuid& connectionUUID) {
     QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
-    freshByteArray.resize(populatePacketHeader(freshByteArray, packetType, connectionUUID));
+    freshByteArray.resize(populatePacketHeaderWithUUID(freshByteArray, packetType, connectionUUID));
     return freshByteArray;
 }
 
-int populatePacketHeader(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID) {
+int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID) {
     if (packet.size() < numBytesForPacketHeaderGivenPacketType(packetType)) {
         packet.resize(numBytesForPacketHeaderGivenPacketType(packetType));
     }
     
-    return populatePacketHeader(packet.data(), packetType, connectionUUID);
+    return populatePacketHeaderWithUUID(packet.data(), packetType, connectionUUID);
 }
 
-int populatePacketHeader(char* packet, PacketType packetType, const QUuid& connectionUUID) {
+int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID) {
     int numTypeBytes = packArithmeticallyCodedValue(packetType, packet);
     packet[numTypeBytes] = versionForPacketType(packetType);
     
     char* position = packet + numTypeBytes + sizeof(PacketVersion);
     
-    QUuid packUUID = connectionUUID.isNull() ? DependencyManager::get<LimitedNodeList>()->getSessionUUID() : connectionUUID;
-    
-    QByteArray rfcUUID = packUUID.toRfc4122();
+    QByteArray rfcUUID = connectionUUID.toRfc4122();
     memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
     position += NUM_BYTES_RFC4122_UUID;
     
@@ -236,10 +232,18 @@ void replaceHashInPacketGivenType(QByteArray& packet, PacketType packetType, con
             hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
 
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID) {
+    replaceHashInPacketGivenType(packet, packetTypeForPacket(packet), connectionUUID);
+}
+
 void replaceSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, PacketSequenceNumber sequenceNumber) {
     packet.replace(sequenceNumberOffsetForPacketType(packetType), 
-                   sizeof(PacketTypeSequenceMap), reinterpret_cast<char*>(&sequenceNumber));
+                   sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber));
 }
+
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber) {
+    replaceSequenceNumberInPacketGivenType(packet, packetTypeForPacket(packet), sequenceNumber);
+} 
 
 void replaceHashAndSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, 
         const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber) {

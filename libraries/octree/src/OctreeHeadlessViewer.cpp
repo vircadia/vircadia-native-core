@@ -221,7 +221,7 @@ void OctreeHeadlessViewer::queryOctree() {
             unsigned char* endOfQueryPacket = queryPacket;
             
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);

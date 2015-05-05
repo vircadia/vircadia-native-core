@@ -129,10 +129,9 @@ void AvatarMixer::broadcastAvatarData() {
     
     static QByteArray mixedAvatarByteArray;
     
-    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
-    
     auto nodeList = DependencyManager::get<NodeList>();
-   
+    int numPacketHeaderBytes = nodeList->populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
+     
     // setup for distributed random floating point values 
     std::random_device randomDevice;
     std::mt19937 generator(randomDevice());
@@ -287,7 +286,7 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-                        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+                        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                         billboardPacket.append(otherNode->getUUID().toRfc4122());
                         billboardPacket.append(otherNodeData->getAvatar().getBillboard());
 
@@ -301,7 +300,7 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
                                 
-                        QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+                        QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
@@ -334,13 +333,13 @@ void AvatarMixer::broadcastAvatarData() {
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
+        auto nodeList = DependencyManager::get<NodeList>();
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
+        QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
-        DependencyManager::get<NodeList>()->broadcastToNodes(killPacket,
-                                                  NodeSet() << NodeType::Agent);
+        nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
     }
 }
 

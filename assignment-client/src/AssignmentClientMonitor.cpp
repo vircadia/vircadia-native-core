@@ -88,7 +88,7 @@ void AssignmentClientMonitor::stopChildProcesses() {
     nodeList->eachNode([&](const SharedNodePointer& node) {
         qDebug() << "asking child" << node->getUUID() << "to exit.";
         node->activateLocalSocket();
-        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+        QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
         nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
     });
 
@@ -193,7 +193,7 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
-            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
@@ -229,7 +229,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                         } else {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
-                            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+                            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
                             nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
                         }
                     }

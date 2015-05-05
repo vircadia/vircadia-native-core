@@ -141,11 +141,13 @@ void AudioInjector::injectToMixer() {
         _currentSendPosition = 0;
     }
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    
     // make sure we actually have samples downloaded to inject
     if (_audioData.size()) {
         
         // setup the packet for injected audio
-        QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
+        QByteArray injectAudioPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
         QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
         
         // pack some placeholder sequence number for now
@@ -226,7 +228,6 @@ void AudioInjector::injectToMixer() {
                    _audioData.data() + _currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
-            auto nodeList = DependencyManager::get<NodeList>();
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
             
             // send off this audio packet

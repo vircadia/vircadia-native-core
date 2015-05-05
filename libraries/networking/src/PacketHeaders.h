@@ -12,6 +12,8 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#pragma once
+
 #include <cstdint>
 
 #include <QtCore/QCryptographicHash>
@@ -106,9 +108,9 @@ QString nameForPacketType(PacketType packetType);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithPopulatedHeader(PacketType packetType, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(char* packet, PacketType packetType, const QUuid& connectionUUID = nullUUID);
+QByteArray byteArrayWithUUIDPopulatedHeader(PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID);
 
 int numHashBytesForType(PacketType packetType);
 int numSequenceNumberBytesForType(PacketType packetType);
@@ -126,12 +128,10 @@ QByteArray hashFromPacketHeader(const QByteArray& packet);
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
 
 void replaceHashInPacketGivenType(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID);
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID) 
-    { replaceHashInPacketGivenType(packet, packetTypeForPacket(packet), connectionUUID); }
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID); 
 
 void replaceSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, PacketSequenceNumber sequenceNumber);
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber) 
-    { replaceSequenceNumberInPacketGivenType(packet, packetTypeForPacket(packet), sequenceNumber); }
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber);
 
 void replaceHashAndSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, 
         const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber);

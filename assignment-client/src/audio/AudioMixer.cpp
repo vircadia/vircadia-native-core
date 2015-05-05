@@ -514,7 +514,8 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
     
     if (sendData) {
-        int numBytesEnvPacketHeader = populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
+        auto nodeList = DependencyManager::get<NodeList>();
+        int numBytesEnvPacketHeader = nodeList->populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
         char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
         
         unsigned char bitset = 0;
@@ -531,7 +532,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             memcpy(envDataAt, &wetLevel, sizeof(float));
             envDataAt += sizeof(float);
         }
-        DependencyManager::get<NodeList>()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
+        nodeList->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
     }
 }
 
@@ -552,7 +553,7 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
             SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (sendingNode->getCanAdjustLocks()) {
                 QByteArray packet = receivedPacket;
-                populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                nodeList->populatePacketHeader(packet, PacketTypeMuteEnvironment);
                 
                 nodeList->eachNode([&](const SharedNodePointer& node){
                     if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
@@ -794,7 +795,7 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
+                    QByteArray packet = nodeList->byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
                     nodeList->writeDatagram(packet, node);
                 }
                 
@@ -806,7 +807,7 @@ void AudioMixer::run() {
                     char* mixDataAt;
                     if (streamsMixed > 0) {
                         // pack header
-                        int numBytesMixPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                        int numBytesMixPacketHeader = nodeList->populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
                         mixDataAt = clientMixBuffer + numBytesMixPacketHeader;
 
                         // pack sequence number
@@ -819,7 +820,7 @@ void AudioMixer::run() {
                         mixDataAt += AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                     } else {
                         // pack header
-                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
+                        int numBytesPacketHeader = nodeList->populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
                         mixDataAt = clientMixBuffer + numBytesPacketHeader;
 
                         // pack sequence number

@@ -385,7 +385,8 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeOctreeStats);
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                PacketTypeOctreeStats);
     destinationBuffer += headerLength;
     
     memcpy(destinationBuffer, &_start, sizeof(_start));

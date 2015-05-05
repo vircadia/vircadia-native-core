@@ -493,7 +493,7 @@ void ScriptEngine::run() {
                                                            / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-            QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+            QByteArray avatarPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarData);
             avatarPacket.append(_avatarData->toByteArray());
 
             nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
@@ -534,9 +534,9 @@ void ScriptEngine::run() {
                     }
                 }
                 
-                QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
-                                                                      ? PacketTypeSilentAudioFrame
-                                                                      : PacketTypeMicrophoneAudioNoEcho);
+                QByteArray audioPacket = nodeList->byteArrayWithPopulatedHeader(silentFrame
+                                                                                ? PacketTypeSilentAudioFrame
+                                                                                : PacketTypeMicrophoneAudioNoEcho);
 
                 QDataStream packetStream(&audioPacket, QIODevice::Append);
 

@@ -104,10 +104,12 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     // also, call _receivedAudioStream's per-second callback
     _receivedAudioStream->perSecondCallbackForUpdatingStats();
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    
     char packet[MAX_PACKET_SIZE];
     
     // pack header
-    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
+    int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeAudioStreamStats);
     char* dataAt = packet + numBytesPacketHeader;
     
     // pack append flag
@@ -126,7 +128,6 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     dataAt += sizeof(AudioStreamStats);
     
     // send packet
-    auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
 }
