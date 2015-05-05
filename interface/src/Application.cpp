@@ -547,6 +547,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded, 
             this, &Application::checkSkeleton, Qt::QueuedConnection);
 
+    // Setup the userInputMapper with the actions
+    // Setup the keyboardMouseDevice and the user input mapper with the default bindings 
+    _keyboardMouseDevice.registerToUserInputMapper(_userInputMapper);
+    _keyboardMouseDevice.assignDefaultInputMapping(_userInputMapper);
+
     // check first run...
     if (_firstRun.get()) {
         qCDebug(interfaceapp) << "This is a first run...";
@@ -819,13 +824,18 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        // Always use the default eye position, not the actual head eye position.
+        // Using the latter will cause the camera to wobble with idle animations,
+        // or with changes from the face tracker
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
         if (!OculusManager::isConnected()) {
-            //  If there isn't an HMD, match exactly to avatar's head
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
+            // If not using an HMD, grab the camera orientation directly
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            //  For an HMD, set the base position and orientation to that of the avatar body
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            // In an HMD, people can look up and down with their actual neck, and the
+            // per-eye HMD pose will be applied later.  So set the camera orientation
+            // to only the yaw, excluding pitch and roll, i.e. an orientation that
+            // is orthongonal to the (body's) Y axis
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
 
@@ -989,11 +999,12 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-    switch (event->type()) {
-        case Lambda:
-            ((LambdaEvent*)event)->call();
-            return true;
+    if ((int)event->type() == (int)Lambda) {
+        ((LambdaEvent*)event)->call();
+        return true;
+    }
 
+    switch (event->type()) {
         case QEvent::MouseMove:
             mouseMoveEvent((QMouseEvent*)event);
             return true;
@@ -1087,6 +1098,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 
     if (activeWindow() == _window) {
+        _keyboardMouseDevice.keyPressEvent(event);
+
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         bool isOption = event->modifiers().testFlag(Qt::AltModifier);
@@ -1107,11 +1120,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } 
                 break;
 
-            case Qt::Key_E:
-            case Qt::Key_PageUp:
-                _myAvatar->setDriveKeys(UP, 1.0f);
-                break;
-
             case Qt::Key_F: {
                 _physicsEngine.dumpNextStats();
                 break;
@@ -1121,16 +1129,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
 
-            case Qt::Key_C:
-            case Qt::Key_PageDown:
-                _myAvatar->setDriveKeys(DOWN, 1.0f);
-                break;
-
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Wireframe);
-                } else {
-                    _myAvatar->setDriveKeys(FWD, 1.0f);
                 }
                 break;
 
@@ -1141,8 +1142,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::ScriptEditor);
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
-                } else {
-                    _myAvatar->setDriveKeys(BACK, 1.0f);
                 }
                 break;
 
@@ -1153,14 +1152,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                } else if (!isMeta) {
-                    _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
-                }
-                break;
-
-            case Qt::Key_D:
-                if (!isMeta) {
-                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1175,8 +1166,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         _raiseMirror += 0.05f;
                     }
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.0f);
                 }
                 break;
 
@@ -1187,24 +1176,18 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         _raiseMirror -= 0.05f;
                     }
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.0f);
                 }
                 break;
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     _rotateMirror += PI / 20.0f;
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                     _rotateMirror -= PI / 20.0f;
-                } else {
-                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1341,65 +1324,15 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
-    
+
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
     }
 
+    _keyboardMouseDevice.keyReleaseEvent(event);
 
     switch (event->key()) {
-        case Qt::Key_E:
-        case Qt::Key_PageUp:
-            _myAvatar->setDriveKeys(UP, 0.0f);
-            break;
-
-        case Qt::Key_C:
-        case Qt::Key_PageDown:
-            _myAvatar->setDriveKeys(DOWN, 0.0f);
-            break;
-
-        case Qt::Key_W:
-            _myAvatar->setDriveKeys(FWD, 0.0f);
-            break;
-
-        case Qt::Key_S:
-            _myAvatar->setDriveKeys(BACK, 0.0f);
-            break;
-
-        case Qt::Key_A:
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
-            break;
-
-        case Qt::Key_D:
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
-            break;
-
-        case Qt::Key_Up:
-            _myAvatar->setDriveKeys(FWD, 0.0f);
-            _myAvatar->setDriveKeys(UP, 0.0f);
-            break;
-
-        case Qt::Key_Down:
-            _myAvatar->setDriveKeys(BACK, 0.0f);
-            _myAvatar->setDriveKeys(DOWN, 0.0f);
-            break;
-
-        case Qt::Key_Left:
-            _myAvatar->setDriveKeys(LEFT, 0.0f);
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
-            break;
-
-        case Qt::Key_Right:
-            _myAvatar->setDriveKeys(RIGHT, 0.0f);
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
-            break;
-        case Qt::Key_Control:
-        case Qt::Key_Shift:
-        case Qt::Key_Meta:
-        case Qt::Key_Alt:
-            _myAvatar->clearDriveKeys();
-            break;
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
@@ -1425,6 +1358,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
+    _keyboardMouseDevice.focusOutEvent(event);
+  
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
         QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
@@ -1463,10 +1398,15 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
+
+    _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
     
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    // Inhibit the menu if the user is using alt-mouse dragging
+    _altPressed = false;
+
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
@@ -1480,6 +1420,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (activeWindow() == _window) {
+        _keyboardMouseDevice.mousePressEvent(event);
+
         if (event->button() == Qt::LeftButton) {
             _mouseDragStartedX = getTrueMouseX();
             _mouseDragStartedY = getTrueMouseY();
@@ -1522,6 +1464,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (activeWindow() == _window) {
+        _keyboardMouseDevice.mouseReleaseEvent(event);
+
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
             
@@ -1541,6 +1485,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::touchUpdateEvent(QTouchEvent* event) {
+    _altPressed = false;
+
     if (event->type() == QEvent::TouchUpdate) {
         TouchEvent thisEvent(*event, _lastTouchEvent);
         _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
@@ -1551,6 +1497,8 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
+
+    _keyboardMouseDevice.touchUpdateEvent(event);
 
     bool validTouch = false;
     if (activeWindow() == _window) {
@@ -1576,6 +1524,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
+    _altPressed = false;
     TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
     _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
 
@@ -1587,9 +1536,12 @@ void Application::touchBeginEvent(QTouchEvent* event) {
         return;
     }
 
+    _keyboardMouseDevice.touchBeginEvent(event);
+
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
+    _altPressed = false;
     TouchEvent thisEvent(*event, _lastTouchEvent);
     _controllerScriptingInterface.emitTouchEndEvent(thisEvent); // send events to any registered scripts
     _lastTouchEvent = thisEvent;
@@ -1598,6 +1550,9 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_controllerScriptingInterface.isTouchCaptured()) {
         return;
     }
+
+    _keyboardMouseDevice.touchEndEvent(event);
+
     // put any application specific touch behavior below here..
     _touchDragStartedAvgX = _touchAvgX;
     _touchDragStartedAvgY = _touchAvgY;
@@ -1606,13 +1561,15 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
-
+    _altPressed = false;
     _controllerScriptingInterface.emitWheelEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isWheelCaptured()) {
         return;
     }
+
+    _keyboardMouseDevice.wheelEvent(event);
 }
 
 void Application::dropEvent(QDropEvent *event) {
@@ -2349,6 +2306,7 @@ void Application::update(float deltaTime) {
 
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
+
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -2359,9 +2317,26 @@ void Application::update(float deltaTime) {
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
     }
-    
+
+    _userInputMapper.update(deltaTime);
+    _keyboardMouseDevice.update();
+
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
+
+    // Transfer the user inputs to the driveKeys
+    _myAvatar->clearDriveKeys();
+    _myAvatar->setDriveKeys(FWD, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_FORWARD));
+    _myAvatar->setDriveKeys(BACK, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_BACKWARD));
+    _myAvatar->setDriveKeys(UP, _userInputMapper.getActionState(UserInputMapper::VERTICAL_UP));
+    _myAvatar->setDriveKeys(DOWN, _userInputMapper.getActionState(UserInputMapper::VERTICAL_DOWN));
+    _myAvatar->setDriveKeys(LEFT, _userInputMapper.getActionState(UserInputMapper::LATERAL_LEFT));
+    _myAvatar->setDriveKeys(RIGHT, _userInputMapper.getActionState(UserInputMapper::LATERAL_RIGHT));
+    _myAvatar->setDriveKeys(ROT_UP, _userInputMapper.getActionState(UserInputMapper::PITCH_UP));
+    _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN));
+    _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT));
+    _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT));
+
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     
@@ -3112,21 +3087,29 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         // compute starfield alpha based on distance from atmosphere
         float alpha = 1.0f;
+        bool hasStars = true;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+            // TODO: handle this correctly for zones
             const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            float height = glm::distance(theCamera.getPosition(),
-                closestData.getAtmosphereCenter(theCamera.getPosition()));
-            if (height < closestData.getAtmosphereInnerRadius()) {
-                alpha = 0.0f;
+            
+            if (closestData.getHasStars()) {
+                float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
+                if (height < closestData.getAtmosphereInnerRadius()) {
+                    alpha = 0.0f;
 
-            } else if (height < closestData.getAtmosphereOuterRadius()) {
-                alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                } else if (height < closestData.getAtmosphereOuterRadius()) {
+                    alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                        (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                }
+            } else {
+                hasStars = false;
             }
         }
 
         // finally render the starfield
-        _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+        if (hasStars) {
+            _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+        }
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {

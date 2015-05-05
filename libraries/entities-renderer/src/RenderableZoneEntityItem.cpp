@@ -74,6 +74,12 @@ void RenderableZoneEntityItem::initialSimulation() {
     _needsInitialSimulation = false;
 }
 
+void RenderableZoneEntityItem::render(RenderArgs* args) {
+    if (_drawZoneBoundaries) {
+        // TODO: Draw the zone boundaries...
+    }
+}
+
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() != SHAPE_TYPE_COMPOUND) {
         return EntityItem::contains(point);
