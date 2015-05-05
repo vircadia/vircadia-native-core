@@ -503,3 +503,6 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     }
     _lastReceiveTimestamp = usecTimestampNow();
 }
+
+void DdeFaceTracker::calibrate() {
+}

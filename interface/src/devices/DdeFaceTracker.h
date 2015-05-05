@@ -50,6 +50,7 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
+    void calibrate();
 
 private slots:
     void processFinished(int exitCode, QProcess::ExitStatus exitStatus);

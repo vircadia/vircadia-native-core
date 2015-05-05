@@ -1853,6 +1853,7 @@ void Application::setActiveFaceTracker() {
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
     DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
 #endif
 }

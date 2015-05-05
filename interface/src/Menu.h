@@ -154,6 +154,7 @@ namespace MenuOption {
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
+    const QString CalibrateCamera = "Calibrate Camera";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";

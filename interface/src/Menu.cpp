@@ -393,6 +393,9 @@ Menu::Menu() {
     useAudioForMouth->setVisible(false);
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
+    QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
+        DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
+    ddeCalibrate->setVisible(false);
 #endif
     
     auto avatarManager = DependencyManager::get<AvatarManager>(); 
