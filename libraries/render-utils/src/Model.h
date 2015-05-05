@@ -116,6 +116,9 @@ public:
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
     
+    void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
+    bool isWireframe() const { return _isWireframe; }
+    
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
     
@@ -350,6 +353,7 @@ private:
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
     bool _meshGroupsKnown;
+    bool _isWireframe;
 
 
     // debug rendering support

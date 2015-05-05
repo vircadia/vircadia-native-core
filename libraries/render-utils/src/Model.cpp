@@ -84,6 +84,7 @@ Model::Model(QObject* parent) :
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
+    _isWireframe(false),
     _renderCollisionHull(false) {
     
     // we may have been created in the network thread, but we live in the main thread
@@ -100,8 +101,8 @@ Model::RenderPipelineLib Model::_renderPipelineLib;
 const GLint MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
-    gpu::ShaderPointer& vertexShader,
-    gpu::ShaderPointer& pixelShader ) {
+                                                 gpu::ShaderPointer& vertexShader,
+                                                 gpu::ShaderPointer& pixelShader ) {
 
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -2072,7 +2073,7 @@ void Model::segregateMeshGroups() {
     }
 
     _meshGroupsKnown = true;
-}
+} 
 
 QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned) {
     PROFILE_RANGE(__FUNCTION__);
