@@ -428,7 +428,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setStageDayTime(_bestZone->getStageHour());
             scene->setStageYearTime(_bestZone->getStageDay());
 
-            if (_bestZone->getSkyboxMode() == SKYBOX_MODE_ATMOSPHERE) {
+            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
                 EnvironmentData data = _bestZone->getEnvironmentData();
                 glm::vec3 keyLightDirection = scene->getKeyLightDirection();
                 glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
