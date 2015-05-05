@@ -37,11 +37,11 @@ public:
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    void updateEntitiesInternal(const quint64& now);
-    void addEntityInternal(EntityItem* entity);
-    void removeEntityInternal(EntityItem* entity);
-    void changeEntityInternal(EntityItem* entity);
-    void clearEntitiesInternal();
+    virtual void updateEntitiesInternal(const quint64& now);
+    virtual void addEntityInternal(EntityItem* entity);
+    virtual void removeEntityInternal(EntityItem* entity);
+    virtual void changeEntityInternal(EntityItem* entity);
+    virtual void clearEntitiesInternal();
 
 public:
     VectorOfMotionStates& getObjectsToDelete();
@@ -58,7 +58,7 @@ private:
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
 
     // outgoing changes
-    QSet<EntityMotionState*> _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
+    SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
     VectorOfMotionStates _tempVector; // temporary array reference, valid immediately after getObjectsToRemove() (and friends)

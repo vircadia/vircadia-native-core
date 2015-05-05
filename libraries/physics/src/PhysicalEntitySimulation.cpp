@@ -68,6 +68,7 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
         motionState->clearEntity();    
         entity->setPhysicsInfo(nullptr);
         _pendingRemoves.insert(motionState);
+        _outgoingChanges.remove(motionState);
     }
 }
 
@@ -81,6 +82,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
             _pendingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
             _pendingRemoves.insert(motionState);
+            _outgoingChanges.remove(motionState);
             if (entity->isMoving()) {
                 _simpleKinematicEntities.insert(entity);
             }
