@@ -108,6 +108,10 @@ Item {
             MenuItem { action: animations }
         }
         Menu {
+            title: "Long menu name top menu"
+            MenuItem { action: aboutApp }
+        }
+        Menu {
             title: "Help"
             MenuItem { action: aboutApp }
         }

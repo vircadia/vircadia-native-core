@@ -795,7 +795,6 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 glm::vec3 OculusManager::getRelativePosition() {
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
-    
     return glm::vec3(headPosition.x, headPosition.y, headPosition.z);
 }
 
