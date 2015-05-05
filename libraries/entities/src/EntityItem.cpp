@@ -63,7 +63,10 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
     _simulatorIDChangedTime(0),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
+    _name(ENTITY_ITEM_DEFAULT_NAME),
+    _physicsInfo(nullptr),
     _dirtyFlags(0),
+    _element(nullptr),
     _simulated(false)
 {
     quint64 now = usecTimestampNow();
@@ -106,6 +109,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
+    requestedProperties += PROP_NAME;
     requestedProperties += PROP_SIMULATOR_ID;
     
     return requestedProperties;
@@ -232,6 +236,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, getName());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -529,7 +534,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
             }
         }
-        
+
         READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
         READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
         if (useMeters) {
@@ -566,6 +571,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
             READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
         }
+
+        READ_ENTITY_PROPERTY_STRING(PROP_NAME, setName);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -898,6 +905,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
 
     properties._defaultSettings = false;
     
@@ -929,6 +937,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, setSimulatorID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed

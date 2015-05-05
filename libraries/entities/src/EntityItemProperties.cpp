@@ -86,6 +86,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(stageAltitude, ZoneEntityItem::DEFAULT_STAGE_ALTITUDE),
     CONSTRUCT_PROPERTY(stageDay, ZoneEntityItem::DEFAULT_STAGE_DAY),
     CONSTRUCT_PROPERTY(stageHour, ZoneEntityItem::DEFAULT_STAGE_HOUR),
+    CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -281,6 +282,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
@@ -361,6 +363,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(name);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(keyLightColor);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
@@ -462,6 +465,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(marketplaceID, setMarketplaceID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(name, setName);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(keyLightColor, setKeyLightColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(keyLightIntensity, setKeyLightIntensity);
@@ -681,6 +685,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
+            APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, properties.getName());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -929,6 +934,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_NAME, setName);
     
     return valid;
 }
@@ -978,6 +984,7 @@ void EntityItemProperties::markAllChanged() {
     _registrationPointChanged = true;
     _angularVelocityChanged = true;
     _angularDampingChanged = true;
+    _nameChanged = true;
     _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;

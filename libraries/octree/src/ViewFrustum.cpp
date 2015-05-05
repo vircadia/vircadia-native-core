@@ -17,9 +17,10 @@
 
 #include <QtCore/QDebug>
 
+#include <NumericalConstants.h>
+
 #include "GeometryUtil.h"
 #include "GLMHelpers.h"
-#include "SharedUtil.h"
 #include "ViewFrustum.h"
 #include "OctreeLogging.h"
 #include "OctreeConstants.h"

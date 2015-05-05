@@ -238,6 +238,9 @@ public:
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
+    QString getName() const { return _name; }
+    void setName(const QString& value) { _name = value; }
+
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
@@ -313,7 +316,9 @@ public:
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
     glm::vec3 entityToWorld(const glm::vec3& point) const;
-    
+
+    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+
 protected:
 
     static bool _sendPhysicsUpdates;
@@ -357,6 +362,7 @@ protected:
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
+    QString _name;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

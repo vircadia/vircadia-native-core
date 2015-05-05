@@ -10,7 +10,7 @@
 //
 
 #include "PhysicsHelpers.h"
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 
 // This chunk of code was copied from Bullet-2.82, so we include the Bullet license here:
 /*

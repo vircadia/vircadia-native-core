@@ -11,6 +11,8 @@
 
 #include "GLMHelpers.h"
 
+#include "NumericalConstants.h"
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)

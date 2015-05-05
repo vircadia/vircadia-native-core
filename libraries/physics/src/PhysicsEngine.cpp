@@ -249,6 +249,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     }
 
     const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
+
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
