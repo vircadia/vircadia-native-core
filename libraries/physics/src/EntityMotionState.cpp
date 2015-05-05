@@ -389,10 +389,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _sentStep = step;
 }
 
-uint32_t EntityMotionState::getIncomingDirtyFlags() const { 
+uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() const { 
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
-        _entity->getDirtyFlags(); 
+        dirtyFlags = _entity->getDirtyFlags(); 
+        _entity->clearDirtyFlags();
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMoving();

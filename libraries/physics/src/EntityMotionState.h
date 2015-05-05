@@ -49,8 +49,7 @@ public:
     void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
     bool getShouldClaimSimulationOwnership() { return false; }
 
-    virtual uint32_t getIncomingDirtyFlags() const;
-    virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
+    virtual uint32_t getAndClearIncomingDirtyFlags() const;
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }

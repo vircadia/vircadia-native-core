@@ -36,7 +36,8 @@ enum MotionStateType {
 // and re-added to the physics engine and "easy" which just updates the body properties.
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES |
-                EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP | EntityItem::DIRTY_MATERIAL);
+                EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP | EntityItem::DIRTY_MATERIAL |
+                EntityItem::DIRTY_PHYSICS_ACTIVATION);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
 const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS;
@@ -86,8 +87,7 @@ public:
     glm::vec3 getBodyLinearVelocity() const;
     glm::vec3 getBodyAngularVelocity() const;
 
-    virtual uint32_t getIncomingDirtyFlags() const = 0;
-    virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
+    virtual uint32_t getAndClearIncomingDirtyFlags() const = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo) = 0;

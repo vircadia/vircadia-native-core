@@ -173,7 +173,7 @@ void PhysicsEngine::addObjects(VectorOfMotionStates& objects) {
 
 void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
     for (auto object : objects) {
-        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
+        uint32_t flags = object->getAndClearIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
             object->handleHardAndEasyChanges(flags, this);
         } else {
