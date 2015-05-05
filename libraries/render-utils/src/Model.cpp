@@ -120,7 +120,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
+ 
     // Backface on shadow
     if (key.isShadow()) {
         state->setCullMode(gpu::State::CULL_FRONT);
@@ -141,7 +141,20 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
     insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
-
+    
+    
+    if (!key.isWireFrame()) {
+        
+        RenderKey wireframeKey(key.getRaw() | RenderKey::IS_WIREFRAME);
+        gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));
+        
+        wireframeState->setFillMode(gpu::State::FILL_LINE);
+        
+        // create a new RenderPipeline with the same shader side and the mirrorState
+        auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
+        insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
+    }
+    
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
     if (!key.isShadow()) {
         
@@ -153,6 +166,17 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
         insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
+        
+        if (!key.isWireFrame()) {
+            RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
+            gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));;
+            
+            wireframeState->setFillMode(gpu::State::FILL_LINE);
+            
+            // create a new RenderPipeline with the same shader side and the mirrorState
+            auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
+            insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
+        }
     }
 }
 
@@ -1887,6 +1911,8 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, false, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, false, args);
+        
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, true, args);
 
         // render translucent meshes afterwards
         {
