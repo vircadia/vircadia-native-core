@@ -14,11 +14,15 @@
 
 #include <QtCore/QObject>
 #include <QSet>
+#include <QVector>
 
 #include <PerfStat.h>
 
 #include "EntityItem.h"
 #include "EntityTree.h"
+
+typedef QSet<EntityItem*> SetOfEntities;
+typedef QVector<EntityItem*> VectorOfEntities;
 
 // the EntitySimulation needs to know when these things change on an entity, 
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
@@ -49,7 +53,7 @@ public:
 
     void updateEntities();
 
-    friend EntityTree;
+    friend class EntityTree;
 
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
@@ -73,14 +77,12 @@ public:
 
     EntityTree* getEntityTree() { return _entityTree; }
 
-    void getEntitiesToDelete(SetOfEntities& entitiesToDelete);
+    void getEntitiesToDelete(VectorOfEntities& entitiesToDelete);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected:
-
-    void clearEntitySimulation(EntityItem* entity) { entity->_simulation = nullptr; }
 
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
@@ -104,9 +106,9 @@ protected:
     SetOfEntities _mortalEntities; // entities that have an expiry
     quint64 _nextExpiry;
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
-    SetOfEntities _entitiesToSort; // entities that were moved by simulation (and might need resort in EntityTree)
-    SetOfEntities _entitiesToDelete; // entities that this simulation decided to delete (EntityTree will do the actual deletes)
-    SetOfEntities _simpleKinematicEntities; // entities that are undergoing (non-colliding) kinematic motion"
+    SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
+    SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
+    SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
 
 private:
     void moveSimpleKinematics();

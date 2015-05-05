@@ -12,13 +12,12 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
-#include <QSet>
+#include <QVector>
 
 #include <Octree.h>
+
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
-
-typedef QSet<EntityItem*> SetOfEntities;
 
 class Model;
 class EntitySimulation;
@@ -198,7 +197,6 @@ private:
     QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
-    SetOfEntities _pendingDeletes;
     
     bool _wantEditLogging = false;
 };

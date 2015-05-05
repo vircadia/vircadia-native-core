@@ -349,14 +349,11 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _recentlyDeletedEntitiesLock.unlock();
         }
 
-        if (_simulation && theEntity->getSimulation()) {
+        if (_simulation) {
             _simulation->removeEntity(theEntity);
-            // we need to give the simulation time to cleanup its own pointers
-            // so we push theEntity onto the _pendingDeletes and check again later.
-            _pendingDeletes.insert(theEntity);
-        } else {
-            delete theEntity; // we can delete the entity immediately
-        }
+        } 
+        std::cout << "adebug 001 delete entity " << (void*)(theEntity) << std::endl;  // adebug
+        delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
         _simulation->unlock();
@@ -756,28 +753,18 @@ void EntityTree::update() {
         lockForWrite();
         _simulation->lock();
         _simulation->updateEntities();
-        _simulation->getEntitiesToDelete(_pendingDeletes);
+        VectorOfEntities pendingDeletes;
+        _simulation->getEntitiesToDelete(pendingDeletes);
         _simulation->unlock();
 
-        if (_pendingDeletes.size() > 0) {
+        if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            SetOfEntities::iterator entityItr = _pendingDeletes.begin();
-            while (entityItr != _pendingDeletes.end()) {
-                EntityItem* entity = *entityItr;
-                if (entity->getElement()) {
-                    // this entity is still in an element so we push it's ID on a list (and delete the roundabout way)
-                    idsToDelete.insert(entity->getEntityItemID());
-                    entityItr = _pendingDeletes.erase(entityItr);
-                } else if (!entity->getSimulation()) {
-                    // the entity is not in any simulation so we can delete immediately
-                    delete entity;
-                    entityItr = _pendingDeletes.erase(entityItr);
-                } else {
-                    // we're waiting for the simulation to cleanup its own data structure
-                    // so we leave it on the _pendingDeletes and will try again later
-                    ++entityItr;
-                }
+            for (auto entityItr : pendingDeletes) {
+                EntityItem* entity = &(*entityItr);
+                assert(!entity->getPhysicsInfo()); // adebug -- remove this after testing
+                std::cout << "adebug delete entity " << (void*)(entity) << " the roundabout way" << std::endl;  // adebug
+                idsToDelete.insert(entity->getEntityItemID());
             }
             // delete these things the roundabout way
             deleteEntities(idsToDelete, true);

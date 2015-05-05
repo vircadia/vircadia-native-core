@@ -305,7 +305,6 @@ public:
     
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
-    EntitySimulation* getSimulation() const { return _simulation; }
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -380,8 +379,8 @@ protected:
 
     // these backpointers are only ever set/cleared by friends:
     EntityTreeElement* _element = nullptr; // set by EntityTreeElement
-    EntitySimulation* _simulation = nullptr; // set by EntitySimulation
     void* _physicsInfo = nullptr; // set by EntitySimulation
+    bool _simulated; // set by EntitySimulation
 };
 
 

@@ -37,28 +37,20 @@ void EntitySimulation::updateEntities() {
     sortEntitiesThatMoved();
 }
 
-void EntitySimulation::getEntitiesToDelete(SetOfEntities& entitiesToDelete) {
-    SetOfEntities::iterator entityItr = _entitiesToDelete.begin();
-    while (entityItr != _entitiesToDelete.end()) {
-        EntityItem* entity = *entityItr;
-        if (entity->_simulation != this) {
-            if (entity->_element) {
-                // this entity is still in its tree, so we insert into the external list
-                entitiesToDelete.insert(entity);
-            } else {
-                // no more backpointers, so it should be safe to delete
-                delete entity;
-            }
-            // we're done with the entity in this context, so remove it from our internal list
-            entityItr = _entitiesToDelete.erase(entityItr);
-        } else {
-            // internal cleanup will happen later (probably in updateEntitiesInternal())
-            ++entityItr;
-        }
+void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
+    static int adebug = 0; ++adebug;
+    for (auto entityItr : _entitiesToDelete) {
+        EntityItem* entity = &(*entityItr);
+        // this entity is still in its tree, so we insert into the external list
+        std::cout << "adebug EntitySimulation relays entityToDelete " << (void*)(entity) << "  this = " << (void*)(this) << std::endl;  // adebug
+        entitiesToDelete.push_back(entity);
+        ++entityItr;
     }
+    _entitiesToDelete.clear();
 }
 
 void EntitySimulation::addEntityInternal(EntityItem* entity) {
+    entity->_simulated = true;
     if (entity->isMoving() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     }
@@ -87,7 +79,9 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 _entitiesToUpdate.remove(entity);
                 _entitiesToSort.remove(entity);
                 _simpleKinematicEntities.remove(entity);
+                std::cout << "adebug expireMortalEntities " << (void*)(entity) << std::endl;  // adebug
                 removeEntityInternal(entity);
+                entity->_simulated = false;
             } else {
                 if (expiry < _nextExpiry) {
                     // remeber the smallest _nextExpiry so we know when to start the next search
@@ -134,7 +128,9 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _mortalEntities.remove(entity);
             _entitiesToUpdate.remove(entity);
             _simpleKinematicEntities.remove(entity);
+            std::cout << "adebug entity moved out of bounds " << (void*)(entity) << std::endl;  // adebug
             removeEntityInternal(entity);
+            entity->_simulated = false;
             itemItr = _entitiesToSort.erase(itemItr);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
@@ -150,83 +146,90 @@ void EntitySimulation::sortEntitiesThatMoved() {
 }
 
 void EntitySimulation::addEntity(EntityItem* entity) {
+    //static int foo = 0; foo++;
     assert(entity);
-    if (!entity->_simulation) {
-        entity->_simulation = this;
-        if (entity->isMortal()) {
-            _mortalEntities.insert(entity);
-            quint64 expiry = entity->getExpiry();
-            if (expiry < _nextExpiry) {
-                _nextExpiry = expiry;
-            }
+    std::cout << "adebug EntitySimulation addEntity " << (void*)(entity) << std::endl;  // adebug
+    //if (foo > 1) {
+    //    //assert(false); // adebug
+    //}
+    if (entity->isMortal()) {
+        _mortalEntities.insert(entity);
+        quint64 expiry = entity->getExpiry();
+        if (expiry < _nextExpiry) {
+            _nextExpiry = expiry;
         }
-        if (entity->needsToCallUpdate()) {
-            _entitiesToUpdate.insert(entity);
-        }
-        addEntityInternal(entity);
-    
-        // DirtyFlags are used to signal changes to entities that have already been added, 
-        // so we can clear them for this entity which has just been added.
-        entity->clearDirtyFlags();
     }
+    if (entity->needsToCallUpdate()) {
+        _entitiesToUpdate.insert(entity);
+    }
+    addEntityInternal(entity);
+
+    // DirtyFlags are used to signal changes to entities that have already been added, 
+    // so we can clear them for this entity which has just been added.
+    entity->clearDirtyFlags();
 }
 
 void EntitySimulation::removeEntity(EntityItem* entity) {
     assert(entity);
-    if (entity->_simulation == this) {
-        _entitiesToUpdate.remove(entity);
-        _mortalEntities.remove(entity);
-        _entitiesToSort.remove(entity);
-        _simpleKinematicEntities.remove(entity);
-        removeEntityInternal(entity);
-    }
+    _entitiesToUpdate.remove(entity);
+    _mortalEntities.remove(entity);
+    _entitiesToSort.remove(entity);
+    _simpleKinematicEntities.remove(entity);
+    std::cout << "adebug removeEntity " << (void*)(entity) << std::endl;  // adebug
+    removeEntityInternal(entity);
+    entity->_simulated = false;
 }
 
 void EntitySimulation::changeEntity(EntityItem* entity) {
     assert(entity);
-    if (entity->_simulation == this) {
-        // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
-        // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence 
-        // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
-        bool wasRemoved = false;
-        uint32_t dirtyFlags = entity->getDirtyFlags();
-        if (dirtyFlags & EntityItem::DIRTY_POSITION) {
-            AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), (float)TREE_SCALE);
-            AACube newCube = entity->getMaximumAACube();
-            if (!domainBounds.touches(newCube)) {
-                qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
-                _entitiesToDelete.insert(entity);
-                _mortalEntities.remove(entity);
-                _entitiesToUpdate.remove(entity);
-                _entitiesToSort.remove(entity);
-                _simpleKinematicEntities.remove(entity);
-                removeEntityInternal(entity);
-                wasRemoved = true;
-            }
+    if (!entity->_simulated) {
+        // This entity was either never added to the simulation or has been removed
+        // (probably for pending delete), so we don't want to keep a pointer to it 
+        // on any internal lists.
+        std::cout << "adebug WTF? changing non-simulated entity " << (void*)(entity) << std::endl;  // adebug
+        return;
+    }
+
+    // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
+    // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence 
+    // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
+    bool wasRemoved = false;
+    uint32_t dirtyFlags = entity->getDirtyFlags();
+    if (dirtyFlags & EntityItem::DIRTY_POSITION) {
+        AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), (float)TREE_SCALE);
+        AACube newCube = entity->getMaximumAACube();
+        if (!domainBounds.touches(newCube)) {
+            qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
+            _entitiesToDelete.insert(entity);
+            _mortalEntities.remove(entity);
+            _entitiesToUpdate.remove(entity);
+            _entitiesToSort.remove(entity);
+            _simpleKinematicEntities.remove(entity);
+            std::cout << "adebug changeEntity out of bounds " << (void*)(entity) << std::endl;  // adebug
+            removeEntityInternal(entity);
+            entity->_simulated = false;
+            wasRemoved = true;
         }
-        if (!wasRemoved) {
-            if (dirtyFlags & EntityItem::DIRTY_LIFETIME) {
-                if (entity->isMortal()) {
-                    _mortalEntities.insert(entity);
-                    quint64 expiry = entity->getExpiry();
-                    if (expiry < _nextExpiry) {
-                        _nextExpiry = expiry;
-                    }
-                } else {
-                    _mortalEntities.remove(entity);
+    }
+    if (!wasRemoved) {
+        if (dirtyFlags & EntityItem::DIRTY_LIFETIME) {
+            if (entity->isMortal()) {
+                _mortalEntities.insert(entity);
+                quint64 expiry = entity->getExpiry();
+                if (expiry < _nextExpiry) {
+                    _nextExpiry = expiry;
                 }
-                entity->clearDirtyFlags(EntityItem::DIRTY_LIFETIME);
-            }
-            if (entity->needsToCallUpdate()) {
-                _entitiesToUpdate.insert(entity);
             } else {
-                _entitiesToUpdate.remove(entity);
+                _mortalEntities.remove(entity);
             }
-            changeEntityInternal(entity);
+            entity->clearDirtyFlags(EntityItem::DIRTY_LIFETIME);
         }
-    } else {
-        // this entity is not yet in this simulation but something (the tree) assumes that it is --> try to add it
-        addEntity(entity);
+        if (entity->needsToCallUpdate()) {
+            _entitiesToUpdate.insert(entity);
+        } else {
+            _entitiesToUpdate.remove(entity);
+        }
+        changeEntityInternal(entity);
     }
 }
 
@@ -248,6 +251,7 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
             _entitiesToSort.insert(entity);
             ++itemItr;
         } else {
+            // the entity is no longer non-physical-kinematic
             itemItr = _simpleKinematicEntities.erase(itemItr);
         }
     }

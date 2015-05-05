@@ -63,7 +63,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
     _simulatorIDChangedTime(0),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
-    _dirtyFlags(0)
+    _dirtyFlags(0),
+    _simulated(false)
 {
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
@@ -78,8 +79,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 EntityItem::~EntityItem() {
     // these pointers MUST be NULL at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
+    assert(!_simulated);
     assert(!_element);
-    assert(!_simulation);
     assert(!_physicsInfo);
 }
 
