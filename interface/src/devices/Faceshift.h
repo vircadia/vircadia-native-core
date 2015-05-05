@@ -87,7 +87,7 @@ signals:
     void connectionStateChanged();
 
 public slots:
-    void setTCPEnabled(bool enabled);
+    void setEnabled(bool enabled);
     
 private slots:
     void connectSocket();

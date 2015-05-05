@@ -65,7 +65,7 @@ void CameraToolBox::toggleMute() {
     delete _doubleClickTimer;
     _doubleClickTimer = NULL;
 
-    FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+    FaceTracker* faceTracker = Application::getInstance()->getSelectedFaceTracker();
     if (faceTracker) {
         faceTracker->toggleMute();
     }

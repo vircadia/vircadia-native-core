@@ -934,7 +934,9 @@ void Application::audioMuteToggled() {
 void Application::faceTrackerMuteToggled() {
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
     Q_CHECK_PTR(muteAction);
-    muteAction->setChecked(getActiveFaceTracker()->isMuted());
+    bool isMuted = getSelectedFaceTracker()->isMuted();
+    muteAction->setChecked(isMuted);
+    getSelectedFaceTracker()->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
@@ -1887,25 +1889,40 @@ FaceTracker* Application::getActiveFaceTracker() {
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : NULL));
 }
 
+FaceTracker* Application::getSelectedFaceTracker() {
+    FaceTracker* faceTracker = NULL;
+#ifdef HAVE_FACESHIFT
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Faceshift)) {
+        faceTracker = DependencyManager::get<Faceshift>().data();
+    }
+#endif
+#ifdef HAVE_DDE
+    if (Menu::getInstance()->isOptionChecked(MenuOption::UseCamera)) {
+        faceTracker = DependencyManager::get<DdeFaceTracker>().data();
+    }
+#endif
+    return faceTracker;
+}
+
 void Application::setActiveFaceTracker() {
     bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
 #ifdef HAVE_FACESHIFT
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
-    faceshiftTracker->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
     faceshiftTracker->setIsMuted(isMuted);
+    faceshiftTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) && !isMuted);
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
-    ddeTracker->setEnabled(isUsingDDE);
     ddeTracker->setIsMuted(isMuted);
+    ddeTracker->setEnabled(isUsingDDE && !isMuted);
 #endif
 }
 
 void Application::toggleFaceTrackerMute() {
-    FaceTracker* faceTracker = getActiveFaceTracker();
+    FaceTracker* faceTracker = getSelectedFaceTracker();
     if (faceTracker) {
         faceTracker->toggleMute();
     }

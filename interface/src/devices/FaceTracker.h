@@ -49,10 +49,15 @@ public:
 
 signals:
     void muteToggled();
-    
+
+public slots:
+    virtual void setEnabled(bool enabled) = 0;
+
 protected:
-    FaceTracker();
     virtual ~FaceTracker() {};
+
+    bool _isInitialized = false;
+    bool _isMuted = true;
 
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
@@ -63,8 +68,6 @@ protected:
     float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
     float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
 
-    bool _isMuted;
-
     void countFrame();
 
 private slots:
@@ -72,8 +75,8 @@ private slots:
     void finishFPSTimer();
 
 private:
-    bool _isCalculatingFPS;
-    int _frameCount;
+    bool _isCalculatingFPS = false;
+    int _frameCount = 0;
 };
 
 #endif // hifi_FaceTracker_h

@@ -20,15 +20,9 @@
 const int FPS_TIMER_DELAY = 2000;  // ms
 const int FPS_TIMER_DURATION = 2000;  // ms
 
-FaceTracker::FaceTracker() :
-    _isCalculatingFPS(false),
-    _frameCount(0),
-    _isMuted(false)
-{
-}
-
 void FaceTracker::init() {
     _isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+    _isInitialized = true;  // FaceTracker can be used now
 }
 
 inline float FaceTracker::getBlendshapeCoefficient(int index) const {

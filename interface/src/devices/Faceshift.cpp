@@ -49,8 +49,8 @@ Faceshift::Faceshift() :
 
 #ifdef HAVE_FACESHIFT
 void Faceshift::init() {
-    setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
     FaceTracker::init();
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) && !_isMuted);
 }
 
 void Faceshift::update(float deltaTime) {
@@ -128,7 +128,11 @@ void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float 
     coefficients[FUNNEL_BLENDSHAPE] = mouth3;
 }
 
-void Faceshift::setTCPEnabled(bool enabled) {
+void Faceshift::setEnabled(bool enabled) {
+    // Don't enable until have explicitly initialized
+    if (!_isInitialized) {
+        return;
+    }
 #ifdef HAVE_FACESHIFT
     if ((_tcpEnabled = enabled)) {
         connectSocket();
@@ -198,10 +202,6 @@ void Faceshift::send(const std::string& message) {
 void Faceshift::receive(const QByteArray& buffer) {
 #ifdef HAVE_FACESHIFT
     _lastReceiveTimestamp = usecTimestampNow();
-
-    if (_isMuted) {
-        return;
-    }
 
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
