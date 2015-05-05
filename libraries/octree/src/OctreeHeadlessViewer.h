@@ -34,7 +34,8 @@ public:
 
     virtual void init();
     virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                            RenderArgs::RenderSide renderSide = RenderArgs::MONO) { /* swallow these */ }
+                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
+                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE) { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 

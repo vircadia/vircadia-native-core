@@ -13,8 +13,9 @@
 #define hifi_OctreeSceneStats_h
 
 #include <stdint.h>
+
 #include <NodeList.h>
-#include <SharedUtil.h>
+
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
 #include "SequenceNumberStats.h"
