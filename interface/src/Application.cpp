@@ -819,13 +819,18 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        // Always use the default eye position, not the actual head eye position.
+        // Using the latter will cause the camera to wobble with idle animations,
+        // or with changes from the face tracker
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
         if (!OculusManager::isConnected()) {
-            //  If there isn't an HMD, match exactly to avatar's head
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
+            // If not using an HMD, grab the camera orientation directly
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            //  For an HMD, set the base position and orientation to that of the avatar body
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            // In an HMD, people can look up and down with their actual neck, and the
+            // per-eye HMD pose will be applied later.  So set the camera orientation
+            // to only the yaw, excluding pitch and roll, i.e. an orientation that
+            // is orthongonal to the (body's) Y axis
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
 
