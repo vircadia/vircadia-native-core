@@ -48,17 +48,15 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
 void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
     assert(entity);
     if (entity->getIgnoreForCollisions() && entity->isMoving()) {
-        std::cout << "adebug addEntityInternal for NPK entity " << (void*)(entity) << std::endl;  // adebug
         _simpleKinematicEntities.insert(entity);
     } else {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (!motionState) {
-            std::cout << "adebug addEntityInternal for entity " << (void*)(entity) << std::endl;  // adebug
             _pendingAdds.insert(entity);
         } else {
+            // DEBUG -- Andrew to remove this after testing
             // Adding entity already in simulation? assert that this is case, 
             // since otherwise we probably have an orphaned EntityMotionState.
-            std::cout << "adebug WTF? re-adding entity " << (void*)(entity) << std::endl;  // adebug
             assert(_physicalObjects.find(motionState) != _physicalObjects.end());
         }
     }
@@ -138,7 +136,6 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
         EntityItem* entity = motionState->getEntity();
         if (entity) {
             _pendingAdds.remove(entity);
-            std::cout << "adebug disconnect MotionState " << (void*)(motionState) << " from entity " << (void*)(entity) << std::endl;  // adebug
             entity->setPhysicsInfo(nullptr);
             motionState->clearEntity();
         }
@@ -163,7 +160,6 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             btCollisionShape* shape = _shapeManager->getShape(shapeInfo);
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
-                std::cout << "adebug create MotionState " << (void*)(motionState) << " for entity " << (void*)(entity) << std::endl;  // adebug
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 motionState->setMass(entity->computeMass());
                 _physicalObjects.insert(motionState);

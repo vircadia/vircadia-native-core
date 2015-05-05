@@ -352,7 +352,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         if (_simulation) {
             _simulation->removeEntity(theEntity);
         } 
-        std::cout << "adebug 001 delete entity " << (void*)(theEntity) << std::endl;  // adebug
         delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
@@ -762,8 +761,7 @@ void EntityTree::update() {
             QSet<EntityItemID> idsToDelete;
             for (auto entityItr : pendingDeletes) {
                 EntityItem* entity = &(*entityItr);
-                assert(!entity->getPhysicsInfo()); // adebug -- remove this after testing
-                std::cout << "adebug delete entity " << (void*)(entity) << " the roundabout way" << std::endl;  // adebug
+                assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
             // delete these things the roundabout way

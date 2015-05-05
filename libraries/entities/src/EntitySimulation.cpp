@@ -38,11 +38,9 @@ void EntitySimulation::updateEntities() {
 }
 
 void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
-    static int adebug = 0; ++adebug;
     for (auto entityItr : _entitiesToDelete) {
         EntityItem* entity = &(*entityItr);
         // this entity is still in its tree, so we insert into the external list
-        std::cout << "adebug EntitySimulation relays entityToDelete " << (void*)(entity) << "  this = " << (void*)(this) << std::endl;  // adebug
         entitiesToDelete.push_back(entity);
         ++entityItr;
     }
@@ -79,7 +77,6 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 _entitiesToUpdate.remove(entity);
                 _entitiesToSort.remove(entity);
                 _simpleKinematicEntities.remove(entity);
-                std::cout << "adebug expireMortalEntities " << (void*)(entity) << std::endl;  // adebug
                 removeEntityInternal(entity);
                 entity->_simulated = false;
             } else {
@@ -128,7 +125,6 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _mortalEntities.remove(entity);
             _entitiesToUpdate.remove(entity);
             _simpleKinematicEntities.remove(entity);
-            std::cout << "adebug entity moved out of bounds " << (void*)(entity) << std::endl;  // adebug
             removeEntityInternal(entity);
             entity->_simulated = false;
             itemItr = _entitiesToSort.erase(itemItr);
@@ -146,12 +142,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
 }
 
 void EntitySimulation::addEntity(EntityItem* entity) {
-    //static int foo = 0; foo++;
     assert(entity);
-    std::cout << "adebug EntitySimulation addEntity " << (void*)(entity) << std::endl;  // adebug
-    //if (foo > 1) {
-    //    //assert(false); // adebug
-    //}
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         quint64 expiry = entity->getExpiry();
@@ -175,7 +166,6 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
     _mortalEntities.remove(entity);
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
-    std::cout << "adebug removeEntity " << (void*)(entity) << std::endl;  // adebug
     removeEntityInternal(entity);
     entity->_simulated = false;
 }
@@ -186,7 +176,6 @@ void EntitySimulation::changeEntity(EntityItem* entity) {
         // This entity was either never added to the simulation or has been removed
         // (probably for pending delete), so we don't want to keep a pointer to it 
         // on any internal lists.
-        std::cout << "adebug WTF? changing non-simulated entity " << (void*)(entity) << std::endl;  // adebug
         return;
     }
 
@@ -205,7 +194,6 @@ void EntitySimulation::changeEntity(EntityItem* entity) {
             _entitiesToUpdate.remove(entity);
             _entitiesToSort.remove(entity);
             _simpleKinematicEntities.remove(entity);
-            std::cout << "adebug changeEntity out of bounds " << (void*)(entity) << std::endl;  // adebug
             removeEntityInternal(entity);
             entity->_simulated = false;
             wasRemoved = true;
