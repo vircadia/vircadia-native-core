@@ -178,9 +178,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredBrowUp(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
-    _lastEyeCoefficients(),
-    _isCalculatingFPS(false),
-    _frameCount(0)
+    _lastEyeCoefficients()
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
