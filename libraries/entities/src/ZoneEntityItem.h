@@ -148,7 +148,8 @@ protected:
     QString _compoundShapeURL;
     
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-    AtmospherePropertyGroup _atmospherePropeties;
+    AtmospherePropertyGroup _atmosphereProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
