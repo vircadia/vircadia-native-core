@@ -28,10 +28,12 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
     setNewProperties();
     
     if (oldShapeURL != getCompoundShapeURL()) {
-        if (!_model) {
-            _model = getModel();
-            _needsInitialSimulation = true;
+        if (_model) {
+            delete _model;
         }
+        
+        _model = getModel();
+        _needsInitialSimulation = true;
         _model->setURL(getCompoundShapeURL(), QUrl(), true, true);
     }
     if (oldPosition != getPosition() ||
@@ -62,6 +64,7 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 
 Model* RenderableZoneEntityItem::getModel() {
     Model* model = new Model();
+    model->setIsWireframe(true);
     model->init();
     return model;
 }
@@ -75,11 +78,25 @@ void RenderableZoneEntityItem::initialSimulation() {
     _needsInitialSimulation = false;
 }
 
+void RenderableZoneEntityItem::updateGeometry() {
+    if (_model && !_model->isActive() && hasCompoundShapeURL()) {
+        // Since we have a delayload, we need to update the geometry if it has been downloaded
+        _model->setURL(getCompoundShapeURL(), QUrl(), true);
+    }
+    if (_model && _model->isActive() && _needsInitialSimulation) {
+        initialSimulation();
+    }
+}
+
 void RenderableZoneEntityItem::render(RenderArgs* args) {
-    if (_drawZoneBoundaries) {
-        if (_model->isActive()) {
+    if (_drawZoneBoundaries || true) {
+        updateGeometry();
+        
+        if (_model && _model->isActive()) {
             PerformanceTimer perfTimer("zone->render");
+            glPushMatrix();
             _model->renderInScene(getLocalRenderAlpha(), args);
+            glPopMatrix();
         }
     }
 }
@@ -88,16 +105,9 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() != SHAPE_TYPE_COMPOUND) {
         return EntityItem::contains(point);
     }
-    
-    if (_model && !_model->isActive() && hasCompoundShapeURL()) {
-        // Since we have a delayload, we need to update the geometry if it has been downloaded
-        _model->setURL(getCompoundShapeURL(), QUrl(), true);
-    }
+    const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
     
     if (_model && _model->isActive() && EntityItem::contains(point)) {
-        if (_needsInitialSimulation) {
-            const_cast<RenderableZoneEntityItem*>(this)->initialSimulation();
-        }
         return _model->convexHullContains(point);
     }
     
