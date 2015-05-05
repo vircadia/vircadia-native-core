@@ -30,15 +30,19 @@ public:
     void init();
     void resetToDefault();
     void renderAtmospheres(Camera& camera);
+
+    void override(const EnvironmentData& overrideData) { _overrideData = overrideData; _environmentIsOverridden = true; }
+    void endOverride() { _environmentIsOverridden = false; }
     
-    glm::vec3 getGravity (const glm::vec3& position);
-    const EnvironmentData getClosestData(const glm::vec3& position);
+    EnvironmentData getClosestData(const glm::vec3& position);
     
-    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
     
     int parseData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     
 private:
+    glm::vec3 getGravity (const glm::vec3& position); // NOTE: Deprecated
+    bool findCapsulePenetration(const glm::vec3& start, 
+            const glm::vec3& end, float radius, glm::vec3& penetration); // NOTE: Deprecated
 
     ProgramObject* createSkyProgram(const char* from, int* locations);
 
@@ -74,6 +78,8 @@ private:
     typedef QHash<int, EnvironmentData> ServerData;
     
     QHash<HifiSockAddr, ServerData> _data;
+    EnvironmentData _overrideData;
+    bool _environmentIsOverridden = false;
     
     QMutex _mutex;
 };
