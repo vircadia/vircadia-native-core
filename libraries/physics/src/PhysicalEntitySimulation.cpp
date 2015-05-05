@@ -168,6 +168,8 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             } else {
                 ++entityItr;
             }
+        } else {
+            ++entityItr;
         }
     }
     return _tempVector;
