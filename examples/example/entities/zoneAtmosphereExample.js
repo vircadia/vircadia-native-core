@@ -56,16 +56,6 @@ Script.update.connect(function(deltaTime) {
     print("newIntensity:" + newIntensity);
     
     Entities.editEntity(zoneEntityA, { 
-        skyboxMode: "atmosphere",
-        atmosphere: {
-            center: { x: 1000, y: 0, z: 1000}, 
-            innerRadius: 1000.0,
-            outerRadius: 1025.0,
-            rayleighScattering: 0.0025,
-            mieScattering: 0.0010,
-            scatteringWavelengths: { x: 0.650, y: 0.570, z: 0.475 },
-            hasStars: false
-        },
         stageHour: newHour,
         keyLightIntensity: newIntensity
     });

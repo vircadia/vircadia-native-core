@@ -257,11 +257,17 @@ QString EntityItemProperties::getSkyboxModeAsString() const {
     return QString(skyboxModeNames[SKYBOX_MODE_INHERIT]);
 }
 
-void EntityItemProperties::setSkyboxModeFromString(const QString& shapeName) {
+QString EntityItemProperties::getSkyboxModeString(SkyboxMode mode) {
+    if (mode < sizeof(skyboxModeNames) / sizeof(char *))
+        return QString(skyboxModeNames[mode]);
+    return QString(skyboxModeNames[SKYBOX_MODE_INHERIT]);
+}
+
+void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
     if (stringToSkyboxModeLookup.empty()) {
         buildStringToSkyboxModeLookup();
     }
-    auto skyboxModeItr = stringToSkyboxModeLookup.find(shapeName.toLower());
+    auto skyboxModeItr = stringToSkyboxModeLookup.find(skyboxMode.toLower());
     if (skyboxModeItr != stringToSkyboxModeLookup.end()) {
         _skyboxMode = skyboxModeItr.value();
         _skyboxModeChanged = true;
@@ -518,11 +524,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageAltitude, setStageAltitude);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
-
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(skyboxMode, SkyboxMode);
-
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
-
     _lastEdited = usecTimestampNow();
 }
 

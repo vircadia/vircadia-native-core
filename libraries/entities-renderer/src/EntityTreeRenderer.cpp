@@ -432,7 +432,12 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 EnvironmentData data = _bestZone->getEnvironmentData();
                 glm::vec3 keyLightDirection = scene->getKeyLightDirection();
                 glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
-                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                
+                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
+                //       atmosphere, not where the camera is.
+                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
+                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                                                
                 data.setSunLocation(keyLightLocation);
 
                 const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;

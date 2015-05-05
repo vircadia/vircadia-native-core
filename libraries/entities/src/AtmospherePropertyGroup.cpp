@@ -47,13 +47,13 @@ void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bo
 
 void AtmospherePropertyGroup::debugDump() const {
     qDebug() << "   AtmospherePropertyGroup: ---------------------------------------------";
-    qDebug() << "       Center:" << getCenter();
-    qDebug() << "       Inner Radius:" << getInnerRadius();
-    qDebug() << "       Outer Radius:" << getOuterRadius();
-    qDebug() << "       Mie Scattering:" << getMieScattering();
-    qDebug() << "       Rayleigh Scattering:" << getRayleighScattering();
-    qDebug() << "       Scattering Wavelengths:" << getScatteringWavelengths();
-    qDebug() << "       Has Stars:" << getHasStars();
+    qDebug() << "       Center:" << getCenter() << " has changed:" << centerChanged();
+    qDebug() << "       Inner Radius:" << getInnerRadius() << " has changed:" << innerRadiusChanged();
+    qDebug() << "       Outer Radius:" << getOuterRadius() << " has changed:" << outerRadiusChanged();
+    qDebug() << "       Mie Scattering:" << getMieScattering() << " has changed:" << mieScatteringChanged();
+    qDebug() << "       Rayleigh Scattering:" << getRayleighScattering() << " has changed:" << rayleighScatteringChanged();
+    qDebug() << "       Scattering Wavelengths:" << getScatteringWavelengths() << " has changed:" << scatteringWavelengthsChanged();
+    qDebug() << "       Has Stars:" << getHasStars() << " has changed:" << hasStarsChanged();
 }
 
 bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     

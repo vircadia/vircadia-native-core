@@ -141,6 +141,8 @@ public:
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, SkyboxMode);
 
+    static QString getSkyboxModeString(SkyboxMode mode);
+
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }

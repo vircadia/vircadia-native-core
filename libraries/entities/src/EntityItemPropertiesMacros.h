@@ -51,7 +51,6 @@
             }                                                   \
         }
 
-
 #define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
         if (propertyFlags.getHasProperty(P)) {                              \
             glm::quat fromBuffer;                                           \
@@ -458,7 +457,7 @@
         void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF(P, N, n, T)        \
     public: \
@@ -468,7 +467,7 @@
         void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T)        \
     public: \

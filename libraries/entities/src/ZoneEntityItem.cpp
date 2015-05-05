@@ -126,7 +126,6 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageHour, setStageHour);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
-
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(skyboxMode, setSkyboxMode);
 
     bool somethingChangedInAtmosphere = _atmospherePropeties.setProperties(properties);
@@ -150,7 +149,6 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
@@ -166,12 +164,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _stageHour);
     READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
-
     READ_ENTITY_PROPERTY_SETTER(PROP_SKYBOX_MODE, SkyboxMode, setSkyboxMode);
-
     bytesRead += _atmospherePropeties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                            propertyFlags, overwriteLocalData);
-
 
     return bytesRead;
 }
@@ -193,9 +188,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_STAGE_HOUR;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
-
     requestedProperties += PROP_SKYBOX_MODE;
-
     requestedProperties += _atmospherePropeties.getEntityProperties(params);
     
     return requestedProperties;
@@ -223,8 +216,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getStageHour());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
-
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, appendValue, (uint32_t)getShapeType()); // could this be a uint16??
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, appendValue, (uint32_t)getSkyboxMode()); // could this be a uint16??
     
     _atmospherePropeties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -247,7 +239,7 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "            _stageAltitude:" << _stageAltitude;
     qCDebug(entities) << "                 _stageDay:" << _stageDay;
     qCDebug(entities) << "                _stageHour:" << _stageHour;
-    qCDebug(entities) << "               _skyboxMode:" << _skyboxMode;
+    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getSkyboxModeString(_skyboxMode);
 
     _atmospherePropeties.debugDump();
 }
