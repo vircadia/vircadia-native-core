@@ -121,7 +121,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
         }
         worldTrans.setOrigin(glmToBullet(getObjectPosition()));
         _body->setWorldTransform(worldTrans);
-    } else {
+    } else if (flags & EntityItem::DIRTY_ROTATION) {
         btTransform worldTrans = _body->getWorldTransform();
         worldTrans.setRotation(glmToBullet(getObjectRotation()));
         _body->setWorldTransform(worldTrans);
