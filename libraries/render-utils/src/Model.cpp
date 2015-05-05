@@ -2094,8 +2094,8 @@ void Model::segregateMeshGroups() {
     for(auto& b : _renderBuckets) {
         foreach(auto i, b.second._unsortedMeshes) {
             b.second._meshes.append(i);
-            b.second._unsortedMeshes.clear();
         }
+        b.second._unsortedMeshes.clear();
     }
 
     _meshGroupsKnown = true;
