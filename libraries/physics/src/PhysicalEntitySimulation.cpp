@@ -47,30 +47,57 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
     assert(entity);
-    void* physicsInfo = entity->getPhysicsInfo();
-    if (!physicsInfo) {
-        _pendingAdds.insert(entity);
+    if (entity->getIgnoreForCollisions() && entity->isMoving()) {
+        std::cout << "adebug addEntityInternal for NPK entity " << (void*)(entity) << std::endl;  // adebug
+        _simpleKinematicEntities.insert(entity);
+    } else {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (!motionState) {
+            std::cout << "adebug addEntityInternal for entity " << (void*)(entity) << std::endl;  // adebug
+            _pendingAdds.insert(entity);
+        } else {
+            // Adding entity already in simulation? assert that this is case, 
+            // since otherwise we probably have an orphaned EntityMotionState.
+            std::cout << "adebug WTF? re-adding entity " << (void*)(entity) << std::endl;  // adebug
+            assert(_physicalObjects.find(motionState) != _physicalObjects.end());
+        }
     }
 }
 
 void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
-    if (entity->getPhysicsInfo()) {
-        _pendingRemoves.insert(entity);
+    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+    if (motionState) {
+        motionState->clearEntity();    
+        entity->setPhysicsInfo(nullptr);
+        _pendingRemoves.insert(motionState);
     }
 }
 
 void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
     assert(entity);
-    void* physicsInfo = entity->getPhysicsInfo();
-    if (physicsInfo) {
-        _pendingChanges.insert(entity);
-    } else { 
-        if (!entity->getIgnoreForCollisions()) {
-            // The intent is for this object to be in the PhysicsEngine.  
-            // Perhaps it's shape has changed and it can now be added?
-            _pendingAdds.insert(entity);
+    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+    if (motionState) {
+        if (entity->getIgnoreForCollisions()) {
+            // the entity should be removed from the physical simulation
+            _pendingChanges.remove(motionState);
+            _physicalObjects.remove(motionState);
+            _pendingRemoves.insert(motionState);
+            if (entity->isMoving()) {
+                _simpleKinematicEntities.insert(entity);
+            }
+        } else {
+            _pendingChanges.insert(motionState);
         }
+    } else if (!entity->getIgnoreForCollisions()) {
+        // The intent is for this object to be in the PhysicsEngine.  
+        // Perhaps it's shape has changed and it can now be added?
+        _pendingAdds.insert(entity);
+        _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
+    } else if (entity->isMoving()) {
+        _simpleKinematicEntities.insert(entity);
+    } else {
+        _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
     }
 }
 
@@ -83,8 +110,10 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
         EntityItem* entity = motionState->getEntity();
-        entity->setPhysicsInfo(nullptr);
-        clearEntitySimulation(entity);
+        if (entity) {
+            entity->setPhysicsInfo(nullptr);
+        }
+        motionState->clearEntity();
     }
 
     // then delete the objects (aka MotionStates)
@@ -101,20 +130,19 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 
 VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
     _tempVector.clear();
-    for (auto entityItr : _pendingRemoves) {
-        EntityItem* entity = &(*entityItr);
-        _pendingAdds.remove(entity);
-        _pendingChanges.remove(entity);
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _physicalObjects.remove(motionState);
-            // disconnect EntityMotionState from its Entity
-            // NOTE: EntityMotionState still has a back pointer to its Entity, but is about to be deleted
-            // (by PhysicsEngine) and shouldn't actually access its Entity during this process.
+    for (auto stateItr : _pendingRemoves) {
+        EntityMotionState* motionState = &(*stateItr);
+        _pendingChanges.remove(motionState);
+        _physicalObjects.remove(motionState);
+
+        EntityItem* entity = motionState->getEntity();
+        if (entity) {
+            _pendingAdds.remove(entity);
+            std::cout << "adebug disconnect MotionState " << (void*)(motionState) << " from entity " << (void*)(entity) << std::endl;  // adebug
             entity->setPhysicsInfo(nullptr);
-            _tempVector.push_back(motionState);
+            motionState->clearEntity();
         }
-        clearEntitySimulation(entity);
+        _tempVector.push_back(motionState);
     }
     _pendingRemoves.clear();
     return _tempVector;
@@ -126,13 +154,16 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
     while (entityItr != _pendingAdds.end()) {
         EntityItem* entity = *entityItr;
         assert(!entity->getPhysicsInfo());
-
-        if (entity->isReadyToComputeShape()) {
+        if (entity->getIgnoreForCollisions()) {
+            // this entity should no longer be on the internal _pendingAdds
+            entityItr = _pendingAdds.erase(entityItr);
+        } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
             btCollisionShape* shape = _shapeManager->getShape(shapeInfo);
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
+                std::cout << "adebug create MotionState " << (void*)(motionState) << " for entity " << (void*)(entity) << std::endl;  // adebug
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
                 motionState->setMass(entity->computeMass());
                 _physicalObjects.insert(motionState);
@@ -148,12 +179,9 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
 
 VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     _tempVector.clear();
-    for (auto entityItr : _pendingChanges) {
-        EntityItem* entity = &(*entityItr);
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _tempVector.push_back(motionState);
-        }
+    for (auto stateItr : _pendingChanges) {
+        EntityMotionState* motionState = &(*stateItr);
+        _tempVector.push_back(motionState);
     }
     _pendingChanges.clear();
     return _tempVector;

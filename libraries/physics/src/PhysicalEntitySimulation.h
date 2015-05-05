@@ -26,6 +26,8 @@
 class EntityMotionState;
 class ShapeManager;
 
+typedef QSet<EntityMotionState*> SetOfEntityMotionStates;
+
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
     PhysicalEntitySimulation();
@@ -51,15 +53,15 @@ public:
 
 private:
     // incoming changes
-    SetOfEntities _pendingRemoves; // entities to be removed from PhysicsEngine (and their MotionState deleted)
-    SetOfEntities _pendingAdds; // entities to be be added to PhysicsEngine (and a their MotionState created)
-    SetOfEntities _pendingChanges; // entities already in PhysicsEngine that need their physics changed
+    SetOfEntityMotionStates _pendingRemoves; // EntityMotionStates to be removed from PhysicsEngine (and deleted)
+    SetOfEntities _pendingAdds; // entities to be be added to PhysicsEngine (and a their EntityMotionState created)
+    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
 
     // outgoing changes
-    QSet<EntityMotionState*> _outgoingChanges; // entities for which we need to send updates to entity-server
+    QSet<EntityMotionState*> _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
-    VectorOfMotionStates _tempVector; // temporary array, valid by reference immediately after call to getObjectsToRemove/Add/Update()
+    VectorOfMotionStates _tempVector; // temporary array reference, valid immediately after getObjectsToRemove() (and friends)
 
     ShapeManager* _shapeManager = nullptr;
     PhysicsEngine* _physicsEngine = nullptr;
