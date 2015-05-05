@@ -90,7 +90,7 @@ void UserInputMapper::update(float deltaTime) {
             bool isActiveModifier = false;
             for (auto& modifier : modifiersIt->second) {
                 auto deviceProxy = getDeviceProxy(modifier);
-                if (deviceProxy->getButton(modifier, currentTimestamp)) {
+                if (deviceProxy && deviceProxy->getButton(modifier, currentTimestamp)) {
                     validModifiers.push_back(modifier);
                     isActiveModifier |= (modifier.getID() == inputMapping._modifier.getID());
                 }
@@ -99,8 +99,8 @@ void UserInputMapper::update(float deltaTime) {
         }
 
         // if enabled: default input or all modifiers on
-        if (enabled) {
-            auto deviceProxy = getDeviceProxy(inputID);
+        auto deviceProxy = getDeviceProxy(inputID);
+        if (enabled && deviceProxy) {
             switch (inputMapping._input.getType()) {
                 case ChannelType::BUTTON: {
                     _actionStates[channelInput.first] += inputMapping._scale * float(deviceProxy->getButton(inputID, currentTimestamp));// * deltaTime; // weight the impulse by the deltaTime
