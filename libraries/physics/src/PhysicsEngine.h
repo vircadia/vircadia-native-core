@@ -93,6 +93,7 @@ public:
     void dumpNextStats() { _dumpNextStats = true; }
 
     static bool physicsInfoIsActive(void* physicsInfo);
+    static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
 
 private:
     void removeContacts(ObjectMotionState* motionState);

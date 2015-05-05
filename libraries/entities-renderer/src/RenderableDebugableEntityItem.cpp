@@ -83,4 +83,13 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
     if (PhysicsEngine::physicsInfoIsActive(entity->getPhysicsInfo())) {
         renderHoverDot(entity, args);
     }
+
+    glm::vec3 position;
+    glm::quat rotation;
+    if (PhysicsEngine::getBodyLocation(entity->getPhysicsInfo(), position, rotation)) {
+        glm::vec3 positionOffset = glm::abs(position - entity->getPosition());
+        if (positionOffset[0] > 0.001 || positionOffset[1] > 0.001 || positionOffset[2] > 0.001) {
+            qDebug() << positionOffset[0] << positionOffset[1] << positionOffset[2];
+        }
+    }
 }
