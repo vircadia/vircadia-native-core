@@ -47,7 +47,7 @@ public:
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
-    bool getShouldClaimSimulationOwnership() { return false; }
+    bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
 
     virtual uint32_t getAndClearIncomingDirtyFlags() const;
 
