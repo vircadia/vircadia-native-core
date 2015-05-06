@@ -191,6 +191,8 @@ protected:
     void do_drawInstanced(Batch& batch, uint32 paramOffset);
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
 
+    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
+
     // Input Stage
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);

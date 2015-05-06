@@ -451,9 +451,9 @@ bool Model::updateGeometry() {
             gpu::BufferPointer buffer(new gpu::Buffer());
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
+                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
+                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
             }
             _blendedVertexBuffers.push_back(buffer);
         }
@@ -1732,9 +1732,9 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
         }
 
         gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
-        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) vertices.constData() + index*sizeof(glm::vec3));
+        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
         buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-            mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) normals.constData() + index*sizeof(glm::vec3));
+            mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) normals.constData() + index*sizeof(glm::vec3));
 
         index += mesh.vertices.size();
     }

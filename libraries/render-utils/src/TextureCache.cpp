@@ -89,7 +89,7 @@ const int permutation[256] =
 #define USE_CHRIS_NOISE 1
 
 const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
-    if (_permutationNormalTexture.isNull()) {
+    if (!_permutationNormalTexture) {
 
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
@@ -133,7 +133,7 @@ static void loadSingleColorTexture(const unsigned char* color) {
 */
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
-    if (_whiteTexture.isNull()) {
+    if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
@@ -141,7 +141,7 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
 }
 
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
-    if (_blueTexture.isNull()) {
+    if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }

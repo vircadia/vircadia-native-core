@@ -190,8 +190,8 @@ void ApplicationOverlay::renderOverlay() {
     Overlays& overlays = qApp->getOverlays();
     
     _textureFov = glm::radians(_hmdUIAngularSize);
-    auto deviceSize = Application::getInstance()->getDeviceSize();
-    _textureAspectRatio = (float)deviceSize.width() / (float)deviceSize.height();
+    glm::vec2 deviceSize = qApp->getCanvasSize();
+    _textureAspectRatio = (float)deviceSize.x / (float)deviceSize.y;
 
     //Handle fading and deactivation/activation of UI
     
@@ -209,7 +209,7 @@ void ApplicationOverlay::renderOverlay() {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, deviceSize.width(), deviceSize.height(), 0, NEAR_CLIP, FAR_CLIP);
+        glOrtho(0, deviceSize.x, deviceSize.y, 0, NEAR_CLIP, FAR_CLIP);
 
         glMatrixMode(GL_MODELVIEW);
 
@@ -270,11 +270,11 @@ void ApplicationOverlay::displayOverlayTexture() {
             glEnable(GL_BLEND);
         }
 
+        static const glm::vec2 topLeft(-1, 1);
+        static const glm::vec2 bottomRight(1, -1);
+        static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+        static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
         with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
-            static const glm::vec2 topLeft(-1, 1);
-            static const glm::vec2 bottomRight(1, -1);
-            static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
-            static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
             DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                 glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         });
