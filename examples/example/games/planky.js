@@ -93,7 +93,7 @@ function resetBlocks() {
                 type: 'Model',
                 modelURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx',
                 shapeType: 'box',
-                name: 'JengaBlock' + ((layerIndex * BLOCKS_PER_LAYER) + blockIndex),
+                name: 'PlankyBlock' + ((layerIndex * BLOCKS_PER_LAYER) + blockIndex),
                 dimensions: BLOCK_SIZE,
                 position: {
                     x: basePosition.x + localTransform.x,
