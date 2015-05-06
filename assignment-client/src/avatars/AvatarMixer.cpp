@@ -447,11 +447,14 @@ void AvatarMixer::sendStatsPacket() {
         
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->loadJSONStats(avatarStats);
+            MutexTryLocker lock(clientData->getMutex());
+            if (lock.isLocked()) {
+                clientData->loadJSONStats(avatarStats);
 
-            // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
-            avatarStats["delta_full_vs_avatar_data_kbps"] = 
-                avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();  
+                // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
+                avatarStats["delta_full_vs_avatar_data_kbps"] = 
+                    avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+            } 
         }
 
         avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
