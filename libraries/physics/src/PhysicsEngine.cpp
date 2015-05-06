@@ -126,6 +126,8 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     motionState->updateBodyMaterialProperties();
 
     _dynamicsWorld->addRigidBody(body);
+
+    motionState->getAndClearIncomingDirtyFlags();
 }
     
 void PhysicsEngine::removeObject(ObjectMotionState* object) {
