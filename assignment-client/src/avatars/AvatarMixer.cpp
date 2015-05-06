@@ -260,14 +260,11 @@ void AvatarMixer::broadcastAvatarData() {
                     PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData);
 
-                    qDebug() << "Last sent to receiver" << node->getUUID() << "was" << lastSeqToReceiver;
-                    qDebug() << "Last sent from sender" << otherNode->getUUID() << "was" << lastSeqFromSender;                    
-                    
                     assert(lastSeqToReceiver <= lastSeqFromSender);
 
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
-                    if (lastSeqToReceiver == lastSeqFromSender) {
+                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
                         qDebug() << "Not sending a data for" << otherNode->getUUID() << "to" << node->getUUID()
                             << "since it has already been sent.";
                         return;

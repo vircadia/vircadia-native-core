@@ -233,18 +233,14 @@ PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketTy
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
+
+    PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
     
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-        bool converted = false;
-        PacketSequenceNumber sequenceNumber = packet.mid(sequenceNumberOffsetForPacketType(packetType), 
-                                                         sizeof(PacketSequenceNumber)).toShort(&converted);
-
-        if (converted) {
-            return sequenceNumber; 
-        }
+        memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
     } 
 
-    return DEFAULT_SEQUENCE_NUMBER;
+    return result;
 }
 
 void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType) {
