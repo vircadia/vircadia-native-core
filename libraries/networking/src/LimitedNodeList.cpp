@@ -270,11 +270,10 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
             PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
             qDebug() << "Sequence number for this packet is" << sequenceNumber;
-            replaceHashAndSequenceNumberInPacketGivenType(datagramCopy, packetType, 
-                                                          destinationNode->getConnectionSecret(),
-                                                          sequenceNumber);
+            replaceHashAndSequenceNumberInPacket(datagramCopy, destinationNode->getConnectionSecret(),
+                                                 sequenceNumber, packetType);
         } else {
-            replaceHashInPacketGivenType(datagramCopy, packetType, destinationNode->getConnectionSecret());
+            replaceHashInPacket(datagramCopy, destinationNode->getConnectionSecret(), packetType);
         }
 
         emit dataSent(destinationNode->getType(), datagram.size());
