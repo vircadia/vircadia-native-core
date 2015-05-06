@@ -835,7 +835,7 @@ void ApplicationOverlay::renderAudioMeter() {
     const glm::vec4 AUDIO_METER_GREEN = { 0.0, 1.0, 0.0, 1.0 };
     const glm::vec4 AUDIO_METER_RED = { 1.0, 0.0, 0.0, 1.0 };
     const float AUDIO_GREEN_START = 0.25 * AUDIO_METER_SCALE_WIDTH;
-    const float AUDIO_RED_START = 0.80 * AUDIO_METER_SCALE_WIDTH;
+    const float AUDIO_RED_START = 0.80f * AUDIO_METER_SCALE_WIDTH;
     const float CLIPPING_INDICATOR_TIME = 1.0f;
     const float AUDIO_METER_AVERAGING = 0.5;
     const float LOG2 = log(2.0f);
