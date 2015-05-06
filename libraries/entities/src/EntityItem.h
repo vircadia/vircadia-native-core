@@ -290,7 +290,6 @@ public:
     void updateDamping(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
-    void updateAcceleration(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularVelocityInDegrees(const glm::vec3& value) { updateAngularVelocity(glm::radians(value)); }
     void updateAngularDamping(float value);
