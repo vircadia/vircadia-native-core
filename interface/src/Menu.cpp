@@ -393,6 +393,12 @@ Menu::Menu() {
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
 #endif
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
+    faceTrackingMenu->addSeparator();
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking, 
+        0, false, 
+        qApp, SLOT(toggleFaceTrackerMute()));
+#endif
     
     auto avatarManager = DependencyManager::get<AvatarManager>(); 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,

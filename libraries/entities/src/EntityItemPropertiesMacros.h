@@ -51,7 +51,6 @@
             }                                                   \
         }
 
-
 #define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
         if (propertyFlags.getHasProperty(P)) {                              \
             glm::quat fromBuffer;                                           \
@@ -181,21 +180,52 @@
         somethingChanged = true;                    \
     }
 
+#define SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(G,P,p,M)  \
+    if (properties.get##G().p##Changed()) {                 \
+        M(properties.get##G().get##P());                    \
+        somethingChanged = true;                            \
+    }
+
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES_GETTER(C,G,S)    \
     if (properties.C()) {    \
         S(properties.G());                         \
         somethingChanged = true;                    \
     }
 
-#define COPY_ENTITY_PROPERTY_TO_PROPERTIES(M,G) \
-    properties._##M = G();                      \
-    properties._##M##Changed = false;
+#define COPY_ENTITY_PROPERTY_TO_PROPERTIES(P,M) \
+    properties._##P = M();                      \
+    properties._##P##Changed = false;
+
+#define COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(G,P,M)  \
+    properties.get##G().set##P(M());                     \
+    properties.get##G().set##P##Changed(false);
 
 #define CHECK_PROPERTY_CHANGE(P,M) \
     if (_##M##Changed) {           \
         changedProperties += P;    \
     }
 
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+        QScriptValue groupProperties = properties.property(#G); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        QScriptValue V = vec3toScriptValue(engine, _##p); \
+        groupProperties.setProperty(#p, V); \
+        properties.setProperty(#G, groupProperties); \
+    }
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+        QScriptValue groupProperties = properties.property(#G); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        groupProperties.setProperty(#p, _##p); \
+        properties.setProperty(#G, groupProperties); \
+    }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
@@ -243,6 +273,20 @@
         }                                           \
     }
 
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(G, P, S)  \
+    {                                                         \
+        QScriptValue G = object.property(#G);                 \
+        if (G.isValid()) {                                    \
+            QScriptValue P = G.property(#P);                  \
+            if (P.isValid()) {                                \
+                float newValue = P.toVariant().toFloat();     \
+                if (_defaultSettings || newValue != _##P) {   \
+                    S(newValue);                              \
+                }                                             \
+            }                                                 \
+        }                                                     \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(P, S) \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
@@ -259,6 +303,20 @@
         if (_defaultSettings || newValue != _##P) { \
             S(newValue);                            \
         }                                           \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(G, P, S)  \
+    {                                                         \
+        QScriptValue G = object.property(#G);                 \
+        if (G.isValid()) {                                    \
+            QScriptValue P = G.property(#P);                  \
+            if (P.isValid()) {                                \
+                float newValue = P.toVariant().toBool();      \
+                if (_defaultSettings || newValue != _##P) {   \
+                    S(newValue);                              \
+                }                                             \
+            }                                                 \
+        }                                                     \
     }
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
@@ -298,6 +356,32 @@
                 S(newValue);                              \
             }                                             \
         }                                                 \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(G, P, S)       \
+    {                                                             \
+        QScriptValue G = object.property(#G);                     \
+        if (G.isValid()) {                                        \
+            QScriptValue P = G.property(#P);                      \
+            if (P.isValid()) {                                    \
+                QScriptValue x = P.property("x");                 \
+                QScriptValue y = P.property("y");                 \
+                QScriptValue z = P.property("z");                 \
+                if (x.isValid() && y.isValid() && z.isValid()) {  \
+                    glm::vec3 newValue;                           \
+                    newValue.x = x.toVariant().toFloat();         \
+                    newValue.y = y.toVariant().toFloat();         \
+                    newValue.z = z.toVariant().toFloat();         \
+                    bool isValid = !glm::isnan(newValue.x) &&     \
+                                 !glm::isnan(newValue.y) &&       \
+                                 !glm::isnan(newValue.z);         \
+                    if (isValid &&                                \
+                        (_defaultSettings || newValue != _##P)) { \
+                        S(newValue);                              \
+                    }                                             \
+                }                                                 \
+            }                                                     \
+        }                                                         \
     }
     
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(P, S)                      \
@@ -357,6 +441,14 @@
     _##n(V),                            \
     _##n##Changed(false)
 
+#define DEFINE_PROPERTY_GROUP(N, n, T)        \
+    public: \
+        const T& get##N() const { return _##n; } \
+        T& get##N() { return _##n; } \
+    private: \
+        T _##n; \
+        static T _static##N; 
+
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
         T get##N() const { return _##n; } \
@@ -365,7 +457,7 @@
         void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF(P, N, n, T)        \
     public: \
@@ -375,7 +467,7 @@
         void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T)        \
     public: \
