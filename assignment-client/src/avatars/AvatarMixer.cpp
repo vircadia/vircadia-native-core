@@ -160,7 +160,7 @@ void AvatarMixer::broadcastAvatarData() {
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
-            
+
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
 
@@ -256,8 +256,26 @@ void AvatarMixer::broadcastAvatarData() {
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
+
+                    PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData);
                     
+                    assert(lastSeqToReceiver <= lastSeqFromSender);
+
+                    // make sure we haven't already sent this data from this sender to this receiver
+                    // or that somehow we haven't sent
+                    if (lastSeqToReceiver == lastSeqFromSender) {
+                        return;
+                    } 
+                    
+                    // we're going to send this avatar
+                    
+                    // increment the number of avatars sent to this reciever
                     nodeData->incrementNumAvatarsSentLastFrame();
+                    
+                    // set the last sent sequence number for this sender on the receiver
+                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(), 
+                        otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData));
 
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());

@@ -25,6 +25,16 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
     return oldValue;
 }
 
+PacketSequenceNumber AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
+    // return the matching PacketSequenceNumber, or the default if we don't have it
+    auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeUUID);
+    if (nodeMatch != _lastBroadcastSequenceNumbers.end()) {
+        return nodeMatch->second;
+    } else {
+        return DEFAULT_SEQUENCE_NUMBER;
+    }
+}
+
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["display_name"] = _avatar.getDisplayName();
     jsonObject["full_rate_distance"] = _fullRateDistance;
