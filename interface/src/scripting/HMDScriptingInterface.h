@@ -15,7 +15,6 @@
 #include <GLMHelpers.h>
 
 #include "Application.h"
-#include "devices/OculusManager.h"
 
 class HMDScriptingInterface : public QObject {
     Q_OBJECT

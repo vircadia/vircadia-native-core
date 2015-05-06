@@ -84,7 +84,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <MessageDialog.h>
-
+#include <InfoView.h>
 #include <SceneScriptingInterface.h>
 
 #include "Application.h"
@@ -133,7 +133,6 @@
 
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
-#include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
@@ -775,8 +774,8 @@ void Application::initializeGL() {
 
     // update before the first render
     update(1.0f / _fps);
-   
-    InfoView::showFirstTime(INFO_HELP_PATH);
+
+    InfoView::show(INFO_HELP_PATH, true);
 }
 
 void Application::initializeUi() {
@@ -816,7 +815,12 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
+    _glWidget->makeCurrent();
     PerformanceTimer perfTimer("paintGL");
+    //Need accurate frame timing for the oculus rift
+    if (OculusManager::isConnected()) {
+        OculusManager::beginFrameTiming();
+    }
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -879,12 +883,10 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
+            OculusManager::display(_glWidget, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
+            OculusManager::display(_glWidget, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
-        _myCamera.update(1.0f / _fps);
-
     } else if (TV3DManager::isConnected()) {
        
         TV3DManager::display(_myCamera);
@@ -903,8 +905,7 @@ void Application::paintGL() {
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true);
-        
+            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);       
         }
@@ -918,6 +919,13 @@ void Application::paintGL() {
         }
     }
 
+    if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
+        _glWidget->swapBuffers();
+    } 
+
+    if (OculusManager::isConnected()) {
+        OculusManager::endFrameTiming();
+    }
     _frameCount++;
 }
 
@@ -940,11 +948,11 @@ void Application::faceTrackerMuteToggled() {
 }
 
 void Application::aboutApp() {
-    InfoView::forcedShow(INFO_HELP_PATH);
+    InfoView::show(INFO_HELP_PATH);
 }
 
 void Application::showEditEntitiesHelp() {
-    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
+    InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
@@ -959,6 +967,7 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 }
 
 void Application::resizeGL(int width, int height) {
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
@@ -1129,6 +1138,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Enter:
             case Qt::Key_Return:
                 Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
+            case Qt::Key_B:
+                if (isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("Browser.qml");
+                }
                 break;
 
             case Qt::Key_L:
@@ -1302,8 +1318,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _myCamera.computePickRay(getTrueMouseX(),
-                                                                            getTrueMouseY()));
+                                                   computePickRay(getTrueMouseX(), getTrueMouseY()));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1358,8 +1373,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
                 HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             _myCamera.computePickRay(getTrueMouseX(),
-                                                                      getTrueMouseY()));
+                                             computePickRay(getTrueMouseX(), getTrueMouseY()));
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -1467,7 +1481,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1522,7 +1536,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -2128,19 +2142,16 @@ void Application::init() {
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
+    _rearMirrorTools = new RearMirrorTools(_mirrorViewRect);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 
-    // make sure our texture cache knows about window size changes
-    DependencyManager::get<TextureCache>()->associateWithWidget(_glWidget);
-
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(_glWidget,
-                                               Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
+    bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
+    DependencyManager::get<GlowEffect>()->init(glow);
 }
 
 void Application::closeMirrorView() {
@@ -2191,7 +2202,7 @@ void Application::updateMouseRay() {
     // make sure the frustum is up-to-date
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    PickRay pickRay = _myCamera.computePickRay(getTrueMouseX(), getTrueMouseY());
+    PickRay pickRay = computePickRay(getTrueMouseX(), getTrueMouseY());
     _mouseRayOrigin = pickRay.origin;
     _mouseRayDirection = pickRay.direction;
     
@@ -2310,18 +2321,6 @@ void Application::updateCamera(float deltaTime) {
     PerformanceTimer perfTimer("updateCamera");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
-
-    if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
-        FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker && !tracker->isMuted()) {
-            const float EYE_OFFSET_SCALE = 0.025f;
-            glm::vec3 position = tracker->getHeadTranslation() * EYE_OFFSET_SCALE;
-            float xSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 1.0f : -1.0f;
-            _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));
-            updateProjectionMatrix();
-        }
-    }
 }
 
 void Application::updateDialogs(float deltaTime) {
@@ -3021,8 +3020,17 @@ int Application::getBoundaryLevelAdjust() const {
     return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
 }
 
-PickRay Application::computePickRay(float x, float y) {
-    return getCamera()->computePickRay(x, y);
+PickRay Application::computePickRay(float x, float y) const {
+    glm::vec2 size = getCanvasSize();
+    x /= size.x;
+    y /= size.y;
+    PickRay result;
+    if (isHMDMode()) {
+        ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+    } else {
+        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+    }
+    return result;
 }
 
 QImage Application::renderAvatarBillboard() {
@@ -3046,6 +3054,16 @@ QImage Application::renderAvatarBillboard() {
 }
 
 ViewFrustum* Application::getViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() == activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+    }
+#endif
+    return &_viewFrustum;
+}
+
+const ViewFrustum* Application::getViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
         // FIXME, should this be an assert?
@@ -3143,39 +3161,62 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
     }
 
-    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-        PerformanceTimer perfTimer("stars");
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-            "Application::displaySide() ... stars...");
-        if (!_stars.isStarsLoaded()) {
-            _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-        }
-        // should be the first rendering pass - w/o depth buffer / lighting
-
-        // compute starfield alpha based on distance from atmosphere
-        float alpha = 1.0f;
-        bool hasStars = true;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-            // TODO: handle this correctly for zones
-            const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
-            if (closestData.getHasStars()) {
-                float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
-                if (height < closestData.getAtmosphereInnerRadius()) {
-                    alpha = 0.0f;
-
-                } else if (height < closestData.getAtmosphereOuterRadius()) {
-                    alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                        (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-                }
-            } else {
-                hasStars = false;
+    // Background rendering decision
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
+       if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+            PerformanceTimer perfTimer("stars");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... stars...");
+            if (!_stars.isStarsLoaded()) {
+                _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
             }
-        }
+            // should be the first rendering pass - w/o depth buffer / lighting
 
-        // finally render the starfield
-        if (hasStars) {
-            _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+            // compute starfield alpha based on distance from atmosphere
+            float alpha = 1.0f;
+            bool hasStars = true;
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                // TODO: handle this correctly for zones
+                const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+            
+                if (closestData.getHasStars()) {
+                    float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
+                    if (height < closestData.getAtmosphereInnerRadius()) {
+                        alpha = 0.0f;
+
+                    } else if (height < closestData.getAtmosphereOuterRadius()) {
+                        alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                            (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                    }
+                } else {
+                    hasStars = false;
+                }
+            }
+
+            // finally render the starfield
+            if (hasStars) {
+                _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+            }
+
+            // draw the sky dome
+            if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                PerformanceTimer perfTimer("atmosphere");
+                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                    "Application::displaySide() ... atmosphere...");
+                _environment.renderAtmospheres(theCamera);
+            }
+
+        }
+    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+        auto skybox = skyStage->getSkybox();
+        if (skybox) {
+            gpu::Batch batch;
+            model::Skybox::render(batch, _viewFrustum, *skybox);
+
+            gpu::GLBackend::renderBatch(batch);
+            glUseProgram(0);
         }
     }
 
@@ -3183,13 +3224,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    // draw the sky dome
-    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-        PerformanceTimer perfTimer("atmosphere");
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-            "Application::displaySide() ... atmosphere...");
-        _environment.renderAtmospheres(theCamera);
-    }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
@@ -3427,7 +3461,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-    _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
     if (billboard) {
@@ -3453,7 +3486,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false);
+        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     // reset Viewport and projection matrix
@@ -4334,7 +4367,7 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot();
+    QString fileName = Snapshot::saveSnapshot(_glWidget->grabFrameBuffer());
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {
@@ -4521,4 +4554,53 @@ void Application::friendsWindowClosed() {
 
 void Application::postLambdaEvent(std::function<void()> f) {
     QCoreApplication::postEvent(this, new LambdaEvent(f));
+}
+
+void Application::initPlugins() {
+    OculusManager::init();
+}
+
+void Application::shutdownPlugins() {
+    OculusManager::deinit();
+}
+
+glm::vec3 Application::getHeadPosition() const {
+    return OculusManager::getRelativePosition();
+}
+
+
+glm::quat Application::getHeadOrientation() const {
+    return OculusManager::getOrientation();
+}
+
+glm::uvec2 Application::getCanvasSize() const {
+    return glm::uvec2(_glWidget->width(), _glWidget->height());
+}
+
+QSize Application::getDeviceSize() const {
+    return _glWidget->getDeviceSize();
+}
+
+int Application::getTrueMouseX() const { 
+    return _glWidget->mapFromGlobal(QCursor::pos()).x(); 
+}
+
+int Application::getTrueMouseY() const { 
+    return _glWidget->mapFromGlobal(QCursor::pos()).y(); 
+}
+
+bool Application::isThrottleRendering() const { 
+    return _glWidget->isThrottleRendering(); 
+}
+
+PickRay Application::computePickRay() const {
+    return computePickRay(getTrueMouseX(), getTrueMouseY());
+}
+
+bool Application::hasFocus() const {
+    return _glWidget->hasFocus();
+}
+
+void Application::resizeGL() {
+    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }

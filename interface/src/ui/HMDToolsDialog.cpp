@@ -19,12 +19,10 @@
 #include <QScreen>
 #include <QWindow>
 
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
-
 #include "devices/OculusManager.h"
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :

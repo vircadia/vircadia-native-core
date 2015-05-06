@@ -18,7 +18,6 @@
 
 #include "AddressManager.h"
 #include "Application.h"
-#include "devices/OculusManager.h"
 #include "InterfaceLogging.h"
 
 #ifdef Q_OS_WIN
@@ -97,8 +96,8 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    OculusManager::init();
-    
+    Application::initPlugins();
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -112,7 +111,7 @@ int main(int argc, const char* argv[]) {
         exitCode = app.exec();
     }
 
-    OculusManager::deinit();
+    Application::shutdownPlugins();
 #ifdef Q_OS_WIN
     ReleaseMutex(mutex);
 #endif
