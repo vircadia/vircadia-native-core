@@ -21,6 +21,7 @@
 #include <AvatarData.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
+#include <PacketHeaders.h>
 #include <SimpleMovingAverage.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
@@ -32,7 +33,10 @@ public:
     AvatarData& getAvatar() { return _avatar; }
     
     bool checkAndSetHasReceivedFirstPackets();
-    
+
+    PacketSequenceNumber getLastBroadcastSequenceNumber() const { return _lastBroadcastSequenceNumber; }
+    void setLastBroadcastSequenceNumber(PacketSequenceNumber sequenceNumber) { _lastBroadcastSequenceNumber = sequenceNumber; }
+
     quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
     void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
     
@@ -61,13 +65,19 @@ public:
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
+
+    PacketSequenceNumber _lastBroadcastSequenceNumber = 0;
+
     bool _hasReceivedFirstPackets = false;
     quint64 _billboardChangeTimestamp = 0;
     quint64 _identityChangeTimestamp = 0;
+    
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;
+    
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
+
     SimpleMovingAverage _avgOtherAvatarDataRate;
 };
 
