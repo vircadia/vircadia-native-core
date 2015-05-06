@@ -221,15 +221,19 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
+    glm::ivec2 getMouse();
     int getMouseX() const;
     int getMouseY() const;
     glm::ivec2 getTrueMousePosition() const;
-    int getTrueMouseX() const;
-    int getTrueMouseY() const;
+    int getTrueMouseX() const { return getTrueMousePosition().x; }
+    int getTrueMouseY() const { return getTrueMousePosition().y; }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
-    int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
-    int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
+    const glm::ivec2 & getTrueMouseDragStarted() const { return _mouseDragStarted; }
+    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
+
+    
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();

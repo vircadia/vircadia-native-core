@@ -27,9 +27,9 @@ public:
     virtual bool isThrottled() const { return false; }
 
     // Rendering support
-    virtual void preRender() {};
-    virtual void render(int finalSceneTexture) {};
-    virtual void postRender() {};
+    virtual void preDisplay() {};
+    virtual void display(int finalSceneTexture) {};
+    virtual void postDisplay() {};
 
     // Pointer support
 

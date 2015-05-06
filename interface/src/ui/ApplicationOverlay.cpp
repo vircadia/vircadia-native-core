@@ -400,6 +400,7 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     const GLfloat halfQuadWidth = halfQuadHeight * aspectRatio;
     const GLfloat quadWidth = halfQuadWidth * 2.0f;
     const GLfloat quadHeight = halfQuadHeight * 2.0f;
+    vec2  quadSize(quadWidth, quadHeight);
     
     GLfloat x = -halfQuadWidth;
     GLfloat y = -halfQuadHeight;
@@ -426,15 +427,16 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     const float reticleSize = 40.0f / canvasSize.x * quadWidth;
     x -= reticleSize / 2.0f;
     y += reticleSize / 2.0f;
-    const float mouseX = (qApp->getMouseX() / (float)canvasSize.x) * quadWidth;
-    const float mouseY = (1.0 - (qApp->getMouseY() / (float)canvasSize.y)) * quadHeight;
-    
+    vec2 mouse = qApp->getMouse();
+    mouse /= canvasSize;
+    mouse.y = 1.0 - mouse.y;
+    mouse *= quadSize;
     glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
 
-    DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x + mouseX, y + mouseY, -distance), 
-                                                glm::vec3(x + mouseX + reticleSize, y + mouseY, -distance),
-                                                glm::vec3(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance),
-                                                glm::vec3(x + mouseX, y + mouseY - reticleSize, -distance),
+    DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x + mouse.x, y + mouse.y, -distance),
+                                                glm::vec3(x + mouse.x + reticleSize, y + mouse.y, -distance),
+                                                glm::vec3(x + mouse.x + reticleSize, y + mouse.y - reticleSize, -distance),
+                                                glm::vec3(x + mouse.x, y + mouse.y - reticleSize, -distance),
                                                 glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), 
                                                 glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f),
                                                 reticleColor, _reticleQuad);
@@ -465,7 +467,6 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
     origin = myAvatar->getEyePosition();
     direction = cursorDir - origin;
 }
-#endif
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
@@ -495,11 +496,8 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
                 rv.setX(INT_MAX);
                 rv.setY(INT_MAX);
             } else {
-
                 float u = asin(collisionPos.x) / (_textureFov)+0.5f;
                 float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
-                auto size = qApp->getCanvasSize();
-
                 rv.setX(u * canvasSize.x);
                 rv.setY(v * canvasSize.y);
             }
@@ -559,6 +557,7 @@ void ApplicationOverlay::renderPointers() {
         if (_lastMouseMove == 0) {
             _lastMouseMove = usecTimestampNow();
         }
+        auto trueMouse = qApp->getTrueMousePosition();
         QPoint position(trueMouse.x, trueMouse.y);
         
         static const int MAX_IDLE_TIME = 3;
@@ -665,29 +664,30 @@ void ApplicationOverlay::renderControllerPointers() {
             continue;
         }
 
-        auto canvasSize = qApp->getCanvasSize();
-        int mouseX, mouseY;
+        glm::ivec2 canvasSize = qApp->getCanvasSize();
+        glm::ivec2 mouse;
         if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
             QPoint res = getPalmClickLocation(palmData);
-            mouseX = res.x();
-            mouseY = res.y();
+            mouse = ivec2(res.x(), res.y());
         } else {
             // Get directon relative to avatar orientation
             glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
-
+            
             // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+            vec2 angles((atan2(direction.z, direction.x) + M_PI_2),
+                        0.5f - ((atan2(direction.z, direction.y) + M_PI_2)));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
             float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
-
-            mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
-            mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
+            mouse = canvasSize;
+            mouse /= 2.0;
+            mouse += cursorRange * angles;
         }
 
         //If the cursor is out of the screen then don't render it
-        if (mouseX < 0 || mouseX >= canvasSize.x || mouseY < 0 || mouseY >= canvasSize.y) {
+        
+        if (glm::any(glm::lessThan(mouse, canvasSize)) ||
+            glm::any(glm::greaterThanEqual(mouse, canvasSize))) {
             _reticleActive[index] = false;
             continue;
         }
@@ -696,12 +696,12 @@ void ApplicationOverlay::renderControllerPointers() {
 
         const float reticleSize = 40.0f;
 
-        mouseX -= reticleSize / 2.0f;
-        mouseY += reticleSize / 2.0f;
+        mouse.x -= reticleSize / 2.0f;
+        mouse.y += reticleSize / 2.0f;
 
 
-        glm::vec2 topLeft(mouseX, mouseY);
-        glm::vec2 bottomRight(mouseX + reticleSize, mouseY - reticleSize);
+        glm::vec2 topLeft(mouse);
+        glm::vec2 bottomRight(mouse.x + reticleSize, mouse.y - reticleSize);
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
