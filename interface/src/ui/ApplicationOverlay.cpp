@@ -820,7 +820,7 @@ void ApplicationOverlay::renderCameraToggle() {
     }
 
     int audioMeterY;
-    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !OculusManager::isConnected();
+    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !qApp->isHMDMode();
     bool boxed = smallMirrorVisible &&
         !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
     if (boxed) {
