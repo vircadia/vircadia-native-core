@@ -138,7 +138,7 @@ void EarthSunModel::setSunLongitude(float lon) {
 Atmosphere::Atmosphere() {
     // only if created from nothing shall we create the Buffer to store the properties
     Data data;
-    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Buffer::Byte*) &data));
+    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
 
     setScatteringWavelength(_scatteringWavelength);
     setRayleighScattering(_rayleighScattering);

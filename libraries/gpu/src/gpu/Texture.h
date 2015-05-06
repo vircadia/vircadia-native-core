@@ -12,8 +12,9 @@
 #define hifi_gpu_Texture_h
 
 #include "Resource.h"
-#include <memory>
- 
+
+#include <algorithm> //min max
+
 namespace gpu {
 
 class Sampler {

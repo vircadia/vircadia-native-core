@@ -127,13 +127,13 @@ TransformCamera getTransformCamera() {
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
     }
 <@else@>
-    <$worldDir$> = vec3(gl_ModelViewMatrixInverseTranspose * vec4(<$eyeDir$>.xyz, 0.0));
+    <$worldDir$> = vec3(gl_ModelViewMatrixInverse * vec4(<$eyeDir$>.xyz, 0.0));
 <@endif@>
 <@endfunc@>
 
 <@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
 <@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
-    { // transformClipToEyedDir
+    { // transformClipToEyeDir
         <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0));
     }
 <@else@>

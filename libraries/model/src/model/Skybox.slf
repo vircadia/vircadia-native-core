@@ -18,7 +18,7 @@ varying vec3 color;
 
 
 void main(void) {
-    vec4 texel = texture(cubeMap, normalize(normal));
+    vec4 texel = textureCube(cubeMap, normalize(normal));
     gl_FragData[0] = texel;
   //  gl_FragData[0] = vec4(normal, 1.0);
 }

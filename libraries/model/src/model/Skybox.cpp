@@ -46,6 +46,8 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     if (skybox.getCubemap()) {
 
         static gpu::PipelinePointer thePipeline;
+        static gpu::BufferPointer theBuffer;
+        static gpu::Stream::FormatPointer theFormat;
         if (!thePipeline) {
             auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
             auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
@@ -61,6 +63,13 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             auto skyState = gpu::StatePointer(new gpu::State());
 
             thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
+        
+            const float CLIP = 1.0;
+            const glm::vec2 vertices[4] = { {-CLIP, -CLIP}, {CLIP, -CLIP}, {-CLIP, CLIP}, {CLIP, CLIP}};
+            theBuffer.reset(new gpu::Buffer(sizeof(vertices), (const gpu::Byte*) vertices));
+        
+            theFormat.reset(new gpu::Stream::Format());
+            theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
         }
 
         glm::mat4 projMat;
@@ -71,7 +80,10 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewTransform);
+        batch.setModelTransform(Transform()); // only for Mac
         batch.setPipeline(thePipeline);
+        batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
+        batch.setInputFormat(theFormat);
         batch.setUniformTexture(0, skybox.getCubemap());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     } else {

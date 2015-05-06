@@ -20,9 +20,7 @@ varying vec2 texcoord;
 varying vec3 color;
 
 void main(void) {
-    const float CLIP = 1.0;
-    const vec2 vertices[4] = vec2[4](vec2(-CLIP, -CLIP), vec2(CLIP, -CLIP), vec2(-CLIP, CLIP), vec2(CLIP, CLIP));
-    texcoord = vertices[gl_VertexID];
+    texcoord = gl_Vertex.xy;
 
     // pass along the diffuse color
     color = vec3(texcoord, 0.0);

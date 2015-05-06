@@ -27,6 +27,8 @@ typedef short int16;
 typedef unsigned char uint8;
 typedef char int8;
 
+typedef unsigned char Byte;
+    
 typedef uint32 Offset;
 
 typedef glm::mat4 Mat4;

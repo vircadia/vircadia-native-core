@@ -26,7 +26,6 @@ namespace gpu {
 
 class Resource {
 public:
-    typedef unsigned char Byte;
     typedef unsigned int Size;
 
     static const Size NOT_ALLOCATED = -1;

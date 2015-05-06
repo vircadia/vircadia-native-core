@@ -297,7 +297,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
             if (needUpdate) {
                 if (texture.isStoredMipAvailable(0)) {
                     Texture::PixelsPointer mip = texture.accessStoredMip(0);
-                    const GLvoid* bytes = mip->_sysmem.read<Resource::Byte>();
+                    const GLvoid* bytes = mip->_sysmem.read<Byte>();
                     Element srcFormat = mip->_format;
                 
                     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
@@ -328,7 +328,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 if (texture.isStoredMipAvailable(0)) {
                     Texture::PixelsPointer mip = texture.accessStoredMip(0);
                 
-                    bytes = mip->_sysmem.read<Resource::Byte>();
+                    bytes = mip->_sysmem.read<Byte>();
                     srcFormat = mip->_format;
 
                     object->_contentStamp = texture.getDataStamp();
@@ -386,7 +386,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                     glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
                     for (int f = 0; f < NUM_FACES; f++) {
                         glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, width, width, 0,
-                            texelFormat.format, texelFormat.type, (GLvoid*) (mip->_sysmem.read<Resource::Byte>() + f * faceSize));
+                            texelFormat.format, texelFormat.type, (GLvoid*) (mip->_sysmem.read<Byte>() + f * faceSize));
                     }
 
                     if (texture.isAutogenerateMips()) {
@@ -404,7 +404,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                     object->_contentStamp = texture.getDataStamp();
                 }
             } else {
-                const gpu::Resource::Byte* bytes = 0;
+                const gpu::Byte* bytes = 0;
                 Element srcFormat = texture.getTexelFormat();
                 uint16 width = texture.getWidth();
                 int faceSize = 0;
@@ -412,7 +412,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 if (texture.isStoredMipAvailable(0)) {
                     Texture::PixelsPointer mip = texture.accessStoredMip(0);
                 
-                    bytes = mip->_sysmem.read<Resource::Byte>();
+                    bytes = mip->_sysmem.read<Byte>();
                     srcFormat = mip->_format;
                     faceSize = mip->_sysmem.getSize() / NUM_FACES;
 
