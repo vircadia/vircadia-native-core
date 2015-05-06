@@ -35,6 +35,10 @@ const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default materia
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
 }
 
+const QByteArray OBJTokenizer::getLineAsDatum() {
+    return _device->readLine().trimmed();
+}
+
 int OBJTokenizer::nextToken() {
     if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
         int token = _pushedBackToken;
@@ -133,7 +137,7 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
 }
 
 // OBJFace
-bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex) {
+bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
     if (!ok) {
@@ -144,6 +148,9 @@ bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex,
         index = textureIndex.toInt(&ok);
         if (!ok) {
             return false;
+        }
+        if (index < 0) { // Count backwards from the last one added.
+            index = vertices.count() + 1 + index;
         }
         textureUVIndices.append(index - 1);
     }
@@ -184,6 +191,14 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
+bool OBJReader::isValidTexture(const QByteArray &filename) {
+    QUrl candidateUrl = url->resolved(QUrl(filename));
+    QNetworkReply *netReply = request(candidateUrl, true);
+    bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
+    netReply->deleteLater();
+    return isValid;
+}
+
 void OBJReader::parseMaterialLibrary(QIODevice* device) {
     OBJTokenizer tokenizer(device);
     QString matName = SMART_DEFAULT_MATERIAL_NAME;
@@ -221,16 +236,21 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.diffuseColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if (token == "map_Kd") {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                return;
+        } else if ((token == "map_Kd") || (token == "map_Ks")) {
+            QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
+            if (filename.endsWith(".tga")) {
+                qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << url;
+                break;
             }
-            currentMaterial.diffuseTextureFilename = tokenizer.getDatum();
-        } else if (token == "map_Ks") {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
-                return;
+            if (isValidTexture(filename)) {
+                if (token == "map_Kd") {
+                    currentMaterial.diffuseTextureFilename = filename;
+                } else {
+                    currentMaterial.specularTextureFilename = filename;
+                }
+            } else {
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " ignoring missing texture " << filename;
             }
-            currentMaterial.diffuseTextureFilename = tokenizer.getDatum();
         }
     }
 }
@@ -302,7 +322,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break; // Some files use mtllib over and over again for the same libraryName
             }
             librariesSeen[libraryName] = true;
-            QUrl libraryUrl = url->resolved(QUrl(libraryName));
+            QUrl libraryUrl = url->resolved(QUrl(libraryName).fileName()); // Throw away any path part of libraryName, and merge against original url.
             qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
             QNetworkReply* netReply = request(libraryUrl, false);
             if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
@@ -345,9 +365,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 QList<QByteArray> parts = token.split('/');
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
-                // FIXME: if we want to handle negative indices, it has to be done here.
                 const QByteArray noData {};
-                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData);
+                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData, vertices);
                 face.groupName = currentGroup;
                 face.materialName = currentMaterialName;
             }
@@ -428,14 +447,10 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         QByteArray base = basename.toUtf8(), textName = "";
         for (int i = 0; i < extensions.count(); i++) {
             QByteArray candidateString = base + extensions[i];
-            QUrl candidateUrl = url->resolved(QUrl(candidateString));
-            QNetworkReply *netReply = request(candidateUrl, true);
-            if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
+            if (isValidTexture(candidateString)) {
                 textName = candidateString;
-                netReply->deleteLater();
                 break;
             }
-            netReply->deleteLater();
         }
         if (!textName.isEmpty()) {
             preDefinedMaterial.diffuseTextureFilename = textName;
@@ -447,24 +462,24 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
             FaceGroup faceGroup = faceGroups[meshPartCount];
             OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
             QString groupMaterialName = leadFace.materialName;
-            if ((leadFace.textureUVIndices.count() > 0) && groupMaterialName.isEmpty()) {
+            if (groupMaterialName.isEmpty() && (leadFace.textureUVIndices.count() > 0)) {
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " needs a texture that isn't specified. Using default mechanism.";
+                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+            } else if (!groupMaterialName.isEmpty() && !materials.contains(groupMaterialName)) {
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url << " specifies a material " << groupMaterialName << " that is not defined. Using default mechanism.";
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
-            if (!groupMaterialName.isEmpty()) {
-                if (!materials.contains(groupMaterialName)) {
-                    qCDebug(modelformat) << "OBJ Reader:" << url << " references undefined material " << groupMaterialName << ".";
-                } else {
-                    OBJMaterial* material = &materials[groupMaterialName];
-                    // The code behind this is in transition. Some things are set directly in the FXBMeshPart...
-                    meshPart.materialID = groupMaterialName;
-                    meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
-                    meshPart.specularTexture.filename = material->specularTextureFilename;
-                    // ... and some things are set in the underlying material.
-                    meshPart._material->setDiffuse(material->diffuseColor);
-                    meshPart._material->setSpecular(material->specularColor);
-                    meshPart._material->setShininess(material->shininess);
-                    meshPart._material->setOpacity(material->opacity);
-                }
+            if  (!groupMaterialName.isEmpty()) {
+                OBJMaterial* material = &materials[groupMaterialName];
+                // The code behind this is in transition. Some things are set directly in the FXBMeshPart...
+                meshPart.materialID = groupMaterialName;
+                meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
+                meshPart.specularTexture.filename = material->specularTextureFilename;
+                // ... and some things are set in the underlying material.
+                meshPart._material->setDiffuse(material->diffuseColor);
+                meshPart._material->setSpecular(material->specularColor);
+                meshPart._material->setShininess(material->shininess);
+                meshPart._material->setOpacity(material->opacity);
             }
             qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
             foreach(OBJFace face, faceGroup) {

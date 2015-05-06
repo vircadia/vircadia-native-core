@@ -14,6 +14,7 @@ public:
     int nextToken();
     const QByteArray& getDatum() const { return _datum; }
     bool isNextTokenFloat();
+    const QByteArray getLineAsDatum(); // some "filenames" have spaces in them
     void skipLine() { _device->readLine(); }
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
@@ -37,7 +38,7 @@ public:
     QString groupName; // We don't make use of hierarchical structure, but it can be preserved for debugging and future use.
     QString materialName;
     // Add one more set of vertex data. Answers true if successful
-    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex);
+    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
     // Even though FBXMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
     QVector<OBJFace> triangulate();
@@ -77,6 +78,7 @@ private:
     QHash<QByteArray, bool> librariesSeen;
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry, float& scaleGuess);
     void parseMaterialLibrary(QIODevice* device);
+    bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 };
 
 // What are these utilities doing here? One is used by fbx loading code in VHACD Utils, and the other a general debugging utility.
