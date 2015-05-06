@@ -184,7 +184,7 @@ public:
     uint32 getRowPitch() const { return getWidth() * getTexelFormat().getSize(); }
  
     // The number of faces is mostly used for cube map, and maybe for stereo ? otherwise it's 1
-    // For cube maps, this means the pixels of the different faces are supposed to bepacked back to back in a mip
+    // For cube maps, this means the pixels of the different faces are supposed to be packed back to back in a mip
     // as if the height was NUM_FACES time bigger.
     static uint8 NUM_FACES_PER_TYPE[NUM_TYPES];
     uint8 getNumFaces() const { return NUM_FACES_PER_TYPE[getType()]; }
