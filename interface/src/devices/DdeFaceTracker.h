@@ -125,6 +125,7 @@ private:
 
     bool _isCalibrating;
     int _calibrationCount;
+    QVector<float> _calibrationValues;
     TextOverlay* _calibrationBillboard;
     int _calibrationBillboardID;
     QString _calibrationMessage;

@@ -138,7 +138,7 @@ struct Packet {
 
 static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
-static const quint64 CALIBRATION_SAMPLES = 150;
+static const int CALIBRATION_SAMPLES = 150;
 
 #ifdef WIN32
 //  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
@@ -183,14 +183,15 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
     _isCalibrating(false),
+    _calibrationValues(),
     _calibrationCount(0),
     _calibrationBillboard(NULL),
     _calibrationBillboardID(0),
     _calibrationMessage(QString())
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
+    _calibrationValues.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _eyeStates[0] = EYE_OPEN;
     _eyeStates[1] = EYE_OPEN;
@@ -558,6 +559,9 @@ void DdeFaceTracker::calibrate() {
         _calibrationBillboard->setHeight(CALIBRATION_BILLBOARD_HEIGHT);
         _calibrationBillboardID = qApp->getOverlays().addOverlay(_calibrationBillboard);
 
+        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+            _calibrationValues[i] += 0.0f;
+        }
     }
 }
 
@@ -571,6 +575,10 @@ void DdeFaceTracker::addCalibrationDatum() {
     } else if (samplesLeft % SMALL_TICK_INTERVAL == 0) {
         _calibrationMessage += ".";
         _calibrationBillboard->setText(_calibrationMessage);
+    }
+
+    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+        _calibrationValues[i] += _coefficients[i];
     }
 
     _calibrationCount += 1;
@@ -587,5 +595,10 @@ void DdeFaceTracker::finishCalibration() {
     qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
     _calibrationBillboard = NULL;
     _isCalibrating = false;
+
+    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+        _calibrationValues[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;
+    }
+
     qCDebug(interfaceapp) << "DDE Face Tracker: Calibration finished";
 }
