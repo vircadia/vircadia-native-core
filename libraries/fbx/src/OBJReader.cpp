@@ -101,7 +101,10 @@ bool OBJTokenizer::isNextTokenFloat() {
 }
 
 glm::vec3 OBJTokenizer::getVec3() {
-    auto v = glm::vec3(getFloat(), getFloat(), getFloat());  // N.B.: getFloat() has side-effect
+    auto x = getFloat(); // N.B.: getFloat() has side-effect
+    auto y = getFloat(); // And order of arguments is different on Windows/Linux.
+    auto z = getFloat();
+    auto v = glm::vec3(x, y, z);
     while (isNextTokenFloat()) {
         // the spec(s) get(s) vague here.  might be w, might be a color... chop it off.
         nextToken();
