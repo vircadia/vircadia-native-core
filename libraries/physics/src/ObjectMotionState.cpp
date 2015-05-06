@@ -129,6 +129,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
 
     if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
         _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setGravity(glmToBullet(getObjectGravity()));
     }
     if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
         _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
