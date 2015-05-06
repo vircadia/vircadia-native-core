@@ -3248,6 +3248,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
+        Glower glower;  // Sets alpha to 1.0
         _overlays.renderWorld(true);
     }
     activeRenderingThread = nullptr;
