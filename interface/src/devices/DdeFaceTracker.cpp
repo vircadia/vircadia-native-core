@@ -178,9 +178,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredBrowUp(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
-    _lastEyeCoefficients(),
-    _isCalculatingFPS(false),
-    _frameCount(0)
+    _lastEyeCoefficients()
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -203,7 +201,16 @@ DdeFaceTracker::~DdeFaceTracker() {
 #pragma warning(default:4351) 
 #endif
 
+void DdeFaceTracker::init() {
+    FaceTracker::init();
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::UseCamera) && !_isMuted);
+}
+
 void DdeFaceTracker::setEnabled(bool enabled) {
+    if (!_isInitialized) {
+        // Don't enable until have explicitly initialized
+        return;
+    }
 #ifdef HAVE_DDE
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
@@ -314,7 +321,9 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 }
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
-    if(buffer.size() > MIN_PACKET_SIZE) {
+    _lastReceiveTimestamp = usecTimestampNow();
+
+    if (buffer.size() > MIN_PACKET_SIZE) {
         bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
@@ -326,7 +335,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         memcpy(&translation, packet.translation, sizeof(packet.translation));
         glm::quat rotation;
         memcpy(&rotation, &packet.rotation, sizeof(packet.rotation));
-        if (_reset || (_lastReceiveTimestamp == 0)) {
+        if (_reset || (_lastMessageReceived == 0)) {
             memcpy(&_referenceTranslation, &translation, sizeof(glm::vec3));
             memcpy(&_referenceRotation, &rotation, sizeof(glm::quat));
             _reset = false;
@@ -501,5 +510,4 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     } else {
         qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
-    _lastReceiveTimestamp = usecTimestampNow();
 }
