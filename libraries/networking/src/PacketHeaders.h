@@ -83,7 +83,9 @@ enum PacketType {
 };
 
 typedef char PacketVersion;
+
 typedef uint16_t PacketSequenceNumber;
+const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
 
 typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
@@ -130,15 +132,18 @@ int sequenceNumberOffsetForPacketType(PacketType packetType);
 QByteArray hashFromPacketHeader(const QByteArray& packet);
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
 
-void replaceHashInPacketGivenType(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID);
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID); 
+// NOTE: The following four methods accept a PacketType which defaults to PacketTypeUnknown.
+// If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
 
-void replaceSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, PacketSequenceNumber sequenceNumber);
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber);
+PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType = PacketTypeUnknown);
 
-void replaceHashAndSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, 
-        const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber);
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber);
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType = PacketTypeUnknown); 
+
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, 
+                                   PacketType packetType = PacketTypeUnknown);
+
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
+                                          PacketType packetType = PacketTypeUnknown);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);

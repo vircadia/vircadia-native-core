@@ -227,33 +227,55 @@ QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid&
                                     QCryptographicHash::Md5);
 }
 
-void replaceHashInPacketGivenType(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID) {
+PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+    
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+        bool converted = false;
+        PacketSequenceNumber sequenceNumber = packet.mid(sequenceNumberOffsetForPacketType(packetType), 
+                                                         sizeof(PacketSequenceNumber)).toShort(&converted);
+
+        if (converted) {
+            return sequenceNumber; 
+        }
+    } 
+
+    return DEFAULT_SEQUENCE_NUMBER;
+}
+
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+
     packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH, 
-            hashForPacketAndConnectionUUID(packet, connectionUUID));
+                   hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
 
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID) {
-    replaceHashInPacketGivenType(packet, packetTypeForPacket(packet), connectionUUID);
-}
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
 
-void replaceSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, PacketSequenceNumber sequenceNumber) {
     packet.replace(sequenceNumberOffsetForPacketType(packetType), 
                    sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber));
-}
-
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber) {
-    replaceSequenceNumberInPacketGivenType(packet, packetTypeForPacket(packet), sequenceNumber);
 } 
 
 void replaceHashAndSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, 
         const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber) {
-    replaceHashInPacketGivenType(packet, packetType, connectionUUID);
-    replaceSequenceNumberInPacketGivenType(packet, packetType, sequenceNumber);
+    
 }
 
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber, 
+                                          PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
 
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber) {
-    replaceHashAndSequenceNumberInPacketGivenType(packet, packetTypeForPacket(packet), connectionUUID, sequenceNumber);
+    replaceHashInPacket(packet, connectionUUID, packetType);
+    replaceSequenceNumberInPacket(packet, sequenceNumber, packetType);
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {
