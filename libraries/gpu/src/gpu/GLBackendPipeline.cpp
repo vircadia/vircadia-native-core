@@ -171,10 +171,21 @@ void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
-    GLuint to = getTextureID(uniformTexture);
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, to);
+    if (!uniformTexture) {
+        return;
+    }
 
-    (void) CHECK_GL_ERROR();
+    GLTexture* object = GLBackend::syncGPUObject(*uniformTexture);
+    if (object) {
+        GLuint to = object->_texture;
+        GLuint target = object->_target;
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(target, to);
+
+        (void) CHECK_GL_ERROR();
+
+    } else {
+        return;
+    }
 }
 
