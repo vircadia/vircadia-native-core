@@ -93,6 +93,15 @@ bool EntityMotionState::isMoving() const {
     return _entity && _entity->isMoving();
 }
 
+bool EntityMotionState::isMovingVsServer() const {
+    auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
+    if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
+        alignmentDot < IGNORE_ALIGNMENT_DOT) {
+        return true;
+    }
+    return false;
+}
+
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
@@ -133,15 +142,9 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setLastSimulated(usecTimestampNow());
 
     // if (_entity->getSimulatorID().isNull() && isMoving()) {
-    if (_entity->getSimulatorID().isNull()) {
+    if (_entity->getSimulatorID().isNull() && isMovingVsServer()) {
         // if object is moving and has no owner, attempt to claim simulation ownership.
-        auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
-        if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
-            alignmentDot < IGNORE_ALIGNMENT_DOT) {
-            _movingStepsWithoutSimulationOwner++;
-        } else {
-            _movingStepsWithoutSimulationOwner = 0;
-        }
+        _movingStepsWithoutSimulationOwner++;
     } else {
         _movingStepsWithoutSimulationOwner = 0;
     }

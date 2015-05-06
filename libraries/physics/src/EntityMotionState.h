@@ -36,6 +36,7 @@ public:
     virtual MotionType computeObjectMotionType() const;
 
     virtual bool isMoving() const;
+    virtual bool isMovingVsServer() const;
 
     // this relays incoming position/rotation to the RigidBody
     virtual void getWorldTransform(btTransform& worldTrans) const;
