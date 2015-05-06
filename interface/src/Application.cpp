@@ -817,7 +817,12 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
+    _glWidget->makeCurrent();
     PerformanceTimer perfTimer("paintGL");
+    //Need accurate frame timing for the oculus rift
+    if (OculusManager::isConnected()) {
+        OculusManager::beginFrameTiming();
+    }
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -880,12 +885,10 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
+            OculusManager::display(_glWidget, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
+            OculusManager::display(_glWidget, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
-        _myCamera.update(1.0f / _fps);
-
     } else if (TV3DManager::isConnected()) {
        
         TV3DManager::display(_myCamera);
@@ -904,8 +907,7 @@ void Application::paintGL() {
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true);
-        
+            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);       
         }
@@ -919,6 +921,13 @@ void Application::paintGL() {
         }
     }
 
+    if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
+        _glWidget->swapBuffers();
+    } 
+
+    if (OculusManager::isConnected()) {
+        OculusManager::endFrameTiming();
+    }
     _frameCount++;
 }
 
@@ -960,6 +969,7 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 }
 
 void Application::resizeGL(int width, int height) {
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
     resetCamerasOnResizeGL(_myCamera, width, height);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
@@ -1310,8 +1320,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _myCamera.computePickRay(getTrueMouseX(),
-                                                                            getTrueMouseY()));
+                                                   computePickRay(getTrueMouseX(), getTrueMouseY()));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1366,8 +1375,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
                 HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             _myCamera.computePickRay(getTrueMouseX(),
-                                                                      getTrueMouseY()));
+                                             computePickRay(getTrueMouseX(), getTrueMouseY()));
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -1475,7 +1483,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1530,7 +1538,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
-                                      _myCamera.computePickRay(event->x(), event->y()));
+                                      computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -2137,19 +2145,16 @@ void Application::init() {
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
+    _rearMirrorTools = new RearMirrorTools(_mirrorViewRect);
 
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 
-    // make sure our texture cache knows about window size changes
-    DependencyManager::get<TextureCache>()->associateWithWidget(_glWidget);
-
     // initialize the GlowEffect with our widget
-    DependencyManager::get<GlowEffect>()->init(_glWidget,
-                                               Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect));
+    bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
+    DependencyManager::get<GlowEffect>()->init(glow);
 }
 
 void Application::closeMirrorView() {
@@ -2200,7 +2205,7 @@ void Application::updateMouseRay() {
     // make sure the frustum is up-to-date
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    PickRay pickRay = _myCamera.computePickRay(getTrueMouseX(), getTrueMouseY());
+    PickRay pickRay = computePickRay(getTrueMouseX(), getTrueMouseY());
     _mouseRayOrigin = pickRay.origin;
     _mouseRayDirection = pickRay.direction;
     
@@ -3028,8 +3033,17 @@ int Application::getBoundaryLevelAdjust() const {
     return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
 }
 
-PickRay Application::computePickRay(float x, float y) {
-    return getCamera()->computePickRay(x, y);
+PickRay Application::computePickRay(float x, float y) const {
+    glm::vec2 size = getCanvasSize();
+    x /= size.x;
+    y /= size.y;
+    PickRay result;
+    if (isHMDMode()) {
+        ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+    } else {
+        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+    }
+    return result;
 }
 
 QImage Application::renderAvatarBillboard() {
@@ -3053,6 +3067,16 @@ QImage Application::renderAvatarBillboard() {
 }
 
 ViewFrustum* Application::getViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() == activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+    }
+#endif
+    return &_viewFrustum;
+}
+
+const ViewFrustum* Application::getViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
         // FIXME, should this be an assert?
@@ -3434,7 +3458,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-    _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
     if (billboard) {
@@ -3460,7 +3483,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false);
+        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     // reset Viewport and projection matrix
@@ -4344,7 +4367,7 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot();
+    QString fileName = Snapshot::saveSnapshot(_glWidget->grabFrameBuffer());
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {
@@ -4533,3 +4556,51 @@ void Application::postLambdaEvent(std::function<void()> f) {
     QCoreApplication::postEvent(this, new LambdaEvent(f));
 }
 
+void Application::initPlugins() {
+    OculusManager::init();
+}
+
+void Application::shutdownPlugins() {
+    OculusManager::deinit();
+}
+
+glm::vec3 Application::getHeadPosition() const {
+    return OculusManager::getRelativePosition();
+}
+
+
+glm::quat Application::getHeadOrientation() const {
+    return OculusManager::getOrientation();
+}
+
+glm::uvec2 Application::getCanvasSize() const {
+    return glm::uvec2(_glWidget->width(), _glWidget->height());
+}
+
+QSize Application::getDeviceSize() const {
+    return _glWidget->getDeviceSize();
+}
+
+int Application::getTrueMouseX() const { 
+    return _glWidget->mapFromGlobal(QCursor::pos()).x(); 
+}
+
+int Application::getTrueMouseY() const { 
+    return _glWidget->mapFromGlobal(QCursor::pos()).y(); 
+}
+
+bool Application::isThrottleRendering() const { 
+    return _glWidget->isThrottleRendering(); 
+}
+
+PickRay Application::computePickRay() const {
+    return computePickRay(getTrueMouseX(), getTrueMouseY());
+}
+
+bool Application::hasFocus() const {
+    return _glWidget->hasFocus();
+}
+
+void Application::resizeGL() {
+    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+}

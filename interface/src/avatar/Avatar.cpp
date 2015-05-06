@@ -46,7 +46,6 @@
 #include "Recorder.h"
 #include "Util.h"
 #include "world.h"
-#include "devices/OculusManager.h"
 #include "InterfaceLogging.h"
 
 using namespace std;

@@ -170,7 +170,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
 
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
 
     SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
@@ -216,8 +216,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
@@ -231,7 +230,7 @@ void PreferencesDialog::savePreferences() {
     
     qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-    qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
@@ -255,7 +254,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();

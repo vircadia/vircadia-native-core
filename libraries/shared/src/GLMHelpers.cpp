@@ -338,6 +338,10 @@ QMatrix4x4 fromGlm(const glm::mat4 & m) {
   return QMatrix4x4(&m[0][0]).transposed();
 }
 
+QSize fromGlm(const glm::ivec2 & v) {
+    return QSize(v.x, v.y);
+}
+
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     QRectF result(pos.x, pos.y, size.x, size.y);
     return result;
