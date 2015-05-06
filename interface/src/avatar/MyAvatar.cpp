@@ -1177,10 +1177,8 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
         } else {
             float clipDistance = _skeletonModel.getHeadClipDistance();
-            if (OculusManager::isConnected()) {
-                clipDistance = glm::length(getEyePosition() 
-                    + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
-            }
+            clipDistance = glm::length(getEyePosition() 
+                + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
             renderFrustum->setNearClip(clipDistance);
         }
     }
