@@ -77,6 +77,8 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 _entitiesToSort.remove(entity);
                 _simpleKinematicEntities.remove(entity);
                 removeEntityInternal(entity);
+
+                _allEntities.remove(entity);
                 entity->_simulated = false;
             } else {
                 if (expiry < _nextExpiry) {
@@ -125,7 +127,10 @@ void EntitySimulation::sortEntitiesThatMoved() {
             _entitiesToUpdate.remove(entity);
             _simpleKinematicEntities.remove(entity);
             removeEntityInternal(entity);
+
+            _allEntities.remove(entity);
             entity->_simulated = false;
+
             itemItr = _entitiesToSort.erase(itemItr);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
@@ -153,6 +158,8 @@ void EntitySimulation::addEntity(EntityItem* entity) {
         _entitiesToUpdate.insert(entity);
     }
     addEntityInternal(entity);
+
+    _allEntities.insert(entity);
     entity->_simulated = true;
 
     // DirtyFlags are used to signal changes to entities that have already been added, 
@@ -166,7 +173,10 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
     _mortalEntities.remove(entity);
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
+    _entitiesToDelete.remove(entity);
     removeEntityInternal(entity);
+
+    _allEntities.remove(entity);
     entity->_simulated = false;
 }
 
@@ -227,7 +237,14 @@ void EntitySimulation::clearEntities() {
     _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
+    _entitiesToDelete.clear();
+
     clearEntitiesInternal();
+
+    for (auto entityItr : _allEntities) {
+        entityItr->_simulated = false;
+    }
+    _allEntities.clear();
 }
 
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {
