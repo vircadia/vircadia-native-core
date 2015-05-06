@@ -348,6 +348,13 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     
+    // if this was a sequence numbered packet we should store the last seq number for
+    // a packet of this type for this node
+    PacketType packetType = packetTypeForPacket(packet);
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+        matchingNode->setLastSequenceNumberForPacketType(sequenceNumberFromHeader(packet, packetType), packetType);
+    }
+    
     NodeData* linkedData = matchingNode->getLinkedData();
     if (!linkedData && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());

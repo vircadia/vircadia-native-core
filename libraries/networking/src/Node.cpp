@@ -130,12 +130,11 @@ void Node::activateSymmetricSocket() {
 }
 
 PacketSequenceNumber Node::getLastSequenceNumberForPacketType(PacketType packetType) const {
-   const PacketSequenceNumber MISSING_SEQUENCE_NUMBER = 0;
    auto typeMatch = _lastSequenceNumbers.find(packetType); 
    if (typeMatch != _lastSequenceNumbers.end()) {
         return typeMatch->second;
    } else {
-       return MISSING_SEQUENCE_NUMBER;
+       return DEFAULT_SEQUENCE_NUMBER;
    }
 }
 
