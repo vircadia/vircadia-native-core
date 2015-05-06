@@ -34,6 +34,8 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
                 qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
                 entity->setSimulatorID(QUuid());
                 itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+            } else {
+                ++itemItr;
             }
         } else {
             ++itemItr;
