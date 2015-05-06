@@ -253,11 +253,15 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
-    if (b && ((a && !objectA->isStaticOrKinematicObject()) || (objectA == characterObject))) {
+    if (b && ((a && !objectA->isStaticObject()) || (objectA == characterObject))) {
+        // NOTE: we might own the simulation of a kinematic object (A) 
+        // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject()) {
             b->bump();
         }
-    } else if (a && ((b && !objectB->isStaticOrKinematicObject()) || (objectB == characterObject))) {
+    } else if (a && ((b && !objectB->isStaticObject()) || (objectB == characterObject))) {
+        // SIMILARLY: we might own the simulation of a kinematic object (B) 
+        // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject()) {
             a->bump();
         }
@@ -377,16 +381,20 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
             const btCollisionObject* objectA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
             const btCollisionObject* objectB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
             if (objectB == object) {
-                ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
-                if (motionStateA) {
-                    motionStateA->bump();
-                    objectA->setActivationState(ACTIVE_TAG);
+                if (!objectA->isStaticOrKinematicObject()) {
+                    ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
+                    if (motionStateA) {
+                        motionStateA->bump();
+                        objectA->setActivationState(ACTIVE_TAG);
+                    }
                 }
             } else if (objectA == object) {
-                ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
-                if (motionStateB) {
-                    motionStateB->bump();
-                    objectB->setActivationState(ACTIVE_TAG);
+                if (!objectB->isStaticOrKinematicObject()) {
+                    ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
+                    if (motionStateB) {
+                        motionStateB->bump();
+                        objectB->setActivationState(ACTIVE_TAG);
+                    }
                 }
             }
         }
