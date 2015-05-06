@@ -11,6 +11,8 @@
 
 #include "Stream.h"
 
+#include <algorithm> //min max and more
+
 using namespace gpu;
 
 void Stream::Format::evaluateCache() {

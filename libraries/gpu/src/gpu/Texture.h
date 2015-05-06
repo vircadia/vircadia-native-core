@@ -13,7 +13,7 @@
 
 #include "Resource.h"
 
-#include <algorithm> //min max
+#include <algorithm> //min max and more
 
 namespace gpu {
 
