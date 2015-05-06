@@ -122,6 +122,7 @@ private:
     float _lastEyeBlinks[2];
     float _filteredEyeBlinks[2];
     float _lastEyeCoefficients[2];
+    QVector<float> _coefficientAverages;
 
     bool _isCalibrating;
     int _calibrationCount;

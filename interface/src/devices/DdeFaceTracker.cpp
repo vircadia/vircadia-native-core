@@ -87,16 +87,16 @@ static const float DDE_COEFFICIENT_SCALES[] = {
     3.0f, // BrowsU_L
     3.0f, // BrowsU_R
     1.0f, // JawFwd
-    1.5f, // JawLeft
+    2.0f, // JawLeft
     1.8f, // JawOpen
     1.0f, // JawChew
-    1.5f, // JawRight
+    2.0f, // JawRight
     1.5f, // MouthLeft
     1.5f, // MouthRight
     1.5f, // MouthFrown_L
     1.5f, // MouthFrown_R
-    1.5f, // MouthSmile_L
-    1.5f, // MouthSmile_R
+    2.5f, // MouthSmile_L
+    2.5f, // MouthSmile_R
     1.0f, // MouthDimple_L
     1.0f, // MouthDimple_R
     1.0f, // LipsStretch_L
@@ -107,8 +107,8 @@ static const float DDE_COEFFICIENT_SCALES[] = {
     1.0f, // LipsLowerDown
     1.0f, // LipsUpperOpen
     1.0f, // LipsLowerOpen
-    2.5f, // LipsFunnel
-    2.0f, // LipsPucker
+    1.5f, // LipsFunnel
+    2.5f, // LipsPucker
     1.5f, // ChinLowerRaise
     1.5f, // ChinUpperRaise
     1.0f, // Sneer
@@ -191,6 +191,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
+    _coefficientAverages.resize(NUM_FACESHIFT_BLENDSHAPES);
     _calibrationValues.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _eyeStates[0] = EYE_OPEN;
@@ -394,11 +395,14 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         if (_isCalibrating) {
             addCalibrationDatum();
         }
+        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+            _coefficients[i] -= _coefficientAverages[i];
+        }
 
         // Use BrowsU_C to control both brows' up and down
         float browUp = _coefficients[_browUpCenterIndex];
         if (isFiltering) {
-            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.5f;
             float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
             float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
             _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
@@ -412,11 +416,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _coefficients[_browDownRightIndex] = -browUp;
 
         // Offset jaw open coefficient
-        static const float JAW_OPEN_THRESHOLD = 0.16f;
+        static const float JAW_OPEN_THRESHOLD = 0.1f;
         _coefficients[_jawOpenIndex] = _coefficients[_jawOpenIndex] - JAW_OPEN_THRESHOLD;
 
         // Offset smile coefficients
-        static const float SMILE_THRESHOLD = 0.18f;
+        static const float SMILE_THRESHOLD = 0.5f;
         _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
         _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
 
@@ -443,7 +447,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
             // Change to closing or opening states
             const float EYE_CONTROL_HYSTERISIS = 0.25f;
-            const float EYE_CLOSING_THRESHOLD = 0.95f;
+            const float EYE_CLOSING_THRESHOLD = 0.8f;
             const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
             if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
                 _eyeStates[i] = EYE_CLOSING;
@@ -560,7 +564,7 @@ void DdeFaceTracker::calibrate() {
         _calibrationBillboardID = qApp->getOverlays().addOverlay(_calibrationBillboard);
 
         for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
-            _calibrationValues[i] += 0.0f;
+            _calibrationValues[i] = 0.0f;
         }
     }
 }
@@ -597,7 +601,7 @@ void DdeFaceTracker::finishCalibration() {
     _isCalibrating = false;
 
     for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
-        _calibrationValues[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;
+        _coefficientAverages[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;
     }
 
     qCDebug(interfaceapp) << "DDE Face Tracker: Calibration finished";
