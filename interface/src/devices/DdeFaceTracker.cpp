@@ -20,6 +20,7 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 
+#include "Application.h"
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
@@ -135,7 +136,9 @@ struct Packet {
     char name[MAX_NAME_SIZE + 1];
 };
 
-const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+
+static const quint64 CALIBRATION_SAMPLES = 150;
 
 #ifdef WIN32
 //  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
@@ -178,7 +181,12 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredBrowUp(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
-    _lastEyeCoefficients()
+    _lastEyeCoefficients(),
+    _isCalibrating(false),
+    _calibrationCount(0),
+    _calibrationBillboard(NULL),
+    _calibrationBillboardID(0),
+    _calibrationMessage(QString())
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
 
@@ -195,6 +203,10 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
 
 DdeFaceTracker::~DdeFaceTracker() {
     setEnabled(false);
+
+    if (_isCalibrating) {
+        cancelCalibration();
+    }
 }
 
 #ifdef WIN32
@@ -203,6 +215,12 @@ DdeFaceTracker::~DdeFaceTracker() {
 
 void DdeFaceTracker::setEnabled(bool enabled) {
 #ifdef HAVE_DDE
+
+    if (_isCalibrating) {
+        cancelCalibration();
+    }
+
+
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
@@ -371,6 +389,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
 
+        // Calibration
+        if (_isCalibrating) {
+            addCalibrationDatum();
+        }
+
         // Use BrowsU_C to control both brows' up and down
         float browUp = _coefficients[_browUpCenterIndex];
         if (isFiltering) {
@@ -500,7 +523,69 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
     _lastReceiveTimestamp = usecTimestampNow();
+
+    if (_isCalibrating && _calibrationCount > CALIBRATION_SAMPLES) {
+        finishCalibration();
+    }
 }
 
+static const int CALIBRATION_BILLBOARD_WIDTH = 240;
+static const int CALIBRATION_BILLBOARD_HEIGHT = 180;
+static const int CALIBRATION_BILLBOARD_TOP_MARGIN = 60;
+static const int CALIBRATION_BILLBOARD_LEFT_MARGIN = 30;
+static const int CALIBRATION_BILLBOARD_FONT_SIZE = 16;
+static const float CALIBRATION_BILLBOARD_ALPHA = 0.5f;
+static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate";
+
 void DdeFaceTracker::calibrate() {
+    if (!_isCalibrating) {
+        qCDebug(interfaceapp) << "DDE Face Tracker: Calibration started";
+
+        _isCalibrating = true;
+        _calibrationCount = 0;
+        _calibrationMessage = CALIBRATION_INSTRUCTION_MESSAGE + "\n\n";
+
+        _calibrationBillboard = new TextOverlay();
+        _calibrationBillboard->setTopMargin(CALIBRATION_BILLBOARD_TOP_MARGIN);
+        _calibrationBillboard->setLeftMargin(CALIBRATION_BILLBOARD_LEFT_MARGIN);
+        _calibrationBillboard->setFontSize(CALIBRATION_BILLBOARD_FONT_SIZE);
+        _calibrationBillboard->setText(CALIBRATION_INSTRUCTION_MESSAGE);
+        _calibrationBillboard->setAlpha(CALIBRATION_BILLBOARD_ALPHA);
+        glm::vec2 viewport = qApp->getViewportDimensions();
+        _calibrationBillboard->setX((viewport.x - CALIBRATION_BILLBOARD_WIDTH) / 2);
+        _calibrationBillboard->setY((viewport.y - CALIBRATION_BILLBOARD_HEIGHT) / 2);
+        _calibrationBillboard->setWidth(CALIBRATION_BILLBOARD_WIDTH);
+        _calibrationBillboard->setHeight(CALIBRATION_BILLBOARD_HEIGHT);
+        _calibrationBillboardID = qApp->getOverlays().addOverlay(_calibrationBillboard);
+
+    }
+}
+
+void DdeFaceTracker::addCalibrationDatum() {
+    const int LARGE_TICK_INTERVAL = 30;
+    const int SMALL_TICK_INTERVAL = 6;
+    int samplesLeft = CALIBRATION_SAMPLES - _calibrationCount;
+    if (samplesLeft % LARGE_TICK_INTERVAL == 0) {
+        _calibrationMessage += QString::number(samplesLeft / LARGE_TICK_INTERVAL);
+        _calibrationBillboard->setText(_calibrationMessage);
+    } else if (samplesLeft % SMALL_TICK_INTERVAL == 0) {
+        _calibrationMessage += ".";
+        _calibrationBillboard->setText(_calibrationMessage);
+    }
+
+    _calibrationCount += 1;
+}
+
+void DdeFaceTracker::cancelCalibration() {
+    qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
+    _calibrationBillboard = NULL;
+    _isCalibrating = false;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Calibration cancelled";
+}
+
+void DdeFaceTracker::finishCalibration() {
+    qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
+    _calibrationBillboard = NULL;
+    _isCalibrating = false;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Calibration finished";
 }

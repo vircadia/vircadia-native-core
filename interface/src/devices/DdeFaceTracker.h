@@ -20,6 +20,7 @@
 #include <QUdpSocket>
 
 #include <DependencyManager.h>
+#include <ui/overlays/TextOverlay.h>
 
 #include "FaceTracker.h"
 
@@ -121,6 +122,15 @@ private:
     float _lastEyeBlinks[2];
     float _filteredEyeBlinks[2];
     float _lastEyeCoefficients[2];
+
+    bool _isCalibrating;
+    int _calibrationCount;
+    TextOverlay* _calibrationBillboard;
+    int _calibrationBillboardID;
+    QString _calibrationMessage;
+    void addCalibrationDatum();
+    void cancelCalibration();
+    void finishCalibration();
 };
 
 #endif // hifi_DdeFaceTracker_h
