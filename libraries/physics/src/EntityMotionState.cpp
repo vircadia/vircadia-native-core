@@ -104,16 +104,23 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     _entity->setLastSimulated(usecTimestampNow());
 
-    if (_entity->getSimulatorID().isNull() && isMoving()) {
-        // object is moving and has no owner.  attempt to claim simulation ownership.
-        _movingStepsWithoutSimulationOwner++;
+    // if (_entity->getSimulatorID().isNull() && isMoving()) {
+    if (_entity->getSimulatorID().isNull()) {
+        // if object is moving and has no owner, attempt to claim simulation ownership.
+        auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
+        if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
+            alignmentDot < IGNORE_ALIGNMENT_DOT) {
+            _movingStepsWithoutSimulationOwner++;
+        } else {
+            _movingStepsWithoutSimulationOwner = 0;
+        }
     } else {
         _movingStepsWithoutSimulationOwner = 0;
     }
 
-    if (_movingStepsWithoutSimulationOwner > 100) { // XXX maybe meters from our characterController ?
-        // qDebug() << "XXX XXX XXX -- claiming something I saw moving";
-        // setShouldClaimSimulationOwnership(true);
+    if (_movingStepsWithoutSimulationOwner > 50) { // XXX maybe meters from our characterController ?
+        qDebug() << "XXX XXX XXX -- claiming something I saw moving";
+        setShouldClaimSimulationOwnership(true);
     }
 
     #ifdef WANT_DEBUG

@@ -389,5 +389,13 @@ protected:
 };
 
 
+extern const float IGNORE_POSITION_DELTA;
+extern const float IGNORE_DIMENSIONS_DELTA;
+extern const float IGNORE_ALIGNMENT_DOT;
+extern const float IGNORE_LINEAR_VELOCITY_DELTA;
+extern const float IGNORE_DAMPING_DELTA;
+extern const float IGNORE_GRAVITY_DELTA;
+extern const float IGNORE_ANGULAR_VELOCITY_DELTA;
+
 
 #endif // hifi_EntityItem_h
