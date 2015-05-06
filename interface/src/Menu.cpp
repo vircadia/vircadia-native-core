@@ -282,7 +282,6 @@ Menu::Menu() {
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);

@@ -85,7 +85,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <MessageDialog.h>
-
+#include <InfoView.h>
 #include <SceneScriptingInterface.h>
 
 #include "Application.h"
@@ -134,7 +134,6 @@
 
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
-#include "ui/InfoView.h"
 #include "ui/LoginDialog.h"
 #include "ui/Snapshot.h"
 #include "ui/StandAloneJSConsole.h"
@@ -777,8 +776,8 @@ void Application::initializeGL() {
 
     // update before the first render
     update(1.0f / _fps);
-   
-    InfoView::showFirstTime(INFO_HELP_PATH);
+
+    InfoView::show(INFO_HELP_PATH, true);
 }
 
 void Application::initializeUi() {
@@ -942,11 +941,11 @@ void Application::faceTrackerMuteToggled() {
 }
 
 void Application::aboutApp() {
-    InfoView::forcedShow(INFO_HELP_PATH);
+    InfoView::show(INFO_HELP_PATH);
 }
 
 void Application::showEditEntitiesHelp() {
-    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
+    InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
@@ -1131,6 +1130,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Enter:
             case Qt::Key_Return:
                 Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
+
+            case Qt::Key_B:
+                if (isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("Browser.qml");
+                }
                 break;
 
             case Qt::Key_L:
@@ -2313,18 +2319,6 @@ void Application::updateCamera(float deltaTime) {
     PerformanceTimer perfTimer("updateCamera");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCamera()");
-
-    if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
-            Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
-        FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker && !tracker->isMuted()) {
-            const float EYE_OFFSET_SCALE = 0.025f;
-            glm::vec3 position = tracker->getHeadTranslation() * EYE_OFFSET_SCALE;
-            float xSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 1.0f : -1.0f;
-            _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));
-            updateProjectionMatrix();
-        }
-    }
 }
 
 void Application::updateDialogs(float deltaTime) {
