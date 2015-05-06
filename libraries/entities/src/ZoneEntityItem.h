@@ -12,6 +12,9 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include <EnvironmentData.h>
+
+#include "AtmospherePropertyGroup.h"
 #include "EntityItem.h" 
 
 class ZoneEntityItem : public EntityItem {
@@ -103,6 +106,11 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
+    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
+    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+
+    EnvironmentData getEnvironmentData() const;
+
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
@@ -138,6 +146,9 @@ protected:
     
     ShapeType _shapeType = SHAPE_TYPE_NONE;
     QString _compoundShapeURL;
+    
+    BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
+    AtmospherePropertyGroup _atmospherePropeties;
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
