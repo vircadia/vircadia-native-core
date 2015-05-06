@@ -3114,6 +3114,15 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             if (hasStars) {
                 _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
             }
+
+            // draw the sky dome
+            if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                PerformanceTimer perfTimer("atmosphere");
+                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                    "Application::displaySide() ... atmosphere...");
+                _environment.renderAtmospheres(theCamera);
+            }
+
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
         auto skybox = skyStage->getSkybox();
