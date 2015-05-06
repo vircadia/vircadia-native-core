@@ -171,6 +171,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
     void touchBeginEvent(QTouchEvent* event);
@@ -220,6 +221,7 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+    FaceTracker* getSelectedFaceTracker();
 
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
@@ -399,6 +401,7 @@ public slots:
 
     void resetSensors();
     void setActiveFaceTracker();
+    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -440,6 +443,7 @@ private slots:
     void runTests();
     
     void audioMuteToggled();
+    void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
 
