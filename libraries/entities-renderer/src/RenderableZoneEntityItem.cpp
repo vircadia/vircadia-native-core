@@ -90,7 +90,7 @@ void RenderableZoneEntityItem::updateGeometry() {
 }
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
-    if (_drawZoneBoundaries || true) {
+    if (_drawZoneBoundaries) {
         switch (getShapeType()) {
             case SHAPE_TYPE_COMPOUND: {
                 updateGeometry();
