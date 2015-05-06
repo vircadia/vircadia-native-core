@@ -69,6 +69,8 @@
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
+#include "ui/UserInputMapper.h"
+#include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
@@ -171,6 +173,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
     void touchBeginEvent(QTouchEvent* event);
@@ -228,6 +231,7 @@ public:
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
+    FaceTracker* getSelectedFaceTracker();
 
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
@@ -293,6 +297,9 @@ public:
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
+    virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
+    
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -406,6 +413,7 @@ public slots:
 
     void resetSensors();
     void setActiveFaceTracker();
+    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -447,6 +455,7 @@ private slots:
     void runTests();
     
     void audioMuteToggled();
+    void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
 
@@ -531,6 +540,10 @@ private:
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+
+    KeyboardMouseDevice _keyboardMouseDevice; // Default input device, the good old keyboard mouse and maybe touchpad
+
+    UserInputMapper _userInputMapper; // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
 
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 

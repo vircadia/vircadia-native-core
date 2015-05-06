@@ -19,7 +19,7 @@
 class AudioToolBox : public Dependency {
     SINGLETON_DEPENDENCY
 public:
-    void render(int x, int y, bool boxed);
+    void render(int x, int y, int padding, bool boxed);
     
     bool mousePressEvent(int x, int y);
 protected:

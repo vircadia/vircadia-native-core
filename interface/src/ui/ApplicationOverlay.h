@@ -105,6 +105,7 @@ private:
     void renderPointersOculus(const glm::vec3& eyePos);
     
     void renderAudioMeter();
+    void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
 

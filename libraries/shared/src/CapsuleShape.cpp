@@ -14,7 +14,7 @@
 
 #include "CapsuleShape.h"
 #include "GeometryUtil.h"
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 
 CapsuleShape::CapsuleShape() : Shape(CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}
 

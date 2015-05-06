@@ -36,7 +36,7 @@ bool AudioToolBox::mousePressEvent(int x, int y) {
     return false;
 }
 
-void AudioToolBox::render(int x, int y, bool boxed) {
+void AudioToolBox::render(int x, int y, int padding, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
     if (!_micTexture) {
@@ -76,7 +76,7 @@ void AudioToolBox::render(int x, int y, bool boxed) {
     
     float iconColor = 1.0f;
     
-    _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
+    _iconBounds = QRect(x + padding, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!audioIO->isMuted()) {
         glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_micTexture));
         iconColor = 1.0f;

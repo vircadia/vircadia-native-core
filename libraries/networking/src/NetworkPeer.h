@@ -58,8 +58,8 @@ public:
     void recordBytesSent(int count);
     void recordBytesReceived(int count);
 
-    float getOutboundBandwidth();
-    float getInboundBandwidth();
+    float getOutboundBandwidth(); // in kbps
+    float getInboundBandwidth(); // in kbps
     
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
