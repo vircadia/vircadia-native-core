@@ -28,6 +28,10 @@ public:
     EntityMotionState(btCollisionShape* shape, EntityItem* item);
     virtual ~EntityMotionState();
 
+    void updateServerPhysicsVariables(uint32_t flags);
+    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     virtual MotionType computeObjectMotionType() const;
 
@@ -88,6 +92,7 @@ protected:
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
+    // TODO XXX rename _sent* to _server*
     uint32_t _sentStep;
     glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
     glm::quat _sentRotation;;

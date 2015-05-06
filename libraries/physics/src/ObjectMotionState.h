@@ -68,8 +68,8 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    void handleEasyChanges(uint32_t flags);
-    void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     virtual void updateBodyMaterialProperties();
     virtual void updateBodyVelocities();

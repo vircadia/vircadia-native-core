@@ -47,6 +47,34 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
+void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
+    if (flags & EntityItem::DIRTY_POSITION) {
+        _sentPosition = _entity->getPosition();
+    }
+    if (flags & EntityItem::DIRTY_ROTATION) {
+        _sentRotation = _entity->getRotation();
+    }
+    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
+        _sentVelocity = _entity->getVelocity();
+    }
+    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
+        _sentAngularVelocity = _entity->getAngularVelocity();
+    }
+}
+
+// virtual
+void EntityMotionState::handleEasyChanges(uint32_t flags) {
+    updateServerPhysicsVariables(flags);
+    ObjectMotionState::handleEasyChanges(flags);
+}
+
+
+// virtual
+void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+    updateServerPhysicsVariables(flags);
+    ObjectMotionState::handleHardAndEasyChanges(flags, engine);
+}
+
 void EntityMotionState::clearEntity() {
     _entity = nullptr;
 }
