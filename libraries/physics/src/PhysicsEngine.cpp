@@ -255,13 +255,13 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     ObjectMotionState* a = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* b = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
-    if (b && ((a && !objectA->isStaticObject()) || (objectA == characterObject))) {
+    if (b && ((a && a->getSimulatorID() == _sessionID && !objectA->isStaticObject()) || (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A) 
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject()) {
             b->bump();
         }
-    } else if (a && ((b && !objectB->isStaticObject()) || (objectB == characterObject))) {
+    } else if (a && ((b && b->getSimulatorID() == _sessionID && !objectB->isStaticObject()) || (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B) 
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject()) {

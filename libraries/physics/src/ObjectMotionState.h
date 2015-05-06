@@ -116,6 +116,7 @@ public:
 
     virtual const QUuid& getObjectID() const = 0;
 
+    virtual QUuid getSimulatorID() const = 0;
     virtual void bump() = 0;
 
     friend class PhysicsEngine;

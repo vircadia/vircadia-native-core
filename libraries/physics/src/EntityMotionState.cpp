@@ -112,8 +112,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     }
 
     if (_movingStepsWithoutSimulationOwner > 100) { // XXX maybe meters from our characterController ?
-        qDebug() << "XXX XXX XXX -- claiming something I saw moving";
-        setShouldClaimSimulationOwnership(true);
+        // qDebug() << "XXX XXX XXX -- claiming something I saw moving";
+        // setShouldClaimSimulationOwnership(true);
     }
 
     #ifdef WANT_DEBUG
@@ -405,6 +405,16 @@ uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() const {
     }
     return dirtyFlags;
 }
+
+
+// virtual
+QUuid EntityMotionState::getSimulatorID() const {
+    if (_entity) {
+        return _entity->getSimulatorID();
+    }
+    return QUuid();
+}
+
 
 // virtual
 void EntityMotionState::bump() {

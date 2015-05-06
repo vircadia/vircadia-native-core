@@ -68,6 +68,7 @@ public:
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
+    virtual QUuid getSimulatorID() const;
     virtual void bump();
 
     EntityItem* getEntity() const { return _entity; }
