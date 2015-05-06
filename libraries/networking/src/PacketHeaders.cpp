@@ -55,7 +55,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeInjectAudio:
             return 1;
         case PacketTypeAvatarData:
-            return 5;
+            return 6;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
@@ -188,8 +188,12 @@ int numBytesForPacketHeader(const char* packet) {
     return numBytesForPacketHeaderGivenPacketType(packetType);
 }
 
+int numBytesForArithmeticCodedPacketType(PacketType packetType) {
+    return (int) ceilf((float) packetType / 255);
+}
+
 int numBytesForPacketHeaderGivenPacketType(PacketType packetType) {
-    return (int) ceilf((float) packetType / 255)
+    return numBytesForArithmeticCodedPacketType(packetType)   
     + numHashBytesForType(packetType)
     + numSequenceNumberBytesForType(packetType)
     + NUM_STATIC_HEADER_BYTES;
@@ -209,9 +213,7 @@ QUuid uuidFromPacketHeader(const QByteArray& packet) {
 }
 
 int hashOffsetForPacketType(PacketType packetType) {
-    return numBytesForPacketHeaderGivenPacketType(packetType) 
-        - (SEQUENCE_NUMBERED_PACKETS.contains(packetType) ? sizeof(PacketSequenceNumber) : 0)
-        - NUM_BYTES_RFC4122_UUID;
+    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES; 
 }
 
 int sequenceNumberOffsetForPacketType(PacketType packetType) {
@@ -249,7 +251,7 @@ void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, Packet
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-
+    
     packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH, 
                    hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
@@ -260,13 +262,8 @@ void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequ
     }
 
     packet.replace(sequenceNumberOffsetForPacketType(packetType), 
-                   sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber));
+                   sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber), sizeof(PacketSequenceNumber));
 } 
-
-void replaceHashAndSequenceNumberInPacketGivenType(QByteArray& packet, PacketType packetType, 
-        const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber) {
-    
-}
 
 void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber, 
                                           PacketType packetType) {

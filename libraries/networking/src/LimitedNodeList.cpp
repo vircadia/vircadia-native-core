@@ -267,15 +267,14 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         PacketType packetType = packetTypeForPacket(datagramCopy);
         
         // perform replacement of hash and optionally also sequence number in the header
-        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) { 
             PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
-            qDebug() << "Sequence number for this packet is" << sequenceNumber;
             replaceHashAndSequenceNumberInPacket(datagramCopy, destinationNode->getConnectionSecret(),
                                                  sequenceNumber, packetType);
         } else {
             replaceHashInPacket(datagramCopy, destinationNode->getConnectionSecret(), packetType);
         }
-
+        
         emit dataSent(destinationNode->getType(), datagram.size());
         auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr, destinationNode->getConnectionSecret());
         // Keep track of per-destination-node bandwidth
