@@ -2419,15 +2419,19 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
 
+        _entitySimulation.lock();
         _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.unlock();
 
         _physicsEngine.stepSimulation();
 
         if (_physicsEngine.hasOutgoingChanges()) {
+            _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
             _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
+            _entitySimulation.unlock();
             _physicsEngine.dumpStatsIfNecessary();
         }
     }

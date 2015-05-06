@@ -178,7 +178,7 @@ void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
         uint32_t flags = object->getAndClearIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
             object->handleHardAndEasyChanges(flags, this);
-        } else {
+        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
             object->handleEasyChanges(flags);
         }
     }

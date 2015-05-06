@@ -194,8 +194,11 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
         ObjectMotionState* state = &(*stateItr);
         if (state && state->getType() == MOTION_STATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-            _outgoingChanges.insert(entityState);
-            _entitiesToSort.insert(entityState->getEntity());
+            EntityItem* entity = entityState->getEntity();
+            if (entity) {
+                _outgoingChanges.insert(entityState);
+                _entitiesToSort.insert(entityState->getEntity());
+            }
         }
     }
    
