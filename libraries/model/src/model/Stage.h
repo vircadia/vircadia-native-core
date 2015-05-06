@@ -223,7 +223,7 @@ public:
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
-    BackgroundMode _backgroundMode = SKY_BOX;
+    BackgroundMode _backgroundMode = SKY_DOME;
 
     LightPointer _sunLight;
     AtmospherePointer _atmosphere;
