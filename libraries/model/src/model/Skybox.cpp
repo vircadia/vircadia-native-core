@@ -14,8 +14,8 @@
 #include "gpu/Context.h"
 
 #include "ViewFrustum.h"
-#include "skybox_vert.h"
-#include "skybox_frag.h"
+#include "Skybox_vert.h"
+#include "Skybox_frag.h"
 
 using namespace model;
 
