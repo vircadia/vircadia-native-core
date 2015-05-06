@@ -103,6 +103,7 @@ protected:
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.
+    SetOfEntities _allEntities; // tracks all entities added the simulation
     SetOfEntities _mortalEntities; // entities that have an expiry
     quint64 _nextExpiry;
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
