@@ -887,12 +887,6 @@ void ApplicationOverlay::renderAudioMeter() {
     }
     bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
-    if ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
-        const float MAX_MAGNITUDE = 0.7f;
-        float magnitude = MAX_MAGNITUDE * (1 - audio->getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
-        renderCollisionOverlay(glCanvas->width(), glCanvas->height(), magnitude, 1.0f);
-    }
-
     DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, cameraSpace, boxed);
     
     DependencyManager::get<AudioScope>()->render(glCanvas->width(), glCanvas->height());
