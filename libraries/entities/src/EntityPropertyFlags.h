@@ -143,9 +143,7 @@ enum EntityPropertyList {
     PROP_ATMOSPHERE_RAYLEIGH_SCATTERING = PROP_EMIT_STRENGTH,
     PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_LOCAL_GRAVITY,
     PROP_ATMOSPHERE_HAS_STARS = PROP_PARTICLE_RADIUS,
-    PROP_SKYBOX_MODE = PROP_MODEL_URL,
-    // SunBrightness - same as KeyLight Intensity?
-    // SunLocation (or direction) - same as KeyLight
+    PROP_BACKGROUND_MODE = PROP_MODEL_URL,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
@@ -157,10 +155,10 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 extern EntityPropertyList PROP_LAST_ITEM;
 
 
-enum SkyboxMode {
-    SKYBOX_MODE_INHERIT,
-    SKYBOX_MODE_ATMOSPHERE,
-    SKYBOX_MODE_TEXTURE,
+enum BackgroundMode {
+    BACKGROUND_MODE_INHERIT,
+    BACKGROUND_MODE_ATMOSPHERE,
+    BACKGROUND_MODE_TEXTURE,
 };
 
 
