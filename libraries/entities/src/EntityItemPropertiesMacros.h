@@ -219,37 +219,37 @@
     }
 
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,P,p) \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#G); \
+        QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
         QScriptValue V = vec3toScriptValue(engine, _##p); \
         groupProperties.setProperty(#p, V); \
-        properties.setProperty(#G, groupProperties); \
+        properties.setProperty(#g, groupProperties); \
     }
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,P,p) \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#G); \
+        QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
         groupProperties.setProperty(#p, _##p); \
-        properties.setProperty(#G, groupProperties); \
+        properties.setProperty(#g, groupProperties); \
     }
 
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_COLOR(G,P,p) \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_COLOR(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#G); \
+        QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
         QScriptValue colorValue = xColorToScriptValue(engine, _##p); \
         groupProperties.setProperty(#p, colorValue); \
-        properties.setProperty(#G, groupProperties); \
+        properties.setProperty(#g, groupProperties); \
     }
 
 

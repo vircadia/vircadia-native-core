@@ -45,6 +45,8 @@ var zoneEntityA = Entities.addEntity({
     stageSunModelEnabled: true
 });
 
+var props = Entities.getEntityProperties(zoneEntityA);
+print(JSON.stringify(props));
 
 // register the call back so it fires before each data send
 Script.update.connect(function(deltaTime) {
