@@ -48,6 +48,7 @@ EntityMotionState::~EntityMotionState() {
 }
 
 void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
+    /*
     if (flags & EntityItem::DIRTY_POSITION) {
         _sentPosition = _entity->getPosition();
     }
@@ -60,6 +61,7 @@ void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
     if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
         _sentAngularVelocity = _entity->getAngularVelocity();
     }
+    */
 }
 
 // virtual
