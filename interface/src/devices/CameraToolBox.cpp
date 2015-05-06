@@ -14,6 +14,7 @@
 #include <GLCanvas.h>
 #include <PathUtils.h>
 
+#include "gpu/GLBackend.h"
 #include "Application.h"
 #include "CameraToolBox.h"
 #include "FaceTracker.h"
@@ -74,21 +75,20 @@ void CameraToolBox::toggleMute() {
 void CameraToolBox::render(int x, int y, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    if (_enabledTextureId == 0) {
-        _enabledTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/face.svg"));
+    if (!_enabledTexture) {
+        _enabledTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/face.svg");
     }
-    if (_mutedTextureId == 0) {
-        _mutedTextureId =  glCanvas->bindTexture(QImage(PathUtils::resourcesPath() + "images/face-mute.svg"));
+    if (!_mutedTexture) {
+        _mutedTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/face-mute.svg");
     }
     
     const int MUTE_ICON_SIZE = 24;
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     float iconColor = 1.0f;
     if (!Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking)) {
-        glBindTexture(GL_TEXTURE_2D, _enabledTextureId);
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_enabledTexture));
     } else {
-        glBindTexture(GL_TEXTURE_2D, _mutedTextureId);
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_mutedTexture));
         
         // Make muted icon pulsate
         static const float PULSE_MIN = 0.4f;

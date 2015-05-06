@@ -34,8 +34,8 @@ private slots:
     void toggleMute();
 
 private:
-    GLuint _enabledTextureId = 0;
-    GLuint _mutedTextureId = 0;
+    gpu::TexturePointer _enabledTexture;
+    gpu::TexturePointer _mutedTexture;
     int _boxQuadID = GeometryCache::UNKNOWN_ID;
     QRect _iconBounds;
     qint64 _iconPulseTimeReference = 0;

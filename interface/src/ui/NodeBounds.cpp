@@ -38,9 +38,7 @@ void NodeBounds::draw() {
 
     // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
     // itself after the cursor disappears.
-    Application* application = Application::getInstance();
-    PickRay pickRay = application->getCamera()->computePickRay(application->getTrueMouseX(),
-                                                               application->getTrueMouseY());
+    PickRay pickRay = qApp->computePickRay();
 
     // Variables to keep track of the selected node and properties to draw the cube later if needed
     Node* selectedNode = NULL;
