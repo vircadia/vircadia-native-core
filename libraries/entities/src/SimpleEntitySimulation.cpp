@@ -21,15 +21,20 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // If an Entity has a simulation owner and we don't get an update for some amount of time,
     // clear the owner.  This guards against an interface failing to release the Entity when it
     // has finished simulating it.
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
     SetOfEntities::iterator itemItr = _hasSimulationOwnerEntities.begin();
     while (itemItr != _hasSimulationOwnerEntities.end()) {
         EntityItem* entity = *itemItr;
         if (entity->getSimulatorID().isNull()) {
             itemItr = _hasSimulationOwnerEntities.erase(itemItr);
         } else if (now - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
-            qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
-            entity->setSimulatorID(QUuid());
-            itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+            SharedNodePointer ownerNode = nodeList->nodeWithUUID(entity->getSimulatorID());
+            if (ownerNode.isNull() || !ownerNode->isAlive()) {
+                qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
+                entity->setSimulatorID(QUuid());
+                itemItr = _hasSimulationOwnerEntities.erase(itemItr);
+            }
         } else {
             ++itemItr;
         }

@@ -346,12 +346,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         setShouldClaimSimulationOwnership(false);
     } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
         // we are the simulator and the entity has stopped.  give up "simulator" status
-        // _entity->setSimulatorID(QUuid());
-        // properties.setSimulatorID(QUuid());
+        _entity->setSimulatorID(QUuid());
+        properties.setSimulatorID(QUuid());
     } else if (simulatorID == myNodeID && !_body->isActive()) {
         // it's not active.  don't keep simulation ownership.
-        // _entity->setSimulatorID(QUuid());
-        // properties.setSimulatorID(QUuid());
+        _entity->setSimulatorID(QUuid());
+        properties.setSimulatorID(QUuid());
     }
 
     // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
