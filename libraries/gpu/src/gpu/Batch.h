@@ -81,6 +81,9 @@ public:
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
+    // Clear framebuffer layers
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
+    
     // Input Stage
     // InputFormat
     // InputBuffers
@@ -159,6 +162,8 @@ public:
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
+
+        COMMAND_clearFramebuffer,
 
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,

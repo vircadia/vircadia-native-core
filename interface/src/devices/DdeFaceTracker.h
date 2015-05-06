@@ -29,6 +29,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    virtual void init();
     virtual void reset();
 
     virtual bool isActive() const;

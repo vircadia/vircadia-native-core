@@ -27,15 +27,15 @@
 #include <QOpenGLFunctions>
 #include <QQmlContext>
 #include <QtQml/QQmlApplicationEngine>
-
+#include <PathUtils.h>
 #include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 #include <QDir>
-
 #include "MessageDialog.h"
 #include "VrMenu.h"
+#include "InfoView.h"
 #include <QDesktopWidget>
 
 class RateCounter {
@@ -162,6 +162,7 @@ public:
         Mirror,
         MuteAudio,
         MuteEnvironment,
+        MuteFaceTracking,
         NoFaceTracking,
         NoShadows,
         OctreeStats,
@@ -240,12 +241,21 @@ public:
     }
 };
 
-const QString& getQmlDir() {
+const QString& getResourcesDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
         path.cdUp();
-        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/qml/")) + "/";
+        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/")) + "/";
+        qDebug() << "Resources Path: " << dir;
+    }
+    return dir;
+}
+
+const QString& getQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        dir = getResourcesDir() + "qml/";
         qDebug() << "Qml Path: " << dir;
     }
     return dir;
@@ -322,6 +332,7 @@ public:
 
         MessageDialog::registerType();
         VrMenu::registerType();
+        InfoView::registerType();
         qmlRegisterType<MenuConstants>("Hifi", 1, 0, "MenuConstants");
 
 
@@ -411,24 +422,31 @@ protected:
     void keyPressEvent(QKeyEvent* event) {
         _altPressed = Qt::Key_Alt == event->key();
         switch (event->key()) {
-        case Qt::Key_L:
-            if (event->modifiers() & Qt::CTRL) {
-            }
-            break;
-        case Qt::Key_K:
-            if (event->modifiers() & Qt::CTRL) {
-                OffscreenUi::question("Message title", "Message contents", [](QMessageBox::Button b){
-                    qDebug() << b;
-                });
-            }
-            break;
-        case Qt::Key_J:
-            if (event->modifiers() & Qt::CTRL) {
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-                QMetaObject::invokeMethod(rootMenu, "popup");
-            }
-            break;
+            case Qt::Key_B:
+                if (event->modifiers() & Qt::CTRL) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("Browser.qml");
+                }
+                break;
+            case Qt::Key_L:
+                if (event->modifiers() & Qt::CTRL) {
+                    InfoView::show(getResourcesDir() + "html/interface-welcome.html", true);
+                }
+                break;
+            case Qt::Key_K:
+                if (event->modifiers() & Qt::CTRL) {
+                    OffscreenUi::question("Message title", "Message contents", [](QMessageBox::Button b){
+                        qDebug() << b;
+                    });
+                }
+                break;
+            case Qt::Key_J:
+                if (event->modifiers() & Qt::CTRL) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+                    QMetaObject::invokeMethod(rootMenu, "popup");
+                }
+                break;
         }
         QWindow::keyPressEvent(event);
     }
@@ -444,7 +462,7 @@ protected:
         if (devicePixelRatio() != oldPixelRatio) {
             oldPixelRatio = devicePixelRatio();
             resizeWindow(size());
-        }		
+        }
         QWindow::moveEvent(event);
     }
 };

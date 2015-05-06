@@ -215,7 +215,16 @@ DdeFaceTracker::~DdeFaceTracker() {
 #pragma warning(default:4351) 
 #endif
 
+void DdeFaceTracker::init() {
+    FaceTracker::init();
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::UseCamera) && !_isMuted);
+}
+
 void DdeFaceTracker::setEnabled(bool enabled) {
+    if (!_isInitialized) {
+        // Don't enable until have explicitly initialized
+        return;
+    }
 #ifdef HAVE_DDE
 
     if (_isCalibrating) {
@@ -332,7 +341,9 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 }
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
-    if(buffer.size() > MIN_PACKET_SIZE) {
+    _lastReceiveTimestamp = usecTimestampNow();
+
+    if (buffer.size() > MIN_PACKET_SIZE) {
         bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
@@ -344,7 +355,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         memcpy(&translation, packet.translation, sizeof(packet.translation));
         glm::quat rotation;
         memcpy(&rotation, &packet.rotation, sizeof(packet.rotation));
-        if (_reset || (_lastReceiveTimestamp == 0)) {
+        if (_reset || (_lastMessageReceived == 0)) {
             memcpy(&_referenceTranslation, &translation, sizeof(glm::vec3));
             memcpy(&_referenceRotation, &rotation, sizeof(glm::quat));
             _reset = false;
@@ -527,7 +538,6 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     } else {
         qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
-    _lastReceiveTimestamp = usecTimestampNow();
 
     if (_isCalibrating && _calibrationCount > CALIBRATION_SAMPLES) {
         finishCalibration();
@@ -556,7 +566,7 @@ void DdeFaceTracker::calibrate() {
         _calibrationBillboard->setFontSize(CALIBRATION_BILLBOARD_FONT_SIZE);
         _calibrationBillboard->setText(CALIBRATION_INSTRUCTION_MESSAGE);
         _calibrationBillboard->setAlpha(CALIBRATION_BILLBOARD_ALPHA);
-        glm::vec2 viewport = qApp->getViewportDimensions();
+        glm::vec2 viewport = qApp->getCanvasSize();
         _calibrationBillboard->setX((viewport.x - CALIBRATION_BILLBOARD_WIDTH) / 2);
         _calibrationBillboard->setY((viewport.y - CALIBRATION_BILLBOARD_HEIGHT) / 2);
         _calibrationBillboard->setWidth(CALIBRATION_BILLBOARD_WIDTH);
