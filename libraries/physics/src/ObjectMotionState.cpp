@@ -159,6 +159,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         computeObjectShapeInfo(shapeInfo);
         btCollisionShape* newShape = getShapeManager()->getShape(shapeInfo);
         if (!newShape) {
+            qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
             flags &= ~EntityItem::DIRTY_SHAPE;
             // TODO: force this object out of PhysicsEngine rather than just use the old shape

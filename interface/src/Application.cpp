@@ -104,6 +104,7 @@
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 
+#include "devices/CameraToolBox.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
@@ -267,6 +268,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto audioToolBox = DependencyManager::set<AudioToolBox>();
+    auto cameraToolBox = DependencyManager::set<CameraToolBox>();
     auto avatarManager = DependencyManager::set<AvatarManager>();
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
@@ -592,6 +594,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // The offscreen UI needs to intercept the mouse and keyboard 
     // events coming from the onscreen window
     _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+
+    // initialize our face trackers after loading the menu settings
+    auto faceshiftTracker = DependencyManager::get<Faceshift>();
+    faceshiftTracker->init();
+    connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+    auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
+    ddeTracker->init();
+    connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 }
 
 
@@ -923,6 +933,14 @@ void Application::audioMuteToggled() {
     muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
 }
 
+void Application::faceTrackerMuteToggled() {
+    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
+    Q_CHECK_PTR(muteAction);
+    bool isMuted = getSelectedFaceTracker()->isMuted();
+    muteAction->setChecked(isMuted);
+    getSelectedFaceTracker()->setEnabled(!isMuted);
+}
+
 void Application::aboutApp() {
     InfoView::forcedShow(INFO_HELP_PATH);
 }
@@ -1012,6 +1030,9 @@ bool Application::event(QEvent* event) {
             return true;
         case QEvent::MouseButtonPress:
             mousePressEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonDblClick:
+            mouseDoublePressEvent((QMouseEvent*)event);
             return true;
         case QEvent::MouseButtonRelease:
             mouseReleaseEvent((QMouseEvent*)event);
@@ -1434,7 +1455,12 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                     // stop propagation
                     return;
                 }
-                
+
+                if (DependencyManager::get<CameraToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+
                 if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
                     return;
@@ -1448,6 +1474,24 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
+        }
+    }
+}
+
+void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    // if one of our scripts have asked to capture this event, then stop processing it
+    if (_controllerScriptingInterface.isMouseCaptured()) {
+        return;
+    }
+
+    if (activeWindow() == _window) {
+        if (event->button() == Qt::LeftButton) {
+            if (mouseOnScreen()) {
+                if (DependencyManager::get<CameraToolBox>()->mouseDoublePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+            }
         }
     }
 }
@@ -1847,16 +1891,43 @@ FaceTracker* Application::getActiveFaceTracker() {
             (faceshift->isActive() ? static_cast<FaceTracker*>(faceshift.data()) : NULL));
 }
 
-void Application::setActiveFaceTracker() {
+FaceTracker* Application::getSelectedFaceTracker() {
+    FaceTracker* faceTracker = NULL;
 #ifdef HAVE_FACESHIFT
-    DependencyManager::get<Faceshift>()->setTCPEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift));
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Faceshift)) {
+        faceTracker = DependencyManager::get<Faceshift>().data();
+    }
+#endif
+#ifdef HAVE_DDE
+    if (Menu::getInstance()->isOptionChecked(MenuOption::UseCamera)) {
+        faceTracker = DependencyManager::get<DdeFaceTracker>().data();
+    }
+#endif
+    return faceTracker;
+}
+
+void Application::setActiveFaceTracker() {
+    bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+#ifdef HAVE_FACESHIFT
+    auto faceshiftTracker = DependencyManager::get<Faceshift>();
+    faceshiftTracker->setIsMuted(isMuted);
+    faceshiftTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Faceshift) && !isMuted);
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
-    DependencyManager::get<DdeFaceTracker>()->setEnabled(isUsingDDE);
+    auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
+    ddeTracker->setIsMuted(isMuted);
+    ddeTracker->setEnabled(isUsingDDE && !isMuted);
 #endif
+}
+
+void Application::toggleFaceTrackerMute() {
+    FaceTracker* faceTracker = getSelectedFaceTracker();
+    if (faceTracker) {
+        faceTracker->toggleMute();
+    }
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
@@ -2027,10 +2098,6 @@ void Application::init() {
     SixenseManager::getInstance().toggleSixense(true);
 #endif
 
-    // initialize our face trackers after loading the menu settings
-    DependencyManager::get<Faceshift>()->init();
-    DependencyManager::get<DdeFaceTracker>()->init();
-
     Leapmotion::init();
     RealSense::init();
 
@@ -2169,7 +2236,7 @@ void Application::updateMyAvatarLookAtPosition() {
             
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
-            if (tracker) {
+            if (tracker && !tracker->isMuted()) {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
@@ -2195,7 +2262,7 @@ void Application::updateMyAvatarLookAtPosition() {
     //
     //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
     //
-    if (tracker) {
+    if (tracker && !tracker->isMuted()) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
@@ -2250,7 +2317,7 @@ void Application::updateCamera(float deltaTime) {
     if (!OculusManager::isConnected() && !TV3DManager::isConnected() &&
             Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
         FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             const float EYE_OFFSET_SCALE = 0.025f;
             glm::vec3 position = tracker->getHeadTranslation() * EYE_OFFSET_SCALE;
             float xSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 1.0f : -1.0f;
@@ -2314,7 +2381,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
         FaceTracker* tracker = getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
         }
         SixenseManager::getInstance().update(deltaTime);
@@ -3254,6 +3321,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
+        Glower glower;  // Sets alpha to 1.0
         _overlays.renderWorld(true);
     }
     activeRenderingThread = nullptr;

@@ -153,7 +153,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
     while (entityItr != _pendingAdds.end()) {
         EntityItem* entity = *entityItr;
         assert(!entity->getPhysicsInfo());
-        if (entity->getIgnoreForCollisions()) {
+        if (entity->getShapeType() == SHAPE_TYPE_NONE || entity->getIgnoreForCollisions()) {
             // this entity should no longer be on the internal _pendingAdds
             entityItr = _pendingAdds.erase(entityItr);
         } else if (entity->isReadyToComputeShape()) {
@@ -168,6 +168,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
+                qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }
         } else {
