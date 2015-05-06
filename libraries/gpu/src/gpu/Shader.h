@@ -12,6 +12,7 @@
 #define hifi_gpu_Shader_h
 
 #include "Resource.h"
+#include <string>
 #include <memory>
 #include <set>
  
@@ -20,7 +21,7 @@ namespace gpu {
 class Shader {
 public:
 
-    typedef QSharedPointer< Shader > Pointer;
+    typedef std::shared_ptr< Shader > Pointer;
     typedef std::vector< Pointer > Shaders;
 
     class Source {

@@ -3174,39 +3174,62 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
     }
 
-    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-        PerformanceTimer perfTimer("stars");
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-            "Application::displaySide() ... stars...");
-        if (!_stars.isStarsLoaded()) {
-            _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-        }
-        // should be the first rendering pass - w/o depth buffer / lighting
-
-        // compute starfield alpha based on distance from atmosphere
-        float alpha = 1.0f;
-        bool hasStars = true;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-            // TODO: handle this correctly for zones
-            const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
-            if (closestData.getHasStars()) {
-                float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
-                if (height < closestData.getAtmosphereInnerRadius()) {
-                    alpha = 0.0f;
-
-                } else if (height < closestData.getAtmosphereOuterRadius()) {
-                    alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                        (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-                }
-            } else {
-                hasStars = false;
+    // Background rendering decision
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
+       if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+            PerformanceTimer perfTimer("stars");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... stars...");
+            if (!_stars.isStarsLoaded()) {
+                _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
             }
-        }
+            // should be the first rendering pass - w/o depth buffer / lighting
 
-        // finally render the starfield
-        if (hasStars) {
-            _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+            // compute starfield alpha based on distance from atmosphere
+            float alpha = 1.0f;
+            bool hasStars = true;
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                // TODO: handle this correctly for zones
+                const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+            
+                if (closestData.getHasStars()) {
+                    float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
+                    if (height < closestData.getAtmosphereInnerRadius()) {
+                        alpha = 0.0f;
+
+                    } else if (height < closestData.getAtmosphereOuterRadius()) {
+                        alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                            (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+                    }
+                } else {
+                    hasStars = false;
+                }
+            }
+
+            // finally render the starfield
+            if (hasStars) {
+                _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+            }
+
+            // draw the sky dome
+            if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                PerformanceTimer perfTimer("atmosphere");
+                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                    "Application::displaySide() ... atmosphere...");
+                _environment.renderAtmospheres(theCamera);
+            }
+
+        }
+    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+        auto skybox = skyStage->getSkybox();
+        if (skybox) {
+            gpu::Batch batch;
+            model::Skybox::render(batch, _viewFrustum, *skybox);
+
+            gpu::GLBackend::renderBatch(batch);
+            glUseProgram(0);
         }
     }
 
@@ -3214,13 +3237,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    // draw the sky dome
-    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-        PerformanceTimer perfTimer("atmosphere");
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-            "Application::displaySide() ... atmosphere...");
-        _environment.renderAtmospheres(theCamera);
-    }
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     

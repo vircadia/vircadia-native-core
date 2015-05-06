@@ -43,6 +43,7 @@ public:
         Mat4 _viewInverse;
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
+        Mat4 _projectionInverse;
         Vec4 _viewport;
     };
 
