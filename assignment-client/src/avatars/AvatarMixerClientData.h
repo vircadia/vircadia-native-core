@@ -56,6 +56,12 @@ public:
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
+    void recordNumOtherAvatarStarves(int numAvatarsHeldBack) { _otherAvatarStarves.updateAverage((float) numAvatarsHeldBack); } 
+    float getAvgNumOtherAvatarStarvesPerSecond() const { return _otherAvatarStarves.getAverageSampleValuePerSecond(); }
+
+    void recordNumOtherAvatarSkips(int numOtherAvatarSkips) { _otherAvatarSkips.updateAverage((float) numOtherAvatarSkips); }
+    float getAvgNumOtherAvatarSkipsPerSecond() const { return _otherAvatarSkips.getAverageSampleValuePerSecond(); }
+
     int getNumFramesSinceFRDAdjustment() const { return _numFramesSinceAdjustment; }
     void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
@@ -81,6 +87,9 @@ private:
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
 
+    SimpleMovingAverage _otherAvatarStarves;
+    SimpleMovingAverage _otherAvatarSkips;
+    
     SimpleMovingAverage _avgOtherAvatarDataRate;
 };
 

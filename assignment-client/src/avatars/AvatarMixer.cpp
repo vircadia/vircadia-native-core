@@ -178,7 +178,13 @@ void AvatarMixer::broadcastAvatarData() {
             
             // keep track of outbound data rate specifically for avatar data
             int numAvatarDataBytes = 0;
-            
+
+            // keep track of the number of other avatars held back in this frame
+            int numAvatarsHeldBack = 0;
+
+            // keep track of the number of other avatar frames skipped
+            int numAvatarsWithSkippedFrames = 0;
+
             // use the data rate specifically for avatar data for FRD adjustment checks
             float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
@@ -265,9 +271,11 @@ void AvatarMixer::broadcastAvatarData() {
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
                     if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
-                        qDebug() << "Not sending a data for" << otherNode->getUUID() << "to" << node->getUUID()
-                            << "since it has already been sent.";
+                        ++numAvatarsHeldBack;
                         return;
+                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
+                        ++numAvatarsWithSkippedFrames;
                     } 
                     
                     // we're going to send this avatar
@@ -337,6 +345,10 @@ void AvatarMixer::broadcastAvatarData() {
             
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes + mixedAvatarByteArray.size());
+            
+            // record the number of avatars held back this frame
+            nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
+            nodeData->recordNumOtherAvatarSkips(numAvatarsWithSkippedFrames);
 
             if (numOtherAvatars == 0) {
                 // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
