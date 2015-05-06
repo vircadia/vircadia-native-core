@@ -14,7 +14,6 @@
 
 #include <stdint.h>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <unordered_map>
 
@@ -78,8 +77,6 @@ namespace PingType {
     const PingType_t Public = 2;
     const PingType_t Symmetric = 3;
 }
-
-typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT

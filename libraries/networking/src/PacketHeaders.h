@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QSet>
@@ -83,6 +84,8 @@ enum PacketType {
 
 typedef char PacketVersion;
 typedef uint16_t PacketSequenceNumber;
+
+typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
