@@ -12,6 +12,7 @@
 #define hifi_gpu_Shader_h
 
 #include "Resource.h"
+#include <string>
 #include <memory>
 #include <set>
  

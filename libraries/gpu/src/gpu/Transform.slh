@@ -127,6 +127,7 @@ TransformCamera getTransformCamera() {
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
     }
 <@else@>
+    <$worldDir$> = vec3(gl_ModelViewMatrixInverseTranspose * vec4(<$eyeDir$>.xyz, 0.0));
 <@endif@>
 <@endfunc@>
 
@@ -136,6 +137,7 @@ TransformCamera getTransformCamera() {
         <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0));
     }
 <@else@>
+    <$eyeDir$> = vec3(gl_ProjectionMatrixInverse * vec4(<$clipPos$>.xyz, 1.0));
 <@endif@>
 <@endfunc@>
 
