@@ -16,6 +16,7 @@
 #include <cerrno>
 #include <stdio.h>
 
+#include <NumericalConstants.h>
 #include <MovingMinMaxAvg.h>
 #include <SequenceNumberStats.h>
 #include <SharedUtil.h> // for usecTimestampNow

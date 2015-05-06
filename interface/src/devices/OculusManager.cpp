@@ -460,7 +460,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 #ifdef DEBUG
     // Ensure the frame counter always increments by exactly 1
     static int oldFrameIndex = -1;
-    assert(oldFrameIndex == -1 || oldFrameIndex == _frameIndex - 1);
+    assert(oldFrameIndex == -1 || (unsigned int)oldFrameIndex == _frameIndex - 1);
     oldFrameIndex = _frameIndex;
 #endif
 
@@ -592,6 +592,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
             glm::vec3(_eyeRenderDesc[eye].HmdToEyeViewOffset.x, _eyeRenderDesc[eye].HmdToEyeViewOffset.y, _eyeRenderDesc[eye].HmdToEyeViewOffset.z));
 
         _eyePositions[eye] = thisEyePosition;
+        _camera->update(1.0f / Application::getInstance()->getFps());
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -793,7 +794,6 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 
 glm::vec3 OculusManager::getRelativePosition() {
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
-    ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
     return toGlm(trackingState.HeadPose.ThePose.Position);
 }
 

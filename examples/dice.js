@@ -13,7 +13,8 @@
 //
 
 var isDice = false; 
-var NUMBER_OF_DICE = 2; 
+var NUMBER_OF_DICE = 4; 
+var LIFETIME = 10000;                   //  Dice will live for about 3 hours
 var dice = [];
 var DIE_SIZE = 0.20;
 
@@ -50,7 +51,7 @@ var diceButton = Overlays.addOverlay("image", {
                 });
 
 var GRAVITY = -3.5;
-var LIFETIME = 300;
+
 // NOTE: angularVelocity is in radians/sec
 var MAX_ANGULAR_SPEED = Math.PI;
 
@@ -94,7 +95,7 @@ function entityCollisionWithEntity(entity1, entity2, collision) {
             }
             if ((entity1.id == dice[i].id) || (entity2.id == dice[i].id)) {
                 madeSound = true;
-                Audio.playSound(rollSound, { position: collision.contactPoint });
+                Audio.playSound(rollSound, { position: collision.contactPoint, localOnly: true });
             }
         }
         
@@ -105,6 +106,7 @@ function mousePressEvent(event) {
     var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay == offButton) {
+        deleteDice();
         Script.stop();
     } else if (clickedOverlay == diceButton) {
         var HOW_HARD = 2.0;
@@ -116,10 +118,8 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-    deleteDice();
     Overlays.deleteOverlay(offButton);
     Overlays.deleteOverlay(diceButton);
-   
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);

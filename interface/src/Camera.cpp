@@ -53,8 +53,17 @@ Camera::Camera() :
     _nearClip(DEFAULT_NEAR_CLIP), // default
     _farClip(DEFAULT_FAR_CLIP), // default
     _hmdPosition(),
-    _hmdRotation()
+    _hmdRotation(),
+    _isKeepLookingAt(false),
+    _lookingAt(0.0f, 0.0f, 0.0f)
 {
+}
+
+void Camera::update(float deltaTime) {
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
+    return;
 }
 
 void Camera::setPosition(const glm::vec3& position) {
@@ -63,14 +72,23 @@ void Camera::setPosition(const glm::vec3& position) {
 
 void Camera::setRotation(const glm::quat& rotation) {
     _rotation = rotation; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
 }
 
 void Camera::setHmdPosition(const glm::vec3& hmdPosition) {
     _hmdPosition = hmdPosition; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
 }
 
 void Camera::setHmdRotation(const glm::quat& hmdRotation) {
     _hmdRotation = hmdRotation; 
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
 }
 
 float Camera::getFarClip() const {
@@ -101,6 +119,10 @@ void Camera::setFarClip(float f) {
     _farClip = f;
 }
 
+PickRay Camera::computePickRay(float x, float y) {
+    return qApp->computePickRay(x, y);
+}
+
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
     
@@ -128,4 +150,18 @@ void Camera::setModeString(const QString& mode) {
 
 QString Camera::getModeString() const {
     return modeToString(_mode);
+}
+
+void Camera::lookAt(const glm::vec3& lookAt) {
+    glm::vec3 up = IDENTITY_UP;
+    glm::mat4 lookAtMatrix = glm::lookAt(_position, lookAt, up);
+    glm::quat rotation = glm::quat_cast(lookAtMatrix);
+    rotation.w = -rotation.w; // Rosedale approved
+    _rotation = rotation;
+}
+
+void Camera::keepLookingAt(const glm::vec3& point) {
+    lookAt(point);
+    _isKeepLookingAt = true;
+    _lookingAt = point;
 }

@@ -427,6 +427,25 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                                     _bestZone->getStageAltitude());
             scene->setStageDayTime(_bestZone->getStageHour());
             scene->setStageYearTime(_bestZone->getStageDay());
+
+            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+                EnvironmentData data = _bestZone->getEnvironmentData();
+                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+                
+                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
+                //       atmosphere, not where the camera is.
+                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
+                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                                                
+                data.setSunLocation(keyLightLocation);
+
+                const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+                data.setSunBrightness(sunBrightness);
+
+                _viewState->overrideEnvironmentData(data);
+            }
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
@@ -440,6 +459,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 scene->setStageYearTime(_previousStageDay);
                 _hasPreviousZone = false;
             }
+            _viewState->endOverrideEnvironmentData();
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model

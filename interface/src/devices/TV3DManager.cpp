@@ -33,9 +33,8 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    Camera& camera = *Application::getInstance()->getCamera();
     auto deviceSize = qApp->getDeviceSize();
-    configureCamera(camera, deviceSize.width(), deviceSize.height());
+    configureCamera(*(qApp->getCamera()), deviceSize.width(), deviceSize.height());
 }
 
 

@@ -472,7 +472,6 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 //Injecting mouse movements and clicks
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
     MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto glCanvas = Application::getInstance()->getGLWidget();
     QPoint pos;
     
     Qt::MouseButton bumperButton;
@@ -498,12 +497,12 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         // Get the angles, scaled between (-0.5,0.5)
         float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
-
+        auto canvasSize = qApp->getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = glCanvas->width() * getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * getCursorPixelRangeMult();
 
-        pos.setX(glCanvas->width() / 2.0f + cursorRange * xAngle);
-        pos.setY(glCanvas->height() / 2.0f + cursorRange * yAngle);
+        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
+        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
 
     }
 

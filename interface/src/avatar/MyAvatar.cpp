@@ -245,7 +245,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             estimatedPosition = tracker->getHeadTranslation();
             _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
@@ -1181,16 +1181,8 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
         } else {
             float clipDistance = _skeletonModel.getHeadClipDistance();
-            if (qApp->isHMDMode()) {
-                // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
-                glm::vec3 cameraToAvatar = _position - cameraPos;
-                cameraToAvatar.y = 0.0f;
-                glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
-                float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
-                if (headOffset > 0) {
-                    clipDistance += headOffset;
-                }
-            }
+            clipDistance = glm::length(getEyePosition() 
+                + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
             renderFrustum->setNearClip(clipDistance);
         }
     }

@@ -10,8 +10,8 @@
 //
 
 #include "GLMHelpers.h"
+#include "NumericalConstants.h"
 #include "PlaneShape.h"
-#include "SharedUtil.h"
 
 const glm::vec3 UNROTATED_NORMAL(0.0f, 1.0f, 0.0f);
 

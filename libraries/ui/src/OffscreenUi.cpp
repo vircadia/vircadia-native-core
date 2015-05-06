@@ -254,8 +254,11 @@ void OffscreenUi::updateQuick() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     _renderControl->render();
-
-    Q_ASSERT(!glGetError());
+    // FIXME The web browsers seem to be leaving GL in an error state.
+    // Need a debug context with sync logging to figure out why.
+    // for now just clear the errors
+    glGetError();
+//    Q_ASSERT(!glGetError());
 
     _quickWindow->resetOpenGLState();
 
