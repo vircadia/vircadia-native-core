@@ -20,6 +20,7 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Transform.h"
 #include "AABox.h"
 #include "AACube.h"
 #include "Plane.h"
@@ -121,6 +122,8 @@ public:
     float distanceToCamera(const glm::vec3& point) const;
     
     void evalProjectionMatrix(glm::mat4& proj) const;
+    void evalViewTransform(Transform& view) const;
+
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;

@@ -862,3 +862,7 @@ void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
     }
 }
 
+void ViewFrustum::evalViewTransform(Transform& view) const {
+    view.setTranslation(getPosition());
+    view.setRotation(getOrientation());
+}

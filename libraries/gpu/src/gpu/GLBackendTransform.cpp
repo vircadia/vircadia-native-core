@@ -59,6 +59,7 @@ void GLBackend::updateTransform() {
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {
         _transform._transformCamera._projection = _transform._projection;
+        _transform._transformCamera._projectionInverse = glm::inverse(_transform._projection);
     }
 
     if (_transform._invalidView) {

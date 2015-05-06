@@ -3116,6 +3116,14 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             }
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+        auto skybox = skyStage->getSkybox();
+        if (skybox) {
+            gpu::Batch batch;
+            model::Skybox::render(batch, _viewFrustum, *skybox);
+
+            gpu::GLBackend::renderBatch(batch);
+            glUseProgram(0);
+        }
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {

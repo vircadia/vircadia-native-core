@@ -15,6 +15,8 @@
 
 using namespace gpu;
 
+uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
+
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _sysmem(size, bytes),
     _format(format),
@@ -131,19 +133,7 @@ Texture* Texture::createFromStorage(Storage* storage) {
 }
 
 Texture::Texture():
-    Resource(),
-    _storage(),
-    _stamp(0),
-    _size(0),
-    _width(1),
-    _height(1),
-    _depth(1),
-    _numSamples(1),
-    _numSlices(1),
-    _maxMip(0),
-    _type(TEX_1D),
-    _autoGenerateMips(false),
-    _defined(false)
+    Resource()
 {
 }
 
@@ -186,10 +176,9 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
             _depth = depth;
             changed = true;
         }
-
+        
         // Evaluate the new size with the new format
-        const int DIM_SIZE[] = {1, 1, 1, 6};
-        uint32_t size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
+        uint32_t size = NUM_FACES_PER_TYPE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
 
         // If size change then we need to reset 
         if (changed || (size != getSize())) {

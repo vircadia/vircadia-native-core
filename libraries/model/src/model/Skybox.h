@@ -13,6 +13,10 @@
 
 #include "gpu/Texture.h"
 
+class ViewFrustum;
+//class Transform;
+namespace gpu { class Batch; }
+
 namespace model {
 
 typedef glm::vec3 Color;
@@ -24,14 +28,16 @@ public:
     virtual ~Skybox() {};
  
     void setColor(const Color& color);
-    const Color& getColor() { return _color; }
+    const Color& getColor() const { return _color; }
 
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
+    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
+
 protected:
     gpu::TexturePointer _cubemap;
-    Color _color;
+    Color _color{1.0f, 1.0f, 1.0f};
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;
 

@@ -215,6 +215,10 @@ SunSkyStage::SunSkyStage() :
 
     _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
 
+
+    _skybox.reset(new Skybox());
+    _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
+
 }
 
 SunSkyStage::~SunSkyStage() {

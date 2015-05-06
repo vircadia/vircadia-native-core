@@ -21,6 +21,7 @@ struct TransformCamera {
     mat4 _viewInverse;
     mat4 _projectionViewUntranslated;
     mat4 _projection;
+    mat4 _projectionInverse;
     vec4 _viewport;
 };
 
@@ -117,6 +118,24 @@ TransformCamera getTransformCamera() {
     }
 <@else@>
     <$eyeDir$> = gl_NormalMatrix * <$modelDir$>;
+<@endif@>
+<@endfunc@>
+
+<@func transformEyeToWorldDir(cameraTransform, eyeDir, worldDir)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformEyeToWorldDir
+        <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
+    }
+<@else@>
+<@endif@>
+<@endfunc@>
+
+<@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformClipToEyedDir
+        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0));
+    }
+<@else@>
 <@endif@>
 <@endfunc@>
 

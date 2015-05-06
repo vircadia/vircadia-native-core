@@ -363,6 +363,93 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
         }
         break;
     }
+    case Texture::TEX_CUBE: {
+        if (texture.getNumSlices() == 1) {
+            GLint boundTex = -1;
+            glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
+            const int NUM_FACES = 6;
+            const GLenum FACE_LAYOUT[] = {
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
+
+            if (needUpdate) {
+                if (texture.isStoredMipAvailable(0)) {
+                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                    Element srcFormat = mip->_format;
+                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
+                    
+                    uint16 width = texture.getWidth();
+                    int faceSize = mip->_sysmem.getSize() / NUM_FACES;
+
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
+                    for (int f = 0; f < NUM_FACES; f++) {
+                        glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, width, width, 0,
+                            texelFormat.format, texelFormat.type, (GLvoid*) (mip->_sysmem.read<Resource::Byte>() + f * faceSize));
+                    }
+
+                    if (texture.isAutogenerateMips()) {
+                        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+                        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                    }
+
+                    object->_target = GL_TEXTURE_CUBE_MAP;
+
+                    syncSampler(texture.getSampler(), texture.getType(), object);
+
+                    // At this point the mip piels have been loaded, we can notify
+                    texture.notifyGPULoaded(0);
+
+                    object->_contentStamp = texture.getDataStamp();
+                }
+            } else {
+                const gpu::Resource::Byte* bytes = 0;
+                Element srcFormat = texture.getTexelFormat();
+                uint16 width = texture.getWidth();
+                int faceSize = 0;
+
+                if (texture.isStoredMipAvailable(0)) {
+                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                
+                    bytes = mip->_sysmem.read<Resource::Byte>();
+                    srcFormat = mip->_format;
+                    faceSize = mip->_sysmem.getSize() / NUM_FACES;
+
+                    object->_contentStamp = texture.getDataStamp();
+                }
+
+                GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
+
+                glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
+                for (int f = 0; f < NUM_FACES; f++) {
+                    glTexImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, width, width, 0,
+                        texelFormat.format, texelFormat.type, (GLvoid*) (bytes + f * faceSize));
+                }
+
+                if (bytes && texture.isAutogenerateMips()) {
+                    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                } else {
+                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                }
+                
+                object->_target = GL_TEXTURE_CUBE_MAP;
+
+                syncSampler(texture.getSampler(), texture.getType(), object);
+
+                // At this point the mip piels have been loaded, we can notify
+                texture.notifyGPULoaded(0);
+
+                object->_storageStamp = texture.getStamp();
+                object->_size = texture.getSize();
+            }
+
+            glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);
+        }
+        break;
+    }
     default:
         qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";	
     }
@@ -449,6 +536,5 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
     glTexParameterf(object->_target, GL_TEXTURE_MIN_LOD, (float) sampler.getMinMip());
     glTexParameterf(object->_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
     glTexParameterf(object->_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-    (void) CHECK_GL_ERROR();
 
 }
