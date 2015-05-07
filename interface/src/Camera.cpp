@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
-#include "devices/OculusManager.h"
 
 
 CameraMode stringToMode(const QString& mode) {
@@ -121,18 +120,7 @@ void Camera::setFarClip(float f) {
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
-}
-
-PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(xRatio, yRatio, result.origin, result.direction);
-    } else {
-        Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
-    }
-    return result;
+    return qApp->computePickRay(x, y);
 }
 
 void Camera::setModeString(const QString& mode) {

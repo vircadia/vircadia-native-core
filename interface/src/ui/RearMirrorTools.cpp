@@ -15,6 +15,7 @@
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
+#include <gpu/GLBackend.h>
 
 #include "Application.h"
 #include "RearMirrorTools.h"
@@ -28,16 +29,16 @@ const char ZOOM_LEVEL_SETTINGS[] = "ZoomLevel";
 Setting::Handle<int> RearMirrorTools::rearViewZoomLevel(QStringList() << SETTINGS_GROUP_NAME << ZOOM_LEVEL_SETTINGS,
                                                         ZoomLevel::HEAD);
 
-RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
-    _parent(parent),
+RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _bounds(bounds),
     _windowed(false),
     _fullScreen(false)
 {
-    _closeTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/close.svg"));
+    auto textureCache = DependencyManager::get<TextureCache>();
+    _closeTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/close.svg");
 
-    _zoomHeadTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/plus.svg"));
-    _zoomBodyTextureId = _parent->bindTexture(QImage(PathUtils::resourcesPath() + "images/minus.svg"));
+    _zoomHeadTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/plus.svg");
+    _zoomBodyTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/minus.svg");
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
@@ -46,20 +47,19 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) :
     _headZoomIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
 }
 
-void RearMirrorTools::render(bool fullScreen) {
+void RearMirrorTools::render(bool fullScreen, const QPoint & mousePosition) {
     if (fullScreen) {
         _fullScreen = true;
-        displayIcon(_parent->geometry(), _shrinkIconRect, _closeTextureId);
+        displayIcon(QRect(QPoint(), qApp->getDeviceSize()), _shrinkIconRect, _closeTexture);
     } else {
         // render rear view tools if mouse is in the bounds
-        QPoint mousePosition = _parent->mapFromGlobal(QCursor::pos());
-        _windowed = _bounds.contains(mousePosition.x(), mousePosition.y());
+        _windowed = _bounds.contains(mousePosition);
         if (_windowed) {
-            displayIcon(_bounds, _closeIconRect, _closeTextureId);
+            displayIcon(_bounds, _closeIconRect, _closeTexture);
 
             ZoomLevel zoomLevel = (ZoomLevel)rearViewZoomLevel.get();
-            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTextureId, zoomLevel == HEAD);
-            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTextureId, zoomLevel == BODY);
+            displayIcon(_bounds, _headZoomIconRect, _zoomHeadTexture, zoomLevel == HEAD);
+            displayIcon(_bounds, _bodyZoomIconRect, _zoomBodyTexture, zoomLevel == BODY);
         }
     }
 }
@@ -99,7 +99,7 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
     return false;
 }
 
-void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected) {
+void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, const gpu::TexturePointer& texture, bool selected) {
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -116,13 +116,13 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     } else {
         quadColor = glm::vec4(1, 1, 1, 1);
     }
-    
-    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(texture));
    
     glm::vec2 topLeft(iconBounds.left(), iconBounds.top());
     glm::vec2 bottomRight(iconBounds.right(), iconBounds.bottom());
-    glm::vec2 texCoordTopLeft(0.0f, 1.0f);
-    glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+    static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
 
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
     
