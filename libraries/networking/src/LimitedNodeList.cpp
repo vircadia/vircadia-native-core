@@ -230,8 +230,7 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
     return result;
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                                      const QUuid& connectionSecret) {    
+qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
@@ -251,6 +250,12 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
                                       const SharedNodePointer& destinationNode,
                                       const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
+        PacketType packetType = packetTypeForPacket(datagram);
+
+        if (NON_VERIFIED_PACKETS.contains(packetType)) {
+            return writeUnverifiedDatagram(datagram, destinationNode, overridenSockAddr);
+        }
+
         // if we don't have an overridden address, assume they want to send to the node's active socket
         const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
         if (overridenSockAddr.isNull()) {
@@ -264,8 +269,14 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
 
         QByteArray datagramCopy = datagram;
-        PacketType packetType = packetTypeForPacket(datagramCopy);
         
+        // if we're here and the connection secret is null, debug out - this could be a problem
+        if (destinationNode->getConnectionSecret().isNull()) {
+            qDebug() << "LimitedNodeList::writeDatagram called for verified datagram with null connection secret for"
+                << "destination node" << destinationNode->getUUID() << " - this is either not secure or will cause"
+                << "this packet to be unverifiable on the receiving side.";
+        }
+
         // perform replacement of hash and optionally also sequence number in the header
         if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) { 
             PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
@@ -276,7 +287,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
         
         emit dataSent(destinationNode->getType(), datagram.size());
-        auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr, destinationNode->getConnectionSecret());
+        auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr);
         // Keep track of per-destination-node bandwidth
         destinationNode->recordBytesSent(bytesWritten);
         return bytesWritten;
@@ -301,8 +312,21 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
             }
         }
         
-        // don't use the node secret!
-        return writeDatagram(datagram, *destinationSockAddr, QUuid());
+        PacketType packetType = packetTypeForPacket(datagram);
+
+        // optionally peform sequence number replacement in the header
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+
+            QByteArray datagramCopy = datagram;
+
+            PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
+            replaceSequenceNumberInPacket(datagramCopy, sequenceNumber, packetType);
+
+            // send the datagram with sequence number replaced in header
+            return writeDatagram(datagramCopy, *destinationSockAddr);
+        } else {
+            return writeDatagram(datagram, *destinationSockAddr);
+        }
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -310,7 +334,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 }
 
 qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
-    return writeDatagram(datagram, destinationSockAddr, QUuid());
+    return writeDatagram(datagram, destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
@@ -548,11 +572,11 @@ void LimitedNodeList::removeSilentNodes() {
     eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
-        
+
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
-            
+
             killedNodes.insert(node);
         } else {
             // we didn't erase this node, push the iterator forwards

@@ -369,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
         
         if (!isUsingDTLS) {
-            writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
+            writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
         }
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
@@ -424,10 +424,9 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         _domainHandler.setUUID(uuidFromPacketHeader(packet));
         _domainHandler.setIsConnected(true);
     }
-
+    
     int readNodes = 0;
-    
-    
+
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     

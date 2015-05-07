@@ -114,6 +114,7 @@ public:
                                const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
@@ -233,9 +234,7 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writeDatagram(const QByteArray& datagram, 
-                         const HifiSockAddr& destinationSockAddr,
-                         const QUuid& connectionSecret);
+    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType);
     

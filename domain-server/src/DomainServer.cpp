@@ -985,7 +985,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                         // we need to break here and start a new packet
                         // so send the current one
                         
-                        limitedNodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                        limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
                         
                         // reset the broadcastPacket structure
                         broadcastPacket.resize(numBroadcastPacketLeadBytes);
@@ -998,9 +998,9 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
-    
+
     // always write the last broadcastPacket
-    limitedNodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {
