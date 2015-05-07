@@ -57,6 +57,7 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
 const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITIES | EntityItem::DIRTY_MOTION_TYPE;
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
+    EntitySimulation::changeEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
         _hasSimulationOwnerEntities.insert(entity);
     }
