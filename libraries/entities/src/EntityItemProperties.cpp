@@ -28,6 +28,7 @@
 #include "ZoneEntityItem.h"
 
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
+SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -237,7 +238,7 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* backgroundModeNames[] = {"inherit", "atmosphere", "texture" };
+const char* backgroundModeNames[] = {"inherit", "atmosphere", "skybox" };
 
 QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
 
@@ -248,7 +249,7 @@ void addBackgroundMode(BackgroundMode type) {
 void buildStringToBackgroundModeLookup() {
     addBackgroundMode(BACKGROUND_MODE_INHERIT);
     addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
-    addBackgroundMode(BACKGROUND_MODE_TEXTURE);
+    addBackgroundMode(BACKGROUND_MODE_SKYBOX);
 }
 
 QString EntityItemProperties::getBackgroundModeAsString() const {
@@ -337,6 +338,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     
     changedProperties += _atmosphere.getChangedProperties();
+    changedProperties += _skybox.getChangedProperties();
 
     return changedProperties;
 }
@@ -455,6 +457,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
     
     _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
+    _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
 
     return properties;
 }
@@ -526,6 +529,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
+    _skybox.copyFromScriptValue(object, _defaultSettings);
     _lastEdited = usecTimestampNow();
 }
 
@@ -735,6 +739,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 
                 _staticAtmosphere.setProperties(properties);
                 _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+
+                _staticSkybox.setProperties(properties);
+                _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
@@ -986,6 +993,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
@@ -1090,6 +1098,7 @@ void EntityItemProperties::markAllChanged() {
     
     _backgroundModeChanged = true;
     _atmosphere.markAllChanged();
+    _skybox.markAllChanged();
    
 }
 

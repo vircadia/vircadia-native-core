@@ -190,8 +190,8 @@ void ApplicationOverlay::renderOverlay() {
     Overlays& overlays = qApp->getOverlays();
     
     _textureFov = glm::radians(_hmdUIAngularSize);
-    auto deviceSize = Application::getInstance()->getDeviceSize();
-    _textureAspectRatio = (float)deviceSize.width() / (float)deviceSize.height();
+    glm::vec2 deviceSize = qApp->getCanvasSize();
+    _textureAspectRatio = (float)deviceSize.x / (float)deviceSize.y;
 
     //Handle fading and deactivation/activation of UI
     
@@ -209,7 +209,7 @@ void ApplicationOverlay::renderOverlay() {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, deviceSize.width(), deviceSize.height(), 0, NEAR_CLIP, FAR_CLIP);
+        glOrtho(0, deviceSize.x, deviceSize.y, 0, NEAR_CLIP, FAR_CLIP);
 
         glMatrixMode(GL_MODELVIEW);
 
@@ -270,11 +270,11 @@ void ApplicationOverlay::displayOverlayTexture() {
             glEnable(GL_BLEND);
         }
 
+        static const glm::vec2 topLeft(-1, 1);
+        static const glm::vec2 bottomRight(1, -1);
+        static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+        static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
         with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
-            static const glm::vec2 topLeft(-1, 1);
-            static const glm::vec2 bottomRight(1, -1);
-            static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
-            static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
             DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                 glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         });
@@ -685,7 +685,7 @@ void ApplicationOverlay::renderControllerPointers() {
         }
 
         //If the cursor is out of the screen then don't render it
-        if (mouseX < 0 || mouseX >= canvasSize.x || mouseY < 0 || mouseY >= canvasSize.y) {
+        if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
             _reticleActive[index] = false;
             continue;
         }
@@ -998,7 +998,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto canvasSize = qApp->getCanvasSize();
-        if (canvasSize.x != _previousBorderWidth || canvasSize.y != _previousBorderHeight) {
+        if ((int)canvasSize.x != _previousBorderWidth || (int)canvasSize.y != _previousBorderHeight) {
             glm::vec4 color(CONNECTION_STATUS_BORDER_COLOR[0],
                             CONNECTION_STATUS_BORDER_COLOR[1],
                             CONNECTION_STATUS_BORDER_COLOR[2], 1.0f);

@@ -294,7 +294,7 @@ GLuint TextureCache::getShadowDepthTextureID() {
 
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString & path) {
-    QImage image(path);
+    QImage image = QImage(path).mirrored(false, true);
     gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
     gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
     if (image.hasAlphaChannel()) {
