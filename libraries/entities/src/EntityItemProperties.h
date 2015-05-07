@@ -30,6 +30,7 @@
 #include <ShapeInfo.h>
 
 #include "AtmospherePropertyGroup.h"
+#include "SkyboxPropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
@@ -138,8 +139,9 @@ public:
     DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
     DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
-    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -277,6 +279,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    
+    properties.getAtmosphere().debugDump();
+    properties.getSkybox().debugDump();
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

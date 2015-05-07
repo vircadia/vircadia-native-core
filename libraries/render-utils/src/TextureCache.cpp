@@ -35,8 +35,7 @@ TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
     _blueTexture(0),
-    _frameBufferSize(100, 100),
-    _associatedWidget(NULL)
+    _frameBufferSize(100, 100)
 {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
@@ -90,7 +89,7 @@ const int permutation[256] =
 #define USE_CHRIS_NOISE 1
 
 const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
-    if (_permutationNormalTexture.isNull()) {
+    if (!_permutationNormalTexture) {
 
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
@@ -134,7 +133,7 @@ static void loadSingleColorTexture(const unsigned char* color) {
 */
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
-    if (_whiteTexture.isNull()) {
+    if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
@@ -142,7 +141,7 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
 }
 
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
-    if (_blueTexture.isNull()) {
+    if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
@@ -293,22 +292,21 @@ GLuint TextureCache::getShadowDepthTextureID() {
     return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
-bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
-    if (event->type() == QEvent::Resize) {
-        QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_frameBufferSize != size) {
-            _primaryFramebuffer.reset();
-            _primaryColorTexture.reset();
-            _primaryDepthTexture.reset();
-            _primaryNormalTexture.reset();
-            _primarySpecularTexture.reset();
-
-            _secondaryFramebuffer.reset();
-
-            _tertiaryFramebuffer.reset();
-        }
+/// Returns a texture version of an image file
+gpu::TexturePointer TextureCache::getImageTexture(const QString & path) {
+    QImage image = QImage(path).mirrored(false, true);
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    if (image.hasAlphaChannel()) {
+        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
     }
-    return false;
+    gpu::TexturePointer texture = gpu::TexturePointer(
+        gpu::Texture::create2D(formatGPU, image.width(), image.height(), 
+            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+    texture->autoGenerateMips(-1);
+    return texture;
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
@@ -316,14 +314,6 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
-}
-
-void TextureCache::associateWithWidget(QGLWidget* widget) {
-    if (_associatedWidget) {
-        _associatedWidget->removeEventFilter(this);
-    }
-    _associatedWidget = widget;
-    _associatedWidget->installEventFilter(this);
 }
 
 Texture::Texture() {

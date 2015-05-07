@@ -33,8 +33,10 @@
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PacketHeaders.h>
+#include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
+#include <ShapeManager.h>
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
@@ -146,6 +148,8 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    static void initPlugins();
+    static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
@@ -160,6 +164,8 @@ public:
     void initializeUi();
     void paintGL();
     void resizeGL(int width, int height);
+
+    void resizeEvent(QResizeEvent * size);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -183,12 +189,19 @@ public:
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
-    GLCanvas* getGLWidget() { return _glWidget; }
-    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
+    glm::uvec2 getCanvasSize() const;
+    QSize getDeviceSize() const;
+    bool hasFocus() const;
+    PickRay computePickRay() const;
+    PickRay computeViewPickRay(float xRatio, float yRatio) const;
+    void resizeGL();
+
+    bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.  
     ViewFrustum* getViewFrustum();
+    const ViewFrustum* getViewFrustum() const;
     // Represents the view frustum of the current rendering pass, 
     // which might be different from the viewFrustum, i.e. shadowmap 
     // passes, mirror window passes, etc
@@ -210,8 +223,9 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
-    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
+    glm::ivec2 getTrueMousePosition() const;
+    int getTrueMouseX() const;
+    int getTrueMouseY() const;
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
@@ -223,6 +237,7 @@ public:
 
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
+    const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
@@ -282,7 +297,7 @@ public:
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
-    virtual PickRay computePickRay(float x, float y);
+    virtual PickRay computePickRay(float x, float y) const;
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
@@ -292,8 +307,8 @@ public:
 
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(),
-                                                               _glWidget->getDeviceHeight()); }
+    glm::vec2 getViewportDimensions() const;
+
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     void skipVersion(QString latestVersion);
@@ -315,7 +330,9 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
-    
+    glm::quat getHeadOrientation() const;
+    glm::vec3 getHeadPosition() const;
+
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
@@ -356,6 +373,7 @@ signals:
     void beforeAboutToQuit();
 
 public slots:
+    void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
@@ -510,6 +528,8 @@ private:
     bool _justStarted;
     Stars _stars;
 
+    ShapeManager _shapeManager;
+    PhysicalEntitySimulation _entitySimulation;
     PhysicsEngine _physicsEngine;
 
     EntityTreeRenderer _entities;

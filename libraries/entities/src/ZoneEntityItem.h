@@ -44,11 +44,6 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-    // NOTE: Apparently if you begin to return a shape type, then the physics system will prevent an avatar
-    // from penetrating the walls of the entity. This fact will likely be important to Clement as he works
-    // on better defining the shape/volume of a zone.
-    //virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-
     xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
     void setKeyLightColor(const xColor& value) {
         _keyLightColor[RED_INDEX] = value.red;
@@ -110,6 +105,8 @@ public:
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
     EnvironmentData getEnvironmentData() const;
+    const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
+    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -144,11 +141,12 @@ protected:
     uint16_t _stageDay;
     float _stageHour;
     
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
+    ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
     
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-    AtmospherePropertyGroup _atmospherePropeties;
+    AtmospherePropertyGroup _atmosphereProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;

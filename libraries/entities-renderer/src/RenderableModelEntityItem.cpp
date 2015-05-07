@@ -192,7 +192,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (!didDraw) {
-        RenderableDebugableEntityItem::renderBoundingBox(this, args, false);
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
 
     RenderableDebugableEntityItem::render(this, args);
@@ -275,6 +276,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         if (!_model) {
             return false; // hmm...
+        }
+
+        if (_needsInitialSimulation) {
+            // the _model's offset will be wrong until _needsInitialSimulation is false
+            return false;
         }
 
         assert(!_model->getCollisionURL().isEmpty());

@@ -1,0 +1,24 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  skybox.frag
+//
+//  Created by Sam Gateau on 5/5/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform samplerCube cubeMap;
+
+varying vec3 normal;
+varying vec2 texcoord;
+varying vec3 color;
+
+
+void main(void) {
+    vec4 texel = textureCube(cubeMap, normalize(normal));
+    gl_FragData[0] = texel;
+  //  gl_FragData[0] = vec4(normal, 1.0);
+}

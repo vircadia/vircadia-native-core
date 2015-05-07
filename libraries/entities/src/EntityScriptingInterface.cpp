@@ -86,6 +86,7 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     if (_entityTree) {
         _entityTree->lockForWrite();
         EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        entity->setLastBroadcast(usecTimestampNow());
         if (entity) {
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             setSimId(propertiesWithSimID, entity);
@@ -178,6 +179,7 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
         if (propertiesWithSimID.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
+                entity->setLastBroadcast(usecTimestampNow());
                 propertiesWithSimID.setType(entity->getType());
                 setSimId(propertiesWithSimID, entity);
             }

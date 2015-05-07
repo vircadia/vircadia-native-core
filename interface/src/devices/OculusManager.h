@@ -61,7 +61,7 @@ public:
     static void endFrameTiming();
     static bool allowSwap();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
+    static void display(QGLWidget * glCanvas, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
     
     /// param \yaw[out] yaw in radians
@@ -69,6 +69,7 @@ public:
     /// param \roll[out] roll in radians
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
     static glm::vec3 getRelativePosition();
+    static glm::quat getOrientation();
     static QSize getRenderTargetSize();
     
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

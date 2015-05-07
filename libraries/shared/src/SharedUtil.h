@@ -23,10 +23,18 @@
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
-typedef unsigned char rgbColor[BYTES_PER_COLOR];
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
+
+inline QDebug& operator<<(QDebug& dbg, const rgbColor& c) {
+    dbg.nospace() << "{type='rgbColor'"
+        ", red=" << c[0] <<
+        ", green=" << c[1] <<
+        ", blue=" << c[2] <<
+        "}";
+    return dbg;
+}
 
 struct xColor {
     unsigned char red;
