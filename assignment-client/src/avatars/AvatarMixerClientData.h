@@ -39,6 +39,7 @@ public:
     PacketSequenceNumber getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
     void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, PacketSequenceNumber sequenceNumber) 
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
+    Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
 
     quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
     void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }

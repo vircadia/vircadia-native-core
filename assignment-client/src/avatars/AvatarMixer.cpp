@@ -272,9 +272,8 @@ void AvatarMixer::broadcastAvatarData() {
                         // Did we somehow get out of order packets from the sender?
                         // We don't expect this to happen - in RELEASE we add this to a trackable stat
                         // and in DEBUG we crash on the assert above
-
+                        otherNodeData->incrementNumOutOfOrderSends();
                     }
-
                     
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
@@ -374,12 +373,35 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
         auto nodeList = DependencyManager::get<NodeList>();
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
         QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
         nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
+
+        // we also want to remove sequence number data for this avatar on our other avatars
+        // so invoke the appropriate method on the AvatarMixerClientData for other avatars
+        nodeList->eachMatchingNode(
+            [&](const SharedNodePointer& node)->bool {
+                if (!node->getLinkedData()) {
+                    return false;
+                }
+
+                if (node->getUUID() == killedNode->getUUID()) {
+                    return false;
+                }
+
+                return true;
+            },
+            [&](const SharedNodePointer& node) {
+                QMetaObject::invokeMethod(node->getLinkedData(),
+                                          "removeLastBroadcastSequenceNumber",
+                                          Qt::AutoConnection,
+                                          Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
+            }
+        );
     }
 }
 
