@@ -68,11 +68,11 @@ public:
         uint8 _maxMip = MAX_MIP_LEVEL;
 
         Desc() {}
-        Desc(const Filter filter) : _filter(filter) {}
+        Desc(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _filter(filter), _wrapModeU(wrap), _wrapModeV(wrap), _wrapModeW(wrap) {}
     };
 
     Sampler() {}
-    Sampler(const Filter filter) : _desc(filter) {}
+    Sampler(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _desc(filter, wrap) {}
     Sampler(const Desc& desc) : _desc(desc) {}
     ~Sampler() {}
 

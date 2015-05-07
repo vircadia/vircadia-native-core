@@ -23,27 +23,6 @@
 
 namespace model {
 
-typedef glm::vec3 Color;
-
-// TextureStorage is a specialized version of the gpu::Texture::Storage
-// It adds the URL and the notion that it owns the gpu::Texture
-class TextureStorage : public gpu::Texture::Storage {
-public:
-    TextureStorage(const QUrl& url);
-    ~TextureStorage();
-
-    const QUrl& getUrl() const { return _url; }
-    const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
-
-protected:
-    gpu::TexturePointer _gpuTexture;
-    QUrl _url;
-    void init();
-};
-typedef std::shared_ptr< TextureStorage > TextureStoragePointer;
-
-
-
 class Material {
 public:
     typedef gpu::BufferView UniformBufferView;

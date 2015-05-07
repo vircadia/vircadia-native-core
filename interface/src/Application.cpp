@@ -3212,6 +3212,12 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
         auto skybox = skyStage->getSkybox();
         if (skybox) {
+            if (!skybox->getCubemap()) {
+                auto texture = DependencyManager::get<TextureCache>()->
+                    getTexture(QUrl("https://hifi-public.s3.amazonaws.com/ryan/CloudyDay.png"), CUBE_TEXTURE);
+                skybox->setCubemap(texture->getGPUTexture());
+            }
+
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
 
