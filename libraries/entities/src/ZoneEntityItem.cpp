@@ -263,17 +263,15 @@ void ZoneEntityItem::debugDump() const {
 ShapeType ZoneEntityItem::getShapeType() const {
     // Zones are not allowed to have a SHAPE_TYPE_NONE... they are always at least a SHAPE_TYPE_BOX
     if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_BOX;
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : DEFAULT_SHAPE_TYPE;
     } else {
-        return _shapeType == SHAPE_TYPE_NONE ? SHAPE_TYPE_BOX : _shapeType;
+        return _shapeType == SHAPE_TYPE_NONE ? DEFAULT_SHAPE_TYPE : _shapeType;
     }
 }
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
     _compoundShapeURL = url;
-    if (!_compoundShapeURL.isEmpty()) {
-        updateShapeType(SHAPE_TYPE_COMPOUND);
-    } else if (_shapeType == SHAPE_TYPE_COMPOUND) {
+    if (_compoundShapeURL.isEmpty() && _shapeType == SHAPE_TYPE_COMPOUND) {
         _shapeType = DEFAULT_SHAPE_TYPE;
     }
 }

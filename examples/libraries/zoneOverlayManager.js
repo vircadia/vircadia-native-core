@@ -35,6 +35,7 @@ ZoneOverlayManager = function(isEntityFunc, entityAddedFunc, entityRemovedFunc, 
     this.setVisible = function(isVisible) {
         if (visible != isVisible) {
             visible = isVisible;
+            Entities.setDrawZoneBoundaries(visible);
             for (var id in entityOverlays) {
                 Overlays.editOverlay(entityOverlays[id].solid, { visible: visible });
                 Overlays.editOverlay(entityOverlays[id].outline, { visible: visible });
