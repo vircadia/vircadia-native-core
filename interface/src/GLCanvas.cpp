@@ -64,7 +64,7 @@ void GLCanvas::paintGL() {
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    Application::getInstance()->resizeGL(width, height);
+    Application::getInstance()->resizeGL();
 }
 
 void GLCanvas::activeChanged(Qt::ApplicationState state) {
