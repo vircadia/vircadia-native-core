@@ -59,7 +59,10 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
 
     READ_ENTITY_PROPERTY_XCOLOR(PROP_SKYBOX_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_SKYBOX_URL, setURL);
-    
+
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_COLOR, Color);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_URL, URL);
+
     processedBytes += bytesRead;
 
     return true;
