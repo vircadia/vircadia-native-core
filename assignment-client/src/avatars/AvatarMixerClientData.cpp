@@ -42,6 +42,7 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["num_avatars_sent_last_frame"] = _numAvatarsSentLastFrame;
     jsonObject["avg_other_avatar_starves_per_second"] = getAvgNumOtherAvatarStarvesPerSecond();
     jsonObject["avg_other_avatar_skips_per_second"] = getAvgNumOtherAvatarSkipsPerSecond();
+    jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
     
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
 }

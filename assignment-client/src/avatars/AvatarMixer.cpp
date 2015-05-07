@@ -268,6 +268,14 @@ void AvatarMixer::broadcastAvatarData() {
 
                     assert(lastSeqToReceiver <= lastSeqFromSender);
 
+                    if (lastSeqToReceiver > lastSeqFromSender) {
+                        // Did we somehow get out of order packets from the sender?
+                        // We don't expect this to happen - in RELEASE we add this to a trackable stat
+                        // and in DEBUG we crash on the assert above
+
+                    }
+
+                    
                     // make sure we haven't already sent this data from this sender to this receiver
                     // or that somehow we haven't sent
                     if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {

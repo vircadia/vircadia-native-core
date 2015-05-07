@@ -62,6 +62,8 @@ public:
     void recordNumOtherAvatarSkips(int numOtherAvatarSkips) { _otherAvatarSkips.updateAverage((float) numOtherAvatarSkips); }
     float getAvgNumOtherAvatarSkipsPerSecond() const { return _otherAvatarSkips.getAverageSampleValuePerSecond(); }
 
+    void incrementNumOutOfOrderSends() { ++_numOutOfOrderSends; }
+
     int getNumFramesSinceFRDAdjustment() const { return _numFramesSinceAdjustment; }
     void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
@@ -89,6 +91,7 @@ private:
 
     SimpleMovingAverage _otherAvatarStarves;
     SimpleMovingAverage _otherAvatarSkips;
+    int _numOutOfOrderSends = 0;
     
     SimpleMovingAverage _avgOtherAvatarDataRate;
 };
