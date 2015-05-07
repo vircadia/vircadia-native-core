@@ -48,7 +48,7 @@ void LegacyDisplayPlugin::deactivate() {
     _window = nullptr;
 }
 
-QSize LegacyDisplayPlugin::getRecommendedFramebufferSize() const {
+QSize LegacyDisplayPlugin::getDeviceSize() const {
     return _window->getDeviceSize();
 }
 

@@ -15,7 +15,7 @@ const QString & NullDisplayPlugin::getName() {
     return NAME;
 }
 
-QSize NullDisplayPlugin::getRecommendedFramebufferSize() const {
+QSize NullDisplayPlugin::getDeviceSize() const {
     return QSize(100, 100);
 }
 

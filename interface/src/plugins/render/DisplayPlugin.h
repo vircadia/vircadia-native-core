@@ -36,7 +36,9 @@ public:
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
     // The size of the rendering surface
-    virtual QSize getRecommendedFramebufferSize() const = 0;
+    virtual QSize getDeviceSize() const = 0;
+    // The size of the rendering target (may be larger than the device size due to distortion)
+    virtual QSize getRecommendedFramebufferSize() const { return getDeviceSize(); };
     // The size of the window (differs from the framebuffers size in instances like Retina macs)
     virtual glm::ivec2 getCanvasSize() const = 0;
 

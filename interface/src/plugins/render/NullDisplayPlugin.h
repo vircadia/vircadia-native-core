@@ -18,12 +18,12 @@ public:
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName();
 
-    virtual QSize getRecommendedFramebufferSize() const;
+    virtual QSize getDeviceSize() const;
     virtual glm::ivec2 getCanvasSize() const;
     virtual bool hasFocus() const;
     virtual glm::ivec2 getRelativeMousePosition() const;
     virtual glm::ivec2 getTrueMousePosition() const;
     virtual PickRay computePickRay(const glm::vec2 & pos) const;
-    virtual bool isMouseOnScreen();
+    virtual bool isMouseOnScreen() const;
 
 };

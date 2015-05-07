@@ -290,7 +290,6 @@ bool setupEssentials(int& argc, char** argv) {
 Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _dependencyManagerIsSetup(setupEssentials(argc, argv)),
-        _offscreenContext(new OffscreenGlContext()),
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
@@ -319,8 +318,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
-        _touchAvgX(0.0f),
-        _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
@@ -501,7 +498,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ResourceCache::setRequestLimit(3);
 
     _window->setCentralWidget(new QWidget());
+
     _window->restoreGeometry();
+
     _window->setVisible(true);
 
 #if 0
@@ -592,7 +591,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     this->installEventFilter(this);
     // The offscreen UI needs to intercept the mouse and keyboard 
     // events coming from the onscreen window
-    _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+    this->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
     // initialize our face trackers after loading the menu settings
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
@@ -810,18 +809,14 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
-    _glWidget->makeCurrent();
+    _offscreenContext->makeCurrent();
     PerformanceTimer perfTimer("paintGL");
-    //Need accurate frame timing for the oculus rift
-    if (OculusManager::isConnected()) {
-        OculusManager::beginFrameTiming();
-    }
+    getActiveDisplayPlugin()->preDisplay();
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
-    _offscreenContext->makeCurrent();
     QSize fbSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize() * getRenderResolutionScale();
     DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
 
@@ -888,7 +883,8 @@ void Application::paintGL() {
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
+            glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
+            _rearMirrorTools->render(true, QPoint(mpos.x, mpos.y));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
         }
@@ -1460,8 +1456,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         _keyboardMouseDevice.mousePressEvent(event);
 
         if (event->button() == Qt::LeftButton) {
-            _mouseDragStartedX = getTrueMouseX();
-            _mouseDragStartedY = getTrueMouseY();
+            _mouseDragStarted = getTrueMousePosition();
             _mousePressed = true;
             
             if (mouseOnScreen()) {
@@ -1563,22 +1558,18 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     bool validTouch = false;
     if (activeWindow() == _window) {
         const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
-        _touchAvgX = 0.0f;
-        _touchAvgY = 0.0f;
+        _touchAvg = glm::vec2(0);
         int numTouches = tPoints.count();
         if (numTouches > 1) {
             for (int i = 0; i < numTouches; ++i) {
-                _touchAvgX += tPoints[i].pos().x();
-                _touchAvgY += tPoints[i].pos().y();
+                _touchAvg += toGlm(tPoints[i].pos());
             }
-            _touchAvgX /= (float)(numTouches);
-            _touchAvgY /= (float)(numTouches);
+            _touchAvg /= numTouches;
             validTouch = true;
         }
     }
     if (!_isTouchPressed) {
-        _touchDragStartedAvgX = _touchAvgX;
-        _touchDragStartedAvgY = _touchAvgY;
+        _touchDragStartedAvg = _touchAvg;
     }
     _isTouchPressed = validTouch;
 }
@@ -1614,8 +1605,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _keyboardMouseDevice.touchEndEvent(event);
 
     // put any application specific touch behavior below here..
-    _touchDragStartedAvgX = _touchAvgX;
-    _touchDragStartedAvgY = _touchAvgY;
+    _touchDragStartedAvg = _touchAvg;
     _isTouchPressed = false;
 
 }
@@ -1736,13 +1726,11 @@ void Application::idle() {
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
             update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
-
         {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
             getActiveDisplayPlugin()->idle();
         }
-
         {
             PerformanceTimer perfTimer("rest");
             PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
@@ -1822,15 +1810,12 @@ void Application::setFullscreen(bool fullscreen) {
     }
 }
 
-
-void Application::setEnable3DTVMode(bool enable3DTVMode) {
 #if 0
+void Application::setEnable3DTVMode(bool enable3DTVMode) {
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
-#endif
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
-#if 0
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
         Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
     }
@@ -1855,8 +1840,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     
     updateCursorVisibility();
-#endif
 }
+#endif
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
@@ -1875,16 +1860,15 @@ int Application::getMouseY() const {
 }
 
 ivec2 Application::getMouseDragStarted() const {
-	return getActiveDisplaylugin()->trueMouseToUiMouse(
-			glm::ivec2(getTrueMouseDragStartedX(), getTrueMouseDragStartedY()));
+    return getActiveDisplayPlugin()->trueMouseToUiMouse(getTrueMouseDragStarted());
 }
 
 int Application::getMouseDragStartedX() const {
-	return getMouseDragStarted().x;
+    return getMouseDragStarted().x;
 }
 
 int Application::getMouseDragStartedY() const {
-	return getMouseDragStarted().y;
+    return getMouseDragStarted().y;
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -2221,9 +2205,8 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-#if 0
         //  When I am in mirror mode, just look right at the camera (myself)
-        if (!OculusManager::isConnected()) {
+        if (!isHMDMode()) {
             lookAtSpot = _myCamera.getPosition();
         } else {
             if (_myAvatar->isLookingAtLeftEye()) {
@@ -2232,7 +2215,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 lookAtSpot = OculusManager::getRightEyePosition();
             }
         }
-#endif 
+        
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
         if (lookingAt && _myAvatar != lookingAt.data()) {
@@ -3444,7 +3427,8 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
+        glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
+        _rearMirrorTools->render(false, QPoint(mpos.x, mpos.y));
     }
 
     // reset Viewport and projection matrix
@@ -4320,6 +4304,7 @@ void Application::skipVersion(QString latestVersion) {
 }
 
 void Application::takeSnapshot() {
+#if 0
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
@@ -4336,6 +4321,8 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, desktop());
     }
     _snapshotShareDialog->show();
+#endif
+    
 }
 
 void Application::setVSyncEnabled() {
@@ -4524,7 +4511,7 @@ glm::uvec2 Application::getCanvasSize() const {
 }
 
 QSize Application::getDeviceSize() const {
-    return getActiveDisplayPlugin()->getRecommendedFramebufferSize();  // _glWidget->getDeviceSize();
+    return getActiveDisplayPlugin()->getDeviceSize();
 }
 
 void Application::resizeGL() {
@@ -4544,19 +4531,13 @@ glm::vec2 Application::getViewportDimensions() const {
 glm::ivec2 Application::getTrueMousePosition() const {
     return getActiveDisplayPlugin()->getTrueMousePosition();
 }
+
 glm::quat Application::getHeadOrientation() const {
     return getActiveDisplayPlugin()->headOrientation();
 }
+
 glm::vec3 Application::getHeadPosition() const {
     return getActiveDisplayPlugin()->headTranslation();
-}
-
-int Application::getTrueMouseX() const { 
-    return getActiveDisplayPlugin()->getTrueMousePosition().x;
-}
-
-int Application::getTrueMouseY() const { 
-    return getActiveDisplayPlugin()->getTrueMousePosition().y;
 }
 
 bool Application::isThrottleRendering() const {
@@ -4658,44 +4639,4 @@ void Application::initPlugins() {
 
 void Application::shutdownPlugins() {
     OculusManager::deinit();
-}
-
-glm::vec3 Application::getHeadPosition() const {
-    return OculusManager::getRelativePosition();
-}
-
-glm::quat Application::getHeadOrientation() const {
-    return OculusManager::getOrientation();
-}
-
-glm::uvec2 Application::getCanvasSize() const {
-    return glm::uvec2(_glWidget->width(), _glWidget->height());
-}
-
-QSize Application::getDeviceSize() const {
-    return _glWidget->getDeviceSize();
-}
-
-int Application::getTrueMouseX() const { 
-    return _glWidget->mapFromGlobal(QCursor::pos()).x(); 
-}
-
-int Application::getTrueMouseY() const { 
-    return _glWidget->mapFromGlobal(QCursor::pos()).y(); 
-}
-
-bool Application::isThrottleRendering() const { 
-    return _glWidget->isThrottleRendering(); 
-}
-
-PickRay Application::computePickRay() const {
-    return computePickRay(getTrueMouseX(), getTrueMouseY());
-}
-
-bool Application::hasFocus() const {
-    return _glWidget->hasFocus();
-}
-
-void Application::resizeGL() {
-    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }

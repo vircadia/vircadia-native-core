@@ -74,8 +74,6 @@ find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg W
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 source_group("UI Files" FILES ${QT_UI_FILES})
 
-
-
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
@@ -138,8 +136,8 @@ target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
 add_dependency_external_projects(OpenVR)
 find_package(OpenVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
+target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
 
 find_package(Bullet REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})

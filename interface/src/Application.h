@@ -40,7 +40,6 @@
 #include <ViewFrustum.h>
 #include <OffscreenGlContext.h>
 
-
 #include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -221,14 +220,19 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
-    glm::ivec2 getMouse();
-    int getMouseX() const;
-    int getMouseY() const;
+
+    glm::ivec2 getMouse() const;
+    int getMouseX() const { return getMouse().x; }
+    int getMouseY() const { return getMouse().y; }
+
     glm::ivec2 getTrueMousePosition() const;
     int getTrueMouseX() const { return getTrueMousePosition().x; }
     int getTrueMouseY() const { return getTrueMousePosition().y; }
+
+    glm::ivec2 getMouseDragStarted() const;
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
+    
     const glm::ivec2 & getTrueMouseDragStarted() const { return _mouseDragStarted; }
     int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
     int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
@@ -586,18 +590,15 @@ private:
     Environment _environment;
 
     bool _cursorVisible;
-    int _mouseDragStartedX;
-    int _mouseDragStartedY;
+    glm::ivec2 _mouseDragStarted;
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
 
-    float _touchAvgX;
-    float _touchAvgY;
-    float _touchDragStartedAvgX;
-    float _touchDragStartedAvgY;
+    glm::vec2 _touchAvg;
+    glm::vec2 _touchDragStartedAvg;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)

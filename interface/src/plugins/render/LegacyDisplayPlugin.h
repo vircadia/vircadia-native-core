@@ -21,12 +21,12 @@ public:
     virtual void activate();
     virtual void deactivate();
 
-    virtual QSize getRecommendedFramebufferSize() const;
+    virtual QSize getDeviceSize() const;
     virtual glm::ivec2 getCanvasSize() const;
     virtual bool hasFocus() const;
     virtual PickRay computePickRay(const glm::vec2 & pos) const;
     virtual bool isMouseOnScreen() const { return true; }
-    virtual bool isThrottled();
+    virtual bool isThrottled() const;
 
 protected:
     virtual void makeCurrent();
