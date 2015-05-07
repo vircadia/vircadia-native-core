@@ -121,7 +121,7 @@ public:
     qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
-    void(*linkedDataCreateCallback)(Node *);
+    void (*linkedDataCreateCallback)(Node *);
     
     int size() const { return _nodeHash.size(); }
 

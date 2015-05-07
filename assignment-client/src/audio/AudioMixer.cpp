@@ -65,12 +65,6 @@ const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
-void attachNewNodeDataToNode(Node *newNode) {
-    if (!newNode->getLinkedData()) {
-        newNode->setLinkedData(new AudioMixerClientData());
-    }
-}
-
 InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 bool AudioMixer::_printStreamStats = false;
@@ -687,7 +681,9 @@ void AudioMixer::run() {
     
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;
+    nodeList->linkedDataCreateCallback = [](Node* node) {
+        node->setLinkedData(new AudioMixerClientData());
+    };
     
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = nodeList->getDomainHandler();

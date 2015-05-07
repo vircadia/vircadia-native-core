@@ -213,14 +213,6 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (!newNode->getLinkedData() && _instance) {
-        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
-        newQueryNodeData->init();
-        newNode->setLinkedData(newQueryNodeData);
-    }
-}
-
 OctreeServer::OctreeServer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _argc(0),
@@ -1132,7 +1124,11 @@ void OctreeServer::run() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
 
-    nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
+        newQueryNodeData->init();
+        node->setLinkedData(newQueryNodeData);
+    };
 
     srand((unsigned)time(0));
 

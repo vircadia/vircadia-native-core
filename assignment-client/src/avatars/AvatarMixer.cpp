@@ -56,14 +56,6 @@ AvatarMixer::~AvatarMixer() {
     _broadcastThread.wait();
 }
 
-void attachAvatarDataToNode(Node* newNode) {
-    if (!newNode->getLinkedData()) {
-        // setup the client linked data - default the number of frames since adjustment
-        // to our number of frames per second
-        newNode->setLinkedData(new AvatarMixerClientData());
-    }
-}
-
 const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 
 // NOTE: some additional optimizations to consider.
@@ -519,7 +511,9 @@ void AvatarMixer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        node->setLinkedData(new AvatarMixerClientData());
+    };
     
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer();
