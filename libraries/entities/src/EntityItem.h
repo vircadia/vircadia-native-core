@@ -28,7 +28,7 @@
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
-class EntityTree;
+class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
@@ -44,19 +44,28 @@ class EntityTreeElementExtraEncodeData;
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem {
+    // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
+    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
+    // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
+    // do cleanup.
     friend class EntityTreeElement;
+    friend class EntitySimulation;
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
-        DIRTY_VELOCITY = 0x0002,
-        DIRTY_MASS = 0x0004,
-        DIRTY_COLLISION_GROUP = 0x0008,
-        DIRTY_MOTION_TYPE = 0x0010,
-        DIRTY_SHAPE = 0x0020,
-        DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_MATERIAL = 0x00100,
-        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
+        DIRTY_ROTATION = 0x0002,
+        DIRTY_LINEAR_VELOCITY = 0x0004,
+        DIRTY_ANGULAR_VELOCITY = 0x0008,
+        DIRTY_MASS = 0x0010,
+        DIRTY_COLLISION_GROUP = 0x0020,
+        DIRTY_MOTION_TYPE = 0x0040,
+        DIRTY_SHAPE = 0x0080,
+        DIRTY_LIFETIME = 0x0100,
+        DIRTY_UPDATEABLE = 0x0200,
+        DIRTY_MATERIAL = 0x00400,
+        DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
+        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
+        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -66,7 +75,7 @@ public:
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
-    QUuid getID() const { return _id; }
+    const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
@@ -94,6 +103,10 @@ public:
         { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
+    /// Last time we sent out an edit packet for this entity
+    quint64 getLastBroadcast() const { return _lastBroadcast; }
+    void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
 
     void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
@@ -243,6 +256,8 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
+    virtual bool shouldBePhysical() const { return !_ignoreForCollisions; }
+
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
@@ -281,7 +296,6 @@ public:
     void updateDamping(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
-    void updateAcceleration(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularVelocityInDegrees(const glm::vec3& value) { updateAngularVelocity(glm::radians(value)); }
     void updateAngularDamping(float value);
@@ -296,8 +310,8 @@ public:
     bool isMoving() const;
 
     void* getPhysicsInfo() const { return _physicsInfo; }
-    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
@@ -320,6 +334,7 @@ protected:
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
@@ -371,16 +386,23 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
-    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
-    // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo = NULL; // only set by EntitySimulation
-
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
-    EntityTreeElement* _element;    // back pointer to containing Element
+    // these backpointers are only ever set/cleared by friends:
+    EntityTreeElement* _element = nullptr; // set by EntityTreeElement
+    void* _physicsInfo = nullptr; // set by EntitySimulation
+    bool _simulated; // set by EntitySimulation
 };
 
+
+extern const float IGNORE_POSITION_DELTA;
+extern const float IGNORE_DIMENSIONS_DELTA;
+extern const float IGNORE_ALIGNMENT_DOT;
+extern const float IGNORE_LINEAR_VELOCITY_DELTA;
+extern const float IGNORE_DAMPING_DELTA;
+extern const float IGNORE_GRAVITY_DELTA;
+extern const float IGNORE_ANGULAR_VELOCITY_DELTA;
 
 
 #endif // hifi_EntityItem_h

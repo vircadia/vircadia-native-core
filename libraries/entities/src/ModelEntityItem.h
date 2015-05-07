@@ -117,6 +117,8 @@ public:
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
     void setTextures(const QString& textures) { _textures = textures; }
+
+    virtual bool shouldBePhysical() const;
     
     static void cleanupLoadedAnimations();
     

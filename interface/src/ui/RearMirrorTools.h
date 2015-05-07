@@ -12,10 +12,7 @@
 #ifndef hifi_RearMirrorTools_h
 #define hifi_RearMirrorTools_h
 
-#include "InterfaceConfig.h"
-
-#include <QGLWidget>
-
+#include <gpu/Texture.h>
 #include <SettingHandle.h>
 
 enum ZoomLevel {
@@ -26,8 +23,8 @@ enum ZoomLevel {
 class RearMirrorTools : public QObject {
     Q_OBJECT
 public:
-    RearMirrorTools(QGLWidget* parent, QRect& bounds);
-    void render(bool fullScreen);
+    RearMirrorTools(QRect& bounds);
+    void render(bool fullScreen, const QPoint & mousePos);
     bool mousePressEvent(int x, int y);
     
     static Setting::Handle<int> rearViewZoomLevel;
@@ -39,12 +36,10 @@ signals:
     void restoreView();
     
 private:
-    QGLWidget* _parent;
     QRect _bounds;
-    GLuint _closeTextureId;
-    GLuint _resetTextureId;
-    GLuint _zoomBodyTextureId;
-    GLuint _zoomHeadTextureId;
+    gpu::TexturePointer _closeTexture;
+    gpu::TexturePointer _zoomBodyTexture;
+    gpu::TexturePointer _zoomHeadTexture;
     
     QRect _closeIconRect;
     QRect _resetIconRect;
@@ -55,7 +50,7 @@ private:
     bool _windowed;
     bool _fullScreen;
     
-    void displayIcon(QRect bounds, QRect iconBounds, GLuint textureId, bool selected = false);
+    void displayIcon(QRect bounds, QRect iconBounds, const gpu::TexturePointer& texture, bool selected = false);
 };
 
 #endif // hifi_RearMirrorTools_h
