@@ -19,7 +19,8 @@
 #include "RenderableDebugableEntityItem.h"
 
 
-void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args, bool puffedOut) {
+void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args,
+                                                      float puffedOut, glm::vec4& color) {
     glm::vec3 position = entity->getPosition();
     glm::vec3 center = entity->getCenter();
     glm::vec3 dimensions = entity->getDimensions();
@@ -33,13 +34,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            if (puffedOut) {
-                glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.2f, redColor);
-            } else {
-                glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, greenColor);
-            }
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f + puffedOut, color);
         glPopMatrix();
     glPopMatrix();
 }
@@ -76,7 +71,13 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
     if (debugSimulationOwnership) {
         quint64 now = usecTimestampNow();
         if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
-            renderBoundingBox(entity, args, true);
+            glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
+            renderBoundingBox(entity, args, 0.2f, redColor);
+        }
+
+        if (now - entity->getLastBroadcast() < 0.2f * USECS_PER_SECOND) {
+            glm::vec4 yellowColor(1.0f, 1.0f, 0.2f, 1.0f);
+            renderBoundingBox(entity, args, 0.3f, yellowColor);
         }
     }
 
