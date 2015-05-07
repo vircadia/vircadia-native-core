@@ -801,8 +801,7 @@ void Application::initializeUi() {
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            auto canvasSize = getActiveDisplayPlugin()->getCanvasSize();
-            resizeGL(canvasSize.x, canvasSize.y);
+            resizeGL();
         }
     });
 }
@@ -816,9 +815,7 @@ void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
-
-    QSize fbSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize() * getRenderResolutionScale();
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
+    resizeGL();
 
     glEnable(GL_LINE_SMOOTH);
 
@@ -890,6 +887,13 @@ void Application::paintGL() {
         }
 
         finalFbo = DependencyManager::get<GlowEffect>()->render();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
+                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
+                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
         {
             PerformanceTimer perfTimer("renderOverlay");
             _applicationOverlay.renderOverlay();
@@ -939,19 +943,15 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
-#if 0
+void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera, width, height);
+        OculusManager::configureCamera(camera, size.x, size.y);
     } else if (TV3DManager::isConnected()) {
-        TV3DManager::configureCamera(camera, width, height);
+        TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-#endif
-        camera.setAspectRatio((float)width / height);
+    	camera.setAspectRatio(aspect(size));
         camera.setFieldOfView(_fieldOfView.get());
-#if 0
     }
-#endif
 }
 
 void Application::resizeEvent(QResizeEvent * event) {
@@ -959,11 +959,24 @@ void Application::resizeEvent(QResizeEvent * event) {
     resizeGL(newSize.width(), newSize.height());
 }
 
-void Application::resizeGL(int width, int height) {
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
-    resetCamerasOnResizeGL(_myCamera, width, height);
+void Application::resizeGL() {
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    QSize renderSize;
+    if (OculusManager::isConnected()) {
+        renderSize = OculusManager::getRenderTargetSize();
+    } else {
+        renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+    }
+    if (_renderResolution == toGlm(renderSize)) {
+    	return;
+    }
 
-    glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _renderResolution = toGlm(renderSize);
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+    resetCamerasOnResizeGL(_myCamera, _renderResolution);
+
+    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
     glLoadIdentity();
@@ -971,11 +984,12 @@ void Application::resizeGL(int width, int height) {
     auto canvasSize = getActiveDisplayPlugin()->getCanvasSize();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(fromGlm(canvasSize));
+    _glWidget->makeCurrent();
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(width, horizontalOffset);
+    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
@@ -1812,7 +1826,7 @@ void Application::setFullscreen(bool fullscreen) {
 
 #if 0
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1837,7 +1851,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
     
     updateCursorVisibility();
 }
@@ -3227,6 +3241,11 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
             _entities.render(renderMode, renderSide, renderDebugFlags);
+            
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+                // Restaure polygon mode
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
         }
 
         // render JS/scriptable overlays
