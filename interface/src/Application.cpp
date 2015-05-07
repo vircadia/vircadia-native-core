@@ -2644,7 +2644,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2685,7 +2688,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             
-            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
             
@@ -2707,7 +2709,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
+
+
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -2753,7 +2760,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-            
+
             // insert packet type/version and node UUID
             endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
