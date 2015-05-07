@@ -79,6 +79,8 @@ void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
 
 void EntityMotionState::clearEntity() {
     _entity = nullptr;
+    // set the type to INVALID so that external logic that pivots on the type won't try to access _entity
+    _type = MOTION_STATE_TYPE_INVALID;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {

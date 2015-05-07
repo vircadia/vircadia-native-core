@@ -27,7 +27,7 @@ enum MotionType {
 };
 
 enum MotionStateType {
-    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_INVALID,
     MOTION_STATE_TYPE_ENTITY,
     MOTION_STATE_TYPE_AVATAR
 };
@@ -125,7 +125,7 @@ protected:
     virtual void setMotionType(MotionType motionType);
     void setRigidBody(btRigidBody* body);
 
-    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN; // type of MotionState
+    MotionStateType _type = MOTION_STATE_TYPE_INVALID; // type of MotionState
     MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
     btCollisionShape* _shape;
