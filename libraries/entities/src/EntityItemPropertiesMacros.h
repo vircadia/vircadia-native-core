@@ -107,6 +107,11 @@
             }                                               \
         }
 
+#define DECODE_GROUP_PROPERTY_HAS_CHANGED(P,N) \
+        if (propertyFlags.getHasProperty(P)) {  \
+            set##N##Changed(true); \
+        }
+
 #define READ_ENTITY_PROPERTY_COLOR(P,M)         \
         if (propertyFlags.getHasProperty(P)) {  \
             if (overwriteLocalData) {           \

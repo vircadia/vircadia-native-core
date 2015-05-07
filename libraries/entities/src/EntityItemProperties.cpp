@@ -181,6 +181,10 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _dimensions=" << getDimensions();
     qCDebug(entities) << "   _modelURL=" << _modelURL;
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
+
+    getAtmosphere().debugDump();
+    getSkybox().debugDump();
+
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
