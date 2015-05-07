@@ -420,7 +420,7 @@ private:
             IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
             IS_SHADOW = (1 << IS_SHADOW_FLAG),
             IS_MIRROR = (1 << IS_MIRROR_FLAG),
-            IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG)
+            IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG),
         };
         typedef unsigned short Flags;
 
