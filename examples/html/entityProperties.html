@@ -33,10 +33,39 @@
                 );
             };
         }
+        function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
+            return function() {
+                var properties = {};
+                properties[group] = {};
+                properties[group][propertyName] = this.value;
+                EventBridge.emitWebEvent(
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties,
+                    })
+                );
+            };
+        }
+
+
         function createEmitTextPropertyUpdateFunction(propertyName) {
             return function() {
                 var properties = {};
                 properties[propertyName] = this.value;
+                EventBridge.emitWebEvent(
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties,
+                    })
+                );
+            };
+        }
+
+        function createEmitGroupTextPropertyUpdateFunction(group,propertyName) {
+            return function() {
+                var properties = {};
+                properties[group] = {};
+                properties[group][propertyName] = this.value;
                 EventBridge.emitWebEvent(
                     JSON.stringify({
                         type: "update",
@@ -54,6 +83,23 @@
                      }
                 };
                 data.properties[property] = {
+                     x: elX.value,
+                     y: elY.value,
+                     z: elZ.value,
+                };
+                EventBridge.emitWebEvent(JSON.stringify(data));
+            }
+        };
+
+        function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, elZ) {
+            return function() {
+                var data = {
+                     type: "update",
+                     properties: {
+                     }
+                };
+                data.properties[group] = { };
+                data.properties[group][property] = {
                      x: elX.value,
                      y: elY.value,
                      z: elZ.value,
@@ -86,6 +132,24 @@
                      }
                 };
                 data.properties[property] = {
+                     red: elRed.value,
+                     green: elGreen.value,
+                     blue: elBlue.value,
+                };
+                EventBridge.emitWebEvent(JSON.stringify(data));
+            }
+        };
+
+        function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
+            return function() {
+                var data = {
+                     type: "update",
+                     properties: {
+                     }
+                };
+                data.properties[group] = { };
+
+                data.properties[group][property] = {
                      red: elRed.value,
                      green: elGreen.value,
                      blue: elBlue.value,
@@ -559,20 +623,33 @@
             elZoneStageDay.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageDay'));
             elZoneStageHour.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageHour'));
 
-            elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
-            var zoneSkyboxColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                'skybox.color', elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
-            elZoneSkyboxURL.addEventListener('change', createEmitTextPropertyUpdateFunction('skybox.url'));
 
-            var zoneAtmosphereCenterChangeFunction = createEmitVec3PropertyUpdateFunction(
-                'atmosphere.center', elZoneAtmosphereCenterX, elZoneAtmosphereCenterY, elZoneAtmosphereCenterZ);
-            elZoneAtmosphereInnerRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('atmosphere.innerRadius'));
-            elZoneAtmosphereOuterRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('atmosphere.outerRadius'));
-            elZoneAtmosphereMieScattering.addEventListener('change', createEmitNumberPropertyUpdateFunction('atmosphere.mieScattering'));
-            elZoneAtmosphereRayleighScattering.addEventListener('change', createEmitNumberPropertyUpdateFunction('atmosphere.rayleighScattering'));
-            var zoneAtmosphereCenterChangeFunction = createEmitVec3PropertyUpdateFunction(
-                'atmosphere.scatteringWavelengths', elZoneAtmosphereScatteringWavelengthsX, 
+            elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
+            var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox','color',
+                elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
+            elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
+            elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
+            elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
+                
+            elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
+
+            var zoneAtmosphereCenterChangeFunction = createEmitGroupVec3PropertyUpdateFunction(
+                'atmosphere','center', elZoneAtmosphereCenterX, elZoneAtmosphereCenterY, elZoneAtmosphereCenterZ);
+            elZoneAtmosphereCenterX.addEventListener('change', zoneAtmosphereCenterChangeFunction);
+            elZoneAtmosphereCenterY.addEventListener('change', zoneAtmosphereCenterChangeFunction);
+            elZoneAtmosphereCenterZ.addEventListener('change', zoneAtmosphereCenterChangeFunction);
+                
+                
+            elZoneAtmosphereInnerRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','innerRadius'));
+            elZoneAtmosphereOuterRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','outerRadius'));
+            elZoneAtmosphereMieScattering.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','mieScattering'));
+            elZoneAtmosphereRayleighScattering.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','rayleighScattering'));
+            var zoneAtmosphereScatterWavelengthsChangeFunction = createEmitGroupVec3PropertyUpdateFunction(
+                'atmosphere','scatteringWavelengths', elZoneAtmosphereScatteringWavelengthsX, 
                 elZoneAtmosphereScatteringWavelengthsY, elZoneAtmosphereScatteringWavelengthsZ);
+            elZoneAtmosphereScatteringWavelengthsX.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
+            elZoneAtmosphereScatteringWavelengthsY.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
+            elZoneAtmosphereScatteringWavelengthsZ.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
 
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
@@ -1059,21 +1136,21 @@
         <div class="zone-section property">
             <div class="label">Atmosphere Mie Scattering</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="0.01"></input>
+                <input class="coord" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="0.001"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Atmosphere Rayleigh Scattering</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="0.01"></input>
+                <input class="coord" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="0.001"></input>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Atmosphere Scattering Wavelenghts</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="0.01"></input></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="0.01"></input></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="0.01"></input></div>
+                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="0.001"></input></div>
+                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="0.001"></input></div>
+                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="0.001"></input></div>
             </div>
         </div>
 
