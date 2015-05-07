@@ -27,13 +27,13 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _entity(entity),
     _sentMoving(false),
     _numNonMovingUpdates(0),
-    _sentStep(0),
-    _sentPosition(0.0f),
-    _sentRotation(),
-    _sentVelocity(0.0f),
-    _sentAngularVelocity(0.0f),
-    _sentGravity(0.0f),
-    _sentAcceleration(0.0f),
+    _lastStep(0),
+    _serverPosition(0.0f),
+    _serverRotation(),
+    _serverVelocity(0.0f),
+    _serverAngularVelocity(0.0f),
+    _serverGravity(0.0f),
+    _serverAcceleration(0.0f),
     _accelerationNearlyGravityCount(0),
     _shouldClaimSimulationOwnership(false),
     _movingStepsWithoutSimulationOwner(0)
@@ -49,16 +49,16 @@ EntityMotionState::~EntityMotionState() {
 
 void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
     if (flags & EntityItem::DIRTY_POSITION) {
-        _sentPosition = _entity->getPosition();
+        _serverPosition = _entity->getPosition();
     }
     if (flags & EntityItem::DIRTY_ROTATION) {
-        _sentRotation = _entity->getRotation();
+        _serverRotation = _entity->getRotation();
     }
     if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
-        _sentVelocity = _entity->getVelocity();
+        _serverVelocity = _entity->getVelocity();
     }
     if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
-        _sentAngularVelocity = _entity->getAngularVelocity();
+        _serverAngularVelocity = _entity->getAngularVelocity();
     }
 }
 
@@ -96,8 +96,8 @@ bool EntityMotionState::isMoving() const {
 }
 
 bool EntityMotionState::isMovingVsServer() const {
-    auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
-    if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
+    auto alignmentDot = glm::abs(glm::dot(_serverRotation, _entity->getRotation()));
+    if (glm::distance(_serverPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
         alignmentDot < IGNORE_ALIGNMENT_DOT) {
         return true;
     }
@@ -183,26 +183,26 @@ bool EntityMotionState::doesNotNeedToSendUpdate() const {
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     assert(_body);
-    // if we've never checked before, our _sentStep will be 0, and we need to initialize our state
-    if (_sentStep == 0) {
+    // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
+    if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
-        _sentPosition = bulletToGLM(xform.getOrigin());
-        _sentRotation = bulletToGLM(xform.getRotation());
-        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
-        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
-        _sentStep = simulationStep;
+        _serverPosition = bulletToGLM(xform.getOrigin());
+        _serverRotation = bulletToGLM(xform.getRotation());
+        _serverVelocity = bulletToGLM(_body->getLinearVelocity());
+        _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _lastStep = simulationStep;
         return false;
     }
     
     #ifdef WANT_DEBUG
-    glm::vec3 wasPosition = _sentPosition;
-    glm::quat wasRotation = _sentRotation;
-    glm::vec3 wasAngularVelocity = _sentAngularVelocity;
+    glm::vec3 wasPosition = _serverPosition;
+    glm::quat wasRotation = _serverRotation;
+    glm::vec3 wasAngularVelocity = _serverAngularVelocity;
     #endif
 
-    int numSteps = simulationStep - _sentStep;
+    int numSteps = simulationStep - _lastStep;
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-    _sentStep = simulationStep;
+    _lastStep = simulationStep;
     bool isActive = _body->isActive();
 
     if (!isActive) {
@@ -226,16 +226,16 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // due to _worldOffset.
 
     // compute position error
-    if (glm::length2(_sentVelocity) > 0.0f) {
-        _sentVelocity += _sentAcceleration * dt;
-        _sentVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
-        _sentPosition += dt * _sentVelocity;
+    if (glm::length2(_serverVelocity) > 0.0f) {
+        _serverVelocity += _serverAcceleration * dt;
+        _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+        _serverPosition += dt * _serverVelocity;
     }
 
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
     
-    float dx2 = glm::distance2(position, _sentPosition);
+    float dx2 = glm::distance2(position, _serverPosition);
 
     const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
@@ -244,44 +244,44 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
             qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
             qCDebug(physics) << "wasPosition:" << wasPosition;
             qCDebug(physics) << "bullet position:" << position;
-            qCDebug(physics) << "_sentPosition:" << _sentPosition;
+            qCDebug(physics) << "_serverPosition:" << _serverPosition;
             qCDebug(physics) << "dx2:" << dx2;
         #endif
 
         return true;
     }
     
-    if (glm::length2(_sentAngularVelocity) > 0.0f) {
+    if (glm::length2(_serverAngularVelocity) > 0.0f) {
         // compute rotation error
         float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
-        _sentAngularVelocity *= attenuation;
+        _serverAngularVelocity *= attenuation;
    
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 
         // we must integrate with the same algorithm and timestep in order achieve similar results.
         for (int i = 0; i < numSteps; ++i) {
-            _sentRotation = glm::normalize(computeBulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
+            _serverRotation = glm::normalize(computeBulletRotationStep(_serverAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _serverRotation);
         }
     }
     const float MIN_ROTATION_DOT = 0.99f; // 0.99 dot threshold coresponds to about 16 degrees of slop
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
 
     #ifdef WANT_DEBUG
-        if ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) {
-            qCDebug(physics) << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
+        if ((fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT)) {
+            qCDebug(physics) << ".... ((fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT)) ....";
         
             qCDebug(physics) << "wasAngularVelocity:" << wasAngularVelocity;
-            qCDebug(physics) << "_sentAngularVelocity:" << _sentAngularVelocity;
+            qCDebug(physics) << "_serverAngularVelocity:" << _serverAngularVelocity;
 
             qCDebug(physics) << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
-            qCDebug(physics) << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
+            qCDebug(physics) << "length _serverAngularVelocity:" << glm::length(_serverAngularVelocity);
 
             qCDebug(physics) << "wasRotation:" << wasRotation;
             qCDebug(physics) << "bullet actualRotation:" << actualRotation;
-            qCDebug(physics) << "_sentRotation:" << _sentRotation;
+            qCDebug(physics) << "_serverRotation:" << _serverRotation;
         }
     #endif
 
-    return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
+    return (fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT);
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
@@ -335,42 +335,42 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
 
     btTransform worldTrans = _body->getWorldTransform();
-    _sentPosition = bulletToGLM(worldTrans.getOrigin());
-    properties.setPosition(_sentPosition + ObjectMotionState::getWorldOffset());
+    _serverPosition = bulletToGLM(worldTrans.getOrigin());
+    properties.setPosition(_serverPosition + ObjectMotionState::getWorldOffset());
   
-    _sentRotation = bulletToGLM(worldTrans.getRotation());
-    properties.setRotation(_sentRotation);
+    _serverRotation = bulletToGLM(worldTrans.getRotation());
+    properties.setRotation(_serverRotation);
 
     bool zeroSpeed = true;
     bool zeroSpin = true;
 
     if (_body->isActive()) {
-        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
-        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _serverVelocity = bulletToGLM(_body->getLinearVelocity());
+        _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
 
         // if the speeds are very small we zero them out
         const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-        zeroSpeed = (glm::length2(_sentVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
+        zeroSpeed = (glm::length2(_serverVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
         if (zeroSpeed) {
-            _sentVelocity = glm::vec3(0.0f);
+            _serverVelocity = glm::vec3(0.0f);
         }
         const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-        zeroSpin = glm::length2(_sentAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
+        zeroSpin = glm::length2(_serverAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
         if (zeroSpin) {
-            _sentAngularVelocity = glm::vec3(0.0f);
+            _serverAngularVelocity = glm::vec3(0.0f);
         }
 
         _sentMoving = ! (zeroSpeed && zeroSpin);
     } else {
-        _sentVelocity = _sentAngularVelocity = glm::vec3(0.0f);
+        _serverVelocity = _serverAngularVelocity = glm::vec3(0.0f);
         _sentMoving = false;
     }
-    properties.setVelocity(_sentVelocity);
-    _sentGravity = _entity->getGravity();
+    properties.setVelocity(_serverVelocity);
+    _serverGravity = _entity->getGravity();
     properties.setGravity(_entity->getGravity());
-    _sentAcceleration = _entity->getAcceleration();
-    properties.setAcceleration(_sentAcceleration);
-    properties.setAngularVelocity(_sentAngularVelocity);
+    _serverAcceleration = _entity->getAcceleration();
+    properties.setAcceleration(_serverAcceleration);
+    properties.setAngularVelocity(_serverAngularVelocity);
 
     auto nodeList = DependencyManager::get<NodeList>();
     QUuid myNodeID = nodeList->getSessionUUID();
@@ -430,7 +430,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         #endif
     }
 
-    _sentStep = step;
+    _lastStep = step;
 }
 
 uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() const { 

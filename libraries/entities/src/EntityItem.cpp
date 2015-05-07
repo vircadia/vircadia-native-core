@@ -1105,23 +1105,6 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
-// these thesholds determine what updates will be ignored (client and server)
-const float IGNORE_POSITION_DELTA = 0.0001f;
-const float IGNORE_DIMENSIONS_DELTA = 0.0005f;
-const float IGNORE_ALIGNMENT_DOT = 0.99997f;
-const float IGNORE_LINEAR_VELOCITY_DELTA = 0.001f;
-const float IGNORE_DAMPING_DELTA = 0.001f;
-const float IGNORE_GRAVITY_DELTA = 0.001f;
-const float IGNORE_ANGULAR_VELOCITY_DELTA = 0.0002f;
-
-// these thresholds determine what updates will activate the physical object
-const float ACTIVATION_POSITION_DELTA = 0.005f;
-const float ACTIVATION_DIMENSIONS_DELTA = 0.005f;
-const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
-const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
-const float ACTIVATION_GRAVITY_DELTA = 0.1f;
-const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
-
 void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
     glm::vec3 position = value * (float)TREE_SCALE;
     updatePosition(position);
