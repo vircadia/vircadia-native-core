@@ -278,6 +278,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             return false; // hmm...
         }
 
+        if (_needsInitialSimulation) {
+            // the _model's offset will be wrong until _needsInitialSimulation is false
+            return false;
+        }
+
         assert(!_model->getCollisionURL().isEmpty());
     
         if (_model->getURL().isEmpty()) {

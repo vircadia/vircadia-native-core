@@ -48,7 +48,6 @@ EntityMotionState::~EntityMotionState() {
 }
 
 void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
-    /*
     if (flags & EntityItem::DIRTY_POSITION) {
         _sentPosition = _entity->getPosition();
     }
@@ -61,7 +60,6 @@ void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
     if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
         _sentAngularVelocity = _entity->getAngularVelocity();
     }
-    */
 }
 
 // virtual
@@ -98,17 +96,9 @@ bool EntityMotionState::isMoving() const {
 }
 
 bool EntityMotionState::isMovingVsServer() const {
-    // auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
-    // if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
-    //     alignmentDot < IGNORE_ALIGNMENT_DOT) {
-    //     return true;
-    // }
-    // return false;
-
-    if (glm::length(_entity->getVelocity()) > IGNORE_LINEAR_VELOCITY_DELTA) {
-        return true;
-    }
-    if (glm::length(_entity->getAngularVelocity()) > IGNORE_ANGULAR_VELOCITY_DELTA) {
+    auto alignmentDot = glm::abs(glm::dot(_sentRotation, _entity->getRotation()));
+    if (glm::distance(_sentPosition, _entity->getPosition()) > IGNORE_POSITION_DELTA ||
+        alignmentDot < IGNORE_ALIGNMENT_DOT) {
         return true;
     }
     return false;
@@ -503,4 +493,13 @@ void EntityMotionState::measureBodyAcceleration() {
 void EntityMotionState::setMotionType(MotionType motionType) {
     ObjectMotionState::setMotionType(motionType);
     resetMeasuredBodyAcceleration();
+}
+
+
+// virtual
+QString EntityMotionState::getName() {
+    if (_entity) {
+        return _entity->getName();
+    }
+    return "";
 }

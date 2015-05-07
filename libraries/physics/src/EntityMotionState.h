@@ -81,6 +81,8 @@ public:
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
 
+    virtual QString getName();
+
     friend class PhysicalEntitySimulation;
 
 protected:

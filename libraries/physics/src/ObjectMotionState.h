@@ -119,6 +119,8 @@ public:
     virtual QUuid getSimulatorID() const = 0;
     virtual void bump() = 0;
 
+    virtual QString getName() { return ""; }
+
     friend class PhysicsEngine;
 
 protected:
