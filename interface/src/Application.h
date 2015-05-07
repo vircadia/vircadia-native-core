@@ -33,8 +33,10 @@
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PacketHeaders.h>
+#include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
+#include <ShapeManager.h>
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
@@ -371,6 +373,7 @@ signals:
     void beforeAboutToQuit();
 
 public slots:
+    void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
@@ -525,6 +528,8 @@ private:
     bool _justStarted;
     Stars _stars;
 
+    ShapeManager _shapeManager;
+    PhysicalEntitySimulation _entitySimulation;
     PhysicsEngine _physicsEngine;
 
     EntityTreeRenderer _entities;
