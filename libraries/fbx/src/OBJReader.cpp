@@ -484,7 +484,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                 meshPart._material->setShininess(material->shininess);
                 meshPart._material->setOpacity(material->opacity);
             }
-            qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << " texture:" << meshPart.diffuseTexture.filename << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
+            // qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
                 glm::vec3 v1 = vertices[face.vertexIndices[1]];
@@ -529,7 +529,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
             mesh.meshExtents.addPoint(vertex);
             geometry.meshExtents.addPoint(vertex);
         }
-        fbxDebugDump(geometry);
+        // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
