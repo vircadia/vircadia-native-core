@@ -502,3 +502,12 @@ void EntityMotionState::setMotionType(MotionType motionType) {
     ObjectMotionState::setMotionType(motionType);
     resetMeasuredBodyAcceleration();
 }
+
+
+// virtual
+QString EntityMotionState::getName() {
+    if (_entity) {
+        return _entity->getName();
+    }
+    return "";
+}
