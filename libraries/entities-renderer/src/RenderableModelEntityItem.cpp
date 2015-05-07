@@ -192,7 +192,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (!didDraw) {
-        RenderableDebugableEntityItem::renderBoundingBox(this, args, false);
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
 
     RenderableDebugableEntityItem::render(this, args);

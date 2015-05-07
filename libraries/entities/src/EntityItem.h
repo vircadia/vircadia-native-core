@@ -104,6 +104,10 @@ public:
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
+    /// Last time we sent out an edit packet for this entity
+    quint64 getLastBroadcast() const { return _lastBroadcast; }
+    void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
+
     void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
@@ -328,6 +332,7 @@ protected:
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
