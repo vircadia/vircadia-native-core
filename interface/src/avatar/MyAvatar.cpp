@@ -1173,8 +1173,10 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
 
+
+    // HACK: comment this block which possibly change the near and break the rendering 5/6/2015
     // Only tweak the frustum near far if it's not shadow
-    if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+ /*   if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
         // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
         if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
@@ -1184,7 +1186,7 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
                 + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
             renderFrustum->setNearClip(clipDistance);
         }
-    }
+    }*/
 
     //  Render the body's voxels and head
     RenderArgs::RenderMode modelRenderMode = renderMode;

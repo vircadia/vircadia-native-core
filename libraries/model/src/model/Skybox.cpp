@@ -41,10 +41,13 @@ void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     _cubemap = cubemap;
 }
 
+void Skybox::clearCubemap() {
+    _cubemap.reset();
+}
+
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
 
     if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
-
         static gpu::PipelinePointer thePipeline;
         static gpu::BufferPointer theBuffer;
         static gpu::Stream::FormatPointer theFormat;
