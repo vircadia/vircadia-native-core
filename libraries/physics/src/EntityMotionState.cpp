@@ -151,8 +151,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _movingStepsWithoutSimulationOwner = 0;
     }
 
-    if (_movingStepsWithoutSimulationOwner > 50) { // XXX maybe meters from our characterController ?
-        qDebug() << "XXX XXX XXX -- claiming something I saw moving";
+    int ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
+
+    if (_movingStepsWithoutSimulationOwner > ownershipClaimDelay) {
+        qDebug() << "Warning -- claiming something I saw moving." << getName();
         setShouldClaimSimulationOwnership(true);
     }
 
