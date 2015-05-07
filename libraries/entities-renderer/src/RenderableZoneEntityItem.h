@@ -38,6 +38,7 @@ public:
 private:
     Model* getModel();
     void initialSimulation();
+    void updateGeometry();
     
     template<typename Lambda>
     void changeProperties(Lambda functor);

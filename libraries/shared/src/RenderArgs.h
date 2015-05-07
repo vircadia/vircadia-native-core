@@ -22,10 +22,60 @@ public:
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
 
     enum DebugFlags {
-        RENDER_DEBUG_NONE=0,
-        RENDER_DEBUG_HULLS=1,
-        RENDER_DEBUG_SIMULATION_OWNERSHIP=2
+        RENDER_DEBUG_NONE = 0,
+        RENDER_DEBUG_HULLS = 1,
+        RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
+    
+    RenderArgs(OctreeRenderer* renderer = nullptr,
+               ViewFrustum* viewFrustum = nullptr,
+               float sizeScale = 1.0f,
+               int boundaryLevelAdjust = 0,
+               RenderMode renderMode = DEFAULT_RENDER_MODE,
+               RenderSide renderSide = MONO,
+               DebugFlags debugFlags = RENDER_DEBUG_NONE,
+               
+               int elementsTouched = 0,
+               int itemsRendered = 0,
+               int itemsOutOfView = 0,
+               int itemsTooSmall = 0,
+               
+               int meshesConsidered = 0,
+               int meshesRendered = 0,
+               int meshesOutOfView = 0,
+               int meshesTooSmall = 0,
+               
+               int materialSwitches = 0,
+               int trianglesRendered = 0,
+               int quadsRendered = 0,
+               
+               int translucentMeshPartsRendered = 0,
+               int opaqueMeshPartsRendered = 0) :
+    _renderer(renderer),
+    _viewFrustum(viewFrustum),
+    _sizeScale(sizeScale),
+    _boundaryLevelAdjust(boundaryLevelAdjust),
+    _renderMode(renderMode),
+    _renderSide(renderSide),
+    _debugFlags(debugFlags),
+    
+    _elementsTouched(elementsTouched),
+    _itemsRendered(itemsRendered),
+    _itemsOutOfView(itemsOutOfView),
+    _itemsTooSmall(itemsTooSmall),
+    
+    _meshesConsidered(meshesConsidered),
+    _meshesRendered(meshesRendered),
+    _meshesOutOfView(meshesOutOfView),
+    _meshesTooSmall(meshesTooSmall),
+    
+    _materialSwitches(materialSwitches),
+    _trianglesRendered(trianglesRendered),
+    _quadsRendered(quadsRendered),
+    
+    _translucentMeshPartsRendered(translucentMeshPartsRendered),
+    _opaqueMeshPartsRendered(opaqueMeshPartsRendered) {
+    }
 
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;

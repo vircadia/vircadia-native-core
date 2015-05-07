@@ -3271,6 +3271,11 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
             _entities.render(renderMode, renderSide, renderDebugFlags);
+            
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+                // Restaure polygon mode
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
         }
 
         // render JS/scriptable overlays
