@@ -93,6 +93,11 @@ void GLBackend::render(Batch& batch) {
         command++;
         offset++;
     }
+    
+    // Restaure GL default state
+    for (auto command : gpu::GLBackend::GLState::_resetStateCommands) {
+        command->run(this);
+    }
 }
 
 void GLBackend::renderBatch(Batch& batch) {
