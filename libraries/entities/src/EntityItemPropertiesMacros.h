@@ -116,6 +116,17 @@
             bytesRead += sizeof(rgbColor);      \
         }
 
+#define READ_ENTITY_PROPERTY_XCOLOR(P,M)         \
+        if (propertyFlags.getHasProperty(P)) {  \
+            if (overwriteLocalData) {           \
+                M.red = dataAt[RED_INDEX];        \
+                M.green = dataAt[GREEN_INDEX];    \
+                M.blue = dataAt[BLUE_INDEX];      \
+            }                                   \
+            dataAt += sizeof(rgbColor);         \
+            bytesRead += sizeof(rgbColor);      \
+        }
+
 #define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)               \
         if (propertyFlags.getHasProperty(P)) {                  \
             T fromBuffer;                                       \
@@ -206,26 +217,39 @@
     }
 
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,P,p) \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#G); \
+        QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
         QScriptValue V = vec3toScriptValue(engine, _##p); \
         groupProperties.setProperty(#p, V); \
-        properties.setProperty(#G, groupProperties); \
+        properties.setProperty(#g, groupProperties); \
     }
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,P,p) \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#G); \
+        QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
         groupProperties.setProperty(#p, _##p); \
-        properties.setProperty(#G, groupProperties); \
+        properties.setProperty(#g, groupProperties); \
     }
+
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_COLOR(G,g,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+        QScriptValue groupProperties = properties.property(#g); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        QScriptValue colorValue = xColorToScriptValue(engine, _##p); \
+        groupProperties.setProperty(#p, colorValue); \
+        properties.setProperty(#g, groupProperties); \
+    }
+
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
@@ -328,6 +352,20 @@
         }                                           \
     }
 
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_STRING(G, P, S)\
+    {                                                       \
+        QScriptValue G = object.property(#G);               \
+        if (G.isValid()) {                                  \
+            QScriptValue P = G.property(#P);           \
+            if (P.isValid()) {                              \
+                QString newValue = P.toVariant().toString().trimmed();\
+                if (_defaultSettings || newValue != _##P) { \
+                    S(newValue);                            \
+                }                                           \
+            }                                               \
+        }                                                   \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(P, S)           \
     QScriptValue P = object.property(#P);                    \
     if (P.isValid()) {                                       \
@@ -426,6 +464,31 @@
                 S(newColor);                            \
             }                                           \
         }                                               \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_COLOR(G, P, S)    \
+    {                                                           \
+        QScriptValue G = object.property(#G);                   \
+        if (G.isValid()) {                                      \
+            QScriptValue P = G.property(#P);                    \
+            if (P.isValid()) {                                  \
+                QScriptValue r = P.property("red");             \
+                QScriptValue g = P.property("green");           \
+                QScriptValue b = P.property("blue");            \
+                if (r.isValid() && g.isValid() && b.isValid()) {\
+                    xColor newColor;                            \
+                    newColor.red = r.toVariant().toInt();       \
+                    newColor.green = g.toVariant().toInt();     \
+                    newColor.blue = b.toVariant().toInt();      \
+                    if (_defaultSettings ||                     \
+                        (newColor.red != _color.red ||          \
+                        newColor.green != _color.green ||       \
+                        newColor.blue != _color.blue)) {        \
+                        S(newColor);                            \
+                    }                                           \
+                }                                               \
+            }                                                   \
+        }                                                       \
     }
 
 #define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
