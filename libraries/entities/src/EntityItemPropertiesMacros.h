@@ -118,12 +118,10 @@
 
 #define READ_ENTITY_PROPERTY_XCOLOR(P,M)         \
         if (propertyFlags.getHasProperty(P)) {  \
-            rgbColor temp;                      \
             if (overwriteLocalData) {           \
-                memcpy(temp, dataAt, sizeof(temp));   \
-                M.red = temp[RED_INDEX];        \
-                M.green = temp[GREEN_INDEX];    \
-                M.blue = temp[BLUE_INDEX];      \
+                M.red = dataAt[RED_INDEX];        \
+                M.green = dataAt[GREEN_INDEX];    \
+                M.blue = dataAt[BLUE_INDEX];      \
             }                                   \
             dataAt += sizeof(rgbColor);         \
             bytesRead += sizeof(rgbColor);      \

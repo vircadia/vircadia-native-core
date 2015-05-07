@@ -167,11 +167,17 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
     READ_ENTITY_PROPERTY_SETTER(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-    bytesRead += _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                           propertyFlags, overwriteLocalData);
 
-    bytesRead += _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
+    int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
+                                                                               propertyFlags, overwriteLocalData);
+                                                                               
+    bytesRead += bytesFromAtmosphere;
+    dataAt += bytesFromAtmosphere;
+
+    int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                            propertyFlags, overwriteLocalData);
+    bytesRead += bytesFromSkybox;
+    dataAt += bytesFromSkybox;
 
     return bytesRead;
 }

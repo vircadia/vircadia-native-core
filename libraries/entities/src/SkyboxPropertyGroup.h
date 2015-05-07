@@ -68,6 +68,14 @@ public:
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                
+    glm::vec3 getColorVec3() const {
+        const quint8 MAX_COLOR = 255;
+        glm::vec3 color = { (float)_color.red / (float)MAX_COLOR,
+                            (float)_color.green / (float)MAX_COLOR,
+                            (float)_color.blue / (float)MAX_COLOR };
+        return color;
+    }
 
 
     DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor);

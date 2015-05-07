@@ -34,8 +34,8 @@ var zoneEntityA = Entities.addEntity({
         hasStars: false
     },
     skybox: {
-        color: { red: 255, green: 0, blue: 0 }, 
-        url: "http://google.com"
+        color: { red: 255, green: 0, blue: 255 }, 
+        url: ""
     },
     stageLatitude: 37.777,
     stageLongitude: 122.407,

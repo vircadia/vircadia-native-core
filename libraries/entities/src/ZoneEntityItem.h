@@ -110,6 +110,8 @@ public:
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
     EnvironmentData getEnvironmentData() const;
+    const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
+    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
