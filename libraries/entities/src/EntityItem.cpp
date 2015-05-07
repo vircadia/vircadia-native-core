@@ -402,9 +402,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             lastEditedFromBufferAdjusted = now;
         }
 
-#if 0 // XXX
         bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
-#endif
 
         #ifdef WANT_DEBUG
             qCDebug(entities) << "data from server **************** ";
@@ -421,7 +419,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         bool ignoreServerPacket = false; // assume we'll use this server packet
 
-#if 0 // XXX Trying to eliminate this code as a possible source of deviation between interfaces
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
         if (fromSameServerEdit) {
@@ -438,7 +435,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 ignoreServerPacket = true;
             }
         }
-#endif
         
         if (ignoreServerPacket) {
             overwriteLocalData = false;
