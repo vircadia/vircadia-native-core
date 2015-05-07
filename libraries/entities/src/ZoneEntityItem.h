@@ -110,6 +110,8 @@ public:
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
     EnvironmentData getEnvironmentData() const;
+    const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
+    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -148,7 +150,8 @@ protected:
     QString _compoundShapeURL;
     
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-    AtmospherePropertyGroup _atmospherePropeties;
+    AtmospherePropertyGroup _atmosphereProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;

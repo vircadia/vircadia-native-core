@@ -445,7 +445,22 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 data.setSunBrightness(sunBrightness);
 
                 _viewState->overrideEnvironmentData(data);
+                scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
+            } else {
+                _viewState->endOverrideEnvironmentData();
+                 if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
+                    auto stage = scene->getSkyStage();
+                    stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
+                    if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
+                        stage->getSkybox()->clearCubemap();
+                    } else {
+                        stage->getSkybox()->clearCubemap(); // NOTE: this should be changed to do something to set the cubemap
+                    }
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+                }
             }
+
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
@@ -460,6 +475,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 _hasPreviousZone = false;
             }
             _viewState->endOverrideEnvironmentData();
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
