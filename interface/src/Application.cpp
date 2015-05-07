@@ -71,6 +71,7 @@
 #include <NetworkingConstants.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
+#include <ObjectMotionState.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -432,6 +433,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
@@ -2119,19 +2121,20 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    EntityTree* tree = _entities.getTree();
-    _physicsEngine.setEntityTree(tree);
-    tree->setSimulation(&_physicsEngine);
-    _physicsEngine.init(&_entityEditSender);
+    ObjectMotionState::setShapeManager(&_shapeManager);
+    _physicsEngine.init();
 
+    EntityTree* tree = _entities.getTree();
+    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -2415,8 +2418,22 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
+
+        _entitySimulation.lock();
+        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
+        _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
+        _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.unlock();
+
         _physicsEngine.stepSimulation();
-        _physicsEngine.dumpStatsIfNecessary();
+
+        if (_physicsEngine.hasOutgoingChanges()) {
+            _entitySimulation.lock();
+            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
+            _entitySimulation.unlock();
+            _physicsEngine.dumpStatsIfNecessary();
+        }
     }
 
     if (!_aboutToQuit) {
@@ -3948,6 +3965,9 @@ bool Application::acceptURL(const QString& urlString) {
     return false;
 }
 
+void Application::setSessionUUID(const QUuid& sessionUUID) {
+    _physicsEngine.setSessionUUID(sessionUUID);
+}
 
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
