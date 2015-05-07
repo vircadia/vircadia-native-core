@@ -28,6 +28,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    virtual void init();
     virtual void reset();
 
     virtual bool isActive() const;
@@ -120,9 +121,6 @@ private:
     float _lastEyeBlinks[2];
     float _filteredEyeBlinks[2];
     float _lastEyeCoefficients[2];
-
-    bool _isCalculatingFPS;
-    int _frameCount;
 };
 
 #endif // hifi_DdeFaceTracker_h

@@ -35,9 +35,6 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-
-    void associateWithWidget(QGLWidget* widget);
-    
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -52,6 +49,9 @@ public:
 
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
+
+    /// Returns a texture version of an image file
+    gpu::TexturePointer getImageTexture(const QString & path);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
@@ -94,8 +94,6 @@ public:
     /// Returns the ID of the shadow framebuffer object's depth texture.
     GLuint getShadowDepthTextureID();
     
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -127,7 +125,6 @@ private:
     gpu::TexturePointer _shadowTexture;
 
     QSize _frameBufferSize;
-    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.

@@ -1,7 +1,7 @@
 set(TARGET_NAME ui)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(OpenGL Network Qml Quick Script)
+setup_hifi_library(OpenGL Network Qml Quick Script XmlPatterns)
 
 link_hifi_libraries(render-utils shared)
 

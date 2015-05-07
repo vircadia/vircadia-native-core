@@ -50,7 +50,7 @@ public:
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
-    virtual PickRay computePickRay(float x, float y) = 0;
+    virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual const glm::vec3& getAvatarPosition() const = 0;
 };
