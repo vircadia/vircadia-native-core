@@ -95,14 +95,14 @@ protected:
     bool _sentMoving;   // true if last update was moving
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
-    // TODO XXX rename _sent* to _server*
-    uint32_t _sentStep;
-    glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
-    glm::quat _sentRotation;;
-    glm::vec3 _sentVelocity;
-    glm::vec3 _sentAngularVelocity; // radians per second
-    glm::vec3 _sentGravity;
-    glm::vec3 _sentAcceleration;
+    // these are for the prediction of the remote server's simple extrapolation
+    uint32_t _lastStep; // last step of server extrapolation
+    glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
+    glm::quat _serverRotation;
+    glm::vec3 _serverVelocity;
+    glm::vec3 _serverAngularVelocity; // radians per second
+    glm::vec3 _serverGravity;
+    glm::vec3 _serverAcceleration;
 
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
