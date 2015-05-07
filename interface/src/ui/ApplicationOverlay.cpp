@@ -685,7 +685,7 @@ void ApplicationOverlay::renderControllerPointers() {
         }
 
         //If the cursor is out of the screen then don't render it
-        if (mouseX < 0 || mouseX >= canvasSize.x || mouseY < 0 || mouseY >= canvasSize.y) {
+        if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
             _reticleActive[index] = false;
             continue;
         }
@@ -998,7 +998,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto canvasSize = qApp->getCanvasSize();
-        if (canvasSize.x != _previousBorderWidth || canvasSize.y != _previousBorderHeight) {
+        if ((int)canvasSize.x != _previousBorderWidth || (int)canvasSize.y != _previousBorderHeight) {
             glm::vec4 color(CONNECTION_STATUS_BORDER_COLOR[0],
                             CONNECTION_STATUS_BORDER_COLOR[1],
                             CONNECTION_STATUS_BORDER_COLOR[2], 1.0f);
