@@ -2068,6 +2068,12 @@ void Model::segregateMeshGroups() {
         bool hasSpecular = mesh.hasSpecularTexture();
         bool hasLightmap = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
+        bool isWireframe = this->isWireframe();
+        
+        if (isWireframe) {
+            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        }
+        
         QString materialID;
 
         // create a material name from all the parts. If there's one part, this will be a single material and its
@@ -2085,7 +2091,7 @@ void Model::segregateMeshGroups() {
             qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
         
-        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe());
+        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
 
         // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
         _renderBuckets[key.getRaw()]._unsortedMeshes.insertMulti(materialID, i);
