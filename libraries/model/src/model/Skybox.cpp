@@ -20,7 +20,8 @@
 using namespace model;
 
 Skybox::Skybox() {
-/*
+
+/* // PLease create a default engineer skybox
     _cubemap.reset( gpu::Texture::createCube(gpu::Element::COLOR_RGBA_32, 1));
     unsigned char texels[] = {
         255, 0, 0, 255,

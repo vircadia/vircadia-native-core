@@ -456,9 +456,9 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
                         stage->getSkybox()->clearCubemap();
                     } else {
+                        // Update the Texture of the Skybox with the one pointed by this zone
                         auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-
-                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); // NOTE: this should be changed to do something to set the cubemap
+                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
                     }
                     stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
                 }
