@@ -146,11 +146,13 @@ protected:
     QString getStatusLink();
 
     void setupDatagramProcessingThread();
-    
+
     int _argc;
     const char** _argv;
     char** _parsedArgV;
     QJsonObject _settings;
+
+    bool _isShuttingDown = false;
 
     HTTPManager* _httpManager;
     int _statusPort;

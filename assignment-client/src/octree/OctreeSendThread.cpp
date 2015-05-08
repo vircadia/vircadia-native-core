@@ -30,9 +30,14 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePoint
     _isShuttingDown(false)
 {
     QString safeServerName("Octree");
+    
+    // set our QThread object name so we can identify this thread while debugging
+    setObjectName(QString("Octree Send Thread (%1)").arg(uuidStringWithoutCurlyBraces(node->getUUID())));
+    
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
     }
+
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 

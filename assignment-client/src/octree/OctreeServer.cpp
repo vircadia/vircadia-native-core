@@ -836,36 +836,42 @@ void OctreeServer::parsePayload() {
 
 void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
+
+    // If we know we're shutting down we just drop these packets on the floor.
+    // This stops us from initializing send threads we just shut down.
     
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        PacketType packetType = packetTypeForPacket(receivedPacket);
-        SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-        if (packetType == getMyQueryMessageType()) {
-            // If we got a query packet, then we're talking to an agent, and we
-            // need to make sure we have it in our nodeList.
-            if (matchingNode) {
-                nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                    nodeData->initializeOctreeSendThread(this, matchingNode);
+    if (!_isShuttingDown) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType packetType = packetTypeForPacket(receivedPacket);
+            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            if (packetType == getMyQueryMessageType()) {
+                // If we got a query packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                    
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        nodeData->initializeOctreeSendThread(this, matchingNode);
+                    }
                 }
-            }
-        } else if (packetType == PacketTypeOctreeDataNack) {
-            // If we got a nack packet, then we're talking to an agent, and we
-            // need to make sure we have it in our nodeList.
-            if (matchingNode) {
-                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                if (nodeData) {
-                    nodeData->parseNackPacket(receivedPacket);
+            } else if (packetType == PacketTypeOctreeDataNack) {
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
+                    }
                 }
+            } else if (packetType == PacketTypeJurisdictionRequest) {
+                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+            } else {
+                // let processNodeData handle it.
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
-        } else if (packetType == PacketTypeJurisdictionRequest) {
-            _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-        } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-            _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
-        } else {
-            // let processNodeData handle it.
-            DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
         }
     }
 }
@@ -1214,6 +1220,9 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
+
+    _isShuttingDown = true;
+
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
 
     // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeSendThreads
