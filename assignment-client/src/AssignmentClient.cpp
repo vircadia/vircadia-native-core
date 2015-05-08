@@ -150,7 +150,7 @@ void AssignmentClient::aboutToQuit() {
     stopAssignmentClient();
     
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
-    qInstallMessageHandler(0);   
+    qInstallMessageHandler(0); 
 }
 
 
