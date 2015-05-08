@@ -17,8 +17,6 @@
 #include <Application.h>
 #include <DependencyManager.h>
 
-#include "HMDToolsDialog.h"
-
 class QAction;
 
 class AddressBarDialog;

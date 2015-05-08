@@ -26,4 +26,7 @@ public:
     virtual PickRay computePickRay(const glm::vec2 & pos) const;
     virtual bool isMouseOnScreen() const;
 
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
+                         GLuint overlayTexture, const glm::uvec2& overlaySize) {};
+
 };

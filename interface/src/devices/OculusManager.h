@@ -13,6 +13,7 @@
 #ifndef hifi_OculusManager_h
 #define hifi_OculusManager_h
 
+#if 0
 #include <OVR_CAPI.h>
 
 #include <ProgramObject.h>
@@ -215,5 +216,6 @@ inline ovrSizei ovrFromGlm(const glm::uvec2 & v) {
 inline ovrQuatf ovrFromGlm(const glm::quat & q) {
     return{ q.x, q.y, q.z, q.w };
 }
+#endif
 
 #endif // hifi_OculusManager_h

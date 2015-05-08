@@ -11,6 +11,7 @@
 #include "LegacyDisplayPlugin.h"
 #include "MainWindow.h"
 #include <RenderUtil.h>
+#include <QOpenGLDebugLogger>
 
 const QString LegacyDisplayPlugin::NAME("2D Monitor (GL Windgets)");
 
@@ -22,10 +23,17 @@ static QWidget * oldWidget = nullptr;
 
 void LegacyDisplayPlugin::activate() {
     _window = new GLCanvas();
-    QGLFormat format(QGL::NoDepthBuffer | QGL::NoStencilBuffer);
-    _window->setContext(new QGLContext(format), 
-        QGLContext::fromOpenGLContext(QOpenGLContext::currentContext()));
+
+    QOpenGLContext * sourceContext = QOpenGLContext::currentContext();
+    QSurfaceFormat format;
+    format.setOption(QSurfaceFormat::DebugContext);
+    QOpenGLContext * newContext = new QOpenGLContext();
+    newContext->setFormat(format);
+    _window->setContext(
+        QGLContext::fromOpenGLContext(newContext),
+        QGLContext::fromOpenGLContext(sourceContext));
     _window->makeCurrent();
+
     oldWidget = qApp->getWindow()->centralWidget();
     qApp->getWindow()->setCentralWidget(_window);
     _window->doneCurrent();
@@ -35,12 +43,15 @@ void LegacyDisplayPlugin::activate() {
 
     _window->installEventFilter(qApp);
     _window->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+    SimpleDisplayPlugin::activate();
 }
 
 void LegacyDisplayPlugin::deactivate() {
     _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
     _window->removeEventFilter(qApp);
-    qApp->getWindow()->setCentralWidget(oldWidget);
+    if (qApp->getWindow()) {
+        qApp->getWindow()->setCentralWidget(oldWidget);
+    }
     // stop the glWidget frame timer so it doesn't call paintGL
     _window->stopFrameTimer();
     _window->doneCurrent();
@@ -54,8 +65,6 @@ QSize LegacyDisplayPlugin::getDeviceSize() const {
 
 void LegacyDisplayPlugin::makeCurrent() {
     _window->makeCurrent();
-    QSize windowSize = _window->size();
-    glViewport(0, 0, windowSize.width(), windowSize.height());
 }
 
 void LegacyDisplayPlugin::doneCurrent() {
@@ -64,7 +73,6 @@ void LegacyDisplayPlugin::doneCurrent() {
 
 void LegacyDisplayPlugin::swapBuffers() {
     _window->swapBuffers();
-    glFinish();
 }
 
 void LegacyDisplayPlugin::idle() {
@@ -87,6 +95,12 @@ bool isMouseOnScreen() {
     return false;
 }
 
-bool LegacyDisplayPlugin::isThrottled() {
+void LegacyDisplayPlugin::preDisplay() {
+    SimpleDisplayPlugin::preDisplay();
+    auto size = toGlm(_window->size());
+    glViewport(0, 0, size.x, size.y);
+}
+
+bool LegacyDisplayPlugin::isThrottled() const {
     return _window->isThrottleRendering();
 }

@@ -1,5 +1,5 @@
 //
-//  OculusBaseDisplayPlugin.cpp
+//  OculusDisplayPlugin.cpp
 //
 //  Created by Bradley Austin Davis on 2014/04/13.
 //  Copyright 2015 High Fidelity, Inc.
@@ -7,48 +7,40 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "OculusBaseDisplayPlugin.h"
+#include "OculusDisplayPlugin.h"
 
 #include <OVR_CAPI.h>
 
-bool OculusBaseDisplayPlugin::sdkInitialized = false;
-
-bool OculusBaseDisplayPlugin::enableSdk() {
-    sdkInitialized = ovr_Initialize();
-    return sdkInitialized;
-}
-
-void OculusBaseDisplayPlugin::disableSdk() {
+bool OculusDisplayPlugin::isSupported() {
+    ovr_Initialize();
+    bool result = false;
+    if (ovrHmd_Detect() != 0) {
+        result = true;
+    }
     ovr_Shutdown();
-    sdkInitialized = false;
+    return result;
 }
 
-void OculusBaseDisplayPlugin::withSdkActive(std::function<void()> f) {
-    bool activateSdk = !sdkInitialized;
-    if (activateSdk && !enableSdk()) {
-        return;
-    }
-    f();
-    if (activateSdk) {
-        disableSdk();
-    }
+void OculusDisplayPlugin::activate() {
 }
 
-bool OculusBaseDisplayPlugin::isSupported() {
-    bool attached = false;
-    withSdkActive([&] {
-        attached = ovrHmd_Detect();
-    });
-    return attached; 
+void OculusDisplayPlugin::deactivate() {
 }
 
-void OculusBaseDisplayPlugin::activate() {
-    enableSdk();
+void OculusDisplayPlugin::init() {
 }
 
-void OculusBaseDisplayPlugin::deactivate() {
-    disableSdk();
+void OculusDisplayPlugin::deinit() {
 }
+
+
+void OculusDisplayPlugin::overrideOffAxisFrustum(
+                                    float& left, float& right, float& bottom, float& top,
+                                    float& nearVal, float& farVal,
+                                    glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+    
+}
+
 
 
 #if 0

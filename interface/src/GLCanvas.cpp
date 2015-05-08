@@ -47,7 +47,6 @@ int GLCanvas::getDeviceHeight() const {
 }
 
 void GLCanvas::initializeGL() {
-    Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAcceptDrops(true);
     connect(Application::getInstance(), SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(activeChanged(Qt::ApplicationState)));

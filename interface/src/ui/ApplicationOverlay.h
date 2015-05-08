@@ -34,18 +34,13 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay();
-    void displayOverlayTexture();
-    void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
-    void displayOverlayTextureHmd(Camera& whichCamera);
-
+    GLuint getOverlayTexture();
+    
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
     
     bool hasMagnifier() const { return _magnifier; }
     void toggleMagnifier() { _magnifier = !_magnifier; }
-
-    float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
-    void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
 
     // Converter from one frame of reference to another.
     // Frame of reference:
@@ -67,36 +62,6 @@ public:
     static void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction);
     
 private:
-    // Interleaved vertex data
-    struct TextureVertex {
-        glm::vec3 position;
-        glm::vec2 uv;
-    };
-
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    class TexturedHemisphere {
-    public:
-        TexturedHemisphere();
-        ~TexturedHemisphere();
-        
-        void bind();
-        void release();
-        GLuint getTexture();
-        
-        void buildFramebufferObject();
-        void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
-        void render();
-        
-    private:
-        void cleanupVBO();
-        
-        GLuint _vertices;
-        GLuint _indices;
-        QOpenGLFramebufferObject* _framebufferObject;
-        VerticesIndices _vbo;
-    };
-    
-    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;
@@ -109,11 +74,6 @@ private:
     void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
-
-    TexturedHemisphere _overlays;
-    
-    float _textureFov;
-    float _textureAspectRatio;
     
     enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
     bool _reticleActive[NUMBER_OF_RETICLES];
@@ -124,8 +84,8 @@ private:
     bool _magnifier;
 
     float _alpha = 1.0f;
-    float _oculusUIRadius;
     float _trailingAudioLoudness;
+    QOpenGLFramebufferObject* _framebufferObject{nullptr};
 
     gpu::TexturePointer _crosshairTexture;
     GLuint _newUiTexture{ 0 };
@@ -145,7 +105,6 @@ private:
     glm::vec3 _previousMagnifierBottomRight;
     glm::vec3 _previousMagnifierTopLeft;
     glm::vec3 _previousMagnifierTopRight;
-
 };
 
 #endif // hifi_ApplicationOverlay_h

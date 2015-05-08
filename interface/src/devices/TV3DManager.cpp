@@ -130,7 +130,9 @@ void TV3DManager::display(Camera& whichCamera) {
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
 
+#if 0
         applicationOverlay.displayOverlayTextureStereo(whichCamera, _aspect, fov);
+#endif
         _activeEye = NULL;
     }
     glPopMatrix();
@@ -158,8 +160,9 @@ void TV3DManager::display(Camera& whichCamera) {
         glLoadIdentity();
         eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
-
+#if 0
         applicationOverlay.displayOverlayTextureStereo(whichCamera, _aspect, fov);
+#endif
         _activeEye = NULL;
     }
     glPopMatrix();

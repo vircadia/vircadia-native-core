@@ -57,7 +57,6 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
@@ -453,8 +452,6 @@ private slots:
 
     friend class HMDToolsDialog;
     void setFullscreen(bool fullscreen);
-    void setEnable3DTVMode(bool enable3DTVMode);
-    void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
 
     void closeMirrorView();

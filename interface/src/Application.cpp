@@ -109,8 +109,6 @@
 #include "devices/Leapmotion.h"
 #include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
-#include "devices/OculusManager.h"
-#include "devices/TV3DManager.h"
 
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
@@ -589,9 +587,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
-    // The offscreen UI needs to intercept the mouse and keyboard 
-    // events coming from the onscreen window
-    this->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
     // initialize our face trackers after loading the menu settings
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
@@ -808,14 +803,18 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
-    _offscreenContext->makeCurrent();
+    auto displayPlugin = getActiveDisplayPlugin();
+    displayPlugin->preRender();
     PerformanceTimer perfTimer("paintGL");
-    getActiveDisplayPlugin()->preDisplay();
+
+    _offscreenContext->makeCurrent();
+    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
+    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     glEnable(GL_LINE_SMOOTH);
 
@@ -850,9 +849,10 @@ void Application::paintGL() {
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
+    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     // Update camera position
-    if (!OculusManager::isConnected()) {
+    if (!isHMDMode()) {
         _myCamera.update(1.0f / _fps);
     }
 
@@ -887,19 +887,9 @@ void Application::paintGL() {
         }
 
         finalFbo = DependencyManager::get<GlowEffect>()->render();
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
-                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
-                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
         {
             PerformanceTimer perfTimer("renderOverlay");
             _applicationOverlay.renderOverlay();
-            glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-            _applicationOverlay.displayOverlayTexture();
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
     }
 
@@ -909,9 +899,14 @@ void Application::paintGL() {
     // but may be better handled with a fence object
     glFinish();
 
+    
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
-    getActiveDisplayPlugin()->display(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)));
+    displayPlugin->preDisplay();
+
+    displayPlugin->display(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)), finalFbo->getSize(),
+                           _applicationOverlay.getOverlayTexture(), getCanvasSize());
+    displayPlugin->finishFrame();
     Q_ASSERT(!QOpenGLContext::currentContext());
     _offscreenContext->makeCurrent();
     _frameCount++;
@@ -944,32 +939,32 @@ void Application::showEditEntitiesHelp() {
 }
 
 void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
+#if 0
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera, size.x, size.y);
     } else if (TV3DManager::isConnected()) {
         TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-    	camera.setAspectRatio(aspect(size));
+#endif
+        camera.setAspectRatio(aspect(size));
         camera.setFieldOfView(_fieldOfView.get());
+#if 0
     }
+#endif
 }
 
 void Application::resizeEvent(QResizeEvent * event) {
-    const QSize & newSize = event->size();
-    resizeGL(newSize.width(), newSize.height());
+    resizeGL();
 }
 
 void Application::resizeGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
-    QSize renderSize;
-    if (OculusManager::isConnected()) {
-        renderSize = OculusManager::getRenderTargetSize();
-    } else {
-        renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-    }
+    QSize framebufferSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize();
+    QSize renderSize = framebufferSize * getRenderResolutionScale();
+
     if (_renderResolution == toGlm(renderSize)) {
-    	return;
+        return;
     }
 
     _renderResolution = toGlm(renderSize);
@@ -981,10 +976,9 @@ void Application::resizeGL() {
     updateProjectionMatrix();
     glLoadIdentity();
 
-    auto canvasSize = getActiveDisplayPlugin()->getCanvasSize();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->resize(fromGlm(canvasSize));
-    _glWidget->makeCurrent();
+    offscreenUi->resize(fromGlm(getCanvasSize()));
+    _offscreenContext->makeCurrent();
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
@@ -1865,14 +1859,6 @@ bool Application::mouseOnScreen() const {
     return getActiveDisplayPlugin()->isMouseOnScreen();
 }
 
-int Application::getMouseX() const {
-    return getActiveDisplayPlugin()->getUiMousePosition().x;
-}
-
-int Application::getMouseY() const {
-    return getActiveDisplayPlugin()->getUiMousePosition().x;
-}
-
 ivec2 Application::getMouseDragStarted() const {
     return getActiveDisplayPlugin()->trueMouseToUiMouse(getTrueMouseDragStarted());
 }
@@ -2050,6 +2036,7 @@ void Application::init() {
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     
     _environment.init();
+    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
     DependencyManager::get<AmbientOcclusionEffect>()->init(this);
@@ -2220,15 +2207,17 @@ void Application::updateMyAvatarLookAtPosition() {
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself)
-        if (!isHMDMode()) {
-            lookAtSpot = _myCamera.getPosition();
-        } else {
+        lookAtSpot = _myCamera.getPosition();
+#if 0
+        // FIXME is this really necessary?
+        if (isHMDMode()) {
             if (_myAvatar->isLookingAtLeftEye()) {
                 lookAtSpot = OculusManager::getLeftEyePosition();
             } else {
                 lookAtSpot = OculusManager::getRightEyePosition();
             }
         }
+#endif
         
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
@@ -3279,6 +3268,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
+        Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
         DependencyManager::get<DeferredLightingEffect>()->render();
     }
 
@@ -4533,11 +4523,6 @@ QSize Application::getDeviceSize() const {
     return getActiveDisplayPlugin()->getDeviceSize();
 }
 
-void Application::resizeGL() {
-    auto size = getCanvasSize();
-    return resizeGL(size.x, size.y);
-}
-
 bool Application::hasFocus() const {
     return getActiveDisplayPlugin()->hasFocus();
 }
@@ -4545,7 +4530,6 @@ bool Application::hasFocus() const {
 glm::vec2 Application::getViewportDimensions() const {
     return toGlm(getDeviceSize());
 }
-
 
 glm::ivec2 Application::getTrueMousePosition() const {
     return getActiveDisplayPlugin()->getTrueMousePosition();
@@ -4569,7 +4553,7 @@ using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
 #include "plugins/render/NullDisplayPlugin.h"
 #include "plugins/render/WindowDisplayPlugin.h"
 #include "plugins/render/LegacyDisplayPlugin.h"
-#include "plugins/render/OculusDirectD3DDisplayPlugin.h"
+#include "plugins/render/OculusDisplayPlugin.h"
 
 static DisplayPluginPointer _displayPlugin{ nullptr };
 
@@ -4610,7 +4594,7 @@ static const DisplayPluginList & getDisplayPlugins() {
             });
             QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
                 DependencyManager::get<TextureCache>()->setFrameBufferSize(size * qApp->getRenderResolutionScale());
-                qApp->resizeGL(size.width(), size.height());
+                qApp->resizeGL();
             });
             addDisplayPluginToMenu(displayPlugin, true);
         }
@@ -4653,9 +4637,18 @@ void Application::updateDisplayMode() {
 }
 
 void Application::initPlugins() {
+#if 0
     OculusManager::init();
+#endif
 }
 
 void Application::shutdownPlugins() {
+#if 0
     OculusManager::deinit();
+#endif
+}
+
+
+glm::ivec2 Application::getMouse() const {
+    return getActiveDisplayPlugin()->getUiMousePosition();
 }

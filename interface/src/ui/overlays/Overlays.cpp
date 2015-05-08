@@ -15,7 +15,6 @@
 
 #include <Application.h>
 #include <avatar/AvatarManager.h>
-#include <devices/OculusManager.h>
 #include <LODManager.h>
 
 #include "BillboardOverlay.h"

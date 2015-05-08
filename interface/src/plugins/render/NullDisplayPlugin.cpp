@@ -39,6 +39,6 @@ PickRay NullDisplayPlugin::computePickRay(const glm::vec2 & pos) const {
     return PickRay();
 }
 
-bool NullDisplayPlugin::isMouseOnScreen() {
+bool NullDisplayPlugin::isMouseOnScreen() const {
     return false;
 }

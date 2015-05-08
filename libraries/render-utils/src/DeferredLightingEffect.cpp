@@ -482,6 +482,8 @@ void DeferredLightingEffect::render() {
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {
+    qDebug() << (limited ? deferred_light_limited_vert : deferred_light_vert);
+    qDebug() << fragSource;
     program.addShaderFromSourceCode(QGLShader::Vertex, (limited ? deferred_light_limited_vert : deferred_light_vert));
     program.addShaderFromSourceCode(QGLShader::Fragment, fragSource);
     program.link();

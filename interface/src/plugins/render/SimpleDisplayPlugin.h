@@ -10,43 +10,23 @@
 #pragma once
 
 #include "DisplayPlugin.h"
+
+#include <QCursor>
+
 #include <QOpenGLContext>
 #include <GLMHelpers.h>
 #include <RenderUtil.h>
 
-template <typename T>
-class SimpleDisplayPlugin : public DisplayPlugin {
+class SimpleGlDisplayPlugin : public DisplayPlugin {
 public:
-    virtual void render(int finalSceneTexture) {
-        makeCurrent();
+    virtual void activate();
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
+                         GLuint overlayTexture, const glm::uvec2& overlaySize);
+};
 
-        glDisable(GL_LIGHTING);
-        glPushMatrix();
-        glLoadIdentity();
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, finalSceneTexture);
-        renderFullscreenQuad();
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_TEXTURE_2D);
-
-        glPopMatrix();
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-
-        glEnable(GL_LIGHTING);
-
-        swapBuffers();
-        doneCurrent();
-    }
-
-    virtual glm::ivec2 getUiMousePosition() const {
-        return getTrueMousePosition();
-    }
-
+template <typename T>
+class SimpleDisplayPlugin : public SimpleGlDisplayPlugin {
+public:
     virtual glm::ivec2 getTrueMousePosition() const {
         return toGlm(_window->mapFromGlobal(QCursor::pos()));
     }

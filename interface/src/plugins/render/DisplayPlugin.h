@@ -12,8 +12,10 @@
 #include "plugins/Plugin.h"
 
 #include <QSize>
-
+#include <QPoint>
 #include <functional>
+
+#include "gpu/GPUConfig.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -27,11 +29,16 @@ public:
     virtual bool isThrottled() const { return false; }
 
     // Rendering support
-    virtual void preDisplay() {};
-    virtual void display(int finalSceneTexture) {};
-    virtual void postDisplay() {};
-
-    // Pointer support
+    virtual void preRender() {};
+    virtual void preDisplay() {
+        makeCurrent();
+    };
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
+                         GLuint overlayTexture, const glm::uvec2& overlaySize) = 0;
+    virtual void finishFrame() {
+        swapBuffers();
+        doneCurrent();
+    };
 
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
@@ -50,7 +57,7 @@ public:
         return trueMouseToUiMouse(getTrueMousePosition()); 
     }
 
-    virtual std::function<QPointF(QPointF)> getMouseTranslator() { return [](const QPointF& p) { return p; }; };
+    virtual std::function<QPointF(const QPointF&)> getMouseTranslator() { return [](const QPointF& p) { return p; }; };
 
     // Convert from screen mouse coordinates to UI mouse coordinates
     virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const { return position; };

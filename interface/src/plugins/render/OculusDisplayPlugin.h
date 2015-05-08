@@ -12,7 +12,7 @@
 #include "HmdDisplayPlugin.h"
 #include <functional>
 
-class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
+class OculusDisplayPlugin : public HmdDisplayPlugin {
 public:
     virtual bool isSupported();
 
@@ -27,14 +27,4 @@ public:
         float& nearVal, float& farVal,
         glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-
-protected:
-    virtual bool isRiftPresent();
-    virtual bool isDirectMode();
-
-    static bool sdkInitialized;
-
-    static void withSdkActive(std::function<void()> f);
-    static bool enableSdk();
-    static void disableSdk();
 };

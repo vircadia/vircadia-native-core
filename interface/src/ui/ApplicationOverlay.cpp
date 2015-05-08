@@ -136,12 +136,9 @@ void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
 }
 
 ApplicationOverlay::ApplicationOverlay() :
-    _textureFov(glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE)),
-    _textureAspectRatio(1.0f),
     _lastMouseMove(0),
     _magnifier(true),
     _alpha(1.0f),
-    _oculusUIRadius(1.0f),
     _trailingAudioLoudness(0.0f),
     _crosshairTexture(0),
     _previousBorderWidth(-1),
@@ -184,25 +181,33 @@ ApplicationOverlay::ApplicationOverlay() :
 ApplicationOverlay::~ApplicationOverlay() {
 }
 
+GLuint ApplicationOverlay::getOverlayTexture() {
+    if (!_framebufferObject) {
+        return 0;
+    }
+    return _framebufferObject->texture();
+}
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Overlays& overlays = qApp->getOverlays();
     
-    _textureFov = glm::radians(_hmdUIAngularSize);
-    glm::vec2 size = qApp->getCanvasSize();
-    _textureAspectRatio = aspect(size);
+    glm::uvec2 size = qApp->getCanvasSize();
+    if (!_framebufferObject || size == toGlm(_framebufferObject->size())) {
+        if(_framebufferObject) {
+            delete _framebufferObject;
+        }
+        _framebufferObject = new QOpenGLFramebufferObject(QSize(size.x, size.y));
+    }
 
-    //Handle fading and deactivation/activation of UI
-    
     // Render 2D overlay
     glMatrixMode(GL_PROJECTION);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    _overlays.buildFramebufferObject();
-    _overlays.bind();
+    _framebufferObject->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, size.x, size.y);
 
@@ -227,6 +232,32 @@ void ApplicationOverlay::renderOverlay() {
         renderPointers();
 
         renderDomainConnectionStatusBorder();
+        static const glm::vec2 topLeft(-1, 1);
+        static const glm::vec2 bottomRight(1, -1);
+        static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+        static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glMatrixMode(GL_MODELVIEW);
+
+
+        glEnable(GL_TEXTURE_2D);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, _newUiTexture);
+//        glBegin(GL_QUADS);
+//        glVertex2f(0, 0);
+//        glVertex2f(1, 0);
+//        glVertex2f(1, 1);
+//        glVertex2f(0, 1);
+//        glEnd();
+        DependencyManager::get<GeometryCache>()->renderQuad(
+                topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+
+
+        _framebufferObject->bindDefault();
 
         glMatrixMode(GL_PROJECTION);
     } glPopMatrix();
@@ -235,8 +266,6 @@ void ApplicationOverlay::renderOverlay() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-
-    _overlays.release();
 }
 
 // A quick and dirty solution for compositing the old overlay 
@@ -256,7 +285,7 @@ void with_each_texture(GLuint firstPassTexture, GLuint secondPassTexture, F f) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
 }
-
+#if 0
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
@@ -454,6 +483,8 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
 }
+#endif
+
 
 void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) {
     const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -473,7 +504,6 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
     glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
@@ -482,6 +512,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
+#if 0
     auto canvasSize = qApp->getCanvasSize();
     if (qApp->isHMDMode()) {
         float t;
@@ -521,6 +552,7 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
         rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * canvasSize.x);
         rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * canvasSize.y);
     }
+#endif
     return rv;
 }
 
@@ -534,11 +566,13 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
+#if 0
     if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getScale(), &t)){
         result = position + direction * t;
         return true;
     }
-
+#endif
+    
     return false;
 }
 
@@ -748,6 +782,7 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
 //Renders a small magnification of the currently bound texture at the coordinates
 void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) {
+#if 0
     if (!_magnifier) {
         return;
     }
@@ -813,6 +848,7 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
                                                     magnifierColor, _magnifierQuad);
         
     } glPopMatrix();
+#endif
 }
 
 const int AUDIO_METER_GAP = 5;
@@ -1023,7 +1059,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
         geometryCache->renderVertices(gpu::LINE_STRIP, _domainStatusBorder);
     }
 }
-
+#if 0
 ApplicationOverlay::TexturedHemisphere::TexturedHemisphere() :
     _vertices(0),
     _indices(0),
@@ -1186,6 +1222,7 @@ void ApplicationOverlay::TexturedHemisphere::render() {
 GLuint ApplicationOverlay::TexturedHemisphere::getTexture() {
     return _framebufferObject->texture();
 }
+#endif
 
 glm::vec2 ApplicationOverlay::directionToSpherical(const glm::vec3& direction) {
     glm::vec2 result;
@@ -1230,6 +1267,7 @@ glm::vec2 ApplicationOverlay::sphericalToScreen(const glm::vec2& sphericalPos) {
 
 glm::vec2 ApplicationOverlay::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
     glm::vec2 result = sphericalPos;
+#if 0
     result.x *= -1.0;
     result /= _textureFov;
     result.x /= _textureAspectRatio;
@@ -1237,16 +1275,19 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(const glm::vec2&  sphericalPos)
     result.x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f);
     result.y = (sphericalPos.y / _textureFov + 0.5f);
     result *= qApp->getCanvasSize();
+#endif
     return result;
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
+#if 0
     result.x *= -1.0;
     result /= qApp->getCanvasSize();
     result -= 0.5f;
     result *= _textureFov; 
     result.x *= _textureAspectRatio;
+#endif
     return result;
 }
 

@@ -27,6 +27,7 @@ public:
     virtual PickRay computePickRay(const glm::vec2 & pos) const;
     virtual bool isMouseOnScreen() const { return true; }
     virtual bool isThrottled() const;
+    virtual void preDisplay();
 
 protected:
     virtual void makeCurrent();
