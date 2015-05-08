@@ -36,7 +36,7 @@ namespace Setting {
     }
     
     // Sets up the settings private instance. Should only be run once at startup
-    void setupPrivateInstance() {
+    void init() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -59,14 +59,11 @@ namespace Setting {
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         privateInstance->moveToThread(thread);
         thread->start();
-        qCDebug(shared) << "Settings thread started.";
-        
+        qCDebug(shared) << "Settings thread started.";    
+
         // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
         qAddPostRoutine(cleanupPrivateInstance);
-    }
-    // Register setupPrivateInstance to run after QCoreApplication's constructor.
-    Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
-    
+    }    
     
     Interface::~Interface() {
         if (privateInstance) {

@@ -26,6 +26,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
+#include <QCoreApplication>
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
@@ -335,10 +336,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>())
 {
+
+    Setting::init();
+
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
