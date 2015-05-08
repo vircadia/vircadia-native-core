@@ -16,12 +16,19 @@
 #include "EntityItemPropertiesMacros.h"
 
 AtmospherePropertyGroup::AtmospherePropertyGroup() {
-    _center = glm::vec3(0.0f);
-    _innerRadius = 0.0f;
-    _outerRadius = 0.0f;
-    _mieScattering = 0.0f;
-    _rayleighScattering = 0.0f;
-    _scatteringWavelengths = glm::vec3(0.0f);
+    const glm::vec3 DEFAULT_CENTER = glm::vec3(0.0f, -1000.0f, 0.0f);
+    const float DEFAULT_INNER_RADIUS = 1000.0f;
+    const float DEFAULT_OUTER_RADIUS = 1025.0f;
+    const float DEFAULT_RAYLEIGH_SCATTERING = 0.0025f;
+    const float DEFAULT_MIE_SCATTERING = 0.0010f;
+    const glm::vec3 DEFAULT_SCATTERING_WAVELENGTHS = glm::vec3(0.650f, 0.570f, 0.475f);
+
+    _center = DEFAULT_CENTER;
+    _innerRadius = DEFAULT_INNER_RADIUS;
+    _outerRadius = DEFAULT_OUTER_RADIUS;
+    _mieScattering = DEFAULT_MIE_SCATTERING;
+    _rayleighScattering = DEFAULT_RAYLEIGH_SCATTERING;
+    _scatteringWavelengths = DEFAULT_SCATTERING_WAVELENGTHS;
     _hasStars = true;
 }
 
