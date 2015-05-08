@@ -24,22 +24,30 @@
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
+    enum class Eye {
+        Left,
+        Right,
+        Mono
+    };
     virtual bool isHmd() const { return false; }
     virtual bool isStereo() const { return false; }
     virtual bool isThrottled() const { return false; }
 
     // Rendering support
     virtual void preRender() {};
+
     virtual void preDisplay() {
         makeCurrent();
     };
+
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
                          GLuint overlayTexture, const glm::uvec2& overlaySize) = 0;
+
     virtual void finishFrame() {
         swapBuffers();
         doneCurrent();
     };
-
+    
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
     // The size of the rendering surface

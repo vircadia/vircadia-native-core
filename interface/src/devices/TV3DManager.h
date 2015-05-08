@@ -43,6 +43,13 @@ private:
     static eyeFrustum _leftEye;
     static eyeFrustum _rightEye;
     static eyeFrustum* _activeEye;
+    
+    template<typename F, typename FF>
+    static void forEachEye(F f, FF ff = []{}) {
+        f(_leftEye);
+        ff();
+        f(_rightEye);
+    }
 };
 
 #endif // hifi_TV3DManager_h

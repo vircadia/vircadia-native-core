@@ -291,12 +291,9 @@ void Overlays::deleteOverlay(unsigned int id) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-
-#if 0
-    if (OculusManager::isConnected()) {
-        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    if (qApp->isHMDMode()) {
+        pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
     }
-#endif
 
     QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlaysHUD);

@@ -193,12 +193,15 @@ function update(deltaTime) {
       //  Add Damping 
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
-
-      //add damping to angular velocity:
+    } else {
+      newVelocity = entityProps.velocity; 
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
+    } else {
+      angularVelocity = entityProps.angularVelocity; 
     }
+
     Entities.editEntity(grabbedEntity, {
       velocity: newVelocity,
       angularVelocity: angularVelocity

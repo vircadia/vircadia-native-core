@@ -821,6 +821,11 @@ void Application::paintGL() {
     resizeGL();
     Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay();
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -892,10 +897,6 @@ void Application::paintGL() {
         }
 
         finalFbo = DependencyManager::get<GlowEffect>()->render();
-        {
-            PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay();
-        }
     }
 
     // This might not be needed *right now*.  We want to ensure that the FBO rendering
