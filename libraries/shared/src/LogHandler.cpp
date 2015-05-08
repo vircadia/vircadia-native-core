@@ -24,7 +24,7 @@ LogHandler& LogHandler::getInstance() {
 }
 
 LogHandler::LogHandler() :
-    _shouldOutputPID(false)
+    _shouldOutputPID(true)
 {
     // setup our timer to flush the verbose logs every 5 seconds
     QTimer* logFlushTimer = new QTimer(this);

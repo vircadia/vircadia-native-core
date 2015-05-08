@@ -36,6 +36,7 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
 public:
     Agent(const QByteArray& packet);
+    ~Agent() { qDebug() << "Agent is dead"; }
     
     void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }

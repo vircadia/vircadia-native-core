@@ -224,7 +224,7 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
-
+    
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
     

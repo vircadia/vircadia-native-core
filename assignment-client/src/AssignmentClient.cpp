@@ -136,6 +136,9 @@ void AssignmentClient::stopAssignmentClient() {
         // ask the current assignment to delete itself on its thread
         _currentAssignment->deleteLater();
 
+        // when this thread is destroyed we don't need to run our assignment complete method
+        disconnect(currentAssignmentThread, &QThread::destroyed, this, &AssignmentClient::assignmentCompleted);
+
         // wait on the thread from that assignment - it will be gone once the current assignment deletes
         currentAssignmentThread->quit();
         currentAssignmentThread->wait();
