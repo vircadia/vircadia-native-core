@@ -205,18 +205,16 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     _lastStep = simulationStep;
     bool isActive = _body->isActive();
 
-    if (!isActive) {
-        if (_sentMoving) { 
-            // this object just went inactive so send an update immediately
+    const float NON_MOVING_UPDATE_PERIOD = 1.0f;
+    if (_sentMoving) {
+        if (!isActive) {
+            // object has gone inactive but our last send was moving --> send non-moving update immediately
             return true;
-        } else {
-            const float NON_MOVING_UPDATE_PERIOD = 1.0f;
-            if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
-                // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
-                // at a faster rate than the MAX period above, and only send a limited number of them.
-                return true;
-            }
         }
+    } else if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
+        // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets 
+        // we repeat these at the the MAX period above, and only send a limited number of them.
+        return true;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
