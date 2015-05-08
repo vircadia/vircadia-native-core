@@ -690,6 +690,9 @@ Application::~Application() {
     nodeThread->quit();
     nodeThread->wait();
 
+    Leapmotion::destroy();
+    RealSense::destroy();
+
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
 

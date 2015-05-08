@@ -26,6 +26,7 @@ public:
     static const Name NAME;
 
     static void init();
+    static void destroy();
 
     /// Leapmotion MotionTracker factory
     static Leapmotion* getInstance();

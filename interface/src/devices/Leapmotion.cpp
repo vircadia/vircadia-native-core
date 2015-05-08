@@ -51,6 +51,11 @@ void Leapmotion::init() {
 }
 
 // static
+void Leapmotion::destroy() {
+    DeviceTracker::destroyDevice(NAME);
+}
+
+// static
 Leapmotion* Leapmotion::getInstance() {
     DeviceTracker* device = DeviceTracker::getDevice(NAME);
     if (!device) {
