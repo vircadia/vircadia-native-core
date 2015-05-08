@@ -13,6 +13,7 @@
 #define hifi_RegisteredMetaTypes_h
 
 #include <QtScript/QScriptEngine>
+#include <QtCore/QUuid>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -65,11 +66,21 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
+enum ContactEventType {
+    CONTACT_EVENT_TYPE_START, 
+    CONTACT_EVENT_TYPE_CONTINUE,
+    CONTACT_EVENT_TYPE_END                                                                                            
+};                                                                                                                    
+
 class Collision {
 public:
-    Collision() : contactPoint(0.0f), penetration(0.0f) { }
-    Collision(const glm::vec3& contactPoint, const glm::vec3& penetration) : 
-                        contactPoint(contactPoint), penetration(penetration) { }
+    Collision() : type(CONTACT_EVENT_TYPE_START), idA(), idB(), contactPoint(0.0f), penetration(0.0f) { }
+    Collision(ContactEventType cType, const QUuid& cIdA, const QUuid& cIdB, const glm::vec3& cPoint, const glm::vec3& cPenetration)
+        :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration) { }
+
+    ContactEventType type;
+    QUuid idA;
+    QUuid idB;
     glm::vec3 contactPoint;
     glm::vec3 penetration;
 };
