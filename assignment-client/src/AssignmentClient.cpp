@@ -223,7 +223,6 @@ void AssignmentClient::readPendingDatagrams() {
 
                     // start the deployed assignment
                     QThread* workerThread = new QThread;
-                    qDebug() << "The thread is" << workerThread;
                     workerThread->setObjectName("ThreadedAssignment Worker");
 
                     connect(workerThread, &QThread::started, _currentAssignment, &ThreadedAssignment::run);
