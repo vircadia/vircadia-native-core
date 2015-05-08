@@ -55,6 +55,11 @@ void RealSense::init() {
 }
 
 // static
+void RealSense::destroy() {
+    DeviceTracker::destroyDevice(NAME);
+}
+
+// static
 RealSense* RealSense::getInstance() {
     DeviceTracker* device = DeviceTracker::getDevice(NAME);
     if (!device) {
