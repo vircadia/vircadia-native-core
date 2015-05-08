@@ -854,7 +854,7 @@ void AudioMixer::run() {
         ++_numStatFrames;
         
         QCoreApplication::processEvents();
-        
+
         if (_isFinished) {
             break;
         }

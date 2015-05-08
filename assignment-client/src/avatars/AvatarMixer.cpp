@@ -52,6 +52,7 @@ AvatarMixer::~AvatarMixer() {
     if (_broadcastTimer) {
         _broadcastTimer->deleteLater();
     }
+
     _broadcastThread.quit();
     _broadcastThread.wait();
 }
@@ -458,7 +459,7 @@ void AvatarMixer::run() {
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
     // setup the timer that will be fired on the broadcast thread
-    _broadcastTimer = new QTimer();
+    _broadcastTimer = new QTimer;
     _broadcastTimer->setInterval(AVATAR_DATA_SEND_INTERVAL_MSECS);
     _broadcastTimer->moveToThread(&_broadcastThread);
     

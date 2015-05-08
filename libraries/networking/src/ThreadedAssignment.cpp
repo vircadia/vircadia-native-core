@@ -27,40 +27,42 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
-    _isFinished = isFinished;
+    if (_isFinished != isFinished) {
+         _isFinished = isFinished;
 
-    if (_isFinished) {
-        if (_domainServerTimer) {
-            _domainServerTimer->stop();
-            delete _domainServerTimer;
-            _domainServerTimer = nullptr;
-        }
-        if (_statsTimer) {
-            _statsTimer->stop();
-            delete _statsTimer;
-            _statsTimer = nullptr;
-        }
+        if (_isFinished) {
 
-        aboutToFinish();
-        
-        auto nodeList = DependencyManager::get<NodeList>();
-        
-        // if we have a datagram processing thread, quit it and wait on it to make sure that
-        // the node socket is back on the same thread as the NodeList
-        
-        if (_datagramProcessingThread) {
-            // tell the datagram processing thread to quit and wait until it is done, then return the node socket to the NodeList
-            _datagramProcessingThread->quit();
-            _datagramProcessingThread->wait();
+            qDebug() << "Somebody set us finished";
+
+            if (_domainServerTimer) {
+                _domainServerTimer->stop();
+            }
+
+            if (_statsTimer) {
+                _statsTimer->stop();
+            }
+
+            aboutToFinish();
             
-            // set node socket parent back to NodeList
-            nodeList->getNodeSocket().setParent(nodeList.data());
+            auto nodeList = DependencyManager::get<NodeList>();
+            
+            // if we have a datagram processing thread, quit it and wait on it to make sure that
+            // the node socket is back on the same thread as the NodeList
+            
+            if (_datagramProcessingThread) {
+                // tell the datagram processing thread to quit and wait until it is done, then return the node socket to the NodeList
+                _datagramProcessingThread->quit();
+                _datagramProcessingThread->wait();
+                
+                // set node socket parent back to NodeList
+                nodeList->getNodeSocket().setParent(nodeList.data());
+            }
+            
+            // move the NodeList back to the QCoreApplication instance's thread
+            nodeList->moveToThread(QCoreApplication::instance()->thread());
+            
+            emit finished();
         }
-        
-        // move the NodeList back to the QCoreApplication instance's thread
-        nodeList->moveToThread(QCoreApplication::instance()->thread());
-        
-        emit finished();
     }
 }
 

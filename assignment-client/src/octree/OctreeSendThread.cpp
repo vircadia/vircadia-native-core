@@ -21,9 +21,8 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) :
-    _myAssignment(myAssignment),
-    _myServer(static_cast<OctreeServer*>(myAssignment.data())),
+OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
+    _myServer(myServer),
     _node(node),
     _nodeUUID(node->getUUID()),
     _packetData(),
@@ -53,7 +52,6 @@ OctreeSendThread::~OctreeSendThread() {
     OctreeServer::stopTrackingThread(this);
 
     _node.clear();
-    _myAssignment.clear();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
@@ -64,11 +62,6 @@ void OctreeSendThread::setIsShuttingDown() {
 bool OctreeSendThread::process() {
     if (_isShuttingDown) {
         return false; // exit early if we're shutting down
-    }
-
-    // check that our server and assignment is still valid
-    if (!_myServer || !_myAssignment) {
-        return false; // exit early if it's not, it means the server is shutting down
     }
 
     OctreeServer::didProcess(this);

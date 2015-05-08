@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <assert.h>
+
 #include <QProcess>
 #include <QSettings>
 #include <QSharedMemory>
@@ -30,14 +32,11 @@
 #include <SoundCache.h>
 
 #include "AssignmentFactory.h"
-#include "AssignmentThread.h"
 
 #include "AssignmentClient.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
-
-SharedAssignmentPointer AssignmentClient::_currentAssignment;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
@@ -115,12 +114,22 @@ AssignmentClient::AssignmentClient(int ppid, Assignment::Type requestAssignmentT
 
 
 void AssignmentClient::stopAssignmentClient() {
-    qDebug() << "Exiting.";
+    qDebug() << "Forced stop of assignment-client.";
+    
     _requestTimer.stop();
     _statsTimerACM.stop();
+    
     if (_currentAssignment) {
-        _currentAssignment->aboutToQuit();
+        // grab the thread for the current assignment
         QThread* currentAssignmentThread = _currentAssignment->thread();
+        
+        // ask the current assignment to stop
+        QMetaObject::invokeMethod(_currentAssignment, "stop", Qt::BlockingQueuedConnection);
+            
+        // ask the current assignment to delete itself on its thread
+        _currentAssignment->deleteLater();
+
+        // wait on the thread from that assignment - it will be gone once the current assignment deletes
         currentAssignmentThread->quit();
         currentAssignmentThread->wait();
     }
@@ -129,12 +138,9 @@ void AssignmentClient::stopAssignmentClient() {
 
 void AssignmentClient::aboutToQuit() {
     stopAssignmentClient();
+    
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
-    qInstallMessageHandler(0);
-    // clear out pointer to the assignment so the destructor gets called.  if we don't do this here,
-    // it will get destroyed along with all the other "static" stuff.  various static member variables
-    // will be destroyed first and things go wrong.
-    _currentAssignment.clear();
+    qInstallMessageHandler(0);   
 }
 
 
@@ -203,7 +209,7 @@ void AssignmentClient::readPendingDatagrams() {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
                 // construct the deployed assignment from the packet data
-                _currentAssignment = SharedAssignmentPointer(AssignmentFactory::unpackAssignment(receivedPacket));
+                _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
 
                 if (_currentAssignment) {
                     qDebug() << "Received an assignment -" << *_currentAssignment;
@@ -216,13 +222,23 @@ void AssignmentClient::readPendingDatagrams() {
                     qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
 
                     // start the deployed assignment
-                    AssignmentThread* workerThread = new AssignmentThread(_currentAssignment, this);
-                    workerThread->setObjectName("worker");
+                    QThread* workerThread = new QThread;
+                    qDebug() << "The thread is" << workerThread;
+                    workerThread->setObjectName("ThreadedAssignment Worker");
 
-                    connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
-                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, workerThread, &QThread::quit);
-                    connect(_currentAssignment.data(), &ThreadedAssignment::finished,
-                            this, &AssignmentClient::assignmentCompleted);
+                    connect(workerThread, &QThread::started, _currentAssignment, &ThreadedAssignment::run);
+
+                    // once the ThreadedAssignment says it is finished - we ask it to deleteLater
+                    connect(_currentAssignment, &ThreadedAssignment::finished, _currentAssignment, 
+                            &ThreadedAssignment::deleteLater);
+                    
+                    // once it is deleted, we take down the worker thread
+                    connect(_currentAssignment, &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
+                    
+                    // once the worker thread says it is done, we consider the assignment completed
+                    connect(workerThread, &QThread::finished, this, &AssignmentClient::assignmentCompleted);
+                    
+                    // have the worker thread remove itself once it is done
                     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
                     _currentAssignment->moveToThread(workerThread);
@@ -232,7 +248,7 @@ void AssignmentClient::readPendingDatagrams() {
 
                     // let the assignment handle the incoming datagrams for its duration
                     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment.data(),
+                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment,
                             &ThreadedAssignment::readPendingDatagrams);
 
                     // Starts an event loop, and emits workerThread->started()
@@ -281,20 +297,23 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
+
+    // we expect that to be here the previous assignment has completely cleaned up
+    assert(_currentAssignment.isNull());
+
+    // reset our current assignment pointer to NULL now that it has been deleted 
+    _currentAssignment = NULL;
+
     // reset the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
-    qDebug("Assignment finished or never started - waiting for new assignment.");
+    qDebug() << "Assignment finished or never started - waiting for new assignment.";
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     // have us handle incoming NodeList datagrams again
-    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment.data(), 0);
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
-
-    // clear our current assignment shared pointer now that we're done with it
-    // if the assignment thread is still around it has its own shared pointer to the assignment
-    _currentAssignment.clear();
+    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);    
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);

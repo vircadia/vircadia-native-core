@@ -91,8 +91,8 @@ void OctreeQueryNode::sendThreadFinished() {
     }
 }
 
-void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) {
-    _octreeSendThread = new OctreeSendThread(myAssignment, node);
+void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) {
+    _octreeSendThread = new OctreeSendThread(myServer, node);
     
     // we want to be notified when the thread finishes
     connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
