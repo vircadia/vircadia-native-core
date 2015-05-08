@@ -23,7 +23,7 @@
 
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
-const int WAIT_FOR_CHILD_MSECS = 500;
+const int WAIT_FOR_CHILD_MSECS = 1000;
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
