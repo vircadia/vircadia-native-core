@@ -151,10 +151,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _movingStepsWithoutSimulationOwner = 0;
     }
 
-    int ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
+    uint32_t ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
 
     if (_movingStepsWithoutSimulationOwner > ownershipClaimDelay) {
-        qDebug() << "Warning -- claiming something I saw moving." << getName();
+        //qDebug() << "Warning -- claiming something I saw moving." << getName();
         setShouldClaimSimulationOwnership(true);
     }
 
@@ -178,7 +178,7 @@ void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
 const int MAX_NUM_NON_MOVING_UPDATES = 5;
 
 bool EntityMotionState::doesNotNeedToSendUpdate() const { 
-    return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
+    return !_body || (_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES);
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -232,6 +232,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverPosition += dt * _serverVelocity;
     }
 
+    // TODO: compensate for simulation offset here
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
     
@@ -310,86 +311,60 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         return; // never update entities that are unknown
     }
 
+    bool active = _body->isActive();
+    if (!active) {
+        if (_sentMoving) {
+            // make sure all derivatives are zero
+            glm::vec3 zero(0.0f);
+            _entity->setVelocity(zero);
+            _entity->setAngularVelocity(zero);
+            _entity->setAcceleration(zero);
+        }
+
+    } else {
+        float gravityLength = glm::length(_entity->getGravity());
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet.  this is to avoid
+                // overflowing the counter.
+                incrementAccelerationNearlyGravityCount();
+            }
+        } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            resetAccelerationNearlyGravityCount();
+        }
+
+        // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
+        // the entity server's estimates include gravity.
+        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
+            _entity->setAcceleration(_entity->getGravity());
+        } else {
+            _entity->setAcceleration(glm::vec3(0.0f));
+        }
+    }
+
+    // remember properties for local server prediction
+    _serverPosition = _entity->getPosition();
+    _serverRotation = _entity->getRotation();
+    _serverVelocity = _entity->getVelocity();
+    _serverAcceleration = _entity->getAcceleration();
+    _serverAngularVelocity = _entity->getAngularVelocity();
+
+    _sentMoving = _serverVelocity != glm::vec3(0.0f) || _serverAngularVelocity != glm::vec3(0.0f);
+
     EntityItemProperties properties = _entity->getProperties();
 
-    float gravityLength = glm::length(_entity->getGravity());
-    float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
-    if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
-        // acceleration measured during the most recent simulation step was close to gravity.
-        if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
-            // only increment this if we haven't reached the threshold yet.  this is to avoid
-            // overflowing the counter.
-            incrementAccelerationNearlyGravityCount();
-        }
-    } else {
-        // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
-        resetAccelerationNearlyGravityCount();
-    }
-
-    // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
-    // the entity server's estimates include gravity.
-    if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
-        _entity->setAcceleration(_entity->getGravity());
-    } else {
-        _entity->setAcceleration(glm::vec3(0.0f));
-    }
-
-    btTransform worldTrans = _body->getWorldTransform();
-    _serverPosition = bulletToGLM(worldTrans.getOrigin());
-    properties.setPosition(_serverPosition + ObjectMotionState::getWorldOffset());
-  
-    _serverRotation = bulletToGLM(worldTrans.getRotation());
+    // explicitly set the properties that changed
+    properties.setPosition(_serverPosition);
     properties.setRotation(_serverRotation);
-
-    bool zeroSpeed = true;
-    bool zeroSpin = true;
-
-    if (_body->isActive()) {
-        _serverVelocity = bulletToGLM(_body->getLinearVelocity());
-        _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
-
-        // if the speeds are very small we zero them out
-        const float MINIMUM_EXTRAPOLATION_SPEED_SQUARED = 1.0e-4f; // 1cm/sec
-        zeroSpeed = (glm::length2(_serverVelocity) < MINIMUM_EXTRAPOLATION_SPEED_SQUARED);
-        if (zeroSpeed) {
-            _serverVelocity = glm::vec3(0.0f);
-        }
-        const float MINIMUM_EXTRAPOLATION_SPIN_SQUARED = 0.004f; // ~0.01 rotation/sec
-        zeroSpin = glm::length2(_serverAngularVelocity) < MINIMUM_EXTRAPOLATION_SPIN_SQUARED;
-        if (zeroSpin) {
-            _serverAngularVelocity = glm::vec3(0.0f);
-        }
-
-        _sentMoving = ! (zeroSpeed && zeroSpin);
-    } else {
-        _serverVelocity = _serverAngularVelocity = glm::vec3(0.0f);
-        _sentMoving = false;
-    }
     properties.setVelocity(_serverVelocity);
-    _serverGravity = _entity->getGravity();
-    properties.setGravity(_entity->getGravity());
-    _serverAcceleration = _entity->getAcceleration();
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    QUuid myNodeID = nodeList->getSessionUUID();
-    QUuid simulatorID = _entity->getSimulatorID();
-
-    if (getShouldClaimSimulationOwnership()) {
-        properties.setSimulatorID(myNodeID);
-        setShouldClaimSimulationOwnership(false);
-    } else if (simulatorID == myNodeID && zeroSpeed && zeroSpin) {
-        // we are the simulator and the entity has stopped.  give up "simulator" status
-        _entity->setSimulatorID(QUuid());
-        properties.setSimulatorID(QUuid());
-    } else if (simulatorID == myNodeID && !_body->isActive()) {
-        // it's not active.  don't keep simulation ownership.
-        _entity->setSimulatorID(QUuid());
-        properties.setSimulatorID(QUuid());
-    }
-
-    // RELIABLE_SEND_HACK: count number of updates for entities at rest so we can stop sending them after some limit.
+    // RELIABLE_SEND_HACK: count number of updates for entities at rest 
+    // so we can stop sending them after some limit.
     if (_sentMoving) {
         _numNonMovingUpdates = 0;
     } else {
@@ -397,8 +372,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
     if (_numNonMovingUpdates <= 1) {
         // we only update lastEdited when we're sending new physics data 
-        // (i.e. NOT when we just simulate the positions forward, nor when we resend non-moving data)
-        // NOTE: Andrew & Brad to discuss. Let's make sure we're using lastEdited, lastSimulated, and lastUpdated correctly
         quint64 lastSimulated = _entity->getLastSimulated();
         _entity->setLastEdited(lastSimulated);
         properties.setLastEdited(lastSimulated);
@@ -413,6 +386,25 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
     } else {
         properties.setLastEdited(_entity->getLastEdited());
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    QUuid myNodeID = nodeList->getSessionUUID();
+    QUuid simulatorID = _entity->getSimulatorID();
+
+    if (getShouldClaimSimulationOwnership()) {
+        // we think we should own it, so we tell the server that we do, 
+        // but we don't remember that we own it...
+        // instead we expect the sever to tell us later whose ownership it has accepted
+        properties.setSimulatorID(myNodeID);
+        setShouldClaimSimulationOwnership(false);
+    } else if (simulatorID == myNodeID 
+            && !_sentMoving 
+            && _numNonMovingUpdates == MAX_NUM_NON_MOVING_UPDATES) {
+        // we own it, the entity has stopped, and we're sending the last non-moving update
+        // --> give up ownership
+        _entity->setSimulatorID(QUuid());
+        properties.setSimulatorID(QUuid());
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {

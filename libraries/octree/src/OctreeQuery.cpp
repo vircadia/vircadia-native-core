@@ -16,7 +16,7 @@
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPSSpin", DEFAULT_MAX_OCTREE_PPS);
 
 OctreeQuery::OctreeQuery() {
     _maxOctreePPS = maxOctreePacketsPerSecond.get();
