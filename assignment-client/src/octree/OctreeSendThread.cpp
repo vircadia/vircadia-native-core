@@ -68,6 +68,9 @@ bool OctreeSendThread::process() {
 
     quint64  start = usecTimestampNow();
 
+    // we'd better have a server at this point, or we're in trouble
+    assert(_myServer);
+
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
         if (_node) {
