@@ -85,17 +85,7 @@ void AssignmentClientMonitor::waitOnChildren(int msecs) {
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([&](const SharedNodePointer& node) {
-        qDebug() << "asking child" << node->getUUID() << "to exit.";
-        node->activateLocalSocket();
-        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-        nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
-    });
-
-    // try to give all the children time to shutdown
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
-
-    // ask more firmly
+    // ask child processes to terminate
     QMutableListIterator<QProcess*> i(_childProcesses);
     while (i.hasNext()) {
         QProcess* childProcess = i.next();
