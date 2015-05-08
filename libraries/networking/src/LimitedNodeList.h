@@ -50,10 +50,8 @@ const unsigned short STUN_SERVER_PORT = 3478;
 const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
 const QString DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY = "domain-server.local-http-port";
 const QString DOMAIN_SERVER_LOCAL_HTTPS_PORT_SMEM_KEY = "domain-server.local-https-port";
-const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client-monitor.local-port";
 
-const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
-const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
+const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::LocalHost;
 
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 

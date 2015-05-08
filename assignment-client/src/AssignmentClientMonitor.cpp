@@ -48,15 +48,10 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<LimitedNodeList>(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT);
+    auto nodeList = DependencyManager::set<LimitedNodeList>();
 
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClientMonitor::readPendingDatagrams);
 
-    qint64 pid = QCoreApplication::applicationPid ();
-
-    nodeList->putLocalPortIntoSharedMemory(QString(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY) + "-" + QString::number(pid),
-                                           this, nodeList->getNodeSocket().localPort());
-    
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
         spawnChildClient();
@@ -139,10 +134,10 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append(QString::number(_requestAssignmentType));
     }
 
-    // tell children which shared memory key to use
-    qint64 pid = QCoreApplication::applicationPid ();
-    _childArguments.append("--" + PARENT_PID_OPTION);
-    _childArguments.append(QString::number(pid));
+    // tell children which assignment monitor port to use
+    // for now they simply talk to us on localhost
+    _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
+    _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
 
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
@@ -183,6 +178,7 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
+            
             QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }

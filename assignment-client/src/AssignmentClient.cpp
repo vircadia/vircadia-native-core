@@ -40,11 +40,11 @@ const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
 int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
-AssignmentClient::AssignmentClient(int ppid, Assignment::Type requestAssignmentType, QString assignmentPool,
-                                   QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort) :
+AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
+                                   QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
+                                   quint16 assignmentMonitorPort) :
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _localASPortSharedMem(NULL),
-    _localACMPortSharedMem(NULL)
+    _localASPortSharedMem(NULL)
 {
     LogUtils::init();
 
@@ -107,9 +107,16 @@ AssignmentClient::AssignmentClient(int ppid, Assignment::Type requestAssignmentT
     
     // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
-
-    // Hook up a timer to send this child's status to the Monitor once per second
-    setUpStatsToMonitor(ppid);
+    
+    // did we get an assignment-client monitor port?
+    if (assignmentMonitorPort > 0) {
+        _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
+        
+        qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
+        
+        // Hook up a timer to send this child's status to the Monitor once per second
+        setUpStatsToMonitor();
+    } 
 }
 
 
@@ -144,15 +151,7 @@ void AssignmentClient::aboutToQuit() {
 }
 
 
-void AssignmentClient::setUpStatsToMonitor(int ppid) {
-    // Figure out the address to send out stats to
-    quint16 localMonitorServerPort = DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT;
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->getLocalServerPortFromSharedMemory(QString(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY) + "-" +
-                                                 QString::number(ppid), _localACMPortSharedMem, localMonitorServerPort);
-    _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, localMonitorServerPort, true);
-
+void AssignmentClient::setUpStatsToMonitor() {
     // send a stats packet every 1 seconds
     connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatsPacketToACM);
     _statsTimerACM.start(1000);
@@ -208,6 +207,9 @@ void AssignmentClient::readPendingDatagrams() {
 
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
+
+                qDebug() << "Received a PacketTypeCreateAssignment - attempting to unpack.";
+
                 // construct the deployed assignment from the packet data
                 _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
 
@@ -258,8 +260,8 @@ void AssignmentClient::readPendingDatagrams() {
             } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
                 if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                     senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-                    qDebug() << "Network told me to exit.";
-                    emit stopAssignmentClient();
+                    qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketTypeStopNode.";
+                    stopAssignmentClient();
                 } else {
                     qDebug() << "Got a stop packet from other than localhost.";
                 }

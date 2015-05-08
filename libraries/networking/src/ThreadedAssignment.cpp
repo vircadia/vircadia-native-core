@@ -46,10 +46,10 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             // this ensures we won't process a domain list while we are going down
             auto nodeList = DependencyManager::get<NodeList>();
             disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-            
+
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
             aboutToFinish();
-            
+
             // if we have a datagram processing thread, quit it and wait on it to make sure that
             // the node socket is back on the same thread as the NodeList
             
