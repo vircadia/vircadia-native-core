@@ -627,7 +627,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         //Full texture viewport for glow effect
         glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
-        finalFbo = DependencyManager::get<GlowEffect>()->render(true);
+        finalFbo = DependencyManager::get<GlowEffect>()->render();
     } else {
         finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
