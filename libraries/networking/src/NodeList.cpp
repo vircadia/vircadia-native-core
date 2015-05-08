@@ -150,7 +150,10 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
-            processDomainServerList(packet);
+            if (_domainHandler.isConnected()) {
+                // only process a list from domain-server if we think we're connected
+                processDomainServerList(packet);
+            }
             break;
         }
         case PacketTypeDomainServerRequireDTLS: {

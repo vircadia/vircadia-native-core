@@ -1216,6 +1216,11 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
 
+    // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeSendThreads
+    // this ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->linkedDataCreateCallback = NULL;
+    
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
     }
@@ -1224,7 +1229,9 @@ void OctreeServer::aboutToFinish() {
         _jurisdictionSender->terminating();
     }
 
-    DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
+    // force a shutdown of all of our OctreeSendThreads - at this point it has to be impossible for a
+    // linkedDataCreateCallback to be called for a new node
+    nodeList->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
     });
