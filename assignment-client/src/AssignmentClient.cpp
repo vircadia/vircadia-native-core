@@ -228,11 +228,11 @@ void AssignmentClient::readPendingDatagrams() {
                     connect(workerThread, &QThread::started, _currentAssignment, &ThreadedAssignment::run);
 
                     // once the ThreadedAssignment says it is finished - we ask it to deleteLater
-                    connect(_currentAssignment, &ThreadedAssignment::finished, _currentAssignment, 
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment, 
                             &ThreadedAssignment::deleteLater);
                     
                     // once it is deleted, we take down the worker thread
-                    connect(_currentAssignment, &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
+                    connect(_currentAssignment.data(), &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
                     
                     // once the worker thread says it is done, we consider the assignment completed
                     connect(workerThread, &QThread::finished, this, &AssignmentClient::assignmentCompleted);
@@ -247,7 +247,7 @@ void AssignmentClient::readPendingDatagrams() {
 
                     // let the assignment handle the incoming datagrams for its duration
                     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment,
+                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment.data(),
                             &ThreadedAssignment::readPendingDatagrams);
 
                     // Starts an event loop, and emits workerThread->started()
