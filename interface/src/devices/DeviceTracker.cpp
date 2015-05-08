@@ -70,6 +70,7 @@ void DeviceTracker::destroyDevice(const Name& name) {
     DeviceTracker::ID deviceID = getDeviceID(name);
     if (deviceID != INVALID_DEVICE) {
         delete Singleton::get()->_devicesVector[getDeviceID(name)];
+        Singleton::get()->_devicesVector[getDeviceID(name)] = nullptr;
     }
 }
 
