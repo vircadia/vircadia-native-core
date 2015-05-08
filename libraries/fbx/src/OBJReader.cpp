@@ -510,6 +510,9 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                     << textureUVs[face.textureUVIndices[0]]
                     << textureUVs[face.textureUVIndices[1]]
                     << textureUVs[face.textureUVIndices[2]];
+                } else {
+                    glm::vec2 corner(0.0f, 1.0f);
+                    mesh.texCoords << corner << corner << corner;
                 }
             }
         }
