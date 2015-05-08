@@ -179,7 +179,7 @@ function update(deltaTime) {
     if (distanceToTarget > CLOSE_ENOUGH) {
       //  compute current velocity in the direction we want to move 
       velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
-      velocityTowardTarget = Vec3.multiply(dPosition, velocityTowardTarget);
+      velocityTowardTarget = Vec3.multiply(Vec3.normalize(dPosition), velocityTowardTarget);
       //  compute the speed we would like to be going toward the target position 
 
       desiredVelocity = Vec3.multiply(dPosition, (1.0 / deltaTime) * SPRING_RATE);

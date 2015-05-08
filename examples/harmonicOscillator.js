@@ -16,8 +16,7 @@
 var ball, disc; 
 var time = 0.0; 
 var range = 1.0;
-var speed = 0.5;
-
+var omega = 2.0 * Math.PI / 32.0;
 
 var basePosition = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
 
@@ -25,35 +24,44 @@ ball = Entities.addEntity(
   { type: "Box",
     position: basePosition,
 	dimensions: { x: 0.1, y: 0.1, z: 0.1 },  
-    color: { red: 255, green: 0, blue: 255 }
+    color: { red: 255, green: 0, blue: 255 },
+    collisionsWillMove: false,
+    ignoreForCollisions: true
   });
 
 disc = Entities.addEntity(
   { type: "Sphere",
     position: basePosition,
-	dimensions: { x: range, y: range / 20.0, z: range },  
+	dimensions: { x: range * 0.8, y: range / 20.0, z: range * 0.8},  
     color: { red: 128, green: 128, blue: 128 }
   });
 
+function randomColor() {
+  return { red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 };
+}
+
 function update(deltaTime) {
-  time += deltaTime * speed;
+  time += deltaTime;
   if (!ball.isKnownID) {
      ball = Entities.identifyEntity(ball);
   }	 
-  rotation = Quat.angleAxis(time/Math.PI * 180.0, { x: 0, y: 1, z: 0 });
+  rotation = Quat.angleAxis(time * omega  /Math.PI * 180.0, { x: 0, y: 1, z: 0 });
   Entities.editEntity(ball, 
 	{
-	  color: { red: 255 * (Math.sin(time)/2.0 + 0.5), 
-               green: 255 - 255 * (Math.sin(time)/2.0 + 0.5), 
+	  color: { red: 255 * (Math.sin(time * omega)/2.0 + 0.5), 
+               green: 255 - 255 * (Math.sin(time * omega)/2.0 + 0.5), 
                blue: 0 },
-	  position: { x: basePosition.x + Math.sin(time) / 2.0 * range, 
+	  position: { x: basePosition.x + Math.sin(time * omega) / 2.0 * range, 
                   y: basePosition.y, 
-				 z: basePosition.z + Math.cos(time) / 2.0 * range },  
-	  velocity: { x: Math.cos(time)/2.0 * range, 
+				 z: basePosition.z + Math.cos(time * omega) / 2.0 * range },  
+	  velocity: { x: Math.cos(time * omega)/2.0 * range * omega, 
                   y: 0.0, 
-				 z: -Math.sin(time)/2.0 * range },
+				 z: -Math.sin(time * omega)/2.0 * range * omega},
 	  rotation: rotation 
     }); 
+  if (Math.random() < 0.007) {
+    Entities.editEntity(disc, { color: randomColor() });
+  }
 }
 
 function scriptEnding() {

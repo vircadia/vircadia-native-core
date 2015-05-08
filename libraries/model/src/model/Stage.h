@@ -223,11 +223,11 @@ public:
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
-    BackgroundMode _backgroundMode = SKY_DOME;
+    BackgroundMode _backgroundMode = SKY_BOX;
 
     LightPointer _sunLight;
     AtmospherePointer _atmosphere;
-    SkyboxPointer _skybox;
+    mutable SkyboxPointer _skybox;
 
     gpu::PipelinePointer _skyPipeline;
 

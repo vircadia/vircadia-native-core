@@ -17,17 +17,18 @@
 
 #include "RegisteredMetaTypes.h"
 
-enum ContactEventType {
-    CONTACT_EVENT_TYPE_START, 
-    CONTACT_EVENT_TYPE_CONTINUE,
-    CONTACT_EVENT_TYPE_END
-};
 
-class ContactInfo : public Collision
-{       
+class ContactInfo {
 public: 
-    void update(uint32_t currentStep, btManifoldPoint& p, const glm::vec3& worldOffset);
+    void update(uint32_t currentStep, const btManifoldPoint& p);
     ContactEventType computeType(uint32_t thisStep);
+
+    const btVector3& getPositionWorldOnB() const { return positionWorldOnB; }
+    btVector3 getPositionWorldOnA() const { return positionWorldOnB + normalWorldOnB * distance; }
+
+    btVector3 positionWorldOnB;
+    btVector3 normalWorldOnB;
+    btScalar distance;
 private:
     uint32_t _lastStep = 0;
     uint32_t _numSteps = 0;

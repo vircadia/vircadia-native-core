@@ -71,6 +71,7 @@
 #include <NetworkingConstants.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
+#include <ObjectMotionState.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -430,6 +431,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
+    connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
@@ -684,6 +686,9 @@ Application::~Application() {
     // ask the node thread to quit and wait until it is done
     nodeThread->quit();
     nodeThread->wait();
+
+    Leapmotion::destroy();
+    RealSense::destroy();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -2098,19 +2103,20 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    EntityTree* tree = _entities.getTree();
-    _physicsEngine.setEntityTree(tree);
-    tree->setSimulation(&_physicsEngine);
-    _physicsEngine.init(&_entityEditSender);
+    ObjectMotionState::setShapeManager(&_shapeManager);
+    _physicsEngine.init();
 
+    EntityTree* tree = _entities.getTree();
+    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_physicsEngine, &EntitySimulation::entityCollisionWithEntity,
+    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -2394,8 +2400,22 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("physics");
         _myAvatar->relayDriveKeysToCharacterController();
+
+        _entitySimulation.lock();
+        _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
+        _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
+        _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.unlock();
+
         _physicsEngine.stepSimulation();
-        _physicsEngine.dumpStatsIfNecessary();
+
+        if (_physicsEngine.hasOutgoingChanges()) {
+            _entitySimulation.lock();
+            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
+            _entitySimulation.unlock();
+            _physicsEngine.dumpStatsIfNecessary();
+        }
     }
 
     if (!_aboutToQuit) {
@@ -2606,7 +2626,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2647,7 +2670,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             
-            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
             
@@ -2669,7 +2691,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
+
+
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -2715,7 +2742,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-            
+
             // insert packet type/version and node UUID
             endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
@@ -3894,6 +3921,9 @@ bool Application::acceptURL(const QString& urlString) {
     return false;
 }
 
+void Application::setSessionUUID(const QUuid& sessionUUID) {
+    _physicsEngine.setSessionUUID(sessionUUID);
+}
 
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);

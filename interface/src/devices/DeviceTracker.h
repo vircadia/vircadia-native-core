@@ -79,6 +79,8 @@ public:
     ///         INVALID_DEVICE_NAME if the name is already taken
     static ID registerDevice(const Name& name, DeviceTracker* tracker);
 
+    static void destroyDevice(const Name& name);
+
     // DeviceTracker interface
 
     virtual void update();

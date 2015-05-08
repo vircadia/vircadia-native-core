@@ -52,7 +52,7 @@ var button = Overlays.addOverlay('image', {
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
     imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
-    alpha: 1
+    alpha: 0.8
 });
 
 
@@ -93,7 +93,7 @@ function resetBlocks() {
                 type: 'Model',
                 modelURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx',
                 shapeType: 'box',
-                name: 'JengaBlock' + ((layerIndex * BLOCKS_PER_LAYER) + blockIndex),
+                name: 'PlankyBlock' + ((layerIndex * BLOCKS_PER_LAYER) + blockIndex),
                 dimensions: BLOCK_SIZE,
                 position: {
                     x: basePosition.x + localTransform.x,
@@ -133,7 +133,10 @@ function cleanup() {
 }
 
 function onUpdate() {
-
+    if (windowWidth != Window.innerWidth) {
+        windowWidth = Window.innerWidth;
+        Overlays.editOverlay(button, {x: getButtonPosX()});
+    }
 }
 
 Script.update.connect(onUpdate)
