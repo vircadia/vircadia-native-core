@@ -225,10 +225,10 @@ void AssignmentClient::readPendingDatagrams() {
                     QThread* workerThread = new QThread;
                     workerThread->setObjectName("ThreadedAssignment Worker");
 
-                    connect(workerThread, &QThread::started, _currentAssignment, &ThreadedAssignment::run);
+                    connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
 
                     // once the ThreadedAssignment says it is finished - we ask it to deleteLater
-                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment, 
+                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment.data(),
                             &ThreadedAssignment::deleteLater);
                     
                     // once it is deleted, we take down the worker thread
