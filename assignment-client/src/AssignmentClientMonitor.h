@@ -33,7 +33,6 @@ public:
                             quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
 
-    void waitOnChildren(int msecs);
     void stopChildProcesses();
 private slots:
     void readPendingDatagrams();
@@ -44,6 +43,8 @@ public slots:
 
 private:
     void spawnChildClient();
+    void waitOnChildren(int waitMsecs);
+
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 
     const unsigned int _numAssignmentClientForks;

@@ -66,16 +66,16 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
 }
 
-void AssignmentClientMonitor::waitOnChildren(int msecs) {
+void AssignmentClientMonitor::waitOnChildren(int waitMsecs) {
     QMutableListIterator<QProcess*> i(_childProcesses);
     while (i.hasNext()) {
         QProcess* childProcess = i.next();
 
         if (childProcess->state() == QProcess::NotRunning) {
             i.remove();
-        } else if (msecs > 0) {
+        } else if (waitMsecs > 0) {
             qDebug() << "Waiting on child process" << childProcess->processId() << "to finish.";
-            bool finished = childProcess->waitForFinished(msecs);
+            bool finished = childProcess->waitForFinished(waitMsecs);
             if (finished) {
                 i.remove();
             }
@@ -191,8 +191,16 @@ void AssignmentClientMonitor::checkSpares() {
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
+    
+    // check if any of the previous processes have now gone down
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
 
-    waitOnChildren(0);
+        if (childProcess->state() == QProcess::NotRunning) {
+            i.remove();
+        }
+    }
 }
 
 
