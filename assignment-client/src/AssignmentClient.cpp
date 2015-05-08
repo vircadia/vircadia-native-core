@@ -310,7 +310,7 @@ void AssignmentClient::assignmentCompleted() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // have us handle incoming NodeList datagrams again
+    // have us handle incoming NodeList datagrams again, and make sure our ThreadedAssignment isn't handling them
     disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);    
 
