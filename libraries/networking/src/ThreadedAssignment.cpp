@@ -32,7 +32,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
         if (_isFinished) {
 
-            qDebug() << "Somebody set us finished";
+            qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
 
             if (_domainServerTimer) {
                 _domainServerTimer->stop();
