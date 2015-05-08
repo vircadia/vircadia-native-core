@@ -231,14 +231,14 @@ void AssignmentClient::readPendingDatagrams() {
                     connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment.data(),
                             &ThreadedAssignment::deleteLater);
                     
-                    // once it is deleted, we take down the worker thread
+                    // once it is deleted, we quit the worker thread
                     connect(_currentAssignment.data(), &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
-                    
-                    // once the worker thread says it is done, we consider the assignment completed
-                    connect(workerThread, &QThread::finished, this, &AssignmentClient::assignmentCompleted);
                     
                     // have the worker thread remove itself once it is done
                     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+
+                    // once the worker thread says it is done, we consider the assignment completed
+                    connect(workerThread, &QThread::destroyed, this, &AssignmentClient::assignmentCompleted);
 
                     _currentAssignment->moveToThread(workerThread);
 
@@ -311,7 +311,6 @@ void AssignmentClient::assignmentCompleted() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // have us handle incoming NodeList datagrams again, and make sure our ThreadedAssignment isn't handling them
-    disconnect(&nodeList->getNodeSocket(), 0, _currentAssignment, 0);
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);    
 
     // reset our NodeList by switching back to unassigned and clearing the list
