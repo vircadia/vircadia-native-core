@@ -32,7 +32,7 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
                     y: screenSize.y- (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
@@ -40,6 +40,17 @@ var offButton = Overlays.addOverlay("image", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
+
+var deleteButton = Overlays.addOverlay("image", {
+                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    y: screenSize.y- (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
 var diceButton = Overlays.addOverlay("image", {
                     x: screenSize.x / 2 + PADDING,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
@@ -108,6 +119,8 @@ function mousePressEvent(event) {
     if (clickedOverlay == offButton) {
         deleteDice();
         Script.stop();
+    } else if (clickedOverlay == deleteButton) {
+        deleteDice();
     } else if (clickedOverlay == diceButton) {
         var HOW_HARD = 2.0;
         var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
@@ -120,6 +133,7 @@ function mousePressEvent(event) {
 function scriptEnding() {
     Overlays.deleteOverlay(offButton);
     Overlays.deleteOverlay(diceButton);
+    Overlays.deleteOverlay(deleteButton);
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
