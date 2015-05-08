@@ -633,6 +633,8 @@ void ScriptEngine::run() {
     emit doneRunning();
 
     _doneRunningThisScript = true;
+
+    qDebug() << "Agent script-engine stop completed";
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
