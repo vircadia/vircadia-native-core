@@ -147,6 +147,7 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         btRigidBody* body = object->getRigidBody();
         object->setRigidBody(nullptr);
+        body->setMotionState(nullptr);
         delete body;
         object->releaseShape();
         delete object;
@@ -161,6 +162,7 @@ void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
+        body->setMotionState(nullptr);
         delete body;
         object->releaseShape();
         delete object;
