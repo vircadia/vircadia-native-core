@@ -20,7 +20,7 @@ class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(const QByteArray& packet);
-    ~ThreadedAssignment() { stop(); qDebug() << "ThreadedAssignment dtor called"; }
+    ~ThreadedAssignment() { stop(); } 
     
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };

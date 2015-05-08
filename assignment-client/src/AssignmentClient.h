@@ -26,7 +26,6 @@ public:
     AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                      QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort, 
                      quint16 assignmentMonitorPort);
-    ~AssignmentClient() { qDebug() << "AC object is going down"; }
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
