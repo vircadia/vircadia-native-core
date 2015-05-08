@@ -1185,16 +1185,16 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 void EntityItem::updateVelocity(const glm::vec3& value) { 
     auto delta = glm::distance(_velocity, value);
     if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
+        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
         const float MIN_LINEAR_SPEED = 0.001f;
         if (glm::length(value) < MIN_LINEAR_SPEED) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
-        }
-        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
-
-        if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            // only activate when setting non-zero velocity
+            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            }
         }
     }
 }
@@ -1232,9 +1232,10 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _angularVelocity = value;
-        }
-        if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            // only activate when setting non-zero velocity
+            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            }
         }
     }
 }
