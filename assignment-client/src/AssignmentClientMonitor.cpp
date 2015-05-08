@@ -71,8 +71,6 @@ void AssignmentClientMonitor::waitOnChildren(int msecs) {
     while (i.hasNext()) {
         QProcess* childProcess = i.next();
 
-        qDebug() << "The current state of process" << childProcess->processId() << "is" << childProcess->state();
-
         if (childProcess->state() == QProcess::NotRunning) {
             i.remove();
         } else if (msecs > 0) {
