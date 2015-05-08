@@ -74,6 +74,7 @@ void AssignmentClientMonitor::waitOnChildren(int msecs) {
         if (childProcess->state() == QProcess::NotRunning) {
             i.remove();
         } else {
+            qDebug() << "Waiting on child process" << childProcess->processId() << "to finish.";
             bool finished = childProcess->waitForFinished(msecs);
             if (finished) {
                 i.remove();
@@ -89,6 +90,7 @@ void AssignmentClientMonitor::stopChildProcesses() {
     QMutableListIterator<QProcess*> i(_childProcesses);
     while (i.hasNext()) {
         QProcess* childProcess = i.next();
+        qDebug() << "Attempting to terminate child process" << childProcess->processId();
         childProcess->terminate();
     }
 
@@ -99,6 +101,7 @@ void AssignmentClientMonitor::stopChildProcesses() {
     QMutableListIterator<QProcess*> j(_childProcesses);
     while (j.hasNext()) {
         QProcess* childProcess = j.next();
+        qDebug() << "Attempting to kill child process" << childProcess->processId();
         childProcess->kill();
     }
     
