@@ -264,7 +264,8 @@ void AssignmentClient::readPendingDatagrams() {
                 if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                     senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
                     qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketTypeStopNode.";
-                    stopAssignmentClient();
+                
+                    QCoreApplication::quit();
                 } else {
                     qDebug() << "Got a stop packet from other than localhost.";
                 }
