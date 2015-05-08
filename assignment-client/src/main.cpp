@@ -15,6 +15,9 @@
 
 int main(int argc, char* argv[]) {
     AssignmentClientApp app(argc, argv);
+    
     int acReturn = app.exec();
     qDebug() << "assignment-client process" <<  app.applicationPid() << "exiting with status code" << acReturn;
+    
+    return acReturn;
 }
