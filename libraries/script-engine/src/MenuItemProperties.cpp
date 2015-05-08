@@ -23,7 +23,8 @@ MenuItemProperties::MenuItemProperties() :
     beforeItem(""),
     afterItem(""),
     isCheckable(false),
-    isChecked(false)
+    isChecked(false),
+    isSeparator(false) 
 {
 };
 
@@ -38,7 +39,8 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
-    isChecked(checked)
+    isChecked(checked),
+    isSeparator(false)
 {
 }
 
@@ -53,7 +55,8 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
-    isChecked(checked)
+    isChecked(checked),
+    isSeparator(false)
 {
 }
 

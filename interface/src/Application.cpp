@@ -831,6 +831,11 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay();
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -913,13 +918,9 @@ void Application::paintGL() {
         glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-
-        {
-            PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay();
-            _applicationOverlay.displayOverlayTexture();
-        }
+        _applicationOverlay.displayOverlayTexture();
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {

@@ -117,18 +117,6 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-static void maybeBind(const gpu::FramebufferPointer& fbo) {
-    if (fbo) {
-        glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(fbo));
-    }
-}
-
-static void maybeRelease(const gpu::FramebufferPointer& fbo) {
-    if (fbo) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-}
-
 gpu::FramebufferPointer GlowEffect::render() {
     PerformanceTimer perfTimer("glowEffect");
 
@@ -154,22 +142,11 @@ gpu::FramebufferPointer GlowEffect::render() {
     gpu::FramebufferPointer destFBO = textureCache->getSecondaryFramebuffer();
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
-        if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
-            glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(),
-                              0, 0, framebufferSize.width(), framebufferSize.height(),
-                              GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        } else {
-            glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
-            glViewport(0, 0, framebufferSize.width(), framebufferSize.height());
-            glEnable(GL_TEXTURE_2D);
-            glDisable(GL_LIGHTING);
-            renderFullscreenQuad();
-            glDisable(GL_TEXTURE_2D);
-            glEnable(GL_LIGHTING);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
+		glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(),
+						  0, 0, framebufferSize.width(), framebufferSize.height(),
+						  GL_COLOR_BUFFER_BIT, GL_NEAREST);
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
         auto oldDiffusedFBO =
