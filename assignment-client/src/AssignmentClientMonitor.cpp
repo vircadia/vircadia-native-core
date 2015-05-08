@@ -193,14 +193,7 @@ void AssignmentClientMonitor::checkSpares() {
     }
     
     // check if any of the previous processes have now gone down
-    QMutableListIterator<QProcess*> i(_childProcesses);
-    while (i.hasNext()) {
-        QProcess* childProcess = i.next();
-
-        if (childProcess->state() == QProcess::NotRunning) {
-            i.remove();
-        }
-    }
+    waitOnChildren(0); 
 }
 
 
