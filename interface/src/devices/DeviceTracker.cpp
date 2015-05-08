@@ -66,6 +66,13 @@ DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker*
     return deviceID;
 }
 
+void DeviceTracker::destroyDevice(const Name& name) {
+    DeviceTracker::ID deviceID = getDeviceID(name);
+    if (deviceID != INVALID_DEVICE) {
+        delete Singleton::get()->_devicesVector[getDeviceID(name)];
+    }
+}
+
 void DeviceTracker::updateAll() {
     //TODO C++11 for (auto deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
     for (Vector::iterator deviceIt = Singleton::get()->_devicesVector.begin(); deviceIt != Singleton::get()->_devicesVector.end(); deviceIt++) {
