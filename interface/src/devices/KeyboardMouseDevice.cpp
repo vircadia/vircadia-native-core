@@ -123,7 +123,11 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
 }
 
 UserInputMapper::Input KeyboardMouseDevice::makeInput(Qt::Key code) {
-    return UserInputMapper::Input(_deviceID, code & KEYBOARD_MASK, UserInputMapper::ChannelType::BUTTON);
+    auto shortCode = (UserInputMapper::uint16)(code & KEYBOARD_MASK);
+    if (shortCode != code) {
+       shortCode |= 0x0800; // add this bit instead of the way Qt::Key add a bit on the 3rd byte for some keys
+    }
+    return UserInputMapper::Input(_deviceID, shortCode, UserInputMapper::ChannelType::BUTTON);
 }
 
 UserInputMapper::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) {

@@ -34,7 +34,7 @@ public:
     /// (either the secondary or the tertiary).
     gpu::FramebufferPointer getFreeFramebuffer() const;
     
-    void init(QGLWidget* widget, bool enabled);
+    void init(bool enabled);
     
     /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
     void prepare();
@@ -61,9 +61,6 @@ private:
     GlowEffect();
     virtual ~GlowEffect();
 
-    int getDeviceWidth() const;
-    int getDeviceHeight() const;
-
     bool _initialized;
 
     ProgramObject* _addProgram;
@@ -80,7 +77,6 @@ private:
     
     float _intensity;
     QStack<float> _intensityStack;
-    QGLWidget* _widget;
     bool _enabled;
 };
 
