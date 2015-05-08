@@ -41,6 +41,7 @@ public:
         NUM_MAPS,
     };
     typedef std::map<MapChannel, TextureView> TextureMap;
+    typedef std::bitset<NUM_MAPS> MapFlags;
 
     enum FlagBit {
         DIFFUSE_BIT = 0,

@@ -14,16 +14,15 @@ using namespace model;
 using namespace gpu;
 
 // TextureStorage
-TextureStorage::TextureStorage(const QUrl& url, Texture::Type type ) : Texture::Storage(),
-     _url(url),
-     _type(type) {
-    init();
-}
+TextureStorage::TextureStorage() : Texture::Storage(), 
+    _gpuTexture(Texture::createFromStorage(this))
+{}
 
 TextureStorage::~TextureStorage() {
 }
 
-void TextureStorage::init() {
-    _gpuTexture = TexturePointer(Texture::createFromStorage(this));
+void TextureStorage::reset(const QUrl& url, const TextureUsage& usage) {
+    _url = url;
+    _usage = usage;
 }
 

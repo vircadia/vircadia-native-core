@@ -25,6 +25,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -455,7 +456,9 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
                         stage->getSkybox()->clearCubemap();
                     } else {
-                        stage->getSkybox()->clearCubemap(); // NOTE: this should be changed to do something to set the cubemap
+                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+
+                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); // NOTE: this should be changed to do something to set the cubemap
                     }
                     stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
                 }

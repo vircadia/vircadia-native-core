@@ -525,7 +525,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         
         if (_type == CUBE_TEXTURE) {
             if (_height >= (6 * _width)) {
-                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP)));
+                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP)));
                 _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
                 _gpuTexture->autoGenerateMips(-1);
             }

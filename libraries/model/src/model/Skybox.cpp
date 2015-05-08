@@ -20,8 +20,8 @@
 using namespace model;
 
 Skybox::Skybox() {
-
-/*    _cubemap.reset( gpu::Texture::createCube(gpu::Element::COLOR_RGBA_32, 1));
+/*
+    _cubemap.reset( gpu::Texture::createCube(gpu::Element::COLOR_RGBA_32, 1));
     unsigned char texels[] = {
         255, 0, 0, 255,
         0, 255, 255, 255,
@@ -30,7 +30,7 @@ Skybox::Skybox() {
         0, 255, 0, 255,
         255, 0, 255, 255,
     };
-    _cubemap->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, sizeof(texels), texels); */
+    _cubemap->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, sizeof(texels), texels);*/
 }
 
 void Skybox::setColor(const Color& color) {

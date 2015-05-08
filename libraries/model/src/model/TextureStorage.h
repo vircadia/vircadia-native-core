@@ -21,24 +21,32 @@ namespace model {
 
 typedef glm::vec3 Color;
 
+class TextureUsage {
+public:
+    gpu::Texture::Type _type{ gpu::Texture::TEX_2D };
+    Material::MapFlags _materialUsage{ Material::DIFFUSE_MAP };
+
+    int _environmentUsage = 0;
+};
+
 // TextureStorage is a specialized version of the gpu::Texture::Storage
 // It provides the mechanism to create a texture from a Url and the intended usage 
 // that guides the internal format used
 class TextureStorage : public gpu::Texture::Storage {
 public:
-    TextureStorage(const QUrl& url, gpu::Texture::Type type = gpu::Texture::TEX_2D);
+    TextureStorage();
     ~TextureStorage();
 
     const QUrl& getUrl() const { return _url; }
-    const gpu::Texture::Type getType() const { return _type; }
+    const gpu::Texture::Type getType() const { return _usage._type; }
     const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
+
+    void reset(const QUrl& url, const TextureUsage& usage);
 
 protected:
     gpu::TexturePointer _gpuTexture;
+    TextureUsage _usage;
     QUrl _url;
-    gpu::Texture::Type _type;
-
-    void init();
 };
 typedef std::shared_ptr< TextureStorage > TextureStoragePointer;
 
