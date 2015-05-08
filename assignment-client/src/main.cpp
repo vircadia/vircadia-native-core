@@ -14,5 +14,5 @@
 
 int main(int argc, char* argv[]) {
     AssignmentClientApp app(argc, argv);
-    return 0;
+    return app.exec();
 }
