@@ -73,7 +73,6 @@ find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg W
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 source_group("UI Files" FILES ${QT_UI_FILES})
-
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
