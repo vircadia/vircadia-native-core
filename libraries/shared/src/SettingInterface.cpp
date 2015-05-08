@@ -73,16 +73,20 @@ namespace Setting {
     
     void Interface::init() {
         if (!privateInstance) {
-            qWarning() << "Setting::Interface::init(): Manager not yet created, bailing";
-            return;
+            // WARNING: As long as we are using QSettings this should always be triggered for each Setting::Handle
+            // in an assignment-client - the QSettings backing we use for this means persistence of these
+            // settings from an AC (when there can be multiple terminating at same time on one machine)
+            // is currently not supported
+            qWarning() << "Setting::Interface::init() for key" << _key << "- Manager not yet created." << 
+                "Settings persistence disabled.";
+        } else {
+            // Register Handle
+            privateInstance->registerHandle(this);
+            _isInitialized = true;
+        
+            // Load value from disk
+            load();
         }
-        
-        // Register Handle
-        privateInstance->registerHandle(this);
-        _isInitialized = true;
-        
-        // Load value from disk
-        load();
     }
     
     void Interface::maybeInit() {
