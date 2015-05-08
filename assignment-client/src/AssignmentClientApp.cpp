@@ -161,11 +161,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
         assignmentServerPort = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
     }
+    
     if (parser.isSet(assignmentServerPortOption)) {
         assignmentServerPort = parser.value(assignmentServerPortOption).toInt();
     }
-
-
 
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
@@ -185,14 +184,17 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     if (numForks || minForks || maxForks) {
-        AssignmentClientMonitor monitor(numForks, minForks, maxForks, requestAssignmentType, assignmentPool,
-                                        walletUUID, assignmentServerHostname, assignmentServerPort);
-        connect(this, &QCoreApplication::aboutToQuit, &monitor, &AssignmentClientMonitor::aboutToQuit);
-        exec();
+        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks, 
+                                                                        requestAssignmentType, assignmentPool,
+                                                                        walletUUID, assignmentServerHostname, 
+                                                                        assignmentServerPort);
+        monitor->setParent(this);
+        connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
-        AssignmentClient client(requestAssignmentType, assignmentPool,
-                                walletUUID, assignmentServerHostname, assignmentServerPort, monitorPort);
-        connect(this, &QCoreApplication::aboutToQuit, &client, &AssignmentClient::aboutToQuit);
-        exec();
+        AssignmentClient* client = new AssignmentClient(requestAssignmentType, assignmentPool,
+                                                        walletUUID, assignmentServerHostname, 
+                                                        assignmentServerPort, monitorPort);
+        client->setParent(this);
+        connect(this, &QCoreApplication::aboutToQuit, client, &AssignmentClient::aboutToQuit);
     }
 }
