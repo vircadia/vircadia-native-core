@@ -796,8 +796,8 @@ void AudioClient::handleAudioInput() {
                 float loudness = 0.0f;
                 
                 for (int i = 0; i < numNetworkSamples; i++) {
-                    float thisSample = fabsf(networkAudioSamples[i]);
-                    loudness += thisSample;
+                    int thisSample = std::abs(networkAudioSamples[i]);
+                    loudness += (float) thisSample;
                     
                     if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
@@ -981,7 +981,7 @@ void AudioClient::selectAudioSourceSine440() {
     _noiseSourceEnabled = false;
 }
 
-bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
+bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer()) {
         QAudioFormat localFormat = _desiredOutputFormat;
         localFormat.setChannelCount(isStereo ? 2 : 1);
@@ -989,8 +989,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
                                                      localFormat,
                                                      injector->getLocalBuffer());
-        
-        localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
         localOutput->moveToThread(injector->getLocalBuffer()->thread());

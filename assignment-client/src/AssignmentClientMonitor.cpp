@@ -11,8 +11,9 @@
 
 #include <signal.h>
 
-#include <LogHandler.h>
 #include <AddressManager.h>
+#include <JSONBreakableMarshal.h>
+#include <LogHandler.h>
 
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
@@ -238,13 +239,9 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                     // update our records about how to reach this child
                     matchingNode->setLocalSocket(senderSockAddr);
 
-                    // push past the packet header
-                    QDataStream packetStream(receivedPacket);
-                    packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
-                    // decode json
-                    QVariantMap unpackedVariantMap;
-                    packetStream >> unpackedVariantMap;
-                    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(unpackedVariantMap);
+                    QVariantMap packetVariantMap = 
+                        JSONBreakableMarshal::fromStringBuffer(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
+                    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(packetVariantMap);
 
                     // get child's assignment type out of the decoded json
                     QString childType = unpackedStatsJSON["assignment_type"].toString();

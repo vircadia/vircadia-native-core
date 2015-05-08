@@ -24,7 +24,7 @@ void FboCache::lockTexture(int texture) {
     withLock(_lock, [&] {
         Q_ASSERT(_fboMap.count(texture));
         if (!_fboLocks.count(texture)) {
-            Q_ASSERT(_readyFboQueue.front()->texture() == texture);
+            Q_ASSERT(_readyFboQueue.front()->texture() == (GLuint)texture);
             _readyFboQueue.pop_front();
             _fboLocks[texture] = 1;
         } else {

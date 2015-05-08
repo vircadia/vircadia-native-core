@@ -95,7 +95,7 @@ function entityCollisionWithEntity(entity1, entity2, collision) {
             }
             if ((entity1.id == dice[i].id) || (entity2.id == dice[i].id)) {
                 madeSound = true;
-                Audio.playSound(rollSound, { position: collision.contactPoint });
+                Audio.playSound(rollSound, { position: collision.contactPoint, localOnly: true });
             }
         }
         

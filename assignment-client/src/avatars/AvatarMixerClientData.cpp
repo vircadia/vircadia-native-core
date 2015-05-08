@@ -13,15 +13,6 @@
 
 #include "AvatarMixerClientData.h"
 
-AvatarMixerClientData::AvatarMixerClientData() :
-    NodeData(),
-    _hasReceivedFirstPackets(false),
-    _billboardChangeTimestamp(0),
-    _identityChangeTimestamp(0)
-{
-    
-}
-
 int AvatarMixerClientData::parseData(const QByteArray& packet) {
     // compute the offset to the data payload
     int offset = numBytesForPacketHeader(packet);
@@ -32,4 +23,13 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
     bool oldValue = _hasReceivedFirstPackets;
     _hasReceivedFirstPackets = true;
     return oldValue;
+}
+
+void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
+    jsonObject["display_name"] = _avatar.getDisplayName();
+    jsonObject["full_rate_distance"] = _fullRateDistance;
+    jsonObject["max_avatar_distance"] = _maxAvatarDistance;
+    jsonObject["num_avatars_sent_last_frame"] = _numAvatarsSentLastFrame;
+    
+    jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
 }

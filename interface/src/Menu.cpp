@@ -282,7 +282,6 @@ Menu::Menu() {
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
@@ -394,6 +393,12 @@ Menu::Menu() {
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
 #endif
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
+    faceTrackingMenu->addSeparator();
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking, 
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, false,
+        qApp, SLOT(toggleFaceTrackerMute()));
+#endif
     
     auto avatarManager = DependencyManager::get<AvatarManager>(); 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
@@ -439,7 +444,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
 #ifdef HAVE_RSSDK
-    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    MenuWrapper* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
     addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
                                   RealSense::getInstance(), SLOT(loadRSSDKFile()));
 #endif

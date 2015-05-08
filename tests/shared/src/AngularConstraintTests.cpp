@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include <AngularConstraint.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 #include <StreamUtils.h>
 
 #include "AngularConstraintTests.h"

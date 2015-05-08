@@ -19,16 +19,17 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include <LogHandler.h>
-
 #include <tbb/parallel_for.h>
+
+#include <LogHandler.h>
+#include <NumericalConstants.h>
+#include <SharedUtil.h>
 
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "LimitedNodeList.h"
 #include "PacketHeaders.h"
-#include "SharedUtil.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
 

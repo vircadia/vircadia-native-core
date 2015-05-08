@@ -61,8 +61,30 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
     _stageHour = DEFAULT_STAGE_HOUR;
     _shapeType = DEFAULT_SHAPE_TYPE;
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
+
+    _backgroundMode = BACKGROUND_MODE_INHERIT;
     
     setProperties(properties);
+}
+
+
+EnvironmentData ZoneEntityItem::getEnvironmentData() const {
+    EnvironmentData result;
+
+    result.setAtmosphereCenter(_atmosphereProperties.getCenter());
+    result.setAtmosphereInnerRadius(_atmosphereProperties.getInnerRadius());
+    result.setAtmosphereOuterRadius(_atmosphereProperties.getOuterRadius());
+    result.setRayleighScattering(_atmosphereProperties.getRayleighScattering());
+    result.setMieScattering(_atmosphereProperties.getMieScattering());
+    result.setScatteringWavelengths(_atmosphereProperties.getScatteringWavelengths());
+    result.setHasStars(_atmosphereProperties.getHasStars());
+
+    // NOTE: The sunLocation and SunBrightness will be overwritten in the EntityTreeRenderer to use the
+    // keyLight details from the scene interface
+    //result.setSunLocation(1000, 900, 1000));
+    //result.setSunBrightness(20.0f);
+    
+    return result;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties() const {
@@ -80,6 +102,11 @@ EntityItemProperties ZoneEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(stageHour, getStageHour);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
+
+    _atmosphereProperties.getProperties(properties);
+    _skyboxProperties.getProperties(properties);
 
     return properties;
 }
@@ -100,6 +127,12 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(stageHour, setStageHour);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
+
+    bool somethingChangedInAtmosphere = _atmosphereProperties.setProperties(properties);
+    bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
+
+    somethingChanged = somethingChanged || somethingChangedInAtmosphere || somethingChangedInSkybox;
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -111,13 +144,13 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
+
     return somethingChanged;
 }
 
 int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
@@ -133,6 +166,18 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _stageHour);
     READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
     READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
+    READ_ENTITY_PROPERTY_SETTER(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
+
+    int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
+                                                                               propertyFlags, overwriteLocalData);
+                                                                               
+    bytesRead += bytesFromAtmosphere;
+    dataAt += bytesFromAtmosphere;
+
+    int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
+                                                                           propertyFlags, overwriteLocalData);
+    bytesRead += bytesFromSkybox;
+    dataAt += bytesFromSkybox;
 
     return bytesRead;
 }
@@ -154,6 +199,9 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_STAGE_HOUR;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
+    requestedProperties += PROP_BACKGROUND_MODE;
+    requestedProperties += _atmosphereProperties.getEntityProperties(params);
+    requestedProperties += _skyboxProperties.getEntityProperties(params);
     
     return requestedProperties;
 }
@@ -180,6 +228,14 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getStageHour());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
+    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, appendValue, (uint32_t)getBackgroundMode()); // could this be a uint16??
+    
+    _atmosphereProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+    _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -198,22 +254,24 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "            _stageAltitude:" << _stageAltitude;
     qCDebug(entities) << "                 _stageDay:" << _stageDay;
     qCDebug(entities) << "                _stageHour:" << _stageHour;
+    qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
+
+    _atmosphereProperties.debugDump();
+    _skyboxProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
     // Zones are not allowed to have a SHAPE_TYPE_NONE... they are always at least a SHAPE_TYPE_BOX
     if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_BOX;
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : DEFAULT_SHAPE_TYPE;
     } else {
-        return _shapeType == SHAPE_TYPE_NONE ? SHAPE_TYPE_BOX : _shapeType;
+        return _shapeType == SHAPE_TYPE_NONE ? DEFAULT_SHAPE_TYPE : _shapeType;
     }
 }
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
     _compoundShapeURL = url;
-    if (!_compoundShapeURL.isEmpty()) {
-        updateShapeType(SHAPE_TYPE_COMPOUND);
-    } else if (_shapeType == SHAPE_TYPE_COMPOUND) {
+    if (_compoundShapeURL.isEmpty() && _shapeType == SHAPE_TYPE_COMPOUND) {
         _shapeType = DEFAULT_SHAPE_TYPE;
     }
 }

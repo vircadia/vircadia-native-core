@@ -15,7 +15,7 @@
 #include <QVector>
 
 #include <DependencyManager.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "ProgramObject.h"
 

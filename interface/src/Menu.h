@@ -211,9 +211,9 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
+    const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
-    const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";

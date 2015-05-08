@@ -105,11 +105,12 @@ void AudioInjector::injectLocally() {
             
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
+            _localBuffer->setVolume(_options.volume);
             
             // give our current send position to the local buffer
             _localBuffer->setCurrentOffset(_currentSendPosition);
             
-            success = _localAudioInterface->outputLocalInjector(_options.stereo, _options.volume, this);
+            success = _localAudioInterface->outputLocalInjector(_options.stereo, this);
             
             // if we're not looping and the buffer tells us it is empty then emit finished
             connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);

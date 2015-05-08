@@ -13,6 +13,7 @@
 #define hifi_TouchEvent_h
 
 #include <glm/glm.hpp>
+#include <QTouchEvent>
 
 class TouchEvent {
 public:

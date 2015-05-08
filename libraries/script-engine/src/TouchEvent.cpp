@@ -14,7 +14,7 @@
 #include <QTouchEvent>
 
 #include <RegisteredMetaTypes.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "TouchEvent.h"
 

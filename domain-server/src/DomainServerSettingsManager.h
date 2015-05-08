@@ -34,9 +34,9 @@ private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                const QJsonArray& descriptionArray);
     bool settingExists(const QString& groupName, const QString& settingName,
-                       const QJsonArray& descriptionArray, QJsonValue& settingDescription);
+                       const QJsonArray& descriptionArray, QJsonObject& settingDescription);
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
-                       const QJsonValue& settingDescription);
+                       const QJsonObject& settingDescription);
     void persistToFile();
     
     QJsonArray _descriptionArray;

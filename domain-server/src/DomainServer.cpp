@@ -26,6 +26,7 @@
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
+#include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
 #include <PacketHeaders.h>
@@ -682,9 +683,16 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             // now that we've pulled the wallet UUID and added the node to our list, delete the pending assignee data
             delete pendingAssigneeData;
         }
+
+        if (!username.isEmpty()) {
+            // if we have a username from the connect request, set it on the DomainServerNodeData
+            nodeData->setUsername(username);
+
+            // also add an interpolation to JSONBreakableMarshal so that servers can get username in stats
+            JSONBreakableMarshal::addInterpolationForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY, 
+                uuidStringWithoutCurlyBraces(nodeUUID), username);
+        }
         
-        // if we have a username from an OAuth connect request, set it on the DomainServerNodeData
-        nodeData->setUsername(username);
         nodeData->setSendingSockAddr(senderSockAddr);
 
         // reply back to the user with a PacketTypeDomainList
@@ -2085,6 +2093,10 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
                 refreshStaticAssignmentAndAddToQueue(matchedAssignment);
             }
         }
+
+        // If this node was an Agent ask JSONBreakableMarshal to potentially remove the interpolation we stored
+        JSONBreakableMarshal::removeInterpolationForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY, 
+                uuidStringWithoutCurlyBraces(node->getUUID()));
 
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {

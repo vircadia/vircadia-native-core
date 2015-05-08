@@ -83,7 +83,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, framebuffer.getWidth(), framebuffer.getHeight());
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
-            CHECK_GL_ERROR();
+            (void) CHECK_GL_ERROR();
         }
 #endif
         

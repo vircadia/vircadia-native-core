@@ -315,7 +315,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     if (splitModel) {
         QVector<QString> infileExtensions = {"fbx", "obj"};
-        QString baseFileName = fileNameWithoutExtension(inputFilename, infileExtensions);
+        QString baseFileName = fileNameWithoutExtension(outputFilename, infileExtensions);
         int count = 0;
         foreach (const FBXMesh& mesh, fbx.meshes) {
             foreach (const FBXMeshPart &meshPart, mesh.parts) {

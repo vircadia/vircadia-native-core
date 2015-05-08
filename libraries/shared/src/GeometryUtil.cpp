@@ -13,9 +13,9 @@
 #include <cmath>
 
 #include "GeometryUtil.h"
+#include "NumericalConstants.h"
 #include "PlaneShape.h"
 #include "RayIntersectionInfo.h"
-#include "SharedUtil.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector

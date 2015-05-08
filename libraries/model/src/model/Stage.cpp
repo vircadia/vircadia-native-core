@@ -138,7 +138,7 @@ void EarthSunModel::setSunLongitude(float lon) {
 Atmosphere::Atmosphere() {
     // only if created from nothing shall we create the Buffer to store the properties
     Data data;
-    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Buffer::Byte*) &data));
+    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
 
     setScatteringWavelength(_scatteringWavelength);
     setRayleighScattering(_rayleighScattering);
@@ -184,14 +184,6 @@ void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
     data._scales.z = data._scales.x / data._scales.y;
 }
 
-Skybox::Skybox() {
-}
-
-void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
-    _cubemap = cubemap;
-}
-
-
 
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
@@ -222,6 +214,10 @@ SunSkyStage::SunSkyStage() :
    // skyState->setBlendEnable(false);
 
     _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
+
+
+    _skybox.reset(new Skybox());
+    _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
 
 }
 
@@ -299,6 +295,11 @@ void SunSkyStage::updateGraphicsObject() const {
         firstTime++;
         gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
     }
+}
+
+void SunSkyStage::setBackgroundMode(BackgroundMode mode) {
+    _backgroundMode = mode;
+    invalidate();
 }
 
 void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {

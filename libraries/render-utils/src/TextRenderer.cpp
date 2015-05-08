@@ -449,7 +449,7 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
             advance.y -= _rowHeight;
             // If we've wrapped right out of the bounds, then we're 
             // done with rendering the tokens
-            if (bounds.y > 0 && abs(advance.y) > bounds.y) {
+            if (bounds.y > 0 && std::abs(advance.y) > bounds.y) {
                 break;
             }
             continue;
@@ -464,7 +464,7 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
                 advance.y -= _rowHeight;
                 // If we've wrapped right out of the bounds, then we're 
                 // done with rendering the tokens
-                if (bounds.y > 0 && abs(advance.y) > bounds.y) {
+                if (bounds.y > 0 && std::abs(advance.y) > bounds.y) {
                     break;
                 }
             }

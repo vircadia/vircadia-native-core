@@ -15,7 +15,7 @@
 #include "AACube.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 
 AACube::AACube(const AABox& other) :
     _corner(other.getCorner()), _scale(other.getLargestDimension()) {

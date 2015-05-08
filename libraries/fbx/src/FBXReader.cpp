@@ -25,6 +25,7 @@
 #include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <OctalCode.h>
 #include <Shape.h>
 
@@ -1687,7 +1688,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     }
                 } else if (object.name == "Material") {
                     Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f,
-                                          QString(""), QSharedPointer<model::Material>(NULL)};
+                                          QString(""), model::MaterialPointer(NULL)};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;

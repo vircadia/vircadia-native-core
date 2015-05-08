@@ -10,9 +10,9 @@
 //
 
 #include <NodeList.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
-#include <SharedUtil.h>
 
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"

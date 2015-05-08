@@ -23,10 +23,18 @@
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;
-typedef unsigned char rgbColor[BYTES_PER_COLOR];
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[BYTES_PER_COLOR + BYTES_PER_FLAGS];
 typedef unsigned char rgbColor[BYTES_PER_COLOR];
+
+inline QDebug& operator<<(QDebug& dbg, const rgbColor& c) {
+    dbg.nospace() << "{type='rgbColor'"
+        ", red=" << c[0] <<
+        ", green=" << c[1] <<
+        ", blue=" << c[2] <<
+        "}";
+    return dbg;
+}
 
 struct xColor {
     unsigned char red;
@@ -52,31 +60,6 @@ inline bool operator!=(const xColor& lhs, const xColor& rhs)
 {
     return (lhs.red != rhs.red) || (lhs.green != rhs.green) || (lhs.blue != rhs.blue);
 }
-
-
-static const float ZERO             = 0.0f;
-static const float ONE              = 1.0f;
-static const float ONE_HALF			= 0.5f;
-static const float ONE_THIRD        = 0.333333f;
-
-static const float PI                 = 3.14159265358979f;
-static const float TWO_PI             = 2.0f * PI;
-static const float PI_OVER_TWO        = ONE_HALF * PI;
-static const float RADIANS_PER_DEGREE = PI / 180.0f;
-static const float DEGREES_PER_RADIAN = 180.0f / PI;
-
-static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
-static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.0f);
-static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.0f);
-static const float METERS_PER_DECIMETER  = 0.1f;
-static const float METERS_PER_CENTIMETER = 0.01f;
-static const float METERS_PER_MILLIMETER = 0.001f;
-static const float MILLIMETERS_PER_METER = 1000.0f;
-static const quint64 USECS_PER_MSEC = 1000;
-static const quint64 MSECS_PER_SECOND = 1000;
-static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
-
-const int BITS_IN_BYTE = 8;
 
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
