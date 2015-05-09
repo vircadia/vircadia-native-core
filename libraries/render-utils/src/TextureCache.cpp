@@ -513,7 +513,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     imageLoaded(image);
 
     if ((_width > 0) && (_height > 0)) {
-        
+
         bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -525,7 +525,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         
         if (_type == CUBE_TEXTURE) {
             if (_height >= (6 * _width)) {
-                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
                 _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
                 _gpuTexture->autoGenerateMips(-1);
             }
