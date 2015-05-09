@@ -187,7 +187,8 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _calibrationCount(0),
     _calibrationBillboard(NULL),
     _calibrationBillboardID(0),
-    _calibrationMessage(QString())
+    _calibrationMessage(QString()),
+    _isCalibrated(false)
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
@@ -344,6 +345,10 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     _lastReceiveTimestamp = usecTimestampNow();
 
     if (buffer.size() > MIN_PACKET_SIZE) {
+        if (!_isCalibrated) {
+            calibrate();
+        }
+
         bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
@@ -544,13 +549,13 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     }
 }
 
-static const int CALIBRATION_BILLBOARD_WIDTH = 240;
-static const int CALIBRATION_BILLBOARD_HEIGHT = 180;
-static const int CALIBRATION_BILLBOARD_TOP_MARGIN = 60;
+static const int CALIBRATION_BILLBOARD_WIDTH = 300;
+static const int CALIBRATION_BILLBOARD_HEIGHT = 120;
+static const int CALIBRATION_BILLBOARD_TOP_MARGIN = 30;
 static const int CALIBRATION_BILLBOARD_LEFT_MARGIN = 30;
 static const int CALIBRATION_BILLBOARD_FONT_SIZE = 16;
 static const float CALIBRATION_BILLBOARD_ALPHA = 0.5f;
-static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate";
+static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate camera";
 
 void DdeFaceTracker::calibrate() {
     if (!_isCalibrating) {
@@ -609,6 +614,7 @@ void DdeFaceTracker::finishCalibration() {
     qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
     _calibrationBillboard = NULL;
     _isCalibrating = false;
+    _isCalibrated = true;
 
     for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
         _coefficientAverages[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;

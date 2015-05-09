@@ -131,6 +131,7 @@ private:
     TextOverlay* _calibrationBillboard;
     int _calibrationBillboardID;
     QString _calibrationMessage;
+    bool _isCalibrated;
     void addCalibrationDatum();
     void cancelCalibration();
     void finishCalibration();
