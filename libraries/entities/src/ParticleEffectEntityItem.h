@@ -2,29 +2,6 @@
 //  ParticleEffectEntityItem.h
 //  libraries/entities/src
 //
-//  Some starter code for a particle simulation entity, which could ideally be used for a variety of effects.
-//  This is some really early and rough stuff here.  It was enough for now to just get it up and running in the interface.
-//
-//  Todo's and other notes:
-//  - The simulation should restart when the AnimationLoop's max frame is reached (or passed), but there doesn't seem
-//    to be a good way to set that max frame to something reasonable right now.
-//  - There seems to be a bug whereby entities on the edge of screen will just pop off or on.  This is probably due
-//    to my lack of understanding of how entities in the octree are picked for rendering.  I am updating the entity
-//    dimensions based on the bounds of the sim, but maybe I need to update a dirty flag or something.
-//  - This should support some kind of pre-roll of the simulation.
-//  - Just to get this out the door, I just did forward Euler integration.  There are better ways.
-//  - Gravity always points along the Y axis.  Support an actual gravity vector.
-//  - Add the ability to add arbitrary forces to the simulation.
-//  - Add controls for spread (which is currently hard-coded) and varying emission strength (not currently implemented).
-//  - Add drag.
-//  - Add some kind of support for collisions.
-//  - For simplicity, I'm currently just rendering each particle as a cross of four axis-aligned quads.  Really, we'd
-//    want multiple render modes, including (the most important) textured billboards (always facing camera).  Also, these
-//    should support animated textures.
-//  - There's no synchronization of the simulation across clients at all.  In fact, it's using rand() under the hood, so
-//    there's no gaurantee that different clients will see simulations that look anything like the other.
-//  - MORE?
-//
 //  Created by Jason Rickwald on 3/2/15.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -39,14 +16,14 @@
 
 class ParticleEffectEntityItem : public EntityItem {
 public:
-    
+
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~ParticleEffectEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
-        
+
     // methods for getting/setting all properties of this entity
     virtual EntityItemProperties getProperties() const;
     virtual bool setProperties(const EntityItemProperties& properties);
@@ -141,6 +118,15 @@ public:
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
     QString getAnimationSettings() const;
 
+    static const QString DEFAULT_TEXTURES;
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& textures) {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    }
+
 protected:
 
     bool isAnimatingSomething() const;
@@ -159,6 +145,8 @@ protected:
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
     QString _animationSettings;
+    QString _textures;
+    bool _texturesChangedFlag;
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // all the internals of running the particle sim
@@ -180,4 +168,3 @@ protected:
 };
 
 #endif // hifi_ParticleEffectEntityItem_h
-

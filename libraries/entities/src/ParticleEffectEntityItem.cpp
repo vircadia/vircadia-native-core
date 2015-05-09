@@ -18,12 +18,8 @@
 //  - Add controls for spread (which is currently hard-coded) and varying emission strength (not currently implemented).
 //  - Add drag.
 //  - Add some kind of support for collisions.
-//  - For simplicity, I'm currently just rendering each particle as a cross of four axis-aligned quads.  Really, we'd
-//    want multiple render modes, including (the most important) textured billboards (always facing camera).  Also, these
-//    should support animated textures.
 //  - There's no synchronization of the simulation across clients at all.  In fact, it's using rand() under the hood, so
 //    there's no gaurantee that different clients will see simulations that look anything like the other.
-//  - MORE?
 //
 //  Created by Jason Rickwald on 3/2/15.
 //
@@ -55,7 +51,7 @@ const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION(0.0f, 1.0f, 0.0
 const float ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH = 25.0f;
 const float ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY = -9.8f;
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
-
+const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 EntityItem* ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new ParticleEffectEntityItem(entityID, properties);
@@ -72,6 +68,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _emitStrength = DEFAULT_EMIT_STRENGTH;
     _localGravity = DEFAULT_LOCAL_GRAVITY;
     _particleRadius = DEFAULT_PARTICLE_RADIUS;
+    _textures = DEFAULT_TEXTURES;
     setProperties(properties);
     // this is a pretty dumb thing to do, and it should probably be changed to use a more dynamic
     // data structure in the future.  I'm just trying to get some code out the door for now (and it's
@@ -96,7 +93,7 @@ ParticleEffectEntityItem::~ParticleEffectEntityItem() {
 
 EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-    
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
@@ -111,6 +108,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitStrength, getEmitStrength);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localGravity, getLocalGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     return properties;
 }
@@ -132,6 +130,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitStrength, setEmitStrength);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localGravity, setLocalGravity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -186,6 +185,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, _emitStrength);
     READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, _localGravity);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, _particleRadius);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, _textures);
 
     return bytesRead;
 }
@@ -194,7 +194,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    
+
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -208,6 +208,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_EMIT_STRENGTH;
     requestedProperties += PROP_LOCAL_GRAVITY;
     requestedProperties += PROP_PARTICLE_RADIUS;
+    requestedProperties += PROP_TEXTURES;
 
     return requestedProperties;
 }
@@ -234,11 +235,12 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, getEmitStrength());
     APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, getLocalGravity());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, getParticleRadius());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
-    return getAnimationIsPlaying() &&
-        getAnimationFPS() != 0.0f;
+    // keep animating if there are particles still alive.
+    return (getAnimationIsPlaying() || _paCount > 0) && getAnimationFPS() != 0.0f;
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
@@ -246,33 +248,25 @@ bool ParticleEffectEntityItem::needsToCallUpdate() const {
 }
 
 void ParticleEffectEntityItem::update(const quint64& now) {
+
+    float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+     _lastAnimated = now;
+
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        _lastAnimated = now;
-        float lastFrame = _animationLoop.getFrameIndex();
         _animationLoop.simulate(deltaTime);
-        float curFrame = _animationLoop.getFrameIndex();
-        if (curFrame > lastFrame) {
-            stepSimulation(deltaTime);
-        }
-        else if (curFrame < lastFrame) {
-            // we looped around, so restart the sim and only sim up to the point
-            // since the beginning of the frame range.
-            resetSimulation();
-            stepSimulation((curFrame - _animationLoop.getFirstFrame()) / _animationLoop.getFPS());
-        }
-    }
-    else {
-        _lastAnimated = now;
     }
 
-    // update the dimensions
-    glm::vec3 dims;
-    dims.x = glm::max(glm::abs(_paXmin), glm::abs(_paXmax)) * 2.0f;
-    dims.y = glm::max(glm::abs(_paYmin), glm::abs(_paYmax)) * 2.0f;
-    dims.z = glm::max(glm::abs(_paZmin), glm::abs(_paZmax)) * 2.0f;
-    setDimensions(dims);
+    if (isAnimatingSomething()) {
+        stepSimulation(deltaTime);
+
+        // update the dimensions
+        glm::vec3 dims;
+        dims.x = glm::max(glm::abs(_paXmin), glm::abs(_paXmax)) * 2.0f;
+        dims.y = glm::max(glm::abs(_paYmin), glm::abs(_paYmax)) * 2.0f;
+        dims.z = glm::max(glm::abs(_paZmin), glm::abs(_paZmax)) * 2.0f;
+        setDimensions(dims);
+    }
 
     EntityItem::update(now); // let our base class handle it's updates...
 }
@@ -422,9 +416,12 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     _paXmin = _paYmin = _paZmin = -1.0f;
     _paXmax = _paYmax = _paZmax = 1.0f;
 
+    float oneHalfATSquared = 0.5f * _localGravity * deltaTime * deltaTime;
+
     // update particles
+    quint32 updateCount = 0;
     quint32 updateIter = _paHead;
-    while (_paLife[updateIter] > 0.0f) {
+    while (_paLife[updateIter] > 0.0f && updateCount < _maxParticles) {
         _paLife[updateIter] -= deltaTime;
         if (_paLife[updateIter] <= 0.0f) {
             _paLife[updateIter] = -1.0f;
@@ -432,10 +429,10 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _paCount--;
         }
         else {
-            // DUMB FORWARD EULER just to get it done
             int j = updateIter * XYZ_STRIDE;
+
             _paPosition[j] += _paVelocity[j] * deltaTime;
-            _paPosition[j+1] += _paVelocity[j+1] * deltaTime;
+            _paPosition[j+1] += _paVelocity[j+1] * deltaTime + oneHalfATSquared;
             _paPosition[j+2] += _paVelocity[j+2] * deltaTime;
 
             _paXmin = glm::min(_paXmin, _paPosition[j]);
@@ -449,29 +446,37 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _paVelocity[j + 1] += deltaTime * _localGravity;
         }
         updateIter = (updateIter + 1) % _maxParticles;
+        updateCount++;
     }
 
-    // emit new particles
     quint32 emitIdx = updateIter;
-    _partialEmit += ((float)_emitRate) * deltaTime;
-    quint32 birthed = (quint32)_partialEmit;
-    _partialEmit -= (float)birthed;
+    quint32 birthed = 0;
     glm::vec3 randOffset;
+
+    // emit new particles, but only if animaiton is playing
+    if (getAnimationIsPlaying()) {
+        _partialEmit += ((float)_emitRate) * deltaTime;
+        birthed = (quint32)_partialEmit;
+        _partialEmit -= (float)birthed;
+    } else {
+        _partialEmit = 0;
+    }
 
     for (quint32 i = 0; i < birthed; i++) {
         if (_paLife[emitIdx] < 0.0f) {
             int j = emitIdx * XYZ_STRIDE;
             _paLife[emitIdx] = _lifespan;
+
             randOffset.x = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
             randOffset.y = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
             randOffset.z = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
+
             _paVelocity[j] = (_emitDirection.x * _emitStrength) + randOffset.x;
             _paVelocity[j + 1] = (_emitDirection.y * _emitStrength) + randOffset.y;
             _paVelocity[j + 2] = (_emitDirection.z * _emitStrength) + randOffset.z;
 
-            // DUMB FORWARD EULER just to get it done
             _paPosition[j] += _paVelocity[j] * deltaTime;
-            _paPosition[j + 1] += _paVelocity[j + 1] * deltaTime;
+            _paPosition[j + 1] += _paVelocity[j + 1] * deltaTime + oneHalfATSquared;
             _paPosition[j + 2] += _paVelocity[j + 2] * deltaTime;
 
             _paXmin = glm::min(_paXmin, _paPosition[j]);
@@ -510,4 +515,3 @@ void ParticleEffectEntityItem::resetSimulation() {
 
     srand(_randSeed);
 }
-
