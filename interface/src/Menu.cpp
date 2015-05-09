@@ -390,6 +390,9 @@ Menu::Menu() {
     useAudioForMouth->setVisible(false);
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
+    QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
+        DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
+    ddeCalibrate->setVisible(false);
 #endif
 #if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
