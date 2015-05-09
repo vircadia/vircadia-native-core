@@ -41,9 +41,12 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentServerPort(assignmentServerPort)
 {    
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
-
+    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
+
+    // make sure we output process IDs for a monitor otherwise it's insane to parse
+    LogHandler::getInstance().setShouldOutputPID(true);
 
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
