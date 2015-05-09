@@ -620,5 +620,7 @@ void DdeFaceTracker::finishCalibration() {
         _coefficientAverages[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;
     }
 
+    reset();
+
     qCDebug(interfaceapp) << "DDE Face Tracker: Calibration finished";
 }
