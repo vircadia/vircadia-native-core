@@ -167,7 +167,12 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
+<<<<<<< HEAD
               //  qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
+=======
+                // TODO: Seth to look into why this case is hit.
+                //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
+>>>>>>> 72e1ea688adad9914d9994b81a96225ac411ba83
                 ++entityItr;
             }
         } else {

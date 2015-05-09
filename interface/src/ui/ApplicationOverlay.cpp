@@ -190,8 +190,8 @@ void ApplicationOverlay::renderOverlay() {
     Overlays& overlays = qApp->getOverlays();
     
     _textureFov = glm::radians(_hmdUIAngularSize);
-    glm::vec2 deviceSize = qApp->getCanvasSize();
-    _textureAspectRatio = (float)deviceSize.x / (float)deviceSize.y;
+    glm::vec2 size = qApp->getCanvasSize();
+    _textureAspectRatio = aspect(size);
 
     //Handle fading and deactivation/activation of UI
     
@@ -204,12 +204,13 @@ void ApplicationOverlay::renderOverlay() {
     _overlays.buildFramebufferObject();
     _overlays.bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, size.x, size.y);
 
     glPushMatrix(); {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, deviceSize.x, deviceSize.y, 0, NEAR_CLIP, FAR_CLIP);
+        glOrtho(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
 
         glMatrixMode(GL_MODELVIEW);
 
@@ -269,6 +270,7 @@ void ApplicationOverlay::displayOverlayTexture() {
         if (_alpha < 1.0) {
             glEnable(GL_BLEND);
         }
+        glViewport(0, 0, qApp->getDeviceSize().width(), qApp->getDeviceSize().height());
 
         static const glm::vec2 topLeft(-1, 1);
         static const glm::vec2 bottomRight(1, -1);
@@ -1129,8 +1131,9 @@ void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
 }
 
 void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
-    auto deviceSize = qApp->getDeviceSize();
-    if (_framebufferObject != NULL && deviceSize == _framebufferObject->size()) {
+    auto canvasSize = qApp->getCanvasSize();
+    QSize fboSize = QSize(canvasSize.x, canvasSize.y);
+    if (_framebufferObject != NULL && fboSize == _framebufferObject->size()) {
         // Already build
         return;
     }
@@ -1139,7 +1142,7 @@ void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
         delete _framebufferObject;
     }
     
-    _framebufferObject = new QOpenGLFramebufferObject(deviceSize, QOpenGLFramebufferObject::Depth);
+    _framebufferObject = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
     glBindTexture(GL_TEXTURE_2D, getTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

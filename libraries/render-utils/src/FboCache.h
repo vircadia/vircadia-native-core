@@ -37,6 +37,8 @@ public:
     // internal locks and  pointers but execute no OpenGL opreations.
     void lockTexture(int texture);
     void releaseTexture(int texture);
+    
+    const QSize& getSize();
 
 protected:
     QMap<int, QSharedPointer<QOpenGLFramebufferObject>> _fboMap;
