@@ -37,13 +37,14 @@ public:
 private slots:
     void readPendingDatagrams();
     void checkSpares();
-
+    void childProcessFinished();
+    
 public slots:
     void aboutToQuit();
 
 private:
     void spawnChildClient();
-    void waitOnChildren(int waitMsecs);
+    void simultaneousWaitOnChildren(int waitMsecs);
 
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 

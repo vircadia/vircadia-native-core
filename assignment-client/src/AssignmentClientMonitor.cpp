@@ -66,56 +66,53 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
 }
 
-void AssignmentClientMonitor::waitOnChildren(int waitMsecs) {
-    QMutableListIterator<QProcess*> i(_childProcesses);
-    while (i.hasNext()) {
-        QProcess* childProcess = i.next();
+void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
+    QElapsedTimer waitTimer;
+    waitTimer.start();
 
-        if (childProcess->state() == QProcess::NotRunning) {
-            i.remove();
-        } else if (waitMsecs > 0) {
-            qDebug() << "Waiting on child process" << childProcess->processId() << "to finish.";
-            bool finished = childProcess->waitForFinished(waitMsecs);
-            if (finished) {
-                i.remove();
-            }
-        }
-    }
+    // loop as long as we still have processes around and we're inside the wait window
+    while(_childProcesses.size() > 0 && !waitTimer.hasExpired(waitMsecs)) {
+        // continue processing events so we can handle a process finishing up
+        QCoreApplication::processEvents();
+    }     
+}
+
+void AssignmentClientMonitor::childProcessFinished() {
+    QProcess* childProcess = qobject_cast<QProcess*>(sender());
+    _childProcesses.removeOne(childProcess);
 }
 
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // ask child processes to terminate
-    QMutableListIterator<QProcess*> i(_childProcesses);
-    while (i.hasNext()) {
-        QProcess* childProcess = i.next();
+    foreach(QProcess* childProcess, _childProcesses) {
         qDebug() << "Attempting to terminate child process" << childProcess->processId();
         childProcess->terminate();
     }
-
-    // try to give all the children time to shutdown
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
-
-    // ask even more firmly
-    QMutableListIterator<QProcess*> j(_childProcesses);
-    while (j.hasNext()) {
-        QProcess* childProcess = j.next();
-        qDebug() << "Attempting to kill child process" << childProcess->processId();
-        childProcess->kill();
-    }
     
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+    simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
+    
+    if (_childProcesses.size() > 0) {
+        // ask even more firmly
+        foreach(QProcess* childProcess, _childProcesses) {
+            qDebug() << "Attempting to kill child process" << childProcess->processId();
+            childProcess->kill();
+        }
+        
+        simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS); 
+    }
 }
 
 void AssignmentClientMonitor::aboutToQuit() {
     stopChildProcesses();
+
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
-    QProcess *assignmentClient = new QProcess(this);
+    QProcess* assignmentClient = new QProcess(this);
 
     _childProcesses.append(assignmentClient);
 
@@ -151,6 +148,8 @@ void AssignmentClientMonitor::spawnChildClient() {
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
+
+    connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
 
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
 }
@@ -191,9 +190,6 @@ void AssignmentClientMonitor::checkSpares() {
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
-    
-    // check if any of the previous processes have now gone down
-    waitOnChildren(0); 
 }
 
 
