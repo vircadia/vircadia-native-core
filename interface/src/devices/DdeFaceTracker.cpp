@@ -558,6 +558,10 @@ static const float CALIBRATION_BILLBOARD_ALPHA = 0.5f;
 static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate camera";
 
 void DdeFaceTracker::calibrate() {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::UseCamera) || _isMuted) {
+        return;
+    }
+
     if (!_isCalibrating) {
         qCDebug(interfaceapp) << "DDE Face Tracker: Calibration started";
 
