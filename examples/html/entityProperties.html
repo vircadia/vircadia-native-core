@@ -467,7 +467,7 @@
                                     elZoneSections[i].style.display = 'block';
                                 }
 
-                                elZoneStageSunModelEnabled.checked = properties.stageSunModelEnabled;
+                                elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                                 elZoneKeyLightColorRed.value = properties.keyLightColor.red;
                                 elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
                                 elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
@@ -477,11 +477,11 @@
                                 elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
                                 elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
 
-                                elZoneStageLatitude.value = properties.stageLatitude.toFixed(2);
-                                elZoneStageLongitude.value = properties.stageLongitude.toFixed(2);
-                                elZoneStageAltitude.value = properties.stageAltitude.toFixed(2);
-                                elZoneStageDay.value = properties.stageDay;
-                                elZoneStageHour.value = properties.stageHour;
+                                elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
+                                elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
+                                elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
+                                elZoneStageDay.value = properties.stage.day;
+                                elZoneStageHour.value = properties.stage.hour;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -619,7 +619,7 @@
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
 
-            elZoneStageSunModelEnabled.addEventListener('change', createEmitCheckedPropertyUpdateFunction('stageSunModelEnabled'));
+            elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
             var zoneKeyLightColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'keyLightColor', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
@@ -633,11 +633,11 @@
             elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
             elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-            elZoneStageLatitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLatitude'));
-            elZoneStageLongitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLongitude'));
-            elZoneStageAltitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageAltitude'));
-            elZoneStageDay.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageDay'));
-            elZoneStageHour.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageHour'));
+            elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
+            elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
+            elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
+            elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
+            elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
 
 
             elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));

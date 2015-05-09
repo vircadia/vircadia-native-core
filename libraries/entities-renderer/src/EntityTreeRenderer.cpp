@@ -423,11 +423,11 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
             scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
             scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
-                                    _bestZone->getStageAltitude());
-            scene->setStageDayTime(_bestZone->getStageHour());
-            scene->setStageYearTime(_bestZone->getStageDay());
+            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
+                                    _bestZone->getStageProperties().getAltitude());
+            scene->setStageDayTime(_bestZone->getStageProperties().getHour());
+            scene->setStageYearTime(_bestZone->getStageProperties().getDay());
 
             if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
                 EnvironmentData data = _bestZone->getEnvironmentData();
