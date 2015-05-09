@@ -79,7 +79,12 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
 
 void AssignmentClientMonitor::childProcessFinished() {
     QProcess* childProcess = qobject_cast<QProcess*>(sender());
-    _childProcesses.removeOne(childProcess);
+    qint64 processID = _childProcesses.key(childProcess);
+    
+    if (processID > 0) {
+        qDebug() << "Child process" << processID << "has finished. Removing from internal map.";
+        _childProcesses.remove(processID);
+    }
 }
 
 void AssignmentClientMonitor::stopChildProcesses() {
@@ -114,8 +119,7 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
-    _childProcesses.append(assignmentClient);
-
+    
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -149,9 +153,11 @@ void AssignmentClientMonitor::spawnChildClient() {
     
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
+    // make sure we hear that this process has finished when it does
     connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
 
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
+    _childProcesses.insert(assignmentClient->processId(), assignmentClient);
 }
 
 void AssignmentClientMonitor::checkSpares() {

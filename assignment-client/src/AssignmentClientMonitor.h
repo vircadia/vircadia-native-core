@@ -58,7 +58,7 @@ private:
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
 
-    QList<QProcess*> _childProcesses;
+    QMap<qint64, QProcess*> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h
