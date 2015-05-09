@@ -219,6 +219,7 @@ DdeFaceTracker::~DdeFaceTracker() {
 void DdeFaceTracker::init() {
     FaceTracker::init();
     setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::UseCamera) && !_isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!_isMuted);
 }
 
 void DdeFaceTracker::setEnabled(bool enabled) {

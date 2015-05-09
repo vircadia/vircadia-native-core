@@ -948,6 +948,7 @@ void Application::faceTrackerMuteToggled() {
     bool isMuted = getSelectedFaceTracker()->isMuted();
     muteAction->setChecked(isMuted);
     getSelectedFaceTracker()->setEnabled(!isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
