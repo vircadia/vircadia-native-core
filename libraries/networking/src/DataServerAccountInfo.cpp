@@ -17,7 +17,7 @@
 #include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) && !defined(Q_OS_WIN)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
