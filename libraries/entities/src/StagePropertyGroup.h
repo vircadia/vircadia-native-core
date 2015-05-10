@@ -75,6 +75,9 @@ public:
     static const float DEFAULT_STAGE_ALTITUDE;
     static const quint16 DEFAULT_STAGE_DAY;
     static const float DEFAULT_STAGE_HOUR;
+    
+    float calculateHour() const;
+    uint16_t calculateDay() const;
 
     DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled, sunModelEnabled, bool);
     DEFINE_PROPERTY(PROP_STAGE_LATITUDE, Latitude, latitude, float);
@@ -82,6 +85,7 @@ public:
     DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, Altitude, altitude, float);
     DEFINE_PROPERTY(PROP_STAGE_DAY, Day, day, uint16_t);
     DEFINE_PROPERTY(PROP_STAGE_HOUR, Hour, hour, float);
+    DEFINE_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay, automaticHourDay, bool);
 };
 
 #endif // hifi_StagePropertyGroup_h

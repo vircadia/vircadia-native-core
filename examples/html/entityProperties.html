@@ -280,6 +280,7 @@
             var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
             var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
             var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
+            var elZoneStageAutomaticHourDay = document.getElementById("property-zone-stage-automatic-hour-day");
             var elZoneStageDay = document.getElementById("property-zone-stage-day");
             var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
@@ -480,6 +481,7 @@
                                 elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                                 elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
                                 elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
+                                elZoneStageAutomaticHourDay.checked = properties.stage.automaticHourDay;
                                 elZoneStageDay.value = properties.stage.day;
                                 elZoneStageHour.value = properties.stage.hour;
                                 elShapeType.value = properties.shapeType;
@@ -636,6 +638,7 @@
             elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
             elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
             elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
+            elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','automaticHourDay'));
             elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
             elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
 
@@ -1094,6 +1097,14 @@
                 <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
             </div>
         </div>
+
+        <div class="zone-section property">
+            <span class="label">Stage Automatice Hour Day</span>
+            <span class="value">
+                <input type='checkbox' id="property-zone-stage-automatic-hour-day">
+            </span>
+        </div>
+        
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">
