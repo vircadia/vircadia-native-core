@@ -2200,3 +2200,4 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 void Octree::cancelImport() {
     _stopImport = true;
 }
+
