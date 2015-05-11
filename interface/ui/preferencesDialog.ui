@@ -1256,7 +1256,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Pupil dillation</string>
+            <string>Pupil dilation</string>
            </property>
            <property name="indent">
             <number>0</number>
