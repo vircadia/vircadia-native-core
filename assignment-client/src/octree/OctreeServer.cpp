@@ -1225,8 +1225,8 @@ void OctreeServer::aboutToFinish() {
 
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
 
-    // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeSendThreads
-    // this ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
+    // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeQueryNode objects.
+    // This ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->linkedDataCreateCallback = NULL;
     

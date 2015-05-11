@@ -227,6 +227,4 @@ void Agent::aboutToFinish() {
     
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
-
-    NetworkAccessManager::getInstance().clearAccessCache();
 }
