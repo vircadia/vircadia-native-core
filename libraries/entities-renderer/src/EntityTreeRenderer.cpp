@@ -142,7 +142,9 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
-    if (!url.isValid()) {
+    // We document "direct injection" scripts as starting with "(function...", and that would never be a valid url.
+    // But QUrl thinks it is.
+    if (!url.isValid() || scriptMaybeURLorText.startsWith("(")) {
         isURL = false;
         return scriptMaybeURLorText;
     }
