@@ -792,7 +792,8 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+                                                                                           PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
