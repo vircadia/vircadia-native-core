@@ -1226,19 +1226,17 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(const glm::vec2&  sphericalPos)
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result.x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f);
-    result.y = (sphericalPos.y / _textureFov + 0.5f);
     result *= qApp->getCanvasSize();
     return result;
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result.x *= -1.0;
     result /= qApp->getCanvasSize();
     result -= 0.5f;
     result *= _textureFov; 
     result.x *= _textureAspectRatio;
+    result.x *= -1.0f;
     return result;
 }
 
