@@ -350,7 +350,7 @@ void Resource::maybeRefresh() {
             QDateTime lastModified = variant.value<QDateTime>();
             QDateTime lastModifiedOld = metaData.lastModified();
             if (lastModified.isValid() && lastModifiedOld.isValid() &&
-                lastModifiedOld == lastModified) {
+                lastModifiedOld >= lastModified) {
                 qCDebug(networking) << "Using cached version of" << _url.fileName();
                 // We don't need to update, return
                 return;
