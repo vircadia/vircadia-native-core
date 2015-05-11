@@ -1295,6 +1295,25 @@ PropertiesTool = function(opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
+            } else if (data.action == "centerAtmosphereToZone") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        if (properties.type == "Zone") {
+                            var centerOfZone = properties.boundingBox.center;
+                            var atmosphereCenter = { x: centerOfZone.x, 
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                                                     z: centerOfZone.z };
+
+                            Entities.editEntity(selectionManager.selections[i], {
+                                atmosphere: { center: atmosphereCenter },
+                            });
+                        }
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
             }
         }
     });
