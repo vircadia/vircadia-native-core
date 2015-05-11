@@ -22,8 +22,7 @@ varying vec3 color;
 void main(void) {
     texcoord = gl_Vertex.xy;
 
-    // pass along the diffuse color
-    color = vec3(texcoord, 0.0);
+    color = vec3(1.0, 1.0, 1.0);
 
     // standard transform
     TransformCamera cam = getTransformCamera();
