@@ -31,36 +31,51 @@ typedef GLBackend::GLState::Command1<State::DepthTest> CommandDepthTest;
 typedef GLBackend::GLState::Command3<State::StencilActivation, State::StencilTest, State::StencilTest> CommandStencil;
 typedef GLBackend::GLState::Command1<State::BlendFunction> CommandBlend;
 
-// The state commands to reset to default,
-// WARNING depending on the order of the State::Field enum
-const GLBackend::GLState::Commands GLBackend::GLState::_resetStateCommands = {
-    CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, State::DEFAULT.fillMode)),
-    CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, State::DEFAULT.cullMode)),
-    CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, State::DEFAULT.frontFaceClockwise)),
-    CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, State::DEFAULT.depthClipEnable)),
-    CommandPointer(new Command1B(&GLBackend::do_setStateScissorEnable, State::DEFAULT.scissorEnable)),
-    CommandPointer(new Command1B(&GLBackend::do_setStateMultisampleEnable, State::DEFAULT.multisampleEnable)),
-    CommandPointer(new Command1B(&GLBackend::do_setStateAntialiasedLineEnable, State::DEFAULT.antialisedLineEnable)),
+const GLBackend::GLState::Commands makeResetStateCommands();
+const GLBackend::GLState::Commands GLBackend::GLState::_resetStateCommands = makeResetStateCommands();
 
-    // Depth bias has 2 fields in State but really one call in GLBackend
-    CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(State::DEFAULT.depthBias, State::DEFAULT.depthBiasSlopeScale))),
-    CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(State::DEFAULT.depthBias, State::DEFAULT.depthBiasSlopeScale))),
- 
-    CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, State::DEFAULT.depthTest)),
 
-    // Depth bias has 3 fields in State but really one call in GLBackend
-    CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, State::DEFAULT.stencilActivation, State::DEFAULT.stencilTestFront, State::DEFAULT.stencilTestBack)),
-    CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, State::DEFAULT.stencilActivation, State::DEFAULT.stencilTestFront, State::DEFAULT.stencilTestBack)),
-    CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, State::DEFAULT.stencilActivation, State::DEFAULT.stencilTestFront, State::DEFAULT.stencilTestBack)),
-
-    CommandPointer(new Command1B(&GLBackend::do_setStateAlphaToCoverageEnable, State::DEFAULT.alphaToCoverageEnable)),
-
-    CommandPointer(new Command1U(&GLBackend::do_setStateSampleMask, State::DEFAULT.sampleMask)),
-
-    CommandPointer(new CommandBlend(&GLBackend::do_setStateBlend, State::DEFAULT.blendFunction)),
-
-    CommandPointer(new Command1U(&GLBackend::do_setStateColorWriteMask, State::DEFAULT.colorWriteMask))
-};
+const GLBackend::GLState::Commands makeResetStateCommands() {
+    // Since State::DEFAULT is a static defined in another .cpp the initialisation order is random
+    // and we have a 50/50 chance that State::DEFAULT is not yet initialized.
+    // Since State::DEFAULT = State::Data() it is much easier to not use the actual State::DEFAULT
+    // but another State::Data object with a default initialization.
+    State::Data DEFAULT = State::Data();
+    
+    CommandPointer depthBiasCommand = CommandPointer(new CommandDepthBias(&GLBackend::do_setStateDepthBias, Vec2(DEFAULT.depthBias, DEFAULT.depthBiasSlopeScale)));
+    CommandPointer stencilCommand = CommandPointer(new CommandStencil(&GLBackend::do_setStateStencil, DEFAULT.stencilActivation, DEFAULT.stencilTestFront, DEFAULT.stencilTestBack));
+    
+    // The state commands to reset to default,
+    // WARNING depending on the order of the State::Field enum
+    return {
+        CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, DEFAULT.fillMode)),
+        CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, DEFAULT.cullMode)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.frontFaceClockwise)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, DEFAULT.depthClipEnable)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateScissorEnable, DEFAULT.scissorEnable)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateMultisampleEnable, DEFAULT.multisampleEnable)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.antialisedLineEnable)),
+        
+        // Depth bias has 2 fields in State but really one call in GLBackend
+        CommandPointer(depthBiasCommand),
+        CommandPointer(depthBiasCommand),
+        
+        CommandPointer(new CommandDepthTest(&GLBackend::do_setStateDepthTest, DEFAULT.depthTest)),
+        
+        // Depth bias has 3 fields in State but really one call in GLBackend
+        CommandPointer(stencilCommand),
+        CommandPointer(stencilCommand),
+        CommandPointer(stencilCommand),
+        
+        CommandPointer(new Command1B(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable)),
+        
+        CommandPointer(new Command1U(&GLBackend::do_setStateSampleMask, DEFAULT.sampleMask)),
+        
+        CommandPointer(new CommandBlend(&GLBackend::do_setStateBlend, DEFAULT.blendFunction)),
+        
+        CommandPointer(new Command1U(&GLBackend::do_setStateColorWriteMask, DEFAULT.colorWriteMask))
+    };
+}
 
 void generateFillMode(GLBackend::GLState::Commands& commands, State::FillMode fillMode) {
     commands.push_back(CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, int32(fillMode))));
@@ -464,6 +479,7 @@ void GLBackend::getCurrentGLState(State::Data& state) {
 void GLBackend::syncPipelineStateCache() {
     State::Data state;
 
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
     

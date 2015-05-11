@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <iterator>
 #include <memory>
+#include <unordered_map>
 
 #ifndef _WIN32
 #include <unistd.h> // not on windows, not needed for mac or windows
@@ -34,6 +35,7 @@
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "PacketHeaders.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -54,6 +56,8 @@ const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client
 
 const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
 const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
+
+const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 class HifiSockAddr;
 
@@ -94,6 +98,13 @@ public:
     
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
+    QByteArray byteArrayWithPopulatedHeader(PacketType packetType) 
+        { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
+    int populatePacketHeader(QByteArray& packet, PacketType packetType) 
+        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
+    int populatePacketHeader(char* packet, PacketType packetType) 
+        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
+
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
     
     qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
@@ -103,13 +114,14 @@ public:
                                const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
-    void(*linkedDataCreateCallback)(Node *);
+    void (*linkedDataCreateCallback)(Node *);
     
     int size() const { return _nodeHash.size(); }
 
@@ -222,8 +234,9 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                         const QUuid& connectionSecret);
+    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+
+    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType);
     
     void changeSocketBufferSizes(int numBytes);
     
@@ -245,6 +258,8 @@ protected:
     QElapsedTimer _packetStatTimer;
     bool _thisNodeCanAdjustLocks;
     bool _thisNodeCanRez;
+
+    std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {

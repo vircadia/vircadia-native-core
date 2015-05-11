@@ -20,6 +20,7 @@
 #include <QUdpSocket>
 
 #include <DependencyManager.h>
+#include <ui/overlays/TextOverlay.h>
 
 #include "FaceTracker.h"
 
@@ -28,6 +29,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    virtual void init();
     virtual void reset();
 
     virtual bool isActive() const;
@@ -50,6 +52,7 @@ public:
 
 public slots:
     void setEnabled(bool enabled);
+    void calibrate();
 
 private slots:
     void processFinished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -120,9 +123,17 @@ private:
     float _lastEyeBlinks[2];
     float _filteredEyeBlinks[2];
     float _lastEyeCoefficients[2];
+    QVector<float> _coefficientAverages;
 
-    bool _isCalculatingFPS;
-    int _frameCount;
+    bool _isCalibrating;
+    int _calibrationCount;
+    QVector<float> _calibrationValues;
+    TextOverlay* _calibrationBillboard;
+    int _calibrationBillboardID;
+    QString _calibrationMessage;
+    void addCalibrationDatum();
+    void cancelCalibration();
+    void finishCalibration();
 };
 
 #endif // hifi_DdeFaceTracker_h

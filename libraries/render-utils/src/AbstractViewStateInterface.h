@@ -18,6 +18,7 @@ class Transform;
 class QThread;
 class ViewFrustum;
 class PickRay;
+class EnvironmentData;
 
 /// Interface provided by Application to other objects that need access to the current view state details
 class AbstractViewStateInterface {
@@ -32,6 +33,10 @@ public:
 
     /// gets the current view frustum for rendering the view state
     virtual ViewFrustum* getCurrentViewFrustum() = 0;
+
+    /// overrides environment data
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) = 0;
+    virtual void endOverrideEnvironmentData() = 0;
     
     /// gets the shadow view frustum for rendering the view state
     virtual ViewFrustum* getShadowViewFrustum() = 0;
@@ -45,7 +50,7 @@ public:
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
-    virtual PickRay computePickRay(float x, float y) = 0;
+    virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual const glm::vec3& getAvatarPosition() const = 0;
 };

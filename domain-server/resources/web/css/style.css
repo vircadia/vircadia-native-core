@@ -1,21 +1,10 @@
 body {
   position: relative;
-}
-
-.table-lead {
-  color: #66CCCC;
+  padding-bottom: 30px;
 }
 
 .table-lead .lead-line {
-  background-color: #66CCCC;
-}
-
-#queued-lead {
-  color: #F77777;
-}
-
-#queued-lead .lead-line {
-  background-color: #F77777;
+  background-color: black;
 }
 
 .table-lead h3 {
@@ -42,14 +31,6 @@ body {
 
 span.port {
   color: #666666;
-}
-
-.stats-key {
-  width: 400px;
-}
-
-.stale {
-  color: red;
 }
 
 .locked {
@@ -100,4 +81,8 @@ td.reorder-buttons .glyphicon {
 tr.new-row {
   color: #3c763d;
   background-color: #dff0d8;
+}
+
+.highchart-modal .modal-dialog {
+  width: 650px;
 }

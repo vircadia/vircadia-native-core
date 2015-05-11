@@ -1,3 +1,16 @@
+
+//  grab.js
+//  examples
+//
+//  Created by Eric Levin on May 1, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Grab's physically moveable entities with the mouse, by applying a spring force. 
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var isGrabbing = false;
 var grabbedEntity = null;
 var prevMouse = {};
@@ -5,10 +18,23 @@ var deltaMouse = {
   z: 0
 }
 var entityProps;
-var targetPosition;
 var moveUpDown = false;
-
-var currentPosition, currentVelocity; 
+var CLOSE_ENOUGH = 0.001;
+var FULL_STRENGTH = 0.11;
+var SPRING_RATE = 1.5;
+var DAMPING_RATE = 0.80;
+var ANGULAR_DAMPING_RATE = 0.40;
+var SCREEN_TO_METERS = 0.001;
+var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
+var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
+var originalGravity;
+var shouldRotate = false;
+var dQ, theta, axisAngle, dT;
+var angularVelocity = {
+  x: 0,
+  y: 0,
+  z: 0
+};
 
 var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
 var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
@@ -23,16 +49,6 @@ var DROP_WIDTH = 2;
 
 
 var dropLine = Overlays.addOverlay("line3d", {
-  start: {
-    x: 0,
-    y: 0,
-    z: 0
-  },
-  end: {
-    x: 0,
-    y: 0,
-    z: 0
-  },
   color: DROP_COLOR,
   alpha: 1,
   visible: false,
@@ -50,9 +66,10 @@ function mousePressEvent(event) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
+    originalGravity = props.gravity;
     targetPosition = props.position;
-    currentPosition = props.position; 
-    currentVelocity = props.velocity; 
+    currentPosition = props.position;
+    currentVelocity = props.velocity;
     updateDropLine(targetPosition);
     Audio.playSound(grabSound, {
       position: props.position,
@@ -61,22 +78,31 @@ function mousePressEvent(event) {
   }
 }
 
-function updateDropLine(position) { 
-      Overlays.editOverlay(dropLine, {
-      visible: true,
-      start: position,
-      end: Vec3.sum(position, {
-        x: 0,
-        y: -DROP_DISTANCE,
-        z: 0
-      })
-    })
+function updateDropLine(position) {
+  Overlays.editOverlay(dropLine, {
+    visible: true,
+    start: {
+      x: position.x,
+      y: position.y + DROP_DISTANCE,
+      z: position.z
+    },
+    end: {
+      x: position.x,
+      y: position.y - DROP_DISTANCE,
+      z: position.z
+    }
+  })
 }
 
 
 function mouseReleaseEvent() {
   if (isGrabbing) {
     isGrabbing = false;
+
+    Entities.editEntity(grabbedEntity, {
+      gravity: originalGravity
+    });
+
     Overlays.editOverlay(dropLine, {
       visible: false
     });
@@ -100,14 +126,26 @@ function mouseMoveEvent(event) {
       deltaMouse.z = 0;
     }
     //  Update the target position by the amount the mouse moved
-    var camYaw = Quat.safeEulerAngles(Camera.getOrientation()).y;
-    var dPosition = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), deltaMouse);
-    //  Adjust target position for the object by the mouse move 
-    var avatarEntityDistance = Vec3.distance(Camera.getPosition(), currentPosition);
+    camYaw = Quat.safeEulerAngles(Camera.getOrientation()).y;
+    dPosition = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), deltaMouse);
+    if (!shouldRotate) {
+      //  Adjust target position for the object by the mouse move 
+      cameraEntityDistance = Vec3.distance(Camera.getPosition(), currentPosition);
       //  Scale distance we want to move by the distance from the camera to the grabbed object 
       //  TODO:  Correct SCREEN_TO_METERS to be correct for the actual FOV, resolution
-    var SCREEN_TO_METERS = 0.001;
-    targetPosition = Vec3.sum(targetPosition, Vec3.multiply(dPosition, avatarEntityDistance * SCREEN_TO_METERS));
+      targetPosition = Vec3.sum(targetPosition, Vec3.multiply(dPosition, cameraEntityDistance * SCREEN_TO_METERS));
+    } else if (shouldRotate) {
+      var transformedDeltaMouse = {
+        x: deltaMouse.z,
+        y: deltaMouse.x,
+        z: deltaMouse.y
+      };
+      transformedDeltaMouse = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), transformedDeltaMouse);
+      dQ = Quat.fromVec3Degrees(transformedDeltaMouse);
+      theta = 2 * Math.acos(dQ.w);
+      axisAngle = Quat.axis(dQ);
+      angularVelocity = Vec3.multiply((theta / dT), axisAngle);
+    }
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
@@ -119,41 +157,64 @@ function keyReleaseEvent(event) {
   if (event.text === "SHIFT") {
     moveUpDown = false;
   }
+  if (event.text === "SPACE") {
+    shouldRotate = false;
+  }
 }
 
 function keyPressEvent(event) {
   if (event.text === "SHIFT") {
     moveUpDown = true;
   }
+  if (event.text === "SPACE") {
+    shouldRotate = true;
+  }
 }
 
 function update(deltaTime) {
+  dT = deltaTime;
   if (isGrabbing) {
 
     entityProps = Entities.getEntityProperties(grabbedEntity);
-    currentPosition = entityProps.position; 
-    currentVelocity = entityProps.velocity; 
+    currentPosition = entityProps.position;
+    currentVelocity = entityProps.velocity;
+    currentRotation = entityProps.rotation;
 
     var dPosition = Vec3.subtract(targetPosition, currentPosition);
-    var CLOSE_ENOUGH = 0.001;
-    if (Vec3.length(dPosition) > CLOSE_ENOUGH) {
+
+    distanceToTarget = Vec3.length(dPosition);
+    if (distanceToTarget > CLOSE_ENOUGH) {
       //  compute current velocity in the direction we want to move 
-      var velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
+      velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
+      velocityTowardTarget = Vec3.multiply(Vec3.normalize(dPosition), velocityTowardTarget);
       //  compute the speed we would like to be going toward the target position 
-      var SPRING_RATE = 0.35;
-      var DAMPING_RATE = 0.55;
-      var desiredVelocity = Vec3.multiply(dPosition, (1.0 / deltaTime) * SPRING_RATE);
+
+      desiredVelocity = Vec3.multiply(dPosition, (1.0 / deltaTime) * SPRING_RATE);
       //  compute how much we want to add to the existing velocity
-      var addedVelocity = Vec3.subtract(desiredVelocity, velocityTowardTarget);
-      var newVelocity = Vec3.sum(currentVelocity, addedVelocity); 
+      addedVelocity = Vec3.subtract(desiredVelocity, velocityTowardTarget);
+      //  If target is too far, roll off the force as inverse square of distance
+      if (distanceToTarget / cameraEntityDistance > FULL_STRENGTH) {
+        addedVelocity = Vec3.multiply(addedVelocity, Math.pow(FULL_STRENGTH / distanceToTarget, 2.0));
+      }
+      newVelocity = Vec3.sum(currentVelocity, addedVelocity);
       //  Add Damping 
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
-      Entities.editEntity(grabbedEntity, {
-      velocity: newVelocity
-      })
-    } 
-    updateDropLine(currentPosition);
+    } else {
+      newVelocity = {x: 0, y: 0, z: 0};
+    }
+    if (shouldRotate) {
+      angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
+    } else {
+      angularVelocity = entityProps.angularVelocity; 
+    }
+
+    Entities.editEntity(grabbedEntity, {
+      velocity: newVelocity,
+      angularVelocity: angularVelocity,
+      gravity: {x: 0, y: 0, z: 0}
+    })
+    updateDropLine(targetPosition);
   }
 }
 
@@ -163,4 +224,3 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
-

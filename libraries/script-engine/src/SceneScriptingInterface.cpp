@@ -13,6 +13,9 @@
 
 #include "SceneScriptingInterface.h"
 
+#include "SceneScriptingInterface.h"
+
+
 void SceneScriptingInterface::setStageOrientation(const glm::quat& orientation) {
     _skyStage->setOriginOrientation(orientation);
 }
@@ -84,6 +87,29 @@ void SceneScriptingInterface::setStageSunModelEnable(bool isEnabled) {
 
 bool SceneScriptingInterface::isStageSunModelEnabled() const {
     return _skyStage->isSunModelEnabled();
+}
+
+void SceneScriptingInterface::setBackgroundMode(const QString& mode) {
+    if (mode == QString("inherit")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
+    } else if (mode == QString("atmosphere")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+    } else if (mode == QString("skybox")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+    }
+}
+
+QString SceneScriptingInterface::getBackgroundMode() const {
+    switch (_skyStage->getBackgroundMode()) {
+    case model::SunSkyStage::NO_BACKGROUND:
+        return QString("inherit");
+    case model::SunSkyStage::SKY_DOME:
+        return QString("atmosphere");
+    case model::SunSkyStage::SKY_BOX:
+        return QString("skybox");
+    default:
+        return QString("inherit");
+    };
 }
 
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {

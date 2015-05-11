@@ -108,34 +108,6 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
-
-void RenderableModelEntityItem::renderBoundingBox(RenderArgs* args) {
-    glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-    // float size = glm::length(dimensions) / 2.0f;
-
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR,
-                        getColor()[GREEN_INDEX] / MAX_COLOR,
-                        getColor()[BLUE_INDEX] / MAX_COLOR,
-                        getLocalRenderAlpha());
-
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
-        glPopMatrix();
-    glPopMatrix();
-}
-
-
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
@@ -145,8 +117,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
 
+    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
     bool highlightSimulationOwnership = false;
-    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+    if (debugSimulationOwnership) {
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& myNodeID = nodeList->getSessionUUID();
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
@@ -219,8 +192,11 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (!didDraw) {
-        renderBoundingBox(args);
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
+
+    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
@@ -300,6 +276,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         if (!_model) {
             return false; // hmm...
+        }
+
+        if (_needsInitialSimulation) {
+            // the _model's offset will be wrong until _needsInitialSimulation is false
+            return false;
         }
 
         assert(!_model->getCollisionURL().isEmpty());

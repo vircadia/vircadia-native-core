@@ -11,8 +11,9 @@
 
 #include <signal.h>
 
-#include <LogHandler.h>
 #include <AddressManager.h>
+#include <JSONBreakableMarshal.h>
+#include <LogHandler.h>
 
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
@@ -22,6 +23,7 @@
 
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
+const int WAIT_FOR_CHILD_MSECS = 500;
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
@@ -86,12 +88,31 @@ void AssignmentClientMonitor::stopChildProcesses() {
     nodeList->eachNode([&](const SharedNodePointer& node) {
         qDebug() << "asking child" << node->getUUID() << "to exit.";
         node->activateLocalSocket();
-        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+        QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
         nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
     });
 
     // try to give all the children time to shutdown
-    waitOnChildren(15000);
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask more firmly
+    QMutableListIterator<QProcess*> i(_childProcesses);
+    while (i.hasNext()) {
+        QProcess* childProcess = i.next();
+        childProcess->terminate();
+    }
+
+    // try to give all the children time to shutdown
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
+
+    // ask even more firmly
+    QMutableListIterator<QProcess*> j(_childProcesses);
+    while (j.hasNext()) {
+        QProcess* childProcess = j.next();
+        childProcess->kill();
+    }
+
+    waitOnChildren(WAIT_FOR_CHILD_MSECS);
 }
 
 void AssignmentClientMonitor::aboutToQuit() {
@@ -172,7 +193,7 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
-            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
@@ -208,7 +229,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                         } else {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
-                            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+                            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
                             nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
                         }
                     }
@@ -218,13 +239,9 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                     // update our records about how to reach this child
                     matchingNode->setLocalSocket(senderSockAddr);
 
-                    // push past the packet header
-                    QDataStream packetStream(receivedPacket);
-                    packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
-                    // decode json
-                    QVariantMap unpackedVariantMap;
-                    packetStream >> unpackedVariantMap;
-                    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(unpackedVariantMap);
+                    QVariantMap packetVariantMap = 
+                        JSONBreakableMarshal::fromStringBuffer(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
+                    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(packetVariantMap);
 
                     // get child's assignment type out of the decoded json
                     QString childType = unpackedStatsJSON["assignment_type"].toString();

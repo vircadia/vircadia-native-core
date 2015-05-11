@@ -27,6 +27,7 @@
 #include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -45,7 +46,6 @@
 #include "Recorder.h"
 #include "Util.h"
 #include "world.h"
-#include "devices/OculusManager.h"
 #include "InterfaceLogging.h"
 
 using namespace std;
@@ -715,19 +715,17 @@ void Avatar::renderDisplayName() {
     QString renderedDisplayName = _displayName;
     
     if (DependencyManager::get<AvatarManager>()->shouldShowReceiveStats()) {
-        const float BYTES_PER_KILOBYTE = 1000.0f;
-        float kilobytesPerSecond = getAverageBytesReceivedPerSecond() / BYTES_PER_KILOBYTE;
+        float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
     
-        renderedDisplayName += QString(" - (%1 KBps, %2 Hz)")
-                               .arg(QString::number(kilobytesPerSecond, 'f', 2))
+        renderedDisplayName += QString(" - (%1 Kbps, %2 Hz)")
+                               .arg(QString::number(kilobitsPerSecond, 'f', 2))
                                .arg(getReceiveRate());
     }
  
-    QByteArray ba = _displayName.toLocal8Bit();
-    const char* text = ba.data();
+    QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
     
     glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, renderedDisplayName, color);
+    textRenderer(DISPLAYNAME)->draw(text_x, text_y, nameUTF8.data(), color);
 
     glPopMatrix();
 

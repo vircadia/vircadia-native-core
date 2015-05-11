@@ -11,6 +11,7 @@
 #include "Material.h"
 
 using namespace model;
+using namespace gpu;
 
 Material::Material() :
     _flags(0),
@@ -19,7 +20,7 @@ Material::Material() :
        
         // only if created from nothing shall we create the Buffer to store the properties
         Schema schema;
-        _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Buffer::Byte*) &schema));
+        _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Byte*) &schema));
         
 
 }
@@ -86,7 +87,8 @@ void Material::setOpacity(float opacity) {
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
 
-void Material::setTextureView(MapChannel channel, const TextureView& view) {
+void Material::setTextureView(MapChannel channel, const gpu::TextureView& view) {
     _flags.set(DIFFUSE_MAP_BIT + channel);
     _textureMap[channel] = view;
 }
+

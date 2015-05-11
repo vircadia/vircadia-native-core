@@ -65,12 +65,6 @@ const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
-void attachNewNodeDataToNode(Node *newNode) {
-    if (!newNode->getLinkedData()) {
-        newNode->setLinkedData(new AudioMixerClientData());
-    }
-}
-
 InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 bool AudioMixer::_printStreamStats = false;
@@ -514,7 +508,8 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
     
     if (sendData) {
-        int numBytesEnvPacketHeader = populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
+        auto nodeList = DependencyManager::get<NodeList>();
+        int numBytesEnvPacketHeader = nodeList->populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
         char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
         
         unsigned char bitset = 0;
@@ -531,7 +526,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             memcpy(envDataAt, &wetLevel, sizeof(float));
             envDataAt += sizeof(float);
         }
-        DependencyManager::get<NodeList>()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
+        nodeList->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
     }
 }
 
@@ -552,7 +547,7 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
             SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (sendingNode->getCanAdjustLocks()) {
                 QByteArray packet = receivedPacket;
-                populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                nodeList->populatePacketHeader(packet, PacketTypeMuteEnvironment);
                 
                 nodeList->eachNode([&](const SharedNodePointer& node){
                     if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
@@ -583,71 +578,70 @@ void AudioMixer::sendStatsPacket() {
         statsObject["average_mixes_per_listener"] = 0.0;
     }
 
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
     _sumListeners = 0;
     _sumMixes = 0;
     _numStatFrames = 0;
+    
+    QJsonObject readPendingDatagramStats;
+    
+    QJsonObject rpdCallsStats;
+    rpdCallsStats["calls_per_sec_avg_30s"] = _readPendingCallsPerSecondStats.getWindowAverage();
+    rpdCallsStats["calls_last_sec"] = _readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5;
+    
+    readPendingDatagramStats["calls"] = rpdCallsStats;
 
+    QJsonObject packetsPerCallStats;
+    packetsPerCallStats["avg_30s"] = _datagramsReadPerCallStats.getWindowAverage();
+    packetsPerCallStats["avg_1s"] = _datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage();
+    
+    readPendingDatagramStats["packets_per_call"] = packetsPerCallStats;
+    
+    QJsonObject packetsTimePerCallStats;
+    packetsTimePerCallStats["usecs_per_call_avg_30s"] = _timeSpentPerCallStats.getWindowAverage();
+    packetsTimePerCallStats["usecs_per_call_avg_1s"] = _timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage();
+    packetsTimePerCallStats["prct_time_in_call_30s"] = 
+        _timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS * USECS_PER_SECOND) * 100.0;
+    packetsTimePerCallStats["prct_time_in_call_1s"] = 
+        _timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0;
 
-    // NOTE: These stats can be too large to fit in an MTU, so we break it up into multiple packts...
-    QJsonObject statsObject2;
-
+    readPendingDatagramStats["packets_time_per_call"] = packetsTimePerCallStats;
+   
+    QJsonObject hashMatchTimePerCallStats;
+    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_30s"] = _timeSpentPerHashMatchCallStats.getWindowAverage();
+    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_1s"] 
+        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage();
+    hashMatchTimePerCallStats["prct_time_in_hashmatch_30s"] 
+        = _timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0;
+    hashMatchTimePerCallStats["prct_time_in_hashmatch_1s"] 
+        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0; 
+    readPendingDatagramStats["hashmatch_time_per_call"] = hashMatchTimePerCallStats;
+    
+    statsObject["read_pending_datagrams"] = readPendingDatagramStats;
+    
     // add stats for each listerner
-    bool somethingToSend = false;
-    int sizeOfStats = 0;
-    int TOO_BIG_FOR_MTU = 1200; // some extra space for JSONification
-    
-    QString property = "readPendingDatagram_calls_stats";
-    QString value = getReadPendingDatagramsCallsPerSecondsStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_packets_per_call_stats";
-    value = getReadPendingDatagramsPacketsPerCallStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_packets_time_per_call_stats";
-    value = getReadPendingDatagramsTimeStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-
-    property = "readPendingDatagram_hashmatch_time_per_call_stats";
-    value = getReadPendingDatagramsHashMatchTimeStatsString();
-    statsObject2[qPrintable(property)] = value;
-    somethingToSend = true;
-    sizeOfStats += property.size() + value.size();
-    
     auto nodeList = DependencyManager::get<NodeList>();
-    int clientNumber = 0;
-    
+    QJsonObject listenerStats;
     
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        // if we're too large, send the packet
-        if (sizeOfStats > TOO_BIG_FOR_MTU) {
-            nodeList->sendStatsToDomainServer(statsObject2);
-            sizeOfStats = 0;
-            statsObject2 = QJsonObject(); // clear it
-            somethingToSend = false;
-        }
-
-        clientNumber++;
         AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            QString property = "jitterStats." + node->getUUID().toString();
-            QString value = clientData->getAudioStreamStatsString();
-            statsObject2[qPrintable(property)] = value;
-            somethingToSend = true;
-            sizeOfStats += property.size() + value.size();
+            QJsonObject nodeStats;
+            QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+            
+            nodeStats["outbound_kbps"] = node->getOutboundBandwidth();
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidString;
+
+            nodeStats["jitter"] = clientData->getAudioStreamStats();
+            
+            listenerStats[uuidString] = nodeStats;
         }
     });
-
-    if (somethingToSend) {
-        nodeList->sendStatsToDomainServer(statsObject2);
-    }
+    
+    // add the listeners object to the root object
+    statsObject["listeners"] = listenerStats;
+    
+    // send off the stats packets
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 void AudioMixer::run() {
@@ -687,7 +681,9 @@ void AudioMixer::run() {
     
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    nodeList->linkedDataCreateCallback = attachNewNodeDataToNode;
+    nodeList->linkedDataCreateCallback = [](Node* node) {
+        node->setLinkedData(new AudioMixerClientData());
+    };
     
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = nodeList->getDomainHandler();
@@ -795,7 +791,7 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
+                    QByteArray packet = nodeList->byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
                     nodeList->writeDatagram(packet, node);
                 }
                 
@@ -807,7 +803,7 @@ void AudioMixer::run() {
                     char* mixDataAt;
                     if (streamsMixed > 0) {
                         // pack header
-                        int numBytesMixPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                        int numBytesMixPacketHeader = nodeList->populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
                         mixDataAt = clientMixBuffer + numBytesMixPacketHeader;
 
                         // pack sequence number
@@ -820,7 +816,7 @@ void AudioMixer::run() {
                         mixDataAt += AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                     } else {
                         // pack header
-                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
+                        int numBytesPacketHeader = nodeList->populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
                         mixDataAt = clientMixBuffer + numBytesPacketHeader;
 
                         // pack sequence number
@@ -924,34 +920,6 @@ void AudioMixer::perSecondActions() {
     _datagramsReadPerCallStats.currentIntervalComplete();
     _timeSpentPerCallStats.currentIntervalComplete();
     _timeSpentPerHashMatchCallStats.currentIntervalComplete();
-}
-
-QString AudioMixer::getReadPendingDatagramsCallsPerSecondsStatsString() const {
-    QString result = "calls_per_sec_avg_30s: " + QString::number(_readPendingCallsPerSecondStats.getWindowAverage(), 'f', 2)
-        + " calls_last_sec: " + QString::number(_readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5, 'f', 0);
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsPacketsPerCallStatsString() const {
-    QString result = "pkts_per_call_avg_30s: " + QString::number(_datagramsReadPerCallStats.getWindowAverage(), 'f', 2)
-        + " pkts_per_call_avg_1s: " + QString::number(_datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2);
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsTimeStatsString() const {
-    QString result = "usecs_per_call_avg_30s: " + QString::number(_timeSpentPerCallStats.getWindowAverage(), 'f', 2)
-        + " usecs_per_call_avg_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + " prct_time_in_call_30s: " + QString::number(_timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + " prct_time_in_call_1s: " + QString::number(_timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
-    return result;
-}
-
-QString AudioMixer::getReadPendingDatagramsHashMatchTimeStatsString() const {
-    QString result = "usecs_per_hashmatch_avg_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowAverage(), 'f', 2)
-        + " usecs_per_hashmatch_avg_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage(), 'f', 2)
-        + " prct_time_in_hashmatch_30s: " + QString::number(_timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0, 'f', 6) + "%"
-        + " prct_time_in_hashmatch_1s: " + QString::number(_timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0, 'f', 6) + "%";
-    return result;
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {

@@ -486,5 +486,21 @@
         "advanced": true
       }
     ]
+  },
+  {
+    "name": "avatar_mixer",
+    "label": "Avatar Mixer",
+    "assignment-types": [1],
+    "settings": [
+      {
+        "name": "max_node_send_bandwidth",
+        "type": "double",
+        "label": "Per-Node Bandwidth",
+        "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
+        "placeholder": 1.0,
+        "default": 1.0,
+        "advanced": true
+      }
+    ]
   }
 ]

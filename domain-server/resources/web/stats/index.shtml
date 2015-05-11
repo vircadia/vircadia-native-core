@@ -1,6 +1,14 @@
 <!--#include virtual="header.html"-->
-<div id="stats-lead" class="table-lead"><h3>Stats</h3><div class="lead-line"></div></div>
-<table id="stats-table" class="table"><tbody></tbody></table>
+<div class="col-xs-12 table-lead" id="stats-lead"><h3>Stats</h3><div class="lead-line"></div></div>
+<div class="col-xs-12">
+  <p class="help"><em>Click on any of the numerical values in the tables below to view a line graph of the incoming values.</em></p>
+</div>
+<div class="col-xs-12" id="stats-container"></div>
 <!--#include virtual="footer.html"-->
 <script src='js/stats.js'></script>
+<script src='js/json.human.js'></script>
+<script src='js/highcharts-custom.js'></script>
+<script src='/js/underscore-min.js'></script>
+<script src='js/underscore-keypath.min.js'></script>
+<script src='/js/bootbox.min.js'></script>
 <!--#include virtual="page-end.html"-->

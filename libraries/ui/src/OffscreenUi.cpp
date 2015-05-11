@@ -117,8 +117,13 @@ void OffscreenUi::addImportPath(const QString& path) {
 void OffscreenUi::resize(const QSize& newSize) {
     makeCurrent();
 
-    // Clear out any fbos with the old size
     qreal pixelRatio = _renderControl->_renderWindow ? _renderControl->_renderWindow->devicePixelRatio() : 1.0;
+	QSize newOffscreenSize = newSize * pixelRatio;
+    if (newOffscreenSize == _fboCache.getSize()) {
+        return;
+    }
+
+    // Clear out any fbos with the old size
     qDebug() << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height() << " with pixel ratio " << pixelRatio;
     _fboCache.setSize(newSize * pixelRatio);
 
@@ -254,8 +259,11 @@ void OffscreenUi::updateQuick() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     _renderControl->render();
-
-    Q_ASSERT(!glGetError());
+    // FIXME The web browsers seem to be leaving GL in an error state.
+    // Need a debug context with sync logging to figure out why.
+    // for now just clear the errors
+    glGetError();
+//    Q_ASSERT(!glGetError());
 
     _quickWindow->resetOpenGLState();
 

@@ -31,7 +31,7 @@ EntityListTool = function(opts) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
-    function sendUpdate() {
+    that.sendUpdate = function() {
         var entities = [];
         var ids = Entities.findEntities(MyAvatar.position, 100);
         for (var i = 0; i < ids.length; i++) {
@@ -39,6 +39,7 @@ EntityListTool = function(opts) {
             var properties = Entities.getEntityProperties(id);
             entities.push({
                 id: id.id,
+                name: properties.name,
                 type: properties.type,
                 url: properties.type == "Model" ? properties.modelURL : "",
             });
@@ -76,7 +77,7 @@ EntityListTool = function(opts) {
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         } else if (data.type == "refresh") {
-            sendUpdate();
+            that.sendUpdate();
         } else if (data.type == "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;

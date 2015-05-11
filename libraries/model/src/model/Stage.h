@@ -14,6 +14,7 @@
 #include "gpu/Pipeline.h"
 
 #include "Light.h"
+#include "Skybox.h"
 
 namespace model {
 
@@ -158,22 +159,7 @@ protected:
 
     void updateScattering();
 };
-typedef QSharedPointer< Atmosphere > AtmospherePointer;
-
-
-class Skybox {
-public:
-    Skybox();
-    Skybox& operator= (const Atmosphere& Skybox);
-    virtual ~Skybox() {};
-
-    void setCubemap(const gpu::TexturePointer& cubemap);
-    const gpu::TexturePointer& getCubemap() const { return _cubemap; }
-
-protected:
-    gpu::TexturePointer _cubemap;
-};
-typedef QSharedPointer< Skybox > SkyboxPointer;
+typedef std::shared_ptr< Atmosphere > AtmospherePointer;
 
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
@@ -222,14 +208,26 @@ public:
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
  
+    enum BackgroundMode {
+        NO_BACKGROUND = 0,
+        SKY_DOME,
+        SKY_BOX,
+
+        NUM_BACKGROUND_MODES,
+    };
+    void setBackgroundMode(BackgroundMode mode);
+    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+
     // Skybox
     void setSkybox(const SkyboxPointer& skybox);
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
+    BackgroundMode _backgroundMode = SKY_BOX;
+
     LightPointer _sunLight;
     AtmospherePointer _atmosphere;
-    SkyboxPointer _skybox;
+    mutable SkyboxPointer _skybox;
 
     gpu::PipelinePointer _skyPipeline;
 
@@ -244,7 +242,7 @@ protected:
     void updateGraphicsObject() const;
 };
 
-typedef QSharedPointer< SunSkyStage > SunSkyStagePointer;
+typedef std::shared_ptr< SunSkyStage > SunSkyStagePointer;
 
 };
 

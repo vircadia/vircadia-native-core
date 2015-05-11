@@ -13,6 +13,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QVariant>
 
+#include <JSONBreakableMarshal.h>
 #include <PacketHeaders.h>
 
 #include "DomainServerNodeData.h"
@@ -31,16 +32,8 @@ DomainServerNodeData::DomainServerNodeData() :
 }
 
 void DomainServerNodeData::parseJSONStatsPacket(const QByteArray& statsPacket) {
-    // push past the packet header
-    QDataStream packetStream(statsPacket);
-    packetStream.skipRawData(numBytesForPacketHeader(statsPacket));
-    
-    QVariantMap unpackedVariantMap;
-    
-    packetStream >> unpackedVariantMap;
-    
-    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(unpackedVariantMap);
-    _statsJSONObject = mergeJSONStatsFromNewObject(unpackedStatsJSON, _statsJSONObject);
+    QVariantMap packetVariantMap = JSONBreakableMarshal::fromStringBuffer(statsPacket.mid(numBytesForPacketHeader(statsPacket)));
+    _statsJSONObject = mergeJSONStatsFromNewObject(QJsonObject::fromVariantMap(packetVariantMap), _statsJSONObject);
 }
 
 QJsonObject DomainServerNodeData::mergeJSONStatsFromNewObject(const QJsonObject& newObject, QJsonObject destinationObject) {

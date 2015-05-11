@@ -16,7 +16,6 @@
 #include "Application.h"
 #include "GLCanvas.h"
 #include "MainWindow.h"
-#include "devices/OculusManager.h"
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
 
@@ -60,26 +59,12 @@ void GLCanvas::initializeGL() {
 
 void GLCanvas::paintGL() {
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
-        //Need accurate frame timing for the oculus rift
-        if (OculusManager::isConnected()) {
-            OculusManager::beginFrameTiming();
-        }
-
         Application::getInstance()->paintGL();
-        
-        if (!OculusManager::isConnected()) {
-            swapBuffers();
-        } else {
-            if (OculusManager::allowSwap()) {
-                swapBuffers();
-            }
-            OculusManager::endFrameTiming();
-        }
     }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    Application::getInstance()->resizeGL(width, height);
+    Application::getInstance()->resizeGL();
 }
 
 void GLCanvas::activeChanged(Qt::ApplicationState state) {
@@ -110,18 +95,7 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
-        //Need accurate frame timing for the oculus rift
-        if (OculusManager::isConnected()) {
-            OculusManager::beginFrameTiming();
-        }
-
-        makeCurrent();
         Application::getInstance()->paintGL();
-        swapBuffers();
-
-        if (OculusManager::isConnected()) {
-            OculusManager::endFrameTiming();
-        }
     }
 }
 
@@ -131,6 +105,7 @@ bool GLCanvas::event(QEvent* event) {
         case QEvent::MouseMove:
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
         case QEvent::FocusIn:

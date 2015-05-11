@@ -102,9 +102,12 @@ class QQuickMenuItem;
 QObject* addItem(QObject* parent, const QString& text) {
     // FIXME add more checking here to ensure no name conflicts
     QQuickMenuItem* returnedValue{ nullptr };
-    bool invokeResult = QMetaObject::invokeMethod(parent, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
-        Q_ARG(QString, text));
+    #ifndef QT_NO_DEBUG
+    bool invokeResult =
+    #endif
+        QMetaObject::invokeMethod(parent, "addItem", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+                                  Q_ARG(QString, text));
+
     Q_ASSERT(invokeResult);
     QObject* result = reinterpret_cast<QObject*>(returnedValue);
     return result;
@@ -203,9 +206,11 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         result = ::addItem(menu, action->text());
     } else {
         QQuickMenuItem* returnedValue{ nullptr };
-        bool invokeResult = QMetaObject::invokeMethod(menu, "insertItem", Qt::DirectConnection,
-            Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
-            Q_ARG(int, index), Q_ARG(QString, action->text()));
+        #ifndef QT_NO_DEBUG
+        bool invokeResult =
+        #endif
+            QMetaObject::invokeMethod(menu, "insertItem", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+                                      Q_ARG(int, index), Q_ARG(QString, action->text()));
         Q_ASSERT(invokeResult);
         result = reinterpret_cast<QObject*>(returnedValue);
     }

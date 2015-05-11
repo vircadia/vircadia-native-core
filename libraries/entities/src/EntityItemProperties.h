@@ -24,118 +24,18 @@
 
 #include <AACube.h>
 #include <FBXReader.h> // for SittingPoint
+#include <NumericalConstants.h>
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
 
+#include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
-
-enum EntityPropertyList {
-    PROP_PAGED_PROPERTY,
-    PROP_CUSTOM_PROPERTIES_INCLUDED,
-    
-    // these properties are supported by the EntityItem base class
-    PROP_VISIBLE,
-    PROP_POSITION,
-    PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
-    PROP_DIMENSIONS = PROP_RADIUS,
-    PROP_ROTATION,
-    PROP_DENSITY,
-    PROP_VELOCITY,
-    PROP_GRAVITY,
-    PROP_DAMPING,
-    PROP_LIFETIME,
-    PROP_SCRIPT,
-
-    // these properties are supported by some derived classes
-    PROP_COLOR,
-    PROP_MODEL_URL,
-    PROP_ANIMATION_URL,
-    PROP_ANIMATION_FPS,
-    PROP_ANIMATION_FRAME_INDEX,
-    PROP_ANIMATION_PLAYING,
-
-    // these properties are supported by the EntityItem base class
-    PROP_REGISTRATION_POINT,
-    PROP_ANGULAR_VELOCITY,
-    PROP_ANGULAR_DAMPING,
-    PROP_IGNORE_FOR_COLLISIONS,
-    PROP_COLLISIONS_WILL_MOVE,
-
-    // property used by Light entity
-    PROP_IS_SPOTLIGHT,
-    PROP_DIFFUSE_COLOR_UNUSED,
-    PROP_AMBIENT_COLOR_UNUSED,
-    PROP_SPECULAR_COLOR_UNUSED,
-    PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
-    PROP_LINEAR_ATTENUATION_UNUSED,
-    PROP_QUADRATIC_ATTENUATION_UNUSED,
-    PROP_EXPONENT,
-    PROP_CUTOFF,
-
-    // available to all entities
-    PROP_LOCKED,
-    
-    // used by Model entities
-    PROP_TEXTURES,
-    PROP_ANIMATION_SETTINGS,
-    PROP_USER_DATA,
-    PROP_SHAPE_TYPE,
-
-    // used by ParticleEffect entities
-    PROP_MAX_PARTICLES,
-    PROP_LIFESPAN,
-    PROP_EMIT_RATE,
-    PROP_EMIT_DIRECTION,
-    PROP_EMIT_STRENGTH,
-    PROP_LOCAL_GRAVITY,
-    PROP_PARTICLE_RADIUS,
-    
-    PROP_COMPOUND_SHAPE_URL,
-    PROP_MARKETPLACE_ID,
-    PROP_ACCELERATION,
-    PROP_SIMULATOR_ID,
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line
-    PROP_AFTER_LAST_ITEM,
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // WARNING! Do not add props here unless you intentionally mean to reuse PROP_ indexes
-    //
-    // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
-    // since the derived class knows how to interpret it's own properties and knows the types it expects
-    PROP_TEXT_COLOR = PROP_COLOR,
-    PROP_TEXT = PROP_MODEL_URL,
-    PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
-    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1,
-
-    // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
-    // other properties which will never overlap with each other. We do this so that we don't have to expand
-    // the size of the properties bitflags mask
-    PROP_KEYLIGHT_COLOR = PROP_COLOR,
-    PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
-    PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
-    PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
-    PROP_STAGE_SUN_MODEL_ENABLED = PROP_IS_SPOTLIGHT,
-    PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR_UNUSED,
-    PROP_STAGE_LONGITUDE = PROP_AMBIENT_COLOR_UNUSED,
-    PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
-    PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
-    PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
-
-    // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
-};
-
-typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
-
-// this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
-// one greater than the last item property due to the enum's auto-incrementing.
-extern EntityPropertyList PROP_LAST_ITEM;
+#include "EntityPropertyFlags.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -233,12 +133,13 @@ public:
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
     DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, StageSunModelEnabled, stageSunModelEnabled, bool);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, StageLatitude, stageLatitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, StageLongitude, stageLongitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
+    DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+
+    static QString getBackgroundModeString(BackgroundMode mode);
 
 
 public:
@@ -331,6 +232,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
@@ -372,6 +274,11 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    
+    properties.getStage().debugDump();
+    properties.getAtmosphere().debugDump();
+    properties.getSkybox().debugDump();
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

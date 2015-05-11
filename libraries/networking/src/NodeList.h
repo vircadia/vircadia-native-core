@@ -48,7 +48,7 @@ public:
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    qint64 sendStats(const QJsonObject& statsObject, HifiSockAddr destination);
+    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
     qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
@@ -81,7 +81,7 @@ private:
     
     void sendSTUNRequest();
     bool processSTUNResponse(const QByteArray& packet);
-    
+
     void handleICEConnectionToDomainServer();
     
     void processDomainServerAuthRequest(const QByteArray& packet);

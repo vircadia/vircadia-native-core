@@ -19,12 +19,10 @@
 #include <QScreen>
 #include <QWindow>
 
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
-
 #include "devices/OculusManager.h"
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
@@ -162,11 +160,16 @@ void HMDToolsDialog::enterHDMMode() {
             close();
         }
 
-        Application::getInstance()->setFullscreen(true);
         Application::getInstance()->setEnableVRMode(true);
     
         const int SLIGHT_DELAY = 500;
-        QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
+        // If we go to fullscreen immediately, it ends up on the primary monitor,
+        // even though we've already moved the window.  By adding this delay, the
+        // fullscreen target screen ends up correct.
+        QTimer::singleShot(SLIGHT_DELAY, this, [&]{
+            Application::getInstance()->setFullscreen(true);
+            activateWindowAfterEnterMode();
+        });
     
         _inHDMMode = true;
     }

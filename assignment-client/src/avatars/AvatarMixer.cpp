@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cfloat>
+#include <random>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
@@ -27,7 +30,8 @@
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
-const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / 60.0f) * 1000;
+const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60; 
+const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
 AvatarMixer::AvatarMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -52,12 +56,6 @@ AvatarMixer::~AvatarMixer() {
     _broadcastThread.wait();
 }
 
-void attachAvatarDataToNode(Node* newNode) {
-    if (!newNode->getLinkedData()) {
-        newNode->setLinkedData(new AvatarMixerClientData());
-    }
-}
-
 const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 
 // NOTE: some additional optimizations to consider.
@@ -79,7 +77,12 @@ void AvatarMixer::broadcastAvatarData() {
     
     const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
-    
+   
+    // NOTE: The following code calculates the _performanceThrottlingRatio based on how much the avatar-mixer was
+    // able to sleep. This will eventually be used to ask for an additional avatar-mixer to help out. Currently the value
+    // is unused as it is assumed this should not be hit before the avatar-mixer hits the desired bandwidth limit per client.
+    // It is reported in the domain-server stats for the avatar-mixer.
+     
     _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
         + (idleTime * CURRENT_FRAME_RATIO / (float) AVATAR_DATA_SEND_INTERVAL_MSECS);
     
@@ -88,14 +91,14 @@ void AvatarMixer::broadcastAvatarData() {
     
     if (framesSinceCutoffEvent >= TRAILING_AVERAGE_FRAMES) {
         if (_trailingSleepRatio <= STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD) {
-            // we're struggling - change our min required loudness to reduce some load
+            // we're struggling - change our performance throttling ratio
             _performanceThrottlingRatio = _performanceThrottlingRatio + (0.5f * (1.0f - _performanceThrottlingRatio));
             
             qDebug() << "Mixer is struggling, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
             hasRatioChanged = true;
         } else if (_trailingSleepRatio >= BACK_OFF_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD && _performanceThrottlingRatio != 0) {
-            // we've recovered and can back off the required loudness
+            // we've recovered and can back off the performance throttling
             _performanceThrottlingRatio = _performanceThrottlingRatio - RATIO_BACK_OFF;
             
             if (_performanceThrottlingRatio < 0) {
@@ -103,7 +106,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
             
             qDebug() << "Mixer is recovering, sleeping" << _trailingSleepRatio * 100 << "% of frame time. Old cutoff was"
-            << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
+                << lastCutoffRatio << "and is now" << _performanceThrottlingRatio;
             hasRatioChanged = true;
         }
         
@@ -118,9 +121,13 @@ void AvatarMixer::broadcastAvatarData() {
     
     static QByteArray mixedAvatarByteArray;
     
-    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
-    
     auto nodeList = DependencyManager::get<NodeList>();
+    int numPacketHeaderBytes = nodeList->populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
+     
+    // setup for distributed random floating point values 
+    std::random_device randomDevice;
+    std::mt19937 generator(randomDevice());
+    std::uniform_real_distribution<float> distribution;
     
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
@@ -145,16 +152,71 @@ void AvatarMixer::broadcastAvatarData() {
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
-            
+
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
-            // TODO use this along with the distance in the calculation of whether to send an update 
-            // about a given otherNode to this node
-            // FIXME does this mean we should sort the othernodes by distance before iterating 
-            // over them?
-            // float outputBandwidth =
-            node->getOutboundBandwidth();
+
+            // reset the internal state for correct random number distribution
+            distribution.reset();
             
+            // reset the max distance for this frame
+            float maxAvatarDistanceThisFrame = 0.0f;
+            
+            // reset the number of sent avatars
+            nodeData->resetNumAvatarsSentLastFrame();
+
+            // keep a counter of the number of considered avatars
+            int numOtherAvatars = 0;
+            
+            // keep track of outbound data rate specifically for avatar data
+            int numAvatarDataBytes = 0;
+
+            // keep track of the number of other avatars held back in this frame
+            int numAvatarsHeldBack = 0;
+
+            // keep track of the number of other avatar frames skipped
+            int numAvatarsWithSkippedFrames = 0;
+
+            // use the data rate specifically for avatar data for FRD adjustment checks
+            float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
+
+            // Check if it is time to adjust what we send this client based on the observed
+            // bandwidth to this node. We do this once a second, which is also the window for
+            // the bandwidth reported by node->getOutboundBandwidth();
+            if (nodeData->getNumFramesSinceFRDAdjustment() > AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) {
+                
+                const float FRD_ADJUSTMENT_ACCEPTABLE_RATIO = 0.8f;
+                const float HYSTERISIS_GAP = (1 - FRD_ADJUSTMENT_ACCEPTABLE_RATIO);
+                const float HYSTERISIS_MIDDLE_PERCENTAGE =  (1 - (HYSTERISIS_GAP * 0.5f));
+
+                // get the current full rate distance so we can work with it
+                float currentFullRateDistance = nodeData->getFullRateDistance();
+
+                if (avatarDataRateLastSecond > _maxKbpsPerNode) {
+
+                    // is the FRD greater than the farthest avatar? 
+                    // if so, before we calculate anything, set it to that distance
+                    currentFullRateDistance = std::min(currentFullRateDistance, nodeData->getMaxAvatarDistance());
+
+                    // we're adjusting the full rate distance to target a bandwidth in the middle
+                    // of the hysterisis gap
+                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond; 
+                    
+                    nodeData->setFullRateDistance(currentFullRateDistance);
+                    nodeData->resetNumFramesSinceFRDAdjustment();
+                } else if (currentFullRateDistance < nodeData->getMaxAvatarDistance() 
+                           && avatarDataRateLastSecond < _maxKbpsPerNode * FRD_ADJUSTMENT_ACCEPTABLE_RATIO) {
+                    // we are constrained AND we've recovered to below the acceptable ratio 
+                    // lets adjust the full rate distance to target a bandwidth in the middle of the hyterisis gap
+                    currentFullRateDistance *= (_maxKbpsPerNode * HYSTERISIS_MIDDLE_PERCENTAGE) / avatarDataRateLastSecond;
+                     
+                    nodeData->setFullRateDistance(currentFullRateDistance);
+                    nodeData->resetNumFramesSinceFRDAdjustment();
+                }
+            } else {
+                nodeData->incrementNumFramesSinceFRDAdjustment();
+            }
+
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
             nodeList->eachMatchingNode(
@@ -166,29 +228,64 @@ void AvatarMixer::broadcastAvatarData() {
                         return false;
                     }
 
-                    //  Check throttling value
-                    if (!(_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))) {
-                        return false;
-                    }
                     return true;
                 },
                 [&](const SharedNodePointer& otherNode) {
+                    ++numOtherAvatars;
+                    
                     AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
                     MutexTryLocker lock(otherNodeData->getMutex());
                     if (!lock.isLocked()) {
                         return;
                     }
+                    
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
                     //  Decide whether to send this avatar's data based on it's distance from us
+                    
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
-                    //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    const float FULL_RATE_DISTANCE = 2.0f;
+                    //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
                     glm::vec3 otherPosition = otherAvatar.getPosition();
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
 
-                    if (!(distanceToAvatar == 0.0f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
+                    // potentially update the max full rate distance for this frame
+                    maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
+
+                    if (distanceToAvatar != 0.0f 
+                        && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
+
+                    PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData);
+
+                    if (lastSeqToReceiver > lastSeqFromSender) {
+                        // Did we somehow get out of order packets from the sender?
+                        // We don't expect this to happen - in RELEASE we add this to a trackable stat
+                        // and in DEBUG we crash on the assert
+                        
+                        otherNodeData->incrementNumOutOfOrderSends();
+
+                        assert(false);
+                    }
+                    
+                    // make sure we haven't already sent this data from this sender to this receiver
+                    // or that somehow we haven't sent
+                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
+                        ++numAvatarsHeldBack;
+                        return;
+                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
+                        ++numAvatarsWithSkippedFrames;
+                    } 
+                    
+                    // we're going to send this avatar
+                    
+                    // increment the number of avatars sent to this reciever
+                    nodeData->incrementNumAvatarsSentLastFrame();
+                    
+                    // set the last sent sequence number for this sender on the receiver
+                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(), 
+                        otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData));
 
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
@@ -196,6 +293,8 @@ void AvatarMixer::broadcastAvatarData() {
                     
                     if (avatarByteArray.size() + mixedAvatarByteArray.size() > MAX_PACKET_SIZE) {
                         nodeList->writeDatagram(mixedAvatarByteArray, node);
+
+                        numAvatarDataBytes += mixedAvatarByteArray.size();
                             
                         // reset the packet
                         mixedAvatarByteArray.resize(numPacketHeaderBytes);
@@ -215,9 +314,10 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-                        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+                        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                         billboardPacket.append(otherNode->getUUID().toRfc4122());
                         billboardPacket.append(otherNodeData->getAvatar().getBillboard());
+
                         nodeList->writeDatagram(billboardPacket, node);
                             
                         ++_sumBillboardPackets;
@@ -228,19 +328,36 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
                                 
-                        QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+                        QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
                         identityPacket.append(individualData);
-                            
+                        
                         nodeList->writeDatagram(identityPacket, node);
                                 
                         ++_sumIdentityPackets;
                     }
             });
+            
+            // send the last packet
             nodeList->writeDatagram(mixedAvatarByteArray, node);
-    });
+            
+            // record the bytes sent for other avatar data in the AvatarMixerClientData
+            nodeData->recordSentAvatarData(numAvatarDataBytes + mixedAvatarByteArray.size());
+            
+            // record the number of avatars held back this frame
+            nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
+            nodeData->recordNumOtherAvatarSkips(numAvatarsWithSkippedFrames);
+
+            if (numOtherAvatars == 0) {
+                // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
+                nodeData->setMaxAvatarDistance(FLT_MAX);
+            } else {
+                nodeData->setMaxAvatarDistance(maxAvatarDistanceThisFrame);
+            }
+        }
+    );
     
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }
@@ -248,13 +365,36 @@ void AvatarMixer::broadcastAvatarData() {
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
+        QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
-        DependencyManager::get<NodeList>()->broadcastToNodes(killPacket,
-                                                  NodeSet() << NodeType::Agent);
+        nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
+
+        // we also want to remove sequence number data for this avatar on our other avatars
+        // so invoke the appropriate method on the AvatarMixerClientData for other avatars
+        nodeList->eachMatchingNode(
+            [&](const SharedNodePointer& node)->bool {
+                if (!node->getLinkedData()) {
+                    return false;
+                }
+
+                if (node->getUUID() == killedNode->getUUID()) {
+                    return false;
+                }
+
+                return true;
+            },
+            [&](const SharedNodePointer& node) {
+                QMetaObject::invokeMethod(node->getLinkedData(),
+                                          "removeLastBroadcastSequenceNumber",
+                                          Qt::AutoConnection,
+                                          Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
+            }
+        );
     }
 }
 
@@ -328,9 +468,38 @@ void AvatarMixer::sendStatsPacket() {
     
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
+
+    QJsonObject avatarsObject;
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    // add stats for each listerner
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        QJsonObject avatarStats;
+
+        const QString NODE_OUTBOUND_KBPS_STAT_KEY = "outbound_kbps";
+
+        // add the key to ask the domain-server for a username replacement, if it has it
+        avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
+        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
+        
+        AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            MutexTryLocker lock(clientData->getMutex());
+            if (lock.isLocked()) {
+                clientData->loadJSONStats(avatarStats);
+
+                // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
+                avatarStats["delta_full_vs_avatar_data_kbps"] = 
+                    avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+            } 
+        }
+
+        avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
+    });
+
+    statsObject["avatars"] = avatarsObject;
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
-    
+     
     _sumListeners = 0;
     _sumBillboardPackets = 0;
     _sumIdentityPackets = 0;
@@ -343,7 +512,9 @@ void AvatarMixer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        node->setLinkedData(new AvatarMixerClientData());
+    };
     
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer();
@@ -353,7 +524,42 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
+
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
     
+    qDebug() << "Waiting for domain settings from domain-server.";
+    
+    // block until we get the settingsRequestComplete signal
+    QEventLoop loop;
+    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
+    domainHandler.requestDomainSettings();
+    loop.exec();
+    
+    if (domainHandler.getSettingsObject().isEmpty()) {
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return;
+    }
+    
+    // parse the settings to pull out the values we need
+    parseDomainServerSettings(domainHandler.getSettingsObject());
+
     // start the broadcastThread
     _broadcastThread.start();
+}
+
+void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
+    const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
+    const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
+    
+    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
+    QJsonValue nodeBandwidthValue = domainSettings[AVATAR_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
+    if (!nodeBandwidthValue.isDouble()) {
+        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
+    } 
+
+    _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
+    qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps."; 
 }

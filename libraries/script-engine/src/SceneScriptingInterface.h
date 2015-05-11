@@ -57,7 +57,8 @@ public:
     Q_INVOKABLE glm::vec3 getKeyLightDirection() const;
 
 
-
+    Q_INVOKABLE void setBackgroundMode(const QString& mode);
+    Q_INVOKABLE QString getBackgroundMode() const;
 
     model::SunSkyStagePointer getSkyStage() const;
     

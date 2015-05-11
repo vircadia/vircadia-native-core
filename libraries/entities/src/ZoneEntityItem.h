@@ -12,6 +12,9 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include <EnvironmentData.h>
+
+#include "AtmospherePropertyGroup.h"
 #include "EntityItem.h" 
 
 class ZoneEntityItem : public EntityItem {
@@ -41,11 +44,6 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-    // NOTE: Apparently if you begin to return a shape type, then the physics system will prevent an avatar
-    // from penetrating the walls of the entity. This fact will likely be important to Clement as he works
-    // on better defining the shape/volume of a zone.
-    //virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-
     xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
     void setKeyLightColor(const xColor& value) {
         _keyLightColor[RED_INDEX] = value.red;
@@ -71,24 +69,6 @@ public:
     const glm::vec3& getKeyLightDirection() const { return _keyLightDirection; }
     void setKeyLightDirection(const glm::vec3& value) { _keyLightDirection = value; }
 
-    bool getStageSunModelEnabled() const { return _stageSunModelEnabled; }
-    void setStageSunModelEnabled(bool value) { _stageSunModelEnabled = value; }
-
-    float getStageLatitude() const { return _stageLatitude; }
-    void setStageLatitude(float value) { _stageLatitude = value; }
-
-    float getStageLongitude() const { return _stageLongitude; }
-    void setStageLongitude(float value) { _stageLongitude = value; }
-
-    float getStageAltitude() const { return _stageAltitude; }
-    void setStageAltitude(float value) { _stageAltitude = value; }
-
-    uint16_t getStageDay() const { return _stageDay; }
-    void setStageDay(uint16_t value) { _stageDay = value; }
-
-    float getStageHour() const { return _stageHour; }
-    void setStageHour(float value) { _stageHour = value; }
-
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
 
@@ -103,6 +83,14 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
+    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
+    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+
+    EnvironmentData getEnvironmentData() const;
+    const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
+    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
+    const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
+
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
@@ -114,12 +102,6 @@ public:
     static const float DEFAULT_KEYLIGHT_INTENSITY;
     static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
     static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
-    static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    static const float DEFAULT_STAGE_LATITUDE;
-    static const float DEFAULT_STAGE_LONGITUDE;
-    static const float DEFAULT_STAGE_ALTITUDE;
-    static const quint16 DEFAULT_STAGE_DAY;
-    static const float DEFAULT_STAGE_HOUR;
     static const ShapeType DEFAULT_SHAPE_TYPE;
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     
@@ -129,15 +111,15 @@ protected:
     float _keyLightIntensity;
     float _keyLightAmbientIntensity;
     glm::vec3 _keyLightDirection;
-    bool _stageSunModelEnabled;
-    float _stageLatitude;
-    float _stageLongitude;
-    float _stageAltitude;
-    uint16_t _stageDay;
-    float _stageHour;
     
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
+    ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
+    
+    BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
+
+    StagePropertyGroup _stageProperties;
+    AtmospherePropertyGroup _atmosphereProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;

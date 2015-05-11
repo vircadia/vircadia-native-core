@@ -12,8 +12,9 @@
 #define hifi_gpu_Texture_h
 
 #include "Resource.h"
-#include <memory>
- 
+
+#include <algorithm> //min max and more
+
 namespace gpu {
 
 class Sampler {
@@ -55,23 +56,23 @@ public:
         glm::vec4 _borderColor{ 1.0f };
         uint32 _maxAnisotropy = 16;
 
+        uint8 _filter = FILTER_MIN_MAG_POINT;
+        uint8 _comparisonFunc = ALWAYS;
+
         uint8 _wrapModeU = WRAP_REPEAT;
         uint8 _wrapModeV = WRAP_REPEAT;
         uint8 _wrapModeW = WRAP_REPEAT;
-
-        uint8 _filter = FILTER_MIN_MAG_POINT;
-        uint8 _comparisonFunc = ALWAYS;
             
         uint8 _mipOffset = 0;
         uint8 _minMip = 0;
         uint8 _maxMip = MAX_MIP_LEVEL;
 
         Desc() {}
-        Desc(const Filter filter) : _filter(filter) {}
+        Desc(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _filter(filter), _wrapModeU(wrap), _wrapModeV(wrap), _wrapModeW(wrap) {}
     };
 
     Sampler() {}
-    Sampler(const Filter filter) : _desc(filter) {}
+    Sampler(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _desc(filter, wrap) {}
     Sampler(const Desc& desc) : _desc(desc) {}
     ~Sampler() {}
 
@@ -109,7 +110,7 @@ public:
         Element _format;
         bool _isGPULoaded;
     };
-    typedef QSharedPointer< Pixels > PixelsPointer;
+    typedef std::shared_ptr< Pixels > PixelsPointer;
 
     class Storage {
     public:
@@ -138,6 +139,8 @@ public:
         TEX_2D,
         TEX_3D,
         TEX_CUBE,
+
+        NUM_TYPES,
     };
 
     static Texture* create1D(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
@@ -180,10 +183,18 @@ public:
     uint16 getDepth() const { return _depth; }
 
     uint32 getRowPitch() const { return getWidth() * getTexelFormat().getSize(); }
-    uint32 getNumTexels() const { return _width * _height * _depth; }
+ 
+    // The number of faces is mostly used for cube map, and maybe for stereo ? otherwise it's 1
+    // For cube maps, this means the pixels of the different faces are supposed to be packed back to back in a mip
+    // as if the height was NUM_FACES time bigger.
+    static uint8 NUM_FACES_PER_TYPE[NUM_TYPES];
+    uint8 getNumFaces() const { return NUM_FACES_PER_TYPE[getType()]; }
+
+    uint32 getNumTexels() const { return _width * _height * _depth * getNumFaces(); }
 
     uint16 getNumSlices() const { return _numSlices; }
     uint16 getNumSamples() const { return _numSamples; }
+
 
     // NumSamples can only have certain values based on the hw
     static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
@@ -203,7 +214,7 @@ public:
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
-    uint32 evalMipNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level); }
+    uint32 evalMipNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getNumFaces(); }
     uint32 evalMipSize(uint16 level) const { return evalMipNumTexels(level) * getTexelFormat().getSize(); }
     uint32 evalStoredMipSize(uint16 level, const Element& format) const { return evalMipNumTexels(level) * format.getSize(); }
 
@@ -269,27 +280,26 @@ public:
 protected:
     std::unique_ptr< Storage > _storage;
  
-    Stamp _stamp;
+    Stamp _stamp = 0;
 
     Sampler _sampler;
     Stamp _samplerStamp;
 
-
-    uint32 _size;
+    uint32 _size = 0;
     Element _texelFormat;
 
-    uint16 _width;
-    uint16 _height;
-    uint16 _depth;
+    uint16 _width = 1;
+    uint16 _height = 1;
+    uint16 _depth = 1;
 
-    uint16 _numSamples;
-    uint16 _numSlices;
+    uint16 _numSamples = 1;
+    uint16 _numSlices = 1;
 
-    uint16 _maxMip;
+    uint16 _maxMip = 0;
  
-    Type _type;
-    bool _autoGenerateMips;
-    bool _defined;
+    Type _type = TEX_1D;
+    bool _autoGenerateMips = false;
+    bool _defined = false;
    
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
     Texture();
@@ -303,7 +313,7 @@ protected:
     friend class Backend;
 };
 
-typedef QSharedPointer<Texture> TexturePointer;
+typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
 
@@ -344,7 +354,7 @@ public:
     TextureView(const TextureView& view) = default;
     TextureView& operator=(const TextureView& view) = default;
 
-    explicit operator bool() const { return (_texture); }
+    explicit operator bool() const { return bool(_texture); }
     bool operator !() const { return (!_texture); }
 };
 typedef std::vector<TextureView> TextureViews;

@@ -35,6 +35,8 @@ public slots:
     glm::vec3 getUp(const glm::quat& orientation);
     glm::vec3 safeEulerAngles(const glm::quat& orientation); // degrees
     glm::quat angleAxis(float angle, const glm::vec3& v);   // degrees
+    glm::vec3 axis(const glm::quat& orientation);
+    float angle(const glm::quat& orientation);
     glm::quat mix(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat slerp(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h);

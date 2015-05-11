@@ -14,6 +14,8 @@
 #include <QStringList>
 #include <QDebug>
 
+#include <DependencyManager.h>
+#include <NodeList.h>
 #include <PacketHeaders.h>
 #include <OctalCode.h>
 
@@ -268,8 +270,9 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 
 int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
-    
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
+
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                 PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -287,7 +290,8 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned 
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte

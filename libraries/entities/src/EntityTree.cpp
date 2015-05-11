@@ -145,8 +145,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
-                properties.setVelocityChanged(false);
-                properties.setAccelerationChanged(false);
+                properties.setRotationChanged(false);
             } else {
                 qCDebug(entities) << "allowing simulatorID change";
             }
@@ -160,10 +159,10 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) { 
+            if (_simulation) {
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
-                    _simulation->entityChanged(entity);
+                    _simulation->changeEntity(entity);
                     _simulation->unlock();
                 }
             } else {
@@ -351,8 +350,8 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (_simulation) {
             _simulation->removeEntity(theEntity);
-        }
-        delete theEntity; // now actually delete the entity!
+        } 
+        delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
         _simulation->unlock();
@@ -742,7 +741,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 void EntityTree::entityChanged(EntityItem* entity) {
     if (_simulation) {
         _simulation->lock();
-        _simulation->entityChanged(entity);
+        _simulation->changeEntity(entity);
         _simulation->unlock();
     }
 }
@@ -750,16 +749,21 @@ void EntityTree::entityChanged(EntityItem* entity) {
 void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
-        QSet<EntityItem*> entitiesToDelete;
         _simulation->lock();
-        _simulation->updateEntities(entitiesToDelete);
+        _simulation->updateEntities();
+        VectorOfEntities pendingDeletes;
+        _simulation->getEntitiesToDelete(pendingDeletes);
         _simulation->unlock();
-        if (entitiesToDelete.size() > 0) {
+
+        if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            foreach (EntityItem* entity, entitiesToDelete) {
+            for (auto entityItr : pendingDeletes) {
+                EntityItem* entity = &(*entityItr);
+                assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
+            // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
         unlock();
@@ -788,7 +792,8 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+                                                                                           PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 

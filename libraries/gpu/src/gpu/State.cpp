@@ -20,6 +20,8 @@ State::State() {
 State::~State() {
 }
 
+// WARNING: GLBackend::GLState::_resetStateCommands heavily relies on the fact that State::DEFAULT = State::Data()
+// Please make sure to go check makeResetStateCommands() before modifying this value
 const State::Data State::DEFAULT = State::Data();
 
 State::Signature State::evalSignature(const Data& state) {

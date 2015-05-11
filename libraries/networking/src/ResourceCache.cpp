@@ -241,7 +241,7 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::refresh() {
-    if (_reply == nullptr && !(_loaded || _failedToLoad)) {
+    if (_reply && !(_loaded || _failedToLoad)) {
         return;
     }
     if (_reply) {
@@ -350,7 +350,8 @@ void Resource::maybeRefresh() {
             QDateTime lastModified = variant.value<QDateTime>();
             QDateTime lastModifiedOld = metaData.lastModified();
             if (lastModified.isValid() && lastModifiedOld.isValid() &&
-                lastModifiedOld == lastModified) {
+                lastModifiedOld >= lastModified) { // With >=, cache won't thrash in eventually-consistent cdn.
+                qCDebug(networking) << "Using cached version of" << _url.fileName();
                 // We don't need to update, return
                 return;
             }

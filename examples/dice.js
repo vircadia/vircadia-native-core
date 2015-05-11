@@ -13,7 +13,8 @@
 //
 
 var isDice = false; 
-var NUMBER_OF_DICE = 2; 
+var NUMBER_OF_DICE = 4; 
+var LIFETIME = 10000;                   //  Dice will live for about 3 hours
 var dice = [];
 var DIE_SIZE = 0.20;
 
@@ -31,7 +32,7 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 
 var offButton = Overlays.addOverlay("image", {
-                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
                     y: screenSize.y- (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
@@ -39,6 +40,17 @@ var offButton = Overlays.addOverlay("image", {
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });
+
+var deleteButton = Overlays.addOverlay("image", {
+                    x: screenSize.x / 2 - BUTTON_SIZE,
+                    y: screenSize.y- (BUTTON_SIZE + PADDING),
+                    width: BUTTON_SIZE,
+                    height: BUTTON_SIZE,
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
+                    color: { red: 255, green: 255, blue: 255},
+                    alpha: 1
+                });
+
 var diceButton = Overlays.addOverlay("image", {
                     x: screenSize.x / 2 + PADDING,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
@@ -50,7 +62,7 @@ var diceButton = Overlays.addOverlay("image", {
                 });
 
 var GRAVITY = -3.5;
-var LIFETIME = 300;
+
 // NOTE: angularVelocity is in radians/sec
 var MAX_ANGULAR_SPEED = Math.PI;
 
@@ -94,7 +106,7 @@ function entityCollisionWithEntity(entity1, entity2, collision) {
             }
             if ((entity1.id == dice[i].id) || (entity2.id == dice[i].id)) {
                 madeSound = true;
-                Audio.playSound(rollSound, { position: collision.contactPoint });
+                Audio.playSound(rollSound, { position: collision.contactPoint, localOnly: true });
             }
         }
         
@@ -105,7 +117,10 @@ function mousePressEvent(event) {
     var clickedText = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay == offButton) {
+        deleteDice();
         Script.stop();
+    } else if (clickedOverlay == deleteButton) {
+        deleteDice();
     } else if (clickedOverlay == diceButton) {
         var HOW_HARD = 2.0;
         var position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
@@ -116,10 +131,9 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-    deleteDice();
     Overlays.deleteOverlay(offButton);
     Overlays.deleteOverlay(diceButton);
-   
+    Overlays.deleteOverlay(deleteButton);
 }
 
 Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);

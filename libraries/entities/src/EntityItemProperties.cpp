@@ -27,6 +27,10 @@
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 
+AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
+SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
+StagePropertyGroup EntityItemProperties::_staticStage;
+
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
 EntityItemProperties::EntityItemProperties() :
@@ -80,12 +84,8 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(keyLightIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY),
     CONSTRUCT_PROPERTY(keyLightAmbientIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY),
     CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
-    CONSTRUCT_PROPERTY(stageSunModelEnabled, ZoneEntityItem::DEFAULT_STAGE_SUN_MODEL_ENABLED),
-    CONSTRUCT_PROPERTY(stageLatitude, ZoneEntityItem::DEFAULT_STAGE_LATITUDE),
-    CONSTRUCT_PROPERTY(stageLongitude, ZoneEntityItem::DEFAULT_STAGE_LONGITUDE),
-    CONSTRUCT_PROPERTY(stageAltitude, ZoneEntityItem::DEFAULT_STAGE_ALTITUDE),
-    CONSTRUCT_PROPERTY(stageDay, ZoneEntityItem::DEFAULT_STAGE_DAY),
-    CONSTRUCT_PROPERTY(stageHour, ZoneEntityItem::DEFAULT_STAGE_HOUR),
+    CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
+    CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -176,6 +176,10 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _dimensions=" << getDimensions();
     qCDebug(entities) << "   _modelURL=" << _modelURL;
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
+
+    getAtmosphere().debugDump();
+    getSkybox().debugDump();
+
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -233,6 +237,43 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
+const char* backgroundModeNames[] = {"inherit", "atmosphere", "skybox" };
+
+QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
+
+void addBackgroundMode(BackgroundMode type) {
+    stringToBackgroundModeLookup[backgroundModeNames[type]] = type;
+}
+
+void buildStringToBackgroundModeLookup() {
+    addBackgroundMode(BACKGROUND_MODE_INHERIT);
+    addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
+    addBackgroundMode(BACKGROUND_MODE_SKYBOX);
+}
+
+QString EntityItemProperties::getBackgroundModeAsString() const {
+    if (_backgroundMode < sizeof(backgroundModeNames) / sizeof(char *))
+        return QString(backgroundModeNames[_backgroundMode]);
+    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+}
+
+QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
+    if (mode < sizeof(backgroundModeNames) / sizeof(char *))
+        return QString(backgroundModeNames[mode]);
+    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+}
+
+void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
+    if (stringToBackgroundModeLookup.empty()) {
+        buildStringToBackgroundModeLookup();
+    }
+    auto backgroundModeItr = stringToBackgroundModeLookup.find(backgroundMode.toLower());
+    if (backgroundModeItr != stringToBackgroundModeLookup.end()) {
+        _backgroundMode = backgroundModeItr.value();
+        _backgroundModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
@@ -281,16 +322,16 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_GRAVITY, localGravity);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_RADIUS, particleRadius);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_SUN_MODEL_ENABLED, stageSunModelEnabled);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_LATITUDE, stageLatitude);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_LONGITUDE, stageLongitude);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_ALTITUDE, stageAltitude);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_DAY, stageDay);
-    CHECK_PROPERTY_CHANGE(PROP_STAGE_HOUR, stageHour);
+    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
+
+    changedProperties += _stage.getChangedProperties();
+    changedProperties += _atmosphere.getChangedProperties();
+    changedProperties += _skybox.getChangedProperties();
 
     return changedProperties;
 }
@@ -361,17 +402,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(name);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(keyLightColor);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(keyLightDirection);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageSunModelEnabled);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageLatitude);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageLongitude);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageAltitude);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageDay);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(stageHour);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -405,6 +442,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesList); // gettable, but not settable
     }
+    
+    _stage.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
+    _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
+    _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
 
     return properties;
 }
@@ -462,18 +503,17 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localGravity, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(particleRadius, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(marketplaceID, setMarketplaceID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(name, setName);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(keyLightColor, setKeyLightColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(keyLightIntensity, setKeyLightIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(keyLightAmbientIntensity, setKeyLightAmbientIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(keyLightDirection, setKeyLightDirection);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(stageSunModelEnabled, setStageSunModelEnabled);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageLatitude, setStageLatitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageLongitude, setStageLongitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageAltitude, setStageAltitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(stageDay, setStageDay);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stageHour, setStageHour);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
 
+    _stage.copyFromScriptValue(object, _defaultSettings);
+    _atmosphere.copyFromScriptValue(object, _defaultSettings);
+    _skybox.copyFromScriptValue(object, _defaultSettings);
     _lastEdited = usecTimestampNow();
 }
 
@@ -669,18 +709,24 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  appendValue, properties.getKeyLightIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, appendValue, properties.getKeyLightAmbientIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, appendValue, properties.getKeyLightDirection());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, appendValue, properties.getStageSunModelEnabled());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, appendValue, properties.getStageLatitude());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, appendValue, properties.getStageLongitude());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, properties.getStageAltitude());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, properties.getStageDay());
-                APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, properties.getStageHour());
-                
+
+                _staticStage.setProperties(properties);
+                _staticStage.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
+
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, appendValue, (uint32_t)properties.getBackgroundMode());
+                
+                _staticAtmosphere.setProperties(properties);
+                _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+
+                _staticSkybox.setProperties(properties);
+                _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
+            APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, properties.getName());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -918,17 +964,18 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_INTENSITY,  float, setKeyLightIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_SUN_MODEL_ENABLED, bool, setStageSunModelEnabled);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_LATITUDE, float, setStageLatitude);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_LONGITUDE, float, setStageLongitude);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_ALTITUDE, float, setStageAltitude);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_DAY, quint16, setStageDay);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STAGE_HOUR, float, setStageHour);
+
+        properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
+        properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_NAME, setName);
     
     return valid;
 }
@@ -978,6 +1025,7 @@ void EntityItemProperties::markAllChanged() {
     _registrationPointChanged = true;
     _angularVelocityChanged = true;
     _angularDampingChanged = true;
+    _nameChanged = true;
     _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
@@ -1019,12 +1067,12 @@ void EntityItemProperties::markAllChanged() {
     _keyLightIntensityChanged = true;
     _keyLightAmbientIntensityChanged = true;
     _keyLightDirectionChanged = true;
-    _stageSunModelEnabledChanged = true;
-    _stageLatitudeChanged = true;
-    _stageLongitudeChanged = true;
-    _stageAltitudeChanged = true;
-    _stageDayChanged = true;
-    _stageHourChanged = true;
+    
+    _backgroundModeChanged = true;
+    _stage.markAllChanged();
+    _atmosphere.markAllChanged();
+    _skybox.markAllChanged();
+   
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

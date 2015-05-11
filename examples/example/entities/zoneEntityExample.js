@@ -34,16 +34,17 @@ var zoneEntityB = Entities.addEntity({
     dimensions: { x: 2, y: 2, z: 2 },
     keyLightColor: { red: 0, green: 255, blue: 0 },
     keyLightIntensity: 0.9,
-    stageLatitude: 37.777,
-    stageLongitude: 122.407,
-    stageAltitude: 0.03,
-    stageDay: 60,
-    stageHour: 12,
-    stageSunModelEnabled: true
+    stage: {
+        latitude: 37.777,
+        longitude: 122.407,
+        altitude: 0.03,
+        day: 60,
+        hour: 0,
+        sunModelEnabled: true
+    }
 });
 
 print("zoneEntityB:" + zoneEntityB);
-
 
 var zoneEntityC = Entities.addEntity({
     type: "Zone",
@@ -58,7 +59,6 @@ var zoneEntityC = Entities.addEntity({
 });
 
 print("zoneEntityC:" + zoneEntityC);
-
 
 // register the call back so it fires before each data send
 Script.update.connect(function(deltaTime) {

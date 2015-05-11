@@ -16,8 +16,9 @@
 
 #include <QtCore/QDebug>
 
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 #include "OctalCode.h"
+#include "SharedUtil.h"
 
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
     if (maxBytes == OVERFLOWED_OCTCODE_BUFFER) {

@@ -112,8 +112,18 @@ glm::vec2 toGlm(const QPointF & pt);
 glm::vec3 toGlm(const xColor & color);
 glm::vec4 toGlm(const QColor & color);
 
+QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
+
+template <typename T>
+float aspect(const T& t) {
+    return (float)t.x / (float)t.y;
+}
+
+#define YAW(euler) euler.y
+#define PITCH(euler) euler.x
+#define ROLL(euler) euler.z
 
 #endif // hifi_GLMHelpers_h

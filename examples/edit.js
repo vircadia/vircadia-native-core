@@ -205,8 +205,8 @@ var toolBar = (function () {
             visible: false
         });
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube3.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH + 208, width: 256, height: 256 },
+            imageURL: toolIconUrl + "zonecube_text.svg",
+            subImage: { x: 0, y: 128, width: 128, height: 128 },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -1194,7 +1194,11 @@ PropertiesTool = function(opts) {
 
     webView.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
-        if (data.type == "update") {
+        if (data.type == "print") {
+            if (data.message) {
+                print(data.message);
+            }
+        } else if (data.type == "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 properties = {
@@ -1210,6 +1214,9 @@ PropertiesTool = function(opts) {
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
+                if (data.properties.name != undefined) {
+                    entityListTool.sendUpdate();
+                }
             }
             pushCommandForSelections();
             selectionManager._update();

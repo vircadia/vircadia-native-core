@@ -1,6 +1,6 @@
 //
 //  RenderableBoxEntityItem.cpp
-//  interface/src
+//  libraries/entities-renderer/src/
 //
 //  Created by Brad Hefta-Gaub on 8/6/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -36,8 +36,9 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
 
 
+    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
     bool highlightSimulationOwnership = false;
-    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+    if (debugSimulationOwnership) {
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& myNodeID = nodeList->getSessionUUID();
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
@@ -58,4 +59,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             }
         glPopMatrix();
     glPopMatrix();
+
+    RenderableDebugableEntityItem::render(this, args);
 };

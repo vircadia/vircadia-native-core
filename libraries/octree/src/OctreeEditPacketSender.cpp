@@ -328,7 +328,8 @@ void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer)
 }
 
 void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew) {
-    packetBuffer._currentSize = populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
+    packetBuffer._currentSize =
+        DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out
     packetBuffer._currentSize += sizeof(quint16);

@@ -81,6 +81,7 @@ public:
         BUFFER_STENCIL = 0x80000000,
         BUFFER_DEPTHSTENCIL = 0xC0000000,
     };
+    typedef uint32 Masks;
 
     ~Framebuffer();
 
@@ -111,7 +112,7 @@ public:
 
 
     // Properties
-    uint32 getBufferMask() const { return _bufferMask; }
+    Masks getBufferMask() const { return _bufferMask; }
     bool isEmpty() const { return (_bufferMask == 0); }
     bool hasColor() const { return (getBufferMask() & BUFFER_COLORS); }
     bool hasDepthStencil() const { return (getBufferMask() & BUFFER_DEPTHSTENCIL); }
@@ -137,7 +138,7 @@ protected:
     TextureViews _renderBuffers;
     TextureView _depthStencilBuffer;
 
-    uint32 _bufferMask = 0;
+    Masks _bufferMask = 0;
 
     uint32 _frameCount = 0;
 

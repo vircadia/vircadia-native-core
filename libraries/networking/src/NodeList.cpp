@@ -21,6 +21,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
+#include "JSONBreakableMarshal.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
@@ -66,13 +67,44 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
 
-qint64 NodeList::sendStats(const QJsonObject& statsObject, HifiSockAddr destination) {
-    QByteArray statsPacket = byteArrayWithPopulatedHeader(PacketTypeNodeJsonStats);
-    QDataStream statsPacketStream(&statsPacket, QIODevice::Append);
+qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
+    QByteArray statsPacket(MAX_PACKET_SIZE, 0);
+    int numBytesForPacketHeader = populatePacketHeader(statsPacket, PacketTypeNodeJsonStats);
+
+    // get a QStringList using JSONBreakableMarshal
+    QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
+
+    int numBytesWritten = numBytesForPacketHeader;
     
-    statsPacketStream << statsObject.toVariantMap();
+    // enumerate the resulting strings - pack them and send off packets once we hit MTU size 
+    foreach(const QString& statsItem, statsStringList) {
+        QByteArray utf8String = statsItem.toUtf8();
+        utf8String.append('\0');
+
+        if (numBytesWritten + utf8String.size() > MAX_PACKET_SIZE) {
+            // send off the current packet since the next string will make us too big
+            statsPacket.resize(numBytesWritten);
+            writeUnverifiedDatagram(statsPacket, destination);
+           
+            // reset the number of bytes written to the size of our packet header
+            numBytesWritten = numBytesForPacketHeader;
+        }
+        
+        // write this string into the stats packet
+        statsPacket.replace(numBytesWritten, utf8String.size(), utf8String);
+        
+        // keep track of the number of bytes we have written
+        numBytesWritten += utf8String.size();
+    }
+
+    if (numBytesWritten > numBytesForPacketHeader) {
+        // always send the last packet, if it has data
+        statsPacket.resize(numBytesWritten);
+        writeUnverifiedDatagram(statsPacket, destination);
+    }
     
-    return writeUnverifiedDatagram(statsPacket, destination);
+    // enumerate the resulting strings, breaking them into MTU sized packets
+    return 0;
 }
 
 qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
@@ -151,7 +183,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePingReply: {
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
-            
+
             if (sendingNode) {
                 sendingNode->setLastHeardMicrostamp(usecTimestampNow());
                 
@@ -316,7 +348,7 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
         
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+        QByteArray domainServerPacket = byteArrayWithUUIDPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
@@ -337,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
         
         if (!isUsingDTLS) {
-            writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
+            writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
         }
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
@@ -392,10 +424,9 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         _domainHandler.setUUID(uuidFromPacketHeader(packet));
         _domainHandler.setIsConnected(true);
     }
-
+    
     int readNodes = 0;
-    
-    
+
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
@@ -465,7 +496,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
-    
+
     if (!node->getSymmetricSocket().isNull()) {
         QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
         writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());

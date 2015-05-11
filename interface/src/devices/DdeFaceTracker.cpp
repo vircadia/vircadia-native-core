@@ -18,7 +18,9 @@
 #include <QTimer>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 
+#include "Application.h"
 #include "DdeFaceTracker.h"
 #include "FaceshiftConstants.h"
 #include "InterfaceLogging.h"
@@ -85,16 +87,16 @@ static const float DDE_COEFFICIENT_SCALES[] = {
     3.0f, // BrowsU_L
     3.0f, // BrowsU_R
     1.0f, // JawFwd
-    1.5f, // JawLeft
+    2.0f, // JawLeft
     1.8f, // JawOpen
     1.0f, // JawChew
-    1.5f, // JawRight
+    2.0f, // JawRight
     1.5f, // MouthLeft
     1.5f, // MouthRight
     1.5f, // MouthFrown_L
     1.5f, // MouthFrown_R
-    1.5f, // MouthSmile_L
-    1.5f, // MouthSmile_R
+    2.5f, // MouthSmile_L
+    2.5f, // MouthSmile_R
     1.0f, // MouthDimple_L
     1.0f, // MouthDimple_R
     1.0f, // LipsStretch_L
@@ -105,8 +107,8 @@ static const float DDE_COEFFICIENT_SCALES[] = {
     1.0f, // LipsLowerDown
     1.0f, // LipsUpperOpen
     1.0f, // LipsLowerOpen
-    2.5f, // LipsFunnel
-    2.0f, // LipsPucker
+    1.5f, // LipsFunnel
+    2.5f, // LipsPucker
     1.5f, // ChinLowerRaise
     1.5f, // ChinUpperRaise
     1.0f, // Sneer
@@ -134,10 +136,9 @@ struct Packet {
     char name[MAX_NAME_SIZE + 1];
 };
 
-const float STARTING_DDE_MESSAGE_TIME = 0.033f;
+static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 
-const int FPS_TIMER_DELAY = 2000;  // ms
-const int FPS_TIMER_DURATION = 2000;  // ms
+static const int CALIBRATION_SAMPLES = 150;
 
 #ifdef WIN32
 //  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
@@ -181,12 +182,17 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
-    _isCalculatingFPS(false),
-    _frameCount(0)
+    _isCalibrating(false),
+    _calibrationValues(),
+    _calibrationCount(0),
+    _calibrationBillboard(NULL),
+    _calibrationBillboardID(0),
+    _calibrationMessage(QString())
 {
     _coefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
-
     _blendshapeCoefficients.resize(NUM_FACESHIFT_BLENDSHAPES);
+    _coefficientAverages.resize(NUM_FACESHIFT_BLENDSHAPES);
+    _calibrationValues.resize(NUM_FACESHIFT_BLENDSHAPES);
 
     _eyeStates[0] = EYE_OPEN;
     _eyeStates[1] = EYE_OPEN;
@@ -199,14 +205,33 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
 
 DdeFaceTracker::~DdeFaceTracker() {
     setEnabled(false);
+
+    if (_isCalibrating) {
+        cancelCalibration();
+    }
 }
 
 #ifdef WIN32
 #pragma warning(default:4351) 
 #endif
 
+void DdeFaceTracker::init() {
+    FaceTracker::init();
+    setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::UseCamera) && !_isMuted);
+}
+
 void DdeFaceTracker::setEnabled(bool enabled) {
+    if (!_isInitialized) {
+        // Don't enable until have explicitly initialized
+        return;
+    }
 #ifdef HAVE_DDE
+
+    if (_isCalibrating) {
+        cancelCalibration();
+    }
+
+
     // isOpen() does not work as one might expect on QUdpSocket; don't test isOpen() before closing socket.
     _udpSocket.close();
     if (enabled) {
@@ -316,7 +341,9 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
 }
 
 void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
-    if(buffer.size() > MIN_PACKET_SIZE) {
+    _lastReceiveTimestamp = usecTimestampNow();
+
+    if (buffer.size() > MIN_PACKET_SIZE) {
         bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
         Packet packet;
@@ -328,7 +355,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         memcpy(&translation, packet.translation, sizeof(packet.translation));
         glm::quat rotation;
         memcpy(&rotation, &packet.rotation, sizeof(packet.rotation));
-        if (_reset || (_lastReceiveTimestamp == 0)) {
+        if (_reset || (_lastMessageReceived == 0)) {
             memcpy(&_referenceTranslation, &translation, sizeof(glm::vec3));
             memcpy(&_referenceRotation, &rotation, sizeof(glm::quat));
             _reset = false;
@@ -375,10 +402,18 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             _coefficients[DDE_TO_FACESHIFT_MAPPING[i]] = packet.expressions[i];
         }
 
+        // Calibration
+        if (_isCalibrating) {
+            addCalibrationDatum();
+        }
+        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+            _coefficients[i] -= _coefficientAverages[i];
+        }
+
         // Use BrowsU_C to control both brows' up and down
         float browUp = _coefficients[_browUpCenterIndex];
         if (isFiltering) {
-            const float BROW_VELOCITY_FILTER_STRENGTH = 0.75f;
+            const float BROW_VELOCITY_FILTER_STRENGTH = 0.5f;
             float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
             float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
             _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
@@ -392,11 +427,11 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         _coefficients[_browDownRightIndex] = -browUp;
 
         // Offset jaw open coefficient
-        static const float JAW_OPEN_THRESHOLD = 0.16f;
+        static const float JAW_OPEN_THRESHOLD = 0.1f;
         _coefficients[_jawOpenIndex] = _coefficients[_jawOpenIndex] - JAW_OPEN_THRESHOLD;
 
         // Offset smile coefficients
-        static const float SMILE_THRESHOLD = 0.18f;
+        static const float SMILE_THRESHOLD = 0.5f;
         _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
         _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
 
@@ -423,7 +458,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
             // Change to closing or opening states
             const float EYE_CONTROL_HYSTERISIS = 0.25f;
-            const float EYE_CLOSING_THRESHOLD = 0.95f;
+            const float EYE_CLOSING_THRESHOLD = 0.8f;
             const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
             if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
                 _eyeStates[i] = EYE_CLOSING;
@@ -503,5 +538,81 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     } else {
         qCWarning(interfaceapp) << "DDE Face Tracker: Decode error";
     }
-    _lastReceiveTimestamp = usecTimestampNow();
+
+    if (_isCalibrating && _calibrationCount > CALIBRATION_SAMPLES) {
+        finishCalibration();
+    }
+}
+
+static const int CALIBRATION_BILLBOARD_WIDTH = 240;
+static const int CALIBRATION_BILLBOARD_HEIGHT = 180;
+static const int CALIBRATION_BILLBOARD_TOP_MARGIN = 60;
+static const int CALIBRATION_BILLBOARD_LEFT_MARGIN = 30;
+static const int CALIBRATION_BILLBOARD_FONT_SIZE = 16;
+static const float CALIBRATION_BILLBOARD_ALPHA = 0.5f;
+static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate";
+
+void DdeFaceTracker::calibrate() {
+    if (!_isCalibrating) {
+        qCDebug(interfaceapp) << "DDE Face Tracker: Calibration started";
+
+        _isCalibrating = true;
+        _calibrationCount = 0;
+        _calibrationMessage = CALIBRATION_INSTRUCTION_MESSAGE + "\n\n";
+
+        _calibrationBillboard = new TextOverlay();
+        _calibrationBillboard->setTopMargin(CALIBRATION_BILLBOARD_TOP_MARGIN);
+        _calibrationBillboard->setLeftMargin(CALIBRATION_BILLBOARD_LEFT_MARGIN);
+        _calibrationBillboard->setFontSize(CALIBRATION_BILLBOARD_FONT_SIZE);
+        _calibrationBillboard->setText(CALIBRATION_INSTRUCTION_MESSAGE);
+        _calibrationBillboard->setAlpha(CALIBRATION_BILLBOARD_ALPHA);
+        glm::vec2 viewport = qApp->getCanvasSize();
+        _calibrationBillboard->setX((viewport.x - CALIBRATION_BILLBOARD_WIDTH) / 2);
+        _calibrationBillboard->setY((viewport.y - CALIBRATION_BILLBOARD_HEIGHT) / 2);
+        _calibrationBillboard->setWidth(CALIBRATION_BILLBOARD_WIDTH);
+        _calibrationBillboard->setHeight(CALIBRATION_BILLBOARD_HEIGHT);
+        _calibrationBillboardID = qApp->getOverlays().addOverlay(_calibrationBillboard);
+
+        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+            _calibrationValues[i] = 0.0f;
+        }
+    }
+}
+
+void DdeFaceTracker::addCalibrationDatum() {
+    const int LARGE_TICK_INTERVAL = 30;
+    const int SMALL_TICK_INTERVAL = 6;
+    int samplesLeft = CALIBRATION_SAMPLES - _calibrationCount;
+    if (samplesLeft % LARGE_TICK_INTERVAL == 0) {
+        _calibrationMessage += QString::number(samplesLeft / LARGE_TICK_INTERVAL);
+        _calibrationBillboard->setText(_calibrationMessage);
+    } else if (samplesLeft % SMALL_TICK_INTERVAL == 0) {
+        _calibrationMessage += ".";
+        _calibrationBillboard->setText(_calibrationMessage);
+    }
+
+    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+        _calibrationValues[i] += _coefficients[i];
+    }
+
+    _calibrationCount += 1;
+}
+
+void DdeFaceTracker::cancelCalibration() {
+    qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
+    _calibrationBillboard = NULL;
+    _isCalibrating = false;
+    qCDebug(interfaceapp) << "DDE Face Tracker: Calibration cancelled";
+}
+
+void DdeFaceTracker::finishCalibration() {
+    qApp->getOverlays().deleteOverlay(_calibrationBillboardID);
+    _calibrationBillboard = NULL;
+    _isCalibrating = false;
+
+    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+        _coefficientAverages[i] = _calibrationValues[i] / (float)CALIBRATION_SAMPLES;
+    }
+
+    qCDebug(interfaceapp) << "DDE Face Tracker: Calibration finished";
 }

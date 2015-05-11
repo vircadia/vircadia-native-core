@@ -796,8 +796,8 @@ void AudioClient::handleAudioInput() {
                 float loudness = 0.0f;
                 
                 for (int i = 0; i < numNetworkSamples; i++) {
-                    float thisSample = fabsf(networkAudioSamples[i]);
-                    loudness += thisSample;
+                    int thisSample = std::abs(networkAudioSamples[i]);
+                    loudness += (float) thisSample;
                     
                     if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
@@ -837,7 +837,7 @@ void AudioClient::handleAudioInput() {
                 }
             }
 
-            char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
+            char* currentPacketPtr = audioDataPacket + nodeList->populatePacketHeader(audioDataPacket, packetType);
 
             // pack sequence number
             memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
@@ -899,7 +899,9 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {
-    QByteArray mutePacket = byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
+    auto nodeList = DependencyManager::get<NodeList>();
+    
+    QByteArray mutePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
     int headerSize = mutePacket.size();
     
     const float MUTE_RADIUS = 50;
@@ -910,12 +912,11 @@ void AudioClient::sendMuteEnvironmentPacket() {
     memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
-    auto nodelist = DependencyManager::get<NodeList>();
-    SharedNodePointer audioMixer = nodelist->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     
     if (audioMixer) {
         // send off this mute packet
-        nodelist->writeDatagram(mutePacket, audioMixer);
+        nodeList->writeDatagram(mutePacket, audioMixer);
     }
 }
 
@@ -981,7 +982,7 @@ void AudioClient::selectAudioSourceSine440() {
     _noiseSourceEnabled = false;
 }
 
-bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
+bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer()) {
         QAudioFormat localFormat = _desiredOutputFormat;
         localFormat.setChannelCount(isStereo ? 2 : 1);
@@ -989,8 +990,6 @@ bool AudioClient::outputLocalInjector(bool isStereo, qreal volume, AudioInjector
         QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
                                                      localFormat,
                                                      injector->getLocalBuffer());
-        
-        localOutput->setVolume(volume);
         
         // move the localOutput to the same thread as the local injector buffer
         localOutput->moveToThread(injector->getLocalBuffer()->thread());

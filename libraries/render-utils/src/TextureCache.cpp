@@ -19,6 +19,7 @@
 #include <QResizeEvent>
 #include <QRunnable>
 #include <QThreadPool>
+#include <qimagereader.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
@@ -28,12 +29,13 @@
 
 #include "gpu/GLBackend.h"
 
+#include <mutex>
+
 TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
     _blueTexture(0),
-    _frameBufferSize(100, 100),
-    _associatedWidget(NULL)
+    _frameBufferSize(100, 100)
 {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
@@ -87,7 +89,7 @@ const int permutation[256] =
 #define USE_CHRIS_NOISE 1
 
 const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
-    if (_permutationNormalTexture.isNull()) {
+    if (!_permutationNormalTexture) {
 
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
@@ -131,7 +133,7 @@ static void loadSingleColorTexture(const unsigned char* color) {
 */
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
-    if (_whiteTexture.isNull()) {
+    if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
@@ -139,7 +141,7 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
 }
 
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
-    if (_blueTexture.isNull()) {
+    if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
@@ -290,22 +292,21 @@ GLuint TextureCache::getShadowDepthTextureID() {
     return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
-bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
-    if (event->type() == QEvent::Resize) {
-        QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_frameBufferSize != size) {
-            _primaryFramebuffer.reset();
-            _primaryColorTexture.reset();
-            _primaryDepthTexture.reset();
-            _primaryNormalTexture.reset();
-            _primarySpecularTexture.reset();
-
-            _secondaryFramebuffer.reset();
-
-            _tertiaryFramebuffer.reset();
-        }
+/// Returns a texture version of an image file
+gpu::TexturePointer TextureCache::getImageTexture(const QString & path) {
+    QImage image = QImage(path).mirrored(false, true);
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    if (image.hasAlphaChannel()) {
+        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
     }
-    return false;
+    gpu::TexturePointer texture = gpu::TexturePointer(
+        gpu::Texture::create2D(formatGPU, image.width(), image.height(), 
+            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+    texture->autoGenerateMips(-1);
+    return texture;
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
@@ -313,14 +314,6 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
         &Resource::allReferencesCleared);
-}
-
-void TextureCache::associateWithWidget(QGLWidget* widget) {
-    if (_associatedWidget) {
-        _associatedWidget->removeEventFilter(this);
-    }
-    _associatedWidget = widget;
-    _associatedWidget->installEventFilter(this);
 }
 
 Texture::Texture() {
@@ -344,27 +337,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
         _loaded = true;
     }
 
-    // default to white/blue/black
-  /*  glBindTexture(GL_TEXTURE_2D, getID());
-    switch (type) {
-        case NORMAL_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLUE);  
-            break;
-        
-        case SPECULAR_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLACK);  
-            break;
-            
-        case SPLAT_TEXTURE:
-            loadSingleColorTexture(TRANSPARENT_WHITE);   
-            break;
-            
-        default:
-            loadSingleColorTexture(OPAQUE_WHITE);        
-            break;
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    */
+    std::string theName = url.toString().toStdString();
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -396,6 +369,18 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* r
     _content(content) {
 }
 
+std::once_flag onceListSuppoertedFormatsflag;
+void listSupportedImageFormats() {
+    std::call_once(onceListSuppoertedFormatsflag, [](){
+        auto supportedFormats = QImageReader::supportedImageFormats();
+        QString formats;
+        foreach(const QByteArray& f, supportedFormats) {
+            formats += QString(f) + ",";
+        }
+        qCDebug(renderutils) << "List of supported Image formats:" << formats;
+    });
+}
+
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
     if (texture.isNull()) {
@@ -409,22 +394,46 @@ void ImageReader::run() {
         _content = _reply->readAll();
         _reply->deleteLater();
     }
-    QImage image = QImage::fromData(_content);
 
+    listSupportedImageFormats();
+
+    // try to help the QImage loader by extracting the image file format from the url filename ext
+    // Some tga are not created properly for example without it
+    auto filename = _url.fileName().toStdString();
+    auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    QImage image = QImage::fromData(_content, filenameExtension.c_str());
+
+    // Note that QImage.format is the pixel format which is different from the "format" of the image file...
+    auto imageFormat = image.format(); 
     int originalWidth = image.width();
     int originalHeight = image.height();
     
-    // enforce a fixed maximum area (1024 * 2048)
-    const int MAXIMUM_AREA_SIZE = 2097152;
+    if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
+        if (filenameExtension.empty()) {
+            qCDebug(renderutils) << "QImage failed to create from content, no file extension:" << _url;
+        } else {
+            qCDebug(renderutils) << "QImage failed to create from content" << _url;
+        }
+        return;
+    }
+
     int imageArea = image.width() * image.height();
-    if (imageArea > MAXIMUM_AREA_SIZE) {
-        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
-        int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
-        int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
-        qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
-            " scaled to:" << resizeWidth << resizeHeight;
-        image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
-        imageArea = image.width() * image.height();
+    auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
+    if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
+        qCDebug(renderutils) << "Cube map size:" << _url << image.width() << image.height();
+    } else {
+
+        // enforce a fixed maximum area (1024 * 2048)
+        const int MAXIMUM_AREA_SIZE = 2097152;
+        if (imageArea > MAXIMUM_AREA_SIZE) {
+            float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
+            int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
+            int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
+            qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
+                " scaled to:" << resizeWidth << resizeHeight;
+            image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
+            imageArea = image.width() * image.height();
+        }
     }
     
     const int EIGHT_BIT_MAXIMUM = 255;
@@ -504,6 +513,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     imageLoaded(image);
 
     if ((_width > 0) && (_height > 0)) {
+        
         bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -512,9 +522,18 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        _gpuTexture->autoGenerateMips(-1);
+        
+        if (_type == CUBE_TEXTURE) {
+            if (_height >= (6 * _width)) {
+                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+                _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+                _gpuTexture->autoGenerateMips(-1);
+            }
+        } else {
+            _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+            _gpuTexture->autoGenerateMips(-1);
+        }
     }
 }
 

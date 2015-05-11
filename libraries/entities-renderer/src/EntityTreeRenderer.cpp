@@ -25,6 +25,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -141,7 +142,9 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
-    if (!url.isValid()) {
+    // We document "direct injection" scripts as starting with "(function...", and that would never be a valid url.
+    // But QUrl thinks it is.
+    if (!url.isValid() || scriptMaybeURLorText.startsWith("(")) {
         isURL = false;
         return scriptMaybeURLorText;
     }
@@ -392,8 +395,8 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
 
-        RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
-                            renderDebugFlags, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
+                        renderMode, renderSide, renderDebugFlags);
 
         _tree->lockForRead();
 
@@ -422,11 +425,49 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
             scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
             scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
-                                    _bestZone->getStageAltitude());
-            scene->setStageDayTime(_bestZone->getStageHour());
-            scene->setStageYearTime(_bestZone->getStageDay());
+            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
+                                    _bestZone->getStageProperties().getAltitude());
+            scene->setStageDayTime(_bestZone->getStageProperties().calculateHour());
+            scene->setStageYearTime(_bestZone->getStageProperties().calculateDay());
+
+            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+                EnvironmentData data = _bestZone->getEnvironmentData();
+                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+                
+                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
+                //       atmosphere, not where the camera is.
+                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
+                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                                                
+                data.setSunLocation(keyLightLocation);
+
+                const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+                data.setSunBrightness(sunBrightness);
+
+                _viewState->overrideEnvironmentData(data);
+                scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
+            } else {
+                _viewState->endOverrideEnvironmentData();
+                auto stage = scene->getSkyStage();
+                 if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
+                    stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
+                    if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
+                        stage->getSkybox()->clearCubemap();
+                    } else {
+                        // Update the Texture of the Skybox with the one pointed by this zone
+                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
+                    }
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+                } else {
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+                }
+            }
+
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
@@ -440,6 +481,8 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 scene->setStageYearTime(_previousStageDay);
                 _hasPreviousZone = false;
             }
+            _viewState->endOverrideEnvironmentData();
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
@@ -641,8 +684,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
         if (entityItem->isVisible()) {
 
-            // NOTE: Zone Entities are a special case we handle here... Zones don't render
-            // like other entity types. So we will skip the normal rendering tests
+            // NOTE: Zone Entities are a special case we handle here...
             if (entityItem->getType() == EntityTypes::Zone) {
                 if (entityItem->contains(_viewState->getAvatarPosition())) {
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
@@ -663,42 +705,42 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         }
                     }
                 }
-            } else {
-                // render entityItem 
-                AABox entityBox = entityItem->getAABox();
-        
-                // TODO: some entity types (like lights) might want to be rendered even
-                // when they are outside of the view frustum...
-                float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
+            }
             
-                bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-                if (!outOfView) {
-                    bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
+            // render entityItem
+            AABox entityBox = entityItem->getAABox();
+            
+            // TODO: some entity types (like lights) might want to be rendered even
+            // when they are outside of the view frustum...
+            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
+            
+            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
+            if (!outOfView) {
+                bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
                 
-                    if (bigEnoughToRender) {
-                        renderProxies(entityItem, args);
-
-                        Glower* glower = NULL;
-                        if (entityItem->getGlowLevel() > 0.0f) {
-                            glower = new Glower(entityItem->getGlowLevel());
-                        }
-                        entityItem->render(args);
-                        args->_itemsRendered++;
-                        if (glower) {
-                            delete glower;
-                        }
-                    } else {
-                        args->_itemsTooSmall++;
+                if (bigEnoughToRender) {
+                    renderProxies(entityItem, args);
+                    
+                    Glower* glower = NULL;
+                    if (entityItem->getGlowLevel() > 0.0f) {
+                        glower = new Glower(entityItem->getGlowLevel());
+                    }
+                    entityItem->render(args);
+                    args->_itemsRendered++;
+                    if (glower) {
+                        delete glower;
                     }
                 } else {
-                    args->_itemsOutOfView++;
+                    args->_itemsTooSmall++;
                 }
+            } else {
+                args->_itemsOutOfView++;
             }
         }
     }
 }
 
-float EntityTreeRenderer::getSizeScale() const { 
+float EntityTreeRenderer::getSizeScale() const {
     return _viewState->getSizeScale();
 }
 

@@ -75,8 +75,6 @@ public:
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
-    static void attachQueryNodeToNode(Node* newNode);
-    
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
     static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }

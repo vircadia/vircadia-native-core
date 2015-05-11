@@ -157,7 +157,7 @@ public slots:
 
     void setOutputBufferSize(int numFrames);
 
-    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
+    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector);
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);
