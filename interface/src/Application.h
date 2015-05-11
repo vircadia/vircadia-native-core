@@ -344,6 +344,9 @@ public:
     bool canAcceptURL(const QString& url);
     bool acceptURL(const QString& url);
 
+    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
+    int getMaxOctreePacketsPerSecond();
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -662,6 +665,8 @@ private:
 
     QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
+
+    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 };
 
 #endif // hifi_Application_h
