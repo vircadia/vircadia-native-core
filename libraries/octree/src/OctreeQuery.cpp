@@ -20,11 +20,6 @@ OctreeQuery::OctreeQuery() {
     _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }
 
-void OctreeQuery::setMaxQueryPacketsPerSecond(int maxQueryPPS) {
-    _maxQueryPPS = maxQueryPPS;
-}
-
-
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     

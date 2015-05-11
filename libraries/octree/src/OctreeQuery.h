@@ -86,7 +86,7 @@ public slots:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
-    void setMaxQueryPacketsPerSecond(int maxQueryPPS);
+    void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
