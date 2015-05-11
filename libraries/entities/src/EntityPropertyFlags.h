@@ -146,6 +146,7 @@ enum EntityPropertyList {
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
+    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };

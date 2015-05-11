@@ -302,6 +302,15 @@
         }                                           \
     }
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(P, S, G) \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        float newValue = P.toVariant().toFloat();   \
+        if (_defaultSettings || newValue != G()) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
 #define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(G, P, S)  \
     {                                                         \
         QScriptValue G = object.property(#G);                 \
@@ -309,6 +318,20 @@
             QScriptValue P = G.property(#P);                  \
             if (P.isValid()) {                                \
                 float newValue = P.toVariant().toFloat();     \
+                if (_defaultSettings || newValue != _##P) {   \
+                    S(newValue);                              \
+                }                                             \
+            }                                                 \
+        }                                                     \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_UINT16(G, P, S)  \
+    {                                                         \
+        QScriptValue G = object.property(#G);                 \
+        if (G.isValid()) {                                    \
+            QScriptValue P = G.property(#P);                  \
+            if (P.isValid()) {                                \
+                uint16_t newValue = P.toVariant().toInt();     \
                 if (_defaultSettings || newValue != _##P) {   \
                     S(newValue);                              \
                 }                                             \
@@ -325,6 +348,15 @@
         }                                           \
     }
 
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_INT_GETTER(P, S, G) \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        int newValue = P.toVariant().toInt();   \
+        if (_defaultSettings || newValue != G()) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(P, S)  \
     QScriptValue P = object.property(#P);           \
     if (P.isValid()) {                              \
@@ -333,6 +365,16 @@
             S(newValue);                            \
         }                                           \
     }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL_GETTER(P, S, G)  \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        bool newValue = P.toVariant().toBool();     \
+        if (_defaultSettings || newValue != G()) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
 
 #define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(G, P, S)  \
     {                                                         \

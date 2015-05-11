@@ -30,11 +30,12 @@
 #include <ShapeInfo.h>
 
 #include "AtmospherePropertyGroup.h"
-#include "SkyboxPropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -132,14 +133,9 @@ public:
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
     DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, StageSunModelEnabled, stageSunModelEnabled, bool);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, StageLatitude, stageLatitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, StageLongitude, stageLongitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
 
@@ -280,6 +276,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     
+    properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
 
