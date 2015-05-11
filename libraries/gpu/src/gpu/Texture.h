@@ -56,12 +56,12 @@ public:
         glm::vec4 _borderColor{ 1.0f };
         uint32 _maxAnisotropy = 16;
 
+        uint8 _filter = FILTER_MIN_MAG_POINT;
+        uint8 _comparisonFunc = ALWAYS;
+
         uint8 _wrapModeU = WRAP_REPEAT;
         uint8 _wrapModeV = WRAP_REPEAT;
         uint8 _wrapModeW = WRAP_REPEAT;
-
-        uint8 _filter = FILTER_MIN_MAG_POINT;
-        uint8 _comparisonFunc = ALWAYS;
             
         uint8 _mipOffset = 0;
         uint8 _minMip = 0;

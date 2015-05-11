@@ -2578,7 +2578,7 @@ int Application::sendNackPackets() {
                 int bytesRemaining = MAX_PACKET_SIZE;
                 
                 // pack header
-                int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
                 
@@ -2779,7 +2779,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             unsigned char* endOfQueryPacket = queryPacket;
 
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);

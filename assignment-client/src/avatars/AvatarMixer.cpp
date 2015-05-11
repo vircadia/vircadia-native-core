@@ -56,14 +56,6 @@ AvatarMixer::~AvatarMixer() {
     _broadcastThread.wait();
 }
 
-void attachAvatarDataToNode(Node* newNode) {
-    if (!newNode->getLinkedData()) {
-        // setup the client linked data - default the number of frames since adjustment
-        // to our number of frames per second
-        newNode->setLinkedData(new AvatarMixerClientData());
-    }
-}
-
 const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
 
 // NOTE: some additional optimizations to consider.
@@ -129,10 +121,9 @@ void AvatarMixer::broadcastAvatarData() {
     
     static QByteArray mixedAvatarByteArray;
     
-    int numPacketHeaderBytes = populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
-    
     auto nodeList = DependencyManager::get<NodeList>();
-   
+    int numPacketHeaderBytes = nodeList->populatePacketHeader(mixedAvatarByteArray, PacketTypeBulkAvatarData);
+     
     // setup for distributed random floating point values 
     std::random_device randomDevice;
     std::mt19937 generator(randomDevice());
@@ -161,7 +152,7 @@ void AvatarMixer::broadcastAvatarData() {
             
             // reset packet pointers for this node
             mixedAvatarByteArray.resize(numPacketHeaderBytes);
-            
+
             AvatarData& avatar = nodeData->getAvatar();
             glm::vec3 myPosition = avatar.getPosition();
 
@@ -179,7 +170,13 @@ void AvatarMixer::broadcastAvatarData() {
             
             // keep track of outbound data rate specifically for avatar data
             int numAvatarDataBytes = 0;
-            
+
+            // keep track of the number of other avatars held back in this frame
+            int numAvatarsHeldBack = 0;
+
+            // keep track of the number of other avatar frames skipped
+            int numAvatarsWithSkippedFrames = 0;
+
             // use the data rate specifically for avatar data for FRD adjustment checks
             float avatarDataRateLastSecond = nodeData->getOutboundAvatarDataKbps();
 
@@ -257,8 +254,38 @@ void AvatarMixer::broadcastAvatarData() {
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
                     }
+
+                    PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData);
+
+                    if (lastSeqToReceiver > lastSeqFromSender) {
+                        // Did we somehow get out of order packets from the sender?
+                        // We don't expect this to happen - in RELEASE we add this to a trackable stat
+                        // and in DEBUG we crash on the assert
+                        
+                        otherNodeData->incrementNumOutOfOrderSends();
+
+                        assert(false);
+                    }
                     
+                    // make sure we haven't already sent this data from this sender to this receiver
+                    // or that somehow we haven't sent
+                    if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
+                        ++numAvatarsHeldBack;
+                        return;
+                    } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
+                        // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
+                        ++numAvatarsWithSkippedFrames;
+                    } 
+                    
+                    // we're going to send this avatar
+                    
+                    // increment the number of avatars sent to this reciever
                     nodeData->incrementNumAvatarsSentLastFrame();
+                    
+                    // set the last sent sequence number for this sender on the receiver
+                    nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(), 
+                        otherNode->getLastSequenceNumberForPacketType(PacketTypeAvatarData));
 
                     QByteArray avatarByteArray;
                     avatarByteArray.append(otherNode->getUUID().toRfc4122());
@@ -287,7 +314,7 @@ void AvatarMixer::broadcastAvatarData() {
                         && (forceSend
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-                        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+                        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
                         billboardPacket.append(otherNode->getUUID().toRfc4122());
                         billboardPacket.append(otherNodeData->getAvatar().getBillboard());
 
@@ -301,7 +328,7 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
                                 
-                        QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+                        QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
                             
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
@@ -318,6 +345,10 @@ void AvatarMixer::broadcastAvatarData() {
             
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes + mixedAvatarByteArray.size());
+            
+            // record the number of avatars held back this frame
+            nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
+            nodeData->recordNumOtherAvatarSkips(numAvatarsWithSkippedFrames);
 
             if (numOtherAvatars == 0) {
                 // update the full rate distance to FLOAT_MAX since we didn't have any other avatars to send
@@ -334,13 +365,36 @@ void AvatarMixer::broadcastAvatarData() {
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     if (killedNode->getType() == NodeType::Agent
         && killedNode->getLinkedData()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
+        QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
         killPacket += killedNode->getUUID().toRfc4122();
         
-        DependencyManager::get<NodeList>()->broadcastToNodes(killPacket,
-                                                  NodeSet() << NodeType::Agent);
+        nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
+
+        // we also want to remove sequence number data for this avatar on our other avatars
+        // so invoke the appropriate method on the AvatarMixerClientData for other avatars
+        nodeList->eachMatchingNode(
+            [&](const SharedNodePointer& node)->bool {
+                if (!node->getLinkedData()) {
+                    return false;
+                }
+
+                if (node->getUUID() == killedNode->getUUID()) {
+                    return false;
+                }
+
+                return true;
+            },
+            [&](const SharedNodePointer& node) {
+                QMetaObject::invokeMethod(node->getLinkedData(),
+                                          "removeLastBroadcastSequenceNumber",
+                                          Qt::AutoConnection,
+                                          Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
+            }
+        );
     }
 }
 
@@ -430,11 +484,14 @@ void AvatarMixer::sendStatsPacket() {
         
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->loadJSONStats(avatarStats);
+            MutexTryLocker lock(clientData->getMutex());
+            if (lock.isLocked()) {
+                clientData->loadJSONStats(avatarStats);
 
-            // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
-            avatarStats["delta_full_vs_avatar_data_kbps"] = 
-                avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();  
+                // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
+                avatarStats["delta_full_vs_avatar_data_kbps"] = 
+                    avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+            } 
         }
 
         avatarsObject[uuidStringWithoutCurlyBraces(node->getUUID())] = avatarStats;
@@ -455,7 +512,9 @@ void AvatarMixer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        node->setLinkedData(new AvatarMixerClientData());
+    };
     
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer();

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LimitedNodeList.h"
+
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -28,8 +30,6 @@
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "LimitedNodeList.h"
-#include "PacketHeaders.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
 
@@ -230,21 +230,13 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
     return result;
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                                      const QUuid& connectionSecret) {
-    QByteArray datagramCopy = datagram;
-    
-    if (!connectionSecret.isNull()) {
-        // setup the MD5 hash for source verification in the header
-        replaceHashInPacketGivenConnectionUUID(datagramCopy, connectionSecret);
-    }
-    
+qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
     
-    qint64 bytesWritten = _nodeSocket.writeDatagram(datagramCopy,
+    qint64 bytesWritten = _nodeSocket.writeDatagram(datagram,
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
     
     if (bytesWritten < 0) {
@@ -258,6 +250,12 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
                                       const SharedNodePointer& destinationNode,
                                       const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
+        PacketType packetType = packetTypeForPacket(datagram);
+
+        if (NON_VERIFIED_PACKETS.contains(packetType)) {
+            return writeUnverifiedDatagram(datagram, destinationNode, overridenSockAddr);
+        }
+
         // if we don't have an overridden address, assume they want to send to the node's active socket
         const HifiSockAddr* destinationSockAddr = &overridenSockAddr;
         if (overridenSockAddr.isNull()) {
@@ -270,8 +268,26 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
             }
         }
 
+        QByteArray datagramCopy = datagram;
+        
+        // if we're here and the connection secret is null, debug out - this could be a problem
+        if (destinationNode->getConnectionSecret().isNull()) {
+            qDebug() << "LimitedNodeList::writeDatagram called for verified datagram with null connection secret for"
+                << "destination node" << destinationNode->getUUID() << " - this is either not secure or will cause"
+                << "this packet to be unverifiable on the receiving side.";
+        }
+
+        // perform replacement of hash and optionally also sequence number in the header
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) { 
+            PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
+            replaceHashAndSequenceNumberInPacket(datagramCopy, destinationNode->getConnectionSecret(),
+                                                 sequenceNumber, packetType);
+        } else {
+            replaceHashInPacket(datagramCopy, destinationNode->getConnectionSecret(), packetType);
+        }
+        
         emit dataSent(destinationNode->getType(), datagram.size());
-        auto bytesWritten = writeDatagram(datagram, *destinationSockAddr, destinationNode->getConnectionSecret());
+        auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr);
         // Keep track of per-destination-node bandwidth
         destinationNode->recordBytesSent(bytesWritten);
         return bytesWritten;
@@ -296,8 +312,21 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
             }
         }
         
-        // don't use the node secret!
-        return writeDatagram(datagram, *destinationSockAddr, QUuid());
+        PacketType packetType = packetTypeForPacket(datagram);
+
+        // optionally peform sequence number replacement in the header
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+
+            QByteArray datagramCopy = datagram;
+
+            PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
+            replaceSequenceNumberInPacket(datagramCopy, sequenceNumber, packetType);
+
+            // send the datagram with sequence number replaced in header
+            return writeDatagram(datagramCopy, *destinationSockAddr);
+        } else {
+            return writeDatagram(datagram, *destinationSockAddr);
+        }
     }
     
     // didn't have a destinationNode to send to, return 0
@@ -305,7 +334,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
 }
 
 qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
-    return writeDatagram(datagram, destinationSockAddr, QUuid());
+    return writeDatagram(datagram, destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
@@ -316,6 +345,15 @@ qint64 LimitedNodeList::writeDatagram(const char* data, qint64 size, const Share
 qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                                const HifiSockAddr& overridenSockAddr) {
     return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
+}
+
+PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType) {
+    // Thanks to std::map and std::unordered_map this line either default constructs the 
+    // PacketTypeSequenceMap and the PacketSequenceNumber or returns the existing value.
+    // We use the postfix increment so that the stored value is incremented and the next 
+    // return gives the correct value.
+    
+    return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
 void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
@@ -331,6 +369,13 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
     QMutexLocker locker(&matchingNode->getMutex());
     
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+    
+    // if this was a sequence numbered packet we should store the last seq number for
+    // a packet of this type for this node
+    PacketType packetType = packetTypeForPacket(packet);
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+        matchingNode->setLastSequenceNumberForPacketType(sequenceNumberFromHeader(packet, packetType), packetType);
+    }
     
     NodeData* linkedData = matchingNode->getLinkedData();
     if (!linkedData && linkedDataCreateCallback) {
@@ -466,8 +511,11 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
 }
 
 QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
-    QByteArray pingPacket = byteArrayWithPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
-                                                         packetHeaderID);
+
+    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
+
+    QByteArray pingPacket = byteArrayWithUUIDPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
+                                                             packetUUID);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -489,8 +537,10 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
     
     PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
-    
-    QByteArray replyPacket = byteArrayWithPopulatedHeader(replyType, packetHeaderID);
+   
+    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
+
+    QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetUUID);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
@@ -522,11 +572,11 @@ void LimitedNodeList::removeSilentNodes() {
     eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
-        
+
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
-            
+
             killedNodes.insert(node);
         } else {
             // we didn't erase this node, push the iterator forwards
@@ -680,7 +730,7 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
         headerID = _sessionUUID;
     }
     
-    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
+    QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
     
     iceDataStream << _publicSockAddr << _localSockAddr;
