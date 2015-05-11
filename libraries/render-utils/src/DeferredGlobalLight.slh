@@ -20,8 +20,7 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 <@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
     vec4 skytexel = textureCubeLod(skyboxMap, direction, lod * textureQueryLevels(skyboxMap));
 <@else@>
-    const int NUM_LEVELS = 10;
-    vec4 skytexel = textureCubeLod(skyboxMap, direction, lod * NUM_LEVELS);
+    vec4 skytexel = textureCube(skyboxMap, direction);
 <@endif@>
     return skytexel;
 }
