@@ -249,6 +249,8 @@ bool setupEssentials(int& argc, char** argv) {
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+
+    Setting::init();
     
     // Set dependencies
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -336,9 +338,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>())
 {
-
-    Setting::init();
-
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
