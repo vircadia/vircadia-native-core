@@ -18,6 +18,12 @@
                 els[i].setAttribute('disabled', 'disabled');
             }
         }
+        
+        function showElements(els, show) {
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.display = (show) ? 'block' : 'none';
+            } 
+        }
 
         function createEmitCheckedPropertyUpdateFunction(propertyName) {
             return function() {
@@ -504,6 +510,8 @@
                                 elZoneAtmosphereScatteringWavelengthsZ.value = properties.atmosphere.scatteringWavelengths.z;
                                 elZoneAtmosphereHasStars.checked = properties.atmosphere.hasStars;
                                 
+                                showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
+                                showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
                             }
 
                             if (selected) {
@@ -1117,7 +1125,7 @@
                 </select> 
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox Color</div>
             <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-skybox-color-red"></input></div>
@@ -1125,13 +1133,13 @@
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-skybox-color-blue"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox URL</div>
             <div class="value">
                 <input type="text" id="property-zone-skybox-url" class="url"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Center</div>
             <div class="value">
                 <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></input></div>
@@ -1139,31 +1147,31 @@
                 <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Inner Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Outer Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Mie Scattering</div>
             <div class="value">
                 <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Rayleigh Scattering</div>
             <div class="value">
                 <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Scattering Wavelenghts</div>
             <div class="value">
                 <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></input></div>
@@ -1171,7 +1179,7 @@
                 <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property" style="display:none">
             <span class="label">Atmosphere Has Stars</span>
             <span class="value">
                 <input type='checkbox' id="property-zone-atmosphere-has-stars">
