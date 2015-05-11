@@ -155,7 +155,7 @@ $(document).ready(function(){
     badgeSidebarForDifferences($(this))
   })
   
-  $('#advanced-toggle-button').click(function(){
+  $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
     var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
     

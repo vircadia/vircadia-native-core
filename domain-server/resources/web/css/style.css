@@ -91,3 +91,11 @@ table {
   table-layout: fixed;
   word-wrap: break-word;
 }
+
+#xs-advanced-container {
+  margin-bottom: 20px;
+}
+
+#advanced-toggle-button-xs {
+  width: 100%;
+}

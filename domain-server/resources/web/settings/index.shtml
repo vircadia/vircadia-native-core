@@ -1,68 +1,76 @@
 <!--#include virtual="header.html"-->
 
-
 <div class="col-md-10 col-md-offset-1">
-  <div class="col-md-12">
-    <div class="alert" style="display:none;"></div>
-  </div>
-  
-  <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
-    <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="55">
-      <script id="list-group-template" type="text/template">
-        <% _.each(descriptions, function(group){ %>
-          <li>
-            <a href="#<%-group.name %>" class="list-group-item">
-              <span class="badge"></span>
-              <%- group.label %>
-            </a>
-          </li>
-        <% }); %>
-      </script>
-      
-      <ul class="nav nav-pills nav-stacked">
-      </ul>
-      
-      <button id="advanced-toggle-button" hidden=true class="btn btn-info">Show advanced</button>
-      <button class="btn btn-success save-button">Save and restart</button>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="alert" style="display:none;"></div>
     </div>
   </div>
-  
-  <div class="col-md-9 col-sm-9 col-xs-12">
-    <form id="settings-form" role="form">
-  
-      <script id="panels-template" type="text/template">
-        <% _.each(descriptions, function(group){ %>
-          <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
-          <% isAdvanced = _.isEmpty(split_settings[0]) %>
-          <% if (isAdvanced) { %>
-            <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
-          <% } %>
-          <div class="panel panel-default <%- (isAdvanced) ? 'advanced-setting' : '' %>" id="<%- group.name %>">
-            <div class="panel-heading">
-              <h3 class="panel-title"><%- group.label %></h3>
-            </div>
-            <div class="panel-body">
-              <% _.each(split_settings[0], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values, false, 
-                  (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
-              <% }); %>
-              <% if (!_.isEmpty(split_settings[1])) { %>
-                <% $("#advanced-toggle-button").show() %>
-                <% _.each(split_settings[1], function(setting) { %>
-                  <%= getFormGroup(group.name, setting, values, true, 
+
+  <div class="row">
+    <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
+      <div id="setup-sidebar" class="hidden-xs">
+        <script id="list-group-template" type="text/template">
+          <% _.each(descriptions, function(group){ %>
+            <li>
+              <a href="#<%-group.name %>" class="list-group-item">
+                <span class="badge"></span>
+                <%- group.label %>
+              </a>
+            </li>
+          <% }); %>
+        </script>
+        
+        <ul class="nav nav-pills nav-stacked">
+        </ul>
+        
+        <button id="advanced-toggle-button" hidden=true class="btn btn-info advanced-toggle">Show advanced</button>
+        <button class="btn btn-success save-button">Save and restart</button>
+      </div>
+    </div>
+
+    <div class="col-md-9 col-sm-9 col-xs-12">
+      <div id="xs-advanced-container" class="col-xs-12 hidden-sm hidden-md hidden-lg">
+        <button id="advanced-toggle-button-xs" class="btn btn-info advanced-toggle">Show advanced</button>
+      </div>
+
+      <div class="col-xs-12">
+        <form id="settings-form" role="form">
+    
+        <script id="panels-template" type="text/template">
+          <% _.each(descriptions, function(group){ %>
+            <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
+            <% isAdvanced = _.isEmpty(split_settings[0]) %>
+            <% if (isAdvanced) { %>
+              <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
+            <% } %>
+            <div class="panel panel-default <%- (isAdvanced) ? 'advanced-setting' : '' %>" id="<%- group.name %>">
+              <div class="panel-heading">
+                <h3 class="panel-title"><%- group.label %></h3>
+              </div>
+              <div class="panel-body">
+                <% _.each(split_settings[0], function(setting) { %>
+                  <%= getFormGroup(group.name, setting, values, false, 
                     (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
                 <% }); %>
-              <% }%>
+                <% if (!_.isEmpty(split_settings[1])) { %>
+                  <% $("#advanced-toggle-button").show() %>
+                  <% _.each(split_settings[1], function(setting) { %>
+                    <%= getFormGroup(group.name, setting, values, true, 
+                      (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
+                  <% }); %>
+                <% }%>
+              </div>
             </div>
-          </div>
-        <% }); %>
-      </script>
+          <% }); %>
+        </script>
       
-      <div id="panels"></div>
-      
-     </form>
+        <div id="panels"></div>
+        </form>
+      </div>
+    </div>
   </div>
-  
+    
   <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
     <button class="btn btn-success save-button" id="small-save-button">Save and restart</button>
   </div>
