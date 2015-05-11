@@ -122,8 +122,9 @@ void TV3DManager::display(Camera& whichCamera) {
         qApp->displaySide(eyeCamera, false, RenderArgs::MONO);
         qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
         _activeEye = NULL;
-    }, [&]{
-        // render right side view
+
+        // HACK: the gcc compiler didn't like a pair of lambdas in the forEachEye template
+        // Adjust viewport for next view
         portalX = deviceSize.width() / 2;
     });
     glPopMatrix();
