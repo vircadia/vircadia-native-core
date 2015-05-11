@@ -59,6 +59,7 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
             if (version == QString::null || version == lastVersion) {
                 return;
             }
+            infoVersion.set(version);
         }
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
