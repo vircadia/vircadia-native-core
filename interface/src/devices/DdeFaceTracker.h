@@ -114,6 +114,7 @@ private:
     float _filteredBrowUp;
 
     enum EyeState {
+        EYE_UNCONTROLLED,
         EYE_OPEN,
         EYE_CLOSING,
         EYE_CLOSED,
