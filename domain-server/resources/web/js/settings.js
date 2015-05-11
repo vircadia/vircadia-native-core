@@ -220,7 +220,31 @@ function reloadSettings() {
     if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
       // append the domain selection modal, as long as it's not locked
       appendDomainSelectionModal()
-    }   
+    }
+    
+    // figure out how we should handle the HF connect button
+    var accessToken = data.values.metaverse.access_token;
+    var $oauthConnectButton = $("[name='metaverse.connected_account']");
+
+    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "access_token")) {
+     
+    } else {
+      // the access_token is locked so we should disable the connect/disconnect button and explain why it is disabled
+    }
+
+    if (accessToken.length > 0) {
+      // we have an access token - change the button to a disconnect button 
+      $oauthConnectButton.removeClass('btn-primary');
+      $oauthConnectButton.addClass('btn-danger');
+      $oauthConnectButton.html("Disconnect High Fidelity Account");
+
+      var $helpSpan = $oauthConnectButton.next('span.help-block');
+      
+      var helpText = $helpSpan.html();
+      helpText = helpText.replace("connect", "disconnect");
+      
+      $helpSpan.html(helpText);
+    }
   });
 }
 
