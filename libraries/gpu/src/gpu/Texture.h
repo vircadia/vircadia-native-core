@@ -121,6 +121,18 @@ public:
         NUM_TYPES,
     };
 
+    // Definition of the cube face name and layout
+    enum CubeFace {
+        CUBE_FACE_RIGHT_POS_X = 0,
+        CUBE_FACE_LEFT_NEG_X,
+        CUBE_FACE_TOP_POS_Y,
+        CUBE_FACE_BOTTOM_NEG_Y,
+        CUBE_FACE_BACK_POS_X,
+        CUBE_FACE_FRONT_NEG_Z,
+
+        NUM_CUBE_FACES, // Not a valid vace index
+    };
+
     class Storage {
     public:
         Storage() {}
