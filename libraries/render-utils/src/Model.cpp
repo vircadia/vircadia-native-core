@@ -2068,9 +2068,9 @@ void Model::segregateMeshGroups() {
         bool hasSpecular = mesh.hasSpecularTexture();
         bool hasLightmap = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
-        bool isWireframe = this->isWireframe();
+        bool wireframe = isWireframe();
         
-        if (isWireframe) {
+        if (wireframe) {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
         
@@ -2091,7 +2091,7 @@ void Model::segregateMeshGroups() {
             qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
         
-        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
+        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe);
 
         // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
         _renderBuckets[key.getRaw()]._unsortedMeshes.insertMulti(materialID, i);
