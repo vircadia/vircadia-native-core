@@ -87,6 +87,7 @@
 #include <MessageDialog.h>
 #include <InfoView.h>
 #include <SceneScriptingInterface.h>
+#include <SettingHandle.h>
 
 #include "Application.h"
 #include "AudioClient.h"
@@ -183,6 +184,8 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -333,7 +336,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>())
+        _domainConnectionRefusals(QList<QString>()),
+        _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -2683,7 +2687,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = getEntityTree()->getMaxOctreePacketsPerSecond();
+    int totalPPS = getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -4647,4 +4651,15 @@ PickRay Application::computePickRay() const {
 
 bool Application::hasFocus() const {
     return _glWidget->hasFocus();
+}
+
+void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
+}
+
+int Application::getMaxOctreePacketsPerSecond() {
+    return _maxOctreePPS;
 }

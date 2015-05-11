@@ -40,7 +40,6 @@
 #include <SharedUtil.h>
 #include <Shape.h>
 #include <PathUtils.h>
-#include <SettingHandle.h>
 
 #include "CoverageMap.h"
 #include "OctreeConstants.h"
@@ -51,7 +50,6 @@
 
 
 QVector<QString> PERSIST_EXTENSIONS = {"svo", "json"};
-Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
@@ -64,8 +62,7 @@ Octree::Octree(bool shouldReaverage) :
     _stopImport(false),
     _lock(QReadWriteLock::Recursive),
     _isViewing(false),
-    _isServer(false),
-    _maxOctreePPS(maxOctreePacketsPerSecond.get())
+    _isServer(false)
 {
 }
 
@@ -2203,15 +2200,3 @@ bool Octree::countOctreeElementsOperation(OctreeElement* element, void* extraDat
 void Octree::cancelImport() {
     _stopImport = true;
 }
-
-void Octree::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
-    if (maxOctreePPS != _maxOctreePPS) {
-        _maxOctreePPS = maxOctreePPS;
-        maxOctreePacketsPerSecond.set(_maxOctreePPS);
-    }
-}
-
-int Octree::getMaxOctreePacketsPerSecond() {
-    return _maxOctreePPS;
-}
-
