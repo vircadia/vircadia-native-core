@@ -194,12 +194,8 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
-<<<<<<< HEAD
             
-            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-=======
             QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
->>>>>>> 5160eb5b94951200390de0de91962cc2aa9efccb
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
