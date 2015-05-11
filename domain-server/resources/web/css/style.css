@@ -62,7 +62,7 @@ span.port {
 }
 
 td.buttons {
-  width: 14px;
+  width: 30px;
 }
 
 td .glyphicon {
@@ -85,4 +85,9 @@ tr.new-row {
 
 .highchart-modal .modal-dialog {
   width: 650px;
+}
+
+table {
+  table-layout: fixed;
+  word-wrap: break-word;
 }
