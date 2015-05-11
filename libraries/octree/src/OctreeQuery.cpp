@@ -11,22 +11,17 @@
 
 #include <GLMHelpers.h>
 #include <PacketHeaders.h>
-#include <SettingHandle.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 OctreeQuery::OctreeQuery() {
-    _maxOctreePPS = maxOctreePacketsPerSecond.get();
+    _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }
 
-void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
-    if (maxOctreePPS != _maxOctreePPS) {
-        _maxOctreePPS = maxOctreePPS;
-        maxOctreePacketsPerSecond.set(_maxOctreePPS);
-    }
+void OctreeQuery::setMaxQueryPacketsPerSecond(int maxQueryPPS) {
+    _maxQueryPPS = maxQueryPPS;
 }
 
 
@@ -59,8 +54,8 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
 
     // desired Max Octree PPS
-    memcpy(destinationBuffer, &_maxOctreePPS, sizeof(_maxOctreePPS));
-    destinationBuffer += sizeof(_maxOctreePPS);
+    memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
+    destinationBuffer += sizeof(_maxQueryPPS);
 
     // desired voxelSizeScale
     memcpy(destinationBuffer, &_octreeElementSizeScale, sizeof(_octreeElementSizeScale));
@@ -103,8 +98,8 @@ int OctreeQuery::parseData(const QByteArray& packet) {
     _wantCompression = oneAtBit(bitItems, WANT_COMPRESSION);
 
     // desired Max Octree PPS
-    memcpy(&_maxOctreePPS, sourceBuffer, sizeof(_maxOctreePPS));
-    sourceBuffer += sizeof(_maxOctreePPS);
+    memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));
+    sourceBuffer += sizeof(_maxQueryPPS);
 
     // desired _octreeElementSizeScale
     memcpy(&_octreeElementSizeScale, sourceBuffer, sizeof(_octreeElementSizeScale));

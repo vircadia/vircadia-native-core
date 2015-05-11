@@ -208,6 +208,7 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
+    EntityTree* getEntityTree() { return _entities.getTree(); }
     Environment* getEnvironment() { return &_environment; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }

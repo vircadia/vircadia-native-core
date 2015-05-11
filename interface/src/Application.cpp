@@ -2683,7 +2683,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = _octreeQuery.getMaxOctreePacketsPerSecond();
+    int totalPPS = getEntityTree()->getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2746,7 +2746,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
@@ -2770,9 +2770,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                         qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;

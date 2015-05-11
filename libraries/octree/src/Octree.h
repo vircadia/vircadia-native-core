@@ -370,6 +370,9 @@ public:
     virtual void dumpTree() { };
     virtual void pruneTree() { };
 
+    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
+    int getMaxOctreePacketsPerSecond();
+
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);
@@ -403,6 +406,8 @@ protected:
     
     bool _isViewing; 
     bool _isServer;
+
+    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
