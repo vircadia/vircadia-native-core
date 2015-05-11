@@ -27,6 +27,7 @@ var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
 var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
 var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
+var originalGravity;
 var shouldRotate = false;
 var dQ, theta, axisAngle, dT;
 var angularVelocity = {
@@ -65,6 +66,7 @@ function mousePressEvent(event) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
+    originalGravity = props.gravity;
     targetPosition = props.position;
     currentPosition = props.position;
     currentVelocity = props.velocity;
@@ -96,6 +98,11 @@ function updateDropLine(position) {
 function mouseReleaseEvent() {
   if (isGrabbing) {
     isGrabbing = false;
+
+    Entities.editEntity(grabbedEntity, {
+      gravity: originalGravity
+    });
+
     Overlays.editOverlay(dropLine, {
       visible: false
     });
@@ -194,7 +201,7 @@ function update(deltaTime) {
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
     } else {
-      newVelocity = entityProps.velocity; 
+      newVelocity = {x: 0, y: 0, z: 0};
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
@@ -204,7 +211,8 @@ function update(deltaTime) {
 
     Entities.editEntity(grabbedEntity, {
       velocity: newVelocity,
-      angularVelocity: angularVelocity
+      angularVelocity: angularVelocity,
+      gravity: {x: 0, y: 0, z: 0}
     })
     updateDropLine(targetPosition);
   }

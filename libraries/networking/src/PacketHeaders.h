@@ -12,14 +12,19 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#pragma once
+
+#include <cstdint>
+#include <map>
+
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QSet>
 #include <QtCore/QUuid>
 
 #include "UUID.h"
 
-// NOTE: if adding a new packet type, you can replace one marked usable or add at the end
-// NOTE: if you want the name of the packet type to be available for debugging or logging, update nameForPacketType() as well
+// NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
+// NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 enum PacketType {
     PacketTypeUnknown, // 0
     PacketTypeStunResponse,
@@ -79,6 +84,11 @@ enum PacketType {
 
 typedef char PacketVersion;
 
+typedef uint16_t PacketSequenceNumber;
+const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
+
+typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
+
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
@@ -88,33 +98,53 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
     << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode;
 
+const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
+    << PacketTypeAvatarData;
+
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
 const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
 
-PacketVersion versionForPacketType(PacketType type);
-QString nameForPacketType(PacketType type);
+PacketType packetTypeForPacket(const QByteArray& packet);
+PacketType packetTypeForPacket(const char* packet);
+
+PacketVersion versionForPacketType(PacketType packetType);
+QString nameForPacketType(PacketType packetType);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
+QByteArray byteArrayWithUUIDPopulatedHeader(PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID);
 
-int numHashBytesInPacketHeaderGivenPacketType(PacketType type);
+int numHashBytesForType(PacketType packetType);
+int numSequenceNumberBytesForType(PacketType packetType);
 
 int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
-int numBytesForPacketHeaderGivenPacketType(PacketType type);
+int numBytesForArithmeticCodedPacketType(PacketType packetType); 
+int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
 
 QUuid uuidFromPacketHeader(const QByteArray& packet);
 
+int hashOffsetForPacketType(PacketType packetType);
+int sequenceNumberOffsetForPacketType(PacketType packetType);
+
 QByteArray hashFromPacketHeader(const QByteArray& packet);
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
-void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID);
 
-PacketType packetTypeForPacket(const QByteArray& packet);
-PacketType packetTypeForPacket(const char* packet);
+// NOTE: The following four methods accept a PacketType which defaults to PacketTypeUnknown.
+// If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
+
+PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType = PacketTypeUnknown);
+
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType = PacketTypeUnknown); 
+
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, 
+                                   PacketType packetType = PacketTypeUnknown);
+
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
+                                          PacketType packetType = PacketTypeUnknown);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
@@ -142,5 +172,6 @@ const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_DYNAMIC_SHAPE = 18;
 const PacketVersion VERSION_ENTITIES_HAVE_NAMES = 19;
 const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_ATMOSPHERE = 20;
 const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_SKYBOX = 21;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_STAGE_HAS_AUTOMATIC_HOURDAY = 22;
 
 #endif // hifi_PacketHeaders_h

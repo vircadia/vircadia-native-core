@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <unordered_map>
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
@@ -21,7 +22,9 @@
 #include <AvatarData.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
+#include <PacketHeaders.h>
 #include <SimpleMovingAverage.h>
+#include <UUIDHasher.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 
@@ -32,7 +35,12 @@ public:
     AvatarData& getAvatar() { return _avatar; }
     
     bool checkAndSetHasReceivedFirstPackets();
-    
+
+    PacketSequenceNumber getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
+    void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, PacketSequenceNumber sequenceNumber) 
+        { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
+    Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
+
     quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
     void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
     
@@ -49,6 +57,14 @@ public:
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
+    void recordNumOtherAvatarStarves(int numAvatarsHeldBack) { _otherAvatarStarves.updateAverage((float) numAvatarsHeldBack); } 
+    float getAvgNumOtherAvatarStarvesPerSecond() const { return _otherAvatarStarves.getAverageSampleValuePerSecond(); }
+
+    void recordNumOtherAvatarSkips(int numOtherAvatarSkips) { _otherAvatarSkips.updateAverage((float) numOtherAvatarSkips); }
+    float getAvgNumOtherAvatarSkipsPerSecond() const { return _otherAvatarSkips.getAverageSampleValuePerSecond(); }
+
+    void incrementNumOutOfOrderSends() { ++_numOutOfOrderSends; }
+
     int getNumFramesSinceFRDAdjustment() const { return _numFramesSinceAdjustment; }
     void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
@@ -61,13 +77,23 @@ public:
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
+
+    std::unordered_map<QUuid, PacketSequenceNumber, UUIDHasher> _lastBroadcastSequenceNumbers;
+
     bool _hasReceivedFirstPackets = false;
     quint64 _billboardChangeTimestamp = 0;
     quint64 _identityChangeTimestamp = 0;
+    
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;
+    
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
+
+    SimpleMovingAverage _otherAvatarStarves;
+    SimpleMovingAverage _otherAvatarSkips;
+    int _numOutOfOrderSends = 0;
+    
     SimpleMovingAverage _avgOtherAvatarDataRate;
 };
 

@@ -837,7 +837,7 @@ void AudioClient::handleAudioInput() {
                 }
             }
 
-            char* currentPacketPtr = audioDataPacket + populatePacketHeader(audioDataPacket, packetType);
+            char* currentPacketPtr = audioDataPacket + nodeList->populatePacketHeader(audioDataPacket, packetType);
 
             // pack sequence number
             memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
@@ -899,7 +899,9 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {
-    QByteArray mutePacket = byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
+    auto nodeList = DependencyManager::get<NodeList>();
+    
+    QByteArray mutePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
     int headerSize = mutePacket.size();
     
     const float MUTE_RADIUS = 50;
@@ -910,12 +912,11 @@ void AudioClient::sendMuteEnvironmentPacket() {
     memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
     
     // grab our audio mixer from the NodeList, if it exists
-    auto nodelist = DependencyManager::get<NodeList>();
-    SharedNodePointer audioMixer = nodelist->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     
     if (audioMixer) {
         // send off this mute packet
-        nodelist->writeDatagram(mutePacket, audioMixer);
+        nodeList->writeDatagram(mutePacket, audioMixer);
     }
 }
 

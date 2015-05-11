@@ -18,6 +18,12 @@
                 els[i].setAttribute('disabled', 'disabled');
             }
         }
+        
+        function showElements(els, show) {
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.display = (show) ? 'block' : 'none';
+            } 
+        }
 
         function createEmitCheckedPropertyUpdateFunction(propertyName) {
             return function() {
@@ -280,6 +286,7 @@
             var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
             var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
             var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
+            var elZoneStageAutomaticHourDay = document.getElementById("property-zone-stage-automatic-hour-day");
             var elZoneStageDay = document.getElementById("property-zone-stage-day");
             var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
@@ -467,7 +474,7 @@
                                     elZoneSections[i].style.display = 'block';
                                 }
 
-                                elZoneStageSunModelEnabled.checked = properties.stageSunModelEnabled;
+                                elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                                 elZoneKeyLightColorRed.value = properties.keyLightColor.red;
                                 elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
                                 elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
@@ -477,11 +484,12 @@
                                 elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
                                 elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
 
-                                elZoneStageLatitude.value = properties.stageLatitude.toFixed(2);
-                                elZoneStageLongitude.value = properties.stageLongitude.toFixed(2);
-                                elZoneStageAltitude.value = properties.stageAltitude.toFixed(2);
-                                elZoneStageDay.value = properties.stageDay;
-                                elZoneStageHour.value = properties.stageHour;
+                                elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
+                                elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
+                                elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
+                                elZoneStageAutomaticHourDay.checked = properties.stage.automaticHourDay;
+                                elZoneStageDay.value = properties.stage.day;
+                                elZoneStageHour.value = properties.stage.hour;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -504,6 +512,8 @@
                                 elZoneAtmosphereScatteringWavelengthsZ.value = properties.atmosphere.scatteringWavelengths.z;
                                 elZoneAtmosphereHasStars.checked = properties.atmosphere.hasStars;
                                 
+                                showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
+                                showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
                             }
 
                             if (selected) {
@@ -619,7 +629,7 @@
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
 
-            elZoneStageSunModelEnabled.addEventListener('change', createEmitCheckedPropertyUpdateFunction('stageSunModelEnabled'));
+            elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
             var zoneKeyLightColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'keyLightColor', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
@@ -633,11 +643,12 @@
             elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
             elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-            elZoneStageLatitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLatitude'));
-            elZoneStageLongitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLongitude'));
-            elZoneStageAltitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageAltitude'));
-            elZoneStageDay.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageDay'));
-            elZoneStageHour.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageHour'));
+            elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
+            elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
+            elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
+            elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','automaticHourDay'));
+            elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
+            elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
 
 
             elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
@@ -1094,6 +1105,14 @@
                 <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
             </div>
         </div>
+
+        <div class="zone-section property">
+            <span class="label">Automatically calculate stage hour and day from location and clock.</span>
+            <span class="value">
+                <input type='checkbox' id="property-zone-stage-automatic-hour-day">
+            </span>
+        </div>
+        
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">
@@ -1117,7 +1136,7 @@
                 </select> 
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox Color</div>
             <div class="value">
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-skybox-color-red"></input></div>
@@ -1125,13 +1144,13 @@
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-skybox-color-blue"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox URL</div>
             <div class="value">
                 <input type="text" id="property-zone-skybox-url" class="url"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Center</div>
             <div class="value">
                 <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></input></div>
@@ -1139,31 +1158,31 @@
                 <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Inner Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Outer Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Mie Scattering</div>
             <div class="value">
                 <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Rayleigh Scattering</div>
             <div class="value">
                 <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Scattering Wavelenghts</div>
             <div class="value">
                 <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></input></div>
@@ -1171,7 +1190,7 @@
                 <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property" style="display:none">
             <span class="label">Atmosphere Has Stars</span>
             <span class="value">
                 <input type='checkbox' id="property-zone-atmosphere-has-stars">

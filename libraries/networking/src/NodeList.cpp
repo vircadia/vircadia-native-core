@@ -183,7 +183,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypePingReply: {
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
-            
+
             if (sendingNode) {
                 sendingNode->setLastHeardMicrostamp(usecTimestampNow());
                 
@@ -348,7 +348,7 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
         
-        QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
+        QByteArray domainServerPacket = byteArrayWithUUIDPopulatedHeader(domainPacketType, packetUUID);
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
@@ -369,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
         
         if (!isUsingDTLS) {
-            writeDatagram(domainServerPacket, _domainHandler.getSockAddr(), QUuid());
+            writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
         }
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
@@ -424,10 +424,9 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
         _domainHandler.setUUID(uuidFromPacketHeader(packet));
         _domainHandler.setIsConnected(true);
     }
-
+    
     int readNodes = 0;
-    
-    
+
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
     
@@ -497,7 +496,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     QByteArray publicPingPacket = constructPingPacket(PingType::Public);
     writeDatagram(publicPingPacket, node, node->getPublicSocket());
-    
+
     if (!node->getSymmetricSocket().isNull()) {
         QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
         writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
