@@ -386,8 +386,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
 done:
     if (faces.count() == 0) { // empty mesh
         mesh.parts.pop_back();
+    } else {
+        faceGroups.append(faces); // We're done with this group. Add the faces.
     }
-    faceGroups.append(faces); // We're done with this group. Add the faces.
     //qCDebug(modelformat) << "end group:" << meshPart.materialID << " original faces:" << originalFaceCountForDebugging << " triangles:" << faces.count() << " keep going:" << result;
     return result;
 }

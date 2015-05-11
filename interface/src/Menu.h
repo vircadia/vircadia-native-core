@@ -154,6 +154,7 @@ namespace MenuOption {
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
+    const QString CalibrateCamera = "Calibrate Camera";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
@@ -181,7 +182,7 @@ namespace MenuOption {
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
+    const QString EnableGlowEffect = "Enable Glow Effect";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
