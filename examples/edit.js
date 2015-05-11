@@ -243,7 +243,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        Entities.drawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -997,7 +997,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        Entities.drawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
