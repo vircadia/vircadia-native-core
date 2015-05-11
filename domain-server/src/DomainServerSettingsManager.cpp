@@ -258,62 +258,64 @@ bool DomainServerSettingsManager::settingExists(const QString& groupName, const 
 
 void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                                                 const QJsonObject& settingDescription) {
-    if (newValue.isString()) {
-        if (newValue.toString().isEmpty()) {
-            // this is an empty value, clear it in settings variant so the default is sent
-            settingMap.remove(key);
-        } else {
-            // make sure the resulting json value has the right type
-            QString settingType = settingDescription[SETTING_DESCRIPTION_TYPE_KEY].toString();
-            const QString INPUT_DOUBLE_TYPE = "double";
-            const QString INPUT_INTEGER_TYPE = "int";
-            
-            if (settingType == INPUT_DOUBLE_TYPE) {
-                settingMap[key] = newValue.toString().toDouble();
-            } else if (settingType == INPUT_INTEGER_TYPE) {
-                settingMap[key] = newValue.toString().toInt();
+    if (!settingDescription[VALUE_GUI_ONLY_FLAG_KEY].toBool()) {
+        if (newValue.isString()) {
+            if (newValue.toString().isEmpty()) {
+                // this is an empty value, clear it in settings variant so the default is sent
+                settingMap.remove(key);
             } else {
-                settingMap[key] = newValue.toString();
+                // make sure the resulting json value has the right type
+                QString settingType = settingDescription[SETTING_DESCRIPTION_TYPE_KEY].toString();
+                const QString INPUT_DOUBLE_TYPE = "double";
+                const QString INPUT_INTEGER_TYPE = "int";
+                
+                if (settingType == INPUT_DOUBLE_TYPE) {
+                    settingMap[key] = newValue.toString().toDouble();
+                } else if (settingType == INPUT_INTEGER_TYPE) {
+                    settingMap[key] = newValue.toString().toInt();
+                } else {
+                    settingMap[key] = newValue.toString();
+                }
             }
-        }
-    } else if (newValue.isBool()) {
-        settingMap[key] = newValue.toBool();
-    } else if (newValue.isObject()) {
-        if (!settingMap.contains(key)) {
-            // we don't have a map below this key yet, so set it up now
-            settingMap[key] = QVariantMap();
-        }
-        
-        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
-        foreach(const QString childKey, newValue.toObject().keys()) {
+        } else if (newValue.isBool()) {
+            settingMap[key] = newValue.toBool();
+        } else if (newValue.isObject()) {
+            if (!settingMap.contains(key)) {
+                // we don't have a map below this key yet, so set it up now
+                settingMap[key] = QVariantMap();
+            }
+            
+            QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
+            foreach(const QString childKey, newValue.toObject().keys()) {
 
-            QJsonObject childDescriptionObject = settingDescription;
-            
-            // is this the key? if so we have the description already
-            if (key != settingDescription[DESCRIPTION_NAME_KEY].toString()) {
-                // otherwise find the description object for this childKey under columns
-                foreach(const QJsonValue& column, settingDescription[DESCRIPTION_COLUMNS_KEY].toArray()) {
-                    if (column.isObject()) {
-                        QJsonObject thisDescription = column.toObject();
-                        if (thisDescription[DESCRIPTION_NAME_KEY] == childKey) {
-                            childDescriptionObject = column.toObject();
-                            break;
+                QJsonObject childDescriptionObject = settingDescription;
+                
+                // is this the key? if so we have the description already
+                if (key != settingDescription[DESCRIPTION_NAME_KEY].toString()) {
+                    // otherwise find the description object for this childKey under columns
+                    foreach(const QJsonValue& column, settingDescription[DESCRIPTION_COLUMNS_KEY].toArray()) {
+                        if (column.isObject()) {
+                            QJsonObject thisDescription = column.toObject();
+                            if (thisDescription[DESCRIPTION_NAME_KEY] == childKey) {
+                                childDescriptionObject = column.toObject();
+                                break;
+                            }
                         }
-                    }
-                } 
+                    } 
+                }
+                
+                updateSetting(childKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
             }
             
-            updateSetting(childKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
+            if (settingMap[key].toMap().isEmpty()) {
+                // we've cleared all of the settings below this value, so remove this one too
+                settingMap.remove(key);
+            }
+        } else if (newValue.isArray()) {
+            // we just assume array is replacement
+            // TODO: we still need to recurse here with the description in case values in the array have special types
+            settingMap[key] = newValue.toArray().toVariantList();
         }
-        
-        if (settingMap[key].toMap().isEmpty()) {
-            // we've cleared all of the settings below this value, so remove this one too
-            settingMap.remove(key);
-        }
-    } else if (newValue.isArray()) {
-        // we just assume array is replacement
-        // TODO: we still need to recurse here with the description in case values in the array have special types
-        settingMap[key] = newValue.toArray().toVariantList();
     }
 }
 
