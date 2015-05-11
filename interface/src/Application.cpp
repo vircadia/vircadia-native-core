@@ -87,7 +87,6 @@
 #include <MessageDialog.h>
 #include <InfoView.h>
 #include <SceneScriptingInterface.h>
-#include <SettingHandle.h>
 
 #include "Application.h"
 #include "AudioClient.h"
