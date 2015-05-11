@@ -32,6 +32,7 @@ public:
     static const Name NAME;
 
     static void init();
+    static void destroy();
 
     /// RealSense MotionTracker factory
     static RealSense* getInstance();

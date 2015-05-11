@@ -193,7 +193,9 @@ void OctreeQueryNode::resetOctreePacket() {
     }
 
     _octreePacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(_octreePacket), _myPacketType);
+    int numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(_octreePacket),
+                                                                                        _myPacketType);
+
     _octreePacketAt = _octreePacket + numBytesPacketHeader;
     _octreePacketAvailableBytes -= numBytesPacketHeader;
 

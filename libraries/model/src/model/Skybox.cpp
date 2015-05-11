@@ -21,6 +21,7 @@ using namespace model;
 
 Skybox::Skybox() {
 
+/* // PLease create a default engineer skybox
     _cubemap.reset( gpu::Texture::createCube(gpu::Element::COLOR_RGBA_32, 1));
     unsigned char texels[] = {
         255, 0, 0, 255,
@@ -30,7 +31,7 @@ Skybox::Skybox() {
         0, 255, 0, 255,
         255, 0, 255, 255,
     };
-    _cubemap->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, sizeof(texels), texels); 
+    _cubemap->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, sizeof(texels), texels);*/
 }
 
 void Skybox::setColor(const Color& color) {
@@ -47,7 +48,7 @@ void Skybox::clearCubemap() {
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
 
-    if (skybox.getCubemap()) {
+    if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
         static gpu::PipelinePointer thePipeline;
         static gpu::BufferPointer theBuffer;
         static gpu::Stream::FormatPointer theFormat;

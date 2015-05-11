@@ -695,6 +695,9 @@ Application::~Application() {
     nodeThread->quit();
     nodeThread->wait();
 
+    Leapmotion::destroy();
+    RealSense::destroy();
+
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
 
@@ -812,8 +815,7 @@ void Application::initializeUi() {
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL(_glWidget->width(),
-                     _glWidget->height());
+            resizeGL();
         }
     });
 }
@@ -830,15 +832,7 @@ void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
-
-    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
-    // Otherwise, it must rebuild the FBOs
-    if (OculusManager::isConnected()) {
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
-    } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
-    }
+    resizeGL();
 
     glEnable(GL_LINE_SMOOTH);
 
@@ -915,7 +909,14 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        DependencyManager::get<GlowEffect>()->render();
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
+                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
+                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -960,33 +961,47 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera, width, height);
+        OculusManager::configureCamera(camera, size.x, size.y);
     } else if (TV3DManager::isConnected()) {
-        TV3DManager::configureCamera(camera, width, height);
+        TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-        camera.setAspectRatio((float)width / height);
+        camera.setAspectRatio((float)size.x / size.y);
         camera.setFieldOfView(_fieldOfView.get());
     }
 }
 
-void Application::resizeGL(int width, int height) {
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
-    resetCamerasOnResizeGL(_myCamera, width, height);
+void Application::resizeGL() {
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    QSize renderSize;
+    if (OculusManager::isConnected()) {
+        renderSize = OculusManager::getRenderTargetSize();
+    } else {
+        renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+    }
+    if (_renderResolution == toGlm(renderSize)) {
+    	return;
+    }
 
-    glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _renderResolution = toGlm(renderSize);
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+    resetCamerasOnResizeGL(_myCamera, _renderResolution);
+
+    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
     glLoadIdentity();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(_glWidget->size());
+    _glWidget->makeCurrent();
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(width, horizontalOffset);
+    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
@@ -1824,7 +1839,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1849,7 +1864,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
     
     updateCursorVisibility();
 }
@@ -1934,6 +1949,7 @@ void Application::setActiveFaceTracker() {
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->setIsMuted(isMuted);
     ddeTracker->setEnabled(isUsingDDE && !isMuted);
@@ -2564,7 +2580,7 @@ int Application::sendNackPackets() {
                 int bytesRemaining = MAX_PACKET_SIZE;
                 
                 // pack header
-                int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
                 
@@ -2647,7 +2663,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2688,7 +2707,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             
-            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
             
@@ -2710,7 +2728,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
+
+
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -2756,9 +2779,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-            
+
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
@@ -4627,8 +4650,4 @@ PickRay Application::computePickRay() const {
 
 bool Application::hasFocus() const {
     return _glWidget->hasFocus();
-}
-
-void Application::resizeGL() {
-    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }

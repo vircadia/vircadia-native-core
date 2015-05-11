@@ -163,7 +163,7 @@ public:
     void initializeGL();
     void initializeUi();
     void paintGL();
-    void resizeGL(int width, int height);
+    void resizeGL();
 
     void resizeEvent(QResizeEvent * size);
 
@@ -194,7 +194,6 @@ public:
     bool hasFocus() const;
     PickRay computePickRay() const;
     PickRay computeViewPickRay(float xRatio, float yRatio) const;
-    void resizeGL();
 
     bool isThrottleRendering() const;
 
@@ -463,7 +462,7 @@ private slots:
     void setCursorVisible(bool visible);
 
 private:
-    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+    void resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size);
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
@@ -662,6 +661,7 @@ private:
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;
+    glm::uvec2 _renderResolution;
 };
 
 #endif // hifi_Application_h

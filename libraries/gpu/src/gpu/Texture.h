@@ -56,23 +56,23 @@ public:
         glm::vec4 _borderColor{ 1.0f };
         uint32 _maxAnisotropy = 16;
 
+        uint8 _filter = FILTER_MIN_MAG_POINT;
+        uint8 _comparisonFunc = ALWAYS;
+
         uint8 _wrapModeU = WRAP_REPEAT;
         uint8 _wrapModeV = WRAP_REPEAT;
         uint8 _wrapModeW = WRAP_REPEAT;
-
-        uint8 _filter = FILTER_MIN_MAG_POINT;
-        uint8 _comparisonFunc = ALWAYS;
             
         uint8 _mipOffset = 0;
         uint8 _minMip = 0;
         uint8 _maxMip = MAX_MIP_LEVEL;
 
         Desc() {}
-        Desc(const Filter filter) : _filter(filter) {}
+        Desc(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _filter(filter), _wrapModeU(wrap), _wrapModeV(wrap), _wrapModeW(wrap) {}
     };
 
     Sampler() {}
-    Sampler(const Filter filter) : _desc(filter) {}
+    Sampler(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _desc(filter, wrap) {}
     Sampler(const Desc& desc) : _desc(desc) {}
     ~Sampler() {}
 

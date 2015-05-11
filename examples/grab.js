@@ -27,6 +27,7 @@ var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
 var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
 var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
+var originalGravity;
 var shouldRotate = false;
 var dQ, theta, axisAngle, dT;
 var angularVelocity = {
@@ -65,6 +66,7 @@ function mousePressEvent(event) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
+    originalGravity = props.gravity;
     targetPosition = props.position;
     currentPosition = props.position;
     currentVelocity = props.velocity;
@@ -96,6 +98,11 @@ function updateDropLine(position) {
 function mouseReleaseEvent() {
   if (isGrabbing) {
     isGrabbing = false;
+
+    Entities.editEntity(grabbedEntity, {
+      gravity: originalGravity
+    });
+
     Overlays.editOverlay(dropLine, {
       visible: false
     });
@@ -179,7 +186,7 @@ function update(deltaTime) {
     if (distanceToTarget > CLOSE_ENOUGH) {
       //  compute current velocity in the direction we want to move 
       velocityTowardTarget = Vec3.dot(currentVelocity, Vec3.normalize(dPosition));
-      velocityTowardTarget = Vec3.multiply(dPosition, velocityTowardTarget);
+      velocityTowardTarget = Vec3.multiply(Vec3.normalize(dPosition), velocityTowardTarget);
       //  compute the speed we would like to be going toward the target position 
 
       desiredVelocity = Vec3.multiply(dPosition, (1.0 / deltaTime) * SPRING_RATE);
@@ -193,15 +200,19 @@ function update(deltaTime) {
       //  Add Damping 
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
-
-      //add damping to angular velocity:
+    } else {
+      newVelocity = {x: 0, y: 0, z: 0};
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
+    } else {
+      angularVelocity = entityProps.angularVelocity; 
     }
+
     Entities.editEntity(grabbedEntity, {
       velocity: newVelocity,
-      angularVelocity: angularVelocity
+      angularVelocity: angularVelocity,
+      gravity: {x: 0, y: 0, z: 0}
     })
     updateDropLine(targetPosition);
   }

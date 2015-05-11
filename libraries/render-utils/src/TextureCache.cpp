@@ -417,17 +417,23 @@ void ImageReader::run() {
         return;
     }
 
-    // enforce a fixed maximum area (1024 * 2048)
-    const int MAXIMUM_AREA_SIZE = 2097152;
     int imageArea = image.width() * image.height();
-    if (imageArea > MAXIMUM_AREA_SIZE) {
-        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
-        int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
-        int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
-        qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
-            " scaled to:" << resizeWidth << resizeHeight;
-        image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
-        imageArea = image.width() * image.height();
+    auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
+    if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
+        qCDebug(renderutils) << "Cube map size:" << _url << image.width() << image.height();
+    } else {
+
+        // enforce a fixed maximum area (1024 * 2048)
+        const int MAXIMUM_AREA_SIZE = 2097152;
+        if (imageArea > MAXIMUM_AREA_SIZE) {
+            float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
+            int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
+            int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
+            qCDebug(renderutils) << "Image greater than maximum size:" << _url << image.width() << image.height() <<
+                " scaled to:" << resizeWidth << resizeHeight;
+            image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
+            imageArea = image.width() * image.height();
+        }
     }
     
     const int EIGHT_BIT_MAXIMUM = 255;
@@ -507,6 +513,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     imageLoaded(image);
 
     if ((_width > 0) && (_height > 0)) {
+        
         bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -515,9 +522,18 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        _gpuTexture->autoGenerateMips(-1);
+        
+        if (_type == CUBE_TEXTURE) {
+            if (_height >= (6 * _width)) {
+                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+                _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+                _gpuTexture->autoGenerateMips(-1);
+            }
+        } else {
+            _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+            _gpuTexture->autoGenerateMips(-1);
+        }
     }
 }
 

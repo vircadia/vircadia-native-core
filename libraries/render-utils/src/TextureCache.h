@@ -27,7 +27,7 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE, CUBE_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -164,7 +164,7 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-
+    TextureType getType() const { return _type; }
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
