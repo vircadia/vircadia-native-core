@@ -241,7 +241,7 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::refresh() {
-    if (_reply == nullptr && !(_loaded || _failedToLoad)) {
+    if (_reply && !(_loaded || _failedToLoad)) {
         return;
     }
     if (_reply) {
@@ -351,6 +351,7 @@ void Resource::maybeRefresh() {
             QDateTime lastModifiedOld = metaData.lastModified();
             if (lastModified.isValid() && lastModifiedOld.isValid() &&
                 lastModifiedOld == lastModified) {
+                qCDebug(networking) << "Using cached version of" << _url.fileName();
                 // We don't need to update, return
                 return;
             }
