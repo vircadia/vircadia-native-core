@@ -157,7 +157,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     quint8 appendFlag = 0;
 
     // pack header
-    int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeAudioStreamStats);
+    int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeAudioStreamStats);
     char* headerEndAt = packet + numBytesPacketHeader;
 
     // calculate how many stream stat structs we can fit in each packet

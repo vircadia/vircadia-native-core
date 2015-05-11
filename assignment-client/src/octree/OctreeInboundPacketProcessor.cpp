@@ -277,9 +277,11 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
             char* dataAt = packet;
             int bytesRemaining = MAX_PACKET_SIZE;
+            
+            auto nodeList = DependencyManager::get<NodeList>();
 
             // pack header
-            int numBytesPacketHeader = populatePacketHeader(packet, _myServer->getMyEditNackType());
+            int numBytesPacketHeader = nodeList->populatePacketHeader(packet, _myServer->getMyEditNackType());
             dataAt += numBytesPacketHeader;
             bytesRemaining -= numBytesPacketHeader;
 
@@ -301,7 +303,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            DependencyManager::get<NodeList>()->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
+            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
             packetsSent++;
             
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
