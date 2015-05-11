@@ -73,6 +73,19 @@ var viewHelpers = {
           form_group += "</select>"
         
           form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+        } else if (input_type === 'button') {
+          // Is this a button that should link to something directly? 
+          // If so, we use an anchor tag instead of a button tag
+          
+          if (setting.href) {
+            form_group += "<a href='" + setting.href + "' class='btn btn-primary form-control' style='display: block;' role='button'" 
+              + common_attrs + ">" 
+              + setting.button_label + "</a>";
+          } else {
+            form_group += "<button class='btn btn-primary form-control'" + common_attrs + ">" 
+              + setting.button_label + "</button>";
+          }
+
         } else {
         
           if (input_type == 'integer') {
