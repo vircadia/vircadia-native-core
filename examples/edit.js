@@ -1030,8 +1030,11 @@ function importSVO(importURL) {
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
-        var position = getPositionToCreateEntity();
-
+        var VERY_LARGE = 10000;
+        var position = { x: 0, y: 0, z: 0};
+        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
+            position = getPositionToCreateEntity();
+        }
         var pastedEntityIDs = Clipboard.pasteEntities(position);
 
         if (isActive) {
