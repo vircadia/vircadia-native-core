@@ -49,9 +49,13 @@ private:
     // while the second is code to be executed between the two eyes.
     // The use case here is to modify the output viewport coordinates 
     // for the new eye.
-    template<typename F>
-    static void forEachEye(F f) {
+    // FIXME: we'd like to have a default empty lambda for the second parameter, 
+    // but gcc 4.8.1 complains about it due to a bug.  See 
+    // http://stackoverflow.com/questions/25490662/lambda-as-default-parameter-to-a-member-function-template
+    template<typename F, typename FF>
+    static void forEachEye(F f, FF ff) {
         f(_leftEye);
+        ff();
         f(_rightEye);
     }
 };
