@@ -1197,7 +1197,11 @@ PropertiesTool = function(opts) {
 
     webView.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
-        if (data.type == "update") {
+        if (data.type == "print") {
+            if (data.message) {
+                print(data.message);
+            }
+        } else if (data.type == "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 properties = {
