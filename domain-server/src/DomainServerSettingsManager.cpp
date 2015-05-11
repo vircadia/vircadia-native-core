@@ -31,6 +31,7 @@ const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
+const QString VALUE_GUI_ONLY_FLAG_KEY = "gui-only";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
@@ -187,7 +188,7 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                 
                 QJsonObject settingObject = settingValue.toObject();
                 
-                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && !settingObject[VALUE_GUI_ONLY_FLAG_KEY].toBool()) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
                         affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();

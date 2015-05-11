@@ -10,7 +10,7 @@
         "help": "Click the button above to connect your High Fidelity metaverse account.",
         "button_label": "Connect High Fidelity Account",
         "href": "https://metaverse.highfidelity.com/oauth/authorize?client_id=38e572ed35bc4d34c41fbf1fb4d00071bb7328b3d0ba06d1fba64aa3f44e71e4&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Foauth&response_type=code&scope=domains",
-        "persist": false
+        "gui-only": true
       },
       {
         "name": "access_token",
