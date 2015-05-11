@@ -137,7 +137,7 @@ struct Packet {
 };
 
 static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
-
+static const float DEFAULT_DDE_EYE_CLOSING_THRESHOLD = 0.8f;
 static const int CALIBRATION_SAMPLES = 150;
 
 #ifdef WIN32
@@ -182,6 +182,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
+    _eyeClosingThreshold("ddeEyeClosingThreshold", DEFAULT_DDE_EYE_CLOSING_THRESHOLD),
     _isCalibrating(false),
     _calibrationValues(),
     _calibrationCount(0),
@@ -464,12 +465,12 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
                 // Change to closing or opening states
                 const float EYE_CONTROL_HYSTERISIS = 0.25f;
-                const float EYE_CLOSING_THRESHOLD = 0.8f;
-                const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
-                if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
+                float eyeClosingThreshold = getEyeClosingThreshold();
+                float eyeOpeningThreshold = eyeClosingThreshold - EYE_CONTROL_HYSTERISIS;
+                if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > eyeClosingThreshold) {
                     _eyeStates[i] = EYE_CLOSING;
                 } else if ((_eyeStates[i] == EYE_CLOSED || _eyeStates[i] == EYE_CLOSING)
-                    && eyeCoefficients[i] < EYE_OPENING_THRESHOLD) {
+                    && eyeCoefficients[i] < eyeOpeningThreshold) {
                     _eyeStates[i] = EYE_OPENING;
                 }
 
@@ -557,6 +558,10 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if (_isCalibrating && _calibrationCount > CALIBRATION_SAMPLES) {
         finishCalibration();
     }
+}
+
+void DdeFaceTracker::setEyeClosingThreshold(float eyeClosingThreshold) {
+    _eyeClosingThreshold.set(eyeClosingThreshold);
 }
 
 static const int CALIBRATION_BILLBOARD_WIDTH = 240;
