@@ -205,6 +205,7 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap 
     // passes, mirror window passes, etc
     ViewFrustum* getDisplayViewFrustum();
+    const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }

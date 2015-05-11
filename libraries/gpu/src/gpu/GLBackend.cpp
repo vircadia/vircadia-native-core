@@ -10,6 +10,7 @@
 //
 #include "GPULogging.h"
 #include "GLBackendShared.h"
+#include <glm/gtc/type_ptr.hpp>
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -520,4 +521,30 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
 }
+
+void GLBackend::loadMatrix(GLenum target, const glm::mat4 & m) {
+    glMatrixMode(target);
+    glLoadMatrixf(glm::value_ptr(m));
+}
+
+void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
+    switch (target) {
+    case GL_MODELVIEW_MATRIX:
+    case GL_PROJECTION_MATRIX:
+        break;
+
+    // Lazy cheating
+    case GL_MODELVIEW:
+        target = GL_MODELVIEW_MATRIX;
+        break;
+    case GL_PROJECTION:
+        target = GL_PROJECTION_MATRIX;
+        break;
+    default:
+        Q_ASSERT_X(false, "GLBackend::fetchMatrix", "Bad matrix target");
+    }
+    glGetFloatv(target, glm::value_ptr(m));
+}
+
+
 

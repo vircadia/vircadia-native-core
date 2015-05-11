@@ -26,10 +26,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stack>
 
-#include <gpu/GPUConfig.h>
-
-
-
 class MatrixStack : public std::stack<glm::mat4> {
 
 public:
@@ -181,23 +177,6 @@ public:
   static void withPush(MatrixStack& stack1, MatrixStack& stack2, Function f) {
     stack1.withPush([&]{
       stack2.withPush(f);
-    });
-  }
-
-  template <typename Function> 
-  static void withGlMatrices(Function f) {
-    // Push the current stack, and then copy the values out of OpenGL
-    withPushAll([&] {
-      // Fetch the current matrices out of GL stack
-      // FIXME, eliminate the usage of deprecated GL
-      MatrixStack & mv = MatrixStack::modelview();
-      MatrixStack & pr = MatrixStack::projection();
-      glm::mat4 & mvm = mv.top();
-      glGetFloatv(GL_MODELVIEW_MATRIX, &(mvm[0][0]));
-
-      glm::mat4 & prm = pr.top();
-      glGetFloatv(GL_PROJECTION_MATRIX, &(prm[0][0]));
-      f();
     });
   }
 };

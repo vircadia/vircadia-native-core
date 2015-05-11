@@ -45,6 +45,10 @@ private:
     static eyeFrustum _rightEye;
     static eyeFrustum* _activeEye;
     
+    // The first function is the code executed for each eye
+    // while the second is code to be executed between the two eyes.
+    // The use case here is to modify the output viewport coordinates 
+    // for the new eye.
     template<typename F, typename FF>
     static void forEachEye(F f, FF ff = []{}) {
         f(_leftEye);

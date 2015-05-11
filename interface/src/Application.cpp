@@ -3069,7 +3069,11 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        if (activeRenderingThread) {
+            getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        } else {
+            getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        }
     }
     return result;
 }
@@ -3115,6 +3119,16 @@ const ViewFrustum* Application::getViewFrustum() const {
 }
 
 ViewFrustum* Application::getDisplayViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+#endif
+    return &_displayViewFrustum;
+}
+
+const ViewFrustum* Application::getDisplayViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() != activeRenderingThread) {
         // FIXME, should this be an assert?

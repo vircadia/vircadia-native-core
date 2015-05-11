@@ -548,18 +548,23 @@ float TextRenderer::draw(float x, float y, const QString & str,
 
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
     glm::vec2 result;
-    MatrixStack::withGlMatrices([&] {
+
+    MatrixStack::withPushAll([&] {
         MatrixStack & mv = MatrixStack::modelview();
-            // scale the modelview into font units
-            // FIXME migrate the constant scale factor into the geometry of the
-            // fonts so we don't have to flip the Y axis here and don't have to
-            // scale at all.
-            mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
-            // The font does all the OpenGL work
-            if (_font) {
-                result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
-            }
-        });
+        MatrixStack & pr = MatrixStack::projection();
+        gpu::GLBackend::fetchMatrix(GL_MODELVIEW_MATRIX, mv.top());
+        gpu::GLBackend::fetchMatrix(GL_PROJECTION_MATRIX, pr.top());
+
+        // scale the modelview into font units
+        // FIXME migrate the constant scale factor into the geometry of the
+        // fonts so we don't have to flip the Y axis here and don't have to
+        // scale at all.
+        mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
+        // The font does all the OpenGL work
+        if (_font) {
+            result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
+        }
+    });
     return result.x;
 }
 
