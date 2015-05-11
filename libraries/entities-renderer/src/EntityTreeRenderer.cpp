@@ -142,7 +142,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
-    if (!url.isValid() || scriptMaybeURLorText.startsWith("(")) {
+    if (!url.isValid()) {
         isURL = false;
         return scriptMaybeURLorText;
     }
