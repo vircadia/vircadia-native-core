@@ -85,13 +85,13 @@ bool StagePropertyGroup::appentToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, appendValue, getSunModelEnabled());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, appendValue, getLatitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, appendValue, getLongitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, getAltitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, getDay());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getHour());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, appendValue, getAutomaticHourDay());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, getSunModelEnabled());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, getLatitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, getLongitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, getAltitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, getDay());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, getHour());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, getAutomaticHourDay());
 
     return true;
 }
@@ -195,13 +195,13 @@ void StagePropertyGroup::appendSubclassData(OctreePacketData* packetData, Encode
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, appendValue, getSunModelEnabled());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, appendValue, getLatitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, appendValue, getLongitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, appendValue, getAltitude());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, appendValue, getDay());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, appendValue, getHour());
-    APPEND_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, appendValue, getAutomaticHourDay());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, getSunModelEnabled());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, getLatitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, getLongitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, getAltitude());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_DAY, getDay());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_HOUR, getHour());
+    APPEND_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, getAutomaticHourDay());
 }
 
 int StagePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 

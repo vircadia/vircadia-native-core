@@ -646,77 +646,77 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
-            APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
-            APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
-            APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, properties.getDensity());
-            APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
-            APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
-            APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, appendValue, properties.getAcceleration());
-            APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
-            APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
-            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
-            APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
-            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
-            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
-            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, properties.getAngularDamping());
-            APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
-            APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
-            APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
-            APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, properties.getUserData());
-            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, properties.getSimulatorID());
+            APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
+            APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
+            APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
+            APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_GRAVITY, properties.getGravity());
+            APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, properties.getAcceleration());
+            APPEND_ENTITY_PROPERTY(PROP_DAMPING, properties.getDamping());
+            APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
+            APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
+            APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, properties.getIgnoreForCollisions());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
+            APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
+            APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             
             if (properties.getType() == EntityTypes::Text) {
-                APPEND_ENTITY_PROPERTY(PROP_TEXT, appendValue, properties.getText());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, appendValue, properties.getLineHeight());
-                APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, appendColor, properties.getTextColor());
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, appendColor, properties.getBackgroundColor());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
             }
             
             if (properties.getType() == EntityTypes::Model) {
-                APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
-                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
-                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
-                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)(properties.getShapeType()));
+                APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, properties.getAnimationURL());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
+                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
             }
 
             if (properties.getType() == EntityTypes::Light) {
-                APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
-                APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
-                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, properties.getIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
-                APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
+                APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, properties.getIsSpotlight());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, properties.getIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_EXPONENT, properties.getExponent());
+                APPEND_ENTITY_PROPERTY(PROP_CUTOFF, properties.getCutoff());
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, properties.getMaxParticles());
-                APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, properties.getLifespan());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, properties.getEmitRate());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, properties.getEmitDirection());
-                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, properties.getEmitStrength());
-                APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, properties.getLocalGravity());
-                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, properties.getParticleRadius());
+                APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
+                APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, properties.getEmitDirection());
+                APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, properties.getEmitStrength());
+                APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, properties.getLocalGravity());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, appendColor, properties.getKeyLightColor());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  appendValue, properties.getKeyLightIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, appendValue, properties.getKeyLightAmbientIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, appendValue, properties.getKeyLightDirection());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, properties.getKeyLightColor());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  properties.getKeyLightIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, properties.getKeyLightAmbientIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, properties.getKeyLightDirection());
 
                 _staticStage.setProperties(properties);
                 _staticStage.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
 
-                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)properties.getShapeType());
-                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, properties.getCompoundShapeURL());
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
 
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, appendValue, (uint32_t)properties.getBackgroundMode());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
                 
                 _staticAtmosphere.setProperties(properties);
                 _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
@@ -725,8 +725,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
             
-            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
-            APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, properties.getName());
+            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
+            APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();

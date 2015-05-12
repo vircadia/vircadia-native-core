@@ -89,7 +89,7 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

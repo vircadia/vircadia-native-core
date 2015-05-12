@@ -162,16 +162,16 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
-    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getAnimationURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
 }
 
 

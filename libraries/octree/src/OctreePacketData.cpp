@@ -281,15 +281,15 @@ bool OctreePacketData::appendBitMask(unsigned char bitmask) {
     return success;
 }
 
-bool OctreePacketData::appendColor(const nodeColor& color) {
+bool OctreePacketData::appendValue(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
-bool OctreePacketData::appendColor(const xColor& color) {
+bool OctreePacketData::appendValue(const xColor& color) {
     return appendColor(color.red, color.green, color.blue);
 }
 
-bool OctreePacketData::appendColor(const rgbColor& color) {
+bool OctreePacketData::appendValue(const rgbColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 

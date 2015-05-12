@@ -94,7 +94,7 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 void BoxEntityItem::debugDump() const {

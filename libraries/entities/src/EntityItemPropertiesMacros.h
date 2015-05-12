@@ -12,10 +12,10 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#define APPEND_ENTITY_PROPERTY(P,O,V) \
+#define APPEND_ENTITY_PROPERTY(P,V) \
         if (requestedProperties.getHasProperty(P)) {                \
             LevelDetails propertyLevel = packetData->startLevel();  \
-            successPropertyFits = packetData->O(V);                 \
+            successPropertyFits = packetData->appendValue(V);       \
             if (successPropertyFits) {                              \
                 propertyFlags |= P;                                 \
                 propertiesDidntFit -= P;                            \

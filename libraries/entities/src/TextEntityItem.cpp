@@ -117,10 +117,10 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_TEXT, appendValue, getText());
-    APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, appendValue, getLineHeight());
-    APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, appendColor, getTextColor());
-    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, appendColor, getBackgroundColor());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT, getText());
+    APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, getTextColor());
+    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, getBackgroundColor());
 }
 
 

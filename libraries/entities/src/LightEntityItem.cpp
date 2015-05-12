@@ -181,9 +181,9 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, getIsSpotlight());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_INTENSITY, appendValue, getIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, getExponent());
-    APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, getCutoff());
+    APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, getIsSpotlight());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_INTENSITY, getIntensity());
+    APPEND_ENTITY_PROPERTY(PROP_EXPONENT, getExponent());
+    APPEND_ENTITY_PROPERTY(PROP_CUTOFF, getCutoff());
 }

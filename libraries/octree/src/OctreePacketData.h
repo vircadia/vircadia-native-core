@@ -128,16 +128,16 @@ public:
     bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
 
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const nodeColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const xColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const rgbColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendColor(colorPart red, colorPart green, colorPart blue);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const nodeColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const xColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const rgbColor& color);
 
     /// appends a unsigned 8 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(uint8_t value);

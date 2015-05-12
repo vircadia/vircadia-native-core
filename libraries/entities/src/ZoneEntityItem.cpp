@@ -193,18 +193,18 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, appendColor, _keyLightColor);
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, appendValue, getKeyLightIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, appendValue, getKeyLightAmbientIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, appendValue, getKeyLightDirection());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, _keyLightColor);
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getKeyLightIntensity());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, getKeyLightAmbientIntensity());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getKeyLightDirection());
 
     _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
 
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
-    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, appendValue, getCompoundShapeURL());
-    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, appendValue, (uint32_t)getBackgroundMode()); // could this be a uint16??
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
+    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
     
     _atmosphereProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);

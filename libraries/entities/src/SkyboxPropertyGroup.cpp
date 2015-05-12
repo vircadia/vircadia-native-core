@@ -45,8 +45,8 @@ bool SkyboxPropertyGroup::appentToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, appendValue, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, getURL());
 
     return true;
 }
@@ -115,8 +115,8 @@ void SkyboxPropertyGroup::appendSubclassData(OctreePacketData* packetData, Encod
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, appendValue, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, getURL());
 }
 
 int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 

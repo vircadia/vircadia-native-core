@@ -216,27 +216,27 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
-        APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
-        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, appendValue, getAcceleration());
-        APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
-        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
-        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
-        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
-        APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
-        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
-        APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
-        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, getSimulatorID());
-        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
-        APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, getName());
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+        APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
+        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
+        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
+        APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
+        APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
+        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
