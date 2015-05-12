@@ -2205,7 +2205,7 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
     const char* packetDataStart = receivedPacket.data() + numHeaderBytes;
 
     // figure out how many bytes the sender said this path is
-    quint8 numPathBytes = *packetDataStart;
+    quint16 numPathBytes = *packetDataStart;
 
     if (numPathBytes <= receivedPacket.size() - numHeaderBytes - 1) {
         // the number of path bytes makes sense for the sent packet - pull out the path
@@ -2234,11 +2234,19 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
                 // prepare a packet for the response
                 QByteArray pathResponsePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerPathResponse);
 
-                // first append the number of bytes the viewpoint is, for unpacking on the other side
-                quint8 numViewpointBytes = responseViewpoint.toUtf8().size();
+                // check the number of bytes the viewpoint is
+                quint16 numViewpointBytes = responseViewpoint.toUtf8().size();
 
-                // are we going to be able to fit this viewpoint in a packet?
-                if (numViewpointBytes + pathResponsePacket.size() + sizeof(numViewpointBytes) < MAX_PACKET_SIZE) {
+                // are we going to be able to fit this response viewpoint in a packet?
+                if (numPathBytes + numViewpointBytes + pathResponsePacket.size() + sizeof(numViewpointBytes)
+                        < MAX_PACKET_SIZE) {
+                    // append the number of bytes this path is
+                    pathResponsePacket.append(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
+
+                    // append the path itself
+                    pathResponsePacket.append(pathQuery.toUtf8());
+
+                    // append the number of bytes the resulting viewpoint is
                     pathResponsePacket.append(reinterpret_cast<char*>(&numViewpointBytes), sizeof(numViewpointBytes));
 
                     // append the viewpoint itself
