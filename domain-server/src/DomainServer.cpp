@@ -1398,6 +1398,11 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
 
                 break;
             }
+            case PacketTypeDomainServerPathQuery: {
+                // have our private method attempt to respond to this path query
+                respondToPathQuery(receivedPacket, senderSockAddr);
+                break;
+            }
             case PacketTypeNodeJsonStats: {
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (matchingNode) {
@@ -2188,5 +2193,66 @@ void DomainServer::addStaticAssignmentsToQueue() {
         }
 
         ++staticAssignment;
+    }
+}
+
+void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+    // this is a query for the viewpoint resulting from a path
+    // first pull the query path from the packet
+
+    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerPathQuery);
+    const char* packetDataStart = receivedPacket.data() + numHeaderBytes;
+
+    // figure out how many bytes the sender said this path is
+    quint8 numPathBytes = *packetDataStart;
+
+    if (numPathBytes <= receivedPacket.size() - numHeaderBytes - 1) {
+        // the number of path bytes makes sense for the sent packet - pull out the path
+        QString pathQuery = QString::fromUtf8(packetDataStart + 1, numPathBytes);
+
+        // our settings contain paths that start with a leading slash, so make sure this query has that
+        if (!pathQuery.startsWith("/")) {
+            pathQuery.prepend("/");
+        }
+
+        const QString PATHS_SETTINGS_KEYPATH_FORMAT = "paths.%2";
+        const QString PATH_VIEWPOINT_KEY = "viewpoint";
+
+        // check out paths in the _configMap to see if we have a match
+        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                    QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(pathQuery));
+        if (pathMatch) {
+            // we got a match, respond with the resulting viewpoint
+            auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+            QString responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+
+            if (!responseViewpoint.isEmpty()) {
+                QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
+
+                // prepare a packet for the response
+                QByteArray pathResponsePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerPathResponse);
+
+                // first append the number of bytes the viewpoint is, for unpacking on the other side
+                quint8 numViewpointBytes = responseViewpoint.toUtf8().size();
+
+                // are we going to be able to fit this viewpoint in a packet?
+                if (numViewpointBytes + pathResponsePacket.size() + sizeof(numViewpointBytes) < MAX_PACKET_SIZE) {
+                    pathResponsePacket.append(reinterpret_cast<char*>(&numViewpointBytes), sizeof(numViewpointBytes));
+
+                    // append the viewpoint itself
+                    pathResponsePacket.append(viewpointUTF8);
+
+                    // send off the packet - see if we can associate this outbound data to a particular node
+                    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+                    nodeList->writeUnverifiedDatagram(pathResponsePacket, matchingNode, senderSockAddr);
+                }
+            }
+
+        } else {
+            // we don't respond if there is no match - this may need to change once this packet
+            // query/response is made reliable
+            qDebug() << "No match for path query" << pathQuery << "- refusing to respond.";
+        }
     }
 }

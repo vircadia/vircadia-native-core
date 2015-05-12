@@ -96,7 +96,8 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeNodeJsonStats << PacketTypeEntityQuery
     << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode;
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+    << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
 
 const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
     << PacketTypeAvatarData;
