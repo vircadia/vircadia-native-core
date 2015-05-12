@@ -125,7 +125,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
                 attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path());
-
             }
         }
 
@@ -253,9 +252,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                             qCDebug(networking) << "Received a location path that was could not be handled as a viewpoint -"
                                 << returnedPath;
                         }
+                    } else {
+                        // we didn't override the path or get one back - ask the DS for the viewpoint of its index path
+                        // which we will jump to if it exists
+                        emit pathChangeRequired(INDEX_PATH);
                     }
                 }
-
 
             } else {
                 qCDebug(networking) << "Received an address manager API response with no domain key. Cannot parse.";

@@ -71,9 +71,11 @@ public slots:
     void reset();
     void sendDomainServerCheckIn();
     void pingInactiveNodes();
-    void sendDSPathQuery(const QString& newPath);
+    void handleDSPathQuery(const QString& newPath);
 signals:
     void limitOfSilentDomainCheckInsReached();
+private slots:
+    void sendPendingDSPathQuery();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -91,6 +93,8 @@ private:
     void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
 
     void handleDSPathQueryResponse(const QByteArray& packet);
+
+    void sendDSPathQuery(const QString& newPath);
 
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;

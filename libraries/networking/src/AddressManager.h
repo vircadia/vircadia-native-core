@@ -24,6 +24,7 @@
 
 const QString HIFI_URL_SCHEME = "hifi";
 const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
+const QString INDEX_PATH = "/";
 
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();

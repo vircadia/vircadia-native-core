@@ -54,7 +54,12 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
-    connect(addressManager.data(), &AddressManager::pathChangeRequired, this, &NodeList::sendDSPathQuery);
+    // handle a request for a path change from the AddressManager
+    connect(addressManager.data(), &AddressManager::pathChangeRequired, this, &NodeList::handleDSPathQuery);
+
+    // in case we don't know how to talk to DS when a path change is requested
+    // fire off any pending DS path query when we get socket information
+    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
 
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
@@ -401,9 +406,34 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
+void NodeList::handleDSPathQuery(const QString& newPath) {
+    if (_domainHandler.isSocketKnown()) {
+        // if we have a DS socket we assume it will get this packet and send if off right away
+        sendDSPathQuery(newPath);
+    } else {
+        // otherwise we make it pending so that it can be sent once a connection is established
+        _domainHandler.setPendingPath(newPath);
+    }
+}
+
+void NodeList::sendPendingDSPathQuery() {
+
+    QString pendingPath = _domainHandler.getPendingPath();
+
+    if (!pendingPath.isEmpty()) {
+        qCDebug(networking) << "Attemping to send pending query to DS for path" << pendingPath;
+
+        // this is a slot triggered if we just established a network link with a DS and want to send a path query
+        sendDSPathQuery(_domainHandler.getPendingPath());
+
+        // clear whatever the pending path was
+        _domainHandler.clearPendingPath();
+    }
+}
+
 void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
-    if (!_domainHandler.getSockAddr().isNull()) {
+    if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
         QByteArray pathQueryPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerPathQuery);
 
@@ -420,12 +450,13 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
             // append the path itself to the query packet
             pathQueryPacket.append(pathQueryUTF8);
 
-            qDebug() << "Sending a path query packet for path" << newPath << "to domain-server at" << _domainHandler.getSockAddr();
+            qCDebug(networking) << "Sending a path query packet for path" << newPath << "to domain-server at"
+                << _domainHandler.getSockAddr();
 
             // send off the path query
             writeUnverifiedDatagram(pathQueryPacket, _domainHandler.getSockAddr());
         } else {
-            qDebug() << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
+            qCDebug(networking) << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
                 "Will not send query.";
         }
     }
@@ -462,9 +493,10 @@ void NodeList::handleDSPathQueryResponse(const QByteArray& packet) {
 
             // Hand it off to the AddressManager so it can handle it as a relative viewpoint
             if (DependencyManager::get<AddressManager>()->goToViewpoint(viewpoint)) {
-                qDebug() << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+                qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
             } else {
-                qDebug() << "Could not go to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+                qCDebug(networking) << "Could not go to viewpoint" << viewpoint
+                    << "which was the lookup result for path" << pathQuery;
             }
         }
     }

@@ -2255,8 +2255,8 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
                     qDebug() << "Sending a viewpoint response for path query" << pathQuery << "-" << viewpointUTF8;
 
                     // send off the packet - see if we can associate this outbound data to a particular node
-                    SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-                    nodeList->writeUnverifiedDatagram(pathResponsePacket, matchingNode, senderSockAddr);
+                    // TODO: does this senderSockAddr always work for a punched DS client?
+                    nodeList->writeUnverifiedDatagram(pathResponsePacket, senderSockAddr);
                 }
             }
 
