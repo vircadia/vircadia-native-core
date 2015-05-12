@@ -300,6 +300,8 @@
             var elZoneAtmosphereCenterX = document.getElementById("property-zone-atmosphere-center-x");
             var elZoneAtmosphereCenterY = document.getElementById("property-zone-atmosphere-center-y");
             var elZoneAtmosphereCenterZ = document.getElementById("property-zone-atmosphere-center-z");
+            var elCenterAtmosphereToZone = document.getElementById("center-atmosphere-in-zone");
+            
             var elZoneAtmosphereInnerRadius = document.getElementById("property-zone-atmosphere-inner-radius");
             var elZoneAtmosphereOuterRadius = document.getElementById("property-zone-atmosphere-outer-radius");
             var elZoneAtmosphereMieScattering = document.getElementById("property-zone-atmosphere-mie-scattering");
@@ -703,6 +705,12 @@
                     type: "action",
                     action: "rescaleDimensions",
                     percentage: parseInt(elRescaleDimensionsPct.value),
+                }));
+            });
+            elCenterAtmosphereToZone.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "centerAtmosphereToZone",
                 }));
             });
 
@@ -1156,6 +1164,9 @@
                 <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></input></div>
                 <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-center-y"></input></div>
                 <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></input></div>
+                <div>
+                    <input type="button" id="center-atmosphere-in-zone" value="Center to Zone">
+                </div>
             </div>
         </div>
         <div class="zone-section atmosphere-section property">
