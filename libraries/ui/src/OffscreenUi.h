@@ -96,9 +96,9 @@ private:
         offscreenUi->load(QML, f); \
     } 
 
-class OffscreenUi : public OffscreenGlCanvas, public Dependency {
+class OffscreenQmlSurface : public OffscreenGlCanvas {
     Q_OBJECT
-
+protected:
     class QMyQuickRenderControl : public QQuickRenderControl {
     protected:
         QWindow* renderWindow(QPoint* offset) Q_DECL_OVERRIDE{
@@ -113,36 +113,76 @@ class OffscreenUi : public OffscreenGlCanvas, public Dependency {
 
     private:
         QWindow* _renderWindow{ nullptr };
-        friend class OffscreenUi;
+        friend class OffscreenQmlSurface;
     };
-
 public:
+    OffscreenQmlSurface();
+    virtual ~OffscreenQmlSurface();
+
     using MouseTranslator = std::function<QPointF(const QPointF&)>;
-    OffscreenUi();
-    virtual ~OffscreenUi();
+
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
     QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
     }
-    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    void setBaseUrl(const QUrl& baseUrl);
-    void addImportPath(const QString& path);
-    //QQmlContext* getQmlContext();
-    QQuickItem* getRootItem();
-    void pause();
-    void resume();
-    bool isPaused() const;
+
+    // Optional values for event handling
     void setProxyWindow(QWindow* window);
-    bool shouldSwallowShortcut(QEvent* event);
-    QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
-    virtual bool eventFilter(QObject* originalDestination, QEvent* event);
     void setMouseTranslator(MouseTranslator mouseTranslator) {
         _mouseTranslator = mouseTranslator;
     }
 
+    void pause();
+    void resume();
+    bool isPaused() const;
+
+    void setBaseUrl(const QUrl& baseUrl);
+    QQuickItem* getRootItem();
+
+    virtual bool eventFilter(QObject* originalDestination, QEvent* event);
+
+signals:
+    void textureUpdated(GLuint texture);
+
+public slots:
+    void requestUpdate();
+    void requestRender();
+    void lockTexture(int texture);
+    void releaseTexture(int texture);
+
+private:
+    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
+    QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
+
+private slots:
+    void updateQuick();
+
+protected:
+    QQuickWindow* _quickWindow{ nullptr };
+
+private:
+    QMyQuickRenderControl* _renderControl{ new QMyQuickRenderControl };
+    QQmlEngine* _qmlEngine{ nullptr };
+    QQmlComponent* _qmlComponent{ nullptr };
+    QQuickItem* _rootItem{ nullptr };
+    QTimer _updateTimer;
+    FboCache _fboCache;
+    bool _polish{ true };
+    bool _paused{ true };
+    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
+};
+
+class OffscreenUi : public OffscreenQmlSurface, public Dependency {
+    Q_OBJECT
+
+public:
+    OffscreenUi();
+    virtual ~OffscreenUi();
+    void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    bool shouldSwallowShortcut(QEvent* event);
 
     // Messagebox replacement functions
     using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
@@ -168,33 +208,6 @@ public:
     static void critical(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
-
-private:
-    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
-
-private slots:
-    void updateQuick();
-
-public slots:
-    void requestUpdate();
-    void requestRender();
-    void lockTexture(int texture);
-    void releaseTexture(int texture);
-
-signals:
-    void textureUpdated(GLuint texture);
-
-private:
-    QMyQuickRenderControl* _renderControl{ new QMyQuickRenderControl };
-    QQuickWindow* _quickWindow{ nullptr };
-    QQmlEngine* _qmlEngine{ nullptr };
-    QQmlComponent* _qmlComponent{ nullptr };
-    QQuickItem* _rootItem{ nullptr };
-    QTimer _updateTimer;
-    FboCache _fboCache;
-    bool _polish{ true };
-    bool _paused{ true };
-    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
 };
 
 #endif

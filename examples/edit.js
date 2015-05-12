@@ -137,6 +137,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newWebButton,
         newZoneButton,
         browseMarketplaceButton;
 
@@ -204,6 +205,16 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+
+        newWebButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-text.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         newZoneButton = toolBar.addTool({
             imageURL: toolIconUrl + "zonecube_text.svg",
             subImage: { x: 0, y: 128, width: 128, height: 128 },
@@ -253,6 +264,7 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
     };
 
@@ -418,6 +430,23 @@ var toolBar = (function () {
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
                                 lineHeight: 0.06
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newWebButton === toolBar.clicked(clickedOverlay)) {
+            print("Web");
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Web",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
+                                source: "http://www.slashdot.org",
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");

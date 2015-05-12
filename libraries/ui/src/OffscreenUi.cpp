@@ -24,30 +24,10 @@ Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
 // achieve.
 static const int SMALL_INTERVAL = 5;
 
-class OffscreenUiRoot : public QQuickItem {
-    Q_OBJECT
-public:
-
-    OffscreenUiRoot(QQuickItem* parent = 0);
-    Q_INVOKABLE void information(const QString& title, const QString& text);
-    Q_INVOKABLE void loadChild(const QUrl& url) {
-        DependencyManager::get<OffscreenUi>()->load(url);
-    }
-};
-
-
-OffscreenUiRoot::OffscreenUiRoot(QQuickItem* parent) : QQuickItem(parent) {
+OffscreenQmlSurface::OffscreenQmlSurface() {
 }
 
-void OffscreenUiRoot::information(const QString& title, const QString& text) {
-    OffscreenUi::information(title, text);
-}
-
-OffscreenUi::OffscreenUi() {
-    ::qmlRegisterType<OffscreenUiRoot>("Hifi", 1, 0, "Root");
-}
-
-OffscreenUi::~OffscreenUi() {
+OffscreenQmlSurface::~OffscreenQmlSurface() {
     // Make sure the context is current while doing cleanup. Note that we use the
     // offscreen surface here because passing 'this' at this point is not safe: the
     // underlying platform window may already be destroyed. To avoid all the trouble, use
@@ -65,7 +45,7 @@ OffscreenUi::~OffscreenUi() {
     doneCurrent();
 }
 
-void OffscreenUi::create(QOpenGLContext* shareContext) {
+void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     OffscreenGlCanvas::create(shareContext);
 
     makeCurrent();
@@ -87,13 +67,13 @@ void OffscreenUi::create(QOpenGLContext* shareContext) {
     // a timer with a small interval is used to get better performance.
     _updateTimer.setSingleShot(true);
     _updateTimer.setInterval(SMALL_INTERVAL);
-    connect(&_updateTimer, &QTimer::timeout, this, &OffscreenUi::updateQuick);
+    connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
 
     // Now hook up the signals. For simplicy we don't differentiate between
     // renderRequested (only render is needed, no sync) and sceneChanged (polish and sync
     // is needed too).
-    connect(_renderControl, &QQuickRenderControl::renderRequested, this, &OffscreenUi::requestRender);
-    connect(_renderControl, &QQuickRenderControl::sceneChanged, this, &OffscreenUi::requestUpdate);
+    connect(_renderControl, &QQuickRenderControl::renderRequested, this, &OffscreenQmlSurface::requestRender);
+    connect(_renderControl, &QQuickRenderControl::sceneChanged, this, &OffscreenQmlSurface::requestUpdate);
 
 #ifdef DEBUG
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, [this]{
@@ -110,11 +90,7 @@ void OffscreenUi::create(QOpenGLContext* shareContext) {
     _renderControl->initialize(&_context);
 }
 
-void OffscreenUi::addImportPath(const QString& path) {
-    _qmlEngine->addImportPath(path);
-}
-
-void OffscreenUi::resize(const QSize& newSize) {
+void OffscreenQmlSurface::resize(const QSize& newSize) {
     makeCurrent();
 
     qreal pixelRatio = _renderControl->_renderWindow ? _renderControl->_renderWindow->devicePixelRatio() : 1.0;
@@ -141,15 +117,15 @@ void OffscreenUi::resize(const QSize& newSize) {
     doneCurrent();
 }
 
-QQuickItem* OffscreenUi::getRootItem() {
+QQuickItem* OffscreenQmlSurface::getRootItem() {
     return _rootItem;
 }
 
-void OffscreenUi::setBaseUrl(const QUrl& baseUrl) {
+void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlEngine->setBaseUrl(baseUrl);
 }
 
-QObject* OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
     _qmlComponent->loadUrl(qmlSource);
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
@@ -162,20 +138,20 @@ QObject* OffscreenUi::load(const QUrl& qmlSource, std::function<void(QQmlContext
     return finishQmlLoad(f);
 }
 
-void OffscreenUi::requestUpdate() {
+void OffscreenQmlSurface::requestUpdate() {
     _polish = true;
     if (!_updateTimer.isActive()) {
         _updateTimer.start();
     }
 }
 
-void OffscreenUi::requestRender() {
+void OffscreenQmlSurface::requestRender() {
     if (!_updateTimer.isActive()) {
         _updateTimer.start();
     }
 }
 
-QObject* OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
+QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
     disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
@@ -232,7 +208,7 @@ QObject* OffscreenUi::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> 
 }
 
 
-void OffscreenUi::updateQuick() {
+void OffscreenQmlSurface::updateQuick() {
     if (_paused) {
         return;
     }
@@ -274,7 +250,7 @@ void OffscreenUi::updateQuick() {
     emit textureUpdated(fbo->texture());
 }
 
-QPointF OffscreenUi::mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject) {
+QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject) {
     vec2 sourceSize;
     if (dynamic_cast<QWidget*>(sourceObject)) {
         sourceSize = toGlm(((QWidget*)sourceObject)->size());
@@ -297,7 +273,7 @@ QPointF OffscreenUi::mapWindowToUi(const QPointF& sourcePosition, QObject* sourc
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
     QObject* focusObject = _quickWindow->focusObject();
-    if (focusObject != _quickWindow && focusObject != _rootItem) {
+    if (focusObject != _quickWindow && focusObject != getRootItem()) {
         //qDebug() << "Swallowed shortcut " << static_cast<QKeyEvent*>(event)->key();
         event->accept();
         return true;
@@ -310,7 +286,7 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
 // Event handling customization
 //
 
-bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
+bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* event) {
     // Only intercept events while we're in an active state
     if (_paused) {
         return false;
@@ -389,37 +365,65 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     return false;
 }
 
-void OffscreenUi::lockTexture(int texture) {
+void OffscreenQmlSurface::lockTexture(int texture) {
     _fboCache.lockTexture(texture);
 }
 
-void OffscreenUi::releaseTexture(int texture) {
+void OffscreenQmlSurface::releaseTexture(int texture) {
     _fboCache.releaseTexture(texture);
 }
 
-void OffscreenUi::pause() {
+void OffscreenQmlSurface::pause() {
     _paused = true;
 }
 
-void OffscreenUi::resume() {
+void OffscreenQmlSurface::resume() {
     _paused = false;
     requestRender();
 }
 
-bool OffscreenUi::isPaused() const {
+bool OffscreenQmlSurface::isPaused() const {
     return _paused;
 }
 
-void OffscreenUi::setProxyWindow(QWindow* window) {
+void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _renderControl->_renderWindow = window;
 }
 
+
+class OffscreenUiRoot : public QQuickItem {
+    Q_OBJECT
+public:
+
+    OffscreenUiRoot(QQuickItem* parent = 0);
+    Q_INVOKABLE void information(const QString& title, const QString& text);
+    Q_INVOKABLE void loadChild(const QUrl& url) {
+        DependencyManager::get<OffscreenUi>()->load(url);
+    }
+};
+
+
+OffscreenUiRoot::OffscreenUiRoot(QQuickItem* parent) : QQuickItem(parent) {
+}
+
+void OffscreenUiRoot::information(const QString& title, const QString& text) {
+    OffscreenUi::information(title, text);
+}
+
+OffscreenUi::OffscreenUi() {
+    ::qmlRegisterType<OffscreenUiRoot>("Hifi", 1, 0, "Root");
+}
+
+OffscreenUi::~OffscreenUi() {
+}
+
+
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
-    QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
         load(url, f);
-        item = _rootItem->findChild<QQuickItem*>(name); 
+        item = getRootItem()->findChild<QQuickItem*>(name);
     }
     if (item) {
         item->setEnabled(true);
@@ -427,11 +431,11 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
 }
 
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
-    QQuickItem* item = _rootItem->findChild<QQuickItem*>(name);
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
         load(url, f);
-        item = _rootItem->findChild<QQuickItem*>(name);
+        item = getRootItem()->findChild<QQuickItem*>(name);
     }
     if (item) {
         item->setEnabled(!item->isEnabled());

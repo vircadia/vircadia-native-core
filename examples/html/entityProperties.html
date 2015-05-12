@@ -468,6 +468,20 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
+                            } else if (properties.type == "Web") {
+                                for (var i = 0; i < elTextSections.length; i++) {
+                                    elTextSections[i].style.display = 'block';
+                                }
+
+                                elTextText.value = properties.text;
+                                elTextLineHeight.value = properties.lineHeight.toFixed(4);
+                                elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
+                                elTextTextColorRed.value = properties.textColor.red;
+                                elTextTextColorGreen.value = properties.textColor.green;
+                                elTextTextColorBlue.value = properties.textColor.blue;
+                                elTextBackgroundColorRed.value = properties.backgroundColor.red;
+                                elTextBackgroundColorGreen.value = properties.backgroundColor.green;
+                                elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
                             } else if (properties.type == "Text") {
                                 for (var i = 0; i < elTextSections.length; i++) {
                                     elTextSections[i].style.display = 'block';
@@ -1019,6 +1033,12 @@
             </div>
         </div>
 
+        <div class="web-section property">
+            <div class="label">Source URL</div>
+            <div class="value">
+                <input type="text" id="property-source-url" class="url"></input>
+            </div>
+        </div>
 
 
         <div class="model-section property">

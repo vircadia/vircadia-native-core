@@ -24,6 +24,7 @@
 #include "ParticleEffectEntityItem.h"
 #include "SphereEntityItem.h"
 #include "TextEntityItem.h"
+#include "WebEntityItem.h"
 #include "ZoneEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
@@ -36,6 +37,7 @@ const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 // Register Entity the default implementations of entity types here...
 REGISTER_ENTITY_TYPE(Model)
 REGISTER_ENTITY_TYPE(Box)
+REGISTER_ENTITY_TYPE(Web)
 REGISTER_ENTITY_TYPE(Sphere)
 REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Text)

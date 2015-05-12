@@ -30,13 +30,14 @@ class EntityTypes {
 public:
     typedef enum EntityType_t {
         Unknown,
-        Model,
         Box,
-        Sphere,
         Light,
+        Model,
+        ParticleEffect,
+        Sphere,
         Text,
-		ParticleEffect,
-		Zone,
+        Web,
+        Zone,
         LAST = Zone
     } EntityType;
 
