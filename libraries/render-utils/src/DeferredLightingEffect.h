@@ -101,6 +101,13 @@ private:
     ProgramObject _simpleProgram;
     int _glowIntensityLocation;
     
+    ProgramObject _directionalSkyboxLight;
+    LightLocations _directionalSkyboxLightLocations;
+    ProgramObject _directionalSkyboxLightShadowMap;
+    LightLocations _directionalSkyboxLightShadowMapLocations;
+    ProgramObject _directionalSkyboxLightCascadedShadowMap;
+    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+
     ProgramObject _directionalAmbientSphereLight;
     LightLocations _directionalAmbientSphereLightLocations;
     ProgramObject _directionalAmbientSphereLightShadowMap;

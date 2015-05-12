@@ -3208,6 +3208,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     // Background rendering decision
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto skybox = model::SkyboxPointer();
     if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
        if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
@@ -3255,7 +3256,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        auto skybox = skyStage->getSkybox();
+        skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
@@ -3334,6 +3335,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
