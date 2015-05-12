@@ -19,7 +19,6 @@
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -966,11 +965,12 @@ void Application::showEditEntitiesHelp() {
 
 void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera);
+        OculusManager::configureCamera(camera, size.x, size.y);
     } else if (TV3DManager::isConnected()) {
         TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-        camera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), (float)size.x / size.y, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+        camera.setAspectRatio((float)size.x / size.y);
+        camera.setFieldOfView(_fieldOfView.get());
     }
 }
 
@@ -984,7 +984,7 @@ void Application::resizeGL() {
         renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
     }
     if (_renderResolution == toGlm(renderSize)) {
-        return;
+    	return;
     }
 
     _renderResolution = toGlm(renderSize);
@@ -1011,15 +1011,25 @@ void Application::updateProjectionMatrix() {
 }
 
 void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-
     glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(glm::value_ptr(_projectionMatrix));
+    glLoadIdentity();
+
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
 
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-    } 
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    } else {
+        ViewFrustum tempViewFrustum;
+        loadViewFrustum(camera, tempViewFrustum);
+        tempViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    }
+    glFrustum(left, right, bottom, top, nearVal, farVal);
+
+    // save matrix
+    glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&_projectionMatrix);
 
     glMatrixMode(GL_MODELVIEW);
 }
@@ -1240,7 +1250,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-#if 0
             case Qt::Key_I:
                 if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
@@ -1305,8 +1314,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 updateProjectionMatrix();
                 break;
-#endif
-
             case Qt::Key_H:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Mirror);
@@ -2624,7 +2631,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
+    _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -2828,11 +2835,25 @@ QRect Application::getDesirableApplicationGeometry() {
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above
-    viewFrustum.setProjection(camera.getProjection());
+    glm::vec3 position(camera.getPosition());
+    float fov         = camera.getFieldOfView();    // degrees
+    float nearClip    = camera.getNearClip();
+    float farClip     = camera.getFarClip();
+    float aspectRatio = camera.getAspectRatio();
+
+    glm::quat rotation = camera.getRotation();
 
     // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getRotation());
+    viewFrustum.setPosition(position);
+    viewFrustum.setOrientation(rotation);
+
+    // Also make sure it's got the correct lens details from the camera
+    viewFrustum.setAspectRatio(aspectRatio);
+    viewFrustum.setFieldOfView(fov);    // degrees
+    viewFrustum.setNearClip(nearClip);
+    viewFrustum.setFarClip(farClip);
+    viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
+    viewFrustum.setEyeOffsetOrientation(camera.getEyeOffsetOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
@@ -2933,7 +2954,13 @@ void Application::updateShadowMap() {
         glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
         _shadowViewFrustum.setPosition(shadowFrustumCenter);
         _shadowViewFrustum.setOrientation(rotation);
-        _shadowViewFrustum.setProjection(glm::ortho(minima.x, maxima.x, minima.y, maxima.y, minima.z, maxima.z));
+        _shadowViewFrustum.setOrthographic(true);
+        _shadowViewFrustum.setWidth(maxima.x - minima.x);
+        _shadowViewFrustum.setHeight(maxima.y - minima.y);
+        _shadowViewFrustum.setNearClip(minima.z);
+        _shadowViewFrustum.setFarClip(maxima.z);
+        _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
+        _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
         _shadowViewFrustum.calculate();
 
         glMatrixMode(GL_PROJECTION);
@@ -3120,6 +3147,12 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glFrontFace(GL_CCW);
     }
 
+    glm::vec3 eyeOffsetPos = theCamera.getEyeOffsetPosition();
+    glm::quat eyeOffsetOrient = theCamera.getEyeOffsetOrientation();
+    glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
+    glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
+    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+
     // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -3137,6 +3170,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
@@ -3230,7 +3265,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
             // finally render the starfield
             if (hasStars) {
-                _stars.render(_displayViewFrustum.getFieldOfView(), _displayViewFrustum.getAspectRatio(), _displayViewFrustum.getNearClip(), alpha);
+                _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
             }
 
             // draw the sky dome
@@ -3464,16 +3499,15 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    float aspect = (float)region.width() / region.height();
-    float fov = MIRROR_FIELD_OF_VIEW;
 
     // bool eyeRelativeCamera = false;
     if (billboard) {
-        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
+        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
@@ -3494,10 +3528,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further 
         // investigated in order to adapt the technique while fixing the head rendering issue,
         // but the complexity of the hack suggests that a better approach 
+        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
-    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _mirrorCamera.setAspectRatio((float)region.width() / region.height());
+
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
     // set the bounds of rear mirror view
