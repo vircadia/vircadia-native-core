@@ -28,7 +28,6 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/lightOverlayManager.js",
-    "libraries/zoneOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
@@ -36,7 +35,6 @@ var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
-var zoneOverlayManager = new ZoneOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -49,7 +47,6 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-    zoneOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -246,7 +243,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -1000,7 +997,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
@@ -1030,8 +1027,11 @@ function importSVO(importURL) {
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
-        var position = getPositionToCreateEntity();
-
+        var VERY_LARGE = 10000;
+        var position = { x: 0, y: 0, z: 0};
+        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
+            position = getPositionToCreateEntity();
+        }
         var pastedEntityIDs = Clipboard.pasteEntities(position);
 
         if (isActive) {
@@ -1291,6 +1291,25 @@ PropertiesTool = function(opts) {
                         Entities.editEntity(selectionManager.selections[i], {
                             dimensions: Vec3.multiply(multiplier, properties.dimensions),
                         });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "centerAtmosphereToZone") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        if (properties.type == "Zone") {
+                            var centerOfZone = properties.boundingBox.center;
+                            var atmosphereCenter = { x: centerOfZone.x, 
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                                                     z: centerOfZone.z };
+
+                            Entities.editEntity(selectionManager.selections[i], {
+                                atmosphere: { center: atmosphereCenter },
+                            });
+                        }
                     }
                     pushCommandForSelections();
                     selectionManager._update();

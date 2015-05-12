@@ -21,9 +21,8 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) :
-    _myAssignment(myAssignment),
-    _myServer(static_cast<OctreeServer*>(myAssignment.data())),
+OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
+    _myServer(myServer),
     _node(node),
     _nodeUUID(node->getUUID()),
     _packetData(),
@@ -31,9 +30,14 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _isShuttingDown(false)
 {
     QString safeServerName("Octree");
+    
+    // set our QThread object name so we can identify this thread while debugging
+    setObjectName(QString("Octree Send Thread (%1)").arg(uuidStringWithoutCurlyBraces(node->getUUID())));
+    
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
     }
+
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
@@ -53,7 +57,6 @@ OctreeSendThread::~OctreeSendThread() {
     OctreeServer::stopTrackingThread(this);
 
     _node.clear();
-    _myAssignment.clear();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
@@ -66,14 +69,12 @@ bool OctreeSendThread::process() {
         return false; // exit early if we're shutting down
     }
 
-    // check that our server and assignment is still valid
-    if (!_myServer || !_myAssignment) {
-        return false; // exit early if it's not, it means the server is shutting down
-    }
-
     OctreeServer::didProcess(this);
 
     quint64  start = usecTimestampNow();
+
+    // we'd better have a server at this point, or we're in trouble
+    assert(_myServer);
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {

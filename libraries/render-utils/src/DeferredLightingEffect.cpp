@@ -41,6 +41,10 @@
 #include "directional_ambient_light_shadow_map_frag.h"
 #include "directional_ambient_light_cascaded_shadow_map_frag.h"
 
+#include "directional_skybox_light_frag.h"
+#include "directional_skybox_light_shadow_map_frag.h"
+#include "directional_skybox_light_cascaded_shadow_map_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -65,6 +69,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         _directionalAmbientSphereLightShadowMapLocations);
     loadLightProgram(directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
         _directionalAmbientSphereLightCascadedShadowMapLocations);
+
+    loadLightProgram(directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
+        _directionalSkyboxLightShadowMapLocations);
+    loadLightProgram(directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
+        _directionalSkyboxLightCascadedShadowMapLocations);
 
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
@@ -217,6 +227,7 @@ void DeferredLightingEffect::render() {
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
 
+    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
     // Fetch the ViewMatrix;
     glm::mat4 invViewMat;
@@ -234,7 +245,10 @@ void DeferredLightingEffect::render() {
         if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightCascadedShadowMap;
+                locations = &_directionalSkyboxLightCascadedShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightCascadedShadowMap;
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
@@ -242,7 +256,10 @@ void DeferredLightingEffect::render() {
             program->setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightShadowMap;
+                locations = &_directionalSkyboxLightShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightShadowMap;
                 locations = &_directionalAmbientSphereLightShadowMapLocations;
             }
@@ -252,7 +269,10 @@ void DeferredLightingEffect::render() {
             1.0f / textureCache->getShadowFramebuffer()->getWidth());
         
     } else {
-        if (_ambientLightMode > -1) {
+        if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLight;
+                locations = &_directionalSkyboxLightLocations;
+        } else if (_ambientLightMode > -1) {
             program = &_directionalAmbientSphereLight;
             locations = &_directionalAmbientSphereLightLocations;
         }
@@ -269,6 +289,11 @@ void DeferredLightingEffect::render() {
             }
         }
     
+        if (useSkyboxCubemap) {
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, gpu::GLBackend::getTextureID(_skybox->getCubemap()));
+        }
+
         if (locations->lightBufferUnit >= 0) {
             gpu::Batch batch;
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
@@ -300,7 +325,14 @@ void DeferredLightingEffect::render() {
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     program->release();
-    
+
+    if (useSkyboxCubemap) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        if (!shadowsEnabled) {
+            glActiveTexture(GL_TEXTURE3);
+        }
+    }
+
     if (shadowsEnabled) {
         glBindTexture(GL_TEXTURE_2D, 0);        
         glActiveTexture(GL_TEXTURE3);
@@ -492,6 +524,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     program.setUniformValue("specularMap", 2);
     program.setUniformValue("depthMap", 3);
     program.setUniformValue("shadowMap", 4);
+    program.setUniformValue("skyboxMap", 5);
     locations.shadowDistances = program.uniformLocation("shadowDistances");
     locations.shadowScale = program.uniformLocation("shadowScale");
     locations.nearLocation = program.uniformLocation("near");

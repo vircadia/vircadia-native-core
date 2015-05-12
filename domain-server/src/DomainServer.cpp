@@ -69,6 +69,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
     LogUtils::init();
+    Setting::init();
 
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");

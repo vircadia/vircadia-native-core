@@ -1068,6 +1068,27 @@ void EntityTree::debugDumpMap() {
     qCDebug(entities) << "-----------------------------------------------------";
 }
 
+class ContentsDimensionOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
+    float getLargestDimension() const { return _contentExtents.largestDimension(); }
+private:
+    Extents _contentExtents;
+};
+
+bool ContentsDimensionOperator::preRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->expandExtentsToContents(_contentExtents);
+    return true;
+}
+
+float EntityTree::getContentsLargestDimension() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getLargestDimension();
+}
+
 class DebugOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElement* element);

@@ -18,11 +18,12 @@ namespace Setting {
     Manager::~Manager() {
         // Cleanup timer
         stopTimer();
-        disconnect(_saveTimer, 0, 0, 0);
-        
+        delete _saveTimer;
+
         // Save all settings before exit
         saveAll();
-        sync();
+
+        // sync will be called in the QSettings destructor
     }
     
     void Manager::registerHandle(Setting::Interface* handle) {

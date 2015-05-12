@@ -14,7 +14,7 @@
 <@if GLPROFILE == PC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_CORE@>
     <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
-    <@def VERSION_HEADER #version 330 compatibility@>
+    <@def VERSION_HEADER #version 430 compatibility@>
 <@elif GLPROFILE == MAC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_LEGACY@>
     <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>

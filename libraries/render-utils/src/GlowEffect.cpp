@@ -117,18 +117,6 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-static void maybeBind(const gpu::FramebufferPointer& fbo) {
-    if (fbo) {
-        glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(fbo));
-    }
-}
-
-static void maybeRelease(const gpu::FramebufferPointer& fbo) {
-    if (fbo) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-}
-
 gpu::FramebufferPointer GlowEffect::render() {
     PerformanceTimer perfTimer("glowEffect");
 
