@@ -51,16 +51,16 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly) {
     }
     if (firstOrChangedOnly) {
         const QString lastVersion = infoVersion.get();
+        const QString version = fetchVersion(url);
         // If we have version information stored
         if (lastVersion != QString::null) {
             // Check to see the document version.  If it's valid and matches 
             // the stored version, we're done, so exit
-            const QString version = fetchVersion(url);
             if (version == QString::null || version == lastVersion) {
                 return;
             }
-            infoVersion.set(version);
         }
+        infoVersion.set(version);
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QString infoViewName(NAME + "_" + path);
