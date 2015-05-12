@@ -60,7 +60,7 @@ public:
     static void beginFrameTiming();
     static void endFrameTiming();
     static bool allowSwap();
-    static void configureCamera(Camera& camera);
+    static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     static void display(QGLWidget * glCanvas, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
     
