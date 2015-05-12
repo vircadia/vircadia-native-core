@@ -131,12 +131,6 @@ void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) 
 
 void DeferredLightingEffect::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                                         const glm::vec4& color1, const glm::vec4& color2) {
-
-    qDebug() << "LINE -- "
-             << p1[0] << p1[1] << p1[2]
-             << ","
-             << p2[0] << p2[1] << p2[2];
-
     bindSimpleProgram();
     DependencyManager::get<GeometryCache>()->renderLine(p1, p2, color1, color2);
     releaseSimpleProgram();

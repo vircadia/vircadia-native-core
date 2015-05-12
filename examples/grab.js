@@ -61,8 +61,13 @@ function vectorIsZero(v) {
     return v.x == 0 && v.y == 0 && v.z == 0;
 }
 
-function vectorToString(v) {
-    return "(" + v.x + ", " + v.y + ", " + v.z + ")"
+function nearLinePoint(targetPosition) {
+ // var handPosition = Vec3.sum(MyAvatar.position, {x:0, y:0.2, z:0});
+  var handPosition = MyAvatar.getRightPalmPosition();
+  var along = Vec3.subtract(targetPosition, handPosition);
+  along = Vec3.normalize(along);
+  along = Vec3.multiply(along, 0.4);
+  return Vec3.sum(handPosition, along);
 }
 
 
@@ -77,7 +82,6 @@ function mousePressEvent(event) {
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
     originalGravity = props.gravity;
-    print("mouse-press setting originalGravity " + originalGravity + " " + vectorToString(originalGravity));
     targetPosition = props.position;
     currentPosition = props.position;
     currentVelocity = props.velocity;
@@ -87,16 +91,13 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
-
     lineEntityID = Entities.addEntity({
-        type: "Line",
-        position: MyAvatar.position,
-        // dimensions: {x:5, y:5, z:5},
-        dimensions: Vec3.subtract(targetPosition, MyAvatar.position),
-        color: { red: 0, green: 255, blue: 0 }
-        // lifetime: 10
+      type: "Line",
+      position: nearLinePoint(targetPosition),
+      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition)),
+      color: { red: 255, green: 255, blue: 255 },
+      lifetime: 300 // if someone crashes while moving something, don't leave the line there forever.
     });
-
 
     Audio.playSound(grabSound, {
       position: props.position,
@@ -133,12 +134,9 @@ function mouseReleaseEvent() {
     // 4. interface A releases the entity and puts the original gravity back
     // 5. interface B releases the entity and puts the original gravity back (to zero)
     if (!vectorIsZero(originalGravity)) {
-      print("mouse-release restoring originalGravity" + vectorToString(originalGravity));
       Entities.editEntity(grabbedEntity, {
           gravity: originalGravity
       });
-    } else {
-        print("mouse-release not restoring originalGravity of zero");
     }
 
     Overlays.editOverlay(dropLine, {
@@ -162,7 +160,6 @@ function mouseMoveEvent(event) {
     var props = Entities.getEntityProperties(grabbedEntity);
     if (!vectorIsZero(props.gravity)) {
       originalGravity = props.gravity;
-      print("mouse-move adopting originalGravity" + vectorToString(originalGravity));
     }
 
     deltaMouse.x = event.x - prevMouse.x;
@@ -194,6 +191,11 @@ function mouseMoveEvent(event) {
       axisAngle = Quat.axis(dQ);
       angularVelocity = Vec3.multiply((theta / dT), axisAngle);
     }
+
+    Entities.editEntity(lineEntityID, {
+      position: nearLinePoint(targetPosition),
+      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition))
+    });
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
