@@ -320,7 +320,6 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
-    void updateShapeTypeUint32(uint32_t type) { updateShapeType((ShapeType)type); }
     virtual void updateShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }

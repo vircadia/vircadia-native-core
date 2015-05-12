@@ -46,62 +46,13 @@
         }
 
 
-#define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)               \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            processedBytes += sizeof(fromBuffer);               \
-            properties.O(fromBuffer);                           \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(P,O)                        \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            processedBytes += bytes;                                        \
-            properties.O(fromBuffer);                                       \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(P,O)  \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            processedBytes += sizeof(length);           \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            processedBytes += length;                   \
-            properties.O(value);                        \
-        }
-
-
-#define READ_ENTITY_PROPERTY_UUID_TO_PROPERTIES(P,O)        \
-        if (propertyFlags.getHasProperty(P)) {              \
-            uint16_t length;                                \
-            memcpy(&length, dataAt, sizeof(length));        \
-            dataAt += sizeof(length);                       \
-            processedBytes += sizeof(length);               \
-            QUuid value;                                    \
-            if (length == 0) {                              \
-                value = QUuid();                            \
-            } else {                                        \
-                QByteArray ba((const char*)dataAt, length); \
-                value = QUuid::fromRfc4122(ba);             \
-                dataAt += length;                           \
-                processedBytes += length;                   \
-            }                                               \
-            properties.O(value);                            \
-        }
-
-#define READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(P,O)   \
-        if (propertyFlags.getHasProperty(P)) {          \
-            xColor color;                               \
-            memcpy(&color, dataAt, sizeof(color));      \
-            dataAt += sizeof(color);                    \
-            processedBytes += sizeof(color);            \
-            properties.O(color);                        \
+#define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)                                  \
+        if (propertyFlags.getHasProperty(P)) {                                     \
+            T fromBuffer;                                                          \
+            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                       \
+            processedBytes += bytes;                                               \
+            properties.O(fromBuffer);                                              \
         }
 
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES(P,M)    \

@@ -29,6 +29,8 @@
 #include <LimitedNodeList.h> // for MAX_PACKET_SIZE
 #include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
+#include <ShapeInfo.h>
+#include <BackgroundMode.h>
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -233,6 +235,8 @@ public:
     static int uppackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, BackgroundMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);

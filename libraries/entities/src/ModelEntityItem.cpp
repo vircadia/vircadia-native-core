@@ -130,7 +130,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, uint32_t, updateShapeTypeUint32);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
     return bytesRead;
 }

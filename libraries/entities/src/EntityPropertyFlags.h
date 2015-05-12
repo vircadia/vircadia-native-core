@@ -157,12 +157,4 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 // one greater than the last item property due to the enum's auto-incrementing.
 extern EntityPropertyList PROP_LAST_ITEM;
 
-
-enum BackgroundMode {
-    BACKGROUND_MODE_INHERIT,
-    BACKGROUND_MODE_ATMOSPHERE,
-    BACKGROUND_MODE_SKYBOX,
-};
-
-
 #endif // hifi_EntityPropertyFlags_h

@@ -89,7 +89,6 @@ public:
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
 
-    void setBackgroundMode(uint32_t value) { _backgroundMode = (BackgroundMode)value; }
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
