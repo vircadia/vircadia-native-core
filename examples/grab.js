@@ -243,9 +243,11 @@ function update(deltaTime) {
     }
 
     Entities.editEntity(grabbedEntity, {
+      position: currentPosition,
+      rotation: currentRotation,
       velocity: newVelocity,
       angularVelocity: angularVelocity
-    })
+    });
     updateDropLine(targetPosition);
   }
 }
