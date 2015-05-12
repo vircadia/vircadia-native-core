@@ -24,21 +24,20 @@ public:
     DomainServerSettingsManager();
     bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
-    
+
     void setupConfigMap(const QStringList& argumentList);
     QVariant valueOrDefaultValueForKeyPath(const QString& keyPath);
-    
+
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
-                                               const QJsonArray& descriptionArray);
-    bool settingExists(const QString& groupName, const QString& settingName,
-                       const QJsonArray& descriptionArray, QJsonObject& settingDescription);
+    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant);
+
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
+    QJsonObject settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName);
     void persistToFile();
-    
+
     QJsonArray _descriptionArray;
     HifiConfigVariantMap _configMap;
 };
