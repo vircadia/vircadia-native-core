@@ -32,6 +32,7 @@ public:
         Unknown,
         Box,
         Light,
+        Line,
         Model,
         ParticleEffect,
         Sphere,

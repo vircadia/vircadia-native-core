@@ -26,6 +26,7 @@
 #include "TextEntityItem.h"
 #include "WebEntityItem.h"
 #include "ZoneEntityItem.h"
+#include "LineEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
@@ -43,6 +44,7 @@ REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Text)
 REGISTER_ENTITY_TYPE(ParticleEffect)
 REGISTER_ENTITY_TYPE(Zone)
+REGISTER_ENTITY_TYPE(Line)
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);

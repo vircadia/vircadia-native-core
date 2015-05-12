@@ -207,7 +207,7 @@ var toolBar = (function () {
         });
 
         newWebButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-text.svg",
+            imageURL: "https://s3.amazonaws.com/Oculus/earth17.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,

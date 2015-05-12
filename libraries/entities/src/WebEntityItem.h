@@ -50,7 +50,7 @@ public:
                          void** intersectedObject, bool precisionPicking) const;
 
     void setSourceUrl(const QString& value) { _sourceUrl = value; }
-    const QString& getSource() const { return _sourceUrl; }
+    const QString& getSourceUrl() const { return _sourceUrl; }
 
 protected:
     QString _sourceUrl;

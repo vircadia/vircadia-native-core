@@ -32,8 +32,6 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions();
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
-    float leftMargin = 0.1f;
-    float topMargin = 0.1f;
 
     //qCDebug(entitytree) << "RenderableWebEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 

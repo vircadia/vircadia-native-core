@@ -39,7 +39,7 @@ const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
 void WebEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Web Entities always have a "depth" of 1cm.
-    _dimensions = glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH); 
+    _dimensions = glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH);
 }
 
 EntityItemProperties WebEntityItem::getProperties() const {
@@ -52,7 +52,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setSource);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setSourceUrl);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -75,7 +75,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_STRING(PROP_SOURCE_URL, setSource);
+    READ_ENTITY_PROPERTY_STRING(PROP_SOURCE_URL, setSourceUrl);
 
     return bytesRead;
 }
@@ -97,7 +97,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, appendValue, _source);
+    APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, appendValue, _sourceUrl);
 }
 
 

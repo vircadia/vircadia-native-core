@@ -279,6 +279,11 @@
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
+            var elWebSections = document.querySelectorAll(".web-section");
+            allSections.push(elModelSections);
+            var elWebSourceURL = document.getElementById("property-web-source-url");
+
+            
             var elTextSections = document.querySelectorAll(".text-section");
             allSections.push(elTextSections);
             var elTextText = document.getElementById("property-text-text");
@@ -470,18 +475,10 @@
                                 elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
                                 for (var i = 0; i < elTextSections.length; i++) {
-                                    elTextSections[i].style.display = 'block';
+                                    elWebSections[i].style.display = 'block';
                                 }
 
-                                elTextText.value = properties.text;
-                                elTextLineHeight.value = properties.lineHeight.toFixed(4);
-                                elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
-                                elTextTextColorRed.value = properties.textColor.red;
-                                elTextTextColorGreen.value = properties.textColor.green;
-                                elTextTextColorBlue.value = properties.textColor.blue;
-                                elTextBackgroundColorRed.value = properties.backgroundColor.red;
-                                elTextBackgroundColorGreen.value = properties.backgroundColor.green;
-                                elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
+                                elWebSourceURL.value = properties.sourceUrl;
                             } else if (properties.type == "Text") {
                                 for (var i = 0; i < elTextSections.length; i++) {
                                     elTextSections[i].style.display = 'block';
