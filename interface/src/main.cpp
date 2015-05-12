@@ -37,7 +37,6 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 }
 #endif
 
-
 int main(int argc, const char* argv[]) {
 #ifdef Q_OS_WIN
     // Run only one instance of Interface at a time.

@@ -26,6 +26,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
+#include <QCoreApplication>
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
@@ -250,6 +251,8 @@ bool setupEssentials(int& argc, char** argv) {
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+
+    Setting::init();
     
     // Set dependencies
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -341,7 +344,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
