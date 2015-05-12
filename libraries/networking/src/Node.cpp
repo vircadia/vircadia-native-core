@@ -129,6 +129,15 @@ void Node::activateSymmetricSocket() {
     _activeSocket = &_symmetricSocket;
 }
 
+PacketSequenceNumber Node::getLastSequenceNumberForPacketType(PacketType packetType) const {
+   auto typeMatch = _lastSequenceNumbers.find(packetType); 
+   if (typeMatch != _lastSequenceNumbers.end()) {
+        return typeMatch->second;
+   } else {
+       return DEFAULT_SEQUENCE_NUMBER;
+   }
+}
+
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;

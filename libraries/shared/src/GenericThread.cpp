@@ -32,6 +32,9 @@ void GenericThread::initialize(bool isThreaded) {
     if (_isThreaded) {
         _thread = new QThread(this);
 
+        // match the thread name to our object name
+        _thread->setObjectName(objectName());
+
         // when the worker thread is started, call our engine's run..
         connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
 

@@ -18,7 +18,7 @@
 #include "NetworkLogging.h"
 
 #include "RSAKeypairGenerator.h"
-#ifndef __GNUC__
+#ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 

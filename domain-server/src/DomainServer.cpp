@@ -69,6 +69,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
     LogUtils::init();
+    Setting::init();
 
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
@@ -619,10 +620,12 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     
     packetStream >> nodeInterestList >> username >> usernameSignature;
 
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
     QString reason;
     if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-        QByteArray connectionDeniedByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
+        QByteArray connectionDeniedByteArray = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
         QDataStream out(&connectionDeniedByteArray, QIODevice::WriteOnly | QIODevice::Append);
         out << reason;
         // tell client it has been refused.
@@ -664,10 +667,9 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
             canRez = canAdjustLocks;
         }
 
-        SharedNodePointer newNode =
-            DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(nodeUUID, nodeType,
-                                                                       publicSockAddr, localSockAddr,
-                                                                       canAdjustLocks, canRez);
+        SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeUUID, nodeType,
+                                                                     publicSockAddr, localSockAddr,
+                                                                     canAdjustLocks, canRez);
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -926,8 +928,8 @@ NodeSet DomainServer::nodeInterestListFromPacket(const QByteArray& packet, int n
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
                                         const NodeSet& nodeInterestList) {
-
-    QByteArray broadcastPacket = byteArrayWithPopulatedHeader(PacketTypeDomainList);
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    QByteArray broadcastPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainList);
 
     // always send the node their own UUID back
     QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
@@ -938,8 +940,6 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-    
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
     
     // if we've established a connection via ICE with this peer, use that socket
     // otherwise just try to reply back to them on their sending socket (although that may not work)
@@ -955,7 +955,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            nodeList->eachNode([&](const SharedNodePointer& otherNode){
+            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
                 // reset our nodeByteArray and nodeDataStream
                 QByteArray nodeByteArray;
                 QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
@@ -986,7 +986,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                         // we need to break here and start a new packet
                         // so send the current one
                         
-                        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+                        limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
                         
                         // reset the broadcastPacket structure
                         broadcastPacket.resize(numBroadcastPacketLeadBytes);
@@ -999,26 +999,26 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
-    
+
     // always write the last broadcastPacket
-    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
+    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
 
-    static QByteArray assignmentPacket = byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
+    static QByteArray assignmentPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
 
-    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
-        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
+    while (limitedNodeList->getNodeSocket().hasPendingDatagrams()) {
+        receivedPacket.resize(limitedNodeList->getNodeSocket().pendingDatagramSize());
+        limitedNodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         if (packetTypeForPacket(receivedPacket) == PacketTypeRequestAssignment
-            && nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            && limitedNodeList->packetVersionAndHashMatch(receivedPacket)) {
 
             // construct the requested assignment from the packet data
             Assignment requestAssignment(receivedPacket);
@@ -1059,7 +1059,7 @@ void DomainServer::readAvailableDatagrams() {
 
                 assignmentStream << uniqueAssignment;
 
-                nodeList->getNodeSocket().writeDatagram(assignmentPacket,
+                limitedNodeList->getNodeSocket().writeDatagram(assignmentPacket,
                                                         senderSockAddr.getAddress(), senderSockAddr.getPort());
 
                 // add the information for that deployed assignment to the hash of pending assigned nodes
@@ -1081,16 +1081,16 @@ void DomainServer::readAvailableDatagrams() {
             processDatagram(receivedPacket, senderSockAddr);
         } else {
             // we're using DTLS, so tell the sender to get back to us using DTLS
-            static QByteArray dtlsRequiredPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
+            static QByteArray dtlsRequiredPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
             static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
 
             if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
                 // pack the port that we accept DTLS traffic on
-                unsigned short dtlsPort = nodeList->getDTLSSocket().localPort();
+                unsigned short dtlsPort = limitedNodeList->getDTLSSocket().localPort();
                 dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
             }
 
-            nodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
+            limitedNodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
         }
     }
 }

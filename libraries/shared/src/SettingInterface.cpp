@@ -36,7 +36,7 @@ namespace Setting {
     }
     
     // Sets up the settings private instance. Should only be run once at startup
-    void setupPrivateInstance() {
+    void init() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -59,14 +59,11 @@ namespace Setting {
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         privateInstance->moveToThread(thread);
         thread->start();
-        qCDebug(shared) << "Settings thread started.";
-        
+        qCDebug(shared) << "Settings thread started.";    
+
         // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
         qAddPostRoutine(cleanupPrivateInstance);
-    }
-    // Register setupPrivateInstance to run after QCoreApplication's constructor.
-    Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
-    
+    }    
     
     Interface::~Interface() {
         if (privateInstance) {
@@ -76,16 +73,20 @@ namespace Setting {
     
     void Interface::init() {
         if (!privateInstance) {
-            qWarning() << "Setting::Interface::init(): Manager not yet created, bailing";
-            return;
+            // WARNING: As long as we are using QSettings this should always be triggered for each Setting::Handle
+            // in an assignment-client - the QSettings backing we use for this means persistence of these
+            // settings from an AC (when there can be multiple terminating at same time on one machine)
+            // is currently not supported
+            qWarning() << "Setting::Interface::init() for key" << _key << "- Manager not yet created." << 
+                "Settings persistence disabled.";
+        } else {
+            // Register Handle
+            privateInstance->registerHandle(this);
+            _isInitialized = true;
+        
+            // Load value from disk
+            load();
         }
-        
-        // Register Handle
-        privateInstance->registerHandle(this);
-        _isInitialized = true;
-        
-        // Load value from disk
-        load();
     }
     
     void Interface::maybeInit() {
