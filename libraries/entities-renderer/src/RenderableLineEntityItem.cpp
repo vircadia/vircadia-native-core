@@ -28,10 +28,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
-
-    const float MAX_COLOR = 255.0f;
-
-    glm::vec4 lineColor(toGlm(getColor()), getLocalRenderAlpha());
+    glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
