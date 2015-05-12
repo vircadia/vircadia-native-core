@@ -20,7 +20,10 @@ OctreeHeadlessViewer::OctreeHeadlessViewer() :
     _boundaryLevelAdjust(0),
     _maxPacketsPerSecond(DEFAULT_MAX_OCTREE_PPS)
 {
-    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _viewFrustum.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _viewFrustum.setAspectRatio(DEFAULT_ASPECT_RATIO);
+    _viewFrustum.setNearClip(DEFAULT_NEAR_CLIP);
+    _viewFrustum.setFarClip(DEFAULT_FAR_CLIP);
 }
 
 OctreeHeadlessViewer::~OctreeHeadlessViewer() {
@@ -64,8 +67,7 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-
+    _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     _octreeQuery.setOctreeSizeScale(getVoxelSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(getBoundaryLevelAdjust());
 
