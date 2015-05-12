@@ -92,15 +92,3 @@ void Material::setTextureView(MapChannel channel, const gpu::TextureView& view) 
     _textureMap[channel] = view;
 }
 
-// TextureStorage
-TextureStorage::TextureStorage(const QUrl& url) : gpu::Texture::Storage(), _url(url) {
-    init();
-}
-
-TextureStorage::~TextureStorage() {
-}
-
-void TextureStorage::init() {
-    _gpuTexture = TexturePointer(Texture::createFromStorage(this));
-}
-

@@ -12,6 +12,7 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
+#include <QSet>
 #include <QVector>
 
 #include <Octree.h>
@@ -165,6 +166,8 @@ public:
 
     bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
+    
+    float getContentsLargestDimension();
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

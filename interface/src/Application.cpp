@@ -19,6 +19,7 @@
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
@@ -26,6 +27,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
+#include <QCoreApplication>
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
@@ -183,6 +185,8 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -248,6 +252,8 @@ bool setupEssentials(int& argc, char** argv) {
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+
+    Setting::init();
     
     // Set dependencies
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -333,12 +339,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>())
+        _domainConnectionRefusals(QList<QString>()),
+        _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
@@ -692,6 +698,9 @@ Application::~Application() {
     nodeThread->quit();
     nodeThread->wait();
 
+    Leapmotion::destroy();
+    RealSense::destroy();
+
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
 
@@ -809,8 +818,7 @@ void Application::initializeUi() {
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL(_glWidget->width(),
-                     _glWidget->height());
+            resizeGL();
         }
     });
 }
@@ -827,15 +835,7 @@ void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
-
-    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
-    // Otherwise, it must rebuild the FBOs
-    if (OculusManager::isConnected()) {
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
-    } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
-    }
+    resizeGL();
 
     glEnable(GL_LINE_SMOOTH);
 
@@ -912,7 +912,14 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        DependencyManager::get<GlowEffect>()->render();
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
+                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
+                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -957,33 +964,46 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera, width, height);
+        OculusManager::configureCamera(camera);
     } else if (TV3DManager::isConnected()) {
-        TV3DManager::configureCamera(camera, width, height);
+        TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-        camera.setAspectRatio((float)width / height);
-        camera.setFieldOfView(_fieldOfView.get());
+        camera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), (float)size.x / size.y, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
 }
 
-void Application::resizeGL(int width, int height) {
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
-    resetCamerasOnResizeGL(_myCamera, width, height);
+void Application::resizeGL() {
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    QSize renderSize;
+    if (OculusManager::isConnected()) {
+        renderSize = OculusManager::getRenderTargetSize();
+    } else {
+        renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+    }
+    if (_renderResolution == toGlm(renderSize)) {
+        return;
+    }
 
-    glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _renderResolution = toGlm(renderSize);
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+    resetCamerasOnResizeGL(_myCamera, _renderResolution);
+
+    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
     glLoadIdentity();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(_glWidget->size());
+    _glWidget->makeCurrent();
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(width, horizontalOffset);
+    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
@@ -991,25 +1011,15 @@ void Application::updateProjectionMatrix() {
 }
 
 void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+    _projectionMatrix = camera.getProjection();
 
-    float left, right, bottom, top, nearVal, farVal;
-    glm::vec4 nearClipPlane, farClipPlane;
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(glm::value_ptr(_projectionMatrix));
 
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    } else {
-        ViewFrustum tempViewFrustum;
-        loadViewFrustum(camera, tempViewFrustum);
-        tempViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    }
-    glFrustum(left, right, bottom, top, nearVal, farVal);
-
-    // save matrix
-    glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&_projectionMatrix);
+    } 
 
     glMatrixMode(GL_MODELVIEW);
 }
@@ -1230,6 +1240,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
+#if 0
             case Qt::Key_I:
                 if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
@@ -1294,6 +1305,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 updateProjectionMatrix();
                 break;
+#endif
+
             case Qt::Key_H:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Mirror);
@@ -1821,7 +1834,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1846,7 +1859,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
     
     updateCursorVisibility();
 }
@@ -1931,6 +1944,7 @@ void Application::setActiveFaceTracker() {
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->setIsMuted(isMuted);
     ddeTracker->setEnabled(isUsingDDE && !isMuted);
@@ -2561,7 +2575,7 @@ int Application::sendNackPackets() {
                 int bytesRemaining = MAX_PACKET_SIZE;
                 
                 // pack header
-                int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
                 
@@ -2610,7 +2624,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
+    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -2644,7 +2658,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2664,7 +2681,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = _octreeQuery.getMaxOctreePacketsPerSecond();
+    int totalPPS = getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2684,7 +2701,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-            
             
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
@@ -2707,7 +2723,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
+
+
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -2723,7 +2744,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
@@ -2747,15 +2768,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                         qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-            
+
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
@@ -2807,25 +2828,11 @@ QRect Application::getDesirableApplicationGeometry() {
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     // We will use these below, from either the camera or head vectors calculated above
-    glm::vec3 position(camera.getPosition());
-    float fov         = camera.getFieldOfView();    // degrees
-    float nearClip    = camera.getNearClip();
-    float farClip     = camera.getFarClip();
-    float aspectRatio = camera.getAspectRatio();
-
-    glm::quat rotation = camera.getRotation();
+    viewFrustum.setProjection(camera.getProjection());
 
     // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(position);
-    viewFrustum.setOrientation(rotation);
-
-    // Also make sure it's got the correct lens details from the camera
-    viewFrustum.setAspectRatio(aspectRatio);
-    viewFrustum.setFieldOfView(fov);    // degrees
-    viewFrustum.setNearClip(nearClip);
-    viewFrustum.setFarClip(farClip);
-    viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
-    viewFrustum.setEyeOffsetOrientation(camera.getEyeOffsetOrientation());
+    viewFrustum.setPosition(camera.getPosition());
+    viewFrustum.setOrientation(camera.getRotation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
@@ -2926,13 +2933,7 @@ void Application::updateShadowMap() {
         glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
         _shadowViewFrustum.setPosition(shadowFrustumCenter);
         _shadowViewFrustum.setOrientation(rotation);
-        _shadowViewFrustum.setOrthographic(true);
-        _shadowViewFrustum.setWidth(maxima.x - minima.x);
-        _shadowViewFrustum.setHeight(maxima.y - minima.y);
-        _shadowViewFrustum.setNearClip(minima.z);
-        _shadowViewFrustum.setFarClip(maxima.z);
-        _shadowViewFrustum.setEyeOffsetPosition(glm::vec3());
-        _shadowViewFrustum.setEyeOffsetOrientation(glm::quat());
+        _shadowViewFrustum.setProjection(glm::ortho(minima.x, maxima.x, minima.y, maxima.y, minima.z, maxima.z));
         _shadowViewFrustum.calculate();
 
         glMatrixMode(GL_PROJECTION);
@@ -3119,12 +3120,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glFrontFace(GL_CCW);
     }
 
-    glm::vec3 eyeOffsetPos = theCamera.getEyeOffsetPosition();
-    glm::quat eyeOffsetOrient = theCamera.getEyeOffsetOrientation();
-    glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
-    glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
-
     // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -3142,8 +3137,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
-    viewTransform.postTranslate(eyeOffsetPos);
-    viewTransform.postRotate(eyeOffsetOrient);
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
@@ -3180,6 +3173,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     // Background rendering decision
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto skybox = model::SkyboxPointer();
     if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
        if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
@@ -3194,18 +3188,40 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             // compute starfield alpha based on distance from atmosphere
             float alpha = 1.0f;
             bool hasStars = true;
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
                 const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
+
                 if (closestData.getHasStars()) {
+                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
+                                                    / closestData.getAtmosphereOuterRadius();
                     float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
+                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
+                        
 
                     } else if (height < closestData.getAtmosphereOuterRadius()) {
                         alpha = (height - closestData.getAtmosphereInnerRadius()) /
                             (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
                     }
                 } else {
                     hasStars = false;
@@ -3214,7 +3230,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
             // finally render the starfield
             if (hasStars) {
-                _stars.render(theCamera.getFieldOfView(), theCamera.getAspectRatio(), theCamera.getNearClip(), alpha);
+                _stars.render(_displayViewFrustum.getFieldOfView(), _displayViewFrustum.getAspectRatio(), _displayViewFrustum.getNearClip(), alpha);
             }
 
             // draw the sky dome
@@ -3227,7 +3243,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        auto skybox = skyStage->getSkybox();
+        skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
@@ -3306,6 +3322,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3447,15 +3464,16 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
+    float aspect = (float)region.width() / region.height();
+    float fov = MIRROR_FIELD_OF_VIEW;
 
     // bool eyeRelativeCamera = false;
     if (billboard) {
-        _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
+        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
-        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
@@ -3476,12 +3494,10 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further 
         // investigated in order to adapt the technique while fixing the head rendering issue,
         // but the complexity of the hack suggests that a better approach 
-        _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
-    _mirrorCamera.setAspectRatio((float)region.width() / region.height());
-
+    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
     // set the bounds of rear mirror view
@@ -4626,6 +4642,13 @@ bool Application::hasFocus() const {
     return _glWidget->hasFocus();
 }
 
-void Application::resizeGL() {
-    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
+}
+
+int Application::getMaxOctreePacketsPerSecond() {
+    return _maxOctreePPS;
 }

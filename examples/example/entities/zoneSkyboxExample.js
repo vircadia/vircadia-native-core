@@ -37,12 +37,14 @@ var zoneEntityA = Entities.addEntity({
         color: { red: 255, green: 0, blue: 255 }, 
         url: ""
     },
-    stageLatitude: 37.777,
-    stageLongitude: 122.407,
-    stageAltitude: 0.03,
-    stageDay: 60,
-    stageHour: 0,
-    stageSunModelEnabled: true
+    stage: {
+        latitude: 37.777,
+        longitude: 122.407,
+        altitude: 0.03,
+        day: 60,
+        hour: 0,
+        sunModelEnabled: true
+    }
 });
 
 var props = Entities.getEntityProperties(zoneEntityA);

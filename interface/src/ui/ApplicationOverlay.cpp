@@ -190,8 +190,8 @@ void ApplicationOverlay::renderOverlay() {
     Overlays& overlays = qApp->getOverlays();
     
     _textureFov = glm::radians(_hmdUIAngularSize);
-    glm::vec2 deviceSize = qApp->getCanvasSize();
-    _textureAspectRatio = (float)deviceSize.x / (float)deviceSize.y;
+    glm::vec2 size = qApp->getCanvasSize();
+    _textureAspectRatio = aspect(size);
 
     //Handle fading and deactivation/activation of UI
     
@@ -204,12 +204,13 @@ void ApplicationOverlay::renderOverlay() {
     _overlays.buildFramebufferObject();
     _overlays.bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, size.x, size.y);
 
     glPushMatrix(); {
         const float NEAR_CLIP = -10000;
         const float FAR_CLIP = 10000;
         glLoadIdentity();
-        glOrtho(0, deviceSize.x, deviceSize.y, 0, NEAR_CLIP, FAR_CLIP);
+        glOrtho(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
 
         glMatrixMode(GL_MODELVIEW);
 
@@ -269,6 +270,7 @@ void ApplicationOverlay::displayOverlayTexture() {
         if (_alpha < 1.0) {
             glEnable(GL_BLEND);
         }
+        glViewport(0, 0, qApp->getDeviceSize().width(), qApp->getDeviceSize().height());
 
         static const glm::vec2 topLeft(-1, 1);
         static const glm::vec2 bottomRight(1, -1);
@@ -887,15 +889,9 @@ void ApplicationOverlay::renderAudioMeter() {
     }
     bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
-    auto canvasSize = qApp->getCanvasSize();
-    if ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
-        const float MAX_MAGNITUDE = 0.7f;
-        float magnitude = MAX_MAGNITUDE * (1 - audio->getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
-        renderCollisionOverlay(canvasSize.x, canvasSize.y, magnitude, 1.0f);
-    }
-
     DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, cameraSpace, boxed);
     
+    auto canvasSize = qApp->getCanvasSize();
     DependencyManager::get<AudioScope>()->render(canvasSize.x, canvasSize.y);
     DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, canvasSize.x, canvasSize.y);
 
@@ -1129,8 +1125,9 @@ void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
 }
 
 void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
-    auto deviceSize = qApp->getDeviceSize();
-    if (_framebufferObject != NULL && deviceSize == _framebufferObject->size()) {
+    auto canvasSize = qApp->getCanvasSize();
+    QSize fboSize = QSize(canvasSize.x, canvasSize.y);
+    if (_framebufferObject != NULL && fboSize == _framebufferObject->size()) {
         // Already build
         return;
     }
@@ -1139,7 +1136,7 @@ void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject() {
         delete _framebufferObject;
     }
     
-    _framebufferObject = new QOpenGLFramebufferObject(deviceSize, QOpenGLFramebufferObject::Depth);
+    _framebufferObject = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
     glBindTexture(GL_TEXTURE_2D, getTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1229,19 +1226,17 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(const glm::vec2&  sphericalPos)
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result.x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f);
-    result.y = (sphericalPos.y / _textureFov + 0.5f);
     result *= qApp->getCanvasSize();
     return result;
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result.x *= -1.0;
     result /= qApp->getCanvasSize();
     result -= 0.5f;
     result *= _textureFov; 
     result.x *= _textureAspectRatio;
+    result.x *= -1.0f;
     return result;
 }
 

@@ -12,6 +12,7 @@
 
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
+#include <qcompilerdetection.h>
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
@@ -190,7 +191,8 @@ const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
-    _sunLight(new Light())
+    _sunLight(new Light()),
+    _skybox(new Skybox())
 {
     _sunLight->setType(Light::SUN);
  
@@ -289,6 +291,21 @@ void SunSkyStage::updateGraphicsObject() const {
         double originAlt = _earthSunModel.getAltitude();
         _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
     }
+
+    // Background
+    switch (getBackgroundMode()) {
+        case NO_BACKGROUND: {
+            break;
+        }
+        case SKY_DOME: {
+            break;
+        }
+        case SKY_BOX: {
+            break;
+        }
+        case NUM_BACKGROUND_MODES:
+            Q_UNREACHABLE();
+    };
 
     static int firstTime = 0;
     if (firstTime == 0) {

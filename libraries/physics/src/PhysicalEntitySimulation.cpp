@@ -62,15 +62,10 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     if (motionState) {
         motionState->clearEntity();
         entity->setPhysicsInfo(nullptr);
-
-        // NOTE: we must remove entity from _pendingAdds immediately because we've disconnected the backpointers between
-        // motionState and entity and they can't be used to look up each other.  However we don't need to remove
-        // motionState from _pendingChanges at this time becuase it will be removed during getObjectsToDelete().
-        _pendingAdds.remove(entity);
-
         _pendingRemoves.insert(motionState);
         _outgoingChanges.remove(motionState);
     }
+    _pendingAdds.remove(entity);
 }
 
 void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
@@ -172,7 +167,8 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
-                qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
+                // TODO: Seth to look into why this case is hit.
+                //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }
         } else {

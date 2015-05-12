@@ -1,6 +1,9 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="css/colpick.css">
+    <script src="jquery-2.1.4.min.js"></script>
+    <script src="colpick.js"></script>
     <script>
         var PI = 3.14159265358979;
         var DEGREES_TO_RADIANS = PI / 180.0;
@@ -18,6 +21,12 @@
                 els[i].setAttribute('disabled', 'disabled');
             }
         }
+        
+        function showElements(els, show) {
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.display = (show) ? 'block' : 'none';
+            } 
+        }
 
         function createEmitCheckedPropertyUpdateFunction(propertyName) {
             return function() {
@@ -26,6 +35,20 @@
                 );
             };
         }
+        function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
+            return function() {
+                var properties = {};
+                properties[group] = {};
+                properties[group][propertyName] = this.checked;
+                EventBridge.emitWebEvent(
+                    JSON.stringify({
+                        type: "update",
+                        properties: properties
+                    })
+                );
+            };
+        }
+
         function createEmitNumberPropertyUpdateFunction(propertyName) {
             return function() {
                 EventBridge.emitWebEvent(
@@ -126,19 +149,33 @@
 
         function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue) {
             return function() {
+                emitColorPropertyUpdate(property, elRed.value, elGreen.value, elBlue.value);
+            }
+        };
+
+        function emitColorPropertyUpdate(property, red, green, blue, group) {
                 var data = {
                      type: "update",
                      properties: {
                      }
                 };
-                data.properties[property] = {
-                     red: elRed.value,
-                     green: elGreen.value,
-                     blue: elBlue.value,
-                };
+                if (group) {
+                    data.properties[group] = { };
+                    data.properties[group][property] = {
+                         red: red,
+                         green: green,
+                         blue: blue,
+                    };
+                } else {
+                    data.properties[property] = {
+                         red: red,
+                         green: green,
+                         blue: blue,
+                    };
+                }
                 EventBridge.emitWebEvent(JSON.stringify(data));
-            }
         };
+
 
         function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
             return function() {
@@ -212,6 +249,7 @@
             var elUserData = document.getElementById("property-user-data");
 
             var elColorSection = document.getElementById("color-section");
+            var elColor = document.getElementById("property-color");
             var elColorRed = document.getElementById("property-color-red");
             var elColorGreen = document.getElementById("property-color-green");
             var elColorBlue = document.getElementById("property-color-blue");
@@ -219,6 +257,7 @@
             var elLightSections = document.querySelectorAll(".light-section");
             allSections.push(elLightSections);
             var elLightSpotLight = document.getElementById("property-light-spot-light");
+            var elLightColor = document.getElementById("property-light-color");
             var elLightColorRed = document.getElementById("property-light-color-red");
             var elLightColorGreen = document.getElementById("property-light-color-green");
             var elLightColorBlue = document.getElementById("property-light-color-blue");
@@ -244,9 +283,11 @@
             allSections.push(elTextSections);
             var elTextText = document.getElementById("property-text-text");
             var elTextLineHeight = document.getElementById("property-text-line-height");
+            var elTextTextColor = document.getElementById("property-text-text-color");
             var elTextTextColorRed = document.getElementById("property-text-text-color-red");
             var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
             var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
+            var elTextBackgroundColor = document.getElementById("property-text-background-color");
             var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
             var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
             var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
@@ -254,6 +295,7 @@
             var elZoneSections = document.querySelectorAll(".zone-section");
             allSections.push(elZoneSections);
             var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
+            var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
             var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
             var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
             var elZoneKeyLightColorBlue = document.getElementById("property-zone-key-light-color-blue");
@@ -266,11 +308,13 @@
             var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
             var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
             var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
+            var elZoneStageAutomaticHourDay = document.getElementById("property-zone-stage-automatic-hour-day");
             var elZoneStageDay = document.getElementById("property-zone-stage-day");
             var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
             var elZoneBackgroundMode = document.getElementById("property-zone-background-mode");
 
+            var elZoneSkyboxColor = document.getElementById("property-zone-skybox-color");
             var elZoneSkyboxColorRed = document.getElementById("property-zone-skybox-color-red");
             var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
             var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
@@ -279,6 +323,8 @@
             var elZoneAtmosphereCenterX = document.getElementById("property-zone-atmosphere-center-x");
             var elZoneAtmosphereCenterY = document.getElementById("property-zone-atmosphere-center-y");
             var elZoneAtmosphereCenterZ = document.getElementById("property-zone-atmosphere-center-z");
+            var elCenterAtmosphereToZone = document.getElementById("center-atmosphere-in-zone");
+            
             var elZoneAtmosphereInnerRadius = document.getElementById("property-zone-atmosphere-inner-radius");
             var elZoneAtmosphereOuterRadius = document.getElementById("property-zone-atmosphere-outer-radius");
             var elZoneAtmosphereMieScattering = document.getElementById("property-zone-atmosphere-mie-scattering");
@@ -286,6 +332,8 @@
             var elZoneAtmosphereScatteringWavelengthsX = document.getElementById("property-zone-atmosphere-scattering-wavelengths-x");
             var elZoneAtmosphereScatteringWavelengthsY = document.getElementById("property-zone-atmosphere-scattering-wavelengths-y");
             var elZoneAtmosphereScatteringWavelengthsZ = document.getElementById("property-zone-atmosphere-scattering-wavelengths-z");
+            var elZoneAtmosphereHasStars = document.getElementById("property-zone-atmosphere-has-stars");
+
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -400,6 +448,7 @@
                                 elColorRed.value = properties.color.red;
                                 elColorGreen.value = properties.color.green;
                                 elColorBlue.value = properties.color.blue;
+                                elColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
                             } else {
                                 elColorSection.style.display = 'none';
                             }
@@ -426,6 +475,7 @@
 
                                 elTextText.value = properties.text;
                                 elTextLineHeight.value = properties.lineHeight.toFixed(4);
+                                elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
                                 elTextTextColorRed.value = properties.textColor.red;
                                 elTextTextColorGreen.value = properties.textColor.green;
                                 elTextTextColorBlue.value = properties.textColor.blue;
@@ -439,6 +489,7 @@
 
                                 elLightSpotLight.checked = properties.isSpotlight;
 
+                                elLightColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
                                 elLightColorRed.value = properties.color.red;
                                 elLightColorGreen.value = properties.color.green;
                                 elLightColorBlue.value = properties.color.blue;
@@ -451,7 +502,8 @@
                                     elZoneSections[i].style.display = 'block';
                                 }
 
-                                elZoneStageSunModelEnabled.checked = properties.stageSunModelEnabled;
+                                elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
+                                elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLightColor.red  + "," + properties.keyLightColor.green + "," + properties.keyLightColor.blue + ")";
                                 elZoneKeyLightColorRed.value = properties.keyLightColor.red;
                                 elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
                                 elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
@@ -461,16 +513,18 @@
                                 elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
                                 elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
 
-                                elZoneStageLatitude.value = properties.stageLatitude.toFixed(2);
-                                elZoneStageLongitude.value = properties.stageLongitude.toFixed(2);
-                                elZoneStageAltitude.value = properties.stageAltitude.toFixed(2);
-                                elZoneStageDay.value = properties.stageDay;
-                                elZoneStageHour.value = properties.stageHour;
+                                elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
+                                elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
+                                elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
+                                elZoneStageAutomaticHourDay.checked = properties.stage.automaticHourDay;
+                                elZoneStageDay.value = properties.stage.day;
+                                elZoneStageHour.value = properties.stage.hour;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
 
                                 elZoneBackgroundMode.value = properties.backgroundMode;
 
+                                elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red  + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
                                 elZoneSkyboxColorRed.value = properties.skybox.color.red;
                                 elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                                 elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
@@ -486,8 +540,10 @@
                                 elZoneAtmosphereScatteringWavelengthsX.value = properties.atmosphere.scatteringWavelengths.x;
                                 elZoneAtmosphereScatteringWavelengthsY.value = properties.atmosphere.scatteringWavelengths.y;
                                 elZoneAtmosphereScatteringWavelengthsZ.value = properties.atmosphere.scatteringWavelengths.z;
+                                elZoneAtmosphereHasStars.checked = properties.atmosphere.hasStars;
                                 
-                                
+                                showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
+                                showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
                             }
 
                             if (selected) {
@@ -565,6 +621,16 @@
             elColorRed.addEventListener('change', colorChangeFunction);
             elColorGreen.addEventListener('change', colorChangeFunction);
             elColorBlue.addEventListener('change', colorChangeFunction);
+            $('#property-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+                }
+            })
 
             elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
@@ -573,6 +639,16 @@
             elLightColorRed.addEventListener('change', lightColorChangeFunction);
             elLightColorGreen.addEventListener('change', lightColorChangeFunction);
             elLightColorBlue.addEventListener('change', lightColorChangeFunction);
+            $('#property-light-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+                }
+            })
 
             elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
             elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
@@ -596,14 +672,44 @@
             elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
             elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
             elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
+            $('#property-text-text-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
+                }
+            });
 
             var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
             elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
+            $('#property-text-background-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
+                }
+            });
 
-            elZoneStageSunModelEnabled.addEventListener('change', createEmitCheckedPropertyUpdateFunction('stageSunModelEnabled'));
+            elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
+            $('#property-zone-key-light-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('keyLightColor', rgb.r, rgb.g, rgb.b);
+                }
+            });
             var zoneKeyLightColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'keyLightColor', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
@@ -617,11 +723,12 @@
             elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
             elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-            elZoneStageLatitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLatitude'));
-            elZoneStageLongitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageLongitude'));
-            elZoneStageAltitude.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageAltitude'));
-            elZoneStageDay.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageDay'));
-            elZoneStageHour.addEventListener('change', createEmitNumberPropertyUpdateFunction('stageHour'));
+            elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
+            elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
+            elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
+            elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','automaticHourDay'));
+            elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','day'));
+            elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','hour'));
 
 
             elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
@@ -630,6 +737,16 @@
             elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
             elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
             elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
+            $('#property-zone-skybox-color').colpick({
+                colorScheme:'dark',
+                layout:'rgbhex',
+                color:'000000',
+                onSubmit: function(hsb, hex, rgb, el) {
+                    $(el).css('background-color', '#'+hex);
+                    $(el).colpickHide();
+                    emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
+                }
+            });
                 
             elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
 
@@ -650,6 +767,8 @@
             elZoneAtmosphereScatteringWavelengthsX.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
             elZoneAtmosphereScatteringWavelengthsY.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
             elZoneAtmosphereScatteringWavelengthsZ.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
+            elZoneAtmosphereHasStars.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('atmosphere','hasStars'));
+
 
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
@@ -674,6 +793,12 @@
                     type: "action",
                     action: "rescaleDimensions",
                     percentage: parseInt(elRescaleDimensionsPct.value),
+                }));
+            });
+            elCenterAtmosphereToZone.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "centerAtmosphereToZone",
                 }));
             });
 
@@ -710,6 +835,7 @@
                 };
             }
         }
+
     </script>
 </head>
 <body class="properties" onload='loaded();'>
@@ -886,6 +1012,7 @@
         <div id="color-section" class="property">
             <div class="label">Color</div>
             <div class="value">
+                <div id="property-color" class='color-picker'></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
@@ -975,6 +1102,7 @@
         <div class="text-section property">
             <div class="label">Text Color</div>
             <div class="value">
+                <div class='color-picker' id="property-text-text-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-text-text-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-text-text-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-text-text-color-blue"></input></div>
@@ -983,6 +1111,7 @@
         <div class="text-section property">
             <div class="label">Background Color</div>
             <div class="value">
+                <div class='color-picker' id="property-text-background-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-text-background-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-text-background-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-text-background-color-blue"></input></div>
@@ -998,6 +1127,7 @@
         <div class="light-section property">
             <div class="label">Color</div>
             <div class="value">
+                <div class='color-picker' id="property-light-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-light-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-light-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-light-color-blue"></input></div>
@@ -1032,6 +1162,7 @@
         <div class="zone-section property">
             <div class="label">Key Light Color</div>
             <div class="value">
+                <div class='color-picker' id="property-zone-key-light-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green" min="0" max="255" step="1"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></input></div>
@@ -1076,6 +1207,14 @@
                 <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
             </div>
         </div>
+
+        <div class="zone-section property">
+            <span class="label">Automatically calculate stage hour and day from location and clock.</span>
+            <span class="value">
+                <input type='checkbox' id="property-zone-stage-automatic-hour-day">
+            </span>
+        </div>
+        
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">
@@ -1099,59 +1238,69 @@
                 </select> 
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox Color</div>
             <div class="value">
+                <div class='color-picker' id="property-zone-skybox-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-skybox-color-red"></input></div>
                 <div class="input-area">G <input class="coord" type='number' id="property-zone-skybox-color-green"></input></div>
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-skybox-color-blue"></input></div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section skybox-section property">
             <div class="label">Skybox URL</div>
             <div class="value">
                 <input type="text" id="property-zone-skybox-url" class="url"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Center</div>
             <div class="value">
                 <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></input></div>
                 <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-center-y"></input></div>
                 <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></input></div>
+                <div>
+                    <input type="button" id="center-atmosphere-in-zone" value="Center to Zone">
+                </div>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Inner Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Outer Radius</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Mie Scattering</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="0.001"></input>
+                <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Rayleigh Scattering</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="0.001"></input>
+                <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any"></input>
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Scattering Wavelenghts</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="0.001"></input></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="0.001"></input></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="0.001"></input></div>
+                <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></input></div>
+                <div class="input-area">Y <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="any"></input></div>
+                <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></input></div>
             </div>
+        </div>
+        <div class="zone-section atmosphere-section property" style="display:none">
+            <span class="label">Atmosphere Has Stars</span>
+            <span class="value">
+                <input type='checkbox' id="property-zone-atmosphere-has-stars">
+            </span>
         </div>
 
     </div>

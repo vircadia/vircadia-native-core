@@ -95,4 +95,7 @@ void FboCache::setSize(const QSize& newSize) {
     });
 }
 
+const QSize& FboCache::getSize() {
+    return _size;
+}
 

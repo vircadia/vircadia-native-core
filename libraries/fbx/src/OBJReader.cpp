@@ -386,8 +386,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
 done:
     if (faces.count() == 0) { // empty mesh
         mesh.parts.pop_back();
+    } else {
+        faceGroups.append(faces); // We're done with this group. Add the faces.
     }
-    faceGroups.append(faces); // We're done with this group. Add the faces.
     //qCDebug(modelformat) << "end group:" << meshPart.materialID << " original faces:" << originalFaceCountForDebugging << " triangles:" << faces.count() << " keep going:" << result;
     return result;
 }
@@ -510,6 +511,9 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                     << textureUVs[face.textureUVIndices[0]]
                     << textureUVs[face.textureUVIndices[1]]
                     << textureUVs[face.textureUVIndices[2]];
+                } else {
+                    glm::vec2 corner(0.0f, 1.0f);
+                    mesh.texCoords << corner << corner << corner;
                 }
             }
         }

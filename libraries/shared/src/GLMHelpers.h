@@ -117,6 +117,11 @@ QMatrix4x4 fromGlm(const glm::mat4 & m);
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
 
+template <typename T>
+float aspect(const T& t) {
+    return (float)t.x / (float)t.y;
+}
+
 #define YAW(euler) euler.y
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z

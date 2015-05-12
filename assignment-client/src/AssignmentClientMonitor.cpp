@@ -23,7 +23,7 @@
 
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
-const int WAIT_FOR_CHILD_MSECS = 500;
+const int WAIT_FOR_CHILD_MSECS = 1000;
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
@@ -41,22 +41,20 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentServerPort(assignmentServerPort)
 {    
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
-
+    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
+
+    // make sure we output process IDs for a monitor otherwise it's insane to parse
+    LogHandler::getInstance().setShouldOutputPID(true);
 
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<LimitedNodeList>(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT);
+    auto nodeList = DependencyManager::set<LimitedNodeList>();
 
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClientMonitor::readPendingDatagrams);
 
-    qint64 pid = QCoreApplication::applicationPid ();
-
-    nodeList->putLocalPortIntoSharedMemory(QString(ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY) + "-" + QString::number(pid),
-                                           this, nodeList->getNodeSocket().localPort());
-    
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
         spawnChildClient();
@@ -71,61 +69,60 @@ AssignmentClientMonitor::~AssignmentClientMonitor() {
     stopChildProcesses();
 }
 
-void AssignmentClientMonitor::waitOnChildren(int msecs) {
-    QMutableListIterator<QProcess*> i(_childProcesses);
-    while (i.hasNext()) {
-        QProcess* childProcess = i.next();
-        bool finished = childProcess->waitForFinished(msecs);
-        if (finished) {
-            i.remove();
-        }
+void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
+    QElapsedTimer waitTimer;
+    waitTimer.start();
+
+    // loop as long as we still have processes around and we're inside the wait window
+    while(_childProcesses.size() > 0 && !waitTimer.hasExpired(waitMsecs)) {
+        // continue processing events so we can handle a process finishing up
+        QCoreApplication::processEvents();
+    }     
+}
+
+void AssignmentClientMonitor::childProcessFinished() {
+    QProcess* childProcess = qobject_cast<QProcess*>(sender());
+    qint64 processID = _childProcesses.key(childProcess);
+    
+    if (processID > 0) {
+        qDebug() << "Child process" << processID << "has finished. Removing from internal map.";
+        _childProcesses.remove(processID);
     }
 }
 
 void AssignmentClientMonitor::stopChildProcesses() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([&](const SharedNodePointer& node) {
-        qDebug() << "asking child" << node->getUUID() << "to exit.";
-        node->activateLocalSocket();
-        QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
-        nodeList->writeUnverifiedDatagram(diePacket, *node->getActiveSocket());
-    });
-
-    // try to give all the children time to shutdown
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
-
-    // ask more firmly
-    QMutableListIterator<QProcess*> i(_childProcesses);
-    while (i.hasNext()) {
-        QProcess* childProcess = i.next();
+    // ask child processes to terminate
+    foreach(QProcess* childProcess, _childProcesses) {
+        qDebug() << "Attempting to terminate child process" << childProcess->processId();
         childProcess->terminate();
     }
-
-    // try to give all the children time to shutdown
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
-
-    // ask even more firmly
-    QMutableListIterator<QProcess*> j(_childProcesses);
-    while (j.hasNext()) {
-        QProcess* childProcess = j.next();
-        childProcess->kill();
+    
+    simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
+    
+    if (_childProcesses.size() > 0) {
+        // ask even more firmly
+        foreach(QProcess* childProcess, _childProcesses) {
+            qDebug() << "Attempting to kill child process" << childProcess->processId();
+            childProcess->kill();
+        }
+        
+        simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS); 
     }
-
-    waitOnChildren(WAIT_FOR_CHILD_MSECS);
 }
 
 void AssignmentClientMonitor::aboutToQuit() {
     stopChildProcesses();
+
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
 }
 
 void AssignmentClientMonitor::spawnChildClient() {
-    QProcess *assignmentClient = new QProcess(this);
+    QProcess* assignmentClient = new QProcess(this);
 
-    _childProcesses.append(assignmentClient);
-
+    
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -149,17 +146,21 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append(QString::number(_requestAssignmentType));
     }
 
-    // tell children which shared memory key to use
-    qint64 pid = QCoreApplication::applicationPid ();
-    _childArguments.append("--" + PARENT_PID_OPTION);
-    _childArguments.append(QString::number(pid));
+    // tell children which assignment monitor port to use
+    // for now they simply talk to us on localhost
+    _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
+    _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
 
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
+    // make sure we hear that this process has finished when it does
+    connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
+
     qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
+    _childProcesses.insert(assignmentClient->processId(), assignmentClient);
 }
 
 void AssignmentClientMonitor::checkSpares() {
@@ -193,12 +194,11 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
-            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+            
+            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
     }
-
-    waitOnChildren(0);
 }
 
 
@@ -229,7 +229,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                         } else {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
-                            QByteArray diePacket = byteArrayWithPopulatedHeader(PacketTypeStopNode);
+                            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
                             nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
                         }
                     }
