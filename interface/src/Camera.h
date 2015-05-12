@@ -43,7 +43,6 @@ public:
 
     void update( float deltaTime );
 
-    void setPosition(const glm::vec3& position);
     void setRotation(const glm::quat& rotation);
     void setProjection(const glm::mat4 & projection);
     void setHmdPosition(const glm::vec3& hmdPosition);
@@ -51,7 +50,6 @@ public:
     void setMode(CameraMode m);
     
     glm::quat getRotation() const { return _rotation * _hmdRotation; }
-    glm::vec3 getPosition() const { return _position + _hmdPosition; }
     const glm::mat4& getProjection() const { return _projection; }
     const glm::vec3& getHmdPosition() const { return _hmdPosition; }
     const glm::quat& getHmdRotation() const { return _hmdRotation; }
@@ -60,6 +58,9 @@ public:
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
+
+    glm::vec3 getPosition() const { return _position + _hmdPosition; }
+    void setPosition(const glm::vec3& position);
 
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
     glm::quat getOrientation() const { return getRotation(); }
