@@ -12,6 +12,7 @@
 
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
+#include <qcompilerdetection.h>
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
@@ -293,15 +294,17 @@ void SunSkyStage::updateGraphicsObject() const {
 
     // Background
     switch (getBackgroundMode()) {
-    case NO_BACKGROUND: {
-        break;
-    }
-    case SKY_DOME: {
-        break;
-    }
-    case SKY_BOX: {
-        break;
-    }
+        case NO_BACKGROUND: {
+            break;
+        }
+        case SKY_DOME: {
+            break;
+        }
+        case SKY_BOX: {
+            break;
+        }
+        case NUM_BACKGROUND_MODES:
+            Q_UNREACHABLE();
     };
 
     static int firstTime = 0;

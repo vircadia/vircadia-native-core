@@ -198,6 +198,7 @@ public:
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.

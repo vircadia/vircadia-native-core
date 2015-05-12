@@ -3188,18 +3188,40 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             // compute starfield alpha based on distance from atmosphere
             float alpha = 1.0f;
             bool hasStars = true;
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
                 const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
+
                 if (closestData.getHasStars()) {
+                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
+                                                    / closestData.getAtmosphereOuterRadius();
                     float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
+                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
+                        
 
                     } else if (height < closestData.getAtmosphereOuterRadius()) {
                         alpha = (height - closestData.getAtmosphereInnerRadius()) /
                             (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
                     }
                 } else {
                     hasStars = false;

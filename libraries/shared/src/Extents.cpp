@@ -14,6 +14,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include "AABox.h"
 #include "Extents.h"
 
 void Extents::reset() {
@@ -35,6 +36,11 @@ void Extents::addExtents(const Extents& extents) {
 void Extents::addPoint(const glm::vec3& point) {
     minimum = glm::min(minimum, point);
     maximum = glm::max(maximum, point);
+}
+
+void Extents::add(const AABox& box) {
+     minimum = glm::min(minimum, box.getMinimumPoint());
+     maximum = glm::max(maximum, box.getMaximumPoint());
 }
 
 void Extents::rotate(const glm::quat& rotation) {
