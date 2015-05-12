@@ -742,7 +742,7 @@
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
                     $(el).colpickHide();
-                    emitColorPropertyUpdate('skybox', rgb.r, rgb.g, rgb.b, 'color');
+                    emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
                 }
             });
                 
