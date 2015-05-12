@@ -2207,9 +2207,9 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
     // figure out how many bytes the sender said this path is
     quint16 numPathBytes = *packetDataStart;
 
-    if (numPathBytes <= receivedPacket.size() - numHeaderBytes - 1) {
+    if (numPathBytes <= receivedPacket.size() - numHeaderBytes - sizeof(numPathBytes)) {
         // the number of path bytes makes sense for the sent packet - pull out the path
-        QString pathQuery = QString::fromUtf8(packetDataStart + 1, numPathBytes);
+        QString pathQuery = QString::fromUtf8(packetDataStart + sizeof(numPathBytes), numPathBytes);
 
         // our settings contain paths that start with a leading slash, so make sure this query has that
         if (!pathQuery.startsWith("/")) {
@@ -2251,6 +2251,8 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
 
                     // append the viewpoint itself
                     pathResponsePacket.append(viewpointUTF8);
+
+                    qDebug() << "Sending a viewpoint response for path query" << pathQuery << "-" << viewpointUTF8;
 
                     // send off the packet - see if we can associate this outbound data to a particular node
                     SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
