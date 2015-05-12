@@ -1332,7 +1332,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Camera eye closing threshold</string>
+            <string>Camera binary eyelid threshold</string>
            </property>
            <property name="indent">
             <number>0</number>
