@@ -32,6 +32,8 @@ const QString DESCRIPTION_NAME_KEY = "name";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
+const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
+
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
     _configMap()
@@ -267,7 +269,15 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             } else if (settingType == INPUT_INTEGER_TYPE) {
                 settingMap[key] = newValue.toString().toInt();
             } else {
-                settingMap[key] = newValue.toString();
+                QString sanitizedValue = newValue.toString();
+
+                // we perform special handling for viewpoints here
+                // we do not want them to be prepended with a slash
+                if (key == SETTINGS_VIEWPOINT_KEY && !sanitizedValue.startsWith('/')) {
+                    sanitizedValue.prepend('/');
+                }
+
+                settingMap[key] = sanitizedValue;
             }
         }
     } else if (newValue.isBool()) {
@@ -299,13 +309,10 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
 
             QString sanitizedKey = childKey;
 
-            if (key == SETTINGS_PATHS_KEY) {
+            if (key == SETTINGS_PATHS_KEY && !sanitizedKey.startsWith('/')) {
                 // We perform special handling for paths here.
                 // If we got sent a path without a leading slash then we add it.
-
-                if (!sanitizedKey.startsWith("/")) {
-                    sanitizedKey.prepend("/");
-                }
+                sanitizedKey.prepend("/");
             }
 
             updateSetting(sanitizedKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
