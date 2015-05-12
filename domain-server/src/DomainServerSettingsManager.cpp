@@ -209,7 +209,7 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                                 variantValue = settingsMapGroupValue.toMap().value(settingName);
                             }
                         } else {
-                            _configMap.getMergedConfig().value(settingName);
+                            variantValue = _configMap.getMergedConfig().value(settingName);
                         }
 
                         QJsonValue result;
@@ -267,15 +267,12 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             } else if (settingType == INPUT_INTEGER_TYPE) {
                 settingMap[key] = newValue.toString().toInt();
             } else {
-
-                qDebug() << "setting value at key" << key << "to string" << newValue.toString();
                 settingMap[key] = newValue.toString();
             }
         }
     } else if (newValue.isBool()) {
         settingMap[key] = newValue.toBool();
     } else if (newValue.isObject()) {
-        qDebug() << "updateSetting called with" << newValue.toObject();
         if (!settingMap.contains(key)) {
             // we don't have a map below this key yet, so set it up now
             settingMap[key] = QVariantMap();
@@ -374,7 +371,6 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, thisMap, matchingDescriptionObject);
-                qDebug() << "This map is" << thisMap << "after call to update setting";
             } else {
                 qDebug() << "Setting for root key" << rootKey << "does not exist - cannot update setting.";
             }
