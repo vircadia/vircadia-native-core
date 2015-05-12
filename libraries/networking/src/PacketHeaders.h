@@ -47,8 +47,8 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    UNUSED_1,
-    UNUSED_2,
+    PacketTypeDomainServerPathQuery,
+    PacketTypeDomainServerPathResponse,
     UNUSED_3,
     UNUSED_4,
     UNUSED_5, // 25
@@ -122,7 +122,7 @@ int numSequenceNumberBytesForType(PacketType packetType);
 
 int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
-int numBytesForArithmeticCodedPacketType(PacketType packetType); 
+int numBytesForArithmeticCodedPacketType(PacketType packetType);
 int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
 
 QUuid uuidFromPacketHeader(const QByteArray& packet);
@@ -138,9 +138,9 @@ QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid&
 
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType = PacketTypeUnknown);
 
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType = PacketTypeUnknown); 
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType = PacketTypeUnknown);
 
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, 
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber,
                                    PacketType packetType = PacketTypeUnknown);
 
 void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
