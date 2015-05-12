@@ -186,7 +186,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, _emitStrength);
     READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, _localGravity);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, _particleRadius);
-    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, _textures);
+    READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
 
     return bytesRead;
 }
