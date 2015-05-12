@@ -53,7 +53,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
         static gpu::BufferPointer theBuffer;
         static gpu::Stream::FormatPointer theFormat;
         static gpu::BufferPointer theConstants;
-        const int SKYBOX_CONSTANTS_SLOT = 3;
+        int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
         if (!thePipeline) {
             auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
             auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
@@ -61,12 +61,15 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
             gpu::Shader::BindingSet bindings;
             bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), 0));
-            bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-            
             if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
 
             }
 
+            SKYBOX_CONSTANTS_SLOT = skyShader->getBuffers().findLocation("skyboxBuffer");
+            if (SKYBOX_CONSTANTS_SLOT == gpu::Shader::INVALID_LOCATION) {
+                SKYBOX_CONSTANTS_SLOT = skyShader->getUniforms().findLocation("skyboxBuffer");
+            }
+            
             auto skyState = gpu::StatePointer(new gpu::State());
 
             thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));

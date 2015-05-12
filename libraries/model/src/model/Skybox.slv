@@ -30,8 +30,7 @@ Skybox getSkybox() {
 uniform vec4 skyboxBuffer[1];
 Skybox getSkybox() {
     Skybox _skybox;
-    _skybox._color =  skyboxBuffer[0];
-
+    _skybox._color = skyboxBuffer[0];
     return _skybox;
 }
 <@endif@>
