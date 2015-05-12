@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PacketHeaders.h"
-#include "SharedUtil.h"
 #include "OctreeQueryNode.h"
+
 #include <cstring>
 #include <cstdio>
+
+#include <PacketHeaders.h>
+#include <SharedUtil.h>
+#include <UUID.h>
+
 #include "OctreeSendThread.h"
 
 OctreeQueryNode::OctreeQueryNode() :
@@ -91,8 +95,8 @@ void OctreeQueryNode::sendThreadFinished() {
     }
 }
 
-void OctreeQueryNode::initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) {
-    _octreeSendThread = new OctreeSendThread(myAssignment, node);
+void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) {
+    _octreeSendThread = new OctreeSendThread(myServer, node);   
     
     // we want to be notified when the thread finishes
     connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);

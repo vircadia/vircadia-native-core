@@ -22,11 +22,11 @@
 #include <OctreePacketData.h>
 #include <OctreeQuery.h>
 #include <OctreeSceneStats.h>
-#include <ThreadedAssignment.h> // for SharedAssignmentPointer
 #include "SentPacketHistory.h"
 #include <qqueue.h>
 
 class OctreeSendThread;
+class OctreeServer;
 
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
@@ -89,7 +89,7 @@ public:
     
     OctreeSceneStats stats;
     
-    void initializeOctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
+    void initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
     
     void dumpOutOfView();

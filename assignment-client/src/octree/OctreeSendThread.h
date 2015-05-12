@@ -26,7 +26,7 @@ class OctreeServer;
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
+    OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
     virtual ~OctreeSendThread();
     
     void setIsShuttingDown();
@@ -43,7 +43,6 @@ protected:
     virtual bool process();
 
 private:
-    SharedAssignmentPointer _myAssignment;
     OctreeServer* _myServer;
     SharedNodePointer _node;
     QUuid _nodeUUID;

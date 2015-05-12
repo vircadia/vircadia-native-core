@@ -150,7 +150,11 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     switch (packetTypeForPacket(packet)) {
         case PacketTypeDomainList: {
-            processDomainServerList(packet);
+            if (!_domainHandler.getSockAddr().isNull()) {
+                // only process a list from domain-server if we're talking to a domain
+                // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
+                processDomainServerList(packet);
+            }
             break;
         }
         case PacketTypeDomainServerRequireDTLS: {

@@ -26,6 +26,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
+#include <QCoreApplication>
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
@@ -183,6 +184,8 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -248,6 +251,8 @@ bool setupEssentials(int& argc, char** argv) {
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+
+    Setting::init();
     
     // Set dependencies
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -333,12 +338,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>())
+        _domainConnectionRefusals(QList<QString>()),
+        _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
@@ -2683,7 +2688,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = _octreeQuery.getMaxOctreePacketsPerSecond();
+    int totalPPS = getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2746,7 +2751,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
@@ -2770,9 +2775,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                         qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
@@ -3203,6 +3208,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     // Background rendering decision
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto skybox = model::SkyboxPointer();
     if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
        if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
@@ -3217,18 +3223,40 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             // compute starfield alpha based on distance from atmosphere
             float alpha = 1.0f;
             bool hasStars = true;
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
                 const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
+
                 if (closestData.getHasStars()) {
+                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
+                                                    / closestData.getAtmosphereOuterRadius();
                     float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
+                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
+                        
 
                     } else if (height < closestData.getAtmosphereOuterRadius()) {
                         alpha = (height - closestData.getAtmosphereInnerRadius()) /
                             (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
                     }
                 } else {
                     hasStars = false;
@@ -3250,7 +3278,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        auto skybox = skyStage->getSkybox();
+        skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
@@ -3329,6 +3357,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -4647,4 +4676,15 @@ PickRay Application::computePickRay() const {
 
 bool Application::hasFocus() const {
     return _glWidget->hasFocus();
+}
+
+void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
+}
+
+int Application::getMaxOctreePacketsPerSecond() {
+    return _maxOctreePPS;
 }

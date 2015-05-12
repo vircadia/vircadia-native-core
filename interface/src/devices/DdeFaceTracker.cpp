@@ -183,8 +183,8 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
     _isCalibrating(false),
-    _calibrationValues(),
     _calibrationCount(0),
+    _calibrationValues(),
     _calibrationBillboard(NULL),
     _calibrationBillboardID(0),
     _calibrationMessage(QString())
