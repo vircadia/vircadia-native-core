@@ -38,9 +38,10 @@ public:
     ~TextureStorage();
 
     const QUrl& getUrl() const { return _url; }
-    const gpu::Texture::Type getType() const { return _usage._type; }
+    gpu::Texture::Type getType() const { return _usage._type; }
     const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
-
+    
+    virtual void reset() { Storage::reset(); }
     void reset(const QUrl& url, const TextureUsage& usage);
 
 protected:
