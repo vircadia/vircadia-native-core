@@ -130,7 +130,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
         QJsonObject postedObject = postedDocument.object();
         
-        qDebug() << "The postedObject is" << postedObject;
+        qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
 
         // we recurse one level deep below each group for the appropriate setting
         recurseJSONObjectAndOverwriteSettings(postedObject, _configMap.getUserConfig(), _descriptionArray);
@@ -201,31 +201,45 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                         
                         // we need to check if the settings map has a value for this setting
                         QVariant variantValue;
-                        QVariant settingsMapGroupValue = _configMap.getMergedConfig()
-                            .value(groupObject[DESCRIPTION_NAME_KEY].toString());
                         
-                        if (!settingsMapGroupValue.isNull()) {
-                            variantValue = settingsMapGroupValue.toMap().value(settingName);
+                        if (!groupKey.isEmpty()) {
+                             QVariant settingsMapGroupValue = _configMap.getMergedConfig().value(groupKey);
+                        
+                            if (!settingsMapGroupValue.isNull()) {
+                                variantValue = settingsMapGroupValue.toMap().value(settingName);
+                            }
+                        } else {
+                            _configMap.getMergedConfig().value(settingName);
                         }
+
+                        QJsonValue result;
                         
                         if (variantValue.isNull()) {
                             // no value for this setting, pass the default
                             if (settingObject.contains(SETTING_DEFAULT_KEY)) {
-                                groupResponseObject[settingName] = settingObject[SETTING_DEFAULT_KEY];
+                                result = settingObject[SETTING_DEFAULT_KEY];
                             } else {
                                 // users are allowed not to provide a default for string values
                                 // if so we set to the empty string
-                                groupResponseObject[settingName] = QString("");
+                                result = QString("");
                             }
                             
                         } else {
-                            groupResponseObject[settingName] = QJsonValue::fromVariant(variantValue);
+                            result = QJsonValue::fromVariant(variantValue);
+                        }
+
+                        if (!groupKey.isEmpty()) {
+                            // this belongs in the group object
+                            groupResponseObject[settingName] = result;
+                        } else {
+                            // this is a value that should be at the root
+                            responseObject[settingName] = result;
                         }
                     }
                 }
             }
             
-            if (!groupResponseObject.isEmpty()) {
+            if (!groupKey.isEmpty() && !groupResponseObject.isEmpty()) {
                 // set this group's object to the constructed object
                 responseObject[groupKey] = groupResponseObject;
             }

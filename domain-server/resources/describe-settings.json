@@ -1,7 +1,7 @@
 [
   {
     "name": "metaverse",
-    "label": "Metaverse Registration",
+    "label": "Metaverse / Networking",
     "settings": [
       {
         "name": "access_token",
@@ -42,6 +42,34 @@
         "type": "int",
         "advanced": true
       }
+    ]
+  },
+  {
+    "label": "Paths",
+    "settings": [
+      {
+        "name": "paths",
+        "label": "",
+        "help": "", 
+        "type": "table",
+        "key": {
+          "name": "path",
+          "label": "Path",
+          "placeholder": "/garden"
+        },
+        "columns": [
+          {
+            "name": "viewpoint",
+            "label": "Viewpoint",
+            "placeholder": "/512,512,512"
+          }
+        ],
+        "default": {
+          "/": {
+             "viewpoint": "/512,512,512"
+          }
+        }
+      }  
     ]
   },
   {

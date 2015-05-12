@@ -22,26 +22,30 @@ var Settings = {
 
 var viewHelpers = {
   getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
-    setting_name = groupName + "." + setting.name
-    
-    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>"
+    if (groupName) {
+      setting_name = groupName + "." + setting.name;
+    } else {
+      setting_name = setting.name;
+    }
+     
+    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>";
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
-      setting_value = values[groupName][setting.name] 
+      setting_value = values[groupName][setting.name]; 
     } else if (_.has(setting, 'default')) {
-      setting_value = setting.default
+      setting_value = setting.default;
     } else {
-      setting_value = ""
+      setting_value = "";
     }
     
-    label_class = 'control-label'
+    label_class = 'control-label';
     if (isLocked) {
-      label_class += ' locked'
+      label_class += ' locked';
     }
     
     common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
       + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
-      + "id='" + setting_name + "'"
+      + "id='" + setting_name + "'";
     
     if (setting.type === 'checkbox') {
       if (setting.label) {
@@ -186,7 +190,7 @@ $(document).ready(function(){
   
   // $('body').scrollspy({ target: '#setup-sidebar'})
   
-  reloadSettings()
+  reloadSettings();
 })
 
 function reloadSettings() {
@@ -265,7 +269,12 @@ function makeTable(setting, setting_name, setting_value, isLocked) {
     setting.can_order = false;
   }
   
-  var html = "<span class='help-block'>" + setting.help + "</span>"
+  var html = "";
+  
+  if (setting.help) {
+    html += "<span class='help-block'>" + setting.help + "</span>"
+  }
+
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
