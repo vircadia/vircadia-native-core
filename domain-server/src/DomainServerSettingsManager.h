@@ -18,6 +18,8 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
+const QString SETTINGS_PATHS_KEY = "paths";
+
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:

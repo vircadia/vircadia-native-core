@@ -297,7 +297,18 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
                 }
             }
 
-            updateSetting(childKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
+            QString sanitizedKey = childKey;
+
+            if (key == SETTINGS_PATHS_KEY) {
+                // We perform special handling for paths here.
+                // If we got sent a path without a leading slash then we add it.
+
+                if (!sanitizedKey.startsWith("/")) {
+                    sanitizedKey.prepend("/");
+                }
+            }
+
+            updateSetting(sanitizedKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
         }
 
         if (settingMap[key].toMap().isEmpty()) {

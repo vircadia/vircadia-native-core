@@ -2216,12 +2216,13 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
             pathQuery.prepend("/");
         }
 
-        const QString PATHS_SETTINGS_KEYPATH_FORMAT = "paths.%2";
+        const QString PATHS_SETTINGS_KEYPATH_FORMAT = "%1.%2";
         const QString PATH_VIEWPOINT_KEY = "viewpoint";
 
         // check out paths in the _configMap to see if we have a match
         const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                    QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(pathQuery));
+                                                    QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY)
+                                                                                          .arg(pathQuery));
         if (pathMatch) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
