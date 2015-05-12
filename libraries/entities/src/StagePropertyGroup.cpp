@@ -102,13 +102,13 @@ bool StagePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags
     int bytesRead = 0;
     bool overwriteLocalData = true;
 
-    READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, _sunModelEnabled);
-    READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, _latitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, float, _longitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, float, _altitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, _day);
-    READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _hour);
-    READ_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, bool, _automaticHourDay);
+    READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, setSunModelEnabled);
+    READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, setLatitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, float, setLongitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, float, setAltitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, setDay);
+    READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, setHour);
+    READ_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, bool, setAutomaticHourDay);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_STAGE_LATITUDE, Latitude);
@@ -211,13 +211,13 @@ int StagePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* da
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, _sunModelEnabled);
-    READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, _latitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, float, _longitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, float, _altitude);
-    READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, _day);
-    READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, _hour);
-    READ_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, bool, _automaticHourDay);
+    READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, setSunModelEnabled);
+    READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, setLatitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_LONGITUDE, float, setLongitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_ALTITUDE, float, setAltitude);
+    READ_ENTITY_PROPERTY(PROP_STAGE_DAY, quint16, setDay);
+    READ_ENTITY_PROPERTY(PROP_STAGE_HOUR, float, setHour);
+    READ_ENTITY_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, bool, setAutomaticHourDay);
 
     return bytesRead;
 }

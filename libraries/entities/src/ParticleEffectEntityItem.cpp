@@ -153,7 +153,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
@@ -161,9 +161,9 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
 
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
@@ -177,16 +177,16 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         setAnimationFrameIndex(animationFrameIndex);
     }
 
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
-    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, _maxParticles);
-    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, _lifespan);
-    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, _emitRate);
-    READ_ENTITY_PROPERTY_SETTER(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
-    READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, _emitStrength);
-    READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, _localGravity);
-    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, _particleRadius);
-    READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, uint32_t, updateShapeTypeUint32);
+    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
+    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
+    READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, setEmitStrength);
+    READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     return bytesRead;
 }

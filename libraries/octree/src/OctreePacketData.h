@@ -22,6 +22,10 @@
 #ifndef hifi_OctreePacketData_h
 #define hifi_OctreePacketData_h
 
+#include <QByteArray>
+#include <QString>
+#include <QUuid>
+
 #include <LimitedNodeList.h> // for MAX_PACKET_SIZE
 #include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
@@ -219,6 +223,19 @@ public:
     static quint64 getTotalBytesOfOctalCodes() { return _totalBytesOfOctalCodes; }  /// total bytes for octal codes
     static quint64 getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
+    
+    static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
+    static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
+    static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

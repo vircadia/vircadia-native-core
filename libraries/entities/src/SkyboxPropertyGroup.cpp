@@ -57,8 +57,8 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
     int bytesRead = 0;
     bool overwriteLocalData = true;
 
-    READ_ENTITY_PROPERTY_XCOLOR(PROP_SKYBOX_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_SKYBOX_URL, setURL);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_COLOR, Color);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_URL, URL);
@@ -126,8 +126,8 @@ int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* d
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_XCOLOR(PROP_SKYBOX_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_SKYBOX_URL, setURL);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     return bytesRead;
 }

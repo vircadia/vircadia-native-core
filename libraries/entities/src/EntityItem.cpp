@@ -511,9 +511,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += propertyFlags.getEncodedLength();
         bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
         }
 
         // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
@@ -529,50 +529,50 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         } else {
             if (useMeters) {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
             } else {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
+                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
             }
         }
 
-        READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
-        READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
-            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
-            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
         }
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ACCELERATION, glm::vec3, setAcceleration);
+            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
         }
 
-        READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
-        READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
-        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
         }
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
-        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
-        READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
-        READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
-        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
-        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
+        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+        READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, setSimulatorID);
+            READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
-            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
         }
 
-        READ_ENTITY_PROPERTY_STRING(PROP_NAME, setName);
+        READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -584,7 +584,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         //
         // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
         if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
-            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
         }
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES))) {

@@ -95,16 +95,16 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
         setCompoundShapeURL("");
     } else if (args.bitstreamVersion == VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
+        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     } else {
-        READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
+        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     }
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setAnimationURL);
 
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
@@ -112,9 +112,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
 
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
@@ -128,9 +128,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         setAnimationFrameIndex(animationFrameIndex);
     }
 
-    READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
-    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, uint32_t, updateShapeTypeUint32);
 
     return bytesRead;
 }

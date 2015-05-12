@@ -29,82 +29,15 @@
             propertiesDidntFit -= P;                                \
         }
 
-#define READ_ENTITY_PROPERTY(P,T,M)                             \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            bytesRead += sizeof(fromBuffer);                    \
-            if (overwriteLocalData) {                           \
-                M = fromBuffer;                                 \
-            }                                                   \
-        }
-
-#define READ_ENTITY_PROPERTY_SETTER(P,T,M)                      \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            bytesRead += sizeof(fromBuffer);                    \
-            if (overwriteLocalData) {                           \
-                M(fromBuffer);                                  \
-            }                                                   \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            bytesRead += bytes;                                             \
-            if (overwriteLocalData) {                                       \
-                M = fromBuffer;                                             \
-            }                                                               \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT_SETTER(P,M)                               \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            bytesRead += bytes;                                             \
-            if (overwriteLocalData) {                                       \
-                M(fromBuffer);                                              \
-            }                                                               \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING(P,O)                \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            bytesRead += sizeof(length);                \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            bytesRead += length;                        \
-            if (overwriteLocalData) {                   \
-                O(value);                               \
-            }                                           \
-        }
-
-#define READ_ENTITY_PROPERTY_UUID(P,O)                      \
-        if (propertyFlags.getHasProperty(P)) {              \
-            uint16_t length;                                \
-            memcpy(&length, dataAt, sizeof(length));        \
-            dataAt += sizeof(length);                       \
-            bytesRead += sizeof(length);                    \
-            QUuid value;                                    \
-            if (length == 0) {                              \
-                value = QUuid();                            \
-            } else {                                        \
-                QByteArray ba((const char*)dataAt, length); \
-                value = QUuid::fromRfc4122(ba);             \
-                dataAt += length;                           \
-                bytesRead += length;                        \
-            }                                               \
-            if (overwriteLocalData) {                       \
-                O(value);                                   \
-            }                                               \
+#define READ_ENTITY_PROPERTY(P,T,S)                                                \
+        if (propertyFlags.getHasProperty(P)) {                                     \
+            T fromBuffer;                                                          \
+            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                       \
+            bytesRead += bytes;                                                    \
+            if (overwriteLocalData) {                                              \
+                S(fromBuffer);                                                     \
+            }                                                                      \
         }
 
 #define DECODE_GROUP_PROPERTY_HAS_CHANGED(P,N) \
@@ -112,25 +45,6 @@
             set##N##Changed(true); \
         }
 
-#define READ_ENTITY_PROPERTY_COLOR(P,M)         \
-        if (propertyFlags.getHasProperty(P)) {  \
-            if (overwriteLocalData) {           \
-                memcpy(M, dataAt, sizeof(M));   \
-            }                                   \
-            dataAt += sizeof(rgbColor);         \
-            bytesRead += sizeof(rgbColor);      \
-        }
-
-#define READ_ENTITY_PROPERTY_XCOLOR(P,M)         \
-        if (propertyFlags.getHasProperty(P)) {  \
-            if (overwriteLocalData) {           \
-                M.red = dataAt[RED_INDEX];        \
-                M.green = dataAt[GREEN_INDEX];    \
-                M.blue = dataAt[BLUE_INDEX];      \
-            }                                   \
-            dataAt += sizeof(rgbColor);         \
-            bytesRead += sizeof(rgbColor);      \
-        }
 
 #define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)               \
         if (propertyFlags.getHasProperty(P)) {                  \

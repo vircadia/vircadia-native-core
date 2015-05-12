@@ -544,3 +544,32 @@ void OctreePacketData::debugContent() {
     }
     printf("\n");
 }
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    QString value((const char*)dataBytes);
+    result = value;
+    return sizeof(length) + length;
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    if (length == 0) {
+        result = QUuid();
+    } else {
+        QByteArray ba((const char*)dataBytes, length);
+        result = QUuid::fromRfc4122(ba);
+    }
+    return sizeof(length) + length;
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
+    result.red = dataBytes[RED_INDEX];
+    result.green = dataBytes[GREEN_INDEX];
+    result.blue = dataBytes[BLUE_INDEX];
+    return sizeof(rgbColor);
+}

@@ -135,10 +135,10 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_KEYLIGHT_COLOR, _keyLightColor);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, _keyLightIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, _keyLightAmbientIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, _keyLightDirection);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, rgbColor, setKeyLightColor);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setKeyLightIntensity);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                                propertyFlags, overwriteLocalData);
@@ -146,9 +146,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
 
-    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-    READ_ENTITY_PROPERTY_STRING(PROP_COMPOUND_SHAPE_URL, setCompoundShapeURL);
-    READ_ENTITY_PROPERTY_SETTER(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, uint32_t, updateShapeTypeUint32);
+    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, uint32_t, setBackgroundMode);
 
     int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                                propertyFlags, overwriteLocalData);

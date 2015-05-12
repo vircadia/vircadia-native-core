@@ -88,10 +88,10 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_STRING(PROP_TEXT, setText);
-    READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, _lineHeight);
-    READ_ENTITY_PROPERTY_COLOR(PROP_TEXT_COLOR, _textColor);
-    READ_ENTITY_PROPERTY_COLOR(PROP_BACKGROUND_COLOR, _backgroundColor);
+    READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
+    READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
+    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, rgbColor, setTextColor);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, rgbColor, setBackgroundColor);
 
     return bytesRead;
 }
