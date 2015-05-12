@@ -862,7 +862,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
     
-    float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
+    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
     

@@ -48,7 +48,10 @@ QString modeToString(CameraMode mode) {
 Camera::Camera() : 
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
-    _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
+    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _aspectRatio(16.0f/9.0f),
+    _nearClip(DEFAULT_NEAR_CLIP), // default
+    _farClip(DEFAULT_FAR_CLIP), // default
     _hmdPosition(),
     _hmdRotation(),
     _isKeepLookingAt(false),
@@ -88,13 +91,32 @@ void Camera::setHmdRotation(const glm::quat& hmdRotation) {
     }
 }
 
+float Camera::getFarClip() const {
+    return (_farClip < std::numeric_limits<int16_t>::max())
+            ? _farClip
+            : std::numeric_limits<int16_t>::max() - 1;
+}
+
 void Camera::setMode(CameraMode mode) {
     _mode = mode;
     emit modeUpdated(modeToString(mode));
 }
 
-void Camera::setProjection(const glm::mat4& projection) { 
-    _projection = projection;
+
+void Camera::setFieldOfView(float f) { 
+    _fieldOfView = f; 
+}
+
+void Camera::setAspectRatio(float a) {
+    _aspectRatio = a;
+}
+
+void Camera::setNearClip(float n) {
+    _nearClip = n;
+}
+
+void Camera::setFarClip(float f) {
+    _farClip = f;
 }
 
 PickRay Camera::computePickRay(float x, float y) {
