@@ -10,8 +10,9 @@
     <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="55">
       <script id="list-group-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
+          <% panelID = group.name ? group.name : group.label %>
           <li>
-            <a href="#<%-group.name %>" class="list-group-item">
+            <a href="#<%- panelID %>" class="list-group-item">
               <span class="badge"></span>
               <%- group.label %>
             </a>
@@ -37,7 +38,12 @@
           <% if (isAdvanced) { %>
             <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
           <% } %>
-          <div class="panel panel-default <%- (isAdvanced) ? 'advanced-setting' : '' %>" id="<%- group.name %>">
+          
+          <% isGrouped = !!group.name %>
+          <% panelID = isGrouped ? group.name : group.label %>
+
+          <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>" 
+               id="<%- panelID %>">
             <div class="panel-heading">
               <h3 class="panel-title"><%- group.label %></h3>
             </div>
@@ -55,6 +61,7 @@
               <% }%>
             </div>
           </div>
+
         <% }); %>
       </script>
       

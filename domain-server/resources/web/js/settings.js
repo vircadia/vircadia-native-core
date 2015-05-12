@@ -391,10 +391,21 @@ function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
   var panelParentID = changedElement.closest('.panel').attr('id')
   
-  // get a JSON representation of that section
-  var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
-  var initialPanelJSON = Settings.initialValues[panelParentID]
-  
+  // if the panel contains non-grouped settings, the initial value is Settings.initialValues
+  var isGrouped = $(panelParentID).hasClass('grouped');
+
+  if (isGrouped) {
+    var initialPanelJSON = Settings.initialValues[panelParentID];
+    
+    // get a JSON representation of that section
+    var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID];
+  } else {
+    var initialPanelJSON = Settings.initialValues;
+
+    // get a JSON representation of that section
+    var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true);
+  }
+
   var badgeValue = 0
   
   // badge for any settings we have that are not the same or are not present in initialValues
