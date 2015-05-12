@@ -50,12 +50,12 @@
       {
         "name": "paths",
         "label": "",
-        "help": "", 
+        "help": "",
         "type": "table",
         "key": {
           "name": "path",
           "label": "Path",
-          "placeholder": "/garden"
+          "placeholder": "/"
         },
         "columns": [
           {
@@ -63,13 +63,8 @@
             "label": "Viewpoint",
             "placeholder": "/512,512,512"
           }
-        ],
-        "default": {
-          "/": {
-             "viewpoint": "/512,512,512"
-          }
-        }
-      }  
+        ]
+      }
     ]
   },
   {
