@@ -13,6 +13,7 @@
 
 var isGrabbing = false;
 var grabbedEntity = null;
+var lineEntityID = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
@@ -86,6 +87,17 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
+
+    lineEntityID = Entities.addEntity({
+        type: "Line",
+        position: MyAvatar.position,
+        // dimensions: {x:5, y:5, z:5},
+        dimensions: Vec3.subtract(targetPosition, MyAvatar.position),
+        color: { red: 0, green: 255, blue: 0 }
+        // lifetime: 10
+    });
+
+
     Audio.playSound(grabSound, {
       position: props.position,
       volume: 0.4
@@ -133,6 +145,9 @@ function mouseReleaseEvent() {
       visible: false
     });
     targetPosition = null;
+
+    Entities.deleteEntity(lineEntityID);
+
     Audio.playSound(grabSound, {
       position: entityProps.position,
       volume: 0.25
