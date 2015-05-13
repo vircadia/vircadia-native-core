@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <functional>
 
+#include <QtGlobal>
+
 class Transform;
 class QThread;
 class ViewFrustum;
@@ -59,6 +61,7 @@ public:
     virtual qreal getDevicePixelRatio() = 0;
 
     static AbstractViewStateInterface* instance();
+    static void setInstance(AbstractViewStateInterface* instance);
 };
 
 

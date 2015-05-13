@@ -26,9 +26,7 @@ public:
     virtual void setSourceUrl(const QString& value);
 
 private:
-    void updateQmlSourceUrl();
-
-    OffscreenQmlSurface* _webSurface;
+    OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
     QMutex _textureLock;

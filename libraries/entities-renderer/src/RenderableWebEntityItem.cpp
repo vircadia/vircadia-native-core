@@ -33,13 +33,15 @@ EntityItem* RenderableWebEntityItem::factory(const EntityItemID& entityID, const
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     WebEntityItem(entityItemID, properties) {
+    qDebug() << "Created web entity " << getID();
 }
 
 RenderableWebEntityItem::~RenderableWebEntityItem() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
-        // After the disconnect, ensure that we have the latest
+        // After the disconnect, ensure that we have the latest texture by acquiring the 
+        // lock used when updating the _texture value
         _textureLock.lock();
         _textureLock.unlock();
         // The lifetime of the QML surface MUST be managed by the main thread
@@ -55,6 +57,7 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
             webSurface->deleteLater();
         });
     }
+    qDebug() << "Destroyed web entity " << getID();
 }
 
 void RenderableWebEntityItem::render(RenderArgs* args) {
@@ -66,7 +69,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
         _webSurface->load("WebEntity.qml");
         _webSurface->resume();
-        updateQmlSourceUrl();
+        _webSurface->getRootItem()->setProperty("url", _sourceUrl);
         _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
             _webSurface->lockTexture(textureId);
             assert(!glGetError());
@@ -135,24 +138,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
         _sourceUrl = value;
-        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-            // Update the offscreen display
-            updateQmlSourceUrl();
-        });
-    }
-}
-
-void RenderableWebEntityItem::updateQmlSourceUrl() {
-    if (!_webSurface) {
-        return;
-    }
-    auto webView = _webSurface->getRootItem();
-    if (!webView) {
-        return;
-    }
-    if (!_sourceUrl.isEmpty()) {
-        webView->setProperty("url", _sourceUrl);
-    } else {
-        webView->setProperty("url", QVariant());
+        if (_webSurface) {
+            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+            });
+        }
     }
 }
