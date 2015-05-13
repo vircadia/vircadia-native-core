@@ -14,6 +14,7 @@
 #include "ShapeInfoUtil.h"
 #include "BulletUtil.h"
 
+const float BULLET_COLLISION_MARGIN = 0.01;
 
 btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
@@ -44,6 +45,7 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                     btVector3 btPoint(point[0], point[1], point[2]);
                     hull->addPoint(btPoint, false);
                 }
+                hull->setMargin(BULLET_COLLISION_MARGIN);
                 hull->recalcLocalAabb();
                 shape = hull;
             } else {
@@ -60,6 +62,7 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                     hull->recalcLocalAabb();
                     compound->addChildShape (trans, hull);
                 }
+                compound->setMargin(BULLET_COLLISION_MARGIN);
                 shape = compound;
             }
         }
