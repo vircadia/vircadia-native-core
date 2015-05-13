@@ -19,6 +19,7 @@
 #include <PhysicsHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
+#include <SoundCache.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
@@ -52,6 +53,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _damping(ENTITY_ITEM_DEFAULT_DAMPING),
     _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
     _script(ENTITY_ITEM_DEFAULT_SCRIPT),
+    _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
     _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
     _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
@@ -100,6 +102,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
+    requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ANGULAR_DAMPING;
@@ -226,6 +229,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
@@ -551,6 +555,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
+        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_SOUND_URL, setCollisionSoundURL);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         if (useMeters) {
             READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
@@ -898,6 +903,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
@@ -930,6 +936,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);

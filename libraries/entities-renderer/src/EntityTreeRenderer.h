@@ -20,6 +20,7 @@
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
+#include <AbstractAudioInterface.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -154,6 +155,9 @@ private:
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
+    void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
+    AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;

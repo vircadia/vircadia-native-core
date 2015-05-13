@@ -55,6 +55,7 @@ enum EntityPropertyList {
     PROP_DAMPING,
     PROP_LIFETIME,
     PROP_SCRIPT,
+    PROP_COLLISION_SOUND_URL,
 
     // these properties are supported by some derived classes
     PROP_COLOR,

@@ -46,6 +46,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
     CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
+    CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
     CONSTRUCT_PROPERTY(color, ),
     CONSTRUCT_PROPERTY(modelURL, ""),
     CONSTRUCT_PROPERTY(compoundShapeURL, ""),
@@ -287,6 +288,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
@@ -365,6 +367,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionSoundURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
@@ -466,6 +469,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifetime, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(script, setScript);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(collisionSoundURL, setCollisionSoundURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(registrationPoint, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(angularVelocity, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(angularDamping, setAngularDamping);
@@ -656,6 +660,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
@@ -911,6 +916,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_SOUND_URL,setCollisionSoundURL);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
@@ -1022,6 +1028,7 @@ void EntityItemProperties::markAllChanged() {
     _userDataChanged = true;
     _simulatorIDChanged = true;
     _scriptChanged = true;
+    _collisionSoundURLChanged = true;
     _registrationPointChanged = true;
     _angularVelocityChanged = true;
     _angularDampingChanged = true;
