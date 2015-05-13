@@ -46,10 +46,9 @@ public:
 
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
 
-    // TODO: Andrew to rename doesNotNeedToSendUpdate()
-    bool doesNotNeedToSendUpdate(const QUuid& sessionID) const;
+    bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-    bool shouldSendUpdate(uint32_t simulationFrame, const QUuid& sessionID);
+    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
     virtual uint32_t getAndClearIncomingDirtyFlags() const;
@@ -107,9 +106,9 @@ protected:
     glm::vec3 _measuredAcceleration;
 
     quint8 _accelerationNearlyGravityCount;
-    bool _touchesOurSimulation;
-    uint32_t _framesSinceOwnershipBid;
-    uint32_t _movingFramesWithoutSimulationOwner;
+    bool _candidateForOwnership;
+    uint32_t _loopsSinceOwnershipBid;
+    uint32_t _loopsWithoutOwner;
 };
 
 #endif // hifi_EntityMotionState_h

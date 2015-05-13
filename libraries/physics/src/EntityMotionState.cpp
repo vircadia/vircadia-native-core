@@ -35,9 +35,9 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
     _accelerationNearlyGravityCount(0),
-    _touchesOurSimulation(false),
-    _framesSinceSimulatorBid(0),
-    _movingFramesWithoutSimulationOwner(0)
+    _candidateForOwnership(false),
+    _loopsSinceOwnershipBid(0),
+    _loopsWithoutOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != nullptr);
@@ -65,9 +65,9 @@ void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& sessionID = nodeList->getSessionUUID();
         if (_entity->getSimulatorID() != sessionID) {
-            _touchesOurSimulation = false;
-            _movingFramesWithoutSimulationOwner = 0;
-            _framesSinceSimulatorBid = 0;
+            _candidateForOwnership = false;
+            _loopsWithoutOwner = 0;
+            _loopsSinceOwnershipBid = 0;
         }
     }
 }
@@ -154,15 +154,15 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setLastSimulated(usecTimestampNow());
 
     if (_entity->getSimulatorID().isNull()) {
-        _movingFramesWithoutSimulationOwner++;
+        _loopsWithoutOwner++;
 
-        const uint32_t ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
-        if (_movingFramesWithoutSimulationOwner > ownershipClaimDelay) {
+        const uint32_t OWNERSHIP_BID_DELAY = 50;
+        if (_loopsWithoutOwner > OWNERSHIP_BID_DELAY) {
             //qDebug() << "Warning -- claiming something I saw moving." << getName();
-            _touchesOurSimulation = true;
+            _candidateForOwnership = true;
         }
     } else {
-        _movingFramesWithoutSimulationOwner = 0;
+        _loopsWithoutOwner = 0;
     }
 
     #ifdef WANT_DEBUG
@@ -184,12 +184,11 @@ void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
 // we alwasy resend packets for objects that have stopped moving up to some max limit.
 const int MAX_NUM_NON_MOVING_UPDATES = 5;
 
-bool EntityMotionState::doesNotNeedToSendUpdate(const QUuid& sessionID) const { 
+bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const { 
     if (!_body || !_entity) {
-        return true;
+        return false;
     }
-
-    return (sessionID != _entity->getSimulatorID() && !_touchesOurSimulation);
+    return _candidateForOwnership || sessionID == _entity->getSimulatorID();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -297,13 +296,13 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     return (fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT);
 }
 
-bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame, const QUuid& sessionID) {
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID) {
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called 
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL. 
     assert(_entity);
     assert(_body);
 
-    if (!remoteSimulationOutOfSync(simulationFrame)) {
+    if (!remoteSimulationOutOfSync(simulationStep)) {
         return false;
     }
 
@@ -313,9 +312,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame, const QUuid& 
     }
 
     const uint32_t FRAMES_BETWEEN_OWNERSHIP_CLAIMS = 30;
-    if (_touchesOurSimulation) {
-        ++_framesSinceSimulatorBid;
-        if (_framesSinceSimulatorBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
+    if (_candidateForOwnership) {
+        ++_loopsSinceOwnershipBid;
+        if (_loopsSinceOwnershipBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
             // we don't own the simulation, but it's time to bid for it
             return true;
         }
@@ -411,7 +410,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
             properties.setSimulatorID(QUuid());
-            _touchesOurSimulation = false;
+            _candidateForOwnership = false;
         } else {
             // explicitly set the property's simulatorID so that it is flagged as changed and will be packed
             properties.setSimulatorID(sessionID);
@@ -467,7 +466,7 @@ QUuid EntityMotionState::getSimulatorID() const {
 
 // virtual
 void EntityMotionState::bump() {
-    _touchesOurSimulation = true;
+    _candidateForOwnership = true;
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {

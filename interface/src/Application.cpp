@@ -2451,7 +2451,7 @@ void Application::update(float deltaTime) {
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
-            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
             _entitySimulation.unlock();
             _physicsEngine.dumpStatsIfNecessary();
