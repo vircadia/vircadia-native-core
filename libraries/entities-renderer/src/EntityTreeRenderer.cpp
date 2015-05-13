@@ -1114,12 +1114,12 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     }
 
     const float mass = entity->computeMass();
-    constexpr float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    constexpr float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
-    constexpr float COLLISION_MINIMUM_VOLUME = 0.01f;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
+    const float COLLISION_MINIMUM_VOLUME = 0.01f;
     const float energyPercentOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     //qCDebug(entitiesrenderer) << energyPercentOfFull << energy << " " << " " << linearVelocity << " " << mass;
     if (energyPercentOfFull < COLLISION_MINIMUM_VOLUME) {
