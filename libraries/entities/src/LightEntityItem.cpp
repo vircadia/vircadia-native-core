@@ -124,9 +124,6 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     if (args.bitstreamVersion < VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES) {
-        rgbColor ignoredColor;
-        float ignoredAttenuation;
-
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
 
         // _diffuseColor has been renamed to _color
@@ -147,8 +144,6 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
-
-        (void) ignoredAttenuation; // suppress compiler warning
     } else {
         READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
         READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);

@@ -210,7 +210,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) 
         if (G.isValid()) {                                    \
             QScriptValue P = G.property(#P);                  \
             if (P.isValid()) {                                \
-                float newValue = P.toVariant().toBool();      \
+                bool newValue = P.toVariant().toBool();      \
                 if (_defaultSettings || newValue != _##P) {   \
                     S(newValue);                              \
                 }                                             \
