@@ -39,11 +39,21 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
     if (_webSurface) {
         _webSurface->pause();
         _webSurface->disconnect(_connection);
-        if (_texture) {
-            _webSurface->releaseTexture(_texture);
-            _texture = 0;
-        }
-        _webSurface.clear();
+        // After the disconnect, ensure that we have the latest
+        _textureLock.lock();
+        _textureLock.unlock();
+        // The lifetime of the QML surface MUST be managed by the main thread
+        // Additionally, we MUST use local variables copied by value, rather than
+        // member variables, since they would implicitly refer to a this that 
+        // is no longer valid
+        auto webSurface = _webSurface;
+        auto texture = _texture;
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface, texture] {
+            if (texture) {
+                webSurface->releaseTexture(texture);
+            }
+            webSurface->deleteLater();
+        });
     }
 }
 
@@ -51,16 +61,19 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
+        _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
         _webSurface->load("WebEntity.qml");
         _webSurface->resume();
         updateQmlSourceUrl();
-        _connection = QObject::connect(_webSurface.data(), &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
+        _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
             _webSurface->lockTexture(textureId);
             assert(!glGetError());
-            std::swap(_texture, textureId);
+            // TODO change to atomic<GLuint>?
+            withLock(_textureLock, [&] {
+                std::swap(_texture, textureId);
+            });
             if (textureId) {
                 _webSurface->releaseTexture(textureId);
             }

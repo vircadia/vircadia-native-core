@@ -28,9 +28,10 @@ public:
 private:
     void updateQmlSourceUrl();
 
-    QSharedPointer<OffscreenQmlSurface> _webSurface;
+    OffscreenQmlSurface* _webSurface;
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
+    QMutex _textureLock;
 };
 
 
