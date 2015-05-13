@@ -456,21 +456,21 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         setType(typeScriptValue.toVariant().toString());
     }
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(position, setPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(dimensions, setDimensions);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(rotation, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(acceleration, setAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, glmVec3, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, glmVec3, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, glmVec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(registrationPoint, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(angularVelocity, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
@@ -492,23 +492,23 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(emitDirection, setEmitDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDirection, glmVec3, setEmitDirection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitStrength, float, setEmitStrength);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localGravity, float, setLocalGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(keyLightColor, setKeyLightColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightColor, xColor, setKeyLightColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightIntensity, float, setKeyLightIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightAmbientIntensity, float, setKeyLightAmbientIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(keyLightDirection, setKeyLightDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
 
     _stage.copyFromScriptValue(object, _defaultSettings);

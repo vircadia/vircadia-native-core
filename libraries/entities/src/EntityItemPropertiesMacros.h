@@ -121,21 +121,80 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) 
         properties.setProperty(#P, V); \
     }
     
-    
-inline float float_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toFloat(); }
-inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toInt(); }
-inline int int_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toInt(); }
-inline bool bool_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toBool(); }
-inline QString QString_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toString().trimmed(); }
-inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toUuid(); }
+typedef glm::vec3 glmVec3;
+typedef glm::quat glmQuat;
+inline float float_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toFloat(&isValid); }
+inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
+inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
+inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
+inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    QScriptValue z = v.property("z");
+    if (x.isValid() && y.isValid() && z.isValid()) {
+        glm::vec3 newValue(0);
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        newValue.z = z.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+                  !glm::isnan(newValue.y) &&
+                  !glm::isnan(newValue.z);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::vec3(0);
+}
+
+inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    QScriptValue z = v.property("z");
+    QScriptValue w = v.property("w");
+    if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+        glm::quat newValue;
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        newValue.z = z.toVariant().toFloat();
+        newValue.w = w.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+                  !glm::isnan(newValue.y) &&
+                  !glm::isnan(newValue.z) &&
+                  !glm::isnan(newValue.w);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::quat();
+}
+
+inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    xColor newValue;
+    isValid = false; /// assume it can't be converted
+    QScriptValue r = v.property("red");
+    QScriptValue g = v.property("green");
+    QScriptValue b = v.property("blue");
+    if (r.isValid() && g.isValid() && b.isValid()) {
+        newValue.red = r.toVariant().toInt();
+        newValue.green = g.toVariant().toInt();
+        newValue.blue = b.toVariant().toInt();
+        isValid = true;
+    }
+    return newValue;
+}
     
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S) \
     {                                                   \
         QScriptValue V = object.property(#P);           \
         if (V.isValid()) {                              \
-            T newValue = T##_convertFromScriptValue(V);   \
-            if (_defaultSettings || newValue != _##P) { \
+            bool isValid = false;                       \
+            T newValue = T##_convertFromScriptValue(V, isValid); \
+            if (isValid && (_defaultSettings || newValue != _##P)) { \
                 S(newValue);                            \
             }                                           \
         }                                               \
@@ -145,8 +204,9 @@ inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v) { return v.toVa
 { \
     QScriptValue V = object.property(#P);           \
     if (V.isValid()) {                              \
-        T newValue = T##_convertFromScriptValue(V);   \
-        if (_defaultSettings || newValue != G()) { \
+        bool isValid = false;                       \
+        T newValue = T##_convertFromScriptValue(V, isValid); \
+        if (isValid && (_defaultSettings || newValue != G())) { \
             S(newValue);                            \
         }                                           \
     }\
@@ -158,128 +218,13 @@ inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v) { return v.toVa
         if (G.isValid()) {                                    \
             QScriptValue V = G.property(#P);                  \
             if (V.isValid()) {                                \
-                T newValue = T##_convertFromScriptValue(V);   \
-                if (_defaultSettings || newValue != _##P) {   \
+                bool isValid = false;                       \
+                T newValue = T##_convertFromScriptValue(V, isValid); \
+                if (isValid && (_defaultSettings || newValue != _##P)) { \
                     S(newValue);                              \
                 }                                             \
             }                                                 \
         }                                                     \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \
-    QScriptValue P = object.property(#P);                 \
-    if (P.isValid()) {                                    \
-        QScriptValue x = P.property("x");                 \
-        QScriptValue y = P.property("y");                 \
-        QScriptValue z = P.property("z");                 \
-        if (x.isValid() && y.isValid() && z.isValid()) {  \
-            glm::vec3 newValue;                           \
-            newValue.x = x.toVariant().toFloat();         \
-            newValue.y = y.toVariant().toFloat();         \
-            newValue.z = z.toVariant().toFloat();         \
-            bool isValid = !glm::isnan(newValue.x) &&     \
-                         !glm::isnan(newValue.y) &&       \
-                         !glm::isnan(newValue.z);         \
-            if (isValid &&                                \
-                (_defaultSettings || newValue != _##P)) { \
-                S(newValue);                              \
-            }                                             \
-        }                                                 \
-    }
-
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(G, P, S)       \
-    {                                                             \
-        QScriptValue G = object.property(#G);                     \
-        if (G.isValid()) {                                        \
-            QScriptValue P = G.property(#P);                      \
-            if (P.isValid()) {                                    \
-                QScriptValue x = P.property("x");                 \
-                QScriptValue y = P.property("y");                 \
-                QScriptValue z = P.property("z");                 \
-                if (x.isValid() && y.isValid() && z.isValid()) {  \
-                    glm::vec3 newValue;                           \
-                    newValue.x = x.toVariant().toFloat();         \
-                    newValue.y = y.toVariant().toFloat();         \
-                    newValue.z = z.toVariant().toFloat();         \
-                    bool isValid = !glm::isnan(newValue.x) &&     \
-                                 !glm::isnan(newValue.y) &&       \
-                                 !glm::isnan(newValue.z);         \
-                    if (isValid &&                                \
-                        (_defaultSettings || newValue != _##P)) { \
-                        S(newValue);                              \
-                    }                                             \
-                }                                                 \
-            }                                                     \
-        }                                                         \
-    }
-    
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(P, S)                      \
-    QScriptValue P = object.property(#P);                               \
-    if (P.isValid()) {                                                  \
-        QScriptValue x = P.property("x");                               \
-        QScriptValue y = P.property("y");                               \
-        QScriptValue z = P.property("z");                               \
-        QScriptValue w = P.property("w");                               \
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) { \
-            glm::quat newValue;                                         \
-            newValue.x = x.toVariant().toFloat();                       \
-            newValue.y = y.toVariant().toFloat();                       \
-            newValue.z = z.toVariant().toFloat();                       \
-            newValue.w = w.toVariant().toFloat();                       \
-            bool isValid = !glm::isnan(newValue.x) &&                   \
-                           !glm::isnan(newValue.y) &&                   \
-                           !glm::isnan(newValue.z) &&                   \
-                           !glm::isnan(newValue.w);                     \
-            if (isValid &&                                              \
-                (_defaultSettings || newValue != _##P)) {               \
-                S(newValue);                                            \
-            }                                                           \
-        }                                                               \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(P, S)     \
-    QScriptValue P = object.property(#P);               \
-    if (P.isValid()) {                                  \
-        QScriptValue r = P.property("red");             \
-        QScriptValue g = P.property("green");           \
-        QScriptValue b = P.property("blue");            \
-        if (r.isValid() && g.isValid() && b.isValid()) {\
-            xColor newColor;                            \
-            newColor.red = r.toVariant().toInt();       \
-            newColor.green = g.toVariant().toInt();     \
-            newColor.blue = b.toVariant().toInt();      \
-            if (_defaultSettings ||                     \
-                (newColor.red != _color.red ||          \
-                newColor.green != _color.green ||       \
-                newColor.blue != _color.blue)) {        \
-                S(newColor);                            \
-            }                                           \
-        }                                               \
-    }
-
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_COLOR(G, P, S)    \
-    {                                                           \
-        QScriptValue G = object.property(#G);                   \
-        if (G.isValid()) {                                      \
-            QScriptValue P = G.property(#P);                    \
-            if (P.isValid()) {                                  \
-                QScriptValue r = P.property("red");             \
-                QScriptValue g = P.property("green");           \
-                QScriptValue b = P.property("blue");            \
-                if (r.isValid() && g.isValid() && b.isValid()) {\
-                    xColor newColor;                            \
-                    newColor.red = r.toVariant().toInt();       \
-                    newColor.green = g.toVariant().toInt();     \
-                    newColor.blue = b.toVariant().toInt();      \
-                    if (_defaultSettings ||                     \
-                        (newColor.red != _color.red ||          \
-                        newColor.green != _color.green ||       \
-                        newColor.blue != _color.blue)) {        \
-                        S(newColor);                            \
-                    }                                           \
-                }                                               \
-            }                                                   \
-        }                                                       \
     }
 
 #define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \

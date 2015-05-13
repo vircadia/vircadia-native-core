@@ -43,12 +43,12 @@ void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScrip
 }
 
 void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(atmosphere, center, setCenter);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, center, glmVec3, setCenter);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, innerRadius, float, setInnerRadius);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, outerRadius, float, setOuterRadius);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, mieScattering, float, setMieScattering);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, rayleighScattering, float, setRayleighScattering);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(atmosphere, scatteringWavelengths, setScatteringWavelengths);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, scatteringWavelengths, glmVec3, setScatteringWavelengths);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, hasStars, bool, setHasStars);
 }
 
