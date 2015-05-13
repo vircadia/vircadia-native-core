@@ -293,7 +293,7 @@ void DeferredLightingEffect::render() {
         if (locations->ambientSphere >= 0) {
             model::SphericalHarmonics sh;
             if (useSkyboxCubemap) {
-                sh = _skybox->getAmbientSH(); 
+                sh = _skybox->getIrradianceSH(); 
             } else {
                 sh = globalLight->getAmbientSphere();
             }
