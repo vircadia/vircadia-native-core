@@ -9,6 +9,8 @@
 #ifndef hifi_RenderableWebEntityItem_h
 #define hifi_RenderableWebEntityItem_h
 
+#include <QSharedPointer>
+
 #include <WebEntityItem.h>
 
 class OffscreenQmlSurface;
@@ -18,14 +20,16 @@ public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual void render(RenderArgs* args);
+    ~RenderableWebEntityItem();
 
+    virtual void render(RenderArgs* args);
     virtual void setSourceUrl(const QString& value);
 
 private:
     void updateQmlSourceUrl();
 
-    OffscreenQmlSurface* _webSurface{ nullptr };
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
+    QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
 };
 

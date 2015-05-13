@@ -17,6 +17,7 @@
 #include <PerfStat.h>
 #include <TextRenderer.h>
 #include <OffscreenQmlSurface.h>
+#include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <TextureCache.h>
@@ -34,22 +35,42 @@ RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemI
     WebEntityItem(entityItemID, properties) {
 }
 
+RenderableWebEntityItem::~RenderableWebEntityItem() {
+    if (_webSurface) {
+        _webSurface->pause();
+        _webSurface->disconnect(_connection);
+        if (_texture) {
+            _webSurface->releaseTexture(_texture);
+            _texture = 0;
+        }
+        _webSurface.clear();
+    }
+}
+
 void RenderableWebEntityItem::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
     if (!_webSurface) {
-        _webSurface = new OffscreenQmlSurface();
+        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
         _webSurface->create(currentContext);
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
         _webSurface->load("WebEntity.qml");
         _webSurface->resume();
         updateQmlSourceUrl();
-        QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
+        _connection = QObject::connect(_webSurface.data(), &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
             _webSurface->lockTexture(textureId);
             assert(!glGetError());
             std::swap(_texture, textureId);
             if (textureId) {
                 _webSurface->releaseTexture(textureId);
+            }
+            if (_texture) {
+                _webSurface->makeCurrent();
+                glBindTexture(GL_TEXTURE_2D, _texture);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                _webSurface->doneCurrent();
             }
         });
     }
@@ -77,7 +98,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
-        float alpha = 1.0f; //getBackgroundAlpha();
+        float alpha = 1.0f; 
         static const glm::vec2 texMin(0);
         static const glm::vec2 texMax(1);
         glm::vec2 topLeft(-halfDimensions.x, -halfDimensions.y);
@@ -88,13 +109,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
-        
-
-        // TODO: Determine if we want these entities to have the deferred lighting effect? I think we do, so that the color
-        // used for a sphere, or box have the same look as those used on a text entity.
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, 
-            texMin, texMax, glm::vec4(1));
-
+        DependencyManager::get<GeometryCache>()->renderQuad(
+            topLeft, bottomRight,  texMin, texMax, glm::vec4(1));
         if (_texture) {
             glBindTexture(GL_TEXTURE_2D, 0);
             glEnable(GL_TEXTURE_2D);
@@ -106,8 +122,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
     if (_sourceUrl != value) {
         _sourceUrl = value;
-        // Update the offscreen display
-        updateQmlSourceUrl();
+        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+            // Update the offscreen display
+            updateQmlSourceUrl();
+        });
     }
 }
 
@@ -115,7 +133,7 @@ void RenderableWebEntityItem::updateQmlSourceUrl() {
     if (!_webSurface) {
         return;
     }
-    auto webView = _webSurface->getRootItem()->findChild<QQuickItem*>("webview");
+    auto webView = _webSurface->getRootItem();
     if (!webView) {
         return;
     }

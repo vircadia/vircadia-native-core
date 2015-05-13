@@ -1,8 +1,5 @@
 //
-//  OffscreenUi.cpp
-//  interface/src/render-utils
-//
-//  Created by Bradley Austin Davis on 2015-04-04
+//  Created by Bradley Austin Davis on 2015-05-13
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

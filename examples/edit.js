@@ -438,18 +438,17 @@ var toolBar = (function () {
         }
 
         if (newWebButton === toolBar.clicked(clickedOverlay)) {
-            print("Web");
             var position = getPositionToCreateEntity();
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 placingEntityID = Entities.addEntity({
                                 type: "Web",
                                 position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
-                                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
-                                source: "http://www.slashdot.org",
+                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                                sourceUrl: "https://highfidelity.com/",
                                 });
             } else {
-                print("Can't create box: Text would be out of bounds.");
+                print("Can't create Web Entity: would be out of bounds.");
             }
             return true;
         }

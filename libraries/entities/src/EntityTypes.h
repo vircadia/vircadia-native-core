@@ -30,16 +30,16 @@ class EntityTypes {
 public:
     typedef enum EntityType_t {
         Unknown,
-        Box,
-        Light,
-        Line,
         Model,
-        ParticleEffect,
+        Box,
         Sphere,
+        Light,
         Text,
-        Web,
+        ParticleEffect,
         Zone,
-        LAST = Zone
+        Web,
+        Line,
+        LAST = Line
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

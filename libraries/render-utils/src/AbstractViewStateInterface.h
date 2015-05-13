@@ -13,6 +13,7 @@
 #define hifi_AbstractViewStateInterface_h
 
 #include <glm/glm.hpp>
+#include <functional>
 
 class Transform;
 class QThread;
@@ -37,7 +38,7 @@ public:
     /// overrides environment data
     virtual void overrideEnvironmentData(const EnvironmentData& newData) = 0;
     virtual void endOverrideEnvironmentData() = 0;
-    
+
     /// gets the shadow view frustum for rendering the view state
     virtual ViewFrustum* getShadowViewFrustum() = 0;
 
@@ -53,6 +54,10 @@ public:
     virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual const glm::vec3& getAvatarPosition() const = 0;
+
+    virtual void postLambdaEvent(std::function<void()> f) = 0;
+
+    static AbstractViewStateInterface* instance();
 };
 
 
