@@ -137,7 +137,7 @@ struct Packet {
 };
 
 static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
-
+static const float DEFAULT_DDE_EYE_CLOSING_THRESHOLD = 0.8f;
 static const int CALIBRATION_SAMPLES = 150;
 
 #ifdef WIN32
@@ -182,6 +182,7 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
+    _eyeClosingThreshold("ddeEyeClosingThreshold", DEFAULT_DDE_EYE_CLOSING_THRESHOLD),
     _isCalibrating(false),
     _calibrationCount(0),
     _calibrationValues(),
@@ -194,8 +195,8 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _coefficientAverages.resize(NUM_FACESHIFT_BLENDSHAPES);
     _calibrationValues.resize(NUM_FACESHIFT_BLENDSHAPES);
 
-    _eyeStates[0] = EYE_OPEN;
-    _eyeStates[1] = EYE_OPEN;
+    _eyeStates[0] = EYE_UNCONTROLLED;
+    _eyeStates[1] = EYE_UNCONTROLLED;
 
     connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketErrorOccurred(QAbstractSocket::SocketError)));
@@ -450,57 +451,72 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         // Finesse EyeBlink values
         float eyeCoefficients[2];
-        for (int i = 0; i < 2; i++) {
-            // Scale EyeBlink values so that they can be used to control both EyeBlink and EyeOpen
-            // -ve values control EyeOpen; +ve values control EyeBlink
-            static const float EYE_CONTROL_THRESHOLD = 0.5f;  // Resting eye value
-            eyeCoefficients[i] = (_filteredEyeBlinks[i] - EYE_CONTROL_THRESHOLD) / (1.0f - EYE_CONTROL_THRESHOLD);
-
-            // Change to closing or opening states
-            const float EYE_CONTROL_HYSTERISIS = 0.25f;
-            const float EYE_CLOSING_THRESHOLD = 0.8f;
-            const float EYE_OPENING_THRESHOLD = EYE_CONTROL_THRESHOLD - EYE_CONTROL_HYSTERISIS;
-            if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > EYE_CLOSING_THRESHOLD) {
-                _eyeStates[i] = EYE_CLOSING;
-            } else if ((_eyeStates[i] == EYE_CLOSED || _eyeStates[i] == EYE_CLOSING) 
-                    && eyeCoefficients[i] < EYE_OPENING_THRESHOLD) {
-                _eyeStates[i] = EYE_OPENING;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BinaryEyelidControl)) {
+            if (_eyeStates[0] == EYE_UNCONTROLLED) {
+                _eyeStates[0] = EYE_OPEN;
+                _eyeStates[1] = EYE_OPEN;
             }
 
-            const float EYELID_MOVEMENT_RATE = 10.0f;  // units/second
-            const float EYE_OPEN_SCALE = 0.2f;
-            if (_eyeStates[i] == EYE_CLOSING) {
-                // Close eyelid until it's fully closed
-                float closingValue = _lastEyeCoefficients[i] + EYELID_MOVEMENT_RATE * _averageMessageTime;
-                if (closingValue >= 1.0) {
-                    _eyeStates[i] = EYE_CLOSED;
-                    eyeCoefficients[i] = 1.0;
-                } else {
-                    eyeCoefficients[i] = closingValue;
+            for (int i = 0; i < 2; i++) {
+                // Scale EyeBlink values so that they can be used to control both EyeBlink and EyeOpen
+                // -ve values control EyeOpen; +ve values control EyeBlink
+                static const float EYE_CONTROL_THRESHOLD = 0.5f;  // Resting eye value
+                eyeCoefficients[i] = (_filteredEyeBlinks[i] - EYE_CONTROL_THRESHOLD) / (1.0f - EYE_CONTROL_THRESHOLD);
+
+                // Change to closing or opening states
+                const float EYE_CONTROL_HYSTERISIS = 0.25f;
+                float eyeClosingThreshold = getEyeClosingThreshold();
+                float eyeOpeningThreshold = eyeClosingThreshold - EYE_CONTROL_HYSTERISIS;
+                if ((_eyeStates[i] == EYE_OPEN || _eyeStates[i] == EYE_OPENING) && eyeCoefficients[i] > eyeClosingThreshold) {
+                    _eyeStates[i] = EYE_CLOSING;
+                } else if ((_eyeStates[i] == EYE_CLOSED || _eyeStates[i] == EYE_CLOSING)
+                    && eyeCoefficients[i] < eyeOpeningThreshold) {
+                    _eyeStates[i] = EYE_OPENING;
                 }
-            } else if (_eyeStates[i] == EYE_OPENING) {
-                // Open eyelid until it meets the current adjusted value
-                float openingValue = _lastEyeCoefficients[i] - EYELID_MOVEMENT_RATE * _averageMessageTime;
-                if (openingValue < eyeCoefficients[i] * EYE_OPEN_SCALE) {
-                    _eyeStates[i] = EYE_OPEN;
+
+                const float EYELID_MOVEMENT_RATE = 10.0f;  // units/second
+                const float EYE_OPEN_SCALE = 0.2f;
+                if (_eyeStates[i] == EYE_CLOSING) {
+                    // Close eyelid until it's fully closed
+                    float closingValue = _lastEyeCoefficients[i] + EYELID_MOVEMENT_RATE * _averageMessageTime;
+                    if (closingValue >= 1.0) {
+                        _eyeStates[i] = EYE_CLOSED;
+                        eyeCoefficients[i] = 1.0;
+                    } else {
+                        eyeCoefficients[i] = closingValue;
+                    }
+                } else if (_eyeStates[i] == EYE_OPENING) {
+                    // Open eyelid until it meets the current adjusted value
+                    float openingValue = _lastEyeCoefficients[i] - EYELID_MOVEMENT_RATE * _averageMessageTime;
+                    if (openingValue < eyeCoefficients[i] * EYE_OPEN_SCALE) {
+                        _eyeStates[i] = EYE_OPEN;
+                        eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
+                    } else {
+                        eyeCoefficients[i] = openingValue;
+                    }
+                } else  if (_eyeStates[i] == EYE_OPEN) {
+                    // Reduce eyelid movement
                     eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
-                } else {
-                    eyeCoefficients[i] = openingValue;
+                } else if (_eyeStates[i] == EYE_CLOSED) {
+                    // Keep eyelid fully closed
+                    eyeCoefficients[i] = 1.0;
                 }
-            } else  if (_eyeStates[i] == EYE_OPEN) {
-                // Reduce eyelid movement
-                eyeCoefficients[i] = eyeCoefficients[i] * EYE_OPEN_SCALE;
-            } else if (_eyeStates[i] == EYE_CLOSED) {
-                // Keep eyelid fully closed
-                eyeCoefficients[i] = 1.0;
             }
+
+            if (_eyeStates[0] == EYE_OPEN && _eyeStates[1] == EYE_OPEN) {
+                // Couple eyelids
+                eyeCoefficients[0] = eyeCoefficients[1] = (eyeCoefficients[0] + eyeCoefficients[0]) / 2.0f;
+            }
+
+            _lastEyeCoefficients[0] = eyeCoefficients[0];
+            _lastEyeCoefficients[1] = eyeCoefficients[1];
+        } else {
+            _eyeStates[0] = EYE_UNCONTROLLED;
+            _eyeStates[1] = EYE_UNCONTROLLED;
+
+            eyeCoefficients[0] = _filteredEyeBlinks[0];
+            eyeCoefficients[1] = _filteredEyeBlinks[1];
         }
-        if (_eyeStates[0] == EYE_OPEN && _eyeStates[1] == EYE_OPEN) {
-            // Couple eyelids
-            eyeCoefficients[0] = eyeCoefficients[1] = (eyeCoefficients[0] + eyeCoefficients[0]) / 2.0f;
-        }
-        _lastEyeCoefficients[0] = eyeCoefficients[0];
-        _lastEyeCoefficients[1] = eyeCoefficients[1];
 
         // Use EyeBlink values to control both EyeBlink and EyeOpen
         if (eyeCoefficients[0] > 0) {
@@ -542,6 +558,10 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
     if (_isCalibrating && _calibrationCount > CALIBRATION_SAMPLES) {
         finishCalibration();
     }
+}
+
+void DdeFaceTracker::setEyeClosingThreshold(float eyeClosingThreshold) {
+    _eyeClosingThreshold.set(eyeClosingThreshold);
 }
 
 static const int CALIBRATION_BILLBOARD_WIDTH = 240;
