@@ -603,9 +603,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->init();
     connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#endif
 }
 
 
