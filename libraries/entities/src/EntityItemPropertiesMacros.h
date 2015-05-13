@@ -120,134 +120,50 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) 
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
+    
+    
+inline float float_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toFloat(); }
+inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toInt(); }
+inline int int_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toInt(); }
+inline bool bool_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toBool(); }
+inline QString QString_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toString().trimmed(); }
+inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v) { return v.toVariant().toUuid(); }
+    
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        float newValue = P.toVariant().toFloat();   \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S) \
+    {                                                   \
+        QScriptValue V = object.property(#P);           \
+        if (V.isValid()) {                              \
+            T newValue = T##_convertFromScriptValue(V);   \
+            if (_defaultSettings || newValue != _##P) { \
+                S(newValue);                            \
+            }                                           \
+        }                                               \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(P, S, G) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        float newValue = P.toVariant().toFloat();   \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(P, T, S, G) \
+{ \
+    QScriptValue V = object.property(#P);           \
+    if (V.isValid()) {                              \
+        T newValue = T##_convertFromScriptValue(V);   \
         if (_defaultSettings || newValue != G()) { \
             S(newValue);                            \
         }                                           \
-    }
+    }\
+}
 
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(G, P, S)  \
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(G, P, T, S)  \
     {                                                         \
         QScriptValue G = object.property(#G);                 \
         if (G.isValid()) {                                    \
-            QScriptValue P = G.property(#P);                  \
-            if (P.isValid()) {                                \
-                float newValue = P.toVariant().toFloat();     \
+            QScriptValue V = G.property(#P);                  \
+            if (V.isValid()) {                                \
+                T newValue = T##_convertFromScriptValue(V);   \
                 if (_defaultSettings || newValue != _##P) {   \
                     S(newValue);                              \
                 }                                             \
             }                                                 \
         }                                                     \
-    }
-
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_UINT16(G, P, S)  \
-    {                                                         \
-        QScriptValue G = object.property(#G);                 \
-        if (G.isValid()) {                                    \
-            QScriptValue P = G.property(#P);                  \
-            if (P.isValid()) {                                \
-                uint16_t newValue = P.toVariant().toInt();     \
-                if (_defaultSettings || newValue != _##P) {   \
-                    S(newValue);                              \
-                }                                             \
-            }                                                 \
-        }                                                     \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_INT(P, S) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        int newValue = P.toVariant().toInt();   \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_INT_GETTER(P, S, G) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        int newValue = P.toVariant().toInt();   \
-        if (_defaultSettings || newValue != G()) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(P, S)  \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        bool newValue = P.toVariant().toBool();     \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL_GETTER(P, S, G)  \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        bool newValue = P.toVariant().toBool();     \
-        if (_defaultSettings || newValue != G()) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(G, P, S)  \
-    {                                                         \
-        QScriptValue G = object.property(#G);                 \
-        if (G.isValid()) {                                    \
-            QScriptValue P = G.property(#P);                  \
-            if (P.isValid()) {                                \
-                bool newValue = P.toVariant().toBool();      \
-                if (_defaultSettings || newValue != _##P) {   \
-                    S(newValue);                              \
-                }                                             \
-            }                                                 \
-        }                                                     \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        QString newValue = P.toVariant().toString().trimmed();\
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_STRING(G, P, S)\
-    {                                                       \
-        QScriptValue G = object.property(#G);               \
-        if (G.isValid()) {                                  \
-            QScriptValue P = G.property(#P);           \
-            if (P.isValid()) {                              \
-                QString newValue = P.toVariant().toString().trimmed();\
-                if (_defaultSettings || newValue != _##P) { \
-                    S(newValue);                            \
-                }                                           \
-            }                                               \
-        }                                                   \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_UUID(P, S)           \
-    QScriptValue P = object.property(#P);                    \
-    if (P.isValid()) {                                       \
-        QUuid newValue = P.toVariant().toUuid();             \
-        if (_defaultSettings || newValue != _##P) {          \
-            S(newValue);                                     \
-        }                                                    \
     }
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \

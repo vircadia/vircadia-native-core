@@ -49,20 +49,20 @@ void StagePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngi
 void StagePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
 
     // Backward compatibility support for the old way of doing stage properties
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL_GETTER(stageSunModelEnabled, setSunModelEnabled, getSunModelEnabled);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(stageLatitude, setLatitude, getLatitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(stageLongitude, setLongitude, getLongitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(stageAltitude, setAltitude, getAltitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_INT_GETTER(stageDay, setDay, getDay);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT_GETTER(stageHour, setHour, getHour);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageSunModelEnabled, bool, setSunModelEnabled, getSunModelEnabled);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageLatitude, float, setLatitude, getLatitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageLongitude, float, setLongitude, getLongitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageAltitude, float, setAltitude, getAltitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageDay, uint16_t, setDay, getDay);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(stageHour, float, setHour, getHour);
 
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(stage, sunModelEnabled, setSunModelEnabled);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stage, latitude, setLatitude);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stage, longitude, setLongitude);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stage, altitude, setAltitude);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_UINT16(stage, day, setDay);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(stage, hour, setHour);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(stage, automaticHourDay, setAutomaticHourDay);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, sunModelEnabled, bool, setSunModelEnabled);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, latitude, float, setLatitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, longitude, float, setLongitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, altitude, float, setAltitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, day, uint16_t, setDay);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, hour, float, setHour);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(stage, automaticHourDay, bool, setAutomaticHourDay);
 }
 
 void StagePropertyGroup::debugDump() const {
