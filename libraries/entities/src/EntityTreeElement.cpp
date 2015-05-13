@@ -819,6 +819,16 @@ bool EntityTreeElement::pruneChildren() {
     return somethingPruned;
 }
 
+void EntityTreeElement::expandExtentsToContents(Extents& extents) {
+    if (_entityItems->size()) {
+        for (uint16_t i = 0; i < _entityItems->size(); i++) {
+            EntityItem* entity = (*_entityItems)[i];
+            extents.add(entity->getAABox());
+        }
+    }
+}
+
+
 
 void EntityTreeElement::debugDump() {
     qCDebug(entities) << "EntityTreeElement...";

@@ -196,6 +196,8 @@ public:
 
     bool pruneChildren();
 
+    void expandExtentsToContents(Extents& extents);
+
 protected:
     virtual void init(unsigned char * octalCode);
     EntityTree* _myTree;

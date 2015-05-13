@@ -392,6 +392,8 @@ Menu::Menu() {
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* binaryEyelidControl = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::BinaryEyelidControl, 0, true);
+    binaryEyelidControl->setVisible(false);
     QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
     useAudioForMouth->setVisible(true);  // DDE face tracking is on by default
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);

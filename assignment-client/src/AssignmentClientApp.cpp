@@ -79,9 +79,8 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption maxChildsOption(ASSIGNMENT_MAX_FORKS_OPTION, "maximum number of children", "child-count");
     parser.addOption(maxChildsOption);
 
-    const QCommandLineOption ppidOption(PARENT_PID_OPTION, "parent's process id", "pid");
-    parser.addOption(ppidOption);
-
+    const QCommandLineOption monitorPortOption(ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION, "assignment-client monitor port", "port");
+    parser.addOption(monitorPortOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -113,9 +112,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         maxForks = parser.value(maxChildsOption).toInt();
     }
 
-    int ppid = 0;
-    if (parser.isSet(ppidOption)) {
-        ppid = parser.value(ppidOption).toInt();
+    unsigned short monitorPort = 0;
+    if (parser.isSet(monitorPortOption)) {
+        monitorPort = parser.value(monitorPortOption).toUShort();
     }
 
     if (!numForks && minForks) {
@@ -162,11 +161,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
         assignmentServerPort = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
     }
+    
     if (parser.isSet(assignmentServerPortOption)) {
         assignmentServerPort = parser.value(assignmentServerPortOption).toInt();
     }
-
-
 
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
@@ -186,14 +184,17 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     if (numForks || minForks || maxForks) {
-        AssignmentClientMonitor monitor(numForks, minForks, maxForks, requestAssignmentType, assignmentPool,
-                                        walletUUID, assignmentServerHostname, assignmentServerPort);
-        connect(this, &QCoreApplication::aboutToQuit, &monitor, &AssignmentClientMonitor::aboutToQuit);
-        exec();
+        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks, 
+                                                                        requestAssignmentType, assignmentPool,
+                                                                        walletUUID, assignmentServerHostname, 
+                                                                        assignmentServerPort);
+        monitor->setParent(this);
+        connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
-        AssignmentClient client(ppid, requestAssignmentType, assignmentPool,
-                                walletUUID, assignmentServerHostname, assignmentServerPort);
-        connect(this, &QCoreApplication::aboutToQuit, &client, &AssignmentClient::aboutToQuit);
-        exec();
+        AssignmentClient* client = new AssignmentClient(requestAssignmentType, assignmentPool,
+                                                        walletUUID, assignmentServerHostname, 
+                                                        assignmentServerPort, monitorPort);
+        client->setParent(this);
+        connect(this, &QCoreApplication::aboutToQuit, client, &AssignmentClient::aboutToQuit);
     }
 }

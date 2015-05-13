@@ -38,6 +38,7 @@ public:
 
 protected:
     gpu::TexturePointer _cubemap;
+ 
     Color _color{1.0f, 1.0f, 1.0f};
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;

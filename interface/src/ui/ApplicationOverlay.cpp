@@ -889,15 +889,9 @@ void ApplicationOverlay::renderAudioMeter() {
     }
     bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
-    auto canvasSize = qApp->getCanvasSize();
-    if ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
-        const float MAX_MAGNITUDE = 0.7f;
-        float magnitude = MAX_MAGNITUDE * (1 - audio->getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
-        renderCollisionOverlay(canvasSize.x, canvasSize.y, magnitude, 1.0f);
-    }
-
     DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, cameraSpace, boxed);
     
+    auto canvasSize = qApp->getCanvasSize();
     DependencyManager::get<AudioScope>()->render(canvasSize.x, canvasSize.y);
     DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, canvasSize.x, canvasSize.y);
 
@@ -1232,19 +1226,17 @@ glm::vec2 ApplicationOverlay::sphericalToOverlay(const glm::vec2&  sphericalPos)
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result.x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f);
-    result.y = (sphericalPos.y / _textureFov + 0.5f);
     result *= qApp->getCanvasSize();
     return result;
 }
 
 glm::vec2 ApplicationOverlay::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result.x *= -1.0;
     result /= qApp->getCanvasSize();
     result -= 0.5f;
     result *= _textureFov; 
     result.x *= _textureAspectRatio;
+    result.x *= -1.0f;
     return result;
 }
 

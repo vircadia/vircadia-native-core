@@ -513,7 +513,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
     imageLoaded(image);
 
     if ((_width > 0) && (_height > 0)) {
-        
+
         bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -524,10 +524,94 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         }
         
         if (_type == CUBE_TEXTURE) {
-            if (_height >= (6 * _width)) {
-                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, image.width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP)));
-                _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+ 
+            std::vector<QImage> faces;
+            if (_height == (6 * _width)) {
+                int faceWidth = _width;
+
+                // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
+                //
+                //         WIDTH
+                //       <------>
+                //    ^  +------+
+                //    |  |      |
+                //    |  |  +X  |
+                //    |  |      |
+                //    H  +------+
+                //    E  |      |
+                //    I  |  -X  |
+                //    G  |      |
+                //    H  +------+
+                //    T  |      |
+                //    |  |  +Y  |
+                //    |  |      |
+                //    |  +------+
+                //    |  |      |
+                //    |  |  -Y  |
+                //    |  |      |
+                //    H  +------+
+                //    E  |      |
+                //    I  |  +Z  |
+                //    G  |      |
+                //    H  +------+
+                //    T  |      |
+                //    |  |  -Z  |
+                //    |  |      |
+                //    V  +------+
+                // 
+                //    FaceWidth = width = height / 6
+
+                faces.push_back(image.copy(QRect(0, 0 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                faces.push_back(image.copy(QRect(0, 1 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                faces.push_back(image.copy(QRect(0, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
+                faces.push_back(image.copy(QRect(0, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
+                faces.push_back(image.copy(QRect(0, 4 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                faces.push_back(image.copy(QRect(0, 5 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+
+            } else if ((_height / 3) == (_width / 4)) {
+                int faceWidth = _height / 3;
+
+                // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
+                //
+                //       <-----------WIDTH----------->
+                //    ^  +------+------+------+------+
+                //    |  |      |      |      |      |
+                //    |  |      |  +Y  |      |      |
+                //    |  |      |      |      |      |
+                //    H  +------+------+------+------+
+                //    E  |      |      |      |      |
+                //    I  |  -X  |  -Z  |  +X  |  +Z  |
+                //    G  |      |      |      |      |
+                //    H  +------+------+------+------+
+                //    T  |      |      |      |      |
+                //    |  |      |  -Y  |      |      |
+                //    |  |      |      |      |      |
+                //    V  +------+------+------+------+
+                // 
+                //    FaceWidth = width / 4 = height / 3
+
+                // Right = +X
+                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Left = -X
+                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Top = +Y
+                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
+                // Bottom = -Y
+                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
+                // Back = +Z
+                faces.push_back(image.copy(QRect(3 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Front = -Z
+                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+            }
+
+            if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
+                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
                 _gpuTexture->autoGenerateMips(-1);
+                int f = 0;
+                for (auto& face : faces) {
+                    _gpuTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
+                    f++;
+                }
             }
         } else {
             _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
