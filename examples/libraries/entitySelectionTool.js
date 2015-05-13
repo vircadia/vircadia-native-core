@@ -203,7 +203,7 @@ SelectionManager = (function() {
             try {
                 listeners[i]();
             } catch (e) {
-                print("got exception");
+                print("EntitySelectionTool got exception: " + JSON.stringify(e));
             }
         }
     };

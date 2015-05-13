@@ -52,7 +52,7 @@ public:
     /// Renders the glow effect.  To be called after rendering the scene.
     /// \param toTexture whether to render to a texture, rather than to the frame buffer
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
-    gpu::FramebufferPointer render(bool toTexture = false);
+    gpu::FramebufferPointer render();
 
 public slots:
     void toggleGlowEffect(bool enabled);

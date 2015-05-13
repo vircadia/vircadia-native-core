@@ -14,7 +14,7 @@
 #include <glm/glm.hpp>
 
 #include <GlowEffect.h>
-
+#include "gpu/GLBackend.h"
 #include "Application.h"
 
 #include "TV3DManager.h"
@@ -163,10 +163,18 @@ void TV3DManager::display(Camera& whichCamera) {
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
+    auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+    auto fboSize = finalFbo->getSize();
+    // Get the ACTUAL device size for the BLIT
+    deviceSize = qApp->getDeviceSize();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+    glBlitFramebuffer(0, 0, fboSize.x, fboSize.y,
+                      0, 0, deviceSize.width(), deviceSize.height(),
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
-
-    DependencyManager::get<GlowEffect>()->render();
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

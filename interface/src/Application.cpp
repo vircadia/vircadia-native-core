@@ -26,6 +26,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
+#include <QCoreApplication>
 #include <QDesktopWidget>
 #include <QCheckBox>
 #include <QImage>
@@ -183,6 +184,8 @@ const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
 const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -248,6 +251,8 @@ bool setupEssentials(int& argc, char** argv) {
     
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+
+    Setting::init();
     
     // Set dependencies
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -333,12 +338,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isVSyncOn(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _domainConnectionRefusals(QList<QString>())
+        _domainConnectionRefusals(QList<QString>()),
+        _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-    
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
 
@@ -692,6 +697,9 @@ Application::~Application() {
     nodeThread->quit();
     nodeThread->wait();
 
+    Leapmotion::destroy();
+    RealSense::destroy();
+
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
 
@@ -809,8 +817,7 @@ void Application::initializeUi() {
         if (devicePixelRatio != oldDevicePixelRatio) {
             oldDevicePixelRatio = devicePixelRatio;
             qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL(_glWidget->width(),
-                     _glWidget->height());
+            resizeGL();
         }
     });
 }
@@ -827,15 +834,7 @@ void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
-
-    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
-    // Otherwise, it must rebuild the FBOs
-    if (OculusManager::isConnected()) {
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(OculusManager::getRenderTargetSize());
-    } else {
-        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(fbSize);
-    }
+    resizeGL();
 
     glEnable(GL_LINE_SMOOTH);
 
@@ -912,7 +911,14 @@ void Application::paintGL() {
             renderRearViewMirror(_mirrorViewRect);       
         }
 
-        DependencyManager::get<GlowEffect>()->render();
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
+                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
+                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -957,33 +963,47 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera, width, height);
+        OculusManager::configureCamera(camera, size.x, size.y);
     } else if (TV3DManager::isConnected()) {
-        TV3DManager::configureCamera(camera, width, height);
+        TV3DManager::configureCamera(camera, size.x, size.y);
     } else {
-        camera.setAspectRatio((float)width / height);
+        camera.setAspectRatio((float)size.x / size.y);
         camera.setFieldOfView(_fieldOfView.get());
     }
 }
 
-void Application::resizeGL(int width, int height) {
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(QSize(width, height));
-    resetCamerasOnResizeGL(_myCamera, width, height);
+void Application::resizeGL() {
+    // Set the desired FBO texture size. If it hasn't changed, this does nothing.
+    // Otherwise, it must rebuild the FBOs
+    QSize renderSize;
+    if (OculusManager::isConnected()) {
+        renderSize = OculusManager::getRenderTargetSize();
+    } else {
+        renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
+    }
+    if (_renderResolution == toGlm(renderSize)) {
+    	return;
+    }
 
-    glViewport(0, 0, width, height); // shouldn't this account for the menu???
+    _renderResolution = toGlm(renderSize);
+    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+    resetCamerasOnResizeGL(_myCamera, _renderResolution);
+
+    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
     glLoadIdentity();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(_glWidget->size());
+    _glWidget->makeCurrent();
 
     // update Stats width
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(width, horizontalOffset);
+    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
 }
 
 void Application::updateProjectionMatrix() {
@@ -1821,7 +1841,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1846,7 +1866,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         _myCamera.setHmdRotation(glm::quat());
     }
     
-    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    resizeGL();
     
     updateCursorVisibility();
 }
@@ -1929,8 +1949,10 @@ void Application::setActiveFaceTracker() {
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
+    Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->setIsMuted(isMuted);
     ddeTracker->setEnabled(isUsingDDE && !isMuted);
@@ -2561,7 +2583,7 @@ int Application::sendNackPackets() {
                 int bytesRemaining = MAX_PACKET_SIZE;
                 
                 // pack header
-                int numBytesPacketHeader = populatePacketHeader(packet, PacketTypeOctreeDataNack);
+                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
                 dataAt += numBytesPacketHeader;
                 bytesRemaining -= numBytesPacketHeader;
                 
@@ -2644,7 +2666,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
 
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
 
@@ -2664,7 +2689,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = _octreeQuery.getMaxOctreePacketsPerSecond();
+    int totalPPS = getMaxOctreePacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
@@ -2684,7 +2709,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-            
             
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
@@ -2707,7 +2731,12 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
+                                                  rootDetails.y * TREE_SCALE,
+                                                  rootDetails.z * TREE_SCALE),
+                                        rootDetails.s * TREE_SCALE);
+
+
                     
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
@@ -2723,7 +2752,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
@@ -2747,15 +2776,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                         qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-            
+
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
@@ -3180,6 +3209,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     // Background rendering decision
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto skybox = model::SkyboxPointer();
     if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
        if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
@@ -3194,18 +3224,40 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             // compute starfield alpha based on distance from atmosphere
             float alpha = 1.0f;
             bool hasStars = true;
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
                 const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
+
                 if (closestData.getHasStars()) {
+                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
+                                                    / closestData.getAtmosphereOuterRadius();
                     float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
+                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
+                        
 
                     } else if (height < closestData.getAtmosphereOuterRadius()) {
                         alpha = (height - closestData.getAtmosphereInnerRadius()) /
                             (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
                     }
                 } else {
                     hasStars = false;
@@ -3227,7 +3279,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        auto skybox = skyStage->getSkybox();
+        skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
@@ -3306,6 +3358,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -4626,6 +4679,13 @@ bool Application::hasFocus() const {
     return _glWidget->hasFocus();
 }
 
-void Application::resizeGL() {
-    this->resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
+    if (maxOctreePPS != _maxOctreePPS) {
+        _maxOctreePPS = maxOctreePPS;
+        maxOctreePacketsPerSecond.set(_maxOctreePPS);
+    }
+}
+
+int Application::getMaxOctreePacketsPerSecond() {
+    return _maxOctreePPS;
 }

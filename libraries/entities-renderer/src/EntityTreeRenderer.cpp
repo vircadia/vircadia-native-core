@@ -25,6 +25,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -35,6 +36,7 @@
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 #include "RenderableZoneEntityItem.h"
+#include "RenderableLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -58,6 +60,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
@@ -141,7 +144,9 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
-    if (!url.isValid()) {
+    // We document "direct injection" scripts as starting with "(function...", and that would never be a valid url.
+    // But QUrl thinks it is.
+    if (!url.isValid() || scriptMaybeURLorText.startsWith("(")) {
         isURL = false;
         return scriptMaybeURLorText;
     }
@@ -422,11 +427,11 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
             scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
             scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
-                                    _bestZone->getStageAltitude());
-            scene->setStageDayTime(_bestZone->getStageHour());
-            scene->setStageYearTime(_bestZone->getStageDay());
+            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
+                                    _bestZone->getStageProperties().getAltitude());
+            scene->setStageDayTime(_bestZone->getStageProperties().calculateHour());
+            scene->setStageYearTime(_bestZone->getStageProperties().calculateDay());
 
             if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
                 EnvironmentData data = _bestZone->getEnvironmentData();
@@ -449,15 +454,19 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
 
             } else {
                 _viewState->endOverrideEnvironmentData();
+                auto stage = scene->getSkyStage();
                  if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                    auto stage = scene->getSkyStage();
                     stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
                         stage->getSkybox()->clearCubemap();
                     } else {
-                        stage->getSkybox()->clearCubemap(); // NOTE: this should be changed to do something to set the cubemap
+                        // Update the Texture of the Skybox with the one pointed by this zone
+                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
                     }
                     stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+                } else {
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
                 }
             }
 
@@ -475,7 +484,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 _hasPreviousZone = false;
             }
             _viewState->endOverrideEnvironmentData();
-            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model

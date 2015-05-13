@@ -9,13 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PacketHeaders.h"
+
 #include <math.h>
 
 #include <QtCore/QDebug>
-
-#include "NodeList.h"
-
-#include "PacketHeaders.h"
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
@@ -45,8 +43,8 @@ int packArithmeticallyCodedValue(int value, char* destination) {
     }
 }
 
-PacketVersion versionForPacketType(PacketType type) {
-    switch (type) {
+PacketVersion versionForPacketType(PacketType packetType) {
+    switch (packetType) {
         case PacketTypeMicrophoneAudioNoEcho:
         case PacketTypeMicrophoneAudioWithEcho:
             return 2;
@@ -57,7 +55,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeInjectAudio:
             return 1;
         case PacketTypeAvatarData:
-            return 5;
+            return 6;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
@@ -74,7 +72,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_ZONE_ENTITIES_HAVE_SKYBOX;
+            return VERSION_ENTITIES_HAVE_LINE_TYPE;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
@@ -86,8 +84,8 @@ PacketVersion versionForPacketType(PacketType type) {
 
 #define PACKET_TYPE_NAME_LOOKUP(x) case x:  return QString(#x);
 
-QString nameForPacketType(PacketType type) {
-    switch (type) {
+QString nameForPacketType(PacketType packetType) {
+    switch (packetType) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeUnknown);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeStunResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainList);
@@ -132,71 +130,81 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
         default:
-            return QString("Type: ") + QString::number((int)type);
+            return QString("Type: ") + QString::number((int)packetType);
     }
     return QString("unexpected");
 }
 
 
 
-QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID) {
+QByteArray byteArrayWithUUIDPopulatedHeader(PacketType packetType, const QUuid& connectionUUID) {
     QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
-    freshByteArray.resize(populatePacketHeader(freshByteArray, type, connectionUUID));
+    freshByteArray.resize(populatePacketHeaderWithUUID(freshByteArray, packetType, connectionUUID));
     return freshByteArray;
 }
 
-int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID) {
-    if (packet.size() < numBytesForPacketHeaderGivenPacketType(type)) {
-        packet.resize(numBytesForPacketHeaderGivenPacketType(type));
+int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID) {
+    if (packet.size() < numBytesForPacketHeaderGivenPacketType(packetType)) {
+        packet.resize(numBytesForPacketHeaderGivenPacketType(packetType));
     }
     
-    return populatePacketHeader(packet.data(), type, connectionUUID);
+    return populatePacketHeaderWithUUID(packet.data(), packetType, connectionUUID);
 }
 
-int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID) {
-    int numTypeBytes = packArithmeticallyCodedValue(type, packet);
-    packet[numTypeBytes] = versionForPacketType(type);
+int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID) {
+    int numTypeBytes = packArithmeticallyCodedValue(packetType, packet);
+    packet[numTypeBytes] = versionForPacketType(packetType);
     
     char* position = packet + numTypeBytes + sizeof(PacketVersion);
     
-    QUuid packUUID = connectionUUID.isNull() ? DependencyManager::get<LimitedNodeList>()->getSessionUUID() : connectionUUID;
-    
-    QByteArray rfcUUID = packUUID.toRfc4122();
+    QByteArray rfcUUID = connectionUUID.toRfc4122();
     memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
     position += NUM_BYTES_RFC4122_UUID;
     
-    if (!NON_VERIFIED_PACKETS.contains(type)) {
+    if (!NON_VERIFIED_PACKETS.contains(packetType)) {
         // pack 16 bytes of zeros where the md5 hash will be placed once data is packed
         memset(position, 0, NUM_BYTES_MD5_HASH);
         position += NUM_BYTES_MD5_HASH;
     }
-    
+
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+       // Pack zeros for the number of bytes that the sequence number requires.
+       // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
+       memset(position, 0, sizeof(PacketSequenceNumber));
+       position += sizeof(PacketSequenceNumber);
+    }
+
     // return the number of bytes written for pointer pushing
     return position - packet;
 }
 
 int numBytesForPacketHeader(const QByteArray& packet) {
-    // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet.data())
-    + numHashBytesInPacketHeaderGivenPacketType(packetTypeForPacket(packet))
-    + NUM_STATIC_HEADER_BYTES;
+    PacketType packetType = packetTypeForPacket(packet);
+    return numBytesForPacketHeaderGivenPacketType(packetType);
 }
 
 int numBytesForPacketHeader(const char* packet) {
-    // returns the number of bytes used for the type, version, and UUID
-    return numBytesArithmeticCodingFromBuffer(packet)
-    + numHashBytesInPacketHeaderGivenPacketType(packetTypeForPacket(packet))
+    PacketType packetType = packetTypeForPacket(packet);
+    return numBytesForPacketHeaderGivenPacketType(packetType);
+}
+
+int numBytesForArithmeticCodedPacketType(PacketType packetType) {
+    return (int) ceilf((float) packetType / 255);
+}
+
+int numBytesForPacketHeaderGivenPacketType(PacketType packetType) {
+    return numBytesForArithmeticCodedPacketType(packetType)   
+    + numHashBytesForType(packetType)
+    + numSequenceNumberBytesForType(packetType)
     + NUM_STATIC_HEADER_BYTES;
 }
 
-int numBytesForPacketHeaderGivenPacketType(PacketType type) {
-    return (int) ceilf((float)type / 255)
-    + numHashBytesInPacketHeaderGivenPacketType(type)
-    + NUM_STATIC_HEADER_BYTES;
+int numHashBytesForType(PacketType packetType) {
+    return (NON_VERIFIED_PACKETS.contains(packetType) ? 0 : NUM_BYTES_MD5_HASH);
 }
 
-int numHashBytesInPacketHeaderGivenPacketType(PacketType type) {
-    return (NON_VERIFIED_PACKETS.contains(type) ? 0 : NUM_BYTES_MD5_HASH);
+int numSequenceNumberBytesForType(PacketType packetType) {
+    return (SEQUENCE_NUMBERED_PACKETS.contains(packetType) ? sizeof(PacketSequenceNumber) : 0);
 }
 
 QUuid uuidFromPacketHeader(const QByteArray& packet) {
@@ -204,8 +212,16 @@ QUuid uuidFromPacketHeader(const QByteArray& packet) {
                                          NUM_BYTES_RFC4122_UUID));
 }
 
+int hashOffsetForPacketType(PacketType packetType) {
+    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES; 
+}
+
+int sequenceNumberOffsetForPacketType(PacketType packetType) {
+    return numBytesForPacketHeaderGivenPacketType(packetType) - sizeof(PacketSequenceNumber);
+}
+
 QByteArray hashFromPacketHeader(const QByteArray& packet) {
-    return packet.mid(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH);
+    return packet.mid(hashOffsetForPacketType(packetTypeForPacket(packet)), NUM_BYTES_MD5_HASH);
 }
 
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
@@ -213,9 +229,46 @@ QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid&
                                     QCryptographicHash::Md5);
 }
 
-void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID) {
-    packet.replace(numBytesForPacketHeader(packet) - NUM_BYTES_MD5_HASH, NUM_BYTES_MD5_HASH,
+PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+
+    PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
+    
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
+        memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
+    } 
+
+    return result;
+}
+
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+    
+    packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH, 
                    hashForPacketAndConnectionUUID(packet, connectionUUID));
+}
+
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+
+    packet.replace(sequenceNumberOffsetForPacketType(packetType), 
+                   sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber), sizeof(PacketSequenceNumber));
+} 
+
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber, 
+                                          PacketType packetType) {
+    if (packetType == PacketTypeUnknown) {
+        packetType = packetTypeForPacket(packet);
+    }
+
+    replaceHashInPacket(packet, connectionUUID, packetType);
+    replaceSequenceNumberInPacket(packet, sequenceNumber, packetType);
 }
 
 PacketType packetTypeForPacket(const QByteArray& packet) {

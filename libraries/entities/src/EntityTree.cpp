@@ -823,7 +823,8 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+                                                                                           PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -1096,6 +1097,27 @@ void EntityTree::debugDumpMap() {
         qCDebug(entities) << i.key() << ": " << i.value();
     }
     qCDebug(entities) << "-----------------------------------------------------";
+}
+
+class ContentsDimensionOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
+    float getLargestDimension() const { return _contentExtents.largestDimension(); }
+private:
+    Extents _contentExtents;
+};
+
+bool ContentsDimensionOperator::preRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->expandExtentsToContents(_contentExtents);
+    return true;
+}
+
+float EntityTree::getContentsLargestDimension() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getLargestDimension();
 }
 
 class DebugOperator : public RecurseOctreeOperator {

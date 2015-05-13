@@ -186,7 +186,7 @@ void OctreeHeadlessViewer::queryOctree() {
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
                 if (wantExtraDebugging) {
                     qCDebug(octree) << "inView for node " << *node << ", give it budget of " << perServerPPS;
                 }
@@ -213,15 +213,15 @@ void OctreeHeadlessViewer::queryOctree() {
                         qCDebug(octree) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
             
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);

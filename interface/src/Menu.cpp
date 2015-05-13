@@ -388,15 +388,20 @@ Menu::Menu() {
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* binaryEyelidControl = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::BinaryEyelidControl, 0, true);
+    binaryEyelidControl->setVisible(false);
     QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
     useAudioForMouth->setVisible(false);
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
     ddeFiltering->setVisible(false);
+    QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
+        DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
+    ddeCalibrate->setVisible(false);
 #endif
 #if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking, 
-        0, false, 
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, false,
         qApp, SLOT(toggleFaceTrackerMute()));
 #endif
     

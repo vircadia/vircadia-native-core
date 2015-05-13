@@ -166,6 +166,8 @@ public:
 
     bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
+    
+    float getContentsLargestDimension();
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

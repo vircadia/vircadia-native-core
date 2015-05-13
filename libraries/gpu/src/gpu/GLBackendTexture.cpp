@@ -295,8 +295,8 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
             glBindTexture(GL_TEXTURE_2D, object->_texture);
 
             if (needUpdate) {
-                if (texture.isStoredMipAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                if (texture.isStoredMipFaceAvailable(0)) {
+                    Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
                     const GLvoid* bytes = mip->_sysmem.read<Byte>();
                     Element srcFormat = mip->_format;
                 
@@ -318,15 +318,15 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
 
                     // At this point the mip piels have been loaded, we can notify
-                    texture.notifyGPULoaded(0);
+                    texture.notifyMipFaceGPULoaded(0, 0);
 
                     object->_contentStamp = texture.getDataStamp();
                 }
             } else {
                 const GLvoid* bytes = 0;
                 Element srcFormat = texture.getTexelFormat();
-                if (texture.isStoredMipAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
+                if (texture.isStoredMipFaceAvailable(0)) {
+                    Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
                 
                     bytes = mip->_sysmem.read<Byte>();
                     srcFormat = mip->_format;
@@ -352,10 +352,11 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 syncSampler(texture.getSampler(), texture.getType(), object);
 
-                // At this point the mip piels have been loaded, we can notify
-                texture.notifyGPULoaded(0);
+                // At this point the mip pixels have been loaded, we can notify
+                texture.notifyMipFaceGPULoaded(0, 0);
 
                 object->_storageStamp = texture.getStamp();
+                object->_contentStamp = texture.getDataStamp();
                 object->_size = texture.getSize();
             }
 
@@ -370,64 +371,57 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
             glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
             const int NUM_FACES = 6;
             const GLenum FACE_LAYOUT[] = {
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-                GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
-
+                 GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                 GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                 GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
             if (needUpdate) {
-                if (texture.isStoredMipAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
-                    Element srcFormat = mip->_format;
-                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-                    
-                    uint16 width = texture.getWidth();
-                    int faceSize = mip->_sysmem.getSize() / NUM_FACES;
-
-                    glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
-                    for (int f = 0; f < NUM_FACES; f++) {
-                        glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, width, width, 0,
-                            texelFormat.format, texelFormat.type, (GLvoid*) (mip->_sysmem.read<Byte>() + f * faceSize));
-                    }
-
-                    if (texture.isAutogenerateMips()) {
-                        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-                        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                    }
-
-                    object->_target = GL_TEXTURE_CUBE_MAP;
-
-                    syncSampler(texture.getSampler(), texture.getType(), object);
-
-                    // At this point the mip piels have been loaded, we can notify
-                    texture.notifyGPULoaded(0);
-
-                    object->_contentStamp = texture.getDataStamp();
-                }
-            } else {
-                const gpu::Byte* bytes = 0;
-                Element srcFormat = texture.getTexelFormat();
-                uint16 width = texture.getWidth();
-                int faceSize = 0;
-
-                if (texture.isStoredMipAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMip(0);
-                
-                    bytes = mip->_sysmem.read<Byte>();
-                    srcFormat = mip->_format;
-                    faceSize = mip->_sysmem.getSize() / NUM_FACES;
-
-                    object->_contentStamp = texture.getDataStamp();
-                }
-
-                GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-
                 glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
+
+                // transfer pixels from each faces
                 for (int f = 0; f < NUM_FACES; f++) {
-                    glTexImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, width, width, 0,
-                        texelFormat.format, texelFormat.type, (GLvoid*) (bytes + f * faceSize));
+                    if (texture.isStoredMipFaceAvailable(0, f)) {
+                        Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
+                        Element srcFormat = mipFace->_format;
+                        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
+
+                        glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
+                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->_sysmem.read<Byte>()));
+
+                        // At this point the mip pixels have been loaded, we can notify
+                        texture.notifyMipFaceGPULoaded(0, f);
+                    }
                 }
 
-                if (bytes && texture.isAutogenerateMips()) {
+                if (texture.isAutogenerateMips()) {
+                    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                }
+
+                object->_target = GL_TEXTURE_CUBE_MAP;
+
+                syncSampler(texture.getSampler(), texture.getType(), object);
+
+                object->_contentStamp = texture.getDataStamp();
+
+            } else {
+                glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
+
+                // transfer pixels from each faces
+                for (int f = 0; f < NUM_FACES; f++) {
+                    if (texture.isStoredMipFaceAvailable(0, f)) {
+                        Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
+                        Element srcFormat = mipFace->_format;
+                        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
+
+                        glTexImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
+                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->_sysmem.read<Byte>()));
+
+                        // At this point the mip pixels have been loaded, we can notify
+                        texture.notifyMipFaceGPULoaded(0, f);
+                    }
+                }
+
+                if (texture.isAutogenerateMips()) {
                     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
                     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                 } else {
@@ -439,10 +433,8 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 syncSampler(texture.getSampler(), texture.getType(), object);
 
-                // At this point the mip piels have been loaded, we can notify
-                texture.notifyGPULoaded(0);
-
                 object->_storageStamp = texture.getStamp();
+                object->_contentStamp = texture.getDataStamp();
                 object->_size = texture.getSize();
             }
 
