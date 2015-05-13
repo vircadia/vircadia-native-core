@@ -44,7 +44,7 @@ void WebEntityItem::setDimensions(const glm::vec3& value) {
 
 EntityItemProperties WebEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getSource);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     return properties;
 }
 
@@ -52,7 +52,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setSourceUrl);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(sourceUrl, setSourceUrl);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -143,3 +143,11 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     }
     return intersects;
 }
+
+void WebEntityItem::setSourceUrl(const QString& value) { 
+    if (_sourceUrl != value) {
+        _sourceUrl = value;
+    }
+}
+
+const QString& WebEntityItem::getSourceUrl() const { return _sourceUrl; }

@@ -11,15 +11,22 @@
 
 #include <WebEntityItem.h>
 
+class OffscreenQmlSurface;
+
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        WebEntityItem(entityItemID, properties)
-        { }
-
+    RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
+
+    virtual void setSourceUrl(const QString& value);
+
+private:
+    void updateQmlSourceUrl();
+
+    OffscreenQmlSurface* _webSurface{ nullptr };
+    uint32_t _texture{ 0 };
 };
 
 

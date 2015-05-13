@@ -49,8 +49,8 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
-    void setSourceUrl(const QString& value) { _sourceUrl = value; }
-    const QString& getSourceUrl() const { return _sourceUrl; }
+    virtual void setSourceUrl(const QString& value);
+    const QString& getSourceUrl() const;
 
 protected:
     QString _sourceUrl;

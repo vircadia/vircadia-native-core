@@ -665,6 +665,8 @@
             elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
+            elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
+
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
             elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
@@ -1033,7 +1035,7 @@
         <div class="web-section property">
             <div class="label">Source URL</div>
             <div class="value">
-                <input type="text" id="property-source-url" class="url"></input>
+                <input type="text" id="property-web-source-url" class="url"></input>
             </div>
         </div>
 
