@@ -1366,12 +1366,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 
-//#define VR_MENU_ONLY_IN_HMD
+#define VR_MENU_ONLY_IN_HMD
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
 #ifdef VR_MENU_ONLY_IN_HMD
-        if (OculusManager::isConnected()) {
+        if (isHMDMode()) {
 #endif
             VrMenu::toggle();
 #ifdef VR_MENU_ONLY_IN_HMD
