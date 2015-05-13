@@ -72,7 +72,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAVE_LINE_TYPE;
+            return VERSION_ENTITIES_HAVE_COLLISION_SOUND_URL;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
