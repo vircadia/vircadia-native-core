@@ -288,7 +288,16 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             settingMap[key] = QVariantMap();
         }
 
-        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
+        QVariant& possibleMap = settingMap[key];
+
+        if (!possibleMap.canConvert(QMetaType::QVariantMap)) {
+            // if this isn't a map then we need to make it one, otherwise we're about to crash
+            qDebug() << "Value at" << key << "was not the expected QVariantMap while updating DS settings"
+                << "- removing existing value and making it a QVariantMap";
+            possibleMap = QVariantMap();
+        }
+
+        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(possibleMap.data());
         foreach(const QString childKey, newValue.toObject().keys()) {
 
             QJsonObject childDescriptionObject = settingDescription;
