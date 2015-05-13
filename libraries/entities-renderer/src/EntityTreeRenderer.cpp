@@ -1126,7 +1126,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
     // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range 0.5-1.0, if we play it all.
-    constexpr float COLLISION_SOUND_COMPRESSION = 0.5f;
+    const float COLLISION_SOUND_COMPRESSION = 0.5f;
     const float volume = (energyPercentOfFull * COLLISION_SOUND_COMPRESSION) + (1.0f - COLLISION_SOUND_COMPRESSION);
     //qCDebug(entitiesrenderer) << collisionSoundURL << " " << volume << " " << position << " " << sound->isStereo();
     
