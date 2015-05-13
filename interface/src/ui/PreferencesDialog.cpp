@@ -14,6 +14,7 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
+#include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
 #include <NetworkingConstants.h>
@@ -135,6 +136,10 @@ void PreferencesDialog::loadPreferences() {
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
+                                              ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
@@ -222,6 +227,10 @@ void PreferencesDialog::savePreferences() {
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
+                                (float)ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                 (float)ui.faceshiftEyeDeflectionSider->maximum());

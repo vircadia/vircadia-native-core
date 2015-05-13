@@ -349,22 +349,6 @@ font: bold 16pt;
                </layout>
               </widget>
              </item>
-             <item>
-              <widget class="QLabel" name="tipLabel">
-               <property name="font">
-                <font>
-                 <family>Helvetica,Arial,sans-serif</family>
-                 <pointsize>14</pointsize>
-                </font>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color: #5f5f5f; margin: 2px;</string>
-               </property>
-               <property name="text">
-                <string>Tip</string>
-               </property>
-              </widget>
-             </item>
             </layout>
            </widget>
           </widget>

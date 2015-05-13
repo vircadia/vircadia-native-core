@@ -953,6 +953,7 @@ void Application::faceTrackerMuteToggled() {
     bool isMuted = getSelectedFaceTracker()->isMuted();
     muteAction->setChecked(isMuted);
     getSelectedFaceTracker()->setEnabled(!isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
@@ -1366,12 +1367,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 
-//#define VR_MENU_ONLY_IN_HMD
+#define VR_MENU_ONLY_IN_HMD
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
 #ifdef VR_MENU_ONLY_IN_HMD
-        if (OculusManager::isConnected()) {
+        if (isHMDMode()) {
 #endif
             VrMenu::toggle();
 #ifdef VR_MENU_ONLY_IN_HMD
@@ -1949,6 +1950,7 @@ void Application::setActiveFaceTracker() {
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
+    Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
