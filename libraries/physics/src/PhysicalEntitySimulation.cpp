@@ -195,10 +195,20 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItem* entity = entityState->getEntity();
             if (entity) {
-                _outgoingChanges.insert(entityState);
+                if (entity->isKnownID()) {
+                    _outgoingChanges.insert(entityState);
+                }
                 _entitiesToSort.insert(entityState->getEntity());
             }
         }
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& sessionID = nodeList->getSessionUUID();
+    if (sessionID.isNull()) {
+        // no updates to send
+        _outgoingChanges.clear();
+        return;
     }
 
     // send outgoing packets
@@ -209,10 +219,10 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
-            if (state->doesNotNeedToSendUpdate()) {
+            if (state->doesNotNeedToSendUpdate(sessionID)) {
                 stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps)) {
-                state->sendUpdate(_entityPacketSender, numSubsteps);
+            } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
+                state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
                 ++stateItr;
             } else {
                 ++stateItr;

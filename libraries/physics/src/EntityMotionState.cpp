@@ -35,8 +35,9 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
     _accelerationNearlyGravityCount(0),
-    _shouldClaimSimulationOwnership(false),
-    _movingStepsWithoutSimulationOwner(0)
+    _touchesOurSimulation(false),
+    _framesSinceSimulatorBid(0),
+    _movingFramesWithoutSimulationOwner(0)
 {
     _type = MOTION_STATE_TYPE_ENTITY;
     assert(entity != nullptr);
@@ -59,6 +60,15 @@ void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
     }
     if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
         _serverAngularVelocity = _entity->getAngularVelocity();
+    }
+    if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& sessionID = nodeList->getSessionUUID();
+        if (_entity->getSimulatorID() != sessionID) {
+            _touchesOurSimulation = false;
+            _movingFramesWithoutSimulationOwner = 0;
+            _framesSinceSimulatorBid = 0;
+        }
     }
 }
 
@@ -143,19 +153,16 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     _entity->setLastSimulated(usecTimestampNow());
 
-    // if (_entity->getSimulatorID().isNull() && isMoving()) {
-    if (_entity->getSimulatorID().isNull() && isMovingVsServer()) {
-        // if object is moving and has no owner, attempt to claim simulation ownership.
-        _movingStepsWithoutSimulationOwner++;
+    if (_entity->getSimulatorID().isNull()) {
+        _movingFramesWithoutSimulationOwner++;
+
+        const uint32_t ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
+        if (_movingFramesWithoutSimulationOwner > ownershipClaimDelay) {
+            //qDebug() << "Warning -- claiming something I saw moving." << getName();
+            _touchesOurSimulation = true;
+        }
     } else {
-        _movingStepsWithoutSimulationOwner = 0;
-    }
-
-    uint32_t ownershipClaimDelay = 50; // TODO -- how to pick this?  based on meters from our characterController?
-
-    if (_movingStepsWithoutSimulationOwner > ownershipClaimDelay) {
-        //qDebug() << "Warning -- claiming something I saw moving." << getName();
-        setShouldClaimSimulationOwnership(true);
+        _movingFramesWithoutSimulationOwner = 0;
     }
 
     #ifdef WANT_DEBUG
@@ -177,8 +184,12 @@ void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
 // we alwasy resend packets for objects that have stopped moving up to some max limit.
 const int MAX_NUM_NON_MOVING_UPDATES = 5;
 
-bool EntityMotionState::doesNotNeedToSendUpdate() const { 
-    return !_body || (_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES);
+bool EntityMotionState::doesNotNeedToSendUpdate(const QUuid& sessionID) const { 
+    if (!_body || !_entity) {
+        return true;
+    }
+
+    return (sessionID != _entity->getSimulatorID() && !_touchesOurSimulation);
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -191,6 +202,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverVelocity = bulletToGLM(_body->getLinearVelocity());
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
+        _sentMoving = false;
         return false;
     }
     
@@ -202,19 +214,26 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     int numSteps = simulationStep - _lastStep;
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-    _lastStep = simulationStep;
-    bool isActive = _body->isActive();
 
     const float NON_MOVING_UPDATE_PERIOD = 1.0f;
-    if (_sentMoving) {
-        if (!isActive) {
-            // object has gone inactive but our last send was moving --> send non-moving update immediately
-            return true;
-        }
-    } else if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
-        // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets 
-        // we repeat these at the the MAX period above, and only send a limited number of them.
+    if (!_sentMoving) {
+        // we resend non-moving update every NON_MOVING_UPDATE_PERIOD
+        // until it is removed from the outgoing updates 
+        // (which happens when we don't own the simulation and it isn't touching our simulation)
+        return (dt > NON_MOVING_UPDATE_PERIOD);
+    }
+
+    bool isActive = _body->isActive();
+    if (!isActive) {
+        // object has gone inactive but our last send was moving --> send non-moving update immediately
         return true;
+    }
+
+    _lastStep = simulationStep;
+    if (glm::length2(_serverVelocity) > 0.0f) {
+        _serverVelocity += _serverAcceleration * dt;
+        _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+        _serverPosition += dt * _serverVelocity;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior 
@@ -222,15 +241,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     // NOTE: math is done in the simulation-frame, which is NOT necessarily the same as the world-frame 
     // due to _worldOffset.
+    // TODO: compensate for _worldOffset offset here
 
     // compute position error
-    if (glm::length2(_serverVelocity) > 0.0f) {
-        _serverVelocity += _serverAcceleration * dt;
-        _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
-        _serverPosition += dt * _serverVelocity;
-    }
 
-    // TODO: compensate for simulation offset here
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
     
@@ -283,31 +297,36 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     return (fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT);
 }
 
-bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    if (!_entity || !remoteSimulationOutOfSync(simulationFrame)) {
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame, const QUuid& sessionID) {
+    // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called 
+    // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL. 
+    assert(_entity);
+    assert(_body);
+
+    if (!remoteSimulationOutOfSync(simulationFrame)) {
         return false;
     }
 
-    if (getShouldClaimSimulationOwnership()) {
+    if (_entity->getSimulatorID() == sessionID) {
+        // we own the simulation
         return true;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid& myNodeID = nodeList->getSessionUUID();
-    const QUuid& simulatorID = _entity->getSimulatorID();
-
-    if (simulatorID != myNodeID) {
-        // some other Node owns the simulating of this, so don't broadcast the results of local simulation.
-        return false;
+    const uint32_t FRAMES_BETWEEN_OWNERSHIP_CLAIMS = 30;
+    if (_touchesOurSimulation) {
+        ++_framesSinceSimulatorBid;
+        if (_framesSinceSimulatorBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
+            // we don't own the simulation, but it's time to bid for it
+            return true;
+        }
     }
 
-    return true;
+    return false;
 }
 
-void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
-    if (!_entity || !_entity->isKnownID()) {
-        return; // never update entities that are unknown
-    }
+void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step) {
+    assert(_entity);
+    assert(_entity->isKnownID());
 
     bool active = _body->isActive();
     if (!active) {
@@ -350,11 +369,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _serverAcceleration = _entity->getAcceleration();
     _serverAngularVelocity = _entity->getAngularVelocity();
 
-    _sentMoving = _serverVelocity != glm::vec3(0.0f) || _serverAngularVelocity != glm::vec3(0.0f);
+    _sentMoving = _serverVelocity != glm::vec3(0.0f) || _serverAngularVelocity != _serverVelocity || _serverAcceleration != _serverVelocity;
 
     EntityItemProperties properties = _entity->getProperties();
 
-    // explicitly set the properties that changed
+    // explicitly set the properties that changed so that they will be packed
     properties.setPosition(_serverPosition);
     properties.setRotation(_serverRotation);
     properties.setVelocity(_serverVelocity);
@@ -386,23 +405,20 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.setLastEdited(_entity->getLastEdited());
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    QUuid myNodeID = nodeList->getSessionUUID();
-    QUuid simulatorID = _entity->getSimulatorID();
-
-    if (getShouldClaimSimulationOwnership()) {
-        // we think we should own it, so we tell the server that we do, 
-        // but we don't remember that we own it...
-        // instead we expect the sever to tell us later whose ownership it has accepted
-        properties.setSimulatorID(myNodeID);
-        setShouldClaimSimulationOwnership(false);
-    } else if (simulatorID == myNodeID 
-            && !_sentMoving 
-            && _numNonMovingUpdates == MAX_NUM_NON_MOVING_UPDATES) {
-        // we own it, the entity has stopped, and we're sending the last non-moving update
-        // --> give up ownership
-        _entity->setSimulatorID(QUuid());
-        properties.setSimulatorID(QUuid());
+    if (sessionID == _entity->getSimulatorID()) {
+        // we think we own the simulation
+        if (!_sentMoving) {
+            // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
+            // but we remember that we do still own it...  and rely on the server to tell us that we don't
+            properties.setSimulatorID(QUuid());
+            _touchesOurSimulation = false;
+        } else {
+            // explicitly set the property's simulatorID so that it is flagged as changed and will be packed
+            properties.setSimulatorID(sessionID);
+        }
+    } else {
+        // we don't own the simulation for this entity yet, but we're sending a bid for it
+        properties.setSimulatorID(sessionID);
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {
@@ -451,7 +467,7 @@ QUuid EntityMotionState::getSimulatorID() const {
 
 // virtual
 void EntityMotionState::bump() {
-    setShouldClaimSimulationOwnership(true);
+    _touchesOurSimulation = true;
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {

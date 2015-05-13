@@ -565,7 +565,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, setSimulatorID);
+            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, updateSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -940,7 +940,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, setSimulatorID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
 
@@ -1270,8 +1270,14 @@ void EntityItem::updateLifetime(float value) {
 }
 
 void EntityItem::setSimulatorID(const QUuid& value) {
+    _simulatorID = value;
+    _simulatorIDChangedTime = usecTimestampNow();
+}
+
+void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
         _simulatorID = value;
         _simulatorIDChangedTime = usecTimestampNow();
+        _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
     }
 }

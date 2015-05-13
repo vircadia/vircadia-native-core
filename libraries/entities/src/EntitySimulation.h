@@ -37,7 +37,8 @@ const int DIRTY_SIMULATION_FLAGS =
         EntityItem::DIRTY_SHAPE |
         EntityItem::DIRTY_LIFETIME |
         EntityItem::DIRTY_UPDATEABLE |
-        EntityItem::DIRTY_MATERIAL;
+        EntityItem::DIRTY_MATERIAL |
+        EntityItem::DIRTY_SIMULATOR_ID;
 
 class EntitySimulation : public QObject {
 Q_OBJECT
