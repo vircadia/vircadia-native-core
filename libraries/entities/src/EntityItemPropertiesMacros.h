@@ -86,63 +86,30 @@
         changedProperties += P;    \
     }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(G,g,P,p) \
-    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
         QScriptValue groupProperties = properties.property(#g); \
         if (!groupProperties.isValid()) { \
             groupProperties = engine->newObject(); \
         } \
-        QScriptValue V = vec3toScriptValue(engine, _##p); \
+        QScriptValue V = convertScriptValue(engine, get##P()); \
         groupProperties.setProperty(#p, V); \
         properties.setProperty(#g, groupProperties); \
     }
 
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
-    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#g); \
-        if (!groupProperties.isValid()) { \
-            groupProperties = engine->newObject(); \
-        } \
-        groupProperties.setProperty(#p, _##p); \
-        properties.setProperty(#g, groupProperties); \
-    }
-
-
-#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_COLOR(G,g,P,p) \
-    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != _##p) { \
-        QScriptValue groupProperties = properties.property(#g); \
-        if (!groupProperties.isValid()) { \
-            groupProperties = engine->newObject(); \
-        } \
-        QScriptValue colorValue = xColorToScriptValue(engine, _##p); \
-        groupProperties.setProperty(#p, colorValue); \
-        properties.setProperty(#g, groupProperties); \
-    }
-
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        QScriptValue P = vec3toScriptValue(engine, _##P); \
-        properties.setProperty(#P, P); \
-    }
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(P) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        QScriptValue P = quatToScriptValue(engine, _##P); \
-        properties.setProperty(#P, P); \
-    }
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(P) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        QScriptValue P = xColorToScriptValue(engine, _##P); \
-        properties.setProperty(#P, P); \
-    }
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(P,G) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        QScriptValue P = xColorToScriptValue(engine, G); \
-        properties.setProperty(#P, P); \
+        QScriptValue V = convertScriptValue(engine, _##P); \
+        properties.setProperty(#P, V); \
     }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
@@ -150,12 +117,8 @@
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        properties.setProperty(#P, G); \
-    }
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
-    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
-        properties.setProperty(#P, _##P); \
+        QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
     }
 
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \

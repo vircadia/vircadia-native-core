@@ -348,15 +348,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(position);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(dimensions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(position);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(dimensions);
     if (!skipDefaults) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(naturalDimensions); // gettable, but not settable
+        COPY_PROPERTY_TO_QSCRIPTVALUE(naturalDimensions); // gettable, but not settable
     }
-    COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(rotation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(acceleration);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(rotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(velocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(gravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(acceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
@@ -365,11 +365,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(registrationPoint);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(angularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(color);
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(compoundShapeURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
@@ -391,23 +391,23 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textColor, getTextColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundColor, getBackgroundColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(shapeType, getShapeTypeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(maxParticles);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifespan);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitRate);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(emitDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(emitDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE(emitStrength);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localGravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(particleRadius);
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(name);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(keyLightColor);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightColor);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(keyLightDirection);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
 
     // Sitting properties support
@@ -1117,3 +1117,5 @@ AABox EntityItemProperties::getAABox() const {
     
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
+
+

@@ -33,12 +33,12 @@ AtmospherePropertyGroup::AtmospherePropertyGroup() {
 }
 
 void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(Atmosphere, atmosphere, Center, center);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, Center, center);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, InnerRadius, innerRadius);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, OuterRadius, outerRadius);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, MieScattering, mieScattering);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, HasStars, hasStars);
 }
 
