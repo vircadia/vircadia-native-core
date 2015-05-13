@@ -3357,7 +3357,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
-        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
