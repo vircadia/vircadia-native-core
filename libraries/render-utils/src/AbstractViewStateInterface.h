@@ -56,6 +56,7 @@ public:
     virtual const glm::vec3& getAvatarPosition() const = 0;
 
     virtual void postLambdaEvent(std::function<void()> f) = 0;
+    virtual qreal getDevicePixelRatio() = 0;
 
     static AbstractViewStateInterface* instance();
 };

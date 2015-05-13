@@ -11,6 +11,7 @@
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
 #include <QtQml>
+#include "AbstractViewStateInterface.h"
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
@@ -87,8 +88,14 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize) {
-
-    qreal pixelRatio = _renderControl->_renderWindow ? _renderControl->_renderWindow->devicePixelRatio() : 1.0;
+    // Qt bug in 5.4 forces this check of pixel ratio,
+    // even though we're rendering offscreen.
+    qreal pixelRatio = 1.0;
+    if (_renderControl && _renderControl->_renderWindow) {
+        pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
+    } else {
+        pixelRatio = AbstractViewStateInterface::instance()->getDevicePixelRatio();
+    }
     QSize newOffscreenSize = newSize * pixelRatio;
     if (newOffscreenSize == _fboCache.getSize()) {
         return;

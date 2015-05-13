@@ -4690,6 +4690,11 @@ int Application::getMaxOctreePacketsPerSecond() {
     return _maxOctreePPS;
 }
 
+qreal Application::getDevicePixelRatio() {
+    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+}
+
+
 AbstractViewStateInterface* AbstractViewStateInterface::instance() {
     return qApp;
 }
