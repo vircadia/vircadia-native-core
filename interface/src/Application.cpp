@@ -953,6 +953,7 @@ void Application::faceTrackerMuteToggled() {
     bool isMuted = getSelectedFaceTracker()->isMuted();
     muteAction->setChecked(isMuted);
     getSelectedFaceTracker()->setEnabled(!isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
@@ -1366,12 +1367,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 
-//#define VR_MENU_ONLY_IN_HMD
+#define VR_MENU_ONLY_IN_HMD
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
 #ifdef VR_MENU_ONLY_IN_HMD
-        if (OculusManager::isConnected()) {
+        if (isHMDMode()) {
 #endif
             VrMenu::toggle();
 #ifdef VR_MENU_ONLY_IN_HMD
@@ -1949,6 +1950,7 @@ void Application::setActiveFaceTracker() {
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
+    Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
@@ -3208,6 +3210,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     // Background rendering decision
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto skybox = model::SkyboxPointer();
     if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
        if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
@@ -3222,18 +3225,40 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             // compute starfield alpha based on distance from atmosphere
             float alpha = 1.0f;
             bool hasStars = true;
+
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
                 const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-            
+
                 if (closestData.getHasStars()) {
+                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
+                                                    / closestData.getAtmosphereOuterRadius();
                     float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
+                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
+                        
 
                     } else if (height < closestData.getAtmosphereOuterRadius()) {
                         alpha = (height - closestData.getAtmosphereInnerRadius()) /
                             (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                            float directionY = glm::clamp(sunDirection.y, 
+                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                        }
                     }
                 } else {
                     hasStars = false;
@@ -3255,7 +3280,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
         }
     } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        auto skybox = skyStage->getSkybox();
+        skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
@@ -3334,6 +3359,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");

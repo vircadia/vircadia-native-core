@@ -112,28 +112,6 @@ public:
     };
     typedef std::shared_ptr< Pixels > PixelsPointer;
 
-    class Storage {
-    public:
-        Storage() {}
-        virtual ~Storage() {}
-        virtual void reset();
-        virtual PixelsPointer editMip(uint16 level);
-        virtual const PixelsPointer getMip(uint16 level) const;
-        virtual Stamp getStamp(uint16 level) const;
-        virtual bool allocateMip(uint16 level);
-        virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
-        virtual bool isMipAvailable(uint16 level) const;
-        virtual void notifyGPULoaded(uint16 level) const;
-
-    protected:
-        Texture* _texture;
-        std::vector<PixelsPointer> _mips;
-
-        virtual void assignTexture(Texture* tex);
-
-        friend class Texture;
-    };
-
     enum Type {
         TEX_1D = 0,
         TEX_2D,
@@ -143,6 +121,51 @@ public:
         NUM_TYPES,
     };
 
+    // Definition of the cube face name and layout
+    enum CubeFace {
+        CUBE_FACE_RIGHT_POS_X = 0,
+        CUBE_FACE_LEFT_NEG_X,
+        CUBE_FACE_TOP_POS_Y,
+        CUBE_FACE_BOTTOM_NEG_Y,
+        CUBE_FACE_BACK_POS_X,
+        CUBE_FACE_FRONT_NEG_Z,
+
+        NUM_CUBE_FACES, // Not a valid vace index
+    };
+
+    class Storage {
+    public:
+        Storage() {}
+        virtual ~Storage() {}
+        virtual void reset();
+        virtual PixelsPointer editMipFace(uint16 level, uint8 face = 0);
+        virtual const PixelsPointer getMipFace(uint16 level, uint8 face = 0) const;
+        virtual bool allocateMip(uint16 level);
+        virtual bool assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes);
+        virtual bool assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face);
+        virtual bool isMipAvailable(uint16 level, uint8 face = 0) const;
+
+        Texture::Type getType() const { return _type; }
+        
+        Stamp getStamp() const { return _stamp; }
+        Stamp bumpStamp() { return ++_stamp; }
+    protected:
+        Stamp _stamp = 0;
+        Texture* _texture = nullptr;
+        Texture::Type _type = Texture::TEX_2D; // The type of texture is needed to know the number of faces to expect
+        std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
+
+        virtual void assignTexture(Texture* tex); // Texture storage is pointing to ONE corrresponding Texture.
+        const Texture* getTexture() const { return _texture; }
+ 
+        friend class Texture;
+        
+        // THis should be only called by the Texture from the Backend to notify the storage that the specified mip face pixels
+        //  have been uploaded to the GPU memory. IT is possible for the storage to free the system memory then
+        virtual void notifyMipFaceGPULoaded(uint16 level, uint8 face) const;
+    };
+
+ 
     static Texture* create1D(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
     static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
@@ -155,7 +178,7 @@ public:
     ~Texture();
 
     Stamp getStamp() const { return _stamp; }
-    Stamp getDataStamp(uint16 level = 0) const { return _storage->getStamp(level); }
+    Stamp getDataStamp() const { return _storage->getStamp(); }
 
     // The size in bytes of data stored in the texture
     Size getSize() const { return _size; }
@@ -214,8 +237,16 @@ public:
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
-    uint32 evalMipNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getNumFaces(); }
+
+    // Size for each face of a mip at a particular level
+    uint32 evalMipFaceNumTexels(uint16 level) const { return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level); }
+    uint32 evalMipFaceSize(uint16 level) const { return evalMipFaceNumTexels(level) * getTexelFormat().getSize(); }
+    
+    // Total size for the mip
+    uint32 evalMipNumTexels(uint16 level) const { return evalMipFaceNumTexels(level) * getNumFaces(); }
     uint32 evalMipSize(uint16 level) const { return evalMipNumTexels(level) * getTexelFormat().getSize(); }
+
+    uint32 evalStoredMipFaceSize(uint16 level, const Element& format) const { return evalMipFaceNumTexels(level) * format.getSize(); }
     uint32 evalStoredMipSize(uint16 level, const Element& format) const { return evalMipNumTexels(level) * format.getSize(); }
 
     uint32 evalTotalSize() const {
@@ -256,11 +287,11 @@ public:
     // Explicitely assign mip data for a certain level
     // If Bytes is NULL then simply allocate the space so mip sysmem can be accessed
     bool assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes);
+    bool assignStoredMipFace(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face);
 
     // Access the the sub mips
-    bool isStoredMipAvailable(uint16 level) const { return _storage->isMipAvailable(level); }
-    const PixelsPointer accessStoredMip(uint16 level) const { return _storage->getMip(level); }
-    void notifyGPULoaded(uint16 level) const { return _storage->notifyGPULoaded(level); }
+    bool isStoredMipFaceAvailable(uint16 level, uint8 face = 0) const { return _storage->isMipAvailable(level, face); }
+    const PixelsPointer accessStoredMipFace(uint16 level, uint8 face = 0) const { return _storage->getMipFace(level, face); }
 
     // access sizes for the stored mips
     uint16 getStoredMipWidth(uint16 level) const;
@@ -276,6 +307,9 @@ public:
     void setSampler(const Sampler& sampler);
     const Sampler& getSampler() const { return _sampler; }
     Stamp getSamplerStamp() const { return _samplerStamp; }
+
+    // Only callable by the Backend
+    void notifyMipFaceGPULoaded(uint16 level, uint8 face) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
 protected:
     std::unique_ptr< Storage > _storage;
@@ -310,6 +344,7 @@ protected:
     mutable GPUObject* _gpuObject = NULL;
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
     GPUObject* getGPUObject() const { return _gpuObject; }
+
     friend class Backend;
 };
 

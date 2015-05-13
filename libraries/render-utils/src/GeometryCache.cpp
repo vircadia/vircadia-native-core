@@ -721,6 +721,76 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     #endif
 }
 
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color) {
+    BatchItemDetails& details = _registeredVertices[id];
+
+    if (details.isCreated) {
+        details.clear();
+        #ifdef WANT_DEBUG
+            qCDebug(renderutils) << "updateVertices()... RELEASING REGISTERED";
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 5;
+    details.isCreated = true;
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+    gpu::BufferPointer colorBuffer(new gpu::Buffer());
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+    gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+    details.verticesBuffer = verticesBuffer;
+    details.colorBuffer = colorBuffer;
+    details.streamFormat = streamFormat;
+    details.stream = stream;
+
+    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(float));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+    details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+    assert(points.size() == texCoords.size());
+
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                        ((int(color.y * 255.0f) & 0xFF) << 8) |
+                        ((int(color.z * 255.0f) & 0xFF) << 16) |
+                        ((int(color.w * 255.0f) & 0xFF) << 24);
+
+    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
+    GLfloat* vertex = vertexData;
+
+    int* colorData = new int[details.vertices];
+    int* colorDataAt = colorData;
+
+    for (int i = 0; i < points.size(); i++) {
+        glm::vec3 point = points[i];
+        glm::vec2 texCoord = texCoords[i];
+        *(vertex++) = point.x;
+        *(vertex++) = point.y;
+        *(vertex++) = point.z;
+        *(vertex++) = texCoord.x;
+        *(vertex++) = texCoord.y;
+
+        *(colorDataAt++) = compactColor;
+    }
+
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
+    delete[] vertexData;
+    delete[] colorData;
+
+    #ifdef WANT_DEBUG
+        qCDebug(renderutils) << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
+    #endif
+}
+
 void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
