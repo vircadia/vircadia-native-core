@@ -623,7 +623,7 @@
             elColorBlue.addEventListener('change', colorChangeFunction);
             $('#property-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
@@ -641,7 +641,7 @@
             elLightColorBlue.addEventListener('change', lightColorChangeFunction);
             $('#property-light-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
@@ -674,7 +674,7 @@
             elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
             $('#property-text-text-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
@@ -690,7 +690,7 @@
             elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
             $('#property-text-background-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
@@ -702,7 +702,7 @@
             elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage','sunModelEnabled'));
             $('#property-zone-key-light-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
@@ -739,7 +739,7 @@
             elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
             $('#property-zone-skybox-color').colpick({
                 colorScheme:'dark',
-                layout:'rgbhex',
+                layout:'hex',
                 color:'000000',
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
