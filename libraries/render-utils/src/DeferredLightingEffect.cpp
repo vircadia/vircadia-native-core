@@ -291,7 +291,12 @@ void DeferredLightingEffect::render() {
         auto globalLight = _allocatedLights[_globalLights.front()];
     
         if (locations->ambientSphere >= 0) {
-            auto sh = globalLight->getAmbientSphere();
+            model::SphericalHarmonics sh;
+            if (useSkyboxCubemap) {
+                sh = _skybox->getAmbientSH(); 
+            } else {
+                sh = globalLight->getAmbientSphere();
+            }
             for (int i =0; i <model::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
                 program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
             }

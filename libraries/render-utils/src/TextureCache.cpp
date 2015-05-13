@@ -514,7 +514,8 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
 
     if ((_width > 0) && (_height > 0)) {
 
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+       // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = !(_type == CUBE_TEXTURE); //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));

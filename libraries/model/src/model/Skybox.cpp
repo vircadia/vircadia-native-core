@@ -39,6 +39,9 @@ void Skybox::setColor(const Color& color) {
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
+    if (_isSHValid && (cubemap != _cubemap)) {
+        _isSHValid = false;
+    }
     _cubemap = cubemap;
 }
 
@@ -348,7 +351,7 @@ const SphericalHarmonics& Skybox::getAmbientSH() const {
         if (_cubemap && _cubemap->isDefined()) {
            
            std::vector< glm::vec3 > coefs(10, glm::vec3(0.0f));
-           sphericalHarmonicsFromTexture(*_cubemap, coefs, 2);
+           sphericalHarmonicsFromTexture(*_cubemap, coefs, 3);
 
            _ambientSH.L00 = coefs[0];
            _ambientSH.L1m1 = coefs[1];
