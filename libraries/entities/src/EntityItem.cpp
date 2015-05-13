@@ -229,7 +229,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
@@ -241,6 +240,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, getName());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, getCollisionSoundURL());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -555,7 +555,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_SOUND_URL, setCollisionSoundURL);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         if (useMeters) {
             READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
@@ -578,6 +577,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
 
         READ_ENTITY_PROPERTY_STRING(PROP_NAME, setName);
+        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_SOUND_URL, setCollisionSoundURL);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 

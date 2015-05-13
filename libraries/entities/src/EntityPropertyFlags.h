@@ -55,7 +55,6 @@ enum EntityPropertyList {
     PROP_DAMPING,
     PROP_LIFETIME,
     PROP_SCRIPT,
-    PROP_COLLISION_SOUND_URL,
 
     // these properties are supported by some derived classes
     PROP_COLOR,
@@ -107,6 +106,7 @@ enum EntityPropertyList {
     PROP_ACCELERATION, // all entities
     PROP_SIMULATOR_ID, // all entities
     PROP_NAME, // all entities
+    PROP_COLLISION_SOUND_URL,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line

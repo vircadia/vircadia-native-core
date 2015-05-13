@@ -660,7 +660,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
@@ -732,6 +731,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, properties.getName());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, appendValue, properties.getCollisionSoundURL());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -916,7 +916,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_SOUND_URL,setCollisionSoundURL);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
@@ -982,6 +981,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MARKETPLACE_ID, setMarketplaceID);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_NAME, setName);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_COLLISION_SOUND_URL,setCollisionSoundURL);
     
     return valid;
 }
