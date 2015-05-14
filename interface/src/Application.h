@@ -300,7 +300,7 @@ public:
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
-    
+    virtual qreal getDevicePixelRatio();
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
