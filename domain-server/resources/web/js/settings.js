@@ -23,10 +23,9 @@ var Settings = {
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
     form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>";
-
     setting_value = _(values).valueForKeyPath(keypath);
 
-    if (!setting_value) {
+    if (setting_value === undefined || setting_value === null) {
       if (_.has(setting, 'default')) {
         setting_value = setting.default;
       } else {
