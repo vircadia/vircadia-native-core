@@ -76,7 +76,7 @@ function mousePressEvent(event) {
     return;
   }
   var pickRay = Camera.computePickRay(event.x, event.y);
-  var intersection = Entities.findRayIntersection(pickRay, true);
+  var intersection = Entities.findRayIntersection(pickRay);
   if (intersection.intersects && intersection.properties.collisionsWillMove) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
