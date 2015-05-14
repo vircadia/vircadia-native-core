@@ -31,7 +31,6 @@ const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
-const QString VALUE_GUI_ONLY_FLAG_KEY = "gui-only";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
@@ -190,7 +189,7 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
                 QJsonObject settingObject = settingValue.toObject();
 
-                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && !settingObject[VALUE_GUI_ONLY_FLAG_KEY].toBool()) {
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
                         affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
@@ -255,85 +254,85 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
 void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                                                 const QJsonObject& settingDescription) {
-    if (!settingDescription[VALUE_GUI_ONLY_FLAG_KEY].toBool()) {
-        if (newValue.isString()) {
-            if (newValue.toString().isEmpty()) {
-                // this is an empty value, clear it in settings variant so the default is sent
-                settingMap.remove(key);
+    if (newValue.isString()) {
+        if (newValue.toString().isEmpty()) {
+            // this is an empty value, clear it in settings variant so the default is sent
+            settingMap.remove(key);
+        } else {
+            // make sure the resulting json value has the right type
+            QString settingType = settingDescription[SETTING_DESCRIPTION_TYPE_KEY].toString();
+            const QString INPUT_DOUBLE_TYPE = "double";
+            const QString INPUT_INTEGER_TYPE = "int";
+
+            if (settingType == INPUT_DOUBLE_TYPE) {
+                settingMap[key] = newValue.toString().toDouble();
+            } else if (settingType == INPUT_INTEGER_TYPE) {
+                settingMap[key] = newValue.toString().toInt();
             } else {
-                // make sure the resulting json value has the right type
-                QString settingType = settingDescription[SETTING_DESCRIPTION_TYPE_KEY].toString();
-                const QString INPUT_DOUBLE_TYPE = "double";
-                const QString INPUT_INTEGER_TYPE = "int";
+                QString sanitizedValue = newValue.toString();
 
-                if (settingType == INPUT_DOUBLE_TYPE) {
-                    settingMap[key] = newValue.toString().toDouble();
-                } else if (settingType == INPUT_INTEGER_TYPE) {
-                    settingMap[key] = newValue.toString().toInt();
-                } else {
-                    QString sanitizedValue = newValue.toString();
-
-                    // we perform special handling for viewpoints here
-                    // we do not want them to be prepended with a slash
-                    if (key == SETTINGS_VIEWPOINT_KEY && !sanitizedValue.startsWith('/')) {
-                        sanitizedValue.prepend('/');
-                    }
-
-                    settingMap[key] = sanitizedValue;
+                // we perform special handling for viewpoints here
+                // we do not want them to be prepended with a slash
+                if (key == SETTINGS_VIEWPOINT_KEY && !sanitizedValue.startsWith('/')) {
+                    sanitizedValue.prepend('/');
                 }
+
+                qDebug() << "Setting" << key << "in" << settingMap << "to" << sanitizedValue;
+
+                settingMap[key] = sanitizedValue;
             }
-        } else if (newValue.isBool()) {
-            settingMap[key] = newValue.toBool();
-        } else if (newValue.isObject()) {
-            if (!settingMap.contains(key)) {
-                // we don't have a map below this key yet, so set it up now
-                settingMap[key] = QVariantMap();
-            }
+        }
+    } else if (newValue.isBool()) {
+        settingMap[key] = newValue.toBool();
+    } else if (newValue.isObject()) {
+        if (!settingMap.contains(key)) {
+            // we don't have a map below this key yet, so set it up now
+            settingMap[key] = QVariantMap();
+        }
 
-            QVariant& possibleMap = settingMap[key];
+        QVariant& possibleMap = settingMap[key];
 
-            if (!possibleMap.canConvert(QMetaType::QVariantMap)) {
-                // if this isn't a map then we need to make it one, otherwise we're about to crash
-                qDebug() << "Value at" << key << "was not the expected QVariantMap while updating DS settings"
-                    << "- removing existing value and making it a QVariantMap";
-                possibleMap = QVariantMap();
-            }
+        if (!possibleMap.canConvert(QMetaType::QVariantMap)) {
+            // if this isn't a map then we need to make it one, otherwise we're about to crash
+            qDebug() << "Value at" << key << "was not the expected QVariantMap while updating DS settings"
+                << "- removing existing value and making it a QVariantMap";
+            possibleMap = QVariantMap();
+        }
 
-            QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(possibleMap.data());
-            foreach(const QString childKey, newValue.toObject().keys()) {
+        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(possibleMap.data());
+        foreach(const QString childKey, newValue.toObject().keys()) {
 
-                QJsonObject childDescriptionObject = settingDescription;
+            QJsonObject childDescriptionObject = settingDescription;
 
-                // is this the key? if so we have the description already
-                if (key != settingDescription[DESCRIPTION_NAME_KEY].toString()) {
-                    // otherwise find the description object for this childKey under columns
-                    foreach(const QJsonValue& column, settingDescription[DESCRIPTION_COLUMNS_KEY].toArray()) {
-                        if (column.isObject()) {
-                            QJsonObject thisDescription = column.toObject();
-                            if (thisDescription[DESCRIPTION_NAME_KEY] == childKey) {
-                                childDescriptionObject = column.toObject();
-                                break;
-                            }
+            // is this the key? if so we have the description already
+            if (key != settingDescription[DESCRIPTION_NAME_KEY].toString()) {
+                // otherwise find the description object for this childKey under columns
+                foreach(const QJsonValue& column, settingDescription[DESCRIPTION_COLUMNS_KEY].toArray()) {
+                    if (column.isObject()) {
+                        QJsonObject thisDescription = column.toObject();
+                        if (thisDescription[DESCRIPTION_NAME_KEY] == childKey) {
+                            childDescriptionObject = column.toObject();
+                            break;
                         }
                     }
                 }
-
-                QString sanitizedKey = childKey;
-
-                if (key == SETTINGS_PATHS_KEY && !sanitizedKey.startsWith('/')) {
-                    // We perform special handling for paths here.
-                    // If we got sent a path without a leading slash then we add it.
-                    sanitizedKey.prepend("/");
-                }
-
-                updateSetting(sanitizedKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
             }
 
-            if (settingMap[key].toMap().isEmpty()) {
-                // we've cleared all of the settings below this value, so remove this one too
-                settingMap.remove(key);
+            QString sanitizedKey = childKey;
+
+            if (key == SETTINGS_PATHS_KEY && !sanitizedKey.startsWith('/')) {
+                // We perform special handling for paths here.
+                // If we got sent a path without a leading slash then we add it.
+                sanitizedKey.prepend("/");
             }
+
+            updateSetting(sanitizedKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
         }
+    }
+
+    if (settingMap[key].toMap().isEmpty()) {
+        // we've cleared all of the settings below this value, so remove this one too
+        settingMap.remove(key);
     }
 }
 
