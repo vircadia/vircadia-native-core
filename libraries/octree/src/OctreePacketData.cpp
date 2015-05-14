@@ -281,15 +281,15 @@ bool OctreePacketData::appendBitMask(unsigned char bitmask) {
     return success;
 }
 
-bool OctreePacketData::appendColor(const nodeColor& color) {
+bool OctreePacketData::appendValue(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
-bool OctreePacketData::appendColor(const xColor& color) {
+bool OctreePacketData::appendValue(const xColor& color) {
     return appendColor(color.red, color.green, color.blue);
 }
 
-bool OctreePacketData::appendColor(const rgbColor& color) {
+bool OctreePacketData::appendValue(const rgbColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
@@ -543,4 +543,33 @@ void OctreePacketData::debugContent() {
         }
     }
     printf("\n");
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    QString value((const char*)dataBytes);
+    result = value;
+    return sizeof(length) + length;
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    if (length == 0) {
+        result = QUuid();
+    } else {
+        QByteArray ba((const char*)dataBytes, length);
+        result = QUuid::fromRfc4122(ba);
+    }
+    return sizeof(length) + length;
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
+    result.red = dataBytes[RED_INDEX];
+    result.green = dataBytes[GREEN_INDEX];
+    result.blue = dataBytes[BLUE_INDEX];
+    return sizeof(rgbColor);
 }
