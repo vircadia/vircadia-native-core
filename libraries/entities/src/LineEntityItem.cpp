@@ -71,7 +71,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     return bytesRead;
 }
@@ -94,7 +94,7 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 void LineEntityItem::debugDump() const {

@@ -24,7 +24,7 @@ MenuItemProperties::MenuItemProperties() :
     afterItem(""),
     isCheckable(false),
     isChecked(false),
-    isSeparator(false)
+    isSeparator(false) 
 {
 };
 

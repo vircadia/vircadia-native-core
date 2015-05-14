@@ -24,7 +24,7 @@ class AssignmentClient : public QObject {
 public:
 
     AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
-                     QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort, 
+                     QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                      quint16 assignmentMonitorPort);
 private slots:
     void sendAssignmentRequest();

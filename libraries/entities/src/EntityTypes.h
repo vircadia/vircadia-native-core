@@ -37,6 +37,7 @@ public:
         Text,
         ParticleEffect,
         Zone,
+        Web,
         Line,
         LAST = Line
     } EntityType;

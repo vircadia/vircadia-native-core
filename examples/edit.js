@@ -137,6 +137,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newWebButton,
         newZoneButton,
         browseMarketplaceButton;
 
@@ -204,6 +205,16 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+
+        newWebButton = toolBar.addTool({
+            imageURL: "https://s3.amazonaws.com/Oculus/earth17.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         newZoneButton = toolBar.addTool({
             imageURL: toolIconUrl + "zonecube_text.svg",
             subImage: { x: 0, y: 128, width: 128, height: 128 },
@@ -253,6 +264,7 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
     };
 
@@ -421,6 +433,22 @@ var toolBar = (function () {
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newWebButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Web",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                                sourceUrl: "https://highfidelity.com/",
+                                });
+            } else {
+                print("Can't create Web Entity: would be out of bounds.");
             }
             return true;
         }

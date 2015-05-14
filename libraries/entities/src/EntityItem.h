@@ -247,6 +247,8 @@ public:
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
+    const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
+    void setCollisionSoundURL(const QString& value) { _collisionSoundURL = value; }
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
@@ -377,6 +379,7 @@ protected:
     float _damping;
     float _lifetime;
     QString _script;
+    QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
     float _angularDamping;

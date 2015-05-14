@@ -12,6 +12,8 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
+#define USE_MODEL_MESH 1
+
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -154,6 +156,9 @@ public:
     bool hasEmissiveTexture() const;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
+#   if USE_MODEL_MESH
+    model::Mesh _mesh;
+#   endif
 };
 
 /// A single animation frame extracted from an FBX document.

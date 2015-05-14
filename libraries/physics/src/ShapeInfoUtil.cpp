@@ -15,6 +15,36 @@
 #include "BulletUtil.h"
 
 
+// find the average point on a convex shape
+glm::vec3 findCenter(const QVector<glm::vec3>& points) {
+    glm::vec3 result = glm::vec3(0);
+    for (int i = 0; i < points.size(); i++) {
+        result += points[i];
+    }
+    return result * (1.0f / points.size());
+}
+
+
+// bullet puts "margins" around all the collision shapes.  This can cause shapes will hulls
+// to float a bit above what they are sitting on, etc.  One option is to call:
+//
+//    compound->setMargin(0.01);
+//
+// to reduce the size of the margin, but this has some consequences for the
+// performance and stability of the simulation.  Instead, we clench in all the points of
+// the hull by the margin.  These clenched points + bullets margin will but the actual
+// collision hull fairly close to the visual edge of the object.
+QVector<glm::vec3> shrinkByMargin(const QVector<glm::vec3>& points, const glm::vec3 center, float margin) {
+    QVector<glm::vec3> result(points.size());
+    for (int i = 0; i < points.size(); i++) {
+        glm::vec3 pVec = points[ i ] - center;
+        glm::vec3 pVecNorm = glm::normalize(pVec);
+        result[ i ] = center + pVec - (pVecNorm * margin);
+    }
+    return result;
+}
+
+
 btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     switch(info.getType()) {
@@ -40,7 +70,9 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
             if (numSubShapes == 1) {
                 auto hull = new btConvexHullShape();
                 const QVector<QVector<glm::vec3>>& points = info.getPoints();
-                foreach (glm::vec3 point, points[0]) {
+                glm::vec3 center = findCenter(points[0]);
+                QVector<glm::vec3> shrunken = shrinkByMargin(points[0], center, hull->getMargin());
+                foreach (glm::vec3 point, shrunken) {
                     btVector3 btPoint(point[0], point[1], point[2]);
                     hull->addPoint(btPoint, false);
                 }
@@ -53,7 +85,9 @@ btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
                 trans.setIdentity();
                 foreach (QVector<glm::vec3> hullPoints, points) {
                     auto hull = new btConvexHullShape();
-                    foreach (glm::vec3 point, hullPoints) {
+                    glm::vec3 center = findCenter(points[0]);
+                    QVector<glm::vec3> shrunken = shrinkByMargin(hullPoints, center, hull->getMargin());
+                    foreach (glm::vec3 point, shrunken) {
                         btVector3 btPoint(point[0], point[1], point[2]);
                         hull->addPoint(btPoint, false);
                     }

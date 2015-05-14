@@ -127,7 +127,7 @@ public:
         CUBE_FACE_LEFT_NEG_X,
         CUBE_FACE_TOP_POS_Y,
         CUBE_FACE_BOTTOM_NEG_Y,
-        CUBE_FACE_BACK_POS_X,
+        CUBE_FACE_BACK_POS_Z,
         CUBE_FACE_FRONT_NEG_Z,
 
         NUM_CUBE_FACES, // Not a valid vace index
