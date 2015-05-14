@@ -243,7 +243,6 @@ table#properties-list {
 
 #properties-list .label {
     font-weight: bold;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
