@@ -5,6 +5,7 @@
 </div>
 <div class="col-xs-12" id="stats-container"></div>
 <!--#include virtual="footer.html"-->
+<script src='/js/query-string.js'></script>
 <script src='js/stats.js'></script>
 <script src='js/json.human.js'></script>
 <script src='js/highcharts-custom.js'></script>

@@ -26,7 +26,7 @@ var viewHelpers = {
     form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
-    if (setting_value === undefined || setting_value === null) {
+    if (typeof setting_value == 'undefined' || setting_value === null) {
       if (_.has(setting, 'default')) {
         setting_value = setting.default;
       } else {
@@ -40,11 +40,11 @@ var viewHelpers = {
     }
 
     function common_attrs(extra_classes) {
-      extra_classes = typeof extra_classes !== 'undefined' ? extra_classes : "";
+      extra_classes = (typeof extra_classes !== 'undefined' ? extra_classes : "");
       return " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
         + " " + Settings.TRIGGER_CHANGE_CLASS + " " + extra_classes + "' data-short-name='"
         + setting.name + "' name='" + keypath + "' "
-        + "id='" + (setting.id !== 'undefined' ? setting.id : keypath) + "'";
+        + "id='" + (typeof setting.id !== 'undefined' ? setting.id : keypath) + "'";
     }
 
     if (setting.type === 'checkbox') {
@@ -239,7 +239,9 @@ function setupHFAccountButton() {
     // This is the hard coded client ID for a localhost domain.
     // Users who access their domain remotely will in the future need to create an OAuth application and for now
     // will need to generate an access token the old fashioned way
-    buttonSetting.href = "https://metaverse.highfidelity.com/oauth/authorize?client_id=38e572ed35bc4d34c41fbf1fb4d00071bb7328b3d0ba06d1fba64aa3f44e71e4&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Foauth&response_type=code&scope=domains"
+    buttonSetting.href = "https://metaverse.highfidelity.com/oauth/authorize?" +
+      "client_id=38e572ed35bc4d34c41fbf1fb4d00071bb7328b3d0ba06d1fba64aa3f44e71e4" +
+      "&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Foauth&response_type=token&scope=domains"
   }
 
   // use the existing getFormGroup helper to ask for a button
