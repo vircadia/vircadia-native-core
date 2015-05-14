@@ -1,5 +1,21 @@
-//same as hydraGrab script, but only x-z plane and no rotation
-//Also tighter fall off force so can move puck faster
+//
+//  hydraGrabHockey.js
+//  examples
+//
+//  Created by Eric Levin on 5/14/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This script allows you to grab and move physical objects with the hydra
+//  Same as hydraGrab.js, but you object movement is constrained to xz plane and cannot rotate object
+//  
+//
+//  Using the hydras :
+//  grab physical entities with the right hydra trigger
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 
 var addedVelocity, newVelocity, angularVelocity, dT, cameraEntityDistance;
 var RIGHT = 1;
@@ -37,7 +53,6 @@ function getRayIntersection(pickRay) {
   var intersection = Entities.findRayIntersection(pickRay);
   return intersection;
 }
-
 
 function controller(side) {
   this.triggerHeld = false;
