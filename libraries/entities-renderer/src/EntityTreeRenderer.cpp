@@ -1119,27 +1119,27 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (collisionSoundURL.isEmpty()) {
         return;
     }
-   SharedSoundPointer sound = DependencyManager::get<SoundCache>().data()->getSound(QUrl(collisionSoundURL));
-    if (!sound->isReady()) {
-        return;
-    }
-
     const float mass = entity->computeMass();
     const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
-    const float COLLISION_MINIMUM_VOLUME = 0.01f;
-    const float energyPercentOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
-    //qCDebug(entitiesrenderer) << energyPercentOfFull << energy << " " << " " << linearVelocity << " " << mass;
-    if (energyPercentOfFull < COLLISION_MINIMUM_VOLUME) {
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 1.0f;
+    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+    if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
-    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range 0.5-1.0, if we play it all.
-    const float COLLISION_SOUND_COMPRESSION = 0.5f;
-    const float volume = (energyPercentOfFull * COLLISION_SOUND_COMPRESSION) + (1.0f - COLLISION_SOUND_COMPRESSION);
-    //qCDebug(entitiesrenderer) << collisionSoundURL << " " << volume << " " << position << " " << sound->isStereo();
+
+    SharedSoundPointer sound = DependencyManager::get<SoundCache>().data()->getSound(QUrl(collisionSoundURL));
+    if (!sound->isReady()) {
+        return;
+    }
+
+    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.95f;
+    float volume = energyFactorOfFull;
+    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
     
     // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
     AudioInjectorOptions options;
@@ -1166,13 +1166,19 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if (!_tree || _shuttingDown) {
         return;
     }
+    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
+    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
+    const float COLLISION_MINUMUM_PENETRATION = 0.001;
+    if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
+        return;
+    }
 
     // See if we should play sounds
     EntityTree* entityTree = static_cast<EntityTree*>(_tree);
     if (!entityTree->tryLockForRead()) {
         // I don't know why this can happen, but if it does,
         // the consequences are a deadlock, so bail.
-        qCDebug(entitiesrenderer) << "NOTICE: skipping collision.";
+        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
         return;
     }
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
