@@ -614,7 +614,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         qApp->displaySide(*_camera, false, RenderArgs::MONO);
-        qApp->displayOverlayTextureHmd(*_camera);
+        qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
 
