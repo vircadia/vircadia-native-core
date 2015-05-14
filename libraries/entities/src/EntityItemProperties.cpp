@@ -44,6 +44,8 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
     CONSTRUCT_PROPERTY(acceleration, ENTITY_ITEM_DEFAULT_ACCELERATION),
     CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
+    CONSTRUCT_PROPERTY(restitution, ENTITY_ITEM_DEFAULT_RESTITUTION),
+    CONSTRUCT_PROPERTY(friction, ENTITY_ITEM_DEFAULT_FRICTION),
     CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
     CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
     CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
@@ -287,6 +289,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION, acceleration);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
+    CHECK_PROPERTY_CHANGE(PROP_RESTITUTION, restitution);
+    CHECK_PROPERTY_CHANGE(PROP_FRICTION, friction);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
@@ -362,6 +366,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(gravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(acceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(restitution);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(friction);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
     if (!skipDefaults) {
@@ -470,6 +476,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, glmVec3, setGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, glmVec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
@@ -662,6 +670,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, properties.getGravity());
             APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, properties.getAcceleration());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, properties.getDamping());
+            APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, properties.getRestitution());
+            APPEND_ENTITY_PROPERTY(PROP_FRICTION, properties.getFriction());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
@@ -922,6 +932,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, glm::vec3, setAcceleration);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT,QString, setScript);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
@@ -1036,6 +1048,8 @@ void EntityItemProperties::markAllChanged() {
     _gravityChanged = true;
     _accelerationChanged = true;
     _dampingChanged = true;
+    _restitutionChanged = true;
+    _frictionChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
     _simulatorIDChanged = true;
