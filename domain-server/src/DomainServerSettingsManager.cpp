@@ -277,8 +277,6 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
                     sanitizedValue.prepend('/');
                 }
 
-                qDebug() << "Setting" << key << "in" << settingMap << "to" << sanitizedValue;
-
                 settingMap[key] = sanitizedValue;
             }
         }
@@ -328,11 +326,15 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
 
             updateSetting(sanitizedKey, newValue.toObject()[childKey], thisMap, childDescriptionObject);
         }
-    }
 
-    if (settingMap[key].toMap().isEmpty()) {
-        // we've cleared all of the settings below this value, so remove this one too
-        settingMap.remove(key);
+        if (settingMap[key].toMap().isEmpty()) {
+            // we've cleared all of the settings below this value, so remove this one too
+            settingMap.remove(key);
+        }
+    } else if (newValue.isArray()) {
+        // we just assume array is replacement
+        // TODO: we still need to recurse here with the description in case values in the array have special types
+        settingMap[key] = newValue.toArray().toVariantList();
     }
 }
 
