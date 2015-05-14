@@ -293,6 +293,10 @@ void DdeFaceTracker::reset() {
 }
 
 bool DdeFaceTracker::isActive() const {
+    return (_ddeProcess != NULL);
+}
+
+bool DdeFaceTracker::isTracking() const {
     static const quint64 ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }
