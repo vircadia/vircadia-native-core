@@ -19,6 +19,8 @@
 #include <QDebug>
 #include "StreamUtils.h"
 
+class AABox;
+
 class Extents {
 public:
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
@@ -27,6 +29,10 @@ public:
     /// \param extents another intance of extents
     /// expand current limits to contain other extents
     void addExtents(const Extents& extents);
+
+    /// \param aabox another intance of extents
+    /// expand current limits to contain other aabox
+    void add(const AABox& box);
 
     /// \param point new point to compare against existing limits
     /// compare point to current limits and expand them if necessary to contain point

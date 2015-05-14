@@ -300,7 +300,7 @@ public:
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
-    
+    virtual qreal getDevicePixelRatio();
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
@@ -343,6 +343,9 @@ public:
     void initializeAcceptedFiles();
     bool canAcceptURL(const QString& url);
     bool acceptURL(const QString& url);
+
+    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
+    int getMaxOctreePacketsPerSecond();
 
 signals:
 
@@ -662,6 +665,8 @@ private:
 
     QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
+
+    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 };
 
 #endif // hifi_Application_h

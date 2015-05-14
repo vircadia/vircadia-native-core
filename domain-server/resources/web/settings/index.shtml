@@ -12,18 +12,19 @@
       <div id="setup-sidebar" class="hidden-xs" data-spy="affix" data-offset-top="55" data-clampedwidth="#setup-sidebar-col">
         <script id="list-group-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
+            <% panelID = group.name ? group.name : group.label %>
             <li>
-              <a href="#<%-group.name %>" class="list-group-item">
+              <a href="#<%- panelID %>" class="list-group-item">
                 <span class="badge"></span>
                 <%- group.label %>
               </a>
             </li>
           <% }); %>
         </script>
-        
+
         <ul class="nav nav-pills nav-stacked">
         </ul>
-        
+
         <button id="advanced-toggle-button" hidden=true class="btn btn-info advanced-toggle">Show advanced</button>
         <button class="btn btn-success save-button">Save and restart</button>
       </div>
@@ -36,7 +37,7 @@
 
       <div class="col-xs-12">
         <form id="settings-form" role="form">
-    
+
         <script id="panels-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
             <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
@@ -44,19 +45,26 @@
             <% if (isAdvanced) { %>
               <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
             <% } %>
-            <div class="panel panel-default <%- (isAdvanced) ? 'advanced-setting' : '' %>" id="<%- group.name %>">
+
+            <% isGrouped = !!group.name %>
+            <% panelID = isGrouped ? group.name : group.label %>
+
+            <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>"
+                 id="<%- panelID %>">
               <div class="panel-heading">
                 <h3 class="panel-title"><%- group.label %></h3>
               </div>
               <div class="panel-body">
                 <% _.each(split_settings[0], function(setting) { %>
-                  <%= getFormGroup(group.name, setting, values, false, 
+                  <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
+                  <%= getFormGroup(keypath, setting, values, false,
                     (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
                 <% }); %>
                 <% if (!_.isEmpty(split_settings[1])) { %>
                   <% $("#advanced-toggle-button").show() %>
                   <% _.each(split_settings[1], function(setting) { %>
-                    <%= getFormGroup(group.name, setting, values, true, 
+                    <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
+                    <%= getFormGroup(keypath, setting, values, true,
                       (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
                   <% }); %>
                 <% }%>
@@ -64,13 +72,11 @@
             </div>
           <% }); %>
         </script>
-      
         <div id="panels"></div>
-        </form>
-      </div>
+      </form>
     </div>
   </div>
-    
+
   <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
     <button class="btn btn-success save-button" id="small-save-button">Save and restart</button>
   </div>
@@ -91,6 +97,7 @@
 
 <!--#include virtual="footer.html"-->
 <script src='/js/underscore-min.js'></script>
+<script src='/js/underscore-keypath.min.js'></script>
 <script src='/js/bootbox.min.js'></script>
 <script src='/js/sweet-alert.min.js'></script>
 <script src='/js/settings.js'></script>

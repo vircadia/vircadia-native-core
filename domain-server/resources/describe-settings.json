@@ -1,7 +1,7 @@
 [
   {
     "name": "metaverse",
-    "label": "Metaverse Registration",
+    "label": "Metaverse / Networking",
     "settings": [
       {
         "name": "connected_account",
@@ -51,6 +51,29 @@
         "default": "40102",
         "type": "int",
         "advanced": true
+      }
+    ]
+  },
+  {
+    "label": "Paths",
+    "settings": [
+      {
+        "name": "paths",
+        "label": "",
+        "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
+        "type": "table",
+        "key": {
+          "name": "path",
+          "label": "Path",
+          "placeholder": "/"
+        },
+        "columns": [
+          {
+            "name": "viewpoint",
+            "label": "Viewpoint",
+            "placeholder": "/512,512,512"
+          }
+        ]
       }
     ]
   },

@@ -28,7 +28,6 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/lightOverlayManager.js",
-    "libraries/zoneOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
@@ -36,7 +35,6 @@ var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
-var zoneOverlayManager = new ZoneOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -49,7 +47,6 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-    zoneOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -140,6 +137,7 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newWebButton,
         newZoneButton,
         browseMarketplaceButton;
 
@@ -207,6 +205,16 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+
+        newWebButton = toolBar.addTool({
+            imageURL: "https://s3.amazonaws.com/Oculus/earth17.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         newZoneButton = toolBar.addTool({
             imageURL: toolIconUrl + "zonecube_text.svg",
             subImage: { x: 0, y: 128, width: 128, height: 128 },
@@ -246,7 +254,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -256,6 +264,7 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
     };
 
@@ -424,6 +433,22 @@ var toolBar = (function () {
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newWebButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Web",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                                sourceUrl: "https://highfidelity.com/",
+                                });
+            } else {
+                print("Can't create Web Entity: would be out of bounds.");
             }
             return true;
         }
@@ -1000,7 +1025,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
@@ -1030,8 +1055,11 @@ function importSVO(importURL) {
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
-        var position = getPositionToCreateEntity();
-
+        var VERY_LARGE = 10000;
+        var position = { x: 0, y: 0, z: 0};
+        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
+            position = getPositionToCreateEntity();
+        }
         var pastedEntityIDs = Clipboard.pasteEntities(position);
 
         if (isActive) {
@@ -1291,6 +1319,25 @@ PropertiesTool = function(opts) {
                         Entities.editEntity(selectionManager.selections[i], {
                             dimensions: Vec3.multiply(multiplier, properties.dimensions),
                         });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "centerAtmosphereToZone") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        if (properties.type == "Zone") {
+                            var centerOfZone = properties.boundingBox.center;
+                            var atmosphereCenter = { x: centerOfZone.x, 
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                                                     z: centerOfZone.z };
+
+                            Entities.editEntity(selectionManager.selections[i], {
+                                atmosphere: { center: atmosphereCenter },
+                            });
+                        }
                     }
                     pushCommandForSelections();
                     selectionManager._update();

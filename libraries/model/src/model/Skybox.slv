@@ -15,6 +15,26 @@
 
 <$declareStandardTransform()$>
 
+struct Skybox {
+    vec4 _color;
+};
+
+<@if GPU_FEATURE_PROFILE == GPU_CORE @>
+uniform skyboxBuffer {
+    Skybox _skybox;
+};
+Skybox getSkybox() {
+    return _skybox;
+}
+<@else@>
+uniform vec4 skyboxBuffer[1];
+Skybox getSkybox() {
+    Skybox _skybox;
+    _skybox._color = skyboxBuffer[0];
+    return _skybox;
+}
+<@endif@>
+
 varying vec3 normal;
 varying vec2 texcoord;
 varying vec3 color;
@@ -22,8 +42,8 @@ varying vec3 color;
 void main(void) {
     texcoord = gl_Vertex.xy;
 
-    // pass along the diffuse color
-    color = vec3(texcoord, 0.0);
+    Skybox skybox = getSkybox();
+    color = skybox._color.xyz;
 
     // standard transform
     TransformCamera cam = getTransformCamera();
@@ -31,9 +51,7 @@ void main(void) {
     vec3 eyeDir;
     
     <$transformClipToEyeDir(cam, clipDir, eyeDir)$>;
-    normal = normalize(eyeDir);
     <$transformEyeToWorldDir(cam, eyeDir, normal)$>;
-    normal = normalize(normal);
 
     // Position is supposed to cmoe in clip space
     gl_Position = vec4(texcoord.xy, 0.0, 1.0);

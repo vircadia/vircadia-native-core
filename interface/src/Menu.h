@@ -149,6 +149,7 @@ namespace MenuOption {
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";

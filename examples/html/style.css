@@ -313,3 +313,10 @@ input[type="number"]::-webkit-inner-spin-button:active{
 input#property-name {
     width: 100%;
 }
+
+.color-picker {
+	width: 50px;
+	height: 10px;
+	margin: 5px;
+	border: 1px solid white;
+}
