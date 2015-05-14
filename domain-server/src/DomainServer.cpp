@@ -279,13 +279,15 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 }
 
 bool DomainServer::didSetupAccountManagerWithAccessToken() {
-    AccountManager& accountManager = AccountManager::getInstance();
-
-    if (accountManager.hasValidAccessToken()) {
+    if (AccountManager::getInstance().hasValidAccessToken()) {
         // we already gave the account manager a valid access token
         return true;
     }
 
+    return resetAccountManagerAccessToken();
+}
+
+bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {
         // check for an access-token in our settings, can optionally be overidden by env value
         const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -310,7 +312,7 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
         }
 
         // give this access token to the AccountManager
-        accountManager.setAccessTokenForCurrentAuthURL(accessToken);
+        AccountManager::getInstance().setAccessTokenForCurrentAuthURL(accessToken);
 
         return true;
 
@@ -1509,12 +1511,15 @@ QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     return newPath;
 }
 
+const QString URI_OAUTH = "/oauth";
+
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
+    const QString URI_SETTINGS = "/settings";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1792,7 +1797,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
-    const QString URI_OAUTH = "/oauth";
     qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
 

@@ -20,6 +20,9 @@
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
+const QString SETTINGS_PATH = "/settings";
+const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
+
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:

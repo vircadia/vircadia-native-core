@@ -101,10 +101,8 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
     return QVariant();
 }
 
-const QString SETTINGS_PATH = "/settings.json";
-
 bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH) {
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
         // this is a GET operation for our settings
 
         // check if there is a query parameter for settings affecting a particular type of assignment
@@ -127,7 +125,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
 }
 
 bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH) {
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH_JSON) {
         // this is a POST operation to change one or more settings
         QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
         QJsonObject postedObject = postedDocument.object();
@@ -149,7 +147,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
 
         return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH) {
+    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
         // setup a JSON Object with descriptions and non-omitted settings
         const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
         const QString SETTINGS_RESPONSE_VALUE_KEY = "values";

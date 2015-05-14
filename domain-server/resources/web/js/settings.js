@@ -129,23 +129,26 @@ $(document).ready(function(){
 
     resizeFn();
     $(window).resize(resizeFn);
-  })
+  });
+
+  // check if we have a new access token to post to the domain-server
+  checkForNewAccessToken();
 
   $('#settings-form').on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
     addTableRow(this);
-  })
+  });
 
   $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
     deleteTableRow(this);
-  })
+  });
 
   $('#settings-form').on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
     moveTableRow(this, true);
-  })
+  });
 
   $('#settings-form').on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
     moveTableRow(this, false);
-  })
+  });
 
   $('#settings-form').on('keypress', 'table input', function(e){
     if (e.keyCode == 13) {
@@ -211,6 +214,40 @@ $(document).ready(function(){
   reloadSettings();
 });
 
+function urlFragment() {
+  var fragmentString = location.hash.substr(1);
+  var fragment = {};
+  var fragmentItemStrings = fragmentString.split('&');
+  for (var i in fragmentItemStrings) {
+    var fragmentItem = fragmentItemStrings[i].split('=');
+    if (fragmentItem.length !== 2) {
+      continue;
+    }
+    fragment[fragmentItem[0]] = fragmentItem[1];
+  }
+
+  return fragment;
+}
+
+function postSettings(jsonSettings) {
+  // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+  $.ajax('/settings.json', {
+    data: JSON.stringify(jsonSettings),
+    contentType: 'application/json',
+    type: 'POST'
+  }).done(function(data){
+    if (data.status == "success") {
+      showRestartModal();
+    } else {
+      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
+      reloadSettings();
+    }
+  }).fail(function(){
+    showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
+    reloadSettings();
+  });
+}
+
 function setupHFAccountButton() {
   // figure out how we should handle the HF connect button
   var accessToken = Settings.data.values.metaverse.access_token;
@@ -241,7 +278,7 @@ function setupHFAccountButton() {
     // will need to generate an access token the old fashioned way
     buttonSetting.href = "https://metaverse.highfidelity.com/oauth/authorize?" +
       "client_id=38e572ed35bc4d34c41fbf1fb4d00071bb7328b3d0ba06d1fba64aa3f44e71e4" +
-      "&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Foauth&response_type=token&scope=domains"
+      "&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Fsettings%2F&response_type=token&scope=domains"
   }
 
   // use the existing getFormGroup helper to ask for a button
@@ -256,6 +293,31 @@ function setupHFAccountButton() {
   $('#metaverse .panel-body').prepend(buttonGroup);
 }
 
+function postNewAccessToken(access_token) {
+  var newAccessToken = {
+      "metaverse": {
+        "access_token": access_token
+      }
+    };
+
+    postSettings(newAccessToken);
+}
+
+function checkForNewAccessToken() {
+  // check the fragment for an access token
+  var fragment = urlFragment();
+  var access_token = fragment['access_token'];
+
+  if (typeof access_token !== 'undefined') {
+    // clear the fragment before we refresh
+    window.location.hash = "";
+
+    // we have an access token - send that up to the domain-server
+    postNewAccessToken(access_token);
+  }
+}
+
+
 function disonnectHighFidelityAccount() {
   // the user clicked on the disconnect account btn - give them a sweet alert to make sure this is what they want to do
   swal({
@@ -268,32 +330,10 @@ function disonnectHighFidelityAccount() {
     closeOnConfirm: false
   }, function(){
     // we need to post to settings to clear the access-token
-    // setup that object
+    postNewAccessToken("");
 
-    var clearAccessToken = {
-      "metaverse": {
-        "access_token": ""
-      }
-    };
-
+    // close the sweet-alert
     swal.close();
-
-    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-    $.ajax('/settings.json', {
-      data: JSON.stringify(clearAccessToken),
-      contentType: 'application/json',
-      type: 'POST'
-    }).done(function(data){
-      if (data.status == "success") {
-        showRestartModal();
-      } else {
-        showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
-        reloadSettings();
-      }
-    }).fail(function(){
-      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
-      reloadSettings();
-    });
   });
 }
 
