@@ -287,10 +287,11 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
     return resetAccountManagerAccessToken();
 }
 
+const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
+
 bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {
         // check for an access-token in our settings, can optionally be overidden by env value
-        const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
         const QString ENV_ACCESS_TOKEN_KEY = "DOMAIN_SERVER_ACCESS_TOKEN";
 
         QString accessToken = QProcessEnvironment::systemEnvironment().value(ENV_ACCESS_TOKEN_KEY);
