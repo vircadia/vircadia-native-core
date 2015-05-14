@@ -36,7 +36,6 @@ public:
     virtual MotionType computeObjectMotionType() const;
 
     virtual bool isMoving() const;
-    virtual bool isMovingVsServer() const;
 
     // this relays incoming position/rotation to the RigidBody
     virtual void getWorldTransform(btTransform& worldTrans) const;
@@ -89,7 +88,7 @@ protected:
 
     EntityItem* _entity;
 
-    bool _sentMoving;   // true if last update was moving
+    bool _sentActive;   // true if body was active when we sent last update
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
     // these are for the prediction of the remote server's simple extrapolation
