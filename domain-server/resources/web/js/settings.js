@@ -38,9 +38,13 @@ var viewHelpers = {
       label_class += ' locked';
     }
 
-    common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
-      + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + keypath + "' "
-      + "id='" + keypath + "'";
+    function common_attrs(extra_classes) {
+      extra_classes = typeof extra_classes !== 'undefined' ? extra_classes : "";
+      return " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
+        + " " + Settings.TRIGGER_CHANGE_CLASS + " " + extra_classes + "' data-short-name='"
+        + setting.name + "' name='" + keypath + "' "
+        + "id='" + (setting.id !== 'undefined' ? setting.id : keypath) + "'";
+    }
 
     if (setting.type === 'checkbox') {
       if (setting.label) {
@@ -48,7 +52,7 @@ var viewHelpers = {
       }
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + keypath + "'>"
-      form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
+      form_group += "<input type='checkbox'" + common_attrs() + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else {
@@ -71,17 +75,17 @@ var viewHelpers = {
 
           form_group += "</select>"
 
-          form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+          form_group += "<input type='hidden'" + common_attrs() + "value='" + setting_value + "'>"
         } else if (input_type === 'button') {
           // Is this a button that should link to something directly?
           // If so, we use an anchor tag instead of a button tag
 
           if (setting.href) {
-            form_group += "<a href='" + setting.href + "' class='btn btn-primary form-control' style='display: block;' role='button'"
-              + common_attrs + ">"
+            form_group += "<a href='" + setting.href + "'style='display: block;' role='button"
+              + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</a>";
           } else {
-            form_group += "<button class='btn btn-primary form-control'" + common_attrs + ">"
+            form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</button>";
           }
 
@@ -91,7 +95,7 @@ var viewHelpers = {
             input_type = "text"
           }
 
-          form_group += "<input type='" + input_type + "'" +  common_attrs +
+          form_group += "<input type='" + input_type + "'" +  common_attrs() +
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
             "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
         }
@@ -199,7 +203,49 @@ $(document).ready(function(){
   // $('body').scrollspy({ target: '#setup-sidebar'})
 
   reloadSettings();
-})
+});
+
+function setupHFAccountButton() {
+  // figure out how we should handle the HF connect button
+  var accessToken = Settings.data.values.metaverse.access_token;
+
+  // setup an object for the settings we want our button to have
+  var buttonSetting = {
+    type: 'button',
+    name: 'connected_account',
+    label: 'Connected Account',
+  }
+
+  var hasAccessToken = accessToken.length > 0;
+
+  if (hasAccessToken) {
+    buttonSetting.help = "Click the button above to clear your OAuth token and disconnect your High Fidelity account.";
+    buttonSetting.classes = "btn-danger";
+    buttonSetting.button_label = "Disconnect High Fidelity Account";
+    buttonSetting.id = "disconnect-account-btn";
+  } else {
+    buttonSetting.help = "Click the button above to connect your High Fidelity account.";
+    buttonSetting.button_label = "Connect High Fidelity Account";
+    buttonSetting.id = "connect-account-btn";
+
+
+    // This is the hard coded client ID for a localhost domain.
+    // Users who access their domain remotely will in the future need to create an OAuth application and for now
+    // will need to generate an access token the old fashioned way
+    buttonSetting.href = "https://metaverse.highfidelity.com/oauth/authorize?client_id=38e572ed35bc4d34c41fbf1fb4d00071bb7328b3d0ba06d1fba64aa3f44e71e4&redirect_uri=http%3A%2F%2Flocalhost%3A40100%2Foauth&response_type=code&scope=domains"
+  }
+
+  // use the existing getFormGroup helper to ask for a button
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, false);
+
+  var tokenLocked = _(Settings.data).valueForKeyPath("locked.metaverse.access_token");
+  if (tokenLocked) {
+    // the access_token is locked so we should disable the connect/disconnect button and explain why it is disabled
+  }
+
+  // add the button group to the top of the metaverse panel
+  $('#metaverse .panel-body').prepend(buttonGroup);
+}
 
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
@@ -208,6 +254,7 @@ function reloadSettings() {
     $('.nav-stacked').html(Settings.sidebarTemplate(data))
     $('#panels').html(Settings.panelsTemplate(data))
 
+    Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
     // add tooltip to locked settings
@@ -218,31 +265,11 @@ function reloadSettings() {
 
     if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
       // append the domain selection modal, as long as it's not locked
-      appendDomainSelectionModal()
-    }
-    // figure out how we should handle the HF connect button
-    var accessToken = data.values.metaverse.access_token;
-    var $oauthConnectButton = $("[name='metaverse.connected_account']");
-
-    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "access_token")) {
-
-    } else {
-      // the access_token is locked so we should disable the connect/disconnect button and explain why it is disabled
+      appendDomainSelectionModal();
     }
 
-    if (accessToken.length > 0) {
-      // we have an access token - change the button to a disconnect button
-      $oauthConnectButton.removeClass('btn-primary');
-      $oauthConnectButton.addClass('btn-danger');
-      $oauthConnectButton.html("Disconnect High Fidelity Account");
-
-      var $helpSpan = $oauthConnectButton.next('span.help-block');
-
-      var helpText = $helpSpan.html();
-      helpText = helpText.replace("connect", "disconnect");
-
-      $helpSpan.html(helpText);
-    }
+    // call our method to setup the HF account button
+    setupHFAccountButton();
   });
 }
 
