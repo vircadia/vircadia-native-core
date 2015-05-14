@@ -148,6 +148,10 @@ enum EntityPropertyList {
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
     PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
 
+    // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_SOURCE_URL = PROP_MODEL_URL,
+
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 

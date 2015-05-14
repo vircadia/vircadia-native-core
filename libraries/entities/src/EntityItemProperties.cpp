@@ -86,6 +86,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
     CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
     CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
+    CONSTRUCT_PROPERTY(sourceUrl, ""),
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
@@ -328,6 +329,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
+    CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -409,6 +411,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(sourceUrl);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -510,6 +513,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightAmbientIntensity, float, setKeyLightAmbientIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
@@ -667,6 +671,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             
+            if (properties.getType() == EntityTypes::Web) {
+                APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
+            }
+
             if (properties.getType() == EntityTypes::Text) {
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
@@ -922,6 +930,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
 
+    if (properties.getType() == EntityTypes::Web) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
+    }
+
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
@@ -1073,6 +1085,7 @@ void EntityItemProperties::markAllChanged() {
     _atmosphere.markAllChanged();
     _skybox.markAllChanged();
    
+    _sourceUrlChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
