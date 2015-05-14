@@ -221,8 +221,11 @@ public:
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
-    float getRestitution() const;
-    float getFriction() const;
+    float getRestitution() const { return _restitution; }
+    void setRestitution(float value);
+
+    float getFriction() const { return _friction; }
+    void setFriction(float value);
 
     // lifetime related properties.
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
@@ -314,6 +317,8 @@ public:
     void updateVelocityInDomainUnits(const glm::vec3& value);
     void updateVelocity(const glm::vec3& value);
     void updateDamping(float value);
+    void updateRestitution(float value);
+    void updateFriction(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
@@ -375,6 +380,8 @@ protected:
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;
+    float _restitution;
+    float _friction;
     float _lifetime;
     QString _script;
     QString _collisionSoundURL;
