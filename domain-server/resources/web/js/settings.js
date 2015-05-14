@@ -17,7 +17,8 @@ var Settings = {
   ADD_DEL_BUTTONS_CLASSES: 'buttons add-del-buttons',
   REORDER_BUTTONS_CLASS: 'reorder-buttons',
   REORDER_BUTTONS_CLASSES: 'buttons reorder-buttons',
-  NEW_ROW_CLASS: 'new-row'
+  NEW_ROW_CLASS: 'new-row',
+  DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn'
 };
 
 var viewHelpers = {
@@ -81,7 +82,7 @@ var viewHelpers = {
           // If so, we use an anchor tag instead of a button tag
 
           if (setting.href) {
-            form_group += "<a href='" + setting.href + "'style='display: block;' role='button"
+            form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
               + common_attrs("btn " + setting.classes) + ">"
               + setting.button_label + "</a>";
           } else {
@@ -176,23 +177,28 @@ $(document).ready(function(){
     var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
 
     if (Settings.showAdvanced) {
-      advancedSelector.show()
+      advancedSelector.show();
       $(this).html("Hide advanced")
     } else {
-      advancedSelector.hide()
+      advancedSelector.hide();
       $(this).html("Show advanced")
     }
 
-    $(this).blur()
+    $(this).blur();
   })
 
   $('#settings-form').on('click', '#choose-domain-btn', function(){
     chooseFromHighFidelityDomains($(this))
-  })
+  });
 
   $('#settings-form').on('change', 'select', function(){
     $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
-  })
+  });
+
+  $('#settings-form').on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
+    disonnectHighFidelityAccount();
+    e.preventDefault();
+  });
 
   var panelsSource = $('#panels-template').html()
   Settings.panelsTemplate = _.template(panelsSource)
@@ -222,9 +228,10 @@ function setupHFAccountButton() {
     buttonSetting.help = "Click the button above to clear your OAuth token and disconnect your High Fidelity account.";
     buttonSetting.classes = "btn-danger";
     buttonSetting.button_label = "Disconnect High Fidelity Account";
-    buttonSetting.id = "disconnect-account-btn";
+    buttonSetting.id = Settings.DISCONNECT_ACCOUNT_BTN_ID;
   } else {
     buttonSetting.help = "Click the button above to connect your High Fidelity account.";
+    buttonSetting.classes = "btn-primary";
     buttonSetting.button_label = "Connect High Fidelity Account";
     buttonSetting.id = "connect-account-btn";
 
@@ -245,6 +252,47 @@ function setupHFAccountButton() {
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
+}
+
+function disonnectHighFidelityAccount() {
+  // the user clicked on the disconnect account btn - give them a sweet alert to make sure this is what they want to do
+  swal({
+    title: "Are you sure?",
+    text: "This will remove your domain-server OAuth access token."
+      + "</br></br>This could cause your domain to appear offline and no longer be reachable via any place names.",
+    type: "warning",
+    html: true,
+    showCancelButton: true,
+    closeOnConfirm: false
+  }, function(){
+    // we need to post to settings to clear the access-token
+    // setup that object
+
+    var clearAccessToken = {
+      "metaverse": {
+        "access_token": ""
+      }
+    };
+
+    swal.close();
+
+    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+    $.ajax('/settings.json', {
+      data: JSON.stringify(clearAccessToken),
+      contentType: 'application/json',
+      type: 'POST'
+    }).done(function(data){
+      if (data.status == "success") {
+        showRestartModal();
+      } else {
+        showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
+        reloadSettings();
+      }
+    }).fail(function(){
+      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
+      reloadSettings();
+    });
+  });
 }
 
 function reloadSettings() {
@@ -404,7 +452,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "</tr>"
 
     row_num++
-  })
+  });
 
   // populate inputs in the table for new values
   if (!isLocked) {
