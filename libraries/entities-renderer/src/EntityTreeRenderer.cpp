@@ -1127,7 +1127,6 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float COLLISION_ENERGY_AT_FULL_VOLUME = 1.0f;
     const float COLLISION_MINIMUM_VOLUME = 0.001f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
-    //qCDebug(entitiesrenderer) << collisionSoundURL << energyFactorOfFull << energy << collision.type << "/" << glm::length(collision.penetration);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
@@ -1141,7 +1140,6 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float COLLISION_SOUND_COMPRESSION_RANGE = 0.95f;
     float volume = energyFactorOfFull;
     volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
-    qCDebug(entitiesrenderer) << collisionSoundURL << (volume * 10.0f);
     
     // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
     AudioInjectorOptions options;
