@@ -29,7 +29,7 @@
 #include <OctalCode.h>
 #include <Shape.h>
 #include <gpu/Format.h>
-
+#include <LogHandler.h>
 
 #include "FBXReader.h"
 #include "ModelFormatLogging.h"
@@ -1281,9 +1281,11 @@ FBXLight extractLight(const FBXNode& object) {
 
 #if USE_MODEL_MESH
 void buildModelMesh(ExtractedMesh& extracted) {
+    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
+
     if (extracted.mesh.vertices.size() == 0) {
         extracted.mesh._mesh = model::Mesh();
-        qDebug() << "buildModelMesh failed -- no vertices";
+        qCDebug(modelformat) << "buildModelMesh failed -- no vertices";
         return;
     }
     FBXMesh& fbxMesh = extracted.mesh;
@@ -1370,7 +1372,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
 
     if (! totalIndices) {
         extracted.mesh._mesh = model::Mesh();
-        qDebug() << "buildModelMesh failed -- no indices";
+        qCDebug(modelformat) << "buildModelMesh failed -- no indices";
         return;
     }
 
@@ -1410,7 +1412,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
         mesh.setPartBuffer(pbv);
     } else {
         extracted.mesh._mesh = model::Mesh();
-        qDebug() << "buildModelMesh failed -- no parts";
+        qCDebug(modelformat) << "buildModelMesh failed -- no parts";
         return;
     }
 
