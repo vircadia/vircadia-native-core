@@ -1,5 +1,6 @@
 var Settings = {
   showAdvanced: false,
+  METAVERSE_URL: 'http://localhost:3000/',
   ADVANCED_CLASS: 'advanced-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
@@ -18,6 +19,7 @@ var Settings = {
   REORDER_BUTTONS_CLASS: 'reorder-buttons',
   REORDER_BUTTONS_CLASSES: 'buttons reorder-buttons',
   NEW_ROW_CLASS: 'new-row',
+  CONNECT_ACCOUNT_BTN_ID: 'connect-account-btn',
   DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn'
 };
 
@@ -83,7 +85,7 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
-              + common_attrs("btn " + setting.classes) + " target='_blank' onclick='this.blur();'>"
+              + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
             form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
@@ -200,6 +202,11 @@ $(document).ready(function(){
     e.preventDefault();
   });
 
+  $('#settings-form').on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
+    $(this).blur();
+    prepareAccessTokenPrompt();
+  });
+
   var panelsSource = $('#panels-template').html()
   Settings.panelsTemplate = _.template(panelsSource)
 
@@ -210,21 +217,6 @@ $(document).ready(function(){
 
   reloadSettings();
 });
-
-function urlFragment() {
-  var fragmentString = location.hash.substr(1);
-  var fragment = {};
-  var fragmentItemStrings = fragmentString.split('&');
-  for (var i in fragmentItemStrings) {
-    var fragmentItem = fragmentItemStrings[i].split('=');
-    if (fragmentItem.length !== 2) {
-      continue;
-    }
-    fragment[fragmentItem[0]] = fragmentItem[1];
-  }
-
-  return fragment;
-}
 
 function postSettings(jsonSettings) {
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
@@ -267,10 +259,9 @@ function setupHFAccountButton() {
     buttonSetting.help = "Click the button above to connect your High Fidelity account.";
     buttonSetting.classes = "btn-primary";
     buttonSetting.button_label = "Connect High Fidelity Account";
-    buttonSetting.id = "connect-account-btn";
+    buttonSetting.id = Settings.CONNECT_ACCOUNT_BTN_ID;
 
-
-    buttonSetting.href = "http://localhost:3000/user/tokens/new?for_domain_server=true";
+    buttonSetting.href = Settings.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
   }
 
   // use the existing getFormGroup helper to ask for a button
@@ -314,6 +305,32 @@ function disonnectHighFidelityAccount() {
   });
 }
 
+function prepareAccessTokenPrompt() {
+  swal({
+    title: "Connect Account",
+    type: "input",
+    text: "Paste your created access token here." +
+      "</br></br>If you did not successfully create an access token click cancel below and attempt to connect your account again.</br></br>",
+    showCancelButton: true,
+    closeOnConfirm: false,
+    html: true
+  }, function(inputValue){
+    if (inputValue === false) return false;
+
+    if (inputValue === "") {
+      swal.showInputError("Please paste your access token in the input field.")
+      return false
+    }
+
+    // we have an input value - set the access token input with this and save settings
+    $("[name='metaverse.access_token']").val(inputValue).change();
+    swal.close();
+
+    // save the new settings
+    saveSettings();
+  });
+}
+
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
     _.extend(data, viewHelpers)
@@ -348,7 +365,7 @@ function appendDomainSelectionModal() {
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
 
-$('body').on('click', '.save-button', function(e){
+function saveSettings() {
   // disable any inputs not changed
   $("input:not([data-changed])").each(function(){
     $(this).prop('disabled', true);
@@ -365,25 +382,14 @@ $('body').on('click', '.save-button', function(e){
   });
 
   // remove focus from the button
-  $(this).blur()
+  $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  $.ajax('/settings.json', {
-    data: JSON.stringify(formJSON),
-    contentType: 'application/json',
-    type: 'POST'
-  }).done(function(data){
-    if (data.status == "success") {
-      showRestartModal();
-    } else {
-      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
-      reloadSettings();
-    }
-  }).fail(function(){
-    showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
-    reloadSettings();
-  });
+  postSettings(formJSON);
+}
 
+$('body').on('click', '.save-button', function(e){
+  saveSettings();
   return false;
 });
 
@@ -797,7 +803,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
     clickedButton.attr('disabled', 'disabled')
 
     // get a list of user domains from data-web
-    data_web_domains_url = "https://metaverse.highfidelity.com/api/v1/domains?access_token="
+    data_web_domains_url = Settings.METAVERSE_URL + "/api/v1/domains?access_token="
     $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
 
       modal_buttons = {
