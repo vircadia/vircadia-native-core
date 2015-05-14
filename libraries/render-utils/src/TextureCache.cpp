@@ -500,6 +500,40 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
 }
 
+class CubeLayout {
+public:
+    int _widthRatio = 1;
+    int _heightRatio = 1;
+ 
+    class Face {
+    public:
+        int _x = 0;
+        int _y = 0;
+        bool _horizontalMirror = false;
+        bool _verticalMirror = false;
+
+        Face() {}
+        Face(int x, int y, bool horizontalMirror, bool verticalMirror) : _x(x), _y(y), _horizontalMirror(horizontalMirror), _verticalMirror(verticalMirror) {}
+    };
+                
+    Face _faceXPos;
+    Face _faceXNeg;
+    Face _faceYPos;
+    Face _faceYNeg;
+    Face _faceZPos;
+    Face _faceZNeg;
+ 
+    CubeLayout(int wr, int hr, Face fXP, Face fXN, Face fYP, Face fYN, Face fZP, Face fZN) :
+            _widthRatio(wr),
+            _heightRatio(hr),
+            _faceXPos(fXP),
+            _faceXNeg(fXN),
+            _faceYPos(fYP),
+            _faceYNeg(fYN),
+            _faceZPos(fZP),
+            _faceZNeg(fZN) {}
+};
+
 void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
                               int originalHeight) {
     _translucent = translucent;
@@ -525,11 +559,8 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         }
         
         if (_type == CUBE_TEXTURE) {
- 
-            std::vector<QImage> faces;
-            if (_height == (6 * _width)) {
-                int faceWidth = _width;
 
+            const CubeLayout CUBEMAP_LAYOUTS[] = {
                 // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
                 //
                 //         WIDTH
@@ -561,16 +592,14 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+
                 // 
                 //    FaceWidth = width = height / 6
-
-                faces.push_back(image.copy(QRect(0, 0 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 1 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                faces.push_back(image.copy(QRect(0, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                faces.push_back(image.copy(QRect(0, 4 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 5 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-
-            } else if ((_height / 3) == (_width / 4)) {
-                int faceWidth = _height / 3;
+                {   1, 6,
+                    {0, 0, true, false},
+                    {0, 1, true, false},
+                    {0, 2, false, true},
+                    {0, 3, false, true},
+                    {0, 4, true, false},
+                    {0, 5, true, false}
+                },
 
                 // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
                 //
@@ -590,22 +619,14 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+------+------+------+
                 // 
                 //    FaceWidth = width / 4 = height / 3
-
-                // Right = +X
-                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Left = -X
-                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Top = +Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
-                // Bottom = -Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Back = +Z
-                faces.push_back(image.copy(QRect(3 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Front = -Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-            
-            } else if ((_height / 4) == (_width / 3)) {
-                int faceWidth = _height / 4;
+                {   4, 3,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {3, 0, true, false},
+                    {1, 0, true, false}
+                },
 
                 // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
                 //
@@ -629,21 +650,41 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+------+------+
                 // 
                 //    FaceWidth = width / 3 = height / 4
+                {   4, 3,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {1, 3, false, true},
+                    {1, 1, true, false}
+                }
+            };
+            const int NUM_CUBEMAP_LAYOUTS = sizeof(CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
-                // Right = +X
-                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Left = -X
-                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Top = +Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
-                // Bottom = -Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Back = +Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Front = -Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+            // Find the layout of the cubemap in the 2D image
+            int foundLayout = -1;
+            for (int i = 0; i < NUM_CUBEMAP_LAYOUTS; i++) {
+                if ((image.height() * CUBEMAP_LAYOUTS[i]._widthRatio) == (image.width() * CUBEMAP_LAYOUTS[i]._heightRatio)) {
+                    foundLayout = i;
+                   // break;
+                }
             }
 
+            std::vector<QImage> faces;
+            // If found, go extract the faces as separate images
+            if (foundLayout >= 0) {
+                auto& layout = CUBEMAP_LAYOUTS[foundLayout];
+                int faceWidth = image.width() / layout._widthRatio;
+
+                faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+            }
+
+            // If the 6 faces have been created go on and define the true Texture
             if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
                 _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
                 _gpuTexture->autoGenerateMips(-1);
