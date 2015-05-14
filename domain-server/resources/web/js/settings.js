@@ -25,7 +25,7 @@ var Settings = {
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
-    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>";
+    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "' data-keypath='" + keypath + "'>";
     setting_value = _(values).valueForKeyPath(keypath);
 
     if (typeof setting_value == 'undefined' || setting_value === null) {
@@ -262,6 +262,11 @@ function setupHFAccountButton() {
     buttonSetting.id = Settings.CONNECT_ACCOUNT_BTN_ID;
 
     buttonSetting.href = Settings.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
+
+    // since we do not have an access token we change hide domain ID and auto networking settings
+    // without an access token niether of them can do anything
+    $("[data-keypath='metaverse.id']").hide();
+    $("[data-keypath='metaverse.automatic_networking']").hide();
   }
 
   // use the existing getFormGroup helper to ask for a button
