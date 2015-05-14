@@ -57,7 +57,7 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
 
 void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
-    if (mipFace) {
+    if (mipFace && (_type != TEX_CUBE)) {
         mipFace->_isGPULoaded = true;
         mipFace->_sysmem.resize(0);
     }

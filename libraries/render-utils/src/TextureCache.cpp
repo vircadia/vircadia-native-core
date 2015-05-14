@@ -514,7 +514,8 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
 
     if ((_width > 0) && (_height > 0)) {
 
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+       // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = !(_type == CUBE_TEXTURE); //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -600,6 +601,45 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
                 // Back = +Z
                 faces.push_back(image.copy(QRect(3 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Front = -Z
+                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+            
+            } else if ((_height / 4) == (_width / 3)) {
+                int faceWidth = _height / 4;
+
+                // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
+                //
+                //       <-------WIDTH-------->
+                //    ^  +------+------+------+
+                //    |  |      |      |      |
+                //    |  |      |  +Y  |      |
+                //    |  |      |      |      |
+                //    H  +------+------+------+
+                //    E  |      |      |      |
+                //    I  |  -X  |  -Z  |  +X  |
+                //    G  |      |      |      |
+                //    H  +------+------+------+
+                //    T  |      |      |      |
+                //    |  |      |  -Y  |      |
+                //    |  |      |      |      |
+                //    |  +------+------+------+
+                //    |  |      |      |      |
+                //    |  |      |  +Z! |      | <+Z is upside down!
+                //    |  |      |      |      |
+                //    V  +------+------+------+
+                // 
+                //    FaceWidth = width / 3 = height / 4
+
+                // Right = +X
+                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Left = -X
+                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
+                // Top = +Y
+                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
+                // Bottom = -Y
+                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
+                // Back = +Z
+                faces.push_back(image.copy(QRect(1 * faceWidth, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
                 // Front = -Z
                 faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
             }

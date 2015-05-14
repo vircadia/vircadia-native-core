@@ -23,6 +23,8 @@
 #include <TextureCache.h>
 #include <gpu/GLBackend.h>
 
+#include "EntityTreeRenderer.h"
+
 const int FIXED_FONT_POINT_SIZE = 40;
 const float DPI = 30.47;
 const float METERS_TO_INCHES = 39.3701;
@@ -63,6 +65,7 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
 void RenderableWebEntityItem::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
+
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
@@ -89,6 +92,52 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 _webSurface->doneCurrent();
             }
         });
+
+        auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+            // Ignore mouse interaction if we're locked
+            if (this->getLocked()) {
+                return;
+            }
+
+            if (intersection.entityID.id == getID()) {
+                if (event->button() == Qt::MouseButton::RightButton) {
+                    if (event->type() == QEvent::MouseButtonRelease) {
+                        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                            QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
+                        });
+                    }
+                    return;
+                }
+
+                if (event->button() == Qt::MouseButton::MiddleButton) {
+                    if (event->type() == QEvent::MouseButtonRelease) {
+                        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                            _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+                        });
+                    }
+                    return;
+                }
+
+                // Map the intersection point to an actual offscreen pixel
+                glm::vec3 point = intersection.intersection;
+                point -= getPosition();
+                point = glm::inverse(getRotation()) * point;
+                point /= _dimensions;
+                point += 0.5f;
+                point.y = 1.0f - point.y;
+                point *= _dimensions * METERS_TO_INCHES * DPI;
+                // Forward the mouse event.  
+                QMouseEvent mappedEvent(event->type(),
+                    QPoint((int)point.x, (int)point.y),
+                    event->screenPos(), event->button(),
+                    event->buttons(), event->modifiers());
+                QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
+            }
+        };
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+        QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
+        QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
+        QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
     }
 
     glm::vec2 dims = glm::vec2(_dimensions);
@@ -105,8 +154,6 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions();
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
-
-    //qCDebug(entitytree) << "RenderableWebEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 
     glPushMatrix(); 
     {

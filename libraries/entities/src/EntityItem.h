@@ -82,6 +82,7 @@ public:
         DIRTY_UPDATEABLE = 0x0200,
         DIRTY_MATERIAL = 0x00400,
         DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
+        DIRTY_SIMULATOR_ID = 0x1000,
         DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
         DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
@@ -289,6 +290,7 @@ public:
 
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
+    void updateSimulatorID(const QUuid& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }

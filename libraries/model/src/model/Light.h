@@ -180,6 +180,7 @@ public:
         }
     }
 };
+typedef std::shared_ptr< SphericalHarmonics > SHPointer;
 
 class Light {
 public:
