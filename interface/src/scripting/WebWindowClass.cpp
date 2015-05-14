@@ -79,7 +79,11 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     }
 
     _webView->setPage(new DataWebPage());
-    _webView->setUrl(url);
+    if (!url.startsWith("http") && !url.startsWith("file://")) {
+        _webView->setUrl(QUrl::fromLocalFile(url));
+    } else {
+        _webView->setUrl(url);
+    }
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
     connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,

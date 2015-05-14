@@ -341,6 +341,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
+    setInstance(this);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -603,9 +604,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->init();
     connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#endif
 }
 
 
@@ -953,6 +956,7 @@ void Application::faceTrackerMuteToggled() {
     bool isMuted = getSelectedFaceTracker()->isMuted();
     muteAction->setChecked(isMuted);
     getSelectedFaceTracker()->setEnabled(!isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
@@ -4689,3 +4693,8 @@ void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
 int Application::getMaxOctreePacketsPerSecond() {
     return _maxOctreePPS;
 }
+
+qreal Application::getDevicePixelRatio() {
+    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+}
+

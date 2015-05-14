@@ -279,6 +279,10 @@
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
+            var elWebSections = document.querySelectorAll(".web-section");
+            allSections.push(elModelSections);
+            var elWebSourceURL = document.getElementById("property-web-source-url");
+
             var elTextSections = document.querySelectorAll(".text-section");
             allSections.push(elTextSections);
             var elTextText = document.getElementById("property-text-text");
@@ -468,6 +472,12 @@
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
+                            } else if (properties.type == "Web") {
+                                for (var i = 0; i < elTextSections.length; i++) {
+                                    elWebSections[i].style.display = 'block';
+                                }
+
+                                elWebSourceURL.value = properties.sourceUrl;
                             } else if (properties.type == "Text") {
                                 for (var i = 0; i < elTextSections.length; i++) {
                                     elTextSections[i].style.display = 'block';
@@ -653,6 +663,8 @@
             elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
             elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
+
+            elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
@@ -1019,7 +1031,12 @@
             </div>
         </div>
 
-
+        <div class="web-section property">
+            <div class="label">Source URL</div>
+            <div class="value">
+                <input type="text" id="property-web-source-url" class="url"></input>
+            </div>
+        </div>
 
         <div class="model-section property">
             <div class="label">Model URL</div>

@@ -254,6 +254,7 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
 void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                                                 const QJsonObject& settingDescription) {
+
     if (newValue.isString()) {
         if (newValue.toString().isEmpty()) {
             // this is an empty value, clear it in settings variant so the default is sent
@@ -288,7 +289,16 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             settingMap[key] = QVariantMap();
         }
 
-        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
+        QVariant& possibleMap = settingMap[key];
+
+        if (!possibleMap.canConvert(QMetaType::QVariantMap)) {
+            // if this isn't a map then we need to make it one, otherwise we're about to crash
+            qDebug() << "Value at" << key << "was not the expected QVariantMap while updating DS settings"
+                << "- removing existing value and making it a QVariantMap";
+            possibleMap = QVariantMap();
+        }
+
+        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(possibleMap.data());
         foreach(const QString childKey, newValue.toObject().keys()) {
 
             QJsonObject childDescriptionObject = settingDescription;
@@ -351,7 +361,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             settingsVariant[rootKey] = QVariantMap();
         }
 
-        QVariantMap& thisMap = settingsVariant;
+        QVariantMap* thisMap = &settingsVariant;
 
         QJsonObject groupDescriptionObject;
 
@@ -362,7 +372,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 groupDescriptionObject = groupValue.toObject();
 
                 // change the map we will update to be the map for this group
-                thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[rootKey].data());
+                thisMap = reinterpret_cast<QVariantMap*>(settingsVariant[rootKey].data());
 
                 break;
             }
@@ -388,7 +398,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             }
 
             if (!matchingDescriptionObject.isEmpty()) {
-                updateSetting(rootKey, rootValue, thisMap, matchingDescriptionObject);
+                updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
             } else {
                 qDebug() << "Setting for root key" << rootKey << "does not exist - cannot update setting.";
             }
@@ -401,7 +411,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 // if we matched the setting then update the value
                 if (!matchingDescriptionObject.isEmpty()) {
                     QJsonValue settingValue = rootValue.toObject()[settingKey];
-                    updateSetting(settingKey, settingValue, thisMap, matchingDescriptionObject);
+                    updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
                 } else {
                     qDebug() << "Could not find description for setting" << settingKey << "in group" << rootKey <<
                         "- cannot update setting.";
