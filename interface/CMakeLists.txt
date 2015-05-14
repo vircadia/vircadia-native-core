@@ -36,8 +36,22 @@ endif ()
 configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
+
+macro(GroupSources curdir)
+   file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
+   foreach(child ${children})
+      if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/${curdir}/${child})
+          GroupSources(${curdir}/${child})
+      else()
+          string(REPLACE "/" "\\" groupname ${curdir})
+          source_group(${groupname} FILES ${PROJECT_SOURCE_DIR}/${curdir}/${child})
+      endif()
+   endforeach()
+endmacro()
+
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
+GroupSources("src")
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
@@ -58,6 +72,7 @@ find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg W
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
+source_group("UI Files" FILES ${QT_UI_FILES})
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 

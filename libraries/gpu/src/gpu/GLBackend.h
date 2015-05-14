@@ -79,6 +79,9 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
+    static void loadMatrix(GLenum target, const glm::mat4 & m);
+    static void fetchMatrix(GLenum target, glm::mat4 & m);
+
     class GLState : public GPUObject {
     public:
         class Command {
