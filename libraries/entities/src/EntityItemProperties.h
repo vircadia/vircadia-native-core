@@ -95,6 +95,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
+    DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
+    DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
@@ -243,6 +245,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Acceleration, acceleration, "in meters per second");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");

@@ -88,10 +88,10 @@ public:
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     // use this method if you only know the entityID
-    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange);
+    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
-    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange);
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
@@ -180,7 +180,8 @@ private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-                                 EntityTreeElement* containingElement, bool allowLockChange);
+                                 EntityTreeElement* containingElement,
+                                 const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
