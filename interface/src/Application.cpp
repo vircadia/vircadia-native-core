@@ -339,7 +339,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
-        _maxOctreePPS(maxOctreePacketsPerSecond.get())
+        _maxOctreePPS(maxOctreePacketsPerSecond.get()),
+        _lastFaceTrackerUpdate(0)
 {
     setInstance(this);
 #ifdef Q_OS_WIN
@@ -2409,7 +2410,27 @@ void Application::update(float deltaTime) {
         FaceTracker* tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
+
+            // Auto-mute microphone after losing face tracking?
+            if (tracker->isTracking()) {
+                _lastFaceTrackerUpdate = usecTimestampNow();
+            } else {
+                const quint64 MUTE_MICROPHONE_AFTER_USECS = 5000000;  //5 secs
+                Menu* menu = Menu::getInstance();
+                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !menu->isOptionChecked(MenuOption::MuteAudio)) {
+                    if (_lastFaceTrackerUpdate > 0
+                        && ((usecTimestampNow() - _lastFaceTrackerUpdate) > MUTE_MICROPHONE_AFTER_USECS)) {
+                        menu->triggerOption(MenuOption::MuteAudio);
+                        _lastFaceTrackerUpdate = 0;
+                    }
+                } else {
+                    _lastFaceTrackerUpdate = 0;
+                }
+            }
+        } else {
+            _lastFaceTrackerUpdate = 0;
         }
+
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
     }
