@@ -317,7 +317,6 @@ function checkForNewAccessToken() {
   }
 }
 
-
 function disonnectHighFidelityAccount() {
   // the user clicked on the disconnect account btn - give them a sweet alert to make sure this is what they want to do
   swal({
