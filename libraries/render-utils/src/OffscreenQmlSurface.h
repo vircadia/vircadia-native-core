@@ -71,6 +71,7 @@ public:
 
     void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
+    QQuickWindow* getWindow();
 
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);
 
