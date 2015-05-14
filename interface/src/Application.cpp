@@ -342,6 +342,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
+    setInstance(this);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -604,9 +605,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->init();
     connect(faceshiftTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#endif
 }
 
 
@@ -837,6 +840,11 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay();
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -919,13 +927,9 @@ void Application::paintGL() {
         glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-
-        {
-            PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay();
-            _applicationOverlay.displayOverlayTexture();
-        }
+        _applicationOverlay.displayOverlayTexture();
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
@@ -954,6 +958,7 @@ void Application::faceTrackerMuteToggled() {
     bool isMuted = getSelectedFaceTracker()->isMuted();
     muteAction->setChecked(isMuted);
     getSelectedFaceTracker()->setEnabled(!isMuted);
+    Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setEnabled(!isMuted);
 }
 
 void Application::aboutApp() {
@@ -1359,12 +1364,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 
-//#define VR_MENU_ONLY_IN_HMD
+#define VR_MENU_ONLY_IN_HMD
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
 #ifdef VR_MENU_ONLY_IN_HMD
-        if (OculusManager::isConnected()) {
+        if (isHMDMode()) {
 #endif
             VrMenu::toggle();
 #ifdef VR_MENU_ONLY_IN_HMD
@@ -1942,6 +1947,7 @@ void Application::setActiveFaceTracker() {
 #endif
 #ifdef HAVE_DDE
     bool isUsingDDE = Menu::getInstance()->isOptionChecked(MenuOption::UseCamera);
+    Menu::getInstance()->getActionForOption(MenuOption::BinaryEyelidControl)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::UseAudioForMouth)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::VelocityFilter)->setVisible(isUsingDDE);
     Menu::getInstance()->getActionForOption(MenuOption::CalibrateCamera)->setVisible(isUsingDDE);
@@ -3046,7 +3052,11 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        if (activeRenderingThread) {
+            getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        } else {
+            getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        }
     }
     return result;
 }
@@ -3092,6 +3102,16 @@ const ViewFrustum* Application::getViewFrustum() const {
 }
 
 ViewFrustum* Application::getDisplayViewFrustum() {
+#ifdef DEBUG
+    if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, should this be an assert?
+        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+#endif
+    return &_displayViewFrustum;
+}
+
+const ViewFrustum* Application::getDisplayViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() != activeRenderingThread) {
         // FIXME, should this be an assert?
@@ -4652,3 +4672,8 @@ void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
 int Application::getMaxOctreePacketsPerSecond() {
     return _maxOctreePPS;
 }
+
+qreal Application::getDevicePixelRatio() {
+    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+}
+

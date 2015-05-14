@@ -19,6 +19,7 @@
 #include <PhysicsHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
+#include <SoundCache.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
@@ -52,6 +53,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _damping(ENTITY_ITEM_DEFAULT_DAMPING),
     _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
     _script(ENTITY_ITEM_DEFAULT_SCRIPT),
+    _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
     _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
     _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
@@ -100,6 +102,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
+    requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ANGULAR_DAMPING;
@@ -216,27 +219,28 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
-        APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_DENSITY, appendValue, getDensity());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
-        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, appendValue, getAcceleration());
-        APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
-        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
-        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
-        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
-        APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
-        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
-        APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
-        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, appendValue, getSimulatorID());
-        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, appendValue, getMarketplaceID());
-        APPEND_ENTITY_PROPERTY(PROP_NAME, appendValue, getName());
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+        APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
+        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
+        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
+        APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
+        APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
+        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -511,9 +515,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         bytesRead += propertyFlags.getEncodedLength();
         bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
         }
 
         // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
@@ -529,51 +533,51 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         } else {
             if (useMeters) {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
             } else {
-                READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
+                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
             }
         }
 
-        READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
-        READ_ENTITY_PROPERTY_SETTER(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
-            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
-            READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
+            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
         }
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ACCELERATION, glm::vec3, setAcceleration);
+            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
         }
 
-        READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
-        READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, setScript);
-        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
         if (useMeters) {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         } else {
-            READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
         }
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
-        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
-        READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
-        READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
-        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
-        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA, setUserData);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
+        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+        READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY_UUID(PROP_SIMULATOR_ID, setSimulatorID);
+            READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
-            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
         }
 
-        READ_ENTITY_PROPERTY_STRING(PROP_NAME, setName);
-
+        READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
+        READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
         ////////////////////////////////////
@@ -584,7 +588,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         //
         // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
         if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
-            READ_ENTITY_PROPERTY_STRING(PROP_MARKETPLACE_ID, setMarketplaceID);
+            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
         }
 
         if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES))) {
@@ -898,6 +902,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
@@ -930,6 +935,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);

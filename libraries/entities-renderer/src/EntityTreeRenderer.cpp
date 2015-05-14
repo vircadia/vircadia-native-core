@@ -26,6 +26,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
+#include <SoundCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -35,7 +36,9 @@
 #include "RenderableParticleEffectEntityItem.h"
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
+#include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
+#include "RenderableLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -44,6 +47,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
+    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -57,8 +61,10 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, RenderableWebEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
@@ -1094,13 +1100,78 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
     }
 }
 
-void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
+    EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull() || (simulatorID != myNodeID)) {
+        return; // Only one injector per simulation, please.
+    }
+    const QString& collisionSoundURL = entity->getCollisionSoundURL();
+    if (collisionSoundURL.isEmpty()) {
+        return;
+    }
+   SharedSoundPointer sound = DependencyManager::get<SoundCache>().data()->getSound(QUrl(collisionSoundURL));
+    if (!sound->isReady()) {
+        return;
+    }
+
+    const float mass = entity->computeMass();
+    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
+    const float energy = mass * linearVelocity * linearVelocity / 2.0f;
+    const glm::vec3 position = collision.contactPoint;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
+    const float COLLISION_MINIMUM_VOLUME = 0.01f;
+    const float energyPercentOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+    //qCDebug(entitiesrenderer) << energyPercentOfFull << energy << " " << " " << linearVelocity << " " << mass;
+    if (energyPercentOfFull < COLLISION_MINIMUM_VOLUME) {
+        return;
+    }
+    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range 0.5-1.0, if we play it all.
+    const float COLLISION_SOUND_COMPRESSION = 0.5f;
+    const float volume = (energyPercentOfFull * COLLISION_SOUND_COMPRESSION) + (1.0f - COLLISION_SOUND_COMPRESSION);
+    //qCDebug(entitiesrenderer) << collisionSoundURL << " " << volume << " " << position << " " << sound->isStereo();
+    
+    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
+    AudioInjectorOptions options;
+    options.stereo = sound->isStereo();
+    options.position = position;
+    options.volume = volume;
+    AudioInjector* injector = new AudioInjector(sound.data(), options);
+    injector->setLocalAudioInterface(_localAudioInterface);
+    QThread* injectorThread = new QThread();
+    injectorThread->setObjectName("Audio Injector Thread");
+    injector->moveToThread(injectorThread);
+    // start injecting when the injector thread starts
+    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
+    // connect the right slots and signals for AudioInjector and thread cleanup
+    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
+    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
+    injectorThread->start();
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
                                                     const Collision& collision) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
         return;
     }
+
+    // See if we should play sounds
+    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    if (!entityTree->tryLockForRead()) {
+        // I don't know why this can happen, but if it does,
+        // the consequences are a deadlock, so bail.
+        qCDebug(entitiesrenderer) << "NOTICE: skipping collision.";
+        return;
+    }
+    const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
+    playEntityCollisionSound(myNodeID, entityTree, idA, collision);
+    playEntityCollisionSound(myNodeID, entityTree, idB, collision);
+    entityTree->unlock();
+
+    // And now the entity scripts
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;

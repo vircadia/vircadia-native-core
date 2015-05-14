@@ -15,7 +15,6 @@
 
 #include <Application.h>
 #include <avatar/AvatarManager.h>
-#include <devices/OculusManager.h>
 #include <LODManager.h>
 
 #include "BillboardOverlay.h"
@@ -292,8 +291,8 @@ void Overlays::deleteOverlay(unsigned int id) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (OculusManager::isConnected()) {
-        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    if (qApp->isHMDMode()) {
+        pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);

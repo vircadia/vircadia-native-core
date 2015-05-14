@@ -205,6 +205,7 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap 
     // passes, mirror window passes, etc
     ViewFrustum* getDisplayViewFrustum();
+    const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
@@ -300,7 +301,7 @@ public:
     virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
-    
+    virtual qreal getDevicePixelRatio();
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 

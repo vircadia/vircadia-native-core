@@ -50,6 +50,9 @@ public:
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
 
+    float getEyeClosingThreshold() { return _eyeClosingThreshold.get(); }
+    void setEyeClosingThreshold(float eyeClosingThreshold);
+
 public slots:
     void setEnabled(bool enabled);
     void calibrate();
@@ -89,8 +92,7 @@ private:
     int _rightBlinkIndex;
     int _leftEyeOpenIndex;
     int _rightEyeOpenIndex;
-    
-    // Brows
+
     int _browDownLeftIndex;
     int _browDownRightIndex;
     int _browUpCenterIndex;
@@ -114,6 +116,7 @@ private:
     float _filteredBrowUp;
 
     enum EyeState {
+        EYE_UNCONTROLLED,
         EYE_OPEN,
         EYE_CLOSING,
         EYE_CLOSED,
@@ -123,6 +126,8 @@ private:
     float _lastEyeBlinks[2];
     float _filteredEyeBlinks[2];
     float _lastEyeCoefficients[2];
+    Setting::Handle<float> _eyeClosingThreshold;
+
     QVector<float> _coefficientAverages;
 
     bool _isCalibrating;
@@ -131,6 +136,7 @@ private:
     TextOverlay* _calibrationBillboard;
     int _calibrationBillboardID;
     QString _calibrationMessage;
+    bool _isCalibrated;
     void addCalibrationDatum();
     void cancelCalibration();
     void finishCalibration();

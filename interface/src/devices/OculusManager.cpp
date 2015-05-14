@@ -530,12 +530,6 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         return;
     }
 
-    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-
-    // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
-    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay();
-   
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         DependencyManager::get<GlowEffect>()->prepare();
@@ -619,9 +613,8 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
-        Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
-
-        applicationOverlay.displayOverlayTextureHmd(*_camera);
+        qApp->displaySide(*_camera, false, RenderArgs::MONO);
+        qApp->displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
 

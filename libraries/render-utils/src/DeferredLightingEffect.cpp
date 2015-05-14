@@ -129,6 +129,14 @@ void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) 
     releaseSimpleProgram();
 }
 
+void DeferredLightingEffect::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                                        const glm::vec4& color1, const glm::vec4& color2) {
+    bindSimpleProgram();
+    DependencyManager::get<GeometryCache>()->renderLine(p1, p2, color1, color2);
+    releaseSimpleProgram();
+}
+
+
 void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
     bindSimpleProgram();
     DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
