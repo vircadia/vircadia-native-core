@@ -341,6 +341,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get())
 {
+    setInstance(this);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -4692,3 +4693,8 @@ void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
 int Application::getMaxOctreePacketsPerSecond() {
     return _maxOctreePPS;
 }
+
+qreal Application::getDevicePixelRatio() {
+    return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
+}
+
