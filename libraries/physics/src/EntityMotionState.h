@@ -36,7 +36,6 @@ public:
     virtual MotionType computeObjectMotionType() const;
 
     virtual bool isMoving() const;
-    virtual bool isMovingVsServer() const;
 
     // this relays incoming position/rotation to the RigidBody
     virtual void getWorldTransform(btTransform& worldTrans) const;
@@ -46,13 +45,10 @@ public:
 
     virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
 
-    bool doesNotNeedToSendUpdate() const;
+    bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-    bool shouldSendUpdate(uint32_t simulationFrame);
-    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
-
-    void setShouldClaimSimulationOwnership(bool value) { _shouldClaimSimulationOwnership = value; }
-    bool getShouldClaimSimulationOwnership() { return _shouldClaimSimulationOwnership; }
+    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
+    void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
     virtual uint32_t getAndClearIncomingDirtyFlags() const;
 
@@ -92,7 +88,7 @@ protected:
 
     EntityItem* _entity;
 
-    bool _sentMoving;   // true if last update was moving
+    bool _sentActive;   // true if body was active when we sent last update
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
 
     // these are for the prediction of the remote server's simple extrapolation
@@ -109,8 +105,9 @@ protected:
     glm::vec3 _measuredAcceleration;
 
     quint8 _accelerationNearlyGravityCount;
-    bool _shouldClaimSimulationOwnership;
-    quint32 _movingStepsWithoutSimulationOwner;
+    bool _candidateForOwnership;
+    uint32_t _loopsSinceOwnershipBid;
+    uint32_t _loopsWithoutOwner;
 };
 
 #endif // hifi_EntityMotionState_h

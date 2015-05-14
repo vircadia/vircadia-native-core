@@ -569,7 +569,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
+            READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
         }
 
         if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -946,7 +946,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, setSimulatorID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
 
@@ -1191,16 +1191,16 @@ void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
 void EntityItem::updateVelocity(const glm::vec3& value) { 
     auto delta = glm::distance(_velocity, value);
     if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
+        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
         const float MIN_LINEAR_SPEED = 0.001f;
         if (glm::length(value) < MIN_LINEAR_SPEED) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
-        }
-        _dirtyFlags |= EntityItem::DIRTY_LINEAR_VELOCITY;
-
-        if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            // only activate when setting non-zero velocity
+            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            }
         }
     }
 }
@@ -1238,9 +1238,10 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _angularVelocity = value;
-        }
-        if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-            _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            // only activate when setting non-zero velocity
+            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            }
         }
     }
 }
@@ -1275,8 +1276,14 @@ void EntityItem::updateLifetime(float value) {
 }
 
 void EntityItem::setSimulatorID(const QUuid& value) {
+    _simulatorID = value;
+    _simulatorIDChangedTime = usecTimestampNow();
+}
+
+void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
         _simulatorID = value;
         _simulatorIDChangedTime = usecTimestampNow();
+        _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
     }
 }

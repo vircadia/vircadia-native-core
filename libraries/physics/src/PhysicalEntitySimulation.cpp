@@ -188,7 +188,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToChange() {
     return _tempVector;
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
+void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID) {
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
@@ -196,24 +196,32 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItem* entity = entityState->getEntity();
             if (entity) {
-                _outgoingChanges.insert(entityState);
+                if (entity->isKnownID() && entityState->isCandidateForOwnership(sessionID)) {
+                    _outgoingChanges.insert(entityState);
+                }
                 _entitiesToSort.insert(entityState->getEntity());
             }
         }
     }
 
-    // send outgoing packets
     uint32_t numSubsteps = _physicsEngine->getNumSubsteps();
     if (_lastStepSendPackets != numSubsteps) {
         _lastStepSendPackets = numSubsteps;
 
+        if (sessionID.isNull()) {
+            // usually don't get here, but if so --> nothing to do
+            _outgoingChanges.clear();
+            return;
+        }
+
+        // send outgoing packets
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
-            if (state->doesNotNeedToSendUpdate()) {
+            if (!state->isCandidateForOwnership(sessionID)) {
                 stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps)) {
-                state->sendUpdate(_entityPacketSender, numSubsteps);
+            } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
+                state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
                 ++stateItr;
             } else {
                 ++stateItr;
