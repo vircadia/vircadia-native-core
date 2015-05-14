@@ -71,14 +71,14 @@ public:
     EarthSunModel() { valid(); }
 
 protected:
-    double  _scale = 1000.0; //Km
+    float  _scale = 1000.0f; //Km
     double  _earthRadius = 6360.0;
 
     Quat    _surfaceOrientation;
 
-    double  _longitude = 0.0;
-    double  _latitude = 0.0;
-    double  _altitude = 0.01;
+    float  _longitude = 0.0f;
+    float  _latitude = 0.0f;
+    float  _altitude = 0.01f;
     mutable Vec3d _surfacePos;
     mutable Mat4d _worldToSurfaceMat;
     mutable Mat4d _surfaceToWorldMat;
@@ -93,8 +93,8 @@ protected:
     mutable Mat4d _worldToEyeMat;
     mutable Mat4d _eyeToWorldMat;
 
-    double _sunLongitude = 0.0;
-    double _sunLatitude = 0.0;
+    float _sunLongitude = 0.0f;
+    float _sunLatitude = 0.0f;
     mutable Vec3d _sunDir;
     mutable Vec3d _surfaceSunDir;
     void updateSun() const;

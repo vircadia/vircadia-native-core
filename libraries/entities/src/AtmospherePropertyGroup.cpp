@@ -33,23 +33,23 @@ AtmospherePropertyGroup::AtmospherePropertyGroup() {
 }
 
 void AtmospherePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(Atmosphere, atmosphere, Center, center);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, Center, center);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, InnerRadius, innerRadius);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, OuterRadius, outerRadius);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, MieScattering, mieScattering);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_VEC3(Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Atmosphere, atmosphere, HasStars, hasStars);
 }
 
 void AtmospherePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(atmosphere, center, setCenter);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, innerRadius, setInnerRadius);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, outerRadius, setOuterRadius);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, mieScattering, setMieScattering);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(atmosphere, rayleighScattering, setRayleighScattering);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_VEC3(atmosphere, scatteringWavelengths, setScatteringWavelengths);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_BOOL(atmosphere, hasStars, setHasStars);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, center, glmVec3, setCenter);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, innerRadius, float, setInnerRadius);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, outerRadius, float, setOuterRadius);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, mieScattering, float, setMieScattering);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, rayleighScattering, float, setRayleighScattering);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, scatteringWavelengths, glmVec3, setScatteringWavelengths);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(atmosphere, hasStars, bool, setHasStars);
 }
 
 void AtmospherePropertyGroup::debugDump() const {
@@ -72,13 +72,13 @@ bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, appendValue, getCenter());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, appendValue, getInnerRadius());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, appendValue, getOuterRadius());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, appendValue, getMieScattering());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, appendValue, getRayleighScattering());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, appendValue, getScatteringWavelengths());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, appendValue, getHasStars());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, getCenter());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, getInnerRadius());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, getOuterRadius());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, getMieScattering());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, getRayleighScattering());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, getScatteringWavelengths());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, getHasStars());
 
     return true;
 }
@@ -89,13 +89,13 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
     int bytesRead = 0;
     bool overwriteLocalData = true;
 
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, _center);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, _innerRadius);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, float, _outerRadius);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, _mieScattering);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, _rayleighScattering);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, _scatteringWavelengths);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, _hasStars);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, setCenter);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, setInnerRadius);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, float, setOuterRadius);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, setMieScattering);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, setRayleighScattering);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, setScatteringWavelengths);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, setHasStars);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ATMOSPHERE_CENTER, Center);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ATMOSPHERE_INNER_RADIUS, InnerRadius);
@@ -183,13 +183,13 @@ void AtmospherePropertyGroup::appendSubclassData(OctreePacketData* packetData, E
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, appendValue, getCenter());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, appendValue, getInnerRadius());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, appendValue, getOuterRadius());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, appendValue, getMieScattering());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, appendValue, getRayleighScattering());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, appendValue, getScatteringWavelengths());
-    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, appendValue, getHasStars());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, getCenter());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, getInnerRadius());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, getOuterRadius());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, getMieScattering());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, getRayleighScattering());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, getScatteringWavelengths());
+    APPEND_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, getHasStars());
 }
 
 int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -199,13 +199,13 @@ int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned cha
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, _center);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, _innerRadius);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, float, _outerRadius);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, _mieScattering);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, _rayleighScattering);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, _scatteringWavelengths);
-    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, _hasStars);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, setCenter);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, setInnerRadius);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, float, setOuterRadius);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, float, setMieScattering);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, float, setRayleighScattering);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, glm::vec3, setScatteringWavelengths);
+    READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, bool, setHasStars);
 
     return bytesRead;
 }

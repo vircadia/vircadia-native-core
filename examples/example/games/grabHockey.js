@@ -21,7 +21,7 @@ var deltaMouse = {
 var entityProps;
 var moveUpDown = false;
 var CLOSE_ENOUGH = 0.001;
-var FULL_STRENGTH = 0.11;
+var FULL_STRENGTH = 1.0;
 var SPRING_RATE = 1.5;
 var DAMPING_RATE = 0.80;
 var ANGULAR_DAMPING_RATE = 0.40;
@@ -39,6 +39,7 @@ var angularVelocity = {
 
 var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
 var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
+var VOLUME = 0.10;
 
 var DROP_DISTANCE = 5.0;
 var DROP_COLOR = {
@@ -101,7 +102,7 @@ function mousePressEvent(event) {
 
     Audio.playSound(grabSound, {
       position: props.position,
-      volume: 0.4
+      volume: VOLUME
     });
   }
 }
@@ -146,9 +147,9 @@ function mouseReleaseEvent() {
 
     Entities.deleteEntity(lineEntityID);
 
-    Audio.playSound(grabSound, {
+    Audio.playSound(releaseSound, {
       position: entityProps.position,
-      volume: 0.25
+      volume: VOLUME
     });
 
   }

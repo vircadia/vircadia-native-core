@@ -30,6 +30,7 @@ const float ENTITY_ITEM_DEFAULT_GLOW_LEVEL = 0.0f;
 const bool ENTITY_ITEM_DEFAULT_VISIBLE = true;
 
 const QString ENTITY_ITEM_DEFAULT_SCRIPT = QString("");
+const QString ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL = QString("");
 const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
 
 const float ENTITY_ITEM_IMMORTAL_LIFETIME = -1.0f; /// special lifetime which means the entity lives for ever
