@@ -624,8 +624,8 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                     {0, 1, true, false},
                     {1, 0, false, true},
                     {1, 2, false, true},
-                    {3, 0, true, false},
-                    {1, 0, true, false}
+                    {3, 1, true, false},
+                    {1, 1, true, false}
                 },
 
                 // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
@@ -650,7 +650,7 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+------+------+
                 // 
                 //    FaceWidth = width / 3 = height / 4
-                {   4, 3,
+                {   3, 4,
                     {2, 1, true, false},
                     {0, 1, true, false},
                     {1, 0, false, true},
