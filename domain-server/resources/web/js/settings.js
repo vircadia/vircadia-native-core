@@ -87,10 +87,12 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
+              + (isLocked ? " disabled" : "") +
               + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
-            form_group += "<button " + common_attrs("btn " + setting.classes) + ">"
+            form_group += "<button " + common_attrs("btn " + setting.classes)
+              + (isLocked ? " disabled" : "") + ">"
               + setting.button_label + "</button>";
           }
 
@@ -275,13 +277,10 @@ function setupHFAccountButton() {
     $("[data-keypath='metaverse.automatic_networking']").hide();
   }
 
-  // use the existing getFormGroup helper to ask for a button
-  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, false);
-
   var tokenLocked = _(Settings.data).valueForKeyPath("locked.metaverse.access_token");
-  if (tokenLocked) {
-    // the access_token is locked so we should disable the connect/disconnect button and explain why it is disabled
-  }
+
+  // use the existing getFormGroup helper to ask for a button
+  var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values, false, tokenLocked);
 
   // add the button group to the top of the metaverse panel
   $('#metaverse .panel-body').prepend(buttonGroup);
@@ -477,12 +476,6 @@ function reloadSettings() {
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    // add tooltip to locked settings
-    $('label.locked').tooltip({
-      placement: 'right',
-      title: 'This setting is in the master config file and cannot be changed'
-    })
-
     if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
       // append the domain selection modal, as long as it's not locked
       appendDomainIDButtons();
@@ -490,6 +483,12 @@ function reloadSettings() {
 
     // call our method to setup the HF account button
     setupHFAccountButton();
+
+    // add tooltip to locked settings
+    $('label.locked').tooltip({
+      placement: 'right',
+      title: 'This setting is in the master config file and cannot be changed'
+    });
   });
 }
 
