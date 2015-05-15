@@ -26,7 +26,7 @@ var viewHelpers = {
 
     setting_value = _(values).valueForKeyPath(keypath);
 
-    if (!setting_value) {
+    if (setting_value === undefined || setting_value === null) {
       if (_.has(setting, 'default')) {
         setting_value = setting.default;
       } else {

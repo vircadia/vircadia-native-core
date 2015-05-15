@@ -233,6 +233,9 @@
             var elAngularVelocityZ = document.getElementById("property-avel-z");
             var elAngularDamping = document.getElementById("property-adamping");
 
+            var elRestitution = document.getElementById("property-restitution");
+            var elFriction = document.getElementById("property-friction");
+
             var elGravityX = document.getElementById("property-grav-x");
             var elGravityY = document.getElementById("property-grav-y");
             var elGravityZ = document.getElementById("property-grav-z");
@@ -244,6 +247,7 @@
             var elDensity = document.getElementById("property-density");
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
+            var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
             var elUserData = document.getElementById("property-user-data");
@@ -426,6 +430,9 @@
                             elAngularVelocityZ.value = (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(2);
                             elAngularDamping.value = properties.angularDamping.toFixed(2);
 
+                            elRestitution.value = properties.restitution.toFixed(2);
+                            elFriction.value = properties.friction.toFixed(2);
+
                             elGravityX.value = properties.gravity.x.toFixed(2);
                             elGravityY.value = properties.gravity.y.toFixed(2);
                             elGravityZ.value = properties.gravity.z.toFixed(2);
@@ -437,6 +444,7 @@
                             elDensity.value = properties.density.toFixed(2);
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
+                            elCollisionSoundURL.value = properties.collisionSoundURL;
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
@@ -605,7 +613,10 @@
             elAngularVelocityX.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityY.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityZ.addEventListener('change', angularVelocityChangeFunction);
-            elAngularDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('angularDamping'))
+            elAngularDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('angularDamping'));
+
+            elRestitution.addEventListener('change', createEmitNumberPropertyUpdateFunction('restitution'));
+            elFriction.addEventListener('change', createEmitNumberPropertyUpdateFunction('friction'));
 
             var gravityChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'gravity', elGravityX, elGravityY, elGravityZ);
@@ -622,6 +633,8 @@
             elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
+            elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
+
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
@@ -959,6 +972,18 @@
                 <input class="coord" type='number' id="property-adamping"></input>
             </div>
         </div>
+        <div class="property">
+            <div class="label">Restitution</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-restitution"></input>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Friction</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-friction"></input>
+            </div>
+        </div>
 
         <div class="property">
             <div class="label">Gravity</div>
@@ -997,6 +1022,13 @@
             <span class="value">
                 <input type='checkbox' id="property-collisions-will-move"></input>
             </span>
+        </div>
+
+        <div class="property">
+            <div class="label">Collision Sound URL</div>
+            <div class="value">
+                <input id="property-collision-sound-url" class="url"></input>
+            </div>
         </div>
 
         <div class="property">

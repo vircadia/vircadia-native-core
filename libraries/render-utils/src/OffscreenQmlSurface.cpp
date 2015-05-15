@@ -374,3 +374,6 @@ void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _renderControl->_renderWindow = window;
 }
 
+QQuickWindow* OffscreenQmlSurface::getWindow() {
+    return _quickWindow;
+}

@@ -1,22 +1,21 @@
 //
-//  hydraGrab.js
+//  hydraGrabHockey.js
 //  examples
 //
-//  Created by Clément Brisset on 4/24/14.
-//  Updated by Eric Levin on 5/14/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Eric Levin on 5/14/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
-//  This script allows you to grab and move/rotate physical objects with the hydra
+//  This script allows you to grab and move physical objects with the hydra
+//  Same as hydraGrab.js, but you object movement is constrained to xz plane and cannot rotate object
+//  
 //
 //  Using the hydras :
-//  grab physical entities with the right trigger
+//  grab physical entities with the right hydra trigger
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-var entityProps, currentPosition, currentVelocity, currentRotation, distanceToTarget, velocityTowardTarget, desiredVelocity;
 var addedVelocity, newVelocity, angularVelocity, dT, cameraEntityDistance;
 var LEFT = 0;
 var RIGHT = 1;
@@ -39,7 +38,7 @@ var DROP_COLOR = {
   blue: 200
 };
 
-var FULL_STRENGTH = 0.05;
+var FULL_STRENGTH = 0.2;
 var LASER_LENGTH_FACTOR = 500;
 var CLOSE_ENOUGH = 0.001;
 var SPRING_RATE = 1.5;
@@ -109,6 +108,7 @@ function controller(side) {
 
   this.updateEntity = function(deltaTime) {
     this.dControllerPosition = Vec3.subtract(this.palmPosition, this.oldPalmPosition);
+    this.dControllerPosition.y = 0;
     this.cameraEntityDistance = Vec3.distance(Camera.getPosition(), this.currentPosition);
     this.targetPosition = Vec3.sum(this.targetPosition, Vec3.multiply(this.dControllerPosition, this.cameraEntityDistance * SCREEN_TO_METERS * DISTANCE_SCALE_FACTOR));
 
@@ -140,12 +140,8 @@ function controller(side) {
         z: 0
       };
     }
-    this.transformedAngularVelocity = Controller.getSpatialControlRawAngularVelocity(this.tip);
-    this.transformedAngularVelocity = Vec3.multiplyQbyV(Camera.getOrientation(), this.transformedAngularVelocity);
-
     Entities.editEntity(this.grabbedEntity, {
       velocity: this.newVelocity,
-      angularVelocity: this.transformedAngularVelocity
     });
 
     this.updateDropLine(this.targetPosition);

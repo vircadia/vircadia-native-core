@@ -1,21 +1,10 @@
-/************************************************************************************
- 
- Authors     :   Bradley Austin Davis <bdavis@saintandreas.org>
- Copyright   :   Copyright Brad Davis. All Rights reserved.
- 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
- 
- http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- 
- ************************************************************************************/
+//
+//  Created by Bradley Austin Davis
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #pragma once
 #include <glm/glm.hpp>
@@ -25,10 +14,6 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stack>
-
-#include <gpu/GPUConfig.h>
-
-
 
 class MatrixStack : public std::stack<glm::mat4> {
 
@@ -181,23 +166,6 @@ public:
   static void withPush(MatrixStack& stack1, MatrixStack& stack2, Function f) {
     stack1.withPush([&]{
       stack2.withPush(f);
-    });
-  }
-
-  template <typename Function> 
-  static void withGlMatrices(Function f) {
-    // Push the current stack, and then copy the values out of OpenGL
-    withPushAll([&] {
-      // Fetch the current matrices out of GL stack
-      // FIXME, eliminate the usage of deprecated GL
-      MatrixStack & mv = MatrixStack::modelview();
-      MatrixStack & pr = MatrixStack::projection();
-      glm::mat4 & mvm = mv.top();
-      glGetFloatv(GL_MODELVIEW_MATRIX, &(mvm[0][0]));
-
-      glm::mat4 & prm = pr.top();
-      glGetFloatv(GL_PROJECTION_MATRIX, &(prm[0][0]));
-      f();
     });
   }
 };

@@ -53,6 +53,7 @@ public:
     void init();
 
     void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
+    const QUuid& getSessionID() const { return _sessionID; }
 
     void addObject(ObjectMotionState* motionState);
     void removeObject(ObjectMotionState* motionState);

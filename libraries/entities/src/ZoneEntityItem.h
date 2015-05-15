@@ -51,6 +51,12 @@ public:
         _keyLightColor[BLUE_INDEX] = value.blue;
     }
 
+    void setKeyLightColor(const rgbColor& value) {
+        _keyLightColor[RED_INDEX] = value[RED_INDEX];
+        _keyLightColor[GREEN_INDEX] = value[GREEN_INDEX];
+        _keyLightColor[BLUE_INDEX] = value[BLUE_INDEX];
+    }
+
     glm::vec3 getKeyLightColorVec3() const {
         const quint8 MAX_COLOR = 255;
         glm::vec3 color = { (float)_keyLightColor[RED_INDEX] / (float)MAX_COLOR,
