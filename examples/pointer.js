@@ -17,7 +17,6 @@ function removeLine() {
         Entities.deleteEntity(lineEntityID);
         lineEntityID = null;
         lineIsRezzed = false;
-        Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     }
 }
 
@@ -44,7 +43,6 @@ function createOrUpdateLine(event) {
                 color: { red: 255, green: 255, blue: 255 },
                 lifetime: 60 // if someone crashes while pointing, don't leave the line there forever.
             });
-            Controller.mouseMoveEvent.connect(mouseMoveEvent);
         }
     } else {
         removeLine();
@@ -56,9 +54,7 @@ function mousePressEvent(event) {
     if (!event.isLeftButton) {
         return;
     }
-    if (lineIsRezzed) {
-        return;
-    }
+    Controller.mouseMoveEvent.connect(mouseMoveEvent);
     createOrUpdateLine(event);
  }
 
@@ -69,6 +65,7 @@ function mouseMoveEvent(event) {
 
 
 function mouseReleaseEvent() {
+    Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     removeLine();
 }
 
