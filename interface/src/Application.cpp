@@ -3079,7 +3079,7 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        if (activeRenderingThread) {
+        if (QThread::currentThread() == activeRenderingThread) {
             getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
         } else {
             getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
