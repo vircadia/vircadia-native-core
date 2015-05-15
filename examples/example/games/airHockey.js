@@ -75,7 +75,7 @@ var names = ['floor', 'table', 'paddle', 'edge', 'puck', 'hockeyLight'];
 
 var deleteButton = Overlays.addOverlay("image", {
   x: screenSize.x / 2 - BUTTON_SIZE,
-  y: screenSize.y - (BUTTON_SIZE + PADDING),
+  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
@@ -89,10 +89,10 @@ var deleteButton = Overlays.addOverlay("image", {
 
 var spawnButton = Overlays.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
-  y: screenSize.y - (BUTTON_SIZE + PADDING),
+  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/die.png",
+  imageURL: HIFI_PUBLIC_BUCKET + "images/puck.png",
   color: {
     red: 255,
     green: 255,
