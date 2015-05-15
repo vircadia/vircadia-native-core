@@ -149,8 +149,6 @@ private:
 
 /// A texture loaded from the network.
 
-Q_DECLARE_METATYPE(gpu::Texture);
-
 class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
@@ -175,6 +173,7 @@ protected:
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
+    // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
     Q_INVOKABLE void setImage(const QImage& image, void* texture, bool translucent, const QColor& averageColor, int originalWidth,
                               int originalHeight);
 

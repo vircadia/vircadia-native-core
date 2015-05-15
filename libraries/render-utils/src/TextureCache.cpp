@@ -484,6 +484,7 @@ void ImageReader::run() {
     
     int opaquePixels = 0;
     int translucentPixels = 0;
+    bool isTransparent = false;
     int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
         QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
@@ -535,6 +536,8 @@ void ImageReader::run() {
 
         averageColor = QColor(redTotal / imageArea,
             greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
+
+        isTransparent = (translucentPixels >= imageArea / 2);
     }
 
     gpu::Texture* theTexture = nullptr;
@@ -703,14 +706,11 @@ void ImageReader::run() {
     QMetaObject::invokeMethod(texture.data(), "setImage", 
         Q_ARG(const QImage&, image),
         Q_ARG(void*, theTexture),
-        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, averageColor),
+        Q_ARG(bool, isTransparent),
+        Q_ARG(const QColor&, averageColor),
         Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
 
 
-/*        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-        return;
-*/
 }
 
 void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool translucent, const QColor& averageColor, int originalWidth,
