@@ -36,6 +36,7 @@ const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0
 const float ENTITY_ITEM_IMMORTAL_LIFETIME = -1.0f; /// special lifetime which means the entity lives for ever
 const float ENTITY_ITEM_DEFAULT_LIFETIME = ENTITY_ITEM_IMMORTAL_LIFETIME;
 
+const glm::vec3 ENTITY_ITEM_DEFAULT_POSITION = ENTITY_ITEM_ZERO_VEC3;
 const glm::quat ENTITY_ITEM_DEFAULT_ROTATION;
 const float ENTITY_ITEM_DEFAULT_WIDTH = 0.1f;
 const glm::vec3 ENTITY_ITEM_DEFAULT_DIMENSIONS = glm::vec3(ENTITY_ITEM_DEFAULT_WIDTH);
