@@ -184,15 +184,15 @@ public:
     glm::vec3 getCenter() const;
     
     /// Position in meters (0.0 - TREE_SCALE)
-    const glm::vec3& getPosition() const { return _transform.getTranslation(); } /// get position in meters
-    void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
+    inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
+    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
     
-    const glm::quat& getRotation() const { return _transform.getRotation(); }
-    void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
+    inline const glm::quat& getRotation() const { return _transform.getRotation(); }
+    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
     
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    const glm::vec3& getDimensions() const { return _transform.getScale(); }
-    virtual void setDimensions(const glm::vec3& value) { _transform.setScale(glm::abs(value)); }
+    inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
+    inline virtual void setDimensions(const glm::vec3& value) { _transform.setScale(glm::abs(value)); }
 
 
     float getGlowLevel() const { return _glowLevel; }
