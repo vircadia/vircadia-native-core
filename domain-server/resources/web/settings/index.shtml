@@ -47,7 +47,7 @@
             <% } %>
 
             <% isGrouped = !!group.name %>
-            <% panelID = isGrouped ? group.name : group.label %>
+            <% panelID = isGrouped ? group.name : group.html_id %>
 
             <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>"
                  id="<%- panelID %>">

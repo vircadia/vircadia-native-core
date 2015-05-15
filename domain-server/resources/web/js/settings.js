@@ -23,8 +23,12 @@ var Settings = {
   DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn',
   CREATE_DOMAIN_ID_BTN_ID: 'create-domain-btn',
   CHOOSE_DOMAIN_ID_BTN_ID: 'choose-domain-btn',
-  ACCESS_TOKEN_SELECTOR: '[name="metaverse.access_token"]'
-  };
+  GET_TEMPORARY_NAME_BTN_ID: 'get-temp-name-btn',
+  DOMAIN_ID_SELECTOR: '[name="metaverse.id"]',
+  ACCESS_TOKEN_SELECTOR: '[name="metaverse.access_token"]',
+  PLACES_TABLE_ID: 'places-table',
+  FORM_ID: 'settings-form'
+};
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
@@ -49,7 +53,7 @@ var viewHelpers = {
       return " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
         + " " + Settings.TRIGGER_CHANGE_CLASS + " " + extra_classes + "' data-short-name='"
         + setting.name + "' name='" + keypath + "' "
-        + "id='" + (typeof setting.id !== 'undefined' ? setting.id : keypath) + "'";
+        + "id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath) + "'";
     }
 
     if (setting.type === 'checkbox') {
@@ -138,23 +142,23 @@ $(document).ready(function(){
     $(window).resize(resizeFn);
   });
 
-  $('#settings-form').on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
     addTableRow(this);
   });
 
-  $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
     deleteTableRow(this);
   });
 
-  $('#settings-form').on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
     moveTableRow(this, true);
   });
 
-  $('#settings-form').on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
+  $('#' + Settings.FORM_ID).on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
     moveTableRow(this, false);
   });
 
-  $('#settings-form').on('keypress', 'table input', function(e){
+  $('#' + Settings.FORM_ID).on('keypress', 'table input', function(e){
     if (e.keyCode == 13) {
       // capture enter in table input
       // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
@@ -172,7 +176,7 @@ $(document).ready(function(){
     }
   });
 
-  $('#settings-form').on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
+  $('#' + Settings.FORM_ID).on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
 
@@ -194,24 +198,32 @@ $(document).ready(function(){
     $(this).blur();
   })
 
-  $('#settings-form').on('click', '#' + Settings.CREATE_DOMAIN_ID_BTN_ID, function(){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.CREATE_DOMAIN_ID_BTN_ID, function(){
+    $(this).blur();
     showDomainCreationAlert(false);
   })
 
-  $('#settings-form').on('click', '#' + Settings.CHOOSE_DOMAIN_ID_BTN_ID, function(){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.CHOOSE_DOMAIN_ID_BTN_ID, function(){
+    $(this).blur();
     chooseFromHighFidelityDomains($(this))
   });
 
-  $('#settings-form').on('change', 'select', function(){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.GET_TEMPORARY_NAME_ID, function(){
+    $(this).blur();
+    createTemporaryDomain();
+  });
+
+
+  $('#' + Settings.FORM_ID).on('change', 'select', function(){
     $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
   });
 
-  $('#settings-form').on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
     disonnectHighFidelityAccount();
     e.preventDefault();
   });
 
-  $('#settings-form').on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
     $(this).blur();
     prepareAccessTokenPrompt();
   });
@@ -226,6 +238,10 @@ $(document).ready(function(){
 
   reloadSettings();
 });
+
+function dynamicButton(button_id, text) {
+  return $("<button type='button' id='" + button_id + "' class='btn btn-primary'>" + text + "</button>");
+}
 
 function postSettings(jsonSettings) {
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
@@ -263,12 +279,12 @@ function setupHFAccountButton() {
     buttonSetting.help = "Click the button above to clear your OAuth token and disconnect your High Fidelity account.";
     buttonSetting.classes = "btn-danger";
     buttonSetting.button_label = "Disconnect High Fidelity Account";
-    buttonSetting.id = Settings.DISCONNECT_ACCOUNT_BTN_ID;
+    buttonSetting.html_id = Settings.DISCONNECT_ACCOUNT_BTN_ID;
   } else {
     buttonSetting.help = "Click the button above to connect your High Fidelity account.";
     buttonSetting.classes = "btn-primary";
     buttonSetting.button_label = "Connect High Fidelity Account";
-    buttonSetting.id = Settings.CONNECT_ACCOUNT_BTN_ID;
+    buttonSetting.html_id = Settings.CONNECT_ACCOUNT_BTN_ID;
 
     buttonSetting.href = Settings.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
 
@@ -358,6 +374,16 @@ function showDomainIDChoiceAlert() {
   });
 }
 
+function showSpinnerAlert(title) {
+  swal({
+    title: title,
+    text: '<div class="spinner" style="color:black;"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>',
+    html: true,
+    showConfirmButton: false,
+    allowEscapeKey: false
+  });
+}
+
 function showDomainCreationAlert(justConnected) {
   swal({
     title: 'Create new domain ID',
@@ -377,14 +403,7 @@ function showDomainCreationAlert(justConnected) {
       }
     } else {
       // we're going to change the alert to a new one with a spinner while we create this domain
-      swal({
-        title: 'Creating domain ID',
-        text: '<div class="spinner" style="color:black;"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>',
-        html: true,
-        showConfirmButton: false,
-        allowEscapeKey: false
-      });
-
+      showSpinnerAlert('Creating domain ID');
       createNewDomainID(inputValue, justConnected);
     }
   });
@@ -403,7 +422,7 @@ function createNewDomainID(description, justConnected) {
     if (data.status == "success") {
       // we successfully created a domain ID, set it on that field
       var domainID = data.domain.id;
-      $("[name='metaverse.id']").val(domainID).change();
+      $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
 
       if (justConnected) {
         var successText = "We connnected your High Fidelity account and created a new domain ID for this machine."
@@ -458,6 +477,198 @@ function createNewDomainID(description, justConnected) {
   });
 }
 
+function setupPlacesTable() {
+  // create a dummy table using our view helper
+  var placesTableSetting = {
+    type: 'table',
+    name: 'places',
+    label: 'Places',
+    html_id: Settings.PLACES_TABLE_ID,
+    help: "The following places currently point to this domain.</br>To point your places to this domain, "
+      + " go to the <a href='https://metaverse.highfidelity.com/user/places'>My Places</a> "
+      + "page in your High Fidelity Metaverse account.",
+    read_only: true,
+    columns: [
+      {
+        "name": "name",
+        "label": "Name"
+      },
+      {
+        "name": "path",
+        "label": "Path"
+      }
+    ]
+  }
+
+  // get a table for the places
+  var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values, false, false);
+
+  // append the places table in the right place
+  $('#places_paths .panel-body').prepend(placesTableGroup);
+
+  // do we have a domain ID?
+  if (Settings.data.values.metaverse.id.length > 0) {
+    // now, ask the API for what places, if any, point to this domain
+    reloadPlacesOrTemporaryName();
+  } else {
+    // we don't have a domain ID - add a button to offer the user a chance to get a temporary one
+    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_ID, 'Get a temporary place name');
+    $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
+  }
+
+}
+
+function placeTableRow(name, path, isTemporary) {
+  if (!isTemporary) {
+    var name_link = "<a href='" + Settings.METAVERSE_URL + "/user/places/" + name + "/edit'>" + name + "</a>";
+  } else {
+    var name_link = name;
+  }
+
+  return "<tr><td>" + name_link + "</td><td>" + path + "</td></tr>";
+}
+
+function placeTableRowForPlaceObject(place) {
+  var placePathOrIndex = (place.path ? place.path : "/");
+  return placeTableRow(place.name, placePathOrIndex, false);
+}
+
+function reloadPlacesOrTemporaryName() {
+  // we only need to do this if we have a current domain ID
+  var domainID = Settings.data.values.metaverse.id;
+  if (domainID.length > 0) {
+    var domainURL = Settings.METAVERSE_URL + "/api/v1/domains/" + domainID;
+
+    $.getJSON(domainURL, function(data){
+      // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+      if (data.status == "success") {
+        if (data.domain.owner_places) {
+          // add a table row for each of these names
+          _.each(data.domain.owner_places, function(place){
+            $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
+          });
+        } else if (data.domain.name) {
+          // add a table row for this temporary domain name
+          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name + " (temporary)", '/', true));
+        }
+      }
+    });
+  }
+}
+
+function appendDomainIDButtons() {
+  var domainIDInput = $(Settings.DOMAIN_ID_SELECTOR);
+
+  var createButton = dynamicButton(Settings.CREATE_DOMAIN_ID_BTN_ID, "Create new domain ID");
+  createButton.css('margin-top', '10px');
+  var chooseButton = dynamicButton(Settings.CHOOSE_DOMAIN_ID_BTN_ID, "Choose from my domains");
+  chooseButton.css('margin', '10px 0px 0px 10px');
+
+  domainIDInput.after(chooseButton);
+  domainIDInput.after(createButton);
+}
+
+function chooseFromHighFidelityDomains(clickedButton) {
+  // setup the modal to help user pick their domain
+  if (Settings.initialValues.metaverse.access_token) {
+
+    // add a spinner to the choose button
+    clickedButton.html("Loading domains...")
+    clickedButton.attr('disabled', 'disabled')
+
+    // get a list of user domains from data-web
+    data_web_domains_url = Settings.METAVERSE_URL + "/api/v1/domains?access_token="
+    $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
+
+      modal_buttons = {
+        cancel: {
+          label: 'Cancel',
+          className: 'btn-default'
+        }
+      }
+
+      if (data.data.domains.length) {
+        // setup a select box for the returned domains
+        modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>"
+        domain_select = $("<select id='domain-name-select' class='form-control'></select>")
+        _.each(data.data.domains, function(domain){
+          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.names.length > 0 ? " [" + domain.owner_names + "]" : "") + "</option>");
+        })
+        modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
+        modal_buttons["success"] = {
+          label: 'Choose domain',
+          callback: function() {
+            domainID = $('#domain-name-select').val()
+            // set the domain ID on the form
+            $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
+          }
+        }
+      } else {
+        modal_buttons["success"] = {
+          label: 'Create new domain',
+          callback: function() {
+            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
+          }
+        }
+        modal_body = "<p>You do not have any domains in your High Fidelity account." +
+          "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
+      }
+
+      bootbox.dialog({
+        title: "Choose matching domain",
+        message: modal_body,
+        buttons: modal_buttons
+      })
+
+      // remove the spinner from the choose button
+      clickedButton.html("Choose from my domains")
+      clickedButton.removeAttr('disabled')
+    })
+
+  } else {
+    bootbox.alert({
+      message: "You must have an access token to query your High Fidelity domains.<br><br>" +
+        "Please follow the instructions on the settings page to add an access token.",
+      title: "Access token required"
+    })
+  }
+}
+
+function createTemporaryDomain() {
+  swal({
+    title: 'Create temporary place name',
+    text: 'This will create a temporary place name and domain ID so other users can easily connect to your domain.',
+    showCancelButton: true,
+    confirmButtonText: 'Create',
+    closeOnConfirm: false
+  }, function(isConfirm){
+    if (isConfirm) {
+      showSpinnerAlert('Creating temporary place name');
+
+      // make a get request to get a temporary domain
+      $.post(Settings.METAVERSE_URL + '/api/v1/domains/temporary', function(data){
+        if (data.status == "success") {
+          var domain = data.data.domain;
+
+          // we should have a new domain ID - set it on the domain ID value
+          $(Settings.DOMAIN_ID_SELECTOR).val(domain.id).change();
+          swal({
+            type: 'success',
+            title: 'Success!',
+            text: "We have created a temporary name and domain ID for you.</br></br>"
+              + "Your temporary place name is <strong>" + domain.name + "</strong>.</br></br>"
+              + "Press the button below to save your new settings and restart your domain-server.",
+            confirmButtonText: 'Save',
+            html: true
+          }, function(){
+            saveSettings();
+          });
+        }
+      });
+    }
+  });
+}
+
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
     _.extend(data, viewHelpers)
@@ -476,6 +687,9 @@ function reloadSettings() {
     // call our method to setup the HF account button
     setupHFAccountButton();
 
+    // call our method to setup the place names table
+    setupPlacesTable();
+
     // add tooltip to locked settings
     $('label.locked').tooltip({
       placement: 'right',
@@ -484,17 +698,6 @@ function reloadSettings() {
   });
 }
 
-function appendDomainIDButtons() {
-  var metaverseInput = $("[name='metaverse.id']");
-
-  var createButton = $("<button type='button' id='" + Settings.CREATE_DOMAIN_ID_BTN_ID + "' class='btn btn-primary'" +
-    " style='margin-top:10px'>Create new domain ID</button>");
-  var chooseButton = $("<button type='button' id='" + Settings.CHOOSE_DOMAIN_ID_BTN_ID + "' class='btn btn-primary'" +
-    " style='margin-top:10px; margin-left:10px'>Choose from my domains</button>");
-
-  metaverseInput.after(chooseButton);
-  metaverseInput.after(createButton);
-}
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
 
@@ -540,7 +743,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
-    + "' name='" + keypath + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
+    + "' name='" + keypath + "' id='" + setting.html_id + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
   // Column names
   html += "<tr class='headers'>"
@@ -557,7 +760,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
 
-  if (!isLocked) {
+  if (!isLocked && !setting.read_only) {
     if (setting.can_order) {
       html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
               "><span class='glyphicon glyphicon-sort'></span></td>";
@@ -566,54 +769,56 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   // populate rows in the table from existing values
-  var row_num = 1
+  var row_num = 1;
 
-  _.each(setting_value, function(row, indexOrName) {
-    html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + indexOrName + "'") + ">"
+  if (setting_value.length > 0) {
+    _.each(setting_value, function(row, indexOrName) {
+      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + indexOrName + "'") + ">"
 
-    if (setting.numbered === true) {
-      html += "<td class='numbered'>" + row_num + "</td>"
-    }
-
-    if (setting.key) {
-        html += "<td class='key'>" + indexOrName + "</td>"
-    }
-
-    _.each(setting.columns, function(col) {
-      html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
-
-      if (isArray) {
-        rowIsObject = setting.columns.length > 1
-        colValue = rowIsObject ? row[col.name] : row
-        html += colValue
-
-        // for arrays we add a hidden input to this td so that values can be posted appropriately
-        html += "<input type='hidden' name='" + keypath + "[" + indexOrName + "]"
-          + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
-      } else if (row.hasOwnProperty(col.name)) {
-        html += row[col.name]
+      if (setting.numbered === true) {
+        html += "<td class='numbered'>" + row_num + "</td>"
       }
 
-      html += "</td>"
-    })
-
-    if (!isLocked) {
-      if (setting.can_order) {
-        html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
-                "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
-                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+      if (setting.key) {
+          html += "<td class='key'>" + indexOrName + "</td>"
       }
-      html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-              "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
-    }
 
-    html += "</tr>"
+      _.each(setting.columns, function(col) {
+        html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
 
-    row_num++
-  });
+        if (isArray) {
+          rowIsObject = setting.columns.length > 1
+          colValue = rowIsObject ? row[col.name] : row
+          html += colValue
+
+          // for arrays we add a hidden input to this td so that values can be posted appropriately
+          html += "<input type='hidden' name='" + keypath + "[" + indexOrName + "]"
+            + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
+        } else if (row.hasOwnProperty(col.name)) {
+          html += row[col.name]
+        }
+
+        html += "</td>"
+      })
+
+      if (!isLocked && !setting.read_only) {
+        if (setting.can_order) {
+          html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
+                  "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+                  Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+        }
+        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+                "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+      }
+
+      html += "</tr>"
+
+      row_num++
+    });
+  }
 
   // populate inputs in the table for new values
-  if (!isLocked) {
+  if (!isLocked && !setting.read_only) {
      html += makeTableInputs(setting)
   }
   html += "</table>"
@@ -925,71 +1130,4 @@ function cleanupFormValues(node) {
 
 function showErrorMessage(title, message) {
   swal(title, message)
-}
-
-function chooseFromHighFidelityDomains(clickedButton) {
-  // setup the modal to help user pick their domain
-  if (Settings.initialValues.metaverse.access_token) {
-
-    // add a spinner to the choose button
-    clickedButton.html("Loading domains...")
-    clickedButton.attr('disabled', 'disabled')
-
-    // get a list of user domains from data-web
-    data_web_domains_url = Settings.METAVERSE_URL + "/api/v1/domains?access_token="
-    $.getJSON(data_web_domains_url + Settings.initialValues.metaverse.access_token, function(data){
-
-      modal_buttons = {
-        cancel: {
-          label: 'Cancel',
-          className: 'btn-default'
-        }
-      }
-
-      if (data.data.domains.length) {
-        // setup a select box for the returned domains
-        modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>"
-        domain_select = $("<select id='domain-name-select' class='form-control'></select>")
-        _.each(data.data.domains, function(domain){
-          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.owner_names.length > 0 ? " [" + domain.owner_names + "]" : "") + "</option>");
-        })
-        modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
-        modal_buttons["success"] = {
-          label: 'Choose domain',
-          callback: function() {
-            domainID = $('#domain-name-select').val()
-            // set the domain ID on the form
-            $("[name='metaverse.id']").val(domainID).change();
-          }
-        }
-      } else {
-        modal_buttons["success"] = {
-          label: 'Create new domain',
-          callback: function() {
-            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
-          }
-        }
-        modal_body = "<p>You do not have any domains in your High Fidelity account." +
-          "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
-      }
-
-
-      bootbox.dialog({
-        title: "Choose matching domain",
-        message: modal_body,
-        buttons: modal_buttons
-      })
-
-      // remove the spinner from the choose button
-      clickedButton.html("Choose from my domains")
-      clickedButton.removeAttr('disabled')
-    })
-
-  } else {
-    bootbox.alert({
-      message: "You must have an access token to query your High Fidelity domains.<br><br>" +
-        "Please follow the instructions on the settings page to add an access token.",
-      title: "Access token required"
-    })
-  }
 }

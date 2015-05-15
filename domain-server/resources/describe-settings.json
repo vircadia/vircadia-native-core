@@ -47,6 +47,7 @@
   },
   {
     "label": "Places / Paths",
+    "html_id": "places_paths",
     "settings": [
       {
         "name": "paths",
