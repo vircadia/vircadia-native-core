@@ -22,7 +22,7 @@
 void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args,
                                                       float puffedOut, glm::vec4& color) {
     glm::vec3 position = entity->getPosition();
-    glm::vec3 center = entity->getCenter();
+    glm::vec3 center = entity->getCenterPosition();
     glm::vec3 dimensions = entity->getDimensions();
     glm::quat rotation = entity->getRotation();
 
@@ -41,7 +41,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
 
 void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArgs* args) {
     glm::vec3 position = entity->getPosition();
-    glm::vec3 center = entity->getCenter();
+    glm::vec3 center = entity->getCenterPosition();
     glm::vec3 dimensions = entity->getDimensions();
     glm::quat rotation = entity->getRotation();
     glm::vec4 blueColor(0.0f, 0.0f, 1.0f, 1.0f);

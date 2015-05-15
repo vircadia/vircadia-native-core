@@ -998,10 +998,6 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = _created;
 }
 
-glm::vec3 EntityItem::getCenter() const {
-    return getPosition() + (getDimensions() * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-}
-
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 

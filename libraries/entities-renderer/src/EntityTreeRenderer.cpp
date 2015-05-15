@@ -650,7 +650,7 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
 
 
         glm::vec3 position = entity->getPosition();
-        glm::vec3 center = entity->getCenter();
+        glm::vec3 center = entity->getCenterPosition();
         glm::vec3 dimensions = entity->getDimensions();
         glm::quat rotation = entity->getRotation();
 

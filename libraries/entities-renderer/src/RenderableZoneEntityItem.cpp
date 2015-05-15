@@ -107,7 +107,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             case SHAPE_TYPE_SPHERE: {
                 PerformanceTimer perfTimer("zone->renderPrimitive");
                 glm::vec3 position = getPosition();
-                glm::vec3 center = getCenter();
+                glm::vec3 center = getCenterPosition();
                 glm::vec3 dimensions = getDimensions();
                 glm::quat rotation = getRotation();
                 

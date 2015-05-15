@@ -27,7 +27,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
     assert(getType() == EntityTypes::Sphere);
     glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
+    glm::vec3 center = getCenterPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 

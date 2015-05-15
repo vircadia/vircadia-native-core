@@ -26,7 +26,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     assert(getType() == EntityTypes::Box);
     glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
+    glm::vec3 center = getCenterPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 

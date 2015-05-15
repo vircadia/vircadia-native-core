@@ -96,7 +96,7 @@ void RenderableParticleEffectEntityItem::renderUntexturedQuads(RenderArgs* args)
 
         glPushMatrix();
 
-            glm::vec3 positionToCenter = getCenter() - position;
+            glm::vec3 positionToCenter = getCenterPosition() - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);
@@ -172,7 +172,7 @@ void RenderableParticleEffectEntityItem::renderTexturedQuads(RenderArgs* args) {
 
         glPushMatrix();
 
-            glm::vec3 positionToCenter = getCenter() - position;
+            glm::vec3 positionToCenter = getCenterPosition() - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);

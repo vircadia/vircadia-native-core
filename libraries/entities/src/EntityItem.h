@@ -181,7 +181,9 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     
-    glm::vec3 getCenter() const;
+    inline glm::vec3 getCenterPosition() const {
+        return getPosition() + (getDimensions() * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    }
     
     /// Position in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
