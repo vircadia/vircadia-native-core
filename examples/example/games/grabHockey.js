@@ -13,7 +13,6 @@
 
 var isGrabbing = false;
 var grabbedEntity = null;
-var lineEntityID = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
@@ -39,9 +38,9 @@ var angularVelocity = {
 
 var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
 var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
-var VOLUME = 0.10;
+var VOLUME = 0.0;
 
-var DROP_DISTANCE = 5.0;
+var DROP_DISTANCE = 0.10;
 var DROP_COLOR = {
   red: 200,
   green: 200,
@@ -92,14 +91,6 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
-    lineEntityID = Entities.addEntity({
-      type: "Line",
-      position: nearLinePoint(targetPosition),
-      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition)),
-      color: { red: 255, green: 255, blue: 255 },
-      lifetime: 300 // if someone crashes while moving something, don't leave the line there forever.
-    });
-
     Audio.playSound(grabSound, {
       position: props.position,
       volume: VOLUME
@@ -144,8 +135,6 @@ function mouseReleaseEvent() {
       visible: false
     });
     targetPosition = null;
-
-    Entities.deleteEntity(lineEntityID);
 
     Audio.playSound(releaseSound, {
       position: entityProps.position,
@@ -193,10 +182,6 @@ function mouseMoveEvent(event) {
       angularVelocity = Vec3.multiply((theta / dT), axisAngle);
     }
 
-    Entities.editEntity(lineEntityID, {
-      position: nearLinePoint(targetPosition),
-      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition))
-    });
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
