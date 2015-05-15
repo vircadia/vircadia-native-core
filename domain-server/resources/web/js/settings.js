@@ -1,6 +1,6 @@
 var Settings = {
   showAdvanced: false,
-  METAVERSE_URL: 'http://localhost:3000/',
+  METAVERSE_URL: 'http://localhost:3000',
   ADVANCED_CLASS: 'advanced-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
@@ -300,13 +300,9 @@ function disonnectHighFidelityAccount() {
     type: "warning",
     html: true,
     showCancelButton: true,
-    closeOnConfirm: false
   }, function(){
     // we need to post to settings to clear the access-token
     postNewAccessToken("");
-
-    // close the sweet-alert
-    swal.close();
   });
 }
 
@@ -329,10 +325,139 @@ function prepareAccessTokenPrompt() {
 
     // we have an input value - set the access token input with this and save settings
     $("[name='metaverse.access_token']").val(inputValue).change();
-    swal.close();
 
-    // save the new settings
-    saveSettings();
+    // if the user doesn't have a domain ID set, give them the option to create one now
+    if (!Settings.data.values.metaverse.id) {
+      // show domain ID selection alert
+      showDomainIDChoiceAlert();
+    } else {
+      swal.close();
+      saveSettings();
+    }
+  });
+}
+
+function showDomainIDChoiceAlert() {
+  swal({
+    title: 'Domain ID',
+    type: 'info',
+    text: "You do not currently have a domain ID." +
+      "</br></br>This is required to point place names at your domain and to use automatic networking</br></br>" +
+      "Would you like to create a domain ID via the Metaverse API?</br></br>",
+    showCancelButton: true,
+    confirmButtonText: "Create new domain ID",
+    cancelButtonText: "Skip",
+    closeOnConfirm: false,
+    html: true
+  }, function(isConfirm){
+    if (isConfirm) {
+      // show the swal to create a new domain via API
+      showDomainCreationAlert(true);
+    } else {
+      // user cancelled, close this swal and save the access token we got
+      swal.close();
+      saveSettings();
+    }
+  });
+}
+
+function showDomainCreationAlert(justConnected) {
+  swal({
+    title: 'Create new domain ID',
+    type: 'input',
+    text: 'Enter a short description for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
+    showCancelButton: true,
+    confirmButtonText: "Create new domain ID",
+    closeOnConfirm: false,
+    html: true
+  }, function(inputValue){
+    if (inputValue === false) {
+      swal.close();
+
+      // user cancelled domain ID creation - if we're supposed to save after cancel then save here
+      if (justConnected) {
+        saveSettings();
+      }
+    } else {
+      // we're going to change the alert to a new one with a spinner while we create this domain
+      swal({
+        title: 'Creating domain ID',
+        text: '<div class="spinner" style="color:black;"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>',
+        html: true,
+        showConfirmButton: false,
+        allowEscapeKey: false
+      });
+
+      createNewDomainID(inputValue, justConnected);
+    }
+  });
+}
+
+function createNewDomainID(description, justConnected) {
+  // get the JSON object ready that we'll use to create a new domain
+  var domainJSON = {
+    "domain": {
+       "description": description
+    },
+    "access_token": $("[name='metaverse.access_token']").val()
+  }
+
+  $.post(Settings.METAVERSE_URL + "/api/v1/domains", domainJSON, function(data){
+    if (data.status == "success") {
+      // we successfully created a domain ID, set it on that field
+      var domainID = data.domain.id;
+      $("[name='metaverse.id']").val(domainID);
+
+      if (justConnected) {
+        var successText = "We connnected your High Fidelity account and created a new domain ID for this machine."
+      } else {
+        var successText = "We created a new domain ID for this machine."
+      }
+
+      successText += "</br></br>Click the button below to save your new settings and restart your domain-server.";
+
+      // show a sweet alert to say we are all finished up and that we need to save
+      swal({
+        title: 'Success!',
+        type: 'success',
+        text: successText,
+        html: true,
+        confirmButtonText: 'Save'
+      }, function(){
+        saveSettings();
+      });
+    }
+  }).fail(function(){
+
+    var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
+
+    if (justConnected) {
+      errorText += " just save your new access token?</br></br>You can always create a new domain ID later.";
+    } else {
+      errorText += " cancel?"
+    }
+
+    // we failed to create the new domain ID, show a sweet-alert that lets them try again or cancel
+    swal({
+      title: '',
+      type: 'error',
+      text: errorText,
+      html: true,
+      confirmButtonText: 'Try again',
+      showCancelButton: true,
+      closeOnConfirm: false
+    }, function(isConfirm){
+      if (isConfirm) {
+        // they want to try creating a domain ID again
+        showDomainCreationAlert(justConnected);
+      } else {
+        // they want to cancel
+        if (justConnected) {
+          // since they just connected we need to save the access token here
+          saveSettings();
+        }
+      }
+    });
   });
 }
 
@@ -823,7 +948,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>"
         domain_select = $("<select id='domain-name-select' class='form-control'></select>")
         _.each(data.data.domains, function(domain){
-          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.names.length > 0 ? " [" + domain.names + "]" : "") + "</option>");
+          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.owner_names.length > 0 ? " [" + domain.owner_names + "]" : "") + "</option>");
         })
         modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
         modal_buttons["success"] = {
