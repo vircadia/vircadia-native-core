@@ -19,20 +19,20 @@ var EDGE_THICKESS = 0.10;
 var EDGE_HEIGHT = 0.10;
 var DROP_HEIGHT = 0.3; 
 var PUCK_SIZE = 0.15;
-var PUCK_THICKNESS = 0.03;
-var PADDLE_SIZE = 0.12;
-var PADDLE_THICKNESS = 0.03;
+var PUCK_THICKNESS = 0.05;
+var PADDLE_SIZE = 0.15;
+var PADDLE_THICKNESS = 0.05;
 
 var GOAL_WIDTH = 0.35;
 
 var GRAVITY = -9.8;
 var LIFETIME = 6000;    
-var PUCK_DAMPING = 0.03;
+var PUCK_DAMPING = 0.02;
 var PADDLE_DAMPING = 0.35;
-var ANGULAR_DAMPING = 0.10;
-var PADDLE_ANGULAR_DAMPING = 0.35;
+var ANGULAR_DAMPING = 0.4;
+var PADDLE_ANGULAR_DAMPING = 0.75;
 var MODEL_SCALE = 1.52;
-var MODEL_OFFSET = { x: 0, y: -0.18, z: 0 };
+var MODEL_OFFSET = { x: 0, y: -0.19, z: 0 };
 
 var scoreSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_score.wav");
 
@@ -41,8 +41,15 @@ var normalTable = "https://hifi-public.s3.amazonaws.com/ozan/props/airHockeyTabl
 var hitSound1 = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav"
 var hitSound2 = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit2.wav"
 var hitSideSound = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit3.wav"
+var puckModel = "https://hifi-public.s3.amazonaws.com/ozan/props/airHockeyTable/airHockeyPuck.fbx"
+var puckCollisionModel = "http://headache.hungry.com/~seth/hifi/airHockeyPuck-hull.obj"
+var paddleModel = "https://hifi-public.s3.amazonaws.com/ozan/props/airHockeyTable/airHockeyPaddle.obj"
+var paddleCollisionModel = "http://headache.hungry.com/~seth/hifi/paddle-hull.obj"
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply((FIELD_WIDTH + FIELD_LENGTH) * 0.60, Quat.getFront(Camera.getOrientation())));
+
+var edgeRestitution = 0.9;
+var floorFriction = 0.01;
 
 var floor = Entities.addEntity(
 	    	{ type: "Box",
@@ -52,6 +59,7 @@ var floor = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        locked: true,
+	        friction: floorFriction,
 	        visible: debugVisible,
 	        lifetime: LIFETIME });
 
@@ -64,6 +72,7 @@ var edge1 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -76,6 +85,7 @@ var edge2 = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -88,6 +98,7 @@ var edge3a = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -100,6 +111,7 @@ var edge3b = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -112,6 +124,7 @@ var edge4a = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -124,6 +137,7 @@ var edge4b = Entities.addEntity(
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,
 	        visible: debugVisible,
+	        restitution: edgeRestitution,
 	        locked: true,
 	        lifetime: LIFETIME });
 
@@ -146,8 +160,8 @@ function makeNewProp(which) {
 	if (which == "puck") {
 		return Entities.addEntity(
 	    	{ type: "Model",
-	    	modelURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
-	    	compoundShapeURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
+	    	modelURL: puckModel,
+	    	compoundShapeURL: puckCollisionModel,
 	    	collisionSoundURL: hitSound1,
 	        position: Vec3.sum(center, { x: 0, y: DROP_HEIGHT, z: 0 }),  
 			dimensions: { x: PUCK_SIZE, y: PUCK_THICKNESS, z: PUCK_SIZE }, 
@@ -162,13 +176,13 @@ function makeNewProp(which) {
 	else if (which == "paddle1") {
 		return Entities.addEntity(
 	    	{ type: "Model",
-	    	modelURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
-	    	compoundShapeURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
+	    	modelURL: paddleModel,
+	    	compoundShapeURL: paddleCollisionModel,
 	    	collisionSoundURL: hitSound2,
-	        position: Vec3.sum(center, { x: 0, y: DROP_HEIGHT, z: FIELD_LENGTH * 0.35 }),  
+	        position: Vec3.sum(center, { x: 0, y: DROP_HEIGHT * 1.5, z: FIELD_LENGTH * 0.35 }),  
 			dimensions: { x: PADDLE_SIZE, y: PADDLE_THICKNESS, z: PADDLE_SIZE }, 
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
-	      	velocity: { x: 0, y: 0.05, z: 0 },
+	      	velocity: { x: 0, y: 0.07, z: 0 },
 	        ignoreCollisions: false,
 	        damping: PADDLE_DAMPING,
 	        angularDamping: PADDLE_ANGULAR_DAMPING,
@@ -178,13 +192,13 @@ function makeNewProp(which) {
 	else if (which == "paddle2") {
 		return Entities.addEntity(
 	    	{ type: "Model",
-	    	modelURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
-	    	compoundShapeURL: "http://headache.hungry.com/~seth/hifi/puck.obj",
+	    	modelURL: paddleModel,
+	    	compoundShapeURL: paddleCollisionModel,
 	    	collisionSoundURL: hitSound2,
-	        position: Vec3.sum(center, { x: 0, y: DROP_HEIGHT, z: -FIELD_LENGTH * 0.35 }),  
+	        position: Vec3.sum(center, { x: 0, y: DROP_HEIGHT * 1.5, z: -FIELD_LENGTH * 0.35 }),  
 			dimensions: { x: PADDLE_SIZE, y: PADDLE_THICKNESS, z: PADDLE_SIZE },
 	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
-	      	velocity: { x: 0, y: 0.05, z: 0 },
+	      	velocity: { x: 0, y: 0.07, z: 0 },
 	        ignoreCollisions: false,
 	        damping: PADDLE_DAMPING,
 	        angularDamping: PADDLE_ANGULAR_DAMPING,
