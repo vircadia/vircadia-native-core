@@ -16,8 +16,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 var addedVelocity, newVelocity, angularVelocity, dT, cameraEntityDistance;
+var LEFT = 0;
 var RIGHT = 1;
 var LASER_WIDTH = 3;
 var LASER_COLOR = {
@@ -50,9 +50,10 @@ var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/s
 var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
 
 function getRayIntersection(pickRay) {
-  var intersection = Entities.findRayIntersection(pickRay);
+  var intersection = Entities.findRayIntersection(pickRay, true);
   return intersection;
 }
+
 
 function controller(side) {
   this.triggerHeld = false;
@@ -190,7 +191,7 @@ function controller(side) {
       origin: this.palmPosition,
       direction: Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition))
     };
-    var intersection = getRayIntersection(pickRay);
+    var intersection = getRayIntersection(pickRay, true);
     if (intersection.intersects && intersection.properties.collisionsWillMove) {
       this.laserWasHovered = true;
       if (this.triggerHeld && !this.grabbing) {
@@ -282,10 +283,12 @@ function controller(side) {
 
 function update(deltaTime) {
   rightController.update(deltaTime);
+  leftController.update(deltaTime);
 }
 
 function scriptEnding() {
   rightController.cleanup();
+  leftController.cleanup();
 }
 
 function vectorIsZero(v) {
@@ -293,6 +296,7 @@ function vectorIsZero(v) {
 }
 
 var rightController = new controller(RIGHT);
+var leftController = new controller(LEFT);
 
 
 Script.update.connect(update);
