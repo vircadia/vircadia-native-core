@@ -64,7 +64,10 @@ function mouseMoveEvent(event) {
 }
 
 
-function mouseReleaseEvent() {
+function mouseReleaseEvent(event) {
+    if (!event.isLeftButton) {
+        return;
+    }
     Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     removeLine();
 }
