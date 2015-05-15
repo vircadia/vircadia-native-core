@@ -181,9 +181,14 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     
-    inline glm::vec3 getCenterPosition() const {
-        return getPosition() + (getDimensions() * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    }
+    inline glm::vec3 getCenterPosition() const { return getTransformToCenter().getTranslation(); }
+    void setCenterPosition(const glm::vec3& position);
+    
+    const Transform getTransformToCenter() const;
+    void setTranformToCenter(const Transform& transform);
+    
+    inline const Transform& getTransform() const { return _transform; }
+    inline void setTransform(const Transform& transform) { _transform = transform; }
     
     /// Position in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }

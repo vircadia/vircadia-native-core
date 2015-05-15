@@ -998,6 +998,32 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = _created;
 }
 
+void EntityItem::setCenterPosition(const glm::vec3& position) {
+    Transform transformToCenter = getTransformToCenter();
+    transformToCenter.setTranslation(position);
+    setTranformToCenter(transformToCenter);
+}
+
+const Transform EntityItem::getTransformToCenter() const {
+    Transform result = getTransform();
+    if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
+        result.postTranslate(ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()); // Position to center
+    }
+    return result;
+}
+
+void EntityItem::setTranformToCenter(const Transform& transform) {
+    if (getRegistrationPoint() == ENTITY_ITEM_HALF_VEC3) {
+        // If it is already centered, just call setTransform
+        setTransform(transform);
+        return;
+    }
+    
+    Transform copy = transform;
+    copy.postTranslate(getRegistrationPoint() - ENTITY_ITEM_HALF_VEC3); // Center to position
+    setTransform(copy);
+}
+
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 
