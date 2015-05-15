@@ -22,7 +22,8 @@ var Settings = {
   CONNECT_ACCOUNT_BTN_ID: 'connect-account-btn',
   DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn',
   CREATE_DOMAIN_ID_BTN_ID: 'create-domain-btn',
-  CHOOSE_DOMAIN_ID_BTN_ID: 'choose-domain-btn'
+  CHOOSE_DOMAIN_ID_BTN_ID: 'choose-domain-btn',
+  ACCESS_TOKEN_SELECTOR: '[name="metaverse.access_token"]'
   };
 
 var viewHelpers = {
@@ -286,16 +287,6 @@ function setupHFAccountButton() {
   $('#metaverse .panel-body').prepend(buttonGroup);
 }
 
-function postNewAccessToken(access_token) {
-  var newAccessToken = {
-      "metaverse": {
-        "access_token": access_token
-      }
-    };
-
-    postSettings(newAccessToken);
-}
-
 function disonnectHighFidelityAccount() {
   // the user clicked on the disconnect account btn - give them a sweet alert to make sure this is what they want to do
   swal({
@@ -307,7 +298,8 @@ function disonnectHighFidelityAccount() {
     showCancelButton: true,
   }, function(){
     // we need to post to settings to clear the access-token
-    postNewAccessToken("");
+    $(Settings.ACCESS_TOKEN_SELECTOR).val('').change();
+    saveSettings();
   });
 }
 
@@ -329,7 +321,7 @@ function prepareAccessTokenPrompt() {
     }
 
     // we have an input value - set the access token input with this and save settings
-    $("[name='metaverse.access_token']").val(inputValue).change();
+    $(Settings.ACCESS_TOKEN_SELECTOR).val(inputValue).change();
 
     // if the user doesn't have a domain ID set, give them the option to create one now
     if (!Settings.data.values.metaverse.id) {
@@ -404,7 +396,7 @@ function createNewDomainID(description, justConnected) {
     "domain": {
        "description": description
     },
-    "access_token": $("[name='metaverse.access_token']").val()
+    "access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
 
   $.post(Settings.METAVERSE_URL + "/api/v1/domains", domainJSON, function(data){
