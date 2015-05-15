@@ -20,8 +20,10 @@ var Settings = {
   REORDER_BUTTONS_CLASSES: 'buttons reorder-buttons',
   NEW_ROW_CLASS: 'new-row',
   CONNECT_ACCOUNT_BTN_ID: 'connect-account-btn',
-  DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn'
-};
+  DISCONNECT_ACCOUNT_BTN_ID: 'disconnect-account-btn',
+  CREATE_DOMAIN_ID_BTN_ID: 'create-domain-btn',
+  CHOOSE_DOMAIN_ID_BTN_ID: 'choose-domain-btn'
+  };
 
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced, isLocked) {
@@ -189,7 +191,11 @@ $(document).ready(function(){
     $(this).blur();
   })
 
-  $('#settings-form').on('click', '#choose-domain-btn', function(){
+  $('#settings-form').on('click', '#' + Settings.CREATE_DOMAIN_ID_BTN_ID, function(){
+    showDomainCreationAlert(false);
+  })
+
+  $('#settings-form').on('click', '#' + Settings.CHOOSE_DOMAIN_ID_BTN_ID, function(){
     chooseFromHighFidelityDomains($(this))
   });
 
@@ -367,7 +373,7 @@ function showDomainCreationAlert(justConnected) {
     type: 'input',
     text: 'Enter a short description for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
     showCancelButton: true,
-    confirmButtonText: "Create new domain ID",
+    confirmButtonText: "Create",
     closeOnConfirm: false,
     html: true
   }, function(inputValue){
@@ -406,7 +412,7 @@ function createNewDomainID(description, justConnected) {
     if (data.status == "success") {
       // we successfully created a domain ID, set it on that field
       var domainID = data.domain.id;
-      $("[name='metaverse.id']").val(domainID);
+      $("[name='metaverse.id']").val(domainID).change();
 
       if (justConnected) {
         var successText = "We connnected your High Fidelity account and created a new domain ID for this machine."
@@ -489,8 +495,14 @@ function reloadSettings() {
 
 function appendDomainSelectionModal() {
   var metaverseInput = $("[name='metaverse.id']");
-  var chooseButton = $("<button type='button' id='choose-domain-btn' class='btn btn-primary' style='margin-top:10px'>Choose ID from my domains</button>");
+
+  var createButton = $("<button type='button' id='create-domain-btn' class='btn btn-primary'" +
+    " style='margin-top:10px'>Create new domain ID</button>");
+  var chooseButton = $("<button type='button' id='choose-domain-btn' class='btn btn-primary'" +
+    " style='margin-top:10px; margin-left:10px'>Choose from my domains</button>");
+
   metaverseInput.after(chooseButton);
+  metaverseInput.after(createButton);
 }
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
