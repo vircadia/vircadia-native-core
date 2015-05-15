@@ -218,8 +218,8 @@ void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "             keyLightColor:" << _keyLightColor[0] << "," << _keyLightColor[1] << "," << _keyLightColor[2];
-    qCDebug(entities) << "                  position:" << debugTreeVector(_position);
-    qCDebug(entities) << "                dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "        _keyLightIntensity:" << _keyLightIntensity;
     qCDebug(entities) << " _keyLightAmbientIntensity:" << _keyLightAmbientIntensity;

@@ -122,10 +122,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 glm::vec3 point = intersection.intersection;
                 point -= getPosition();
                 point = glm::inverse(getRotation()) * point;
-                point /= _dimensions;
+                point /= getDimensions();
                 point += 0.5f;
                 point.y = 1.0f - point.y;
-                point *= _dimensions * METERS_TO_INCHES * DPI;
+                point *= getDimensions() * METERS_TO_INCHES * DPI;
                 // Forward the mouse event.  
                 QMouseEvent mappedEvent(event->type(),
                     QPoint((int)point.x, (int)point.y),
@@ -140,7 +140,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
     }
 
-    glm::vec2 dims = glm::vec2(_dimensions);
+    glm::vec2 dims = glm::vec2(getDimensions());
     dims *= METERS_TO_INCHES * DPI;
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
