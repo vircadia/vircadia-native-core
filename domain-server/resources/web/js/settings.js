@@ -87,7 +87,7 @@ var viewHelpers = {
 
           if (setting.href) {
             form_group += "<a href='" + setting.href + "'style='display: block;' role='button'"
-              + (isLocked ? " disabled" : "") +
+              + (isLocked ? " disabled" : "")
               + common_attrs("btn " + setting.classes) + " target='_blank'>"
               + setting.button_label + "</a>";
           } else {
@@ -347,7 +347,7 @@ function showDomainIDChoiceAlert() {
     title: 'Domain ID',
     type: 'info',
     text: "You do not currently have a domain ID." +
-      "</br></br>This is required to point place names at your domain and to use automatic networking</br></br>" +
+      "</br></br>This is required to point place names at your domain and to use automatic networking.</br></br>" +
       "Would you like to create a domain ID via the Metaverse API?</br></br>",
     showCancelButton: true,
     confirmButtonText: "Create new domain ID",
