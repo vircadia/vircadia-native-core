@@ -24,23 +24,28 @@ function removeLine() {
 function createOrUpdateLine(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
+    var props = Entities.getEntityProperties(intersection.entityID);
 
-    if (lineIsRezzed) {
-        Entities.editEntity(lineEntityID, {
-            position: nearLinePoint(intersection.intersection),
-            dimensions: Vec3.subtract(intersection.intersection, nearLinePoint(intersection.intersection)),
-            lifetime: 30 // renew lifetime
-    });
-
+    if (intersection.intersects) {
+        var dim = Vec3.subtract(intersection.intersection, nearLinePoint(intersection.intersection));
+        if (lineIsRezzed) {
+            Entities.editEntity(lineEntityID, {
+                position: nearLinePoint(intersection.intersection),
+                dimensions: dim,
+                lifetime: 60 + props.lifespan // renew lifetime
+            });
+        } else {
+            lineIsRezzed = true;
+            lineEntityID = Entities.addEntity({
+                type: "Line",
+                position: nearLinePoint(intersection.intersection),
+                dimensions: dim,
+                color: { red: 255, green: 255, blue: 255 },
+                lifetime: 60 // if someone crashes while pointing, don't leave the line there forever.
+            });
+        }
     } else {
-        lineIsRezzed = true;
-        lineEntityID = Entities.addEntity({
-            type: "Line",
-            position: nearLinePoint(intersection.intersection),
-            dimensions: Vec3.subtract(intersection.intersection, nearLinePoint(intersection.intersection)),
-            color: { red: 255, green: 255, blue: 255 },
-            lifetime: 30 // if someone crashes while pointing, don't leave the line there forever.
-        });
+        removeLine();
     }
 }
 
