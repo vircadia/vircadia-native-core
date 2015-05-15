@@ -485,7 +485,7 @@ function reloadSettings() {
 
     if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
       // append the domain selection modal, as long as it's not locked
-      appendDomainSelectionModal();
+      appendDomainIDButtons();
     }
 
     // call our method to setup the HF account button
@@ -493,12 +493,12 @@ function reloadSettings() {
   });
 }
 
-function appendDomainSelectionModal() {
+function appendDomainIDButtons() {
   var metaverseInput = $("[name='metaverse.id']");
 
-  var createButton = $("<button type='button' id='create-domain-btn' class='btn btn-primary'" +
+  var createButton = $("<button type='button' id='" + Settings.CREATE_DOMAIN_ID_BTN_ID + "' class='btn btn-primary'" +
     " style='margin-top:10px'>Create new domain ID</button>");
-  var chooseButton = $("<button type='button' id='choose-domain-btn' class='btn btn-primary'" +
+  var chooseButton = $("<button type='button' id='" + Settings.CHOOSE_DOMAIN_ID_BTN_ID + "' class='btn btn-primary'" +
     " style='margin-top:10px; margin-left:10px'>Choose from my domains</button>");
 
   metaverseInput.after(chooseButton);
