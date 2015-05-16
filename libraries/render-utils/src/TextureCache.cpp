@@ -252,7 +252,7 @@ void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular)
     gpu::GLBackend::renderBatch(batch);
 }
     
-void TextureCache::setPrimaryDrawBuffers(gpu::Batch batch, bool color, bool normal, bool specular) {
+void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal, bool specular) {
     GLenum buffers[3];
     int bufferCount = 0;
     if (color) {
