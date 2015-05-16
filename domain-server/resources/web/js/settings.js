@@ -602,7 +602,15 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>"
         domain_select = $("<select id='domain-name-select' class='form-control'></select>")
         _.each(data.data.domains, function(domain){
-          domain_select.append("<option value='" + domain.id + "'>(" + domain.id + ")" + (domain.names.length > 0 ? " [" + domain.owner_names + "]" : "") + "</option>");
+          var domainString = "";
+
+          if (domain.description) {
+            domainString += '"' + domain.description + '" - ';
+          }
+
+          domainString += domain.id;
+
+          domain_select.append("<option value='" + domain.id + "'>" + domainString + "</option>");
         })
         modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
         modal_buttons["success"] = {
