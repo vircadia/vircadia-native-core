@@ -207,8 +207,8 @@ var toolBar = (function () {
         });
 
         newWebButton = toolBar.addTool({
-            imageURL: "https://s3.amazonaws.com/Oculus/earth17.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
+            subImage: { x: 0, y: 0, width: 128, height: 128 },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
