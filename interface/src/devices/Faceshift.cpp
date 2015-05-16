@@ -213,7 +213,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                                                       data.m_headRotation.y, -data.m_headRotation.z);
                     // Compute angular velocity of the head
-                    glm::quat r = newRotation * glm::inverse(_headRotation);
+                    glm::quat r = glm::normalize(newRotation * glm::inverse(_headRotation));
                     float theta = 2 * acos(r.w);
                     if (theta > EPSILON) {
                         float rMag = glm::length(glm::vec3(r.x, r.y, r.z));

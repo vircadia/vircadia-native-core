@@ -13,7 +13,6 @@
 
 var isGrabbing = false;
 var grabbedEntity = null;
-var lineEntityID = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
@@ -91,14 +90,6 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
-    lineEntityID = Entities.addEntity({
-      type: "Line",
-      position: nearLinePoint(targetPosition),
-      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition)),
-      color: { red: 255, green: 255, blue: 255 },
-      lifetime: 300 // if someone crashes while moving something, don't leave the line there forever.
-    });
-
     Audio.playSound(grabSound, {
       position: props.position,
       volume: 0.4
@@ -143,8 +134,6 @@ function mouseReleaseEvent() {
       visible: false
     });
     targetPosition = null;
-
-    Entities.deleteEntity(lineEntityID);
 
     Audio.playSound(grabSound, {
       position: entityProps.position,
@@ -191,11 +180,6 @@ function mouseMoveEvent(event) {
       axisAngle = Quat.axis(dQ);
       angularVelocity = Vec3.multiply((theta / dT), axisAngle);
     }
-
-    Entities.editEntity(lineEntityID, {
-      position: nearLinePoint(targetPosition),
-      dimensions: Vec3.subtract(targetPosition, nearLinePoint(targetPosition))
-    });
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;

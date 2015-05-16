@@ -388,7 +388,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         // Compute relative rotation
         rotation = glm::inverse(_referenceRotation) * rotation;
         if (isFiltering) {
-            glm::quat r = rotation * glm::inverse(_headRotation);
+            glm::quat r = glm::normalize(rotation * glm::inverse(_headRotation));
             float theta = 2 * acos(r.w);
             glm::vec3 angularVelocity;
             if (theta > EPSILON) {
