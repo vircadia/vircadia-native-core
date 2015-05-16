@@ -247,6 +247,12 @@ GLuint TextureCache::getPrimarySpecularTextureID() {
 }
 
 void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
+    gpu::Batch batch;
+    setPrimaryDrawBuffers(batch, color, normal, specular);
+    gpu::GLBackend::renderBatch(batch);
+}
+    
+void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal, bool specular) {
     GLenum buffers[3];
     int bufferCount = 0;
     if (color) {
@@ -258,7 +264,7 @@ void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular)
     if (specular) {
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
     }
-    glDrawBuffers(bufferCount, buffers);
+    batch._glDrawBuffers(bufferCount, buffers);
 }
 
 gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {

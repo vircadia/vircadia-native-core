@@ -12,6 +12,7 @@
 #ifndef hifi_TextureCache_h
 #define hifi_TextureCache_h
 
+#include <gpu/Batch.h>
 #include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
 #include <gpu/Framebuffer.h>
@@ -78,6 +79,7 @@ public:
 
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
+    void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
