@@ -492,7 +492,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
 
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     gpu::Batch batch;
-    renderGrid(x, y, width, height, rows, cols, color, id);
+    renderGrid(batch, x, y, width, height, rows, cols, color, id);
     gpu::GLBackend::renderBatch(batch);
 }
 
