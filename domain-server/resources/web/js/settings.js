@@ -173,6 +173,8 @@ $(document).ready(function(){
         // set focus to the first input in the new row
         $(this).closest('table').find('tr.inputs input:first').focus()
       }
+
+      e.preventDefault();
     }
   });
 
@@ -208,7 +210,7 @@ $(document).ready(function(){
     chooseFromHighFidelityDomains($(this))
   });
 
-  $('#' + Settings.FORM_ID).on('click', '#' + Settings.GET_TEMPORARY_NAME_ID, function(){
+  $('#' + Settings.FORM_ID).on('click', '#' + Settings.GET_TEMPORARY_NAME_BTN_ID, function(){
     $(this).blur();
     createTemporaryDomain();
   });
@@ -496,6 +498,11 @@ function setupPlacesTable() {
       {
         "name": "path",
         "label": "Path"
+      },
+      {
+        "name": "edit",
+        "label": "",
+        "class": "buttons"
       }
     ]
   }
@@ -519,13 +526,16 @@ function setupPlacesTable() {
 }
 
 function placeTableRow(name, path, isTemporary) {
-  if (!isTemporary) {
-    var name_link = "<a href='" + Settings.METAVERSE_URL + "/user/places/" + name + "/edit'>" + name + "</a>";
+  var name_link = "<a href='hifi://" + name + "'>" + name + "</a>";
+
+  if (isTemporary) {
+    var editColumn = "<td class='buttons'></td>";
   } else {
-    var name_link = name;
+    var editColumn = "<td class='buttons'><a class='glyphicon glyphicon-pencil'"
+      + " href='" + Settings.METAVERSE_URL + "/user/places/" + name + "/edit" + "'</a></td>";
   }
 
-  return "<tr><td>" + name_link + "</td><td>" + path + "</td></tr>";
+  return "<tr><td>" + name_link + "</td><td>" + path + "</td>" + editColumn + "</tr>";
 }
 
 function placeTableRowForPlaceObject(place) {
@@ -637,10 +647,11 @@ function chooseFromHighFidelityDomains(clickedButton) {
 function createTemporaryDomain() {
   swal({
     title: 'Create temporary place name',
-    text: 'This will create a temporary place name and domain ID so other users can easily connect to your domain.',
+    text: "This will create a temporary place name and domain ID (valid for 30 days) so other users can easily connect to your domain.",
     showCancelButton: true,
     confirmButtonText: 'Create',
-    closeOnConfirm: false
+    closeOnConfirm: false,
+    html: true
   }, function(isConfirm){
     if (isConfirm) {
       showSpinnerAlert('Creating temporary place name');
@@ -757,15 +768,15 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   _.each(setting.columns, function(col) {
-    html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
+    html += "<td class='data " + (col.class ? col.class : '') + "'><strong>" + col.label + "</strong></td>" // Data
   })
 
   if (!isLocked && !setting.read_only) {
     if (setting.can_order) {
       html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
-              "><span class='glyphicon glyphicon-sort'></span></td>";
+              "><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
-    html += "<td class=" + Settings.ADD_DEL_BUTTONS_CLASSES + "></td></tr>"
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
   }
 
   // populate rows in the table from existing values
@@ -804,11 +815,11 @@ function makeTable(setting, keypath, setting_value, isLocked) {
       if (!isLocked && !setting.read_only) {
         if (setting.can_order) {
           html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
-                  "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
-                  Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+                  "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
+                  + "<a href='javascript:void(0);' class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></a></td>"
         }
         html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-                "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+                "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>"
       }
 
       html += "</tr>"
@@ -850,7 +861,7 @@ function makeTableInputs(setting) {
     html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
     html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-            "'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
+            "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
   html += "</tr>"
 
   return html
@@ -956,13 +967,14 @@ function addTableRow(add_glyphicon) {
         $(element).html(1)
       }
   } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
-    $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES +
-                    "'></span><span class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
+    $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><a href='javascript:void(0);'"
+        + " class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a><a href='javascript:void(0);' class='"
+        + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
   } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
       // Change buttons
-      var span = $(element).children("span")
-      span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
-      span.addClass(Settings.DEL_ROW_SPAN_CLASSES)
+      var anchor = $(element).children("a")
+      anchor.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
+      anchor.addClass(Settings.DEL_ROW_SPAN_CLASSES)
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
       $(element).html(input.val())

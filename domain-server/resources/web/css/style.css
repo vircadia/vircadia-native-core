@@ -78,6 +78,11 @@ td.reorder-buttons .glyphicon {
   display: inherit;
 }
 
+td a.glyphicon {
+  color: black;
+  text-decoration: none;
+}
+
 tr.new-row {
   color: #3c763d;
   background-color: #dff0d8;
