@@ -655,7 +655,9 @@ function chooseFromHighFidelityDomains(clickedButton) {
 function createTemporaryDomain() {
   swal({
     title: 'Create temporary place name',
-    text: "This will create a temporary place name and domain ID (valid for 30 days) so other users can easily connect to your domain.",
+    text: "This will create a temporary place name and domain ID (valid for 30 days)"
+      + " so other users can easily connect to your domain.</br></br>"
+      + "In order to make your domain reachable, this will also enable full automatic networking.",
     showCancelButton: true,
     confirmButtonText: 'Create',
     closeOnConfirm: false,
@@ -671,6 +673,10 @@ function createTemporaryDomain() {
 
           // we should have a new domain ID - set it on the domain ID value
           $(Settings.DOMAIN_ID_SELECTOR).val(domain.id).change();
+
+          // we also need to make sure auto networking is set to full
+          $('[data-hidden-input="metaverse.automatic_networking"]').val("full").change();
+
           swal({
             type: 'success',
             title: 'Success!',
