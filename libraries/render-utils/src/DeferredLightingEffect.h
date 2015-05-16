@@ -38,9 +38,11 @@ public:
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
     void bindSimpleProgram();
+    void bindSimpleProgram(gpu::Batch& batch);
     
     /// Tears down the state necessary to render static untextured geometry with the simple program.
     void releaseSimpleProgram();
+    void releaseSimpleProgram(gpu::Batch& batch);
 
     //// Renders a solid sphere with the simple program.
     void renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color);
