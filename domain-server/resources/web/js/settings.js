@@ -486,7 +486,7 @@ function setupPlacesTable() {
     name: 'places',
     label: 'Places',
     html_id: Settings.PLACES_TABLE_ID,
-    help: "The following places currently point to this domain.</br>To point your places to this domain, "
+    help: "The following places currently point to this domain.</br>To point places to this domain, "
       + " go to the <a href='https://metaverse.highfidelity.com/user/places'>My Places</a> "
       + "page in your High Fidelity Metaverse account.",
     read_only: true,
@@ -519,14 +519,14 @@ function setupPlacesTable() {
     reloadPlacesOrTemporaryName();
   } else {
     // we don't have a domain ID - add a button to offer the user a chance to get a temporary one
-    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_ID, 'Get a temporary place name');
+    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
     $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
   }
 
 }
 
 function placeTableRow(name, path, isTemporary) {
-  var name_link = "<a href='hifi://" + name + "'>" + name + "</a>";
+  var name_link = "<a href='hifi://" + name + "'>" + (isTemporary ? name + " (temporary)" : name) + "</a>";
 
   if (isTemporary) {
     var editColumn = "<td class='buttons'></td>";
@@ -559,7 +559,7 @@ function reloadPlacesOrTemporaryName() {
           });
         } else if (data.domain.name) {
           // add a table row for this temporary domain name
-          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name + " (temporary)", '/', true));
+          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
         }
       }
     });
