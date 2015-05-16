@@ -32,7 +32,7 @@ function createOrUpdateLine(event) {
             Entities.editEntity(lineEntityID, {
                 position: nearLinePoint(intersection.intersection),
                 dimensions: dim,
-                lifetime: 60 + props.lifespan // renew lifetime
+                lifetime: 15 + props.lifespan // renew lifetime
             });
         } else {
             lineIsRezzed = true;
@@ -41,7 +41,7 @@ function createOrUpdateLine(event) {
                 position: nearLinePoint(intersection.intersection),
                 dimensions: dim,
                 color: { red: 255, green: 255, blue: 255 },
-                lifetime: 60 // if someone crashes while pointing, don't leave the line there forever.
+                lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
             });
         }
     } else {
@@ -54,13 +54,8 @@ function mousePressEvent(event) {
     if (!event.isLeftButton) {
         return;
     }
-    if (lineIsRezzed) {
-        return;
-    }
+    Controller.mouseMoveEvent.connect(mouseMoveEvent);
     createOrUpdateLine(event);
-    if (lineIsRezzed) {
-        Controller.mouseMoveEvent.connect(mouseMoveEvent);
-    }
  }
 
 
@@ -69,10 +64,11 @@ function mouseMoveEvent(event) {
 }
 
 
-function mouseReleaseEvent() {
-    if (lineIsRezzed) {
-        Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
+function mouseReleaseEvent(event) {
+    if (!event.isLeftButton) {
+        return;
     }
+    Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     removeLine();
 }
 
