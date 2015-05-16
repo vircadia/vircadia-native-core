@@ -125,6 +125,7 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
+    void applyZonePropertiesToScene(const ZoneEntityItem* zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);

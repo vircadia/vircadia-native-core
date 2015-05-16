@@ -301,9 +301,14 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
     //Update and draw the magnifiers
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getDefaultEyePosition();
+    // Always display the HMD overlay relative to the camera position but 
+    // remove the HMD pose offset.  This results in an overlay that sticks with you 
+    // even in third person mode, but isn't drawn at a fixed distance.
+    glm::vec3 position = whichCamera.getPosition();
+    position -= qApp->getCamera()->getHmdPosition();
     const float scale = myAvatar->getScale() * _oculusUIRadius;
     
+//    glm::vec3 eyeOffset = setEyeOffsetPosition;
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix(); {
         glTranslatef(position.x, position.y, position.z);
@@ -453,19 +458,32 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     glEnable(GL_LIGHTING);
 }
 
-void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) {
-    const MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    cursorPos = 0.5f - cursorPos;
-    cursorPos *= MOUSE_RANGE;
-    const glm::quat orientation(glm::vec3(cursorPos, 0.0f));
-    const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
+void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
+    cursorPos *= qApp->getCanvasSize();
+    const glm::vec2 projection = screenToSpherical(cursorPos);
+    // The overlay space orientation of the mouse coordinates
+    const glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
+    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.  
+    // Now we need to account for the actual camera position relative to the overlay
+    glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
 
-    // Get cursor position
-    const glm::vec3 cursorDir = myAvatar->getDefaultEyePosition() + myAvatar->getOrientation() * localDirection;
 
-    // Ray start where the eye position is and stop where the cursor is
-    origin = myAvatar->getEyePosition();
-    direction = cursorDir - origin;
+    const glm::vec3& hmdPosition = qApp->getCamera()->getHmdPosition();
+    const glm::quat& hmdOrientation = qApp->getCamera()->getHmdRotation();
+
+    // We need the RAW camera orientation and position, because this is what the overlay is
+    // rendered relative to
+    const glm::vec3 overlayPosition = qApp->getCamera()->getPosition() - hmdPosition;
+    const glm::quat overlayOrientation = qApp->getCamera()->getRotation() * glm::inverse(hmdOrientation);
+
+    // Intersection UI overlay space
+    glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
+    glm::vec3 intersectionWithUi = glm::normalize(worldSpaceDirection) * _oculusUIRadius;
+    intersectionWithUi += overlayPosition;
+
+    // Intersection in world space
+    origin = overlayPosition + hmdPosition;
+    direction = glm::normalize(intersectionWithUi - origin);
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
