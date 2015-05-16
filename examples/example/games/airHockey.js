@@ -103,8 +103,6 @@ var spawnButton = Overlays.addOverlay("image", {
 
 
 
-
-
 var floor, edge1, edge2, edge3a, edge3b, edge4a, edge4b, light;
 var puck;
 var paddle1, paddle2;
