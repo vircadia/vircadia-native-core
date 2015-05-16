@@ -10,6 +10,7 @@
 //
 
 #include <gpu/GPUConfig.h>
+#include <gpu/GLBackend.h>
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -481,9 +482,18 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
 
         ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
-
+        
+        // Setup batch transform matrices
+        gpu::Batch batch;
+        glm::mat4 projMat;
+        Transform viewMat;
+        frustum->evalProjectionMatrix(projMat);
+        frustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        
         RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
-                        renderMode, renderSide, renderDebugFlags);
+                        renderMode, renderSide, renderDebugFlags, &batch);
 
         _tree->lockForRead();
 
@@ -498,7 +508,11 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         // on us while rendering the scene    
         Model::endScene(renderMode, &args);
         _tree->unlock();
-    
+        
+        glPushMatrix();
+        gpu::GLBackend::renderBatch(batch);
+        glPopMatrix();
+        
         // stats...
         _meshesConsidered = args._meshesConsidered;
         _meshesRendered = args._meshesRendered;
