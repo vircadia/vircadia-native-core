@@ -883,10 +883,10 @@ function makeTableInputs(setting) {
 
 function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
-  var panelParentID = changedElement.closest('.panel').attr('id')
+  var panelParentID = changedElement.closest('.panel').attr('id');
 
   // if the panel contains non-grouped settings, the initial value is Settings.initialValues
-  var isGrouped = $(panelParentID).hasClass('grouped');
+  var isGrouped = $('#' + panelParentID).hasClass('grouped');
 
   if (isGrouped) {
     var initialPanelJSON = Settings.initialValues[panelParentID];
