@@ -11,6 +11,9 @@
 
 #include "RenderableZoneEntityItem.h"
 
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -90,13 +93,15 @@ void RenderableZoneEntityItem::updateGeometry() {
 }
 
 void RenderableZoneEntityItem::render(RenderArgs* args) {
+    Q_ASSERT(getType() == EntityTypes::Zone);
+    
     if (_drawZoneBoundaries) {
         switch (getShapeType()) {
             case SHAPE_TYPE_COMPOUND: {
+                PerformanceTimer perfTimer("zone->renderCompound");
                 updateGeometry();
                 
                 if (_model && _model->isActive()) {
-                    PerformanceTimer perfTimer("zone->renderCompound");
                     glPushMatrix();
                     _model->renderInScene(getLocalRenderAlpha(), args);
                     glPopMatrix();
@@ -106,33 +111,20 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             case SHAPE_TYPE_BOX:
             case SHAPE_TYPE_SPHERE: {
                 PerformanceTimer perfTimer("zone->renderPrimitive");
-                glm::vec3 position = getPosition();
-                glm::vec3 center = getCenterPosition();
-                glm::vec3 dimensions = getDimensions();
-                glm::quat rotation = getRotation();
+                glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
                 
-                glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, getLocalRenderAlpha());
+                Q_ASSERT(args->_batch);
+                gpu::Batch& batch = *args->_batch;
+                batch.setModelTransform(getTransformToCenter());
                 
-                glPushMatrix(); {
-                    glTranslatef(position.x, position.y, position.z);
-                    glm::vec3 axis = glm::axis(rotation);
-                    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-                    glPushMatrix(); {
-                        glm::vec3 positionToCenter = center - position;
-                        glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                        glScalef(dimensions.x, dimensions.y, dimensions.z);
-                        
-                        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-                        
-                        if (getShapeType() == SHAPE_TYPE_SPHERE) {
-                            const int SLICES = 15;
-                            const int STACKS = 15;
-                            deferredLightingEffect->renderWireSphere(0.5f, SLICES, STACKS, DEFAULT_COLOR);
-                        } else {
-                            deferredLightingEffect->renderWireCube(1.0f, DEFAULT_COLOR);
-                        }
-                    } glPopMatrix();
-                } glPopMatrix();
+                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                
+                if (getShapeType() == SHAPE_TYPE_SPHERE) {
+                    const int SLICES = 15, STACKS = 15;
+                    deferredLightingEffect->renderWireSphere(batch, 0.5f, SLICES, STACKS, DEFAULT_COLOR);
+                } else {
+                    deferredLightingEffect->renderWireCube(batch, 1.0f, DEFAULT_COLOR);
+                }
                 break;
             }
             default:
