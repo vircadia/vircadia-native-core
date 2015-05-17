@@ -142,11 +142,12 @@ gpu::FramebufferPointer GlowEffect::render() {
     gpu::FramebufferPointer destFBO = textureCache->getSecondaryFramebuffer();
     if (!_enabled || _isEmpty) {
         // copy the primary to the screen
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
-		glBlitFramebuffer(0, 0, framebufferSize.width(), framebufferSize.height(),
-						  0, 0, framebufferSize.width(), framebufferSize.height(),
-						  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, primaryFBO);
+        glBlitFramebuffer(
+            0, 0, framebufferSize.width(), framebufferSize.height(),
+            0, 0, framebufferSize.width(), framebufferSize.height(),
+            GL_COLOR_BUFFER_BIT, GL_NEAREST);
     } else {
         // diffuse into the secondary/tertiary (alternating between frames)
         auto oldDiffusedFBO =

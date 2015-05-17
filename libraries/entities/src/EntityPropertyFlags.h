@@ -75,7 +75,7 @@ enum EntityPropertyList {
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
-    PROP_DIFFUSE_COLOR_UNUSED,
+    PROP_DIFFUSE_COLOR,
     PROP_AMBIENT_COLOR_UNUSED,
     PROP_SPECULAR_COLOR_UNUSED,
     PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
@@ -106,6 +106,9 @@ enum EntityPropertyList {
     PROP_ACCELERATION, // all entities
     PROP_SIMULATOR_ID, // all entities
     PROP_NAME, // all entities
+    PROP_COLLISION_SOUND_URL,
+    PROP_RESTITUTION,
+    PROP_FRICTION,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
@@ -131,7 +134,7 @@ enum EntityPropertyList {
     PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
     PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
     PROP_STAGE_SUN_MODEL_ENABLED = PROP_IS_SPOTLIGHT,
-    PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR_UNUSED,
+    PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR,
     PROP_STAGE_LONGITUDE = PROP_AMBIENT_COLOR_UNUSED,
     PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
@@ -146,6 +149,11 @@ enum EntityPropertyList {
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
+    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
+
+    // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_SOURCE_URL = PROP_MODEL_URL,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
@@ -155,13 +163,6 @@ typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
 // this is set at the top of EntityItemProperties.cpp to PROP_AFTER_LAST_ITEM - 1.  PROP_AFTER_LAST_ITEM is always
 // one greater than the last item property due to the enum's auto-incrementing.
 extern EntityPropertyList PROP_LAST_ITEM;
-
-
-enum BackgroundMode {
-    BACKGROUND_MODE_INHERIT,
-    BACKGROUND_MODE_ATMOSPHERE,
-    BACKGROUND_MODE_SKYBOX,
-};
 
 
 #endif // hifi_EntityPropertyFlags_h

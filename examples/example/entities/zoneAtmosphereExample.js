@@ -33,12 +33,14 @@ var zoneEntityA = Entities.addEntity({
         scatteringWavelengths: { x: 0.650, y: 0.570, z: 0.475 },
         hasStars: false
     },
-    stageLatitude: 37.777,
-    stageLongitude: 122.407,
-    stageAltitude: 0.03,
-    stageDay: 60,
-    stageHour: 0,
-    stageSunModelEnabled: true
+    stage: {
+        latitude: 37.777,
+        longitude: 122.407,
+        altitude: 0.03,
+        day: 60,
+        hour: 0,
+        sunModelEnabled: true
+    }
 });
 
 

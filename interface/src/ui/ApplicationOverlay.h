@@ -54,12 +54,12 @@ public:
     glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
     glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
+    void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
     static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
-    static void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction);
     
 private:
     

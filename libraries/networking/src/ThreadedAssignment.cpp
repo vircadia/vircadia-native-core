@@ -23,61 +23,69 @@ ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
     _isFinished(false),
     _datagramProcessingThread(NULL)
 {
-    
+
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
-    _isFinished = isFinished;
+    if (_isFinished != isFinished) {
+         _isFinished = isFinished;
 
-    if (_isFinished) {
-        if (_domainServerTimer) {
-            _domainServerTimer->stop();
-            delete _domainServerTimer;
-            _domainServerTimer = nullptr;
-        }
-        if (_statsTimer) {
-            _statsTimer->stop();
-            delete _statsTimer;
-            _statsTimer = nullptr;
-        }
+        if (_isFinished) {
 
-        aboutToFinish();
-        
-        auto nodeList = DependencyManager::get<NodeList>();
-        
-        // if we have a datagram processing thread, quit it and wait on it to make sure that
-        // the node socket is back on the same thread as the NodeList
-        
-        if (_datagramProcessingThread) {
-            // tell the datagram processing thread to quit and wait until it is done, then return the node socket to the NodeList
-            _datagramProcessingThread->quit();
-            _datagramProcessingThread->wait();
-            
-            // set node socket parent back to NodeList
-            nodeList->getNodeSocket().setParent(nodeList.data());
+            qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
+
+            if (_domainServerTimer) {
+                _domainServerTimer->stop();
+            }
+
+            if (_statsTimer) {
+                _statsTimer->stop();
+            }
+
+            // stop processing datagrams from the node socket
+            // this ensures we won't process a domain list while we are going down
+            auto nodeList = DependencyManager::get<NodeList>();
+            disconnect(&nodeList->getNodeSocket(), 0, this, 0);
+
+            // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
+            aboutToFinish();
+
+            // if we have a datagram processing thread, quit it and wait on it to make sure that
+            // the node socket is back on the same thread as the NodeList
+
+
+            if (_datagramProcessingThread) {
+                // tell the datagram processing thread to quit and wait until it is done,
+                // then return the node socket to the NodeList
+                _datagramProcessingThread->quit();
+                _datagramProcessingThread->wait();
+
+                // set node socket parent back to NodeList
+                nodeList->getNodeSocket().setParent(nodeList.data());
+            }
+
+            // move the NodeList back to the QCoreApplication instance's thread
+            nodeList->moveToThread(QCoreApplication::instance()->thread());
+
+            emit finished();
         }
-        
-        // move the NodeList back to the QCoreApplication instance's thread
-        nodeList->moveToThread(QCoreApplication::instance()->thread());
-        
-        emit finished();
     }
 }
 
 void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
     LogHandler::getInstance().setTargetName(targetName);
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
-    
+
     // this is a temp fix for Qt 5.3 - rebinding the node socket gives us readyRead for the socket on this thread
     nodeList->rebindNodeSocket();
-    
+
     _domainServerTimer = new QTimer();
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
-    
+
     if (shouldSendStats) {
         // send a stats packet every 1 second
         _statsTimer = new QTimer();
@@ -88,15 +96,15 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject &statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     float packetsPerSecond, bytesPerSecond;
     // XXX can BandwidthRecorder be used for this?
     nodeList->getPacketStats(packetsPerSecond, bytesPerSecond);
     nodeList->resetPacketStats();
-    
+
     statsObject["packets_per_second"] = packetsPerSecond;
     statsObject["bytes_per_second"] = bytesPerSecond;
-    
+
     nodeList->sendStatsToDomainServer(statsObject);
 }
 
@@ -115,7 +123,7 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 
 bool ThreadedAssignment::readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     if (nodeList->getNodeSocket().hasPendingDatagrams()) {
         destinationByteArray.resize(nodeList->getNodeSocket().pendingDatagramSize());
         nodeList->getNodeSocket().readDatagram(destinationByteArray.data(), destinationByteArray.size(),

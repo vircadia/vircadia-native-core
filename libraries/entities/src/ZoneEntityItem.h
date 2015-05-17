@@ -51,6 +51,12 @@ public:
         _keyLightColor[BLUE_INDEX] = value.blue;
     }
 
+    void setKeyLightColor(const rgbColor& value) {
+        _keyLightColor[RED_INDEX] = value[RED_INDEX];
+        _keyLightColor[GREEN_INDEX] = value[GREEN_INDEX];
+        _keyLightColor[BLUE_INDEX] = value[BLUE_INDEX];
+    }
+
     glm::vec3 getKeyLightColorVec3() const {
         const quint8 MAX_COLOR = 255;
         glm::vec3 color = { (float)_keyLightColor[RED_INDEX] / (float)MAX_COLOR,
@@ -68,24 +74,6 @@ public:
 
     const glm::vec3& getKeyLightDirection() const { return _keyLightDirection; }
     void setKeyLightDirection(const glm::vec3& value) { _keyLightDirection = value; }
-
-    bool getStageSunModelEnabled() const { return _stageSunModelEnabled; }
-    void setStageSunModelEnabled(bool value) { _stageSunModelEnabled = value; }
-
-    float getStageLatitude() const { return _stageLatitude; }
-    void setStageLatitude(float value) { _stageLatitude = value; }
-
-    float getStageLongitude() const { return _stageLongitude; }
-    void setStageLongitude(float value) { _stageLongitude = value; }
-
-    float getStageAltitude() const { return _stageAltitude; }
-    void setStageAltitude(float value) { _stageAltitude = value; }
-
-    uint16_t getStageDay() const { return _stageDay; }
-    void setStageDay(uint16_t value) { _stageDay = value; }
-
-    float getStageHour() const { return _stageHour; }
-    void setStageHour(float value) { _stageHour = value; }
 
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
@@ -107,6 +95,7 @@ public:
     EnvironmentData getEnvironmentData() const;
     const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
     const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
+    const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -119,12 +108,6 @@ public:
     static const float DEFAULT_KEYLIGHT_INTENSITY;
     static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
     static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
-    static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    static const float DEFAULT_STAGE_LATITUDE;
-    static const float DEFAULT_STAGE_LONGITUDE;
-    static const float DEFAULT_STAGE_ALTITUDE;
-    static const quint16 DEFAULT_STAGE_DAY;
-    static const float DEFAULT_STAGE_HOUR;
     static const ShapeType DEFAULT_SHAPE_TYPE;
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     
@@ -134,17 +117,13 @@ protected:
     float _keyLightIntensity;
     float _keyLightAmbientIntensity;
     glm::vec3 _keyLightDirection;
-    bool _stageSunModelEnabled;
-    float _stageLatitude;
-    float _stageLongitude;
-    float _stageAltitude;
-    uint16_t _stageDay;
-    float _stageHour;
     
     ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
     
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
+
+    StagePropertyGroup _stageProperties;
     AtmospherePropertyGroup _atmosphereProperties;
     SkyboxPropertyGroup _skyboxProperties;
 

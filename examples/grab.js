@@ -27,6 +27,7 @@ var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
 var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
 var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
+var originalGravity = {x: 0, y: 0, z: 0};
 var shouldRotate = false;
 var dQ, theta, axisAngle, dT;
 var angularVelocity = {
@@ -55,20 +56,40 @@ var dropLine = Overlays.addOverlay("line3d", {
 });
 
 
+function vectorIsZero(v) {
+    return v.x == 0 && v.y == 0 && v.z == 0;
+}
+
+function nearLinePoint(targetPosition) {
+ // var handPosition = Vec3.sum(MyAvatar.position, {x:0, y:0.2, z:0});
+  var handPosition = MyAvatar.getRightPalmPosition();
+  var along = Vec3.subtract(targetPosition, handPosition);
+  along = Vec3.normalize(along);
+  along = Vec3.multiply(along, 0.4);
+  return Vec3.sum(handPosition, along);
+}
+
+
 function mousePressEvent(event) {
   if (!event.isLeftButton) {
     return;
   }
   var pickRay = Camera.computePickRay(event.x, event.y);
-  var intersection = Entities.findRayIntersection(pickRay);
+  var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
   if (intersection.intersects && intersection.properties.collisionsWillMove) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
+    originalGravity = props.gravity;
     targetPosition = props.position;
     currentPosition = props.position;
     currentVelocity = props.velocity;
     updateDropLine(targetPosition);
+
+    Entities.editEntity(grabbedEntity, {
+      gravity: {x: 0, y: 0, z: 0}
+    });
+
     Audio.playSound(grabSound, {
       position: props.position,
       volume: 0.4
@@ -96,10 +117,24 @@ function updateDropLine(position) {
 function mouseReleaseEvent() {
   if (isGrabbing) {
     isGrabbing = false;
+
+    // only restore the original gravity if it's not zero.  This is to avoid...
+    // 1. interface A grabs an entity and locally saves off its gravity
+    // 2. interface A sets the entity's gravity to zero
+    // 3. interface B grabs the entity and saves off its gravity (which is zero)
+    // 4. interface A releases the entity and puts the original gravity back
+    // 5. interface B releases the entity and puts the original gravity back (to zero)
+    if (!vectorIsZero(originalGravity)) {
+      Entities.editEntity(grabbedEntity, {
+          gravity: originalGravity
+      });
+    }
+
     Overlays.editOverlay(dropLine, {
       visible: false
     });
     targetPosition = null;
+
     Audio.playSound(grabSound, {
       position: entityProps.position,
       volume: 0.25
@@ -110,6 +145,12 @@ function mouseReleaseEvent() {
 
 function mouseMoveEvent(event) {
   if (isGrabbing) {
+    // see if something added/restored gravity
+    var props = Entities.getEntityProperties(grabbedEntity);
+    if (!vectorIsZero(props.gravity)) {
+      originalGravity = props.gravity;
+    }
+
     deltaMouse.x = event.x - prevMouse.x;
     if (!moveUpDown) {
       deltaMouse.z = event.y - prevMouse.y;
@@ -194,7 +235,7 @@ function update(deltaTime) {
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
     } else {
-      newVelocity = entityProps.velocity; 
+      newVelocity = {x: 0, y: 0, z: 0};
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
@@ -203,9 +244,11 @@ function update(deltaTime) {
     }
 
     Entities.editEntity(grabbedEntity, {
+      position: currentPosition,
+      rotation: currentRotation,
       velocity: newVelocity,
       angularVelocity: angularVelocity
-    })
+    });
     updateDropLine(targetPosition);
   }
 }

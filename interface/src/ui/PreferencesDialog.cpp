@@ -14,6 +14,7 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
+#include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
 #include <NetworkingConstants.h>
@@ -135,6 +136,10 @@ void PreferencesDialog::loadPreferences() {
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
+                                              ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
@@ -168,10 +173,12 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
+
 #if 0
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
 #endif
+
     SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
@@ -222,16 +229,22 @@ void PreferencesDialog::savePreferences() {
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
+                                (float)ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                 (float)ui.faceshiftEyeDeflectionSider->maximum());
     
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
-    qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
+    qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
+
 #if 0
     qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
 #endif
+
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());

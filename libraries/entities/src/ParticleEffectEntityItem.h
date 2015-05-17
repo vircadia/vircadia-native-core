@@ -2,29 +2,6 @@
 //  ParticleEffectEntityItem.h
 //  libraries/entities/src
 //
-//  Some starter code for a particle simulation entity, which could ideally be used for a variety of effects.
-//  This is some really early and rough stuff here.  It was enough for now to just get it up and running in the interface.
-//
-//  Todo's and other notes:
-//  - The simulation should restart when the AnimationLoop's max frame is reached (or passed), but there doesn't seem
-//    to be a good way to set that max frame to something reasonable right now.
-//  - There seems to be a bug whereby entities on the edge of screen will just pop off or on.  This is probably due
-//    to my lack of understanding of how entities in the octree are picked for rendering.  I am updating the entity
-//    dimensions based on the bounds of the sim, but maybe I need to update a dirty flag or something.
-//  - This should support some kind of pre-roll of the simulation.
-//  - Just to get this out the door, I just did forward Euler integration.  There are better ways.
-//  - Gravity always points along the Y axis.  Support an actual gravity vector.
-//  - Add the ability to add arbitrary forces to the simulation.
-//  - Add controls for spread (which is currently hard-coded) and varying emission strength (not currently implemented).
-//  - Add drag.
-//  - Add some kind of support for collisions.
-//  - For simplicity, I'm currently just rendering each particle as a cross of four axis-aligned quads.  Really, we'd
-//    want multiple render modes, including (the most important) textured billboards (always facing camera).  Also, these
-//    should support animated textures.
-//  - There's no synchronization of the simulation across clients at all.  In fact, it's using rand() under the hood, so
-//    there's no gaurantee that different clients will see simulations that look anything like the other.
-//  - MORE?
-//
 //  Created by Jason Rickwald on 3/2/15.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -39,14 +16,14 @@
 
 class ParticleEffectEntityItem : public EntityItem {
 public:
-    
+
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~ParticleEffectEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
-        
+
     // methods for getting/setting all properties of this entity
     virtual EntityItemProperties getProperties() const;
     virtual bool setProperties(const EntityItemProperties& properties);
@@ -54,16 +31,16 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-        EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-        EntityPropertyFlags& requestedProperties,
-        EntityPropertyFlags& propertyFlags,
-        EntityPropertyFlags& propertiesDidntFit,
-        int& propertyCount,
-        OctreeElement::AppendState& appendState) const;
+                                    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount,
+                                    OctreeElement::AppendState& appendState) const;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-        ReadBitstreamToTreeParams& args,
-        EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                 ReadBitstreamToTreeParams& args,
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
     virtual bool needsToCallUpdate() const;
@@ -71,6 +48,7 @@ public:
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
+    static const xColor DEFAULT_COLOR;
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
         _color[RED_INDEX] = value.red;
@@ -109,7 +87,7 @@ public:
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
     static const quint32 DEFAULT_MAX_PARTICLES;
-    void setMaxParticles(quint32 maxParticles) { _maxParticles = maxParticles; }
+    void setMaxParticles(quint32 maxParticles);
     quint32 getMaxParticles() const { return _maxParticles; }
 
     static const float DEFAULT_LIFESPAN;
@@ -121,7 +99,7 @@ public:
     float getEmitRate() const { return _emitRate; }
 
     static const glm::vec3 DEFAULT_EMIT_DIRECTION;
-    void setEmitDirection(glm::vec3 emitDirection) { _emitDirection = emitDirection; }
+    void setEmitDirection(glm::vec3 emitDirection) { _emitDirection = glm::normalize(emitDirection); }
     const glm::vec3& getEmitDirection() const { return _emitDirection; }
 
     static const float DEFAULT_EMIT_STRENGTH;
@@ -141,11 +119,22 @@ public:
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
     QString getAnimationSettings() const;
 
+    static const QString DEFAULT_TEXTURES;
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& textures) {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    }
+
 protected:
 
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
-    void resetSimulation();
+    void extendBounds(const glm::vec3& point);
+    void integrateParticle(quint32 index, float deltaTime);
+    quint32 getLivingParticleCount() const;
 
     // the properties of this entity
     rgbColor _color;
@@ -159,25 +148,24 @@ protected:
     quint64 _lastAnimated;
     AnimationLoop _animationLoop;
     QString _animationSettings;
+    QString _textures;
+    bool _texturesChangedFlag;
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // all the internals of running the particle sim
-    const quint32 XYZ_STRIDE = 3;
-    float* _paLife;
-    float* _paPosition;
-    float* _paVelocity;
-    float _partialEmit;
-    quint32 _paCount;
-    quint32 _paHead;
-    float _paXmin;
-    float _paXmax;
-    float _paYmin;
-    float _paYmax;
-    float _paZmin;
-    float _paZmax;
-    unsigned int _randSeed;
+    QVector<float> _particleLifetimes;
+    QVector<glm::vec3> _particlePositions;
+    QVector<glm::vec3> _particleVelocities;
+    float _timeUntilNextEmit;
 
+    // particle arrays are a ring buffer, use these indicies
+    // to keep track of the living particles.
+    quint32 _particleHeadIndex;
+    quint32 _particleTailIndex;
+
+    // bounding volume
+    glm::vec3 _particleMaxBound;
+    glm::vec3 _particleMinBound;
 };
 
 #endif // hifi_ParticleEffectEntityItem_h
-

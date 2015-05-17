@@ -30,11 +30,12 @@
 #include <ShapeInfo.h>
 
 #include "AtmospherePropertyGroup.h"
-#include "SkyboxPropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -51,6 +52,8 @@ class EntityItemProperties {
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -92,8 +95,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
+    DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
+    DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
+    DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
@@ -132,16 +138,12 @@ public:
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
     DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, StageSunModelEnabled, stageSunModelEnabled, bool);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, StageLatitude, stageLatitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, StageLongitude, stageLongitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, StageAltitude, stageAltitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, StageDay, stageDay, quint16);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, StageHour, stageHour, float);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -243,8 +245,11 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Acceleration, acceleration, "in meters per second");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
@@ -280,6 +285,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     
+    properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
 

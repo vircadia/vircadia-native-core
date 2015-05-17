@@ -32,6 +32,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
             SharedNodePointer ownerNode = nodeList->nodeWithUUID(entity->getSimulatorID());
             if (ownerNode.isNull() || !ownerNode->isAlive()) {
                 qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
+                // TODO: zero velocities when we clear simulatorID?
                 entity->setSimulatorID(QUuid());
                 itemItr = _hasSimulationOwnerEntities.erase(itemItr);
             } else {
@@ -53,8 +54,6 @@ void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
 void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
     _hasSimulationOwnerEntities.remove(entity);
 }
-
-const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITIES | EntityItem::DIRTY_MOTION_TYPE;
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
     EntitySimulation::changeEntityInternal(entity);

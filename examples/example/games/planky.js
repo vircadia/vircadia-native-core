@@ -17,6 +17,8 @@ const BASE_DIMENSION = { x: 7, y: 2, z: 7 };
 const BLOCKS_PER_LAYER = 3;
 const BLOCK_SIZE = {x: 0.2, y: 0.1, z: 0.8};
 const BLOCK_SPACING = BLOCK_SIZE.x / 3;
+// BLOCK_HEIGHT_VARIATION removes a random percentages of the default block height per block. (for example 0.001 %)
+const BLOCK_HEIGHT_VARIATION = 0.001;
 const GRAVITY = {x: 0, y: -2.8, z: 0};
 const DENSITY = 2000;
 const DAMPING_FACTOR = 0.98;
@@ -24,6 +26,7 @@ const ANGULAR_DAMPING_FACTOR = 0.8;
 const SPAWN_DISTANCE = 3;
 const BLOCK_YAW_OFFSET = 45;
 const BUTTON_DIMENSIONS = {width: 49, height: 49};
+const MAXIMUM_PERCENTAGE = 100.0;
 
 var windowWidth = Window.innerWidth;
 var size;
@@ -94,7 +97,11 @@ function resetBlocks() {
                 modelURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx',
                 shapeType: 'box',
                 name: 'PlankyBlock' + ((layerIndex * BLOCKS_PER_LAYER) + blockIndex),
-                dimensions: BLOCK_SIZE,
+                dimensions: {
+                    x: BLOCK_SIZE.x,
+                    y: BLOCK_SIZE.y - ((BLOCK_SIZE.y * (BLOCK_HEIGHT_VARIATION / MAXIMUM_PERCENTAGE)) * Math.random()),
+                    z: BLOCK_SIZE.z
+                },
                 position: {
                     x: basePosition.x + localTransform.x,
                     y: basePosition.y + localTransform.y,

@@ -48,7 +48,7 @@ public:
     VectorOfMotionStates& getObjectsToAdd();
     VectorOfMotionStates& getObjectsToChange();
 
-    void handleOutgoingChanges(VectorOfMotionStates& motionStates);
+    void handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID);
     void handleCollisionEvents(CollisionEvents& collisionEvents);
 
 private:

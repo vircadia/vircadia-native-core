@@ -35,10 +35,13 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 bool JurisdictionListener::queueJurisdictionRequest() {
     static unsigned char buffer[MAX_PACKET_SIZE];
     unsigned char* bufferOut = &buffer[0];
-    int sizeOut = populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    int sizeOut = nodeList->populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
-    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
             _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
             nodeCount++;

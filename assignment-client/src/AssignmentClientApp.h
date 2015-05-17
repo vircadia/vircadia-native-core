@@ -23,7 +23,7 @@ const QString CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION = "p";
 const QString ASSIGNMENT_NUM_FORKS_OPTION = "n";
 const QString ASSIGNMENT_MIN_FORKS_OPTION = "min";
 const QString ASSIGNMENT_MAX_FORKS_OPTION = "max";
-const QString PARENT_PID_OPTION = "ppid";
+const QString ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION = "monitor-port";
 
 
 class AssignmentClientApp : public QCoreApplication {

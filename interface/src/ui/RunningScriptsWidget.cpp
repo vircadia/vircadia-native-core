@@ -162,8 +162,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
 
     QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
-    int menuBarHeight = Menu::getInstance()->geometry().height();
-    int topMargin = titleBarHeight + menuBarHeight;
+    int topMargin = titleBarHeight;
 
     setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + topMargin,
                 size().width(), parentWidget()->height() - topMargin);

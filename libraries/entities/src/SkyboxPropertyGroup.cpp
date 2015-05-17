@@ -21,13 +21,13 @@ SkyboxPropertyGroup::SkyboxPropertyGroup() {
 }
 
 void SkyboxPropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_COLOR(Skybox, skybox, Color, color);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, Color, color);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, URL, url);
 }
 
 void SkyboxPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_COLOR(skybox, color, setColor);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_STRING(skybox, url, setURL);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, color, xColor, setColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, url, QString, setURL);
 }
 
 void SkyboxPropertyGroup::debugDump() const {
@@ -45,8 +45,8 @@ bool SkyboxPropertyGroup::appentToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, appendValue, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, getURL());
 
     return true;
 }
@@ -57,8 +57,8 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
     int bytesRead = 0;
     bool overwriteLocalData = true;
 
-    READ_ENTITY_PROPERTY_XCOLOR(PROP_SKYBOX_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_SKYBOX_URL, setURL);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_COLOR, Color);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_URL, URL);
@@ -115,8 +115,8 @@ void SkyboxPropertyGroup::appendSubclassData(OctreePacketData* packetData, Encod
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, appendValue, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_URL, getURL());
 }
 
 int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -126,8 +126,8 @@ int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* d
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_XCOLOR(PROP_SKYBOX_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_SKYBOX_URL, setURL);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     return bytesRead;
 }
