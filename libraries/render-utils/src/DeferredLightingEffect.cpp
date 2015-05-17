@@ -89,7 +89,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
-    lp->setAmbientSpherePreset(model::SphericalHarmonics::Preset(_ambientLightMode % model::SphericalHarmonics::NUM_PRESET));
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -291,13 +291,11 @@ void DeferredLightingEffect::render() {
         auto globalLight = _allocatedLights[_globalLights.front()];
     
         if (locations->ambientSphere >= 0) {
-            model::SphericalHarmonics sh;
-            if (useSkyboxCubemap) {
-                sh = _skybox->getIrradianceSH(); 
-            } else {
-                sh = globalLight->getAmbientSphere();
+            gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
+            if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
+                sh = (*_skybox->getCubemap()->getIrradiance());
             }
-            for (int i =0; i <model::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+            for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
                 program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
             }
         }
@@ -590,10 +588,10 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= 0) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < gpu::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
-        light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+        light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(preset % gpu::SphericalHarmonics::NUM_PRESET));
     } else {
         // force to preset 0
         setAmbientLightMode(0);

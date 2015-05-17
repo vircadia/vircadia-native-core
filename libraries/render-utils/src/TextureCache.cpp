@@ -348,7 +348,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply, const QUrl& url = QUrl(),
+    ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply, const QUrl& url = QUrl(),
         const QByteArray& content = QByteArray());
     
     virtual void run();
@@ -356,14 +356,25 @@ public:
 private:
     
     QWeakPointer<Resource> _texture;
+    TextureType _type;
     QNetworkReply* _reply;
     QUrl _url;
     QByteArray _content;
 };
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply,
+void NetworkTexture::downloadFinished(QNetworkReply* reply) {
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, reply));
+}
+
+void NetworkTexture::loadContent(const QByteArray& content) {
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, NULL, _url, content));
+}
+
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply,
         const QUrl& url, const QByteArray& content) :
     _texture(texture),
+    _type(type),
     _reply(reply),
     _url(url),
     _content(content) {
@@ -380,6 +391,41 @@ void listSupportedImageFormats() {
         qCDebug(renderutils) << "List of supported Image formats:" << formats;
     });
 }
+
+
+class CubeLayout {
+public:
+    int _widthRatio = 1;
+    int _heightRatio = 1;
+ 
+    class Face {
+    public:
+        int _x = 0;
+        int _y = 0;
+        bool _horizontalMirror = false;
+        bool _verticalMirror = false;
+
+        Face() {}
+        Face(int x, int y, bool horizontalMirror, bool verticalMirror) : _x(x), _y(y), _horizontalMirror(horizontalMirror), _verticalMirror(verticalMirror) {}
+    };
+                
+    Face _faceXPos;
+    Face _faceXNeg;
+    Face _faceYPos;
+    Face _faceYNeg;
+    Face _faceZPos;
+    Face _faceZNeg;
+ 
+    CubeLayout(int wr, int hr, Face fXP, Face fXN, Face fYP, Face fYN, Face fZP, Face fZN) :
+            _widthRatio(wr),
+            _heightRatio(hr),
+            _faceXPos(fXP),
+            _faceXNeg(fXN),
+            _faceYPos(fYP),
+            _faceYNeg(fYN),
+            _faceZPos(fZP),
+            _faceZNeg(fZN) {}
+};
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
@@ -436,12 +482,18 @@ void ImageReader::run() {
         }
     }
     
+    int opaquePixels = 0;
+    int translucentPixels = 0;
+    bool isTransparent = false;
+    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        int redTotal = 0, greenTotal = 0, blueTotal = 0;
+       // int redTotal = 0, greenTotal = 0, blueTotal = 0;
         for (int y = 0; y < image.height(); y++) {
             for (int x = 0; x < image.width(); x++) {
                 QRgb rgb = image.pixel(x, y);
@@ -450,69 +502,46 @@ void ImageReader::run() {
                 blueTotal += qBlue(rgb);
             }
         }
-        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
         if (imageArea > 0) {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
-        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-        return;
-    }
-    if (image.format() != QImage::Format_ARGB32) {
-        image = image.convertToFormat(QImage::Format_ARGB32);
-    }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
     
-    // check for translucency/false transparency
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    for (int y = 0; y < image.height(); y++) {
-        for (int x = 0; x < image.width(); x++) {
-            QRgb rgb = image.pixel(x, y);
-            redTotal += qRed(rgb);
-            greenTotal += qGreen(rgb);
-            blueTotal += qBlue(rgb);
-            int alpha = qAlpha(rgb);
-            alphaTotal += alpha;
-            if (alpha == EIGHT_BIT_MAXIMUM) {
-                opaquePixels++;
-            } else if (alpha != 0) {
-                translucentPixels++;
+        // check for translucency/false transparency
+       // int opaquePixels = 0;
+       // int translucentPixels = 0;
+       // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
+        for (int y = 0; y < image.height(); y++) {
+            for (int x = 0; x < image.width(); x++) {
+                QRgb rgb = image.pixel(x, y);
+                redTotal += qRed(rgb);
+                greenTotal += qGreen(rgb);
+                blueTotal += qBlue(rgb);
+                int alpha = qAlpha(rgb);
+                alphaTotal += alpha;
+                if (alpha == EIGHT_BIT_MAXIMUM) {
+                    opaquePixels++;
+                } else if (alpha != 0) {
+                    translucentPixels++;
+                }
             }
         }
+        if (opaquePixels == imageArea) {
+            qCDebug(renderutils) << "Image with alpha channel is completely opaque:" << _url;
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+
+        averageColor = QColor(redTotal / imageArea,
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
+
+        isTransparent = (translucentPixels >= imageArea / 2);
     }
-    if (opaquePixels == imageArea) {
-        qCDebug(renderutils) << "Image with alpha channel is completely opaque:" << _url;
-        image = image.convertToFormat(QImage::Format_RGB888);
-    }
-    QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)),
-        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-}
 
-void NetworkTexture::downloadFinished(QNetworkReply* reply) {
-    // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
-}
-
-void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
-}
-
-void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
-                              int originalHeight) {
-    _translucent = translucent;
-    _averageColor = averageColor;
-    _originalWidth = originalWidth;
-    _originalHeight = originalHeight;
-    _width = image.width();
-    _height = image.height();
-    
-    finishedLoading(true);
-    imageLoaded(image);
-
-    if ((_width > 0) && (_height > 0)) {
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
 
        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         bool isLinearRGB = !(_type == CUBE_TEXTURE); //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
@@ -525,11 +554,8 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         }
         
         if (_type == CUBE_TEXTURE) {
- 
-            std::vector<QImage> faces;
-            if (_height == (6 * _width)) {
-                int faceWidth = _width;
 
+            const CubeLayout CUBEMAP_LAYOUTS[] = {
                 // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
                 //
                 //         WIDTH
@@ -561,16 +587,14 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+
                 // 
                 //    FaceWidth = width = height / 6
-
-                faces.push_back(image.copy(QRect(0, 0 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 1 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                faces.push_back(image.copy(QRect(0, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                faces.push_back(image.copy(QRect(0, 4 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                faces.push_back(image.copy(QRect(0, 5 * faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-
-            } else if ((_height / 3) == (_width / 4)) {
-                int faceWidth = _height / 3;
+                {   1, 6,
+                    {0, 0, true, false},
+                    {0, 1, true, false},
+                    {0, 2, false, true},
+                    {0, 3, false, true},
+                    {0, 4, true, false},
+                    {0, 5, true, false}
+                },
 
                 // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
                 //
@@ -590,22 +614,14 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+------+------+------+
                 // 
                 //    FaceWidth = width / 4 = height / 3
-
-                // Right = +X
-                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Left = -X
-                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Top = +Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
-                // Bottom = -Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Back = +Z
-                faces.push_back(image.copy(QRect(3 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Front = -Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-            
-            } else if ((_height / 4) == (_width / 3)) {
-                int faceWidth = _height / 4;
+                {   4, 3,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {3, 1, true, false},
+                    {1, 1, true, false}
+                },
 
                 // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
                 //
@@ -629,36 +645,95 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
                 //    V  +------+------+------+
                 // 
                 //    FaceWidth = width / 3 = height / 4
+                {   3, 4,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {1, 3, false, true},
+                    {1, 1, true, false}
+                }
+            };
+            const int NUM_CUBEMAP_LAYOUTS = sizeof(CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
-                // Right = +X
-                faces.push_back(image.copy(QRect(2 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Left = -X
-                faces.push_back(image.copy(QRect(0 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-                // Top = +Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 0, faceWidth, faceWidth)).mirrored(false, true));
-                // Bottom = -Y
-                faces.push_back(image.copy(QRect(1 * faceWidth, 2 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Back = +Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, 3 * faceWidth, faceWidth, faceWidth)).mirrored(false, true));
-                // Front = -Z
-                faces.push_back(image.copy(QRect(1 * faceWidth, faceWidth, faceWidth, faceWidth)).mirrored(true, false));
-            }
-
-            if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
-                _gpuTexture = gpu::TexturePointer(gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
-                _gpuTexture->autoGenerateMips(-1);
-                int f = 0;
-                for (auto& face : faces) {
-                    _gpuTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
-                    f++;
+            // Find the layout of the cubemap in the 2D image
+            int foundLayout = -1;
+            for (int i = 0; i < NUM_CUBEMAP_LAYOUTS; i++) {
+                if ((image.height() * CUBEMAP_LAYOUTS[i]._widthRatio) == (image.width() * CUBEMAP_LAYOUTS[i]._heightRatio)) {
+                    foundLayout = i;
+                    break;
                 }
             }
+
+            std::vector<QImage> faces;
+            // If found, go extract the faces as separate images
+            if (foundLayout >= 0) {
+                auto& layout = CUBEMAP_LAYOUTS[foundLayout];
+                int faceWidth = image.width() / layout._widthRatio;
+
+                faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+            } else {
+                qCDebug(renderutils) << "Failed to find a known cube map layout from this image:" << _url;
+                return;
+            }
+
+            // If the 6 faces have been created go on and define the true Texture
+            if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
+                theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                theTexture->autoGenerateMips(-1);
+                int f = 0;
+                for (auto& face : faces) {
+                    theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
+                    f++;
+                }
+                
+                // GEnerate irradiance while we are at it
+                theTexture->generateIrradiance();
+            }
+
         } else {
-            _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-            _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-            _gpuTexture->autoGenerateMips(-1);
+            theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+            theTexture->autoGenerateMips(-1);
         }
     }
+
+    QMetaObject::invokeMethod(texture.data(), "setImage", 
+        Q_ARG(const QImage&, image),
+        Q_ARG(void*, theTexture),
+        Q_ARG(bool, isTransparent),
+        Q_ARG(const QColor&, averageColor),
+        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
+
+
+}
+
+void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight) {
+    _translucent = translucent;
+    _averageColor = averageColor;
+    _originalWidth = originalWidth;
+    _originalHeight = originalHeight;
+    
+    gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
+    // Passing ownership
+    _gpuTexture.reset(texture);
+
+    if (_gpuTexture) {
+        _width = _gpuTexture->getWidth();
+        _height = _gpuTexture->getHeight(); 
+    } else {
+        _width = _height = 0;
+    }
+    
+    finishedLoading(true);
+
+    imageLoaded(image);
 }
 
 void NetworkTexture::imageLoaded(const QImage& image) {

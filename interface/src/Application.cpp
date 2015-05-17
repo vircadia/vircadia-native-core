@@ -885,6 +885,10 @@ void Application::paintGL() {
         _myCamera.update(1.0f / _fps);
     }
 
+    // Sync up the View Furstum with the camera
+    // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
+    loadViewFrustum(_myCamera, _viewFrustum);
+
     if (getShadowsEnabled()) {
         updateShadowMap();
     }
