@@ -148,6 +148,13 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
     return _blueTexture;
 }
 
+const gpu::TexturePointer& TextureCache::getNormalFittingScaleTexture() {
+    if (!_NFSTexture) {
+        _NFSTexture = getTexture(QUrl("http://advances.realtimerendering.com/s2010/Kaplanyan-CryEngine3(SIGGRAPH%202010%20Advanced%20RealTime%20Rendering%20Course)-NormalsFittingTexture.dds"));
+    }
+    return _NFSTexture->getGPUTexture();
+}
+
 /// Extra data for creating textures.
 class TextureExtra {
 public:

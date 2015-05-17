@@ -111,6 +111,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingScaleMap"), 4));
+
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
     
@@ -186,6 +188,7 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
+    locations.normalFittingScaleMapUnit = program->getTextures().findLocation("normalFittingScaleMap");
 
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
@@ -2148,6 +2151,10 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
+    }
+
+    if ((locations->normalFittingScaleMapUnit > -1)) {
+       batch.setUniformTexture(locations->normalFittingScaleMapUnit, DependencyManager::get<TextureCache>()->getNormalFittingScaleTexture());
     }
 }
 
