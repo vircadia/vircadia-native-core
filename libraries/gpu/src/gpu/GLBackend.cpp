@@ -76,10 +76,12 @@ GLBackend::GLBackend() :
     _output()
 {
     initTransform();
+    initInput();
 }
 
 GLBackend::~GLBackend() {
     killTransform();
+    killInput();
 }
 
 void GLBackend::render(Batch& batch) {

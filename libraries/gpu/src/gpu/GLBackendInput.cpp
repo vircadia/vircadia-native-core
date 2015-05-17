@@ -46,6 +46,18 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 };
 #endif
 
+void GLBackend::initInput() {
+    killInput();
+}
+
+void GLBackend::killInput() {
+    // Disable client states and set buffers to 0
+    _input._format = Stream::FormatPointer(new Stream::Format());
+    _input._attributeActivation.set();
+    updateInput();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
 void GLBackend::updateInput() {
     if (_input._invalidFormat || _input._buffersState.any()) {
 
@@ -69,8 +81,7 @@ void GLBackend::updateInput() {
                     if (i < NUM_CLASSIC_ATTRIBS) {
                         if (newState) {
                             glEnableClientState(attributeSlotToClassicAttribName[i]);
-                        }
-                        else {
+                        } else {
                             glDisableClientState(attributeSlotToClassicAttribName[i]);
                         }
                     } else {
@@ -147,6 +158,9 @@ void GLBackend::updateInput() {
                     }
                 }
             }
+        } else {
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            (void) CHECK_GL_ERROR();
         }
         // everything format related should be in sync now
         _input._invalidFormat = false;

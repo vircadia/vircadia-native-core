@@ -200,7 +200,9 @@ protected:
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
-
+    
+    void initInput();
+    void killInput();
     void updateInput();
     struct InputStageState {
         bool _invalidFormat;
@@ -238,7 +240,7 @@ protected:
     void do_setModelTransform(Batch& batch, uint32 paramOffset);
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
-
+    
     void initTransform();
     void killTransform();
     void updateTransform();
