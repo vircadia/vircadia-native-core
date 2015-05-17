@@ -85,8 +85,8 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     if (_entityTree) {
         _entityTree->lockForWrite();
         EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
-        entity->setLastBroadcast(usecTimestampNow());
         if (entity) {
+            entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             bidForSimulationOwnership(propertiesWithSimID);
         } else {
