@@ -102,9 +102,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 updateGeometry();
                 
                 if (_model && _model->isActive()) {
-                    glPushMatrix();
                     _model->renderInScene(getLocalRenderAlpha(), args);
-                    glPopMatrix();
                 }
                 break;
             }
