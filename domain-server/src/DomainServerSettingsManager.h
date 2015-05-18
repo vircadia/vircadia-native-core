@@ -20,6 +20,9 @@
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
+const QString SETTINGS_PATH = "/settings";
+const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
+
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:
@@ -30,6 +33,7 @@ public:
     void setupConfigMap(const QStringList& argumentList);
     QVariant valueOrDefaultValueForKeyPath(const QString& keyPath);
 
+    QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
