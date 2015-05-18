@@ -34,17 +34,11 @@ public:
 
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
-    void clearCubemap();
-
-    const SphericalHarmonics& getIrradianceSH() const;
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
     gpu::TexturePointer _cubemap;
- 
-    mutable SphericalHarmonics _irradianceSH;
-    mutable bool _isSHValid = false;
 
     Color _color{1.0f, 1.0f, 1.0f};
 };

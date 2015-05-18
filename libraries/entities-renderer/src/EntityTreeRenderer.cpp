@@ -462,7 +462,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                  if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
                     stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
-                        stage->getSkybox()->clearCubemap();
+                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
                     } else {
                         // Update the Texture of the Skybox with the one pointed by this zone
                         auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
@@ -1111,6 +1111,9 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    if (!entity) {
+        return;
+    }
     QUuid simulatorID = entity->getSimulatorID();
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
@@ -1124,20 +1127,24 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    const float COLLISION_ENERGY_AT_FULL_VOLUME = 1.0f;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
     const float COLLISION_MINIMUM_VOLUME = 0.001f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
 
-    SharedSoundPointer sound = DependencyManager::get<SoundCache>().data()->getSound(QUrl(collisionSoundURL));
-    if (!sound->isReady()) {
+    auto soundCache = DependencyManager::get<SoundCache>();
+    if (soundCache.isNull()) {
+        return;
+    }
+    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
+    if (sound.isNull() || !sound->isReady()) {
         return;
     }
 
     // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
-    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.95f;
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
     float volume = energyFactorOfFull;
     volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
     
@@ -1148,6 +1155,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     options.volume = volume;
     AudioInjector* injector = new AudioInjector(sound.data(), options);
     injector->setLocalAudioInterface(_localAudioInterface);
+    injector->triggerDeleteAfterFinish();
     QThread* injectorThread = new QThread();
     injectorThread->setObjectName("Audio Injector Thread");
     injector->moveToThread(injectorThread);
@@ -1168,7 +1176,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
     // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
     // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
-    const float COLLISION_MINUMUM_PENETRATION = 0.001;
+    const float COLLISION_MINUMUM_PENETRATION = 0.005;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
