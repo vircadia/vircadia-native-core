@@ -17,7 +17,7 @@ var FIELD_LENGTH = 1.92;
 var FLOOR_THICKNESS = 0.20;
 var EDGE_THICKESS = 0.10;
 var EDGE_HEIGHT = 0.10;
-var DROP_HEIGHT = 0.3;
+var DROP_HEIGHT = 0.25;
 var PUCK_SIZE = 0.15;
 var PUCK_THICKNESS = 0.05;
 var PADDLE_SIZE = 0.15;
@@ -72,7 +72,7 @@ var floorFriction = 0.01;
 
 var paddle1Pos, paddle2Pos;
 // use some names that wont collide with other content
-var names = ["air-hockey-table-23j4h1jh82jsjfw91jf232n2k",
+var names = ["air-hockey-table-23j4h1jh82jsjfw91jf232n2k", // keep this synchronized with what's in grabHockey.js
              "air-hockey-paddle-23j4h1jh82jsjfw91jf232n2k",
              "air-hockey-puck-23j4h1jh82jsjfw91jf232n2k",
              "air-hockey-light-23j4h1jh82jsjfw91jf232n2k"];

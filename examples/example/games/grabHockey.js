@@ -144,7 +144,8 @@ function mousePressEvent(event) {
     var potentialTables = Entities.findEntities(MyAvatar.position, TABLE_SEARCH_RANGE);
     potentialTables.forEach(function(table) {
       var props = Entities.getEntityProperties(table);
-      if (props.name === "table") {
+      // keep this name synchronized with what's in airHockey.js
+      if (props.name === "air-hockey-table-23j4h1jh82jsjfw91jf232n2k") {
         var tablePosition = props.position;
         // when we know the table's position we can compute the X-Z bounds of its field
         fieldMax = Vec3.sum(tablePosition, fieldMaxOffset);
