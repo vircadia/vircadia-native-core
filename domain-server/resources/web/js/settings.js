@@ -808,7 +808,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   // populate rows in the table from existing values
   var row_num = 1;
 
-  if (setting_value.length > 0) {
+  if (keypath.length > 0 && _.size(setting_value) > 0) {
     _.each(setting_value, function(row, indexOrName) {
       html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + indexOrName + "'") + ">"
 
