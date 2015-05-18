@@ -77,7 +77,6 @@ public slots:
     glm::quat getOrientation() const { return getRotation(); }
     
     PickRay computePickRay(float x, float y);
-    PickRay computeViewPickRay(float xRatio, float yRatio);
 
     // These only work on independent cameras
     /// one time change to what the camera is looking at

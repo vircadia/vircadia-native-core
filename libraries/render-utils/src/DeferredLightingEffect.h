@@ -15,7 +15,7 @@
 #include <QVector>
 
 #include <DependencyManager.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "ProgramObject.h"
 
@@ -53,6 +53,10 @@ public:
 
     //// Renders a wireframe cube with the simple program.
     void renderWireCube(float size, const glm::vec4& color);
+
+    //// Renders a line with the simple program.
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2);
 
     //// Renders a solid cone with the simple program.
     void renderSolidCone(float base, float height, int slices, int stacks);
@@ -101,6 +105,13 @@ private:
     ProgramObject _simpleProgram;
     int _glowIntensityLocation;
     
+    ProgramObject _directionalSkyboxLight;
+    LightLocations _directionalSkyboxLightLocations;
+    ProgramObject _directionalSkyboxLightShadowMap;
+    LightLocations _directionalSkyboxLightShadowMapLocations;
+    ProgramObject _directionalSkyboxLightCascadedShadowMap;
+    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+
     ProgramObject _directionalAmbientSphereLight;
     LightLocations _directionalAmbientSphereLightLocations;
     ProgramObject _directionalAmbientSphereLightShadowMap;

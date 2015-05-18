@@ -61,13 +61,12 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     }
 }
 
-
-
-void setSimId(EntityItemProperties& propertiesWithSimID, EntityItem* entity) {
+void bidForSimulationOwnership(EntityItemProperties& properties) {
+    // We make a bid for simulation ownership by declaring our sessionID as simulation owner 
+    // in the outgoing properties.  The EntityServer may accept the bid or might not.
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
-    propertiesWithSimID.setSimulatorID(myNodeID);
-    entity->setSimulatorID(myNodeID);
+    properties.setSimulatorID(myNodeID);
 }
 
 
@@ -87,8 +86,9 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
         _entityTree->lockForWrite();
         EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
         if (entity) {
+            entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-            setSimId(propertiesWithSimID, entity);
+            bidForSimulationOwnership(propertiesWithSimID);
         } else {
             qCDebug(entities) << "script failed to add new Entity to local Octree";
             success = false;
@@ -162,28 +162,31 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
         }
     }
 
-    EntityItemProperties propertiesWithSimID = properties;
-
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, propertiesWithSimID, canAdjustLocks());
+        _entityTree->updateEntity(entityID, properties);
         _entityTree->unlock();
     }
 
     // if at this point, we know the id, send the update to the entity server
     if (entityID.isKnownID) {
         // make sure the properties has a type, so that the encode can know which properties to include
-        if (propertiesWithSimID.getType() == EntityTypes::Unknown) {
+        if (properties.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                propertiesWithSimID.setType(entity->getType());
-                setSimId(propertiesWithSimID, entity);
+                // we need to change the outgoing properties, so we make a copy, modify, and send.
+                EntityItemProperties modifiedProperties = properties;
+                entity->setLastBroadcast(usecTimestampNow());
+                modifiedProperties.setType(entity->getType());
+                bidForSimulationOwnership(modifiedProperties);
+                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
+                return entityID;
             }
         }
 
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, propertiesWithSimID);
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
     return entityID;
@@ -322,6 +325,14 @@ void EntityScriptingInterface::setZonesArePickable(bool value) {
 
 bool EntityScriptingInterface::getZonesArePickable() const {
     return ZoneEntityItem::getZonesArePickable();
+}
+
+void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
+    ZoneEntityItem::setDrawZoneBoundaries(value);
+}
+
+bool EntityScriptingInterface::getDrawZoneBoundaries() const {
+    return ZoneEntityItem::getDrawZoneBoundaries();
 }
 
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {

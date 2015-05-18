@@ -10,6 +10,7 @@
 //
 #include "GPULogging.h"
 #include "GLBackendShared.h"
+#include <glm/gtc/type_ptr.hpp>
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -17,7 +18,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexed),
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
-
+    (&::gpu::GLBackend::do_clearFramebuffer),
+    
     (&::gpu::GLBackend::do_setInputFormat),
     (&::gpu::GLBackend::do_setInputBuffer),
     (&::gpu::GLBackend::do_setIndexBuffer),
@@ -169,6 +171,39 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
+
+void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+
+    uint32 masks = batch._params[paramOffset + 6]._uint;
+    Vec4 color;
+    color.x = batch._params[paramOffset + 5]._float;
+    color.y = batch._params[paramOffset + 4]._float;
+    color.z = batch._params[paramOffset + 3]._float;
+    color.w = batch._params[paramOffset + 2]._float;
+    float depth = batch._params[paramOffset + 1]._float;
+    int stencil = batch._params[paramOffset + 0]._float;
+
+    GLuint glmask = 0;
+    if (masks & Framebuffer::BUFFER_DEPTH) {
+        glClearStencil(stencil);
+        glmask |= GL_STENCIL_BUFFER_BIT;
+    }
+
+    if (masks & Framebuffer::BUFFER_DEPTH) {
+        glClearDepth(depth);
+        glmask |= GL_DEPTH_BUFFER_BIT;
+    } 
+
+    if (masks & Framebuffer::BUFFER_COLORS) {
+        glClearColor(color.x, color.y, color.z, color.w);
+        glmask |= GL_COLOR_BUFFER_BIT;
+    }
+
+    glClear(glmask);
+
+    (void) CHECK_GL_ERROR();
+}
+
 
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
@@ -486,4 +521,30 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
 }
+
+void GLBackend::loadMatrix(GLenum target, const glm::mat4 & m) {
+    glMatrixMode(target);
+    glLoadMatrixf(glm::value_ptr(m));
+}
+
+void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
+    switch (target) {
+    case GL_MODELVIEW_MATRIX:
+    case GL_PROJECTION_MATRIX:
+        break;
+
+    // Lazy cheating
+    case GL_MODELVIEW:
+        target = GL_MODELVIEW_MATRIX;
+        break;
+    case GL_PROJECTION:
+        target = GL_PROJECTION_MATRIX;
+        break;
+    default:
+        Q_ASSERT_X(false, "GLBackend::fetchMatrix", "Bad matrix target");
+    }
+    glGetFloatv(target, glm::value_ptr(m));
+}
+
+
 

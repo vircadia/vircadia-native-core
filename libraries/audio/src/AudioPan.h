@@ -12,6 +12,10 @@
 #ifndef hifi_AudioPan_h
 #define hifi_AudioPan_h
 
+#include <NumericalConstants.h>
+
+#include "AudioFormat.h"
+
 class AudioPan
 {
     float32_t _pan;

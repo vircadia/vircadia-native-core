@@ -32,14 +32,20 @@ public:
                             QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
                             quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
-    
+
     void stopChildProcesses();
 private slots:
     void readPendingDatagrams();
     void checkSpares();
+    void childProcessFinished();
+    
+public slots:
+    void aboutToQuit();
 
 private:
     void spawnChildClient();
+    void simultaneousWaitOnChildren(int waitMsecs);
+
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 
     const unsigned int _numAssignmentClientForks;
@@ -52,6 +58,7 @@ private:
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
 
+    QMap<qint64, QProcess*> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QNetworkAccessManager>
+#include <QNetworkConfiguration>
 #include <QNetworkReply>
 #include <QObject>
 
@@ -35,7 +36,7 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
         isPending = true;
         bool alreadyWaiting = _scriptUsers.contains(url);
         _scriptUsers.insert(url, scriptUser);
-        
+
         if (alreadyWaiting) {
             qCDebug(scriptengine) << "Already downloading script at:" << url.toString();
         } else {
@@ -43,7 +44,7 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
-            qCDebug(scriptengine) << "Downloading script at:" << url.toString();
+            qCDebug(scriptengine) << "Downloading script at" << url.toString();
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
         }
@@ -56,7 +57,7 @@ void ScriptCache::scriptDownloaded() {
     QUrl url = reply->url();
     QList<ScriptUser*> scriptUsers = _scriptUsers.values(url);
     _scriptUsers.remove(url);
-    
+
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
         _scriptCache[url] = reply->readAll();
         qCDebug(scriptengine) << "Done downloading script at:" << url.toString();
@@ -65,7 +66,9 @@ void ScriptCache::scriptDownloaded() {
             user->scriptContentsAvailable(url, _scriptCache[url]);
         }
     } else {
-        qCDebug(scriptengine) << "ERROR Loading file:" << reply->url().toString();
+        qCWarning(scriptengine) << "Error loading script from URL " << reply->url().toString()
+            << "- HTTP status code is" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
+            << "and error from QNetworkReply is" << reply->errorString();
         foreach(ScriptUser* user, scriptUsers) {
             user->errorInLoadingScript(url);
         }
@@ -73,4 +76,4 @@ void ScriptCache::scriptDownloaded() {
     reply->deleteLater();
 }
 
-    
+

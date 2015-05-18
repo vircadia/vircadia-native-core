@@ -23,12 +23,13 @@ MenuItemProperties::MenuItemProperties() :
     beforeItem(""),
     afterItem(""),
     isCheckable(false),
-    isChecked(false)
+    isChecked(false),
+    isSeparator(false) 
 {
 };
 
 MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName,
-                        const QString& shortcutKey, bool checkable, bool checked) :
+                        const QString& shortcutKey, bool checkable, bool checked, bool separator) :
     menuName(menuName),
     menuItemName(menuItemName),
     shortcutKey(shortcutKey),
@@ -38,12 +39,13 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
-    isChecked(checked)
+    isChecked(checked),
+    isSeparator(separator)
 {
 }
 
 MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName, 
-                        const KeyEvent& shortcutKeyEvent, bool checkable, bool checked) :
+                        const KeyEvent& shortcutKeyEvent, bool checkable, bool checked, bool separator) :
     menuName(menuName),
     menuItemName(menuItemName),
     shortcutKey(""),
@@ -53,7 +55,8 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     beforeItem(""),
     afterItem(""),
     isCheckable(checkable),
-    isChecked(checked)
+    isChecked(checked),
+    isSeparator(separator)
 {
 }
 

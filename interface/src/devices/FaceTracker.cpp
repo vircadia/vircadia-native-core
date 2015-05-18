@@ -15,14 +15,14 @@
 
 #include "FaceTracker.h"
 #include "InterfaceLogging.h"
+#include "Menu.h"
 
 const int FPS_TIMER_DELAY = 2000;  // ms
 const int FPS_TIMER_DURATION = 2000;  // ms
 
-FaceTracker::FaceTracker() :
-    _isCalculatingFPS(false),
-    _frameCount(0)
-{
+void FaceTracker::init() {
+    _isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+    _isInitialized = true;  // FaceTracker can be used now
 }
 
 inline float FaceTracker::getBlendshapeCoefficient(int index) const {
@@ -100,4 +100,9 @@ void FaceTracker::countFrame() {
 void FaceTracker::finishFPSTimer() {
     qCDebug(interfaceapp) << "Face tracker FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
     _isCalculatingFPS = false;
+}
+
+void FaceTracker::toggleMute() {
+    _isMuted = !_isMuted;
+    emit muteToggled();
 }

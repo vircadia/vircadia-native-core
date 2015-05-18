@@ -117,6 +117,9 @@ public:
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
     
+    void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
+    bool isWireframe() const { return _isWireframe; }
+    
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
     
@@ -352,6 +355,7 @@ private:
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
     bool _meshGroupsKnown;
+    bool _isWireframe;
 
 
     // debug rendering support
@@ -368,23 +372,23 @@ private:
     // helper functions used by render() or renderInScene()
     void renderSetup(RenderArgs* args);
     bool renderCore(float alpha, RenderArgs::RenderMode mode, RenderArgs* args);
-    int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold, 
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
+    int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
+                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
                         bool forceRenderMeshes = false);
                         
     void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
+    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                                         RenderArgs* args, Locations* locations, 
                                         bool forceRenderSomeMeshes = false);
 
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
 
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args);
 
 
     static AbstractViewStateInterface* _viewState;
@@ -402,7 +406,8 @@ private:
             IS_DEPTH_ONLY_FLAG,
             IS_SHADOW_FLAG,
             IS_MIRROR_FLAG, //THis means that the mesh is rendered mirrored, not the same as "Rear view mirror"
-
+            IS_WIREFRAME_FLAG,
+             
             NUM_FLAGS,
         };
         
@@ -417,7 +422,7 @@ private:
             IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
             IS_SHADOW = (1 << IS_SHADOW_FLAG),
             IS_MIRROR = (1 << IS_MIRROR_FLAG),
-
+            IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG),
         };
         typedef unsigned short Flags;
 
@@ -435,6 +440,7 @@ private:
         bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
         bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
         bool isMirror() const { return isFlag(IS_MIRROR); }
+        bool isWireFrame() const { return isFlag(IS_WIREFRAME); }
 
         Flags _flags = 0;
         short _spare = 0;
@@ -444,22 +450,24 @@ private:
 
         RenderKey(
             bool translucent, bool hasLightmap,
-            bool hasTangents, bool hasSpecular, bool isSkinned) :
+            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
             RenderKey(  (translucent ? IS_TRANSLUCENT : 0)
                       | (hasLightmap ? HAS_LIGHTMAP : 0)
                       | (hasTangents ? HAS_TANGENTS : 0)
                       | (hasSpecular ? HAS_SPECULAR : 0)
                       | (isSkinned ? IS_SKINNED : 0)
+                      | (isWireframe ? IS_WIREFRAME : 0)
                      ) {}
 
         RenderKey(RenderArgs::RenderMode mode,
             bool translucent, float alphaThreshold, bool hasLightmap,
-            bool hasTangents, bool hasSpecular, bool isSkinned) :
+            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
             RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
                       | (hasLightmap && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
                       | (hasTangents && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
                       | (hasSpecular && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
                       | (isSkinned ? IS_SKINNED : 0)
+                      | (isWireframe ? IS_WIREFRAME : 0)
                       | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
                       | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_SHADOW : 0)
                       | ((mode == RenderArgs::MIRROR_RENDER_MODE) ? IS_MIRROR :0)

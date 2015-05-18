@@ -282,7 +282,6 @@ Menu::Menu() {
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
@@ -369,8 +368,12 @@ Menu::Menu() {
     {
         QActionGroup* faceTrackerGroup = new QActionGroup(avatarDebugMenu);
 
+        bool defaultNoFaceTracking = true;
+#ifdef HAVE_DDE
+        defaultNoFaceTracking = false;
+#endif
         QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
-            0, true,
+            0, defaultNoFaceTracking,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
@@ -382,17 +385,28 @@ Menu::Menu() {
 #endif
 #ifdef HAVE_DDE
         QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera, 
-            0, false,
+            0, true,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* binaryEyelidControl = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::BinaryEyelidControl, 0, true);
+    binaryEyelidControl->setVisible(true);  // DDE face tracking is on by default
     QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
-    useAudioForMouth->setVisible(false);
+    useAudioForMouth->setVisible(true);  // DDE face tracking is on by default
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
-    ddeFiltering->setVisible(false);
+    ddeFiltering->setVisible(true);  // DDE face tracking is on by default
+    QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
+        DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
+    ddeCalibrate->setVisible(true);  // DDE face tracking is on by default
+#endif
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
+    faceTrackingMenu->addSeparator();
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking, 
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
+        qApp, SLOT(toggleFaceTrackerMute()));
 #endif
     
     auto avatarManager = DependencyManager::get<AvatarManager>(); 
@@ -439,7 +453,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
 #ifdef HAVE_RSSDK
-    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    MenuWrapper* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
     addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
                                   RealSense::getInstance(), SLOT(loadRSSDKFile()));
 #endif

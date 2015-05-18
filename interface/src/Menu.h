@@ -149,11 +149,13 @@ namespace MenuOption {
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
+    const QString CalibrateCamera = "Calibrate Camera";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
@@ -181,7 +183,7 @@ namespace MenuOption {
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
+    const QString EnableGlowEffect = "Enable Glow Effect";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
@@ -211,9 +213,9 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
+    const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
-    const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";

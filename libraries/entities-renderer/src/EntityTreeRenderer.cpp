@@ -25,6 +25,8 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <TextureCache.h>
+#include <SoundCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -34,7 +36,9 @@
 #include "RenderableParticleEffectEntityItem.h"
 #include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
+#include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
+#include "RenderableLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -43,6 +47,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
+    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -56,8 +61,10 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, RenderableWebEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
@@ -141,7 +148,9 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
-    if (!url.isValid()) {
+    // We document "direct injection" scripts as starting with "(function...", and that would never be a valid url.
+    // But QUrl thinks it is.
+    if (!url.isValid() || scriptMaybeURLorText.startsWith("(")) {
         isURL = false;
         return scriptMaybeURLorText;
     }
@@ -392,8 +401,8 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
 
-        RenderArgs args = { this, frustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
-                            renderDebugFlags, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
+                        renderMode, renderSide, renderDebugFlags);
 
         _tree->lockForRead();
 
@@ -422,11 +431,49 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
             scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
             scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
             scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageLongitude(), _bestZone->getStageLatitude(),
-                                    _bestZone->getStageAltitude());
-            scene->setStageDayTime(_bestZone->getStageHour());
-            scene->setStageYearTime(_bestZone->getStageDay());
+            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
+            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
+                                    _bestZone->getStageProperties().getAltitude());
+            scene->setStageDayTime(_bestZone->getStageProperties().calculateHour());
+            scene->setStageYearTime(_bestZone->getStageProperties().calculateDay());
+
+            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+                EnvironmentData data = _bestZone->getEnvironmentData();
+                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+                
+                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
+                //       atmosphere, not where the camera is.
+                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
+                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+                                                
+                data.setSunLocation(keyLightLocation);
+
+                const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+                data.setSunBrightness(sunBrightness);
+
+                _viewState->overrideEnvironmentData(data);
+                scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
+            } else {
+                _viewState->endOverrideEnvironmentData();
+                auto stage = scene->getSkyStage();
+                 if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
+                    stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
+                    if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
+                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
+                    } else {
+                        // Update the Texture of the Skybox with the one pointed by this zone
+                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
+                    }
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+                } else {
+                    stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+                }
+            }
+
         } else {
             if (_hasPreviousZone) {
                 scene->setKeyLightColor(_previousKeyLightColor);
@@ -440,6 +487,8 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                 scene->setStageYearTime(_previousStageDay);
                 _hasPreviousZone = false;
             }
+            _viewState->endOverrideEnvironmentData();
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
         }
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
@@ -641,8 +690,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
         if (entityItem->isVisible()) {
 
-            // NOTE: Zone Entities are a special case we handle here... Zones don't render
-            // like other entity types. So we will skip the normal rendering tests
+            // NOTE: Zone Entities are a special case we handle here...
             if (entityItem->getType() == EntityTypes::Zone) {
                 if (entityItem->contains(_viewState->getAvatarPosition())) {
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
@@ -663,42 +711,42 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                         }
                     }
                 }
-            } else {
-                // render entityItem 
-                AABox entityBox = entityItem->getAABox();
-        
-                // TODO: some entity types (like lights) might want to be rendered even
-                // when they are outside of the view frustum...
-                float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
+            }
             
-                bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-                if (!outOfView) {
-                    bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
+            // render entityItem
+            AABox entityBox = entityItem->getAABox();
+            
+            // TODO: some entity types (like lights) might want to be rendered even
+            // when they are outside of the view frustum...
+            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
+            
+            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
+            if (!outOfView) {
+                bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
                 
-                    if (bigEnoughToRender) {
-                        renderProxies(entityItem, args);
-
-                        Glower* glower = NULL;
-                        if (entityItem->getGlowLevel() > 0.0f) {
-                            glower = new Glower(entityItem->getGlowLevel());
-                        }
-                        entityItem->render(args);
-                        args->_itemsRendered++;
-                        if (glower) {
-                            delete glower;
-                        }
-                    } else {
-                        args->_itemsTooSmall++;
+                if (bigEnoughToRender) {
+                    renderProxies(entityItem, args);
+                    
+                    Glower* glower = NULL;
+                    if (entityItem->getGlowLevel() > 0.0f) {
+                        glower = new Glower(entityItem->getGlowLevel());
+                    }
+                    entityItem->render(args);
+                    args->_itemsRendered++;
+                    if (glower) {
+                        delete glower;
                     }
                 } else {
-                    args->_itemsOutOfView++;
+                    args->_itemsTooSmall++;
                 }
+            } else {
+                args->_itemsOutOfView++;
             }
         }
     }
 }
 
-float EntityTreeRenderer::getSizeScale() const { 
+float EntityTreeRenderer::getSizeScale() const {
     return _viewState->getSizeScale();
 }
 
@@ -802,9 +850,18 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
+        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
 
     connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
     connect(this, &EntityTreeRenderer::holdingClickOnEntity, entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity);
@@ -852,7 +909,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
-        emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -882,7 +939,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseReleaseOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -931,7 +988,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         }
 
         //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
-        emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
         }
@@ -1052,13 +1109,92 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
     }
 }
 
-void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
+    EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    if (!entity) {
+        return;
+    }
+    QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull() || (simulatorID != myNodeID)) {
+        return; // Only one injector per simulation, please.
+    }
+    const QString& collisionSoundURL = entity->getCollisionSoundURL();
+    if (collisionSoundURL.isEmpty()) {
+        return;
+    }
+    const float mass = entity->computeMass();
+    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
+    const float energy = mass * linearVelocity * linearVelocity / 2.0f;
+    const glm::vec3 position = collision.contactPoint;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+    if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
+        return;
+    }
+
+    auto soundCache = DependencyManager::get<SoundCache>();
+    if (soundCache.isNull()) {
+        return;
+    }
+    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
+    if (sound.isNull() || !sound->isReady()) {
+        return;
+    }
+
+    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
+    float volume = energyFactorOfFull;
+    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+    
+    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
+    AudioInjectorOptions options;
+    options.stereo = sound->isStereo();
+    options.position = position;
+    options.volume = volume;
+    AudioInjector* injector = new AudioInjector(sound.data(), options);
+    injector->setLocalAudioInterface(_localAudioInterface);
+    injector->triggerDeleteAfterFinish();
+    QThread* injectorThread = new QThread();
+    injectorThread->setObjectName("Audio Injector Thread");
+    injector->moveToThread(injectorThread);
+    // start injecting when the injector thread starts
+    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
+    // connect the right slots and signals for AudioInjector and thread cleanup
+    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
+    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
+    injectorThread->start();
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
                                                     const Collision& collision) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
         return;
     }
+    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
+    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
+    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
+        return;
+    }
+
+    // See if we should play sounds
+    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    if (!entityTree->tryLockForRead()) {
+        // I don't know why this can happen, but if it does,
+        // the consequences are a deadlock, so bail.
+        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
+        return;
+    }
+    const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
+    playEntityCollisionSound(myNodeID, entityTree, idA, collision);
+    playEntityCollisionSound(myNodeID, entityTree, idB, collision);
+    entityTree->unlock();
+
+    // And now the entity scripts
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;

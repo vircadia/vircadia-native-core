@@ -30,6 +30,7 @@ const float ENTITY_ITEM_DEFAULT_GLOW_LEVEL = 0.0f;
 const bool ENTITY_ITEM_DEFAULT_VISIBLE = true;
 
 const QString ENTITY_ITEM_DEFAULT_SCRIPT = QString("");
+const QString ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL = QString("");
 const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
 
 const float ENTITY_ITEM_IMMORTAL_LIFETIME = -1.0f; /// special lifetime which means the entity lives for ever
@@ -52,7 +53,17 @@ const glm::vec3 ENTITY_ITEM_DEFAULT_ACCELERATION = ENTITY_ITEM_ZERO_VEC3;
 const float ENTITY_ITEM_DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 const float ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 
+const float ENTITY_ITEM_MIN_RESTITUTION = 0.0f;
+const float ENTITY_ITEM_MAX_RESTITUTION = 0.99f;
+const float ENTITY_ITEM_DEFAULT_RESTITUTION = 0.5f;
+
+const float ENTITY_ITEM_MIN_FRICTION = 0.0f;
+const float ENTITY_ITEM_MAX_FRICTION = 0.99f;
+const float ENTITY_ITEM_DEFAULT_FRICTION = 0.5f;
+
 const bool ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE = false;
+
+const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
 
 #endif // hifi_EntityItemPropertiesDefaults_h

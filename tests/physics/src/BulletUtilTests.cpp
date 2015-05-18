@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include <BulletUtil.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "BulletUtilTests.h"
 

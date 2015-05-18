@@ -11,6 +11,8 @@
 
 #include "GLMHelpers.h"
 
+#include "NumericalConstants.h"
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -334,6 +336,10 @@ glm::vec4 toGlm(const QColor & color) {
 
 QMatrix4x4 fromGlm(const glm::mat4 & m) {
   return QMatrix4x4(&m[0][0]).transposed();
+}
+
+QSize fromGlm(const glm::ivec2 & v) {
+    return QSize(v.x, v.y);
 }
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {

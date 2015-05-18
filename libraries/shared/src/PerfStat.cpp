@@ -18,8 +18,8 @@
 
 #include "PerfStat.h"
 
+#include "NumericalConstants.h"
 #include "SharedLogging.h"
-#include "SharedUtil.h"
 
 // ----------------------------------------------------------------------------
 // PerformanceWarning

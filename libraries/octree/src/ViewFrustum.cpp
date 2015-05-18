@@ -17,9 +17,10 @@
 
 #include <QtCore/QDebug>
 
+#include <NumericalConstants.h>
+
 #include "GeometryUtil.h"
 #include "GLMHelpers.h"
-#include "SharedUtil.h"
 #include "ViewFrustum.h"
 #include "OctreeLogging.h"
 #include "OctreeConstants.h"
@@ -861,3 +862,7 @@ void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
     }
 }
 
+void ViewFrustum::evalViewTransform(Transform& view) const {
+    view.setTranslation(getPosition());
+    view.setRotation(getOrientation());
+}

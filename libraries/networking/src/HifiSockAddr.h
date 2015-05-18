@@ -29,26 +29,27 @@ public:
     HifiSockAddr(const HifiSockAddr& otherSockAddr);
     HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
     HifiSockAddr(const sockaddr* sockaddr);
-    
+
     bool isNull() const { return _address.isNull() && _port == 0; }
+    void clear() { _address = QHostAddress::Null; _port = 0;}
 
     HifiSockAddr& operator=(const HifiSockAddr& rhsSockAddr);
     void swap(HifiSockAddr& otherSockAddr);
-    
+
     bool operator==(const HifiSockAddr& rhsSockAddr) const;
     bool operator!=(const HifiSockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
-    
+
     const QHostAddress& getAddress() const { return _address; }
     QHostAddress* getAddressPointer() { return &_address; }
     void setAddress(const QHostAddress& address) { _address = address; }
-    
+
     quint16 getPort() const { return _port; }
     quint16* getPortPointer() { return &_port; }
     void setPort(quint16 port) { _port = port; }
-    
+
     static int packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr);
     static int unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr);
-    
+
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);

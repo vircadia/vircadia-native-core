@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ShapeInfo.h"
+
 #include <math.h>
 
-#include "SharedUtil.h" // for MILLIMETERS_PER_METER
-
-#include "ShapeInfo.h"
+#include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
 void ShapeInfo::clear() {
     _type = SHAPE_TYPE_NONE;

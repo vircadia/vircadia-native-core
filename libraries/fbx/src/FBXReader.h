@@ -12,6 +12,8 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
+#define USE_MODEL_MESH 1
+
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -154,6 +156,9 @@ public:
     bool hasEmissiveTexture() const;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
+#   if USE_MODEL_MESH
+    model::Mesh _mesh;
+#   endif
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -202,6 +207,16 @@ public:
     glm::vec3 position; // relative postion
     glm::quat rotation; // relative orientation
 };
+
+inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
+}
+
+inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
+}
 
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {

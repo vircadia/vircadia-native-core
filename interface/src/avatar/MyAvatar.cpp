@@ -42,7 +42,6 @@
 #include "Physics.h"
 #include "Recorder.h"
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 
@@ -230,12 +229,14 @@ void MyAvatar::simulate(float deltaTime) {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
     
-    if (isPlaying() && !OculusManager::isConnected()) {
+    bool inHmd = qApp->isHMDMode();
+    
+    if (isPlaying() && inHmd) {
         return;
     }
-    
-    if (OculusManager::isConnected()) {
-        estimatedPosition = OculusManager::getRelativePosition();
+
+    if (inHmd) {
+        estimatedPosition = qApp->getHeadPosition(); 
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
         
@@ -243,7 +244,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker) {
+        if (tracker && !tracker->isMuted()) {
             estimatedPosition = tracker->getHeadTranslation();
             _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
@@ -273,7 +274,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (OculusManager::isConnected() || isPlaying()) {
+    if (inHmd || isPlaying()) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
     } else {
@@ -293,7 +294,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if (OculusManager::isConnected() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if (inHmd && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
@@ -846,8 +847,9 @@ int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 }
 
 void MyAvatar::sendKillAvatar() {
-    QByteArray killPacket = byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
-    DependencyManager::get<NodeList>()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    auto nodeList = DependencyManager::get<NodeList>();
+    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
+    nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
@@ -882,8 +884,10 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 howManyLookingAtMe++;
                 //  Have that avatar look directly at my camera
                 //  Philip TODO: correct to look at left/right eye
-                if (OculusManager::isConnected()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
+                if (qApp->isHMDMode()) {
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                    // FIXME what is the point of this?
+                    // avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
                 } else {
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
                 }
@@ -1170,26 +1174,20 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
 
+
+    // HACK: comment this block which possibly change the near and break the rendering 5/6/2015
     // Only tweak the frustum near far if it's not shadow
-    if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+ /*   if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
         // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
         if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
             renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
         } else {
             float clipDistance = _skeletonModel.getHeadClipDistance();
-            if (OculusManager::isConnected()) {
-                // If avatar is horizontally in front of camera, increase clip distance by the amount it is in front.
-                glm::vec3 cameraToAvatar = _position - cameraPos;
-                cameraToAvatar.y = 0.0f;
-                glm::vec3 cameraLookAt = camera->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f);
-                float headOffset = glm::dot(cameraLookAt, cameraToAvatar);
-                if (headOffset > 0) {
-                    clipDistance += headOffset;
-                }
-            }
+            clipDistance = glm::length(getEyePosition() 
+                + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
             renderFrustum->setNearClip(clipDistance);
         }
-    }
+    }*/
 
     //  Render the body's voxels and head
     RenderArgs::RenderMode modelRenderMode = renderMode;
@@ -1221,7 +1219,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
     const float TIME_BETWEEN_HMD_TURNS = 0.5f;
     const float HMD_TURN_DEGREES = 22.5f;
-    if (!OculusManager::isConnected()) {
+    if (!qApp->isHMDMode()) {
         //  Smoothly rotate body with arrow keys if not in HMD
         _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
         _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
@@ -1255,29 +1253,23 @@ void MyAvatar::updateOrientation(float deltaTime) {
     float MINIMUM_ROTATION_RATE = 2.0f;
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
 
-    if (OculusManager::isConnected()) {
+    if (qApp->isHMDMode()) {
         // these angles will be in radians
-        float yaw, pitch, roll; 
-        OculusManager::getEulerAngles(yaw, pitch, roll);
+        glm::quat orientation = qApp->getHeadOrientation();
         // ... so they need to be converted to degrees before we do math...
-        yaw *= DEGREES_PER_RADIAN;
-        pitch *= DEGREES_PER_RADIAN;
-        roll *= DEGREES_PER_RADIAN;
-        
+        glm::vec3 euler = glm::eulerAngles(orientation) * DEGREES_PER_RADIAN;
+
         //Invert yaw and roll when in mirror mode
-        Head* head = getHead();
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
-            head->setBaseYaw(-yaw);
-            head->setBasePitch(pitch);
-            head->setBaseRoll(-roll);
-        } else {
-            head->setBaseYaw(yaw);
-            head->setBasePitch(pitch);
-            head->setBaseRoll(roll);
+            YAW(euler) *= -1.0;
+            ROLL(euler) *= -1.0;
         }
         
+        Head* head = getHead();
+        head->setBaseYaw(YAW(euler));
+        head->setBasePitch(PITCH(euler));
+        head->setBaseRoll(ROLL(euler));
     }
-
 }
 
 glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool isHovering) {

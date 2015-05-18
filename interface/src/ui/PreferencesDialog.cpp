@@ -14,6 +14,7 @@
 
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
+#include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
 #include <devices/SixenseManager.h>
 #include <NetworkingConstants.h>
@@ -135,6 +136,10 @@ void PreferencesDialog::loadPreferences() {
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
+                                              ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
@@ -168,9 +173,9 @@ void PreferencesDialog::loadPreferences() {
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
     
-    ui.maxOctreePPSSpin->setValue(qApp->getOctreeQuery().getMaxOctreePacketsPerSecond());
+    ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
 
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getOculusUIAngularSize());
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
 
     SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
@@ -216,22 +221,25 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
+    auto dde = DependencyManager::get<DdeFaceTracker>();
+    dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
+                                (float)ui.ddeEyeClosingThresholdSlider->maximum());
+
     auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                 (float)ui.faceshiftEyeDeflectionSider->maximum());
     
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
-    qApp->getOctreeQuery().setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
+    qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-    qApp->getApplicationOverlay().setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
@@ -255,7 +263,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    Application::getInstance()->resizeGL(glCanvas->width(), glCanvas->height());
+    Application::getInstance()->resizeGL();
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();

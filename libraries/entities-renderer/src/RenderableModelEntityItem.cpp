@@ -108,7 +108,6 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
-
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
@@ -117,15 +116,16 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
-    float size = glm::length(dimensions);
 
+    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
     bool highlightSimulationOwnership = false;
-    if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
+    if (debugSimulationOwnership) {
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& myNodeID = nodeList->getSessionUUID();
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
     }
 
+    bool didDraw = false;
     if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
         glPushMatrix();
@@ -179,35 +179,24 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
                         if (movingOrAnimating) {
                             _model->renderInScene(alpha, args);
+                            didDraw = true;
                         }
                     } else {
                         _model->renderInScene(alpha, args);
+                        didDraw = true;
                     }
-                } else {
-                    // if we couldn't get a model, then just draw a cube
-                    glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-                    glPushMatrix();
-                        glTranslatef(position.x, position.y, position.z);
-                        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-                    glPopMatrix();
                 }
-            } else {
-                // if we couldn't get a model, then just draw a cube
-                glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-                glPushMatrix();
-                    glTranslatef(position.x, position.y, position.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-                glPopMatrix();
             }
         }
         glPopMatrix();
-    } else {
-        glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-        glPopMatrix();
     }
+
+    if (!didDraw) {
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+    }
+
+    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
@@ -287,6 +276,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         if (!_model) {
             return false; // hmm...
+        }
+
+        if (_needsInitialSimulation) {
+            // the _model's offset will be wrong until _needsInitialSimulation is false
+            return false;
         }
 
         assert(!_model->getCollisionURL().isEmpty());

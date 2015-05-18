@@ -1,6 +1,6 @@
 //
 //  LODManager.h
-//
+//  interface/src/LODManager.h
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -13,8 +13,8 @@
 #define hifi_LODManager_h
 
 #include <DependencyManager.h>
+#include <NumericalConstants.h>
 #include <OctreeConstants.h>
-#include <SharedUtil.h>
 #include <SimpleMovingAverage.h>
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0;

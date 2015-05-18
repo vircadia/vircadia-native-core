@@ -79,6 +79,9 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
+    static void loadMatrix(GLenum target, const glm::mat4 & m);
+    static void fetchMatrix(GLenum target, glm::mat4 & m);
+
     class GLState : public GPUObject {
     public:
         class Command {
@@ -190,6 +193,8 @@ protected:
     void do_drawIndexed(Batch& batch, uint32 paramOffset);
     void do_drawInstanced(Batch& batch, uint32 paramOffset);
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
+
+    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
 
     // Input Stage
     void do_setInputFormat(Batch& batch, uint32 paramOffset);

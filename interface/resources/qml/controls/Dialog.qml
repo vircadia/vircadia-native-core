@@ -66,7 +66,7 @@ DialogBase {
 
     // our close function performs the same way as the OffscreenUI class:
     // don't do anything but manipulate the enabled flag and let the other 
-    // mechanisms decide if the window should be destoryed after the close
+    // mechanisms decide if the window should be destroyed after the close
     // animation completes
     function close() {
         if (destroyOnCloseButton) {

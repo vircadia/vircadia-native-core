@@ -185,6 +185,8 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
+        array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
+	index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;

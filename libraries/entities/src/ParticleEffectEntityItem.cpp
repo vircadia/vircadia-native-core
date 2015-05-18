@@ -18,12 +18,8 @@
 //  - Add controls for spread (which is currently hard-coded) and varying emission strength (not currently implemented).
 //  - Add drag.
 //  - Add some kind of support for collisions.
-//  - For simplicity, I'm currently just rendering each particle as a cross of four axis-aligned quads.  Really, we'd
-//    want multiple render modes, including (the most important) textured billboards (always facing camera).  Also, these
-//    should support animated textures.
 //  - There's no synchronization of the simulation across clients at all.  In fact, it's using rand() under the hood, so
 //    there's no gaurantee that different clients will see simulations that look anything like the other.
-//  - MORE?
 //
 //  Created by Jason Rickwald on 3/2/15.
 //
@@ -45,6 +41,7 @@
 #include "EntitiesLogging.h"
 #include "ParticleEffectEntityItem.h"
 
+const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ParticleEffectEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
 const float ParticleEffectEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
@@ -55,6 +52,7 @@ const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIRECTION(0.0f, 1.0f, 0.0
 const float ParticleEffectEntityItem::DEFAULT_EMIT_STRENGTH = 25.0f;
 const float ParticleEffectEntityItem::DEFAULT_LOCAL_GRAVITY = -9.8f;
 const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
+const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
 EntityItem* ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -63,40 +61,40 @@ EntityItem* ParticleEffectEntityItem::factory(const EntityItemID& entityID, cons
 
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID, properties) {
+    EntityItem(entityItemID, properties),
+    _maxParticles(DEFAULT_MAX_PARTICLES),
+    _lifespan(DEFAULT_LIFESPAN),
+    _emitRate(DEFAULT_EMIT_RATE),
+    _emitDirection(DEFAULT_EMIT_DIRECTION),
+    _emitStrength(DEFAULT_EMIT_STRENGTH),
+    _localGravity(DEFAULT_LOCAL_GRAVITY),
+    _particleRadius(DEFAULT_PARTICLE_RADIUS),
+    _lastAnimated(usecTimestampNow()),
+    _animationLoop(),
+    _animationSettings(),
+    _textures(DEFAULT_TEXTURES),
+    _texturesChangedFlag(false),
+    _shapeType(SHAPE_TYPE_NONE),
+    _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
+    _particlePositions(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
+    _particleVelocities(DEFAULT_MAX_PARTICLES, glm::vec3(0.0f, 0.0f, 0.0f)),
+    _timeUntilNextEmit(0.0f),
+    _particleHeadIndex(0),
+    _particleTailIndex(0),
+    _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
+
     _type = EntityTypes::ParticleEffect;
-    _maxParticles = DEFAULT_MAX_PARTICLES;
-    _lifespan = DEFAULT_LIFESPAN;
-    _emitRate = DEFAULT_EMIT_RATE;
-    _emitDirection = DEFAULT_EMIT_DIRECTION;
-    _emitStrength = DEFAULT_EMIT_STRENGTH;
-    _localGravity = DEFAULT_LOCAL_GRAVITY;
-    _particleRadius = DEFAULT_PARTICLE_RADIUS;
+    setColor(DEFAULT_COLOR);
     setProperties(properties);
-    // this is a pretty dumb thing to do, and it should probably be changed to use a more dynamic
-    // data structure in the future.  I'm just trying to get some code out the door for now (and it's
-    // at least time efficient (though not space efficient).
-    // Also, this being a real-time application, it's doubtful we'll ever have millions of particles
-    // to keep track of, so this really isn't all that bad.
-    _paLife = new float[_maxParticles];
-    _paPosition = new float[_maxParticles * XYZ_STRIDE]; // x,y,z
-    _paVelocity = new float[_maxParticles * XYZ_STRIDE]; // x,y,z
-    _paXmax = _paYmax = _paZmax = 1.0f;
-    _paXmin = _paYmin = _paZmin = -1.0f;
-    _randSeed = (unsigned int) glm::abs(_lifespan + _emitRate + _localGravity + getPosition().x + getPosition().y + getPosition().z);
-    resetSimulation();
-    _lastAnimated = usecTimestampNow();
 }
 
 ParticleEffectEntityItem::~ParticleEffectEntityItem() {
-    delete [] _paLife;
-    delete [] _paPosition;
-    delete [] _paVelocity;
 }
 
 EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-    
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
@@ -111,6 +109,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitStrength, getEmitStrength);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localGravity, getLocalGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     return properties;
 }
@@ -132,6 +131,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitStrength, setEmitStrength);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localGravity, setLocalGravity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -147,13 +147,13 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 }
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-    ReadBitstreamToTreeParams& args,
-    EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                               ReadBitstreamToTreeParams& args,
+                                                               EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
@@ -161,9 +161,9 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
 
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
@@ -177,15 +177,16 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         setAnimationFrameIndex(animationFrameIndex);
     }
 
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
-    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
-    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, _maxParticles);
-    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, _lifespan);
-    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, _emitRate);
-    READ_ENTITY_PROPERTY_SETTER(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
-    READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, _emitStrength);
-    READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, _localGravity);
-    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, _particleRadius);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
+    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, glm::vec3, setEmitDirection);
+    READ_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, float, setEmitStrength);
+    READ_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, float, setLocalGravity);
+    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     return bytesRead;
 }
@@ -194,7 +195,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    
+
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -208,37 +209,39 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_EMIT_STRENGTH;
     requestedProperties += PROP_LOCAL_GRAVITY;
     requestedProperties += PROP_PARTICLE_RADIUS;
+    requestedProperties += PROP_TEXTURES;
 
     return requestedProperties;
 }
 
 void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-    EntityPropertyFlags& requestedProperties,
-    EntityPropertyFlags& propertyFlags,
-    EntityPropertyFlags& propertiesDidntFit,
-    int& propertyCount,
-    OctreeElement::AppendState& appendState) const {
+                                                  EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                                  EntityPropertyFlags& requestedProperties,
+                                                  EntityPropertyFlags& propertyFlags,
+                                                  EntityPropertyFlags& propertiesDidntFit,
+                                                  int& propertyCount,
+                                                  OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
-    APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, appendValue, getMaxParticles());
-    APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, appendValue, getLifespan());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, appendValue, getEmitRate());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, appendValue, getEmitDirection());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, appendValue, getEmitStrength());
-    APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, appendValue, getLocalGravity());
-    APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, appendValue, getParticleRadius());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
+    APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIRECTION, getEmitDirection());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_STRENGTH, getEmitStrength());
+    APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, getLocalGravity());
+    APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 }
 
 bool ParticleEffectEntityItem::isAnimatingSomething() const {
-    return getAnimationIsPlaying() &&
-        getAnimationFPS() != 0.0f;
+    // keep animating if there are particles still alive.
+    return (getAnimationIsPlaying() || getLivingParticleCount() > 0) && getAnimationFPS() != 0.0f;
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
@@ -246,33 +249,25 @@ bool ParticleEffectEntityItem::needsToCallUpdate() const {
 }
 
 void ParticleEffectEntityItem::update(const quint64& now) {
+
+    float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
+     _lastAnimated = now;
+
     // only advance the frame index if we're playing
     if (getAnimationIsPlaying()) {
-        float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
-        _lastAnimated = now;
-        float lastFrame = _animationLoop.getFrameIndex();
         _animationLoop.simulate(deltaTime);
-        float curFrame = _animationLoop.getFrameIndex();
-        if (curFrame > lastFrame) {
-            stepSimulation(deltaTime);
-        }
-        else if (curFrame < lastFrame) {
-            // we looped around, so restart the sim and only sim up to the point
-            // since the beginning of the frame range.
-            resetSimulation();
-            stepSimulation((curFrame - _animationLoop.getFirstFrame()) / _animationLoop.getFPS());
-        }
-    }
-    else {
-        _lastAnimated = now;
     }
 
-    // update the dimensions
-    glm::vec3 dims;
-    dims.x = glm::max(glm::abs(_paXmin), glm::abs(_paXmax)) * 2.0f;
-    dims.y = glm::max(glm::abs(_paYmin), glm::abs(_paYmax)) * 2.0f;
-    dims.z = glm::max(glm::abs(_paZmin), glm::abs(_paZmax)) * 2.0f;
-    setDimensions(dims);
+    if (isAnimatingSomething()) {
+        stepSimulation(deltaTime);
+
+        // update the dimensions
+        glm::vec3 dims;
+        dims.x = glm::max(glm::abs(_particleMinBound.x), glm::abs(_particleMaxBound.x)) * 2.0f;
+        dims.y = glm::max(glm::abs(_particleMinBound.y), glm::abs(_particleMaxBound.y)) * 2.0f;
+        dims.z = glm::max(glm::abs(_particleMinBound.z), glm::abs(_particleMaxBound.z)) * 2.0f;
+        setDimensions(dims);
+    }
 
     EntityItem::update(now); // let our base class handle it's updates...
 }
@@ -418,96 +413,103 @@ QString ParticleEffectEntityItem::getAnimationSettings() const {
     return jsonByteString;
 }
 
-void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
-    _paXmin = _paYmin = _paZmin = -1.0f;
-    _paXmax = _paYmax = _paZmax = 1.0f;
+void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
+    _particleMinBound.x = glm::min(_particleMinBound.x, point.x);
+    _particleMinBound.y = glm::min(_particleMinBound.y, point.y);
+    _particleMinBound.z = glm::min(_particleMinBound.z, point.z);
+    _particleMaxBound.x = glm::max(_particleMaxBound.x, point.x);
+    _particleMaxBound.y = glm::max(_particleMaxBound.y, point.y);
+    _particleMaxBound.z = glm::max(_particleMaxBound.z, point.z);
+}
 
-    // update particles
-    quint32 updateIter = _paHead;
-    while (_paLife[updateIter] > 0.0f) {
-        _paLife[updateIter] -= deltaTime;
-        if (_paLife[updateIter] <= 0.0f) {
-            _paLife[updateIter] = -1.0f;
-            _paHead = (_paHead + 1) % _maxParticles;
-            _paCount--;
+void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
+    glm::vec3 atSquared(0.0f, 0.5f * _localGravity * deltaTime * deltaTime, 0.0f);
+    glm::vec3 at(0.0f, _localGravity * deltaTime, 0.0f);
+    _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
+    _particleVelocities[index] += at;
+}
+
+void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
+
+    _particleMinBound = glm::vec3(-1.0f, -1.0f, -1.0f);
+    _particleMaxBound = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // update particles between head and tail
+    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
+        _particleLifetimes[i] -= deltaTime;
+
+        // if particle has died.
+        if (_particleLifetimes[i] <= 0.0f) {
+            // move head forward
+            _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         }
         else {
-            // DUMB FORWARD EULER just to get it done
-            int j = updateIter * XYZ_STRIDE;
-            _paPosition[j] += _paVelocity[j] * deltaTime;
-            _paPosition[j+1] += _paVelocity[j+1] * deltaTime;
-            _paPosition[j+2] += _paVelocity[j+2] * deltaTime;
-
-            _paXmin = glm::min(_paXmin, _paPosition[j]);
-            _paYmin = glm::min(_paYmin, _paPosition[j+1]);
-            _paZmin = glm::min(_paZmin, _paPosition[j+2]);
-            _paXmax = glm::max(_paXmax, _paPosition[j]);
-            _paYmax = glm::max(_paYmax, _paPosition[j + 1]);
-            _paZmax = glm::max(_paZmax, _paPosition[j + 2]);
-
-            // massless particles
-            _paVelocity[j + 1] += deltaTime * _localGravity;
+            integrateParticle(i, deltaTime);
+            extendBounds(_particlePositions[i]);
         }
-        updateIter = (updateIter + 1) % _maxParticles;
     }
 
-    // emit new particles
-    quint32 emitIdx = updateIter;
-    _partialEmit += ((float)_emitRate) * deltaTime;
-    quint32 birthed = (quint32)_partialEmit;
-    _partialEmit -= (float)birthed;
-    glm::vec3 randOffset;
+    // emit new particles, but only if animaiton is playing
+    if (getAnimationIsPlaying()) {
 
-    for (quint32 i = 0; i < birthed; i++) {
-        if (_paLife[emitIdx] < 0.0f) {
-            int j = emitIdx * XYZ_STRIDE;
-            _paLife[emitIdx] = _lifespan;
-            randOffset.x = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
-            randOffset.y = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
-            randOffset.z = (((double)rand() / (double)RAND_MAX) - 0.5) * 0.25 * _emitStrength;
-            _paVelocity[j] = (_emitDirection.x * _emitStrength) + randOffset.x;
-            _paVelocity[j + 1] = (_emitDirection.y * _emitStrength) + randOffset.y;
-            _paVelocity[j + 2] = (_emitDirection.z * _emitStrength) + randOffset.z;
+        float timeLeftInFrame = deltaTime;
+        while (_timeUntilNextEmit < timeLeftInFrame) {
 
-            // DUMB FORWARD EULER just to get it done
-            _paPosition[j] += _paVelocity[j] * deltaTime;
-            _paPosition[j + 1] += _paVelocity[j + 1] * deltaTime;
-            _paPosition[j + 2] += _paVelocity[j + 2] * deltaTime;
+            timeLeftInFrame -= _timeUntilNextEmit;
+            _timeUntilNextEmit = 1.0f / _emitRate;
 
-            _paXmin = glm::min(_paXmin, _paPosition[j]);
-            _paYmin = glm::min(_paYmin, _paPosition[j + 1]);
-            _paZmin = glm::min(_paZmin, _paPosition[j + 2]);
-            _paXmax = glm::max(_paXmax, _paPosition[j]);
-            _paYmax = glm::max(_paYmax, _paPosition[j + 1]);
-            _paZmax = glm::max(_paZmax, _paPosition[j + 2]);
+            // emit a new particle at tail index.
+            quint32 i = _particleTailIndex;
+            _particleLifetimes[i] = _lifespan;
 
-            // massless particles
-            // and simple gravity down
-            _paVelocity[j + 1] += deltaTime * _localGravity;
+            // jitter the _emitDirection by a random offset
+            glm::vec3 randOffset;
+            randOffset.x = (randFloat() - 0.5f) * 0.25f * _emitStrength;
+            randOffset.y = (randFloat() - 0.5f) * 0.25f * _emitStrength;
+            randOffset.z = (randFloat() - 0.5f) * 0.25f * _emitStrength;
 
-            emitIdx = (emitIdx + 1) % _maxParticles;
-            _paCount++;
+            // set initial conditions
+            _particlePositions[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+            _particleVelocities[i] = _emitDirection * _emitStrength + randOffset;
+
+            integrateParticle(i, timeLeftInFrame);
+            extendBounds(_particlePositions[i]);
+
+            _particleTailIndex = (_particleTailIndex + 1) % _maxParticles;
+
+            // overflow! move head forward by one.
+            // because the case of head == tail indicates an empty array, not a full one.
+            // This can drop an existing older particle, but this is by design, newer particles are a higher priority.
+            if (_particleTailIndex == _particleHeadIndex) {
+                _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
+            }
         }
-        else
-            break;
+
+        _timeUntilNextEmit -= timeLeftInFrame;
     }
 }
 
-void ParticleEffectEntityItem::resetSimulation() {
-    for (quint32 i = 0; i < _maxParticles; i++) {
-        quint32 j = i * XYZ_STRIDE;
-        _paLife[i] = -1.0f;
-        _paPosition[j] = 0.0f;
-        _paPosition[j+1] = 0.0f;
-        _paPosition[j+2] = 0.0f;
-        _paVelocity[j] = 0.0f;
-        _paVelocity[j+1] = 0.0f;
-        _paVelocity[j+2] = 0.0f;
-    }
-    _paCount = 0;
-    _paHead = 0;
-    _partialEmit = 0.0f;
+void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
+    _maxParticles = maxParticles;
 
-    srand(_randSeed);
+    // TODO: try to do something smart here and preserve the state of existing particles.
+
+    // resize vectors
+    _particleLifetimes.resize(_maxParticles);
+    _particlePositions.resize(_maxParticles);
+    _particleVelocities.resize(_maxParticles);
+
+    // effectivly clear all particles and start emitting new ones from scratch.
+    _particleHeadIndex = 0;
+    _particleTailIndex = 0;
+    _timeUntilNextEmit = 0.0f;
 }
 
+// because particles are in a ring buffer, this isn't trivial
+quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
+    if (_particleTailIndex >= _particleHeadIndex) {
+        return _particleTailIndex - _particleHeadIndex;
+    } else {
+        return (_maxParticles - _particleHeadIndex) + _particleTailIndex;
+    }
+}

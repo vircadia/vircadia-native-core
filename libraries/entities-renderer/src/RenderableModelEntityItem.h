@@ -16,11 +16,12 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem  {
+class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 

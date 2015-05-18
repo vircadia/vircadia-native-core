@@ -12,6 +12,7 @@
 
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
+#include <qcompilerdetection.h>
 
 #include "SkyFromAtmosphere_vert.h"
 #include "SkyFromAtmosphere_frag.h"
@@ -138,7 +139,7 @@ void EarthSunModel::setSunLongitude(float lon) {
 Atmosphere::Atmosphere() {
     // only if created from nothing shall we create the Buffer to store the properties
     Data data;
-    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Buffer::Byte*) &data));
+    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
 
     setScatteringWavelength(_scatteringWavelength);
     setRayleighScattering(_rayleighScattering);
@@ -184,21 +185,14 @@ void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
     data._scales.z = data._scales.x / data._scales.y;
 }
 
-Skybox::Skybox() {
-}
-
-void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
-    _cubemap = cubemap;
-}
-
-
 
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
-    _sunLight(new Light())
+    _sunLight(new Light()),
+    _skybox(new Skybox())
 {
     _sunLight->setType(Light::SUN);
  
@@ -222,6 +216,10 @@ SunSkyStage::SunSkyStage() :
    // skyState->setBlendEnable(false);
 
     _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
+
+
+    _skybox.reset(new Skybox());
+    _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
 
 }
 
@@ -294,11 +292,31 @@ void SunSkyStage::updateGraphicsObject() const {
         _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
     }
 
+    // Background
+    switch (getBackgroundMode()) {
+        case NO_BACKGROUND: {
+            break;
+        }
+        case SKY_DOME: {
+            break;
+        }
+        case SKY_BOX: {
+            break;
+        }
+        case NUM_BACKGROUND_MODES:
+            Q_UNREACHABLE();
+    };
+
     static int firstTime = 0;
     if (firstTime == 0) {
         firstTime++;
         gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
     }
+}
+
+void SunSkyStage::setBackgroundMode(BackgroundMode mode) {
+    _backgroundMode = mode;
+    invalidate();
 }
 
 void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {

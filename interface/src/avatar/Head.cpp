@@ -22,7 +22,6 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 
 using namespace std;
 
@@ -90,7 +89,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            _isFaceTrackerConnected = faceTracker != NULL;
+            _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
             if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
@@ -309,7 +308,7 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (OculusManager::isConnected()) {
+    if (qApp->isHMDMode()) {
         return getOrientation();
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);

@@ -114,6 +114,9 @@ public slots:
     Q_INVOKABLE void setZonesArePickable(bool value);
     Q_INVOKABLE bool getZonesArePickable() const;
 
+    Q_INVOKABLE void setDrawZoneBoundaries(bool value);
+    Q_INVOKABLE bool getDrawZoneBoundaries() const;
+
     Q_INVOKABLE void setSendPhysicsUpdates(bool value);
     Q_INVOKABLE bool getSendPhysicsUpdates() const;
 

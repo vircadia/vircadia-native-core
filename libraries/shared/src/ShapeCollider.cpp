@@ -15,6 +15,7 @@
 #include "CapsuleShape.h"
 #include "GeometryUtil.h"
 #include "ListShape.h"
+#include "NumericalConstants.h"
 #include "PlaneShape.h"
 #include "ShapeCollider.h"
 #include "SphereShape.h"

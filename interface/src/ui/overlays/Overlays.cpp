@@ -15,7 +15,6 @@
 
 #include <Application.h>
 #include <avatar/AvatarManager.h>
-#include <devices/OculusManager.h>
 #include <LODManager.h>
 
 #include "BillboardOverlay.h"
@@ -87,11 +86,10 @@ void Overlays::renderHUD() {
     QReadLocker lock(&_lock);
     
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-                        lodManager->getOctreeSizeScale(),
-                        lodManager->getBoundaryLevelAdjust(),
-                        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    RenderArgs args(NULL, Application::getInstance()->getViewFrustum(),
+                    lodManager->getOctreeSizeScale(),
+                    lodManager->getBoundaryLevelAdjust(),
+                    RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
@@ -125,11 +123,10 @@ void Overlays::renderWorld(bool drawFront,
     float myAvatarScale = 1.0f;
     
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args = { NULL, Application::getInstance()->getDisplayViewFrustum(),
-                        lodManager->getOctreeSizeScale(),
-                        lodManager->getBoundaryLevelAdjust(),
-                        renderMode, renderSide, renderDebugFlags,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    RenderArgs args(NULL, Application::getInstance()->getDisplayViewFrustum(),
+                    lodManager->getOctreeSizeScale(),
+                    lodManager->getBoundaryLevelAdjust(),
+                    renderMode, renderSide, renderDebugFlags);
     
 
     foreach(Overlay* thisOverlay, _overlaysWorld) {
@@ -294,8 +291,8 @@ void Overlays::deleteOverlay(unsigned int id) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (OculusManager::isConnected()) {
-        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    if (qApp->isHMDMode()) {
+        pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);

@@ -28,9 +28,27 @@
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
 
-class EntityTree;
+class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
+
+// these thesholds determine what updates will be ignored (client and server)
+const float IGNORE_POSITION_DELTA = 0.0001f;
+const float IGNORE_DIMENSIONS_DELTA = 0.0005f;
+const float IGNORE_ALIGNMENT_DOT = 0.99997f;
+const float IGNORE_LINEAR_VELOCITY_DELTA = 0.001f;
+const float IGNORE_DAMPING_DELTA = 0.001f;
+const float IGNORE_GRAVITY_DELTA = 0.001f;
+const float IGNORE_ANGULAR_VELOCITY_DELTA = 0.0002f;
+
+// these thresholds determine what updates will activate the physical object
+const float ACTIVATION_POSITION_DELTA = 0.005f;
+const float ACTIVATION_DIMENSIONS_DELTA = 0.005f;
+const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
+const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
+const float ACTIVATION_GRAVITY_DELTA = 0.1f;
+const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
+
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
@@ -44,19 +62,29 @@ class EntityTreeElementExtraEncodeData;
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem {
+    // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
+    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
+    // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
+    // do cleanup.
     friend class EntityTreeElement;
+    friend class EntitySimulation;
 public:
     enum EntityDirtyFlags {
         DIRTY_POSITION = 0x0001,
-        DIRTY_VELOCITY = 0x0002,
-        DIRTY_MASS = 0x0004,
-        DIRTY_COLLISION_GROUP = 0x0008,
-        DIRTY_MOTION_TYPE = 0x0010,
-        DIRTY_SHAPE = 0x0020,
-        DIRTY_LIFETIME = 0x0040,
-        DIRTY_UPDATEABLE = 0x0080,
-        DIRTY_MATERIAL = 0x00100,
-        DIRTY_PHYSICS_NO_WAKE = 0x0200 // we want to update values in physics engine without "waking" the object up
+        DIRTY_ROTATION = 0x0002,
+        DIRTY_LINEAR_VELOCITY = 0x0004,
+        DIRTY_ANGULAR_VELOCITY = 0x0008,
+        DIRTY_MASS = 0x0010,
+        DIRTY_COLLISION_GROUP = 0x0020,
+        DIRTY_MOTION_TYPE = 0x0040,
+        DIRTY_SHAPE = 0x0080,
+        DIRTY_LIFETIME = 0x0100,
+        DIRTY_UPDATEABLE = 0x0200,
+        DIRTY_MATERIAL = 0x00400,
+        DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
+        DIRTY_SIMULATOR_ID = 0x1000,
+        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
+        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -66,7 +94,7 @@ public:
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
-    QUuid getID() const { return _id; }
+    const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
     uint32_t getCreatorTokenID() const { return _creatorTokenID; }
     void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
@@ -94,6 +122,10 @@ public:
         { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
+    /// Last time we sent out an edit packet for this entity
+    quint64 getLastBroadcast() const { return _lastBroadcast; }
+    void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
 
     void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
@@ -190,8 +222,11 @@ public:
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
-    float getRestitution() const;
-    float getFriction() const;
+    float getRestitution() const { return _restitution; }
+    void setRestitution(float value);
+
+    float getFriction() const { return _friction; }
+    void setFriction(float value);
 
     // lifetime related properties.
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
@@ -215,6 +250,8 @@ public:
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
+    const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
+    void setCollisionSoundURL(const QString& value) { _collisionSoundURL = value; }
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
@@ -229,6 +266,9 @@ public:
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
 
+    QString getName() const { return _name; }
+    void setName(const QString& value) { _name = value; }
+
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
@@ -240,6 +280,8 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
+    virtual bool shouldBePhysical() const { return !_ignoreForCollisions; }
+
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
@@ -248,6 +290,7 @@ public:
 
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
+    void updateSimulatorID(const QUuid& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
     
     const QString& getMarketplaceID() const { return _marketplaceID; }
@@ -276,9 +319,10 @@ public:
     void updateVelocityInDomainUnits(const glm::vec3& value);
     void updateVelocity(const glm::vec3& value);
     void updateDamping(float value);
+    void updateRestitution(float value);
+    void updateFriction(float value);
     void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
-    void updateAcceleration(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularVelocityInDegrees(const glm::vec3& value) { updateAngularVelocity(glm::radians(value)); }
     void updateAngularDamping(float value);
@@ -293,8 +337,8 @@ public:
     bool isMoving() const;
 
     void* getPhysicsInfo() const { return _physicsInfo; }
-    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
@@ -304,7 +348,9 @@ public:
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
     glm::vec3 entityToWorld(const glm::vec3& point) const;
-    
+
+    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+
 protected:
 
     static bool _sendPhysicsUpdates;
@@ -315,6 +361,7 @@ protected:
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
+    quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
 
     quint64 _lastEditedFromRemote; // last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // last time we received an edit from the server (in server-time-frame)
@@ -335,8 +382,11 @@ protected:
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;
+    float _restitution;
+    float _friction;
     float _lifetime;
     QString _script;
+    QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
     float _angularDamping;
@@ -348,6 +398,7 @@ protected:
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
+    QString _name;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //
@@ -365,16 +416,13 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
-    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
-    // to a non-NULL value when the EntityItem has a representation in the physics engine.
-    void* _physicsInfo = NULL; // only set by EntitySimulation
-
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
-    EntityTreeElement* _element;    // back pointer to containing Element
+    // these backpointers are only ever set/cleared by friends:
+    EntityTreeElement* _element = nullptr; // set by EntityTreeElement
+    void* _physicsInfo = nullptr; // set by EntitySimulation
+    bool _simulated; // set by EntitySimulation
 };
-
-
 
 #endif // hifi_EntityItem_h

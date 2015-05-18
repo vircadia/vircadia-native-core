@@ -455,13 +455,12 @@ void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenH
 }
 
 //Displays everything for the oculus, frame timing must be active
-void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
+void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
 
 #ifdef DEBUG
     // Ensure the frame counter always increments by exactly 1
     static int oldFrameIndex = -1;
-    assert(oldFrameIndex == -1 || oldFrameIndex == _frameIndex - 1);
+    assert(oldFrameIndex == -1 || (unsigned int)oldFrameIndex == _frameIndex - 1);
     oldFrameIndex = _frameIndex;
 #endif
 
@@ -521,12 +520,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         return;
     }
 
-    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-
-    // We only need to render the overlays to a texture once, then we just render the texture on the hemisphere
-    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay();
-   
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         DependencyManager::get<GlowEffect>()->prepare();
@@ -615,9 +608,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
 
         _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].HmdToEyeViewOffset.x, -_eyeRenderDesc[eye].HmdToEyeViewOffset.y, -_eyeRenderDesc[eye].HmdToEyeViewOffset.z));
-        Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
-
-        applicationOverlay.displayOverlayTextureOculus(*_camera);
+        qApp->displaySide(*_camera, false, RenderArgs::MONO);
+        qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
 
@@ -628,7 +620,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         //Full texture viewport for glow effect
         glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
-        finalFbo = DependencyManager::get<GlowEffect>()->render(true);
+        finalFbo = DependencyManager::get<GlowEffect>()->render();
     } else {
         finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -638,7 +630,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glPopMatrix();
 
     // restore our normal viewport
-    glViewport(0, 0, glCanvas->getDeviceWidth(), glCanvas->getDeviceHeight());
+    auto deviceSize = qApp->getDeviceSize();
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
 #if 0
     if (debugFrame && !timerActive) {
@@ -707,8 +700,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     glLoadIdentity();
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    glOrtho(0, glCanvas->getDeviceWidth(), 0, glCanvas->getDeviceHeight(), -1.0, 1.0);
+    auto deviceSize = qApp->getDeviceSize();
+    glOrtho(0, deviceSize.width(), 0, deviceSize.height(), -1.0, 1.0);
 
     glDisable(GL_DEPTH_TEST);
 
@@ -794,9 +787,12 @@ void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 
 glm::vec3 OculusManager::getRelativePosition() {
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
-    ovrVector3f headPosition = trackingState.HeadPose.ThePose.Position;
-    
-    return glm::vec3(headPosition.x, headPosition.y, headPosition.z);
+    return toGlm(trackingState.HeadPose.ThePose.Position);
+}
+
+glm::quat OculusManager::getOrientation() {
+    ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
+    return toGlm(trackingState.HeadPose.ThePose.Orientation);
 }
 
 //Used to set the size of the glow framebuffers

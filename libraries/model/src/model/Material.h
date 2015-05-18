@@ -19,12 +19,14 @@
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
+#include <qurl.h>
+
 namespace model {
-typedef gpu::BufferView UniformBufferView;
-typedef gpu::TextureView TextureView;
 
 class Material {
 public:
+    typedef gpu::BufferView UniformBufferView;
+    typedef gpu::TextureView TextureView;
 
     typedef glm::vec3 Color;
 
@@ -39,6 +41,7 @@ public:
         NUM_MAPS,
     };
     typedef std::map<MapChannel, TextureView> TextureMap;
+    typedef std::bitset<NUM_MAPS> MapFlags;
 
     enum FlagBit {
         DIFFUSE_BIT = 0,
@@ -102,7 +105,7 @@ protected:
     TextureMap _textureMap;
 
 };
-typedef QSharedPointer< Material > MaterialPointer;
+typedef std::shared_ptr< Material > MaterialPointer;
 
 };
 

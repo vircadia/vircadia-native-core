@@ -13,11 +13,11 @@
 //
 
 // the interpolated normal
-varying vec4 normal;
+varying vec4 interpolatedNormal;
 
 void main(void) {
     // transform and store the normal for interpolation
-    normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
+    interpolatedNormal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
     
     // pass along the diffuse color
     gl_FrontColor = gl_Color;

@@ -86,7 +86,7 @@ void EntityTree::postAddEntity(EntityItem* entity) {
     emit addingEntity(entity->getEntityItemID());
 }
 
-bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange) {
+bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
@@ -99,22 +99,34 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
 
-    return updateEntityWithElement(existingEntity, properties, containingElement, allowLockChange);
+    return updateEntityWithElement(existingEntity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange) {
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
         qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
             << entity->getEntityItemID();
         return false;
     }
-    return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
+    return updateEntityWithElement(entity, properties, containingElement, senderNode);
 }
 
 bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& origProperties, 
-                                         EntityTreeElement* containingElement, bool allowLockChange) {
+                                         EntityTreeElement* containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
+
+    bool allowLockChange;
+    QUuid senderID;
+    if (senderNode.isNull()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        allowLockChange = nodeList->getThisNodeCanAdjustLocks();
+        senderID = nodeList->getSessionUUID();
+    } else {
+        allowLockChange = senderNode->getCanAdjustLocks();
+        senderID = senderNode->getUUID();
+    }
+
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
@@ -134,23 +146,41 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
-        if (properties.simulatorIDChanged() &&
-            !entity->getSimulatorID().isNull() &&
-            properties.getSimulatorID() != entity->getSimulatorID()) {
-            // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
-            // if ownership hasn't recently changed.
-            if (usecTimestampNow() - entity->getSimulatorIDChangedTime() < SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
-                qCDebug(entities) << "simulator_change_lockout_period:"
-                                  << entity->getSimulatorID() << "to" << properties.getSimulatorID();
+        if (getIsServer()) {
+            bool simulationBlocked = !entity->getSimulatorID().isNull();
+            if (properties.simulatorIDChanged()) {
+                QUuid submittedID = properties.getSimulatorID();
+                // a legit interface will only submit their own ID or NULL:
+                if (submittedID.isNull()) {
+                    if (entity->getSimulatorID() == senderID) {
+                        // We only allow the simulation owner to clear their own simulationID's.
+                        simulationBlocked = false;
+                    }
+                    // else: We assume the sender really did believe it was the simulation owner when it sent
+                } else if (submittedID == senderID) {
+                    // the sender is trying to take or continue ownership
+                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                        simulationBlocked = false;
+                    } else {
+                        // the sender is trying to steal ownership from another simulator
+                        // so we apply the ownership change filter
+                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                            simulationBlocked = false;
+                        }
+                    }
+                } else {
+                    // the entire update is suspect --> ignore it
+                    return false;
+                }
+            }
+            if (simulationBlocked) {
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
-                properties.setVelocityChanged(false);
-                properties.setAccelerationChanged(false);
-            } else {
-                qCDebug(entities) << "allowing simulatorID change";
+                properties.setRotationChanged(false);
             }
         }
+        // else client accepts what the server says
 
         QString entityScriptBefore = entity->getScript();
         uint32_t preFlags = entity->getDirtyFlags();
@@ -160,10 +190,10 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) { 
+            if (_simulation) {
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
-                    _simulation->entityChanged(entity);
+                    _simulation->changeEntity(entity);
                     _simulation->unlock();
                 }
             } else {
@@ -351,8 +381,8 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (_simulation) {
             _simulation->removeEntity(theEntity);
-        }
-        delete theEntity; // now actually delete the entity!
+        } 
+        delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
         _simulation->unlock();
@@ -665,7 +695,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                             qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                             qCDebug(entities) << "   properties:" << properties;
                         }
-                        updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
+                        updateEntity(entityItemID, properties, senderNode);
                         existingEntity->markAsChangedOnServer();
                     } else {
                         qCDebug(entities) << "User attempted to edit an unknown entity. ID:" << entityItemID;
@@ -742,7 +772,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 void EntityTree::entityChanged(EntityItem* entity) {
     if (_simulation) {
         _simulation->lock();
-        _simulation->entityChanged(entity);
+        _simulation->changeEntity(entity);
         _simulation->unlock();
     }
 }
@@ -750,16 +780,21 @@ void EntityTree::entityChanged(EntityItem* entity) {
 void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
-        QSet<EntityItem*> entitiesToDelete;
         _simulation->lock();
-        _simulation->updateEntities(entitiesToDelete);
+        _simulation->updateEntities();
+        VectorOfEntities pendingDeletes;
+        _simulation->getEntitiesToDelete(pendingDeletes);
         _simulation->unlock();
-        if (entitiesToDelete.size() > 0) {
+
+        if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            foreach (EntityItem* entity, entitiesToDelete) {
+            for (auto entityItr : pendingDeletes) {
+                EntityItem* entity = &(*entityItr);
+                assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
+            // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
         unlock();
@@ -788,7 +823,8 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+                                                                                           PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -1063,6 +1099,27 @@ void EntityTree::debugDumpMap() {
     qCDebug(entities) << "-----------------------------------------------------";
 }
 
+class ContentsDimensionOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
+    float getLargestDimension() const { return _contentExtents.largestDimension(); }
+private:
+    Extents _contentExtents;
+};
+
+bool ContentsDimensionOperator::preRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->expandExtentsToContents(_contentExtents);
+    return true;
+}
+
+float EntityTree::getContentsLargestDimension() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getLargestDimension();
+}
+
 class DebugOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElement* element);
@@ -1137,10 +1194,10 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
-bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues) {
     entityDescription["Entities"] = QVariantList();
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
