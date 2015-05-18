@@ -27,7 +27,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(entity->getTransformToCenter());
-    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f + puffedOut, color);
+    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f + puffedOut, color);
 }
 
 void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArgs* args) {
@@ -41,7 +41,7 @@ void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArg
     // Cancel true dimensions and set scale to 2 * radius (diameter)
     transform.postScale(2.0f * glm::vec3(radius, radius, radius) / entity->getDimensions());
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, SLICES, STACKS, blueColor);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, blueColor);
 }
 
 void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {
