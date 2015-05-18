@@ -75,11 +75,13 @@ var paddle1Pos, paddle2Pos;
 var names = ["air-hockey-table-23j4h1jh82jsjfw91jf232n2k", // keep this synchronized with what's in grabHockey.js
              "air-hockey-paddle-23j4h1jh82jsjfw91jf232n2k",
              "air-hockey-puck-23j4h1jh82jsjfw91jf232n2k",
-             "air-hockey-light-23j4h1jh82jsjfw91jf232n2k"];
+             "air-hockey-light-23j4h1jh82jsjfw91jf232n2k",
+             "air-hockey-floor-23j4h1jh82jsjfw91jf232n2k"];
 var table_name_index = 0;
 var paddle_name_index = 1;
 var puck_name_index = 2;
 var light_name_index = 3;
+var floor_name_index = 4;
 
 
 var deleteButton = Overlays.addOverlay("image", {
@@ -289,8 +291,40 @@ function mousePressEvent(event) {
 }
 
 function spawnAllTheThings() {
-  center = Vec3.sum(MyAvatar.position, Vec3.multiply((FIELD_WIDTH + FIELD_LENGTH) * 0.60, Quat.getFront(Camera.getOrientation())));
-  table = Entities.addEntity({
+  center = Vec3.sum(MyAvatar.position,
+                    Vec3.multiply((FIELD_WIDTH + FIELD_LENGTH) * 0.60, Quat.getFront(Camera.getOrientation())));
+
+  Entities.addEntity({
+    name: names[floor_name_index],
+    type: "Box",
+    position: Vec3.subtract(center, {
+      x: 0,
+      y: 0,
+      z: 0
+    }),
+    dimensions: {
+      x: FIELD_WIDTH,
+      y: FLOOR_THICKNESS,
+      z: FIELD_LENGTH
+    },
+    color: {
+      red: 128,
+      green: 128,
+      blue: 128
+    },
+    gravity: {
+      x: 0,
+      y: 0,
+      z: 0
+    },
+    ignoreCollisions: false,
+    locked: true,
+    friction: floorFriction,
+    visible: debugVisible,
+    lifetime: LIFETIME
+  });
+
+  Entities.addEntity({
     name: names[table_name_index],
     type: "Model",
     modelURL: polyTable,
@@ -301,7 +335,7 @@ function spawnAllTheThings() {
       z: 1.31
     }, MODEL_SCALE),
     position: Vec3.sum(center, MODEL_OFFSET),
-    friction: floorFriction,
+    restitution: edgeRestitution,
     ignoreCollisions: false,
     visible: true,
     locked: true,
