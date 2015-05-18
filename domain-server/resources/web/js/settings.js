@@ -158,21 +158,34 @@ $(document).ready(function(){
     moveTableRow(this, false);
   });
 
-  $('#' + Settings.FORM_ID).on('keypress', 'table input', function(e){
+  $('#' + Settings.FORM_ID).on('keyup', function(e){
+    var $target = $(e.target);
     if (e.keyCode == 13) {
-      // capture enter in table input
-      // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
-      sibling = $(this).parent('td').next();
+      if ($target.is('table input')) {
+        // capture enter in table input
+        // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
+        sibling = $target.parent('td').next();
 
-      if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
-        // set focus to next input
-        sibling.find('input').focus()
-      } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-        sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+        if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
+          // set focus to next input
+          sibling.find('input').focus()
+        } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+          sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
 
-        // set focus to the first input in the new row
-        $(this).closest('table').find('tr.inputs input:first').focus()
+          // set focus to the first input in the new row
+          $target.closest('table').find('tr.inputs input:first').focus()
+        }
+
+      } else if ($target.is('input')) {
+        $target.change().blur();
       }
+
+      e.preventDefault();
+    }
+  });
+
+  $('#' + Settings.FORM_ID).on('keypress', function(e){
+    if (e.keyCode == 13) {
 
       e.preventDefault();
     }
@@ -222,7 +235,6 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
     disonnectHighFidelityAccount();
-    e.preventDefault();
   });
 
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
