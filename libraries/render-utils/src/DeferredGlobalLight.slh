@@ -111,18 +111,21 @@ vec3 evalSkyboxGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
-    vec3 ambient = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * getLightAmbientIntensity(light);
+    vec3 ambientLight = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * getLightAmbientIntensity(light);
    
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
     vec3 reflectedDir = reflect(-fragEyeDir, fragNormal);
-    vec3 skyTexel = evalSkyboxLight(reflectedDir, 1 - gloss).xyz;
+    vec3 skyTexel = evalSkyboxLight(reflectedDir, 1 - gloss/128).xyz;
 
-  //  vec3 lightIrradiance = (skyTexel * (gloss) + (1 - gloss) * getLightColor(light)) * getLightIntensity(light);
     vec3 lightIrradiance = (getLightColor(light)) * getLightIntensity(light);
 
-    vec3 color = ambient + vec3(diffuse + shading.rgb * skyTexel) * shading.w * shadowAttenuation * lightIrradiance;
-    
+    vec3 diffuseLight = diffuse * shading.w * shadowAttenuation * lightIrradiance;
+
+    vec3 specularLight = shading.rgb * skyTexel * shading.w * shadowAttenuation * lightIrradiance;
+
+    vec3 color = ambientLight + diffuseLight + specularLight;
+
     return color;
 }
 

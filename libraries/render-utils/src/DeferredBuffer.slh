@@ -65,7 +65,7 @@ DeferredFragment unpackDeferredFragment(vec2 texcoord) {
     frag.diffuse = frag.diffuseVal.xyz;
     frag.opacity = frag.diffuseVal.w;
     frag.specular = frag.specularVal.xyz;
-    frag.gloss = frag.specularVal.w;
+    frag.gloss = frag.specularVal.w * 128.0; // bring back gloss to [0, 128]
 
     return frag;
 }
