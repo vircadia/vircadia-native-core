@@ -118,34 +118,16 @@ void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
 }
 
-void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color) {
-    gpu::Batch batch;
-    renderSolidSphere(batch, radius, slices, stacks, color);
-    gpu::GLBackend::renderBatch(batch);
-}
-
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color);
     releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color) {
-    gpu::Batch batch;
-    renderWireSphere(batch, radius, slices, stacks, color);
-    gpu::GLBackend::renderBatch(batch);
-}
-
 void DeferredLightingEffect::renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color, false);
     releaseSimpleProgram(batch);
-}
-
-void DeferredLightingEffect::renderSolidCube(float size, const glm::vec4& color) {
-    gpu::Batch batch;
-    renderSolidCube(batch, size, color);
-    gpu::GLBackend::renderBatch(batch);
 }
 
 void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
@@ -166,25 +148,11 @@ void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const
     releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
-                                        const glm::vec4& color1, const glm::vec4& color2) {
-    gpu::Batch batch;
-    renderLine(batch, p1, p2, color1, color2);
-    gpu::GLBackend::renderBatch(batch);
-}
-
 void DeferredLightingEffect::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                                         const glm::vec4& color1, const glm::vec4& color2) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderLine(batch, p1, p2, color1, color2);
     releaseSimpleProgram(batch);
-}
-
-
-void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
-    releaseSimpleProgram();
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
