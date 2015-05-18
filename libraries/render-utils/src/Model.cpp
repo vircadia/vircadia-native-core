@@ -971,7 +971,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
 void Model::renderDebugMeshBoxes() {
     int colorNdx = 0;
-    _mutex.unlock();
+    _mutex.lock();
     foreach(AABox box, _calculatedMeshBoxes) {
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
             _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
