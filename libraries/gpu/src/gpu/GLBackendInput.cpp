@@ -47,15 +47,21 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 #endif
 
 void GLBackend::initInput() {
-    killInput();
+    glPushClientAttrib(GL_VERTEX_ARRAY);
+    glPushClientAttrib(GL_NORMAL_ARRAY);
+    glPushClientAttrib(GL_COLOR_ARRAY);
+    glPushClientAttrib(GL_TEXTURE_COORD_ARRAY);
+    
+    for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
+        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
+    }
 }
 
 void GLBackend::killInput() {
-    // Disable client states and set buffers to 0
-    _input._format = Stream::FormatPointer(new Stream::Format());
-    _input._attributeActivation.set();
-    updateInput();
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glPopClientAttrib(); // GL_VERTEX_ARRAY
+    glPopClientAttrib(); // GL_NORMAL_ARRAY
+    glPopClientAttrib(); // GL_COLOR_ARRAY
+    glPopClientAttrib(); // GL_TEXTURE_COORD_ARRAY
 }
 
 void GLBackend::updateInput() {
