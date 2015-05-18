@@ -558,7 +558,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                         if (!_calculatedMeshTrianglesValid) {
+                        if (!_calculatedMeshTrianglesValid) {
                             recalculateMeshBoxes(pickAgainstTriangles);
                         }
                         // check our triangles here....
