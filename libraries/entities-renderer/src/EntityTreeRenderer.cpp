@@ -445,7 +445,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(const ZoneEntityItem* zone) 
             if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
                 stage->getSkybox()->setColor(zone->getSkyboxProperties().getColorVec3());
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                    stage->getSkybox()->clearCubemap();
+                    stage->getSkybox()->setCubemap(gpu::TexturePointer());
                 } else {
                     // Update the Texture of the Skybox with the one pointed by this zone
                     auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
