@@ -552,6 +552,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         // If we hit the models box, then consider the submeshes...
+        _mutex.lock();
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
@@ -587,6 +588,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             } 
             subMeshIndex++;
         }
+        _mutex.unlock();
 
         if (intersectedSomething) {
             distance = bestDistance;
@@ -622,6 +624,7 @@ bool Model::convexHullContains(glm::vec3 point) {
     // we can use the AABox's contains() by mapping our point into the model frame
     // and testing there.
     if (modelFrameBox.contains(modelFramePoint)){
+        _mutex.lock();
         if (!_calculatedMeshTrianglesValid) {
             recalculateMeshBoxes(true);
         }
@@ -643,17 +646,23 @@ bool Model::convexHullContains(glm::vec3 point) {
                 }
                 if (insideMesh) {
                     // It's inside this mesh, return true.
+                    _mutex.unlock();
                     return true;
                 }
             }
             subMeshIndex++;
         }
+        _mutex.unlock();
     }
     // It wasn't in any mesh, return false.
     return false;
 }
 
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
+// Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
+// can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
+// entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
+// and then the calls use the most recent such result. 
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
@@ -736,7 +745,9 @@ void Model::renderSetup(RenderArgs* args) {
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
     if (args && !_calculatedMeshBoxesValid) {
+        _mutex.lock();
         recalculateMeshBoxes();
+        _mutex.unlock();
     }
     
     // set up dilated textures on first render after load/simulate
@@ -960,6 +971,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
 void Model::renderDebugMeshBoxes() {
     int colorNdx = 0;
+    _mutex.lock();
     foreach(AABox box, _calculatedMeshBoxes) {
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
             _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
@@ -1009,6 +1021,7 @@ void Model::renderDebugMeshBoxes() {
         DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
         colorNdx++;
     }
+    _mutex.unlock();
 }
 
 Extents Model::getBindExtents() const {
