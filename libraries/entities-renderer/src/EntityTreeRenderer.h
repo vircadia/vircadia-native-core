@@ -126,7 +126,7 @@ protected:
 
 private:
     void applyZonePropertiesToScene(const ZoneEntityItem* zone);
-    void renderElementProxy(EntityTreeElement* entityTreeElement);
+    void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
 
