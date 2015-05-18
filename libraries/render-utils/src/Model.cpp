@@ -2056,6 +2056,12 @@ void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
+    // all of our mesh vectors must match in size
+    if (networkMeshes.size() != geometry.meshes.size() ||
+        geometry.meshes.size() != _meshStates.size()) {
+        qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        return;
+    }
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     for (int i = 0; i < networkMeshes.size(); i++) {
