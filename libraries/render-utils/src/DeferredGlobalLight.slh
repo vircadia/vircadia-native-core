@@ -118,7 +118,10 @@ vec3 evalSkyboxGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
     vec3 reflectedDir = reflect(-fragEyeDir, fragNormal);
     vec3 skyTexel = evalSkyboxLight(reflectedDir, 1 - gloss).xyz;
 
-    vec3 color = ambient + vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * skyTexel * getLightColor(light) * getLightIntensity(light);
+  //  vec3 lightIrradiance = (skyTexel * (gloss) + (1 - gloss) * getLightColor(light)) * getLightIntensity(light);
+    vec3 lightIrradiance = (getLightColor(light)) * getLightIntensity(light);
+
+    vec3 color = ambient + vec3(diffuse + shading.rgb * skyTexel) * shading.w * shadowAttenuation * lightIrradiance;
     
     return color;
 }
