@@ -11,29 +11,35 @@
 //
 
 // these are hand-measured bounds of the AirHockey table
-var fieldMaxOffset = {
+var fieldHalfExtent = {
   x: 0.475,
   y: 0.315,
   z: 0.830
 };
-var fieldMinOffset = {
-  x: -0.475,
-  y: 0.315,
-  z: -0.830
-};
+//var fieldMinOffset = {
+//  x: -0.475,
+//  y: 0.315,
+//  z: -0.830
+//};
+var halfCornerBoxWidth = 0.85;
 
-// parameters for storing the table playing field
-var fieldMax = {
+//// parameters for storing the table playing field
+//var fieldMax = {
+//  x: 0,
+//  y: 0,
+//  z: 0
+//};
+//var fieldMin = {
+//  x: 0,
+//  y: 0,
+//  z: 0
+//};
+
+var tablePosition = {
   x: 0,
   y: 0,
   z: 0
-};
-var fieldMin = {
-  x: 0,
-  y: 0,
-  z: 0
-};
-
+}
 var isGrabbing = false;
 var grabbedEntity = null;
 var prevMouse = {};
@@ -146,10 +152,10 @@ function mousePressEvent(event) {
       var props = Entities.getEntityProperties(table);
       // keep this name synchronized with what's in airHockey.js
       if (props.name === "air-hockey-table-23j4h1jh82jsjfw91jf232n2k") {
-        var tablePosition = props.position;
+        tablePosition = props.position;
         // when we know the table's position we can compute the X-Z bounds of its field
-        fieldMax = Vec3.sum(tablePosition, fieldMaxOffset);
-        fieldMin = Vec3.sum(tablePosition, fieldMinOffset);
+        //fieldMax = Vec3.sum(tablePosition, fieldMaxOffset);
+        //fieldMin = Vec3.sum(tablePosition, fieldMinOffset);
       }
     });
   } 
@@ -240,17 +246,40 @@ function mouseMoveEvent(event) {
         mousePosition = Vec3.multiply(mousePosition, length);
         mousePosition = Vec3.sum(Camera.getPosition(), mousePosition);
 
-        // clamp mousePosition to table field
-        if (mousePosition.x < fieldMin.x) {
-          mousePosition.x = fieldMin.x;
-        } else if (mousePosition.x > fieldMax.x) {
-          mousePosition.x = fieldMax.x;
+        // translate mousePosition into local-frame
+        mousePosition = Vec3.subtract(mousePosition, tablePosition);
+
+        // clamp local mousePosition to table field
+        if (mousePosition.x > fieldHalfExtent.x) {
+          mousePosition.x = fieldHalfExtent.x;
+        } else if (mousePosition.x < - fieldHalfExtent.x) {
+          mousePosition.x = - fieldHalfExtent.x;
         }
-        if (mousePosition.z < fieldMin.z) {
-          mousePosition.z = fieldMin.z;
-        } else if (mousePosition.z > fieldMax.z) {
-          mousePosition.z = fieldMax.z;
+        if (mousePosition.z > fieldHalfExtent.z) {
+          mousePosition.z = fieldHalfExtent.z;
+        } else if (mousePosition.z < - fieldHalfExtent.z) {
+          mousePosition.z = - fieldHalfExtent.z;
         }
+
+        // clamp to rotated square (for cut corners)
+        var rotation = Quat.angleAxis(45, { x:0, y:1, z:0 });
+        mousePosition = Vec3.multiplyQbyV(rotation, mousePosition);
+        if (mousePosition.x > halfCornerBoxWidth) {
+            mousePosition.x = halfCornerBoxWidth;
+        } else if (mousePosition.x < -halfCornerBoxWidth) {
+            mousePosition.x = -halfCornerBoxWidth;
+        }
+        if (mousePosition.z > halfCornerBoxWidth) {
+            mousePosition.z = halfCornerBoxWidth;
+        } else if (mousePosition.z < -halfCornerBoxWidth) {
+            mousePosition.z = -halfCornerBoxWidth;
+        }
+        // rotate back into local frame
+        rotation.y = -rotation.y;
+        mousePosition = Vec3.multiplyQbyV(rotation, mousePosition);
+        // translate into world-frame
+        mousePosition = Vec3.sum(tablePosition, mousePosition);
+
         mousePosition.y = grabHeight;
         targetPosition = mousePosition;
       }

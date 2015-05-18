@@ -301,6 +301,7 @@ function spawnAllTheThings() {
       z: 1.31
     }, MODEL_SCALE),
     position: Vec3.sum(center, MODEL_OFFSET),
+    friction: floorFriction,
     ignoreCollisions: false,
     visible: true,
     locked: true,
