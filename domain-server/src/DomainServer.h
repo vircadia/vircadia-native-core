@@ -72,8 +72,10 @@ private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
-    bool didSetupAccountManagerWithAccessToken();
     bool optionallySetupAssignmentPayment();
+
+    bool didSetupAccountManagerWithAccessToken();
+    bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
