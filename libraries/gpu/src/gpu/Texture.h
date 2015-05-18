@@ -17,6 +17,44 @@
 
 namespace gpu {
 
+// THe spherical harmonics is a nice tool for cubemap, so if required, the irradiance SH can be automatically generated
+// with the cube texture
+class Texture;
+class SphericalHarmonics {
+public:
+    glm::vec3 L00    ; float spare0;
+    glm::vec3 L1m1   ; float spare1;
+    glm::vec3 L10    ; float spare2;
+    glm::vec3 L11    ; float spare3;
+    glm::vec3 L2m2   ; float spare4;
+    glm::vec3 L2m1   ; float spare5;
+    glm::vec3 L20    ; float spare6;
+    glm::vec3 L21    ; float spare7;
+    glm::vec3 L22    ; float spare8;
+
+    static const int NUM_COEFFICIENTS = 9;
+
+    enum Preset {
+        OLD_TOWN_SQUARE = 0,
+        GRACE_CATHEDRAL,
+        EUCALYPTUS_GROVE,
+        ST_PETERS_BASILICA,
+        UFFIZI_GALLERY,
+        GALILEOS_TOMB,
+        VINE_STREET_KITCHEN,
+        BREEZEWAY,
+        CAMPUS_SUNSET,
+        FUNSTON_BEACH_SUNSET,
+
+        NUM_PRESET,
+    };
+
+    void assignPreset(int p);
+
+    void evalFromTexture(const Texture& texture);
+};
+typedef std::shared_ptr< SphericalHarmonics > SHPointer;
+
 class Sampler {
 public:
 
@@ -127,7 +165,7 @@ public:
         CUBE_FACE_LEFT_NEG_X,
         CUBE_FACE_TOP_POS_Y,
         CUBE_FACE_BOTTOM_NEG_Y,
-        CUBE_FACE_BACK_POS_X,
+        CUBE_FACE_BACK_POS_Z,
         CUBE_FACE_FRONT_NEG_Z,
 
         NUM_CUBE_FACES, // Not a valid vace index
@@ -173,6 +211,7 @@ public:
 
     static Texture* createFromStorage(Storage* storage);
 
+    Texture();
     Texture(const Texture& buf); // deep copy of the sysmem texture
     Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
@@ -302,6 +341,10 @@ public:
  
     bool isDefined() const { return _defined; }
 
+    // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them availalbe with the texture
+    bool generateIrradiance();
+    const SHPointer& getIrradiance(uint16 slice = 0) const { return _irradiance; }
+    bool isIrradianceValid() const { return _isIrradianceValid; }
 
     // Own sampler
     void setSampler(const Sampler& sampler);
@@ -332,11 +375,14 @@ protected:
     uint16 _maxMip = 0;
  
     Type _type = TEX_1D;
+
+    SHPointer _irradiance;
     bool _autoGenerateMips = false;
+    bool _isIrradianceValid = false;
     bool _defined = false;
+
    
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
-    Texture();
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
 

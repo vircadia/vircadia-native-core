@@ -13,6 +13,8 @@
 
 #include "gpu/Texture.h"
 
+#include "Light.h"
+
 class ViewFrustum;
 //class Transform;
 namespace gpu { class Batch; }
@@ -32,13 +34,12 @@ public:
 
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
-    void clearCubemap();
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
 
 protected:
     gpu::TexturePointer _cubemap;
- 
+
     Color _color{1.0f, 1.0f, 1.0f};
 };
 typedef std::shared_ptr< Skybox > SkyboxPointer;

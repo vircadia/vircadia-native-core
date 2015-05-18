@@ -28,6 +28,8 @@
 #include <NumericalConstants.h>
 #include <OctalCode.h>
 #include <Shape.h>
+#include <gpu/Format.h>
+#include <LogHandler.h>
 
 #include "FBXReader.h"
 #include "ModelFormatLogging.h"
@@ -1276,6 +1278,153 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
+
+#if USE_MODEL_MESH
+void buildModelMesh(ExtractedMesh& extracted) {
+    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
+
+    if (extracted.mesh.vertices.size() == 0) {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no vertices";
+        return;
+    }
+    FBXMesh& fbxMesh = extracted.mesh;
+    model::Mesh mesh;
+
+    // Grab the vertices in a buffer
+    gpu::BufferPointer vb(new gpu::Buffer());
+    vb->setData(extracted.mesh.vertices.size() * sizeof(glm::vec3),
+                (const gpu::Byte*) extracted.mesh.vertices.data());
+    gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+    mesh.setVertexBuffer(vbv);
+
+    // evaluate all attribute channels sizes
+    int normalsSize = fbxMesh.normals.size() * sizeof(glm::vec3);
+    int tangentsSize = fbxMesh.tangents.size() * sizeof(glm::vec3);
+    int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
+    int texCoordsSize = fbxMesh.texCoords.size() * sizeof(glm::vec2);
+    int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(glm::vec2);
+    int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(glm::vec4);
+    int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(glm::vec4);
+
+    int normalsOffset = 0;
+    int tangentsOffset = normalsOffset + normalsSize;
+    int colorsOffset = tangentsOffset + tangentsSize;
+    int texCoordsOffset = colorsOffset + colorsSize;
+    int texCoords1Offset = texCoordsOffset + texCoordsSize;
+    int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
+    int clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
+    int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
+
+    // Copy all attribute data in a single attribute buffer
+    gpu::BufferPointer attribBuffer(new gpu::Buffer());
+    attribBuffer->resize(totalAttributeSize);
+    attribBuffer->setSubData(normalsOffset, normalsSize, (gpu::Byte*) fbxMesh.normals.constData());
+    attribBuffer->setSubData(tangentsOffset, tangentsSize, (gpu::Byte*) fbxMesh.tangents.constData());
+    attribBuffer->setSubData(colorsOffset, colorsSize, (gpu::Byte*) fbxMesh.colors.constData());
+    attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) fbxMesh.texCoords.constData());
+    attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) fbxMesh.texCoords1.constData());
+    attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) fbxMesh.clusterIndices.constData());
+    attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (gpu::Byte*) fbxMesh.clusterWeights.constData());
+
+    if (normalsSize) {
+        mesh.addAttribute(gpu::Stream::NORMAL,
+                          model::BufferView(attribBuffer, normalsOffset, normalsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+    }
+    if (tangentsSize) {
+        mesh.addAttribute(gpu::Stream::TANGENT,
+                          model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+    }
+    if (colorsSize) {
+        mesh.addAttribute(gpu::Stream::COLOR,
+                          model::BufferView(attribBuffer, colorsOffset, colorsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
+    }
+    if (texCoordsSize) {
+        mesh.addAttribute(gpu::Stream::TEXCOORD,
+                          model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
+                                             gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+    }
+    if (texCoords1Size) {
+        mesh.addAttribute(gpu::Stream::TEXCOORD1,
+                          model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
+                                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+    }
+    if (clusterIndicesSize) {
+        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
+                          model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
+                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+    }
+    if (clusterWeightsSize) {
+        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
+                          model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
+                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+    }
+
+
+    unsigned int totalIndices = 0;
+
+    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+        totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
+    }
+
+    if (! totalIndices) {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no indices";
+        return;
+    }
+
+    gpu::BufferPointer ib(new gpu::Buffer());
+    ib->resize(totalIndices * sizeof(int));
+
+    int indexNum = 0;
+    int offset = 0;
+
+    std::vector< model::Mesh::Part > parts;
+
+    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+        model::Mesh::Part quadPart(indexNum, part.quadIndices.size(), 0, model::Mesh::QUADS);
+        if (quadPart._numIndices) {
+            parts.push_back(quadPart);
+            ib->setSubData(offset, part.quadIndices.size() * sizeof(int),
+                           (gpu::Byte*) part.quadIndices.constData());
+            offset += part.quadIndices.size() * sizeof(int);
+            indexNum += part.quadIndices.size();
+        }
+        model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
+        if (triPart._numIndices) {
+            ib->setSubData(offset, part.triangleIndices.size() * sizeof(int),
+                           (gpu::Byte*) part.triangleIndices.constData());
+            offset += part.triangleIndices.size() * sizeof(int);
+            indexNum += part.triangleIndices.size();
+        }
+    }
+
+    gpu::BufferView ibv(ib, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));
+    mesh.setIndexBuffer(ibv);
+
+    if (parts.size()) {
+        gpu::BufferPointer pb(new gpu::Buffer());
+        pb->setData(parts.size() * sizeof(model::Mesh::Part), (const gpu::Byte*) parts.data());
+        gpu::BufferView pbv(pb, gpu::Element(gpu::VEC4, gpu::UINT32, gpu::XYZW));
+        mesh.setPartBuffer(pbv);
+    } else {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no parts";
+        return;
+    }
+
+    // model::Box box =
+    mesh.evalPartBound(0);
+
+    extracted.mesh._mesh = mesh;
+}
+#endif // USE_MODEL_MESH
+
+
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -2431,6 +2580,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
+
+#       if USE_MODEL_MESH
+        buildModelMesh(extracted);
+#       endif
         
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;

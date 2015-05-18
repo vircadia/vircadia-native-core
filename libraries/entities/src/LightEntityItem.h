@@ -58,6 +58,9 @@ public:
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value);
 
+    void setIgnoredColor(const rgbColor& value) { }
+    void setIgnoredAttenuation(float value) { }
+
     float getIntensity() const { return _intensity; }
     void setIntensity(float value) { _intensity = value; }
 

@@ -146,10 +146,6 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
         _body->setMassProps(mass, inertia);
         _body->updateInertiaTensor();
     }
-
-    if (flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) {
-        _body->activate();
-    }
 }
 
 void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {

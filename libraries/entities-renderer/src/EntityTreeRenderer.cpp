@@ -26,6 +26,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
+#include <SoundCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -46,6 +47,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
+    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -460,7 +462,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                  if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
                     stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
-                        stage->getSkybox()->clearCubemap();
+                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
                     } else {
                         // Update the Texture of the Skybox with the one pointed by this zone
                         auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
@@ -848,9 +850,18 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
+        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
 
     connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
     connect(this, &EntityTreeRenderer::holdingClickOnEntity, entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity);
@@ -898,7 +909,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
-        emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -928,7 +939,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseReleaseOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -977,7 +988,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         }
 
         //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
-        emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
         }
@@ -1098,13 +1109,92 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
     }
 }
 
-void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
+    EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    if (!entity) {
+        return;
+    }
+    QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull() || (simulatorID != myNodeID)) {
+        return; // Only one injector per simulation, please.
+    }
+    const QString& collisionSoundURL = entity->getCollisionSoundURL();
+    if (collisionSoundURL.isEmpty()) {
+        return;
+    }
+    const float mass = entity->computeMass();
+    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
+    const float energy = mass * linearVelocity * linearVelocity / 2.0f;
+    const glm::vec3 position = collision.contactPoint;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+    if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
+        return;
+    }
+
+    auto soundCache = DependencyManager::get<SoundCache>();
+    if (soundCache.isNull()) {
+        return;
+    }
+    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
+    if (sound.isNull() || !sound->isReady()) {
+        return;
+    }
+
+    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
+    float volume = energyFactorOfFull;
+    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+    
+    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
+    AudioInjectorOptions options;
+    options.stereo = sound->isStereo();
+    options.position = position;
+    options.volume = volume;
+    AudioInjector* injector = new AudioInjector(sound.data(), options);
+    injector->setLocalAudioInterface(_localAudioInterface);
+    injector->triggerDeleteAfterFinish();
+    QThread* injectorThread = new QThread();
+    injectorThread->setObjectName("Audio Injector Thread");
+    injector->moveToThread(injectorThread);
+    // start injecting when the injector thread starts
+    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
+    // connect the right slots and signals for AudioInjector and thread cleanup
+    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
+    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
+    injectorThread->start();
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
                                                     const Collision& collision) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
         return;
     }
+    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
+    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
+    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
+        return;
+    }
+
+    // See if we should play sounds
+    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    if (!entityTree->tryLockForRead()) {
+        // I don't know why this can happen, but if it does,
+        // the consequences are a deadlock, so bail.
+        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
+        return;
+    }
+    const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
+    playEntityCollisionSound(myNodeID, entityTree, idA, collision);
+    playEntityCollisionSound(myNodeID, entityTree, idB, collision);
+    entityTree->unlock();
+
+    // And now the entity scripts
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;

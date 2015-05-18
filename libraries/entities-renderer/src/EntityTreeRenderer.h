@@ -20,6 +20,7 @@
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
+#include <AbstractAudioInterface.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -92,9 +93,9 @@ public:
     virtual void errorInLoadingScript(const QUrl& url);
 
 signals:
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
@@ -154,6 +155,9 @@ private:
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
+    void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
+    AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;

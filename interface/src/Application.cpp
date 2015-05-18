@@ -839,6 +839,11 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay();
+    }
+
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -879,6 +884,10 @@ void Application::paintGL() {
     if (!OculusManager::isConnected()) {
         _myCamera.update(1.0f / _fps);
     }
+
+    // Sync up the View Furstum with the camera
+    // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
+    loadViewFrustum(_myCamera, _viewFrustum);
 
     if (getShadowsEnabled()) {
         updateShadowMap();
@@ -921,13 +930,9 @@ void Application::paintGL() {
         glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-
-        {
-            PerformanceTimer perfTimer("renderOverlay");
-            _applicationOverlay.renderOverlay();
-            _applicationOverlay.displayOverlayTexture();
-        }
+        _applicationOverlay.displayOverlayTexture();
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
@@ -2455,7 +2460,7 @@ void Application::update(float deltaTime) {
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
-            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
             _entitySimulation.unlock();
             _physicsEngine.dumpStatsIfNecessary();
@@ -3076,9 +3081,10 @@ PickRay Application::computePickRay(float x, float y) const {
     y /= size.y;
     PickRay result;
     if (isHMDMode()) {
-        ApplicationOverlay::computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+        getApplicationOverlay().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        auto frustum = activeRenderingThread ? getDisplayViewFrustum() : getViewFrustum();
+        frustum->computePickRay(x, y, result.origin, result.direction);
     }
     return result;
 }
@@ -3106,8 +3112,8 @@ QImage Application::renderAvatarBillboard() {
 ViewFrustum* Application::getViewFrustum() {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, should this be an assert?
-        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+        // FIXME, figure out a better way to do this
+        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
     }
 #endif
     return &_viewFrustum;
@@ -3116,8 +3122,8 @@ ViewFrustum* Application::getViewFrustum() {
 const ViewFrustum* Application::getViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, should this be an assert?
-        qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
+        // FIXME, figure out a better way to do this
+        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
     }
 #endif
     return &_viewFrustum;
@@ -3126,8 +3132,18 @@ const ViewFrustum* Application::getViewFrustum() const {
 ViewFrustum* Application::getDisplayViewFrustum() {
 #ifdef DEBUG
     if (QThread::currentThread() != activeRenderingThread) {
-        // FIXME, should this be an assert?
-        qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+        // FIXME, figure out a better way to do this
+        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
+    }
+#endif
+    return &_displayViewFrustum;
+}
+
+const ViewFrustum* Application::getDisplayViewFrustum() const {
+#ifdef DEBUG
+    if (QThread::currentThread() != activeRenderingThread) {
+        // FIXME, figure out a better way to do this
+        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
     }
 #endif
     return &_displayViewFrustum;
@@ -3362,7 +3378,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
-        // NOt yet DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");

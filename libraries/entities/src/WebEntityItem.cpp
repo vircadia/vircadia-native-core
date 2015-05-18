@@ -75,7 +75,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_STRING(PROP_SOURCE_URL, setSourceUrl);
+    READ_ENTITY_PROPERTY(PROP_SOURCE_URL, QString, setSourceUrl);
 
     return bytesRead;
 }
@@ -97,7 +97,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, appendValue, _sourceUrl);
+    APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, _sourceUrl);
 }
 
 

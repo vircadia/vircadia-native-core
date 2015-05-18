@@ -99,3 +99,6 @@ void Light::setShowContour(float show) {
     }
     editSchema()._control.w = show;
 }
+
+
+
