@@ -11,29 +11,17 @@
 //
 
 // these are hand-measured bounds of the AirHockey table
-var fieldHalfExtent = {
+var fieldMaxOffset = {
   x: 0.475,
   y: 0.315,
-  z: 0.830
+  z: 0.82
 };
-//var fieldMinOffset = {
-//  x: -0.475,
-//  y: 0.315,
-//  z: -0.830
-//};
-var halfCornerBoxWidth = 0.85;
-
-//// parameters for storing the table playing field
-//var fieldMax = {
-//  x: 0,
-//  y: 0,
-//  z: 0
-//};
-//var fieldMin = {
-//  x: 0,
-//  y: 0,
-//  z: 0
-//};
+var fieldMinOffset = {
+  x: -0.460, // yes, smaller than max
+  y: 0.315,
+  z: -0.830
+};
+var halfCornerBoxWidth = 0.84;
 
 var tablePosition = {
   x: 0,
@@ -152,10 +140,9 @@ function mousePressEvent(event) {
       var props = Entities.getEntityProperties(table);
       // keep this name synchronized with what's in airHockey.js
       if (props.name === "air-hockey-table-23j4h1jh82jsjfw91jf232n2k") {
+        // need to remember the table's position so we can clamp the targetPositon
+        // to remain on the playing field
         tablePosition = props.position;
-        // when we know the table's position we can compute the X-Z bounds of its field
-        //fieldMax = Vec3.sum(tablePosition, fieldMaxOffset);
-        //fieldMin = Vec3.sum(tablePosition, fieldMinOffset);
       }
     });
   } 
@@ -250,15 +237,15 @@ function mouseMoveEvent(event) {
         mousePosition = Vec3.subtract(mousePosition, tablePosition);
 
         // clamp local mousePosition to table field
-        if (mousePosition.x > fieldHalfExtent.x) {
-          mousePosition.x = fieldHalfExtent.x;
-        } else if (mousePosition.x < - fieldHalfExtent.x) {
-          mousePosition.x = - fieldHalfExtent.x;
+        if (mousePosition.x > fieldMaxOffset.x) {
+          mousePosition.x = fieldMaxOffset.x;
+        } else if (mousePosition.x < fieldMinOffset.x) {
+          mousePosition.x = fieldMinOffset.x;
         }
-        if (mousePosition.z > fieldHalfExtent.z) {
-          mousePosition.z = fieldHalfExtent.z;
-        } else if (mousePosition.z < - fieldHalfExtent.z) {
-          mousePosition.z = - fieldHalfExtent.z;
+        if (mousePosition.z > fieldMaxOffset.z) {
+          mousePosition.z = fieldMaxOffset.z;
+        } else if (mousePosition.z < fieldMinOffset.z) {
+          mousePosition.z = fieldMinOffset.z;
         }
 
         // clamp to rotated square (for cut corners)
