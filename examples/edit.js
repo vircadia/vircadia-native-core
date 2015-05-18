@@ -15,7 +15,7 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 Script.include([
     "libraries/stringHelpers.js",
-    "libraries/dataviewHelpers.js",
+    "libraries/dataViewHelpers.js",
     "libraries/toolBars.js",
     "libraries/progressDialog.js",
 
