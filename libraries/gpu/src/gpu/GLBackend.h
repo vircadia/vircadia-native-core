@@ -24,12 +24,20 @@ namespace gpu {
 class GLBackend : public Backend {
 public:
 
+    explicit GLBackend(bool syncCache);
     GLBackend();
     ~GLBackend();
 
     void render(Batch& batch);
 
-    static void renderBatch(Batch& batch);
+    // Render Batch create a local Context and execute the batch with it
+    // WARNING:
+    // if syncCache is true, then the gpu::GLBackend will synchornize
+    // its cache with the current gl state and it's BAD
+    // If you know you don't rely on any state changed by naked gl calls then
+    // leave to false where it belongs
+    // if true, the needed resync IS EXPENSIVE
+    static void renderBatch(Batch& batch, bool syncCache = true);
 
     static bool checkGLError(const char* name = nullptr);
 
@@ -79,6 +87,7 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
+    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
     static void loadMatrix(GLenum target, const glm::mat4 & m);
     static void fetchMatrix(GLenum target, glm::mat4 & m);
 
@@ -186,6 +195,12 @@ public:
 
     void do_setStateColorWriteMask(uint32 mask);
 
+    // This call synchronize the Full Backend cache with the current GLState
+    // THis is only intended to be used when mixing raw gl calls with the gpu api usage in order to sync
+    // the gpu::Backend state with the true gl state which has probably been messed up by these ugly naked gl calls
+    // Let's try to avoid to do that as much as possible!
+    void syncCache();
+
 protected:
 
     // Draw Stage
@@ -241,6 +256,8 @@ protected:
 
     void initTransform();
     void killTransform();
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncTransformStateCache();
     void updateTransform();
     struct TransformStageState {
         TransformObject _transformObject;
@@ -297,7 +314,7 @@ protected:
 
         GLState* _state;
         bool _invalidState = false;
-        bool _needStateSync = true;
+      //  bool _needStateSync = true;
 
         PipelineStageState() :
             _pipeline(),
@@ -306,8 +323,8 @@ protected:
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),
             _state(nullptr),
-            _invalidState(false),
-            _needStateSync(true)
+            _invalidState(false)//,
+      //      _needStateSync(true)
              {}
     } _pipeline;
 

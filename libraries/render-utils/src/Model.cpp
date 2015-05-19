@@ -935,8 +935,8 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
             glPushMatrix();
         #endif
 
-        ::gpu::GLBackend::renderBatch(batch);
-
+        ::gpu::GLBackend::renderBatch(batch, true); // force sync with gl state here
+ 
         #if defined(ANDROID)
         #else
             glPopMatrix();
@@ -1846,6 +1846,7 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     }
 
     gpu::GLBackend backend;
+    backend.syncCache(); // force sync with gl state here
 
     if (args) {
         glm::mat4 proj;
