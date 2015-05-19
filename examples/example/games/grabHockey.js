@@ -127,25 +127,6 @@ function forwardPickRayIntersection(pointOnPlane, mouseX, mouseY) {
   return pickIntersection;
 }
 
-/*
-function yCylinderPickRayIntersection(grabRadius, mouseX, mouseY) {
-  var pickRay = Camera.computePickRay(mouseX, mouseY);
-  var angle = Math.asin(pickRay.direction.y);
-  if (angle > MAX_VERTICAL_ANGLE) {
-    angle = MAX_VERTICAL_ANGLE;
-  } else if (angle < MIN_VERTICAL_ANGLE) {
-    angle = MIN_VERTICAL_ANGLE;
-  }
-  var horizontalNormal = pickRay.direction;
-  horizontalNormal.y = 0;
-  horizontalNormal = Vec3.normalize(horizontalNormal);
-  var pickIntersection = Vec3.multiply(horizontalNormal, grabRadius);
-  pickIntersection.y = grabRadius * Math.tan(angle);
-  pickIntersection = Vec3.sum(pickIntersection, Camera.getPosition())
-  return pickIntersection;
-}
-*/
-
 function mousePressEvent(event) {
   if (!event.isLeftButton) {
     return;
