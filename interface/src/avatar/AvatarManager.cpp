@@ -92,22 +92,18 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        AvatarSharedPointer sharedAvatar = avatarIterator.value();
-        Avatar* avatar = reinterpret_cast<Avatar*>(sharedAvatar.data());
+        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
         
-        if (sharedAvatar == _myAvatar || !avatar->isInitialized()) {
+        if (avatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
-            // DO NOT update uninitialized Avatars
+            // DO NOT update or fade out uninitialized Avatars
             ++avatarIterator;
-            continue;
-        }
-        if (!shouldKillAvatar(sharedAvatar)) {
-            // this avatar's mixer is still around, go ahead and simulate it
+        } else if (avatar->shouldDie()) {
+            _avatarFades.push_back(avatarIterator.value());
+            avatarIterator = _avatarHash.erase(avatarIterator);
+        } else {
             avatar->simulate(deltaTime);
             ++avatarIterator;
-        } else {
-            // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
-            avatarIterator = erase(avatarIterator);
         }
     }
     
@@ -175,24 +171,37 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(new Avatar());
 }
 
-AvatarHash::iterator AvatarManager::erase(const AvatarHash::iterator& iterator) {
-    if (iterator.key() != MY_AVATAR_KEY) {
-        if (reinterpret_cast<Avatar*>(iterator.value().data())->isInitialized()) {
-            _avatarFades.push_back(iterator.value());
+// virtual 
+AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
+    // TODO: create MotionState for avatar and add to internal lists
+    return avatar;
+}
+
+// virtual 
+void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
+    AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
+    if (avatarIterator != _avatarHash.end()) {
+        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
+        if (avatar != _myAvatar && avatar->isInitialized()) {
+            _avatarFades.push_back(avatarIterator.value());
+            _avatarHash.erase(avatarIterator);
         }
-        return AvatarHashMap::erase(iterator);
-    } else {
-        // never remove _myAvatar from the list
-        AvatarHash::iterator returnIterator = iterator;
-        return ++returnIterator;
     }
 }
 
 void AvatarManager::clearOtherAvatars() {
     // clear any avatars that came from an avatar-mixer
-    AvatarHash::iterator removeAvatar =  _avatarHash.begin();
-    while (removeAvatar != _avatarHash.end()) {
-        removeAvatar = erase(removeAvatar);
+    AvatarHash::iterator avatarIterator =  _avatarHash.begin();
+    while (avatarIterator != _avatarHash.end()) {
+        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
+        if (avatar == _myAvatar || !avatar->isInitialized()) {
+            // don't remove myAvatar or uninitialized avatars from the list
+            ++avatarIterator;
+        } else {
+            _avatarFades.push_back(avatarIterator.value());
+            avatarIterator = _avatarHash.erase(avatarIterator);
+        }
     }
     _myAvatar->clearLookAtTargetAvatar();
 }

@@ -70,10 +70,10 @@ private:
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode);
     
-    virtual AvatarSharedPointer newSharedAvatar();
-    
     // virtual overrides
-    AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
+    virtual AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
