@@ -47,7 +47,7 @@ public:
     bool elementCompleted;
     bool subtreeCompleted;
     bool childCompleted[NUMBER_OF_CHILDREN];
-    QMap<EntityItemID, EntityPropertyFlags> entities;
+    QMap<QUuid, EntityPropertyFlags> entities;
 };
 
 inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeData* data) {
@@ -151,9 +151,6 @@ public:
     bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItem* entity);
 
-
-    void updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID);
-
     const EntityItem* getClosestEntity(glm::vec3 position) const;
 
     /// finds all entities that touch a sphere
@@ -168,13 +165,13 @@ public:
     void getEntities(const AACube& box, QVector<EntityItem*>& foundEntities);
 
     const EntityItem* getEntityWithID(uint32_t id) const;
-    const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
+    const EntityItem* getEntityWithEntityItemID(const QUuid& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItem*>& foundEntities);
 
-    EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
+    EntityItem* getEntityWithEntityItemID(const QUuid& id);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
-    bool removeEntityWithEntityItemID(const EntityItemID& id);
+    bool removeEntityWithEntityItemID(const QUuid& id);
     bool removeEntityItem(EntityItem* entity);
 
     bool containsEntityBounds(const EntityItem* entity) const;

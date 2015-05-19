@@ -17,9 +17,9 @@
 
 class RenderableLineEntityItem : public LineEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 
-    RenderableLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+    RenderableLineEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         LineEntityItem(entityItemID, properties) { }
 
     virtual void render(RenderArgs* args);

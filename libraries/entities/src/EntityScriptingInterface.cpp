@@ -20,7 +20,6 @@
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
-    _nextCreatorTokenID(0),
     _entityTree(NULL)
 {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -29,7 +28,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
-        EntityItemID entityID, const EntityItemProperties& properties) {
+                                                  QUuid entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
@@ -71,14 +70,10 @@ void bidForSimulationOwnership(EntityItemProperties& properties) {
 
 
 
-EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-
-    // The application will keep track of creatorTokenID
-    uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     EntityItemProperties propertiesWithSimID = properties;
-
-    EntityItemID id(NEW_ENTITY, creatorTokenID, false);
+    QUuid id = QUuid::createUuid();
 
     // If we have a local entity tree set, then also update it.
     bool success = true;
@@ -104,25 +99,8 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     return id;
 }
 
-EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
-    EntityItemID actualID = entityID;
-
-    if (!entityID.isKnownID) {
-        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
-        if (actualID == UNKNOWN_ENTITY_ID) {
-            return entityID; // bailing early
-        }
-        
-        // found it!
-        entityID.id = actualID.id;
-        entityID.isKnownID = true;
-    }
-    return entityID;
-}
-
-EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID entityID) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
     EntityItemProperties results;
-    EntityItemID identity = identifyEntity(entityID);
     if (_entityTree) {
         _entityTree->lockForRead();
         EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
@@ -142,8 +120,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
                 }
             }
 
-        } else {
-            results.setIsUnknownID();
         }
         _entityTree->unlock();
     }
@@ -151,59 +127,33 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
     return results;
 }
 
-EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
-    EntityItemID actualID = entityID;
-    // if the entity is unknown, attempt to look it up
-    if (!entityID.isKnownID) {
-        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
-        if (actualID.id != UNKNOWN_ENTITY_ID) {
-            entityID.id = actualID.id;
-            entityID.isKnownID = true;
-        }
-    }
-
-    // If we have a local entity tree set, then also update it. We can do this even if we don't know
-    // the actual id, because we can edit out local entities just with creatorTokenID
+QUuid EntityScriptingInterface::editEntity(QUuid entityID, const EntityItemProperties& properties) {
+    // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
         _entityTree->updateEntity(entityID, properties);
         _entityTree->unlock();
     }
 
-    // if at this point, we know the id, send the update to the entity server
-    if (entityID.isKnownID) {
-        // make sure the properties has a type, so that the encode can know which properties to include
-        if (properties.getType() == EntityTypes::Unknown) {
-            EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (entity) {
-                // we need to change the outgoing properties, so we make a copy, modify, and send.
-                EntityItemProperties modifiedProperties = properties;
-                entity->setLastBroadcast(usecTimestampNow());
-                modifiedProperties.setType(entity->getType());
-                bidForSimulationOwnership(modifiedProperties);
-                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
-                return entityID;
-            }
+    // make sure the properties has a type, so that the encode can know which properties to include
+    if (properties.getType() == EntityTypes::Unknown) {
+        EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (entity) {
+            // we need to change the outgoing properties, so we make a copy, modify, and send.
+            EntityItemProperties modifiedProperties = properties;
+            entity->setLastBroadcast(usecTimestampNow());
+            modifiedProperties.setType(entity->getType());
+            bidForSimulationOwnership(modifiedProperties);
+            queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
+            return entityID;
         }
-
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
-    
+
+    queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     return entityID;
 }
 
-void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
-
-    EntityItemID actualID = entityID;
-    
-    // if the entity is unknown, attempt to look it up
-    if (!entityID.isKnownID) {
-        actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
-        if (actualID.id != UNKNOWN_ENTITY_ID) {
-            entityID.id = actualID.id;
-            entityID.isKnownID = true;
-        }
-    }
+void EntityScriptingInterface::deleteEntity(QUuid entityID) {
 
     bool shouldDelete = true;
 
@@ -211,7 +161,7 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     if (_entityTree) {
         _entityTree->lockForWrite();
 
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(actualID));
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
         if (entity) {
             if (entity->getLocked()) {
                 shouldDelete = false;
@@ -224,19 +174,19 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     }
 
     // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
-    if (shouldDelete && entityID.isKnownID) {
+    if (shouldDelete) {
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
 
-EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
-    EntityItemID result(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false);
+QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
+    QUuid result; 
     if (_entityTree) {
         _entityTree->lockForRead();
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result = closestEntity->getEntityItemID();
+            result = closestEntity->getID();
         }
     }
     return result;
@@ -251,8 +201,8 @@ void EntityScriptingInterface::dumpTree() const {
     }
 }
 
-QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
-    QVector<EntityItemID> result;
+QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
+    QVector<QUuid> result;
     if (_entityTree) {
         _entityTree->lockForRead();
         QVector<const EntityItem*> entities;
@@ -260,14 +210,14 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getEntityItemID();
+            result << entity->getID();
         }
     }
     return result;
 }
 
-QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
-    QVector<EntityItemID> result;
+QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<QUuid> result;
     if (_entityTree) {
         _entityTree->lockForRead();
         AABox box(corner, dimensions);
@@ -276,7 +226,7 @@ QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getEntityItemID();
+            result << entity->getID();
         }
     }
     return result;
@@ -303,7 +253,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
-            result.entityID = intersectedEntity->getEntityItemID();
+            result.entityID = intersectedEntity->getID();
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
@@ -359,7 +309,7 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
-    QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
+    QScriptValue entityItemValue = quuidToScriptValue(engine, value.entityID);
     obj.setProperty("entityID", entityItemValue);
 
     QScriptValue propertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
@@ -403,9 +353,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
     QScriptValue entityIDValue = object.property("entityID");
-    if (entityIDValue.isValid()) {
-        EntityItemIDfromScriptValue(entityIDValue, value.entityID);
-    }
+    quuidFromScriptValue(entityIDValue, value.entityID);
     QScriptValue entityPropertiesValue = object.property("properties");
     if (entityPropertiesValue.isValid()) {
         EntityItemPropertiesFromScriptValue(entityPropertiesValue, value.properties);

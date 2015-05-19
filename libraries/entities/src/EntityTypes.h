@@ -14,17 +14,17 @@
 
 #include <stdint.h>
 
+#include <QUuid>
 #include <QHash>
 #include <QString>
 
 #include <OctreeRenderer.h> // for RenderArgs
 
 class EntityItem;
-class EntityItemID;
 class EntityItemProperties;
 class ReadBitstreamToTreeParams;
 
-typedef EntityItem* (*EntityTypeFactory)(const EntityItemID& entityID, const EntityItemProperties& properties);
+typedef EntityItem* (*EntityTypeFactory)(const QUuid& entityID, const EntityItemProperties& properties);
 
 class EntityTypes {
 public:
@@ -45,7 +45,8 @@ public:
     static const QString& getEntityTypeName(EntityType entityType);
     static EntityTypes::EntityType getEntityTypeFromName(const QString& name);
     static bool registerEntityType(EntityType entityType, const char* name, EntityTypeFactory factoryMethod);
-    static EntityItem* constructEntityItem(EntityType entityType, const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* constructEntityItem(EntityType entityType,
+                                           const QUuid& entityID, const EntityItemProperties& properties);
     static EntityItem* constructEntityItem(const unsigned char* data, int bytesToRead, ReadBitstreamToTreeParams& args);
 
 private:
@@ -59,7 +60,7 @@ private:
 /// Macro for registering entity types. Make sure to add an element to the EntityType enum with your name, and your class should be
 /// named NameEntityItem and must of a static method called factory that takes an EnityItemID, and EntityItemProperties and return a newly
 /// constructed (heap allocated) instance of your type. e.g. The following prototype:
-//        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+//        static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 #define REGISTER_ENTITY_TYPE(x) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
 
@@ -67,7 +68,7 @@ private:
 /// an element to the EntityType enum with your name. But unlike  REGISTER_ENTITY_TYPE, your class can be named anything
 /// so long as you provide a static method passed to the macro, that takes an EnityItemID, and EntityItemProperties and 
 /// returns a newly constructed (heap allocated) instance of your type. e.g. The following prototype:
-//        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+//        static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 #define REGISTER_ENTITY_TYPE_WITH_FACTORY(x,y) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, y); \
             if (!x##Registration) { \

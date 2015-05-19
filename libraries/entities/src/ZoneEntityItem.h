@@ -19,9 +19,9 @@
 
 class ZoneEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 
-    ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    ZoneEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     

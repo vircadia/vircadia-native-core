@@ -334,7 +334,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step) {
     assert(_entity);
-    assert(_entity->isKnownID());
 
     bool active = _body->isActive();
     if (!active) {
@@ -428,7 +427,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {
-        EntityItemID id(_entity->getID());
+        QUuid id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
         #ifdef WANT_DEBUG
             qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";

@@ -319,9 +319,8 @@ void ScriptEngine::init() {
     registerAudioMetaTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
-    qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<EntityItemID> >(this);
+    qScriptRegisterSequenceMetaType<QVector<QUuid> >(this);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(this);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(this);

@@ -23,7 +23,7 @@
 
 const int FIXED_FONT_POINT_SIZE = 40;
 
-EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableTextEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
 }
 
@@ -37,7 +37,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     float leftMargin = 0.1f;
     float topMargin = 0.1f;
 
-    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
+    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getID() << "text:" << getText();
 
     glPushMatrix(); 
     {

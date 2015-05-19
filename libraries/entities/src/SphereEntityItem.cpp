@@ -23,12 +23,12 @@
 #include "SphereEntityItem.h"
 
 
-EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* SphereEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new SphereEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
-SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+SphereEntityItem::SphereEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 { 
     _type = EntityTypes::Sphere;
@@ -117,7 +117,7 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
 
 void SphereEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qCDebug(entities) << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "SHPERE EntityItem id:" << getID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "            position:" << debugTreeVector(_position);
     qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);

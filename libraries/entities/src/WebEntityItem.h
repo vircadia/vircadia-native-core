@@ -15,9 +15,9 @@ class WebEntityItem : public EntityItem {
 public:
     static const QString DEFAULT_SOURCE_URL;
 
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 
-    WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    WebEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
 

@@ -20,12 +20,12 @@
 #include "EntityTreeElement.h"
 
 
-EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* BoxEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new BoxEntityItem(entityID, properties);
     return result;
 }
 
-BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+BoxEntityItem::BoxEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Box;
@@ -99,7 +99,7 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
 void BoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qCDebug(entities) << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "   BOX EntityItem id:" << getID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "            position:" << debugTreeVector(_position);
     qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);

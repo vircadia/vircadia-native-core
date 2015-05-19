@@ -81,7 +81,7 @@ public:
     void getEntitiesToDelete(VectorOfEntities& entitiesToDelete);
 
 signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void entityCollisionWithEntity(const QUuid& idA, const QUuid& idB, const Collision& collision);
 
 protected:
 

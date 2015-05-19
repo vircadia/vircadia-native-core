@@ -70,12 +70,6 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
     int packetLength = numBytesPacketHeader;
     copyAt += numBytesPacketHeader;
 
-    // encode the creatorTokenID
-    uint32_t creatorTokenID = newEntity.getCreatorTokenID();
-    memcpy(copyAt, &creatorTokenID, sizeof(creatorTokenID));
-    copyAt += sizeof(creatorTokenID);
-    packetLength += sizeof(creatorTokenID);
-
     // encode the entity ID
     QUuid entityID = newEntity.getID();
     QByteArray encodedID = entityID.toRfc4122();

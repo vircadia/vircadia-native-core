@@ -34,7 +34,7 @@ public:
     RayToEntityIntersectionResult();
     bool intersects;
     bool accurate;
-    EntityItemID entityID;
+    QUuid entityID;
     EntityItemProperties properties;
     float distance;
     BoxFace face;
@@ -70,34 +70,31 @@ public slots:
     Q_INVOKABLE bool canRez();
 
     /// adds a model with the specific properties
-    Q_INVOKABLE EntityItemID addEntity(const EntityItemProperties& properties);
-
-    /// identify a recently created model to determine its true ID
-    Q_INVOKABLE EntityItemID identifyEntity(EntityItemID entityID);
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties);
 
     /// gets the current model properties for a specific model
     /// this function will not find return results in script engine contexts which don't have access to models
-    Q_INVOKABLE EntityItemProperties getEntityProperties(EntityItemID entityID);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
 
-    /// edits a model updating only the included properties, will return the identified EntityItemID in case of
+    /// edits a model updating only the included properties, will return the identified QUuid in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    Q_INVOKABLE EntityItemID editEntity(EntityItemID entityID, const EntityItemProperties& properties);
+    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
 
     /// deletes a model
-    Q_INVOKABLE void deleteEntity(EntityItemID entityID);
+    Q_INVOKABLE void deleteEntity(QUuid entityID);
 
     /// finds the closest model to the center point, within the radius
-    /// will return a EntityItemID.isKnownID = false if no models are in the radius
+    /// will return a QUuid.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
-    Q_INVOKABLE EntityItemID findClosestEntity(const glm::vec3& center, float radius) const;
+    Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
     
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
-    Q_INVOKABLE QVector<EntityItemID> findEntities(const glm::vec3& center, float radius) const;
+    Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
     
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
-    Q_INVOKABLE QVector<EntityItemID> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
+    Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
@@ -123,39 +120,38 @@ public slots:
     Q_INVOKABLE void dumpTree() const;
 
 signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void entityCollisionWithEntity(const QUuid& idA, const QUuid& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
 
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void mouseMoveOnEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void mouseReleaseOnEntity(const QUuid& entityItemID, const MouseEvent& event);
 
-    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void holdingClickOnEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void clickReleaseOnEntity(const QUuid& entityItemID, const MouseEvent& event);
 
-    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void hoverOverEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void hoverLeaveEntity(const QUuid& entityItemID, const MouseEvent& event);
 
-    void enterEntity(const EntityItemID& entityItemID);
-    void leaveEntity(const EntityItemID& entityItemID);
+    void enterEntity(const QUuid& entityItemID);
+    void leaveEntity(const QUuid& entityItemID);
 
-    void deletingEntity(const EntityItemID& entityID);
-    void addingEntity(const EntityItemID& entityID);
-    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void deletingEntity(const QUuid& entityID);
+    void addingEntity(const QUuid& entityID);
+    void changingEntityID(const QUuid& oldEntityID, const QUuid& newEntityID);
     void clearingEntities();
 
 private:
-    void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    void queueEntityMessage(PacketType packetType, QUuid entityID, const EntityItemProperties& properties);
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
                                                                         bool precisionPicking);
 
-    uint32_t _nextCreatorTokenID;
     EntityTree* _entityTree;
 };
 

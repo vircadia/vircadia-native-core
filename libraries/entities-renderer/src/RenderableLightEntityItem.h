@@ -16,9 +16,9 @@
 
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 
-    RenderableLightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+    RenderableLightEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         LightEntityItem(entityItemID, properties)
         { }
 

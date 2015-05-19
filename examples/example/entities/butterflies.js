@@ -106,7 +106,7 @@ function updateButterflies(deltaTime) {
         var CHANCE_OF_IMPULSE = 0.04;
         for (var i = 0; i < numButterflies; i++) {
             if (Math.random() < CHANCE_OF_IMPULSE) {
-                if (!butterflies[i].isKnownID) {
+                if (!butterflies[i]) {
                     butterflies[i] = Entities.identifyEntity(butterflies[i]);
                 }
                 var properties = Entities.getEntityProperties(butterflies[i]);

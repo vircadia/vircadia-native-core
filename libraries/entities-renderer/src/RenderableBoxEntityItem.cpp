@@ -18,7 +18,7 @@
 
 #include "RenderableBoxEntityItem.h"
 
-EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableBoxEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new RenderableBoxEntityItem(entityID, properties);
 }
 

@@ -16,9 +16,9 @@
 
 class RenderableTextEntityItem : public TextEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
 
-    RenderableTextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+    RenderableTextEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         TextEntityItem(entityItemID, properties)
         { }
 

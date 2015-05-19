@@ -23,7 +23,6 @@
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
 
-#include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
@@ -89,18 +88,13 @@ public:
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
-    EntityItem(const EntityItemID& entityItemID);
-    EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    EntityItem(const QUuid& entityItemID);
+    EntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
-    uint32_t getCreatorTokenID() const { return _creatorTokenID; }
-    void setCreatorTokenID(uint32_t creatorTokenID) { _creatorTokenID = creatorTokenID; }
-    bool isNewlyCreated() const { return _newlyCreated; }
-    bool isKnownID() const { return getID() != UNKNOWN_ENTITY_ID; }
-    EntityItemID getEntityItemID() const { return EntityItemID(getID(), getCreatorTokenID(), getID() != UNKNOWN_ENTITY_ID); }
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
@@ -144,8 +138,8 @@ public:
                                     int& propertyCount, 
                                     OctreeElement::AppendState& appendState) const { /* do nothing*/ };
 
-    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
-                                    ReadBitstreamToTreeParams& args);
+    static QUuid readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                            ReadBitstreamToTreeParams& args);
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
@@ -356,8 +350,6 @@ protected:
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
     QUuid _id;
-    uint32_t _creatorTokenID;
-    bool _newlyCreated;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time

@@ -1975,7 +1975,7 @@ void Application::toggleFaceTrackerMute() {
     }
 }
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+bool Application::exportEntities(const QString& filename, const QVector<QUuid>& entityIDs) {
     QVector<EntityItem*> entities;
 
     auto entityTree = _entities.getTree();
@@ -2006,7 +2006,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         auto properties = entityItem->getProperties();
 
         properties.setPosition(properties.getPosition() - root);
-        exportTree.addEntity(entityItem->getEntityItemID(), properties);
+        exportTree.addEntity(entityItem->getID(), properties);
     }
 
     exportTree.writeToJSONFile(filename.toLocal8Bit().constData());
@@ -2026,7 +2026,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 
         for (int i = 0; i < entities.size(); i++) {
             EntityItemProperties properties = entities.at(i)->getProperties();
-            EntityItemID id = entities.at(i)->getEntityItemID();
+            QUuid id = entities.at(i)->getID();
             properties.setPosition(properties.getPosition() - root);
             exportTree.addEntity(id, properties);
         }
@@ -2075,7 +2075,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
     return success;
 }
 
-QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
+QVector<QUuid> Application::pasteEntities(float x, float y, float z) {
     return _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 

@@ -386,13 +386,6 @@ MyAvatar.attach(gunModel, "LeftHand", {x:-0.04, y: 0.22, z: 0.02}, Quat.fromPitc
 Script.setTimeout(playLoadSound, 2000); 
 
 function update(deltaTime) {
-    if (bulletID && !bulletID.isKnownID) {
-        bulletID = Entities.identifyEntity(bulletID);
-    }
-    if (targetID && !targetID.isKnownID) {
-        targetID = Entities.identifyEntity(targetID);
-    }
-
     if (activeControllers == 0) {
         if (Controller.getNumberOfSpatialControls() > 0) { 
             activeControllers = Controller.getNumberOfSpatialControls();

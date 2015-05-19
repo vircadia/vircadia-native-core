@@ -19,7 +19,7 @@
 
 #include "RenderableSphereEntityItem.h"
 
-EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableSphereEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new RenderableSphereEntityItem(entityID, properties);
 }
 

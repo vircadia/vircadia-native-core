@@ -74,9 +74,6 @@ void Agent::readPendingDatagrams() {
                 }
                 
             } else if (datagramPacketType == PacketTypeEntityAddResponse) {
-                // this will keep creatorTokenIDs to IDs mapped correctly
-                EntityItemID::handleAddEntityResponse(receivedPacket);
-                
                 // also give our local entity tree a chance to remap any internal locally created entities
                 _entityViewer.getTree()->handleAddEntityResponse(receivedPacket);
 

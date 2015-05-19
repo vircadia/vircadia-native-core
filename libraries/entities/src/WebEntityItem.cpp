@@ -22,12 +22,12 @@
 
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
-EntityItem* WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* WebEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new WebEntityItem(entityID, properties);
     return result;
 }
 
-WebEntityItem::WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+WebEntityItem::WebEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Web;

@@ -16,7 +16,7 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableZoneEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new RenderableZoneEntityItem(entityID, properties);
 }
 

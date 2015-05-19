@@ -19,7 +19,7 @@
 
 #include "RenderableLightEntityItem.h"
 
-EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableLightEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
     return new RenderableLightEntityItem(entityID, properties);
 }
 
