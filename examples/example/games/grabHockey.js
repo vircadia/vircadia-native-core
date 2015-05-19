@@ -10,7 +10,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var adebug = 0;
 // these are hand-measured bounds of the AirHockey table
 var fieldMaxOffset = {
   x: 0.475,
@@ -30,12 +29,14 @@ var tablePosition = {
   z: 0
 }
 var isGrabbing = false;
+var isGrabbingPaddle = false;
 var grabbedEntity = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
 }
 
+var MAX_GRAB_DISTANCE = 100;
 var TABLE_SEARCH_RANGE = 10;
 var entityProps;
 var moveUpDown = false;
@@ -47,6 +48,9 @@ var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
 var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
 var grabHeight;
+var initialVerticalGrabPosition;
+var MAX_VERTICAL_ANGLE = Math.PI / 3;
+var MIN_VERTICAL_ANGLE = - MAX_VERTICAL_ANGLE;
 var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
 var grabOffset;
 var originalGravity = {
@@ -97,19 +101,49 @@ function nearLinePoint(targetPosition) {
 }
 
 function xzPickRayIntersetion(pointOnPlane, mouseX, mouseY) {
-  var relativePosition = Vec3.subtract(pointOnPlane, Camera.getPosition());
+  var relativePoint = Vec3.subtract(pointOnPlane, Camera.getPosition());
   var pickRay = Camera.computePickRay(mouseX, mouseY);
   if (Math.abs(pickRay.direction.y) > 0.001) {
-    var length = relativePosition.y / pickRay.direction.y;
-    var pickInersection = Vec3.multiply(pickRay.direction, length);
+    var distance = relativePoint.y / pickRay.direction.y;
+    var pickInersection = Vec3.multiply(pickRay.direction, distance);
     pickInersection = Vec3.sum(Camera.getPosition(), pickInersection);
     return pickInersection;
   }
   // point and line are more-or-less co-planar: compute closest approach of pickRay and pointOnPlane
-  var length = Vec3.dot(relativePosition, pickRay.direction);
-  var pickInersection = Vec3.multiply(pickRay.direction, length);
+  var distance = Vec3.dot(relativePoint, pickRay.direction);
+  var pickInersection = Vec3.multiply(pickRay.direction, distance);
   return pickInersection;
 }
+
+function forwardPickRayIntersection(pointOnPlane, mouseX, mouseY) {
+  var relativePoint = Vec3.subtract(pointOnPlane, Camera.getPosition());
+  var pickRay = Camera.computePickRay(mouseX, mouseY);
+  var planeNormal = Quat.getFront(Camera.getOrientation());
+  var distance = Vec3.dot(planeNormal, relativePoint);
+  var rayDistance = Vec3.dot(planeNormal, pickRay.direction);
+  var pickIntersection = Vec3.multiply(pickRay.direction, distance / rayDistance);
+  pickIntersection = Vec3.sum(pickIntersection, Camera.getPosition())
+  return pickIntersection;
+}
+
+/*
+function yCylinderPickRayIntersection(grabRadius, mouseX, mouseY) {
+  var pickRay = Camera.computePickRay(mouseX, mouseY);
+  var angle = Math.asin(pickRay.direction.y);
+  if (angle > MAX_VERTICAL_ANGLE) {
+    angle = MAX_VERTICAL_ANGLE;
+  } else if (angle < MIN_VERTICAL_ANGLE) {
+    angle = MIN_VERTICAL_ANGLE;
+  }
+  var horizontalNormal = pickRay.direction;
+  horizontalNormal.y = 0;
+  horizontalNormal = Vec3.normalize(horizontalNormal);
+  var pickIntersection = Vec3.multiply(horizontalNormal, grabRadius);
+  pickIntersection.y = grabRadius * Math.tan(angle);
+  pickIntersection = Vec3.sum(pickIntersection, Camera.getPosition())
+  return pickIntersection;
+}
+*/
 
 function mousePressEvent(event) {
   if (!event.isLeftButton) {
@@ -126,10 +160,17 @@ function mousePressEvent(event) {
   if (pickResults.properties.collisionsWillMove) {
     grabbedEntity = pickResults.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
-    isGrabbing = true;
     originalGravity = props.gravity;
     var objectPosition = props.position;
     currentPosition = props.position;
+    if (Vec3.distance(currentPosition, Camera.getPosition()) > MAX_GRAB_DISTANCE) {
+        // don't allow grabs of things far away
+        return;
+    }
+
+    isGrabbing = true;
+    isGrabbingPaddle = (props.name == "air-hockey-paddle-23j4h1jh82jsjfw91jf232n2k");
+
     currentVelocity = props.velocity;
     updateDropLine(objectPosition);
 
@@ -140,6 +181,7 @@ function mousePressEvent(event) {
     // remember the height of the object when first grabbed
     // we'll try to maintain this height during the rest of this grab
     grabHeight = currentPosition.y;
+    initialVerticalGrabPosition = currentPosition;
 
     Entities.editEntity(grabbedEntity, {
       gravity: {
@@ -243,48 +285,65 @@ function mouseMoveEvent(event) {
       axisAngle = Quat.axis(dQ);
       angularVelocity = Vec3.multiply((theta / dT), axisAngle);
     } else {
-      var pointOnPlane = xzPickRayIntersetion(currentPosition, event.x, event.y);
-      pointOnPlane = Vec3.subtract(pointOnPlane, grabOffset);  
+      if (moveUpDown) {
+        targetPosition = forwardPickRayIntersection(currentPosition, event.x, event.y);
+        grabHeight = targetPosition.y;
+      } else {
+        var pointOnPlane = xzPickRayIntersetion(currentPosition, event.x, event.y);
+        pointOnPlane = Vec3.subtract(pointOnPlane, grabOffset);  
 
-      // translate pointOnPlane into local-frame
-      pointOnPlane = Vec3.subtract(pointOnPlane, tablePosition);
+        if (isGrabbingPaddle) {
+          // translate pointOnPlane into local-frame
+          pointOnPlane = Vec3.subtract(pointOnPlane, tablePosition);
 
-      // clamp local pointOnPlane to table field
-      if (pointOnPlane.x > fieldMaxOffset.x) {
-        pointOnPlane.x = fieldMaxOffset.x;
-      } else if (pointOnPlane.x < fieldMinOffset.x) {
-        pointOnPlane.x = fieldMinOffset.x;
+          // clamp local pointOnPlane to table field
+          if (pointOnPlane.x > fieldMaxOffset.x) {
+            pointOnPlane.x = fieldMaxOffset.x;
+          } else if (pointOnPlane.x < fieldMinOffset.x) {
+            pointOnPlane.x = fieldMinOffset.x;
+          }
+          if (pointOnPlane.z > fieldMaxOffset.z) {
+            pointOnPlane.z = fieldMaxOffset.z;
+          } else if (pointOnPlane.z < fieldMinOffset.z) {
+            pointOnPlane.z = fieldMinOffset.z;
+          }
+  
+          // clamp to rotated square (for cut corners)
+          var rotation = Quat.angleAxis(45, { x:0, y:1, z:0 });
+          pointOnPlane = Vec3.multiplyQbyV(rotation, pointOnPlane);
+          if (pointOnPlane.x > halfCornerBoxWidth) {
+              pointOnPlane.x = halfCornerBoxWidth;
+          } else if (pointOnPlane.x < -halfCornerBoxWidth) {
+              pointOnPlane.x = -halfCornerBoxWidth;
+          }
+          if (pointOnPlane.z > halfCornerBoxWidth) {
+              pointOnPlane.z = halfCornerBoxWidth;
+          } else if (pointOnPlane.z < -halfCornerBoxWidth) {
+              pointOnPlane.z = -halfCornerBoxWidth;
+          }
+          // rotate back into local frame
+          rotation.y = -rotation.y;
+          pointOnPlane = Vec3.multiplyQbyV(rotation, pointOnPlane);
+  
+          // translate into world-frame
+          pointOnPlane = Vec3.sum(tablePosition, pointOnPlane);
+        } else {
+          // we're grabbing a non-paddle object
+  
+          // clamp distance
+          var relativePosition = Vec3.subtract(pointOnPlane, Camera.getPosition());
+          var length = Vec3.length(relativePosition);
+          if (length > MAX_GRAB_DISTANCE) {
+            relativePosition = Vec3.multiply(relativePosition, MAX_GRAB_DISTANCE / length);
+            pointOnPlane = Vec3.sum(relativePosition, Camera.getPosition());
+          }
+        }
+        // clamp to grabHeight
+        pointOnPlane.y = grabHeight;
+        targetPosition = pointOnPlane;
+        initialVerticalGrabPosition = targetPosition;
       }
-      if (pointOnPlane.z > fieldMaxOffset.z) {
-        pointOnPlane.z = fieldMaxOffset.z;
-      } else if (pointOnPlane.z < fieldMinOffset.z) {
-        pointOnPlane.z = fieldMinOffset.z;
-      }
 
-      // clamp to rotated square (for cut corners)
-      var rotation = Quat.angleAxis(45, { x:0, y:1, z:0 });
-      pointOnPlane = Vec3.multiplyQbyV(rotation, pointOnPlane);
-      if (pointOnPlane.x > halfCornerBoxWidth) {
-          pointOnPlane.x = halfCornerBoxWidth;
-      } else if (pointOnPlane.x < -halfCornerBoxWidth) {
-          pointOnPlane.x = -halfCornerBoxWidth;
-      }
-      if (pointOnPlane.z > halfCornerBoxWidth) {
-          pointOnPlane.z = halfCornerBoxWidth;
-      } else if (pointOnPlane.z < -halfCornerBoxWidth) {
-          pointOnPlane.z = -halfCornerBoxWidth;
-      }
-      // rotate back into local frame
-      rotation.y = -rotation.y;
-      pointOnPlane = Vec3.multiplyQbyV(rotation, pointOnPlane);
-
-      // translate into world-frame
-      pointOnPlane = Vec3.sum(tablePosition, pointOnPlane);
-
-      // clamp to gragHeight
-      pointOnPlane.y = grabHeight;
-
-      targetPosition = pointOnPlane;
     }
   }
   prevMouse.x = event.x;
