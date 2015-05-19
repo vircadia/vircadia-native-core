@@ -106,6 +106,9 @@ function xzPickRayIntersetion(pointOnPlane, mouseX, mouseY) {
   var pickRay = Camera.computePickRay(mouseX, mouseY);
   if (Math.abs(pickRay.direction.y) > 0.001) {
     var distance = relativePoint.y / pickRay.direction.y;
+    if (distance < 0.001) {
+        return pointOnPlane;
+    }
     var pickInersection = Vec3.multiply(pickRay.direction, distance);
     pickInersection = Vec3.sum(Camera.getPosition(), pickInersection);
     return pickInersection;
@@ -238,7 +241,6 @@ function mouseReleaseEvent() {
   }
 }
 
-// new mouseMoveEvent
 function mouseMoveEvent(event) {
   if (isGrabbing) {
     // see if something added/restored gravity
@@ -321,7 +323,6 @@ function mouseMoveEvent(event) {
         targetPosition = pointOnPlane;
         initialVerticalGrabPosition = targetPosition;
       }
-
     }
   }
   prevMouse.x = event.x;
