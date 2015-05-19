@@ -17,8 +17,10 @@
 #include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
+#include <PhysicsEngine.h>
 
 #include "Avatar.h"
+#include "AvatarMotionState.h"
 
 class MyAvatar;
 
@@ -51,6 +53,12 @@ public:
     
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
+
+    VectorOfMotionStates& getObjectsToDelete();
+    VectorOfMotionStates& getObjectsToAdd();
+    VectorOfMotionStates& getObjectsToChange();
+    void handleOutgoingChanges(VectorOfMotionStates& motionStates);
+    void handleCollisionEvents(CollisionEvents& collisionEvents);
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -62,7 +70,7 @@ private:
     void simulateAvatarFades(float deltaTime);
     void renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode);
     
-    AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer newSharedAvatar();
     
     // virtual overrides
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
@@ -74,6 +82,9 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
+
+    VectorOfAvatarMotionStates _avatarMotionStates;
+    VectorOfMotionStates _tempMotionStates;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

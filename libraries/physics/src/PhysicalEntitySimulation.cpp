@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntityMotionState.h"
 #include "PhysicalEntitySimulation.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"

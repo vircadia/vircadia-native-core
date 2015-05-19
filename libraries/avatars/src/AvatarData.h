@@ -301,8 +301,8 @@ public:
     int getReceiveRate() const;
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
-    glm::vec3 getTargetVelocity() const { return _targetVelocity; }
+    Q_INVOKABLE const glm::vec3& getVelocity() const { return _velocity; }
+    const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
 public slots:
     void sendAvatarDataPacket();

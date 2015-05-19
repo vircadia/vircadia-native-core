@@ -62,7 +62,7 @@ public:
     virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
 
     virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
-    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
+    virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
     virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }

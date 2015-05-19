@@ -21,9 +21,8 @@
 #include <EntitySimulation.h>
 
 #include "PhysicsEngine.h"
-#include "PhysicsTypedefs.h"
+#include "EntityMotionState.h"
 
-class EntityMotionState;
 class ShapeManager;
 
 typedef QSet<EntityMotionState*> SetOfEntityMotionStates;

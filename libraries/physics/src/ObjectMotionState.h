@@ -15,6 +15,9 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
+#include <QSet>
+#include <QVector>
+
 #include <EntityItem.h>
 
 #include "ContactInfo.h"
@@ -109,7 +112,7 @@ public:
     virtual float getObjectAngularDamping() const = 0;
     
     virtual glm::vec3 getObjectPosition() const = 0;
-    virtual const glm::quat& getObjectRotation() const = 0;
+    virtual glm::quat getObjectRotation() const = 0;
     virtual const glm::vec3& getObjectLinearVelocity() const = 0;
     virtual const glm::vec3& getObjectAngularVelocity() const = 0;
     virtual const glm::vec3& getObjectGravity() const = 0;
@@ -136,5 +139,8 @@ protected:
 
     uint32_t _lastKinematicStep;
 };
+
+typedef QSet<ObjectMotionState*> SetOfMotionStates;
+typedef QVector<ObjectMotionState*> VectorOfMotionStates;
 
 #endif // hifi_ObjectMotionState_h

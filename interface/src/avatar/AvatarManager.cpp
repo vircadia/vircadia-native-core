@@ -215,3 +215,21 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     return _localLights;
 }
 
+VectorOfMotionStates& AvatarManager::getObjectsToDelete() {
+    return _tempMotionStates;
+}
+
+VectorOfMotionStates& AvatarManager::getObjectsToAdd() {
+    return _tempMotionStates;
+}
+
+VectorOfMotionStates& AvatarManager::getObjectsToChange() {
+    return _tempMotionStates;
+}
+
+void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
+}
+
+void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
+}
+

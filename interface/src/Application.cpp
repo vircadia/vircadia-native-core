@@ -2456,6 +2456,11 @@ void Application::update(float deltaTime) {
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
         _entitySimulation.unlock();
 
+        AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
+        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
+        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
+        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+
         _physicsEngine.stepSimulation();
 
         if (_physicsEngine.hasOutgoingChanges()) {
@@ -2463,6 +2468,10 @@ void Application::update(float deltaTime) {
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
             _entitySimulation.unlock();
+
+            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            avatarManager->handleCollisionEvents(_physicsEngine.getCollisionEvents());
+
             _physicsEngine.dumpStatsIfNecessary();
         }
     }
