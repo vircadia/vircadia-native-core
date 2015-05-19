@@ -7,10 +7,14 @@ add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
-add_dependency_external_projects(bullet)
+add_dependency_external_projects(bullet polyvox)
 
 find_package(Bullet REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
+
+find_package(PolyVox REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${POLYVOX_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
 
 link_hifi_libraries(avatars shared octree gpu model fbx networking animation environment)
