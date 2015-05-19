@@ -9,14 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <QEvent>
-#include <QGLWidget>
 #include <QNetworkReply>
-#include <QOpenGLFramebufferObject>
-#include <QResizeEvent>
+#include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>

@@ -21,7 +21,7 @@
 
 #include <QImage>
 #include <QMap>
-#include <QGLWidget>
+#include <QColor>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
