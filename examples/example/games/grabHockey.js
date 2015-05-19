@@ -31,7 +31,7 @@ var tablePosition = {
 var isGrabbing = false;
 var isGrabbingPaddle = false;
 var grabbedEntity = null;
-var prevMouse = {};
+var prevMouse = {x: 0, y: 0};
 var deltaMouse = {
   z: 0
 }
@@ -43,6 +43,7 @@ var moveUpDown = false;
 var CLOSE_ENOUGH = 0.001;
 var FULL_STRENGTH = 1.0;
 var SPRING_TIMESCALE = 0.05;
+var ANGULAR_SPRING_TIMESCALE = 0.03;
 var DAMPING_RATE = 0.80;
 var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
@@ -59,7 +60,7 @@ var originalGravity = {
   z: 0
 };
 var shouldRotate = false;
-var dQ, theta, axisAngle, dT;
+var dQ, dT;
 var angularVelocity = {
   x: 0,
   y: 0,
@@ -266,24 +267,20 @@ function mouseMoveEvent(event) {
     }
 
     if (shouldRotate) {
+      targetPosition = currentPosition;
       deltaMouse.x = event.x - prevMouse.x;
-      if (!moveUpDown) {
-        deltaMouse.z = event.y - prevMouse.y;
-        deltaMouse.y = 0;
-      } else {
-        deltaMouse.y = (event.y - prevMouse.y) * -1;
-        deltaMouse.z = 0;
-      }
+      deltaMouse.z = event.y - prevMouse.y;
+      deltaMouse.y = 0;
+
       var transformedDeltaMouse = {
         x: deltaMouse.z,
         y: deltaMouse.x,
         z: deltaMouse.y
       };
-      transformedDeltaMouse = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), transformedDeltaMouse);
       dQ = Quat.fromVec3Degrees(transformedDeltaMouse);
-      theta = 2 * Math.acos(dQ.w);
-      axisAngle = Quat.axis(dQ);
-      angularVelocity = Vec3.multiply((theta / dT), axisAngle);
+      var theta = 2 * Math.acos(dQ.w);
+      var axis = Quat.axis(dQ);
+      angularVelocity = Vec3.multiply((theta / ANGULAR_SPRING_TIMESCALE), axis);
     } else {
       if (moveUpDown) {
         targetPosition = forwardPickRayIntersection(currentPosition, event.x, event.y);
