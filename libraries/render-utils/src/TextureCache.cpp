@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
 #include <gpu/GPUConfig.h>
 
 #include <QNetworkReply>
@@ -23,7 +25,6 @@
 #include "RenderUtilsLogging.h"
 #include "TextureCache.h"
 
-#include "gpu/GLBackend.h"
 
 #include <mutex>
 

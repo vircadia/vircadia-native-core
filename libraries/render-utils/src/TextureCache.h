@@ -12,7 +12,6 @@
 #ifndef hifi_TextureCache_h
 #define hifi_TextureCache_h
 
-#include <gpu/Batch.h>
 #include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
 #include <gpu/Framebuffer.h>
@@ -26,6 +25,9 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
+namespace gpu {
+class Batch;
+}
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
