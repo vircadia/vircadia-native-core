@@ -65,6 +65,10 @@ td.buttons {
   width: 30px;
 }
 
+td.buttons.reorder-buttons {
+  width: 40px;
+}
+
 td .glyphicon {
   text-align: center;
   font-size: 12px;

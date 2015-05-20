@@ -168,12 +168,20 @@ $(document).ready(function(){
 
         if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
           // set focus to next input
-          sibling.find('input').focus()
-        } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-          sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+          sibling.find('input').focus();
+        } else {
 
-          // set focus to the first input in the new row
-          $target.closest('table').find('tr.inputs input:first').focus()
+          // jump over the re-order row, if that's what we're on
+          if (sibling.hasClass(Settings.REORDER_BUTTONS_CLASS)) {
+            sibling = sibling.next();
+          }
+
+          if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+
+            // set focus to the first input in the new row
+            $target.closest('table').find('tr.inputs input:first').focus()
+          }
         }
 
       } else if ($target.is('input')) {
@@ -801,8 +809,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
   if (!isLocked && !setting.read_only) {
     if (setting.can_order) {
-      html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
-              "><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
+      html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
+              "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
     html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
   }
