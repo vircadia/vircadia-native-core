@@ -339,7 +339,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
-        _maxOctreePPS(maxOctreePacketsPerSecond.get())
+        _maxOctreePPS(maxOctreePacketsPerSecond.get()),
+        _lastFaceTrackerUpdate(0)
 {
     setInstance(this);
 #ifdef Q_OS_WIN
@@ -2413,7 +2414,27 @@ void Application::update(float deltaTime) {
         FaceTracker* tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
+
+            // Auto-mute microphone after losing face tracking?
+            if (tracker->isTracking()) {
+                _lastFaceTrackerUpdate = usecTimestampNow();
+            } else {
+                const quint64 MUTE_MICROPHONE_AFTER_USECS = 5000000;  //5 secs
+                Menu* menu = Menu::getInstance();
+                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !menu->isOptionChecked(MenuOption::MuteAudio)) {
+                    if (_lastFaceTrackerUpdate > 0
+                        && ((usecTimestampNow() - _lastFaceTrackerUpdate) > MUTE_MICROPHONE_AFTER_USECS)) {
+                        menu->triggerOption(MenuOption::MuteAudio);
+                        _lastFaceTrackerUpdate = 0;
+                    }
+                } else {
+                    _lastFaceTrackerUpdate = 0;
+                }
+            }
+        } else {
+            _lastFaceTrackerUpdate = 0;
         }
+
         SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
     }
@@ -2461,7 +2482,6 @@ void Application::update(float deltaTime) {
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
-            _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
             _entitySimulation.unlock();
             _physicsEngine.dumpStatsIfNecessary();
         }
@@ -2469,9 +2489,11 @@ void Application::update(float deltaTime) {
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
-        // NOTE: the _entities.update() call below will wait for lock 
+        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+        _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
+        // NOTE: the _entities.update() call below will wait for lock
         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
-        _entities.update(); // update the models...
+       _entities.update(); // update the models...
     }
 
     {

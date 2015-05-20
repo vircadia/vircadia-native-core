@@ -284,7 +284,7 @@
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
             var elWebSections = document.querySelectorAll(".web-section");
-            allSections.push(elModelSections);
+            allSections.push(elWebSections);
             var elWebSourceURL = document.getElementById("property-web-source-url");
 
             var elTextSections = document.querySelectorAll(".text-section");
@@ -481,7 +481,7 @@
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
-                                for (var i = 0; i < elTextSections.length; i++) {
+                                for (var i = 0; i < elWebSections.length; i++) {
                                     elWebSections[i].style.display = 'block';
                                 }
 
