@@ -1213,7 +1213,7 @@ SelectionDisplay = (function () {
                     rotation: rotation,
                     visible: true,
                 });
-                var distance = (properties.dimensions.z / 2) * Math.tan(properties.cutoff * (Math.PI / 180));
+                var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
 
                 Overlays.editOverlay(grabberSpotLightL, {
                     position: EdgeNL,
