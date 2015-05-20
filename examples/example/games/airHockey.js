@@ -392,6 +392,13 @@ function scriptEnding() {
   Overlays.deleteOverlay(spawnButton);
   Overlays.deleteOverlay(deleteButton);
 
+
+  //We only want to delete everything if we've spawned them first.
+  //Otherwise we'll throw an error- if we have edge1 we've spawned them all.
+  if(!edge1){
+    return;
+  }
+
   Entities.editEntity(edge1, {
     locked: false
   });
@@ -416,7 +423,6 @@ function scriptEnding() {
   Entities.editEntity(table, {
     locked: false
   });
-
 
 
   Entities.deleteEntity(edge1);
