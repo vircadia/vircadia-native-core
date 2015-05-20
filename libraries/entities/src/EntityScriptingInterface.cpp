@@ -92,7 +92,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     // queue the packet
     if (success) {
-        queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
+        queueEntityMessage(PacketTypeEntityAdd, id, propertiesWithSimID);
     }
 
     return id;
@@ -144,12 +144,12 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             entity->setLastBroadcast(usecTimestampNow());
             modifiedProperties.setType(entity->getType());
             bidForSimulationOwnership(modifiedProperties);
-            queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
+            queueEntityMessage(PacketTypeEntityEdit, entityID, modifiedProperties);
             return id;
         }
     }
 
-    queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return id;
 }
 

@@ -65,7 +65,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeEntityAddOrEdit:
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit:
         case PacketTypeEntityErase:
             return true;
         default:
@@ -559,20 +560,19 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             break;
         }
         
-        case PacketTypeEntityAddOrEdit: {
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit: {
             EntityItemID entityItemID;
             EntityItemProperties properties;
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
-                                                    processedBytes, entityItemID, properties);
+                                                                                processedBytes, entityItemID, properties);
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
                 // search for the entity by EntityItemID
                 EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
-
-                // If this is a knownID, then it should exist in our tree
-                if (existingEntity) {
+                if (existingEntity && packetType == PacketTypeEntityEdit) {
                     // if the EntityItem exists, then update it
                     if (wantEditLogging()) {
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
@@ -580,7 +580,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     }
                     updateEntity(entityItemID, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
-                } else {
+                } else if (packetType == PacketTypeEntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         if (wantEditLogging()) {
@@ -599,8 +599,11 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 
                         }
                     } else {
-                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID() << "] attempted to add an entity.";
+                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
+                                          << "] attempted to add an entity.";
                     }
+                } else {
+                    qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity;
                 }
             }
             break;
@@ -1009,7 +1012,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, newID, properties);
+        args->packetSender->queueEditEntityMessage(PacketTypeEntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->localTree) {

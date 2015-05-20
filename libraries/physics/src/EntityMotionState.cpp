@@ -433,7 +433,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
         #endif
 
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        entityPacketSender->queueEditEntityMessage(PacketTypeEntityEdit, id, properties);
         _entity->setLastBroadcast(usecTimestampNow());
     } else {
         #ifdef WANT_DEBUG

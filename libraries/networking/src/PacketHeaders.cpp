@@ -70,7 +70,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 1;
         case PacketTypeStopNode:
             return 1;
-        case PacketTypeEntityAddOrEdit:
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit:
         case PacketTypeEntityData:
             return VERSION_NO_ENTITY_ID_SWAP;
         case PacketTypeEntityErase:
@@ -117,7 +118,6 @@ QString nameForPacketType(PacketType packetType) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeNodeJsonStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityQuery);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddOrEdit);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
@@ -128,6 +128,8 @@ QString nameForPacketType(PacketType packetType) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAdd);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEdit);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }
