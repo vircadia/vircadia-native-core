@@ -464,7 +464,7 @@
       {
         "name": "statusHost",
         "label": "Status Hostname",
-        "help": "host name or IP address of the server for accessing the status page",
+        "help": "Host name or IP address of the server for accessing the status page",
         "placeholder": "",
         "default": "",
         "advanced": true
@@ -472,7 +472,7 @@
       {
         "name": "statusPort",
         "label": "Status Port",
-        "help": "port of the server for accessing the status page",
+        "help": "Port of the server for accessing the status page",
         "placeholder": "",
         "default": "",
         "advanced": true
