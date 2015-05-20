@@ -109,6 +109,13 @@ table {
   width: 100%;
 }
 
+/* styling for bootstrap-switch toggles */
+.checkbox-help {
+  margin-top: 10px;
+}
+
+/* CSS only spinner for AJAX requests */
+
 .spinner {
   margin: 30px auto 0;
   width: 70px;

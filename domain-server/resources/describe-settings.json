@@ -86,10 +86,17 @@
         "value-hidden": true
       },
       {
+        "name": "restricted_access",
+        "type": "checkbox",
+        "label": "Restricted Access",
+        "default": true,
+        "help": "Only users listed in \"Allowed Users\" can enter your domain."
+      },
+      {
         "name": "allowed_users",
         "type": "table",
         "label": "Allowed Users",
-        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from the domain-server machine.",
+        "help": "List the High Fidelity names for people you want to be able to connect to this domain (when \"Restricted Access\" is enabled).<br/>An empty list means everyone.<br/>You can always connect from the domain-server machine.",
         "numbered": false,
         "columns": [
           {
@@ -124,8 +131,8 @@
       {
         "name": "editors_are_rezzers",
         "type": "checkbox",
-        "label": "Only editors can create new entities",
-        "help": "When checked, only those who can edit the domain can create new entites.",
+        "label": "Only Editors Can Create Entities",
+        "help": "Only users listed in \"Allowed Editors\" can create new entites.",
         "default": false
       }
     ]
@@ -180,8 +187,9 @@
       },
       {
         "name": "enable_filter",
+        "label": "Low-pass Filter",
         "type": "checkbox",
-        "help": "positional audio stream uses lowpass filter",
+        "help": "Positional audio stream uses low-pass filter",
         "default": true
       },
       {
