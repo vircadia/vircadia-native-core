@@ -31,6 +31,8 @@
 
 #include <mutex>
 
+#include "PathUtils.h"
+
 TextureCache::TextureCache() :
     _permutationNormalTexture(0),
     _whiteTexture(0),
@@ -150,7 +152,8 @@ const gpu::TexturePointer& TextureCache::getBlueTexture() {
 
 const gpu::TexturePointer& TextureCache::getNormalFittingScaleTexture() {
     if (!_NFSTexture) {
-        _NFSTexture = getTexture(QUrl("http://advances.realtimerendering.com/s2010/Kaplanyan-CryEngine3(SIGGRAPH%202010%20Advanced%20RealTime%20Rendering%20Course)-NormalsFittingTexture.dds"));
+       // _NFSTexture = getTexture(QUrl("http://advances.realtimerendering.com/s2010/Kaplanyan-CryEngine3(SIGGRAPH%202010%20Advanced%20RealTime%20Rendering%20Course)-NormalsFittingTexture.dds"));
+        _NFSTexture = getTexture(QUrl::fromLocalFile(PathUtils::resourcesPath() + "images/NormalsFittingTexture.dds"));
     }
     return _NFSTexture->getGPUTexture();
 }
