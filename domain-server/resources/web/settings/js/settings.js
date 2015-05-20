@@ -206,10 +206,17 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
-    $(this).attr('data-changed', true)
+    $(this).attr('data-changed', true);
 
-    badgeSidebarForDifferences($(this))
-  })
+    badgeSidebarForDifferences($(this));
+  });
+
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function(){
+    // this checkbox was changed, add the changed data attribute to it
+    $(this).attr('data-changed', true);
+
+    badgeSidebarForDifferences($(this));
+  });
 
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
