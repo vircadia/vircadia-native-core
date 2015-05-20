@@ -48,7 +48,6 @@ const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
 const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
 
-
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
@@ -774,9 +773,8 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const HifiSockAddr& senderSockAddr,
                                                  QString& reasonReturn) {
 
-    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
-    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    bool isRestrictingAccess =
+        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
     // we always let in a user who is sending a packet from our local socket or from the localhost address
     if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
@@ -784,45 +782,50 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
         return true;
     }
 
-    if (allowedUsers.count() > 0) {
+    if (isRestrictingAccess) {
+
+        QStringList allowedUsers =
+            _settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
+
         if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
-                return true;
+            if (!verifyUsersKey(username, usernameSignature, reasonReturn)) {
+                return false;
             }
         } else {
             qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
             reasonReturn = "User not on whitelist.";
-        }
-        return false;
-    } else {
-        // we have no allowed user list.
 
-        // if this user is in the editors list, exempt them from the max-capacity check
-        const QVariant* allowedEditorsVariant =
-            valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
-        QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
-        if (allowedEditors.contains(username)) {
-            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
-                return true;
-            }
+            return false;
         }
-
-        // if we haven't reached max-capacity, let them in.
-        const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-        unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
-        if (maximumUserCapacity > 0) {
-            unsigned int connectedUsers = countConnectedUsers();
-            if (connectedUsers >= maximumUserCapacity) {
-                // too many users, deny the new connection.
-                qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
-                reasonReturn = "Too many connected users.";
-                return false;
-            }
-            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
-        }
-
-        return true;
     }
+
+    // either we aren't restricting users, or this user is in the allowed list
+
+    // if this user is in the editors list, exempt them from the max-capacity check
+    const QVariant* allowedEditorsVariant =
+        valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+    QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
+    if (allowedEditors.contains(username)) {
+        if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+            return true;
+        }
+    }
+
+    // if we haven't reached max-capacity, let them in.
+    const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    if (maximumUserCapacity > 0) {
+        unsigned int connectedUsers = countConnectedUsers();
+        if (connectedUsers >= maximumUserCapacity) {
+            // too many users, deny the new connection.
+            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
+            reasonReturn = "Too many connected users.";
+            return false;
+        }
+        qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
+    }
+
+    return true;
 }
 
 void DomainServer::preloadAllowedUserPublicKeys() {
@@ -1253,10 +1256,8 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                          ALLOWED_USERS_SETTINGS_KEYPATH);
-    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
-    domainObject[RESTRICTED_ACCESS_FLAG] = (allowedUsers.size() > 0);
+    domainObject[RESTRICTED_ACCESS_FLAG] =
+        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
