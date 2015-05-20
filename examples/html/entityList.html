@@ -65,7 +65,7 @@
 
                     entityList.add([{ id: id, name: name, type: type, url: filename }], function(items) {
                             var el = items[0].elm;
-                            var id = items[0]._values.id; // ?
+                            var id = items[0]._values.id;
                             entities[id] = {
                                 id: id,
                                 name: name,
@@ -169,7 +169,7 @@
                             elEntityTable.style.display = "table";
                             elNoEntitiesMessage.style.display = "none";
                             for (var i = 0; i < newEntities.length; i++) {
-                                var id = newEntities[i].id; // ?
+                                var id = newEntities[i].id;
                                 addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url);
                             }
                             updateSelectedEntities(data.selectedIDs);

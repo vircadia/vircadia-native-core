@@ -312,7 +312,7 @@
                                              this.indicator[i].position,
                                              this.indicator[i].scale / 2)) {
                        clickedOnSeat = true;
-                       seat.model = this.entityID; // ??
+                       seat.model = this.entityID;
                        seat.position = this.indicator[i].position;
                        seat.rotation = this.indicator[i].orientation;
                    }
