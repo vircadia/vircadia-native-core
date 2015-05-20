@@ -3302,7 +3302,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
-            model::Skybox::render(batch, _viewFrustum, *skybox);
+            model::Skybox::render(batch, *getDisplayViewFrustum(), *skybox);
 
             gpu::GLBackend::renderBatch(batch);
             glUseProgram(0);
