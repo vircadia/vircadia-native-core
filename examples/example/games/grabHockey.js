@@ -1,4 +1,3 @@
-
 //  grab.js
 //  examples
 //
@@ -11,23 +10,48 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// these are hand-measured bounds of the AirHockey table
+var fieldMaxOffset = {
+  x: 0.475,
+  y: 0.315,
+  z: 0.82
+};
+var fieldMinOffset = {
+  x: -0.460, // yes, smaller than max
+  y: 0.315,
+  z: -0.830
+};
+var halfCornerBoxWidth = 0.84;
+
+var tablePosition = {
+  x: 0,
+  y: 0,
+  z: 0
+}
 var isGrabbing = false;
 var grabbedEntity = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
 }
+
+var TABLE_SEARCH_RANGE = 10;
 var entityProps;
 var moveUpDown = false;
 var CLOSE_ENOUGH = 0.001;
-var FULL_STRENGTH = 0.11;
+var FULL_STRENGTH = 1.0;
 var SPRING_RATE = 1.5;
 var DAMPING_RATE = 0.80;
 var ANGULAR_DAMPING_RATE = 0.40;
 var SCREEN_TO_METERS = 0.001;
 var currentPosition, currentVelocity, cameraEntityDistance, currentRotation;
+var grabHeight;
 var velocityTowardTarget, desiredVelocity, addedVelocity, newVelocity, dPosition, camYaw, distanceToTarget, targetPosition;
-var originalGravity = {x: 0, y: 0, z: 0};
+var originalGravity = {
+  x: 0,
+  y: 0,
+  z: 0
+};
 var shouldRotate = false;
 var dQ, theta, axisAngle, dT;
 var angularVelocity = {
@@ -38,8 +62,9 @@ var angularVelocity = {
 
 var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
 var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
+var VOLUME = 0.0;
 
-var DROP_DISTANCE = 5.0;
+var DROP_DISTANCE = 0.10;
 var DROP_COLOR = {
   red: 200,
   green: 200,
@@ -57,11 +82,11 @@ var dropLine = Overlays.addOverlay("line3d", {
 
 
 function vectorIsZero(v) {
-    return v.x == 0 && v.y == 0 && v.z == 0;
+  return v.x == 0 && v.y == 0 && v.z == 0;
 }
 
 function nearLinePoint(targetPosition) {
- // var handPosition = Vec3.sum(MyAvatar.position, {x:0, y:0.2, z:0});
+  // var handPosition = Vec3.sum(MyAvatar.position, {x:0, y:0.2, z:0});
   var handPosition = MyAvatar.getRightPalmPosition();
   var along = Vec3.subtract(targetPosition, handPosition);
   along = Vec3.normalize(along);
@@ -74,9 +99,15 @@ function mousePressEvent(event) {
   if (!event.isLeftButton) {
     return;
   }
+  prevMouse.x = event.x;
+  prevMouse.y = event.y;
+
   var pickRay = Camera.computePickRay(event.x, event.y);
   var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
-  if (intersection.intersects && intersection.properties.collisionsWillMove) {
+  if (!intersection.intersects) {
+    return;
+  }
+  if (intersection.properties.collisionsWillMove) {
     grabbedEntity = intersection.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     isGrabbing = true;
@@ -86,15 +117,35 @@ function mousePressEvent(event) {
     currentVelocity = props.velocity;
     updateDropLine(targetPosition);
 
+    // remember the height of the object when first grabbed
+    // we'll try to maintain this height during the rest of this grab
+    grabHeight = currentPosition.y;
+
     Entities.editEntity(grabbedEntity, {
-      gravity: {x: 0, y: 0, z: 0}
+      gravity: {
+        x: 0,
+        y: 0,
+        z: 0
+      }
     });
 
     Audio.playSound(grabSound, {
       position: props.position,
-      volume: 0.4
+      volume: VOLUME
     });
-  }
+
+    //We want to detect table once user grabs something that may be on a table...
+    var potentialTables = Entities.findEntities(MyAvatar.position, TABLE_SEARCH_RANGE);
+    potentialTables.forEach(function(table) {
+      var props = Entities.getEntityProperties(table);
+      // keep this name synchronized with what's in airHockey.js
+      if (props.name === "air-hockey-table-23j4h1jh82jsjfw91jf232n2k") {
+        // need to remember the table's position so we can clamp the targetPositon
+        // to remain on the playing field
+        tablePosition = props.position;
+      }
+    });
+  } 
 }
 
 function updateDropLine(position) {
@@ -126,7 +177,7 @@ function mouseReleaseEvent() {
     // 5. interface B releases the entity and puts the original gravity back (to zero)
     if (!vectorIsZero(originalGravity)) {
       Entities.editEntity(grabbedEntity, {
-          gravity: originalGravity
+        gravity: originalGravity
       });
     }
 
@@ -135,14 +186,15 @@ function mouseReleaseEvent() {
     });
     targetPosition = null;
 
-    Audio.playSound(grabSound, {
+    Audio.playSound(releaseSound, {
       position: entityProps.position,
-      volume: 0.25
+      volume: VOLUME
     });
 
   }
 }
 
+// new mouseMoveEvent
 function mouseMoveEvent(event) {
   if (isGrabbing) {
     // see if something added/restored gravity
@@ -151,24 +203,15 @@ function mouseMoveEvent(event) {
       originalGravity = props.gravity;
     }
 
-    deltaMouse.x = event.x - prevMouse.x;
-    if (!moveUpDown) {
-      deltaMouse.z = event.y - prevMouse.y;
-      deltaMouse.y = 0;
-    } else {
-      deltaMouse.y = (event.y - prevMouse.y) * -1;
-      deltaMouse.z = 0;
-    }
-    //  Update the target position by the amount the mouse moved
-    camYaw = Quat.safeEulerAngles(Camera.getOrientation()).y;
-    dPosition = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, camYaw, 0), deltaMouse);
-    if (!shouldRotate) {
-      //  Adjust target position for the object by the mouse move 
-      cameraEntityDistance = Vec3.distance(Camera.getPosition(), currentPosition);
-      //  Scale distance we want to move by the distance from the camera to the grabbed object 
-      //  TODO:  Correct SCREEN_TO_METERS to be correct for the actual FOV, resolution
-      targetPosition = Vec3.sum(targetPosition, Vec3.multiply(dPosition, cameraEntityDistance * SCREEN_TO_METERS));
-    } else if (shouldRotate) {
+    if (shouldRotate) {
+      deltaMouse.x = event.x - prevMouse.x;
+      if (!moveUpDown) {
+        deltaMouse.z = event.y - prevMouse.y;
+        deltaMouse.y = 0;
+      } else {
+        deltaMouse.y = (event.y - prevMouse.y) * -1;
+        deltaMouse.z = 0;
+      }
       var transformedDeltaMouse = {
         x: deltaMouse.z,
         y: deltaMouse.x,
@@ -179,13 +222,59 @@ function mouseMoveEvent(event) {
       theta = 2 * Math.acos(dQ.w);
       axisAngle = Quat.axis(dQ);
       angularVelocity = Vec3.multiply((theta / dT), axisAngle);
+    } else {
+      var relativePosition = Vec3.subtract(currentPosition, Camera.getPosition());
+      if (relativePosition.y < 0) {
+        // grabee is below camera, so movement is valid
+        // compute intersectionPoint where mouse ray hits grabee's current x-z plane
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var mousePosition = pickRay.direction;
+        var length = relativePosition.y / mousePosition.y;
+        mousePosition = Vec3.multiply(mousePosition, length);
+        mousePosition = Vec3.sum(Camera.getPosition(), mousePosition);
+
+        // translate mousePosition into local-frame
+        mousePosition = Vec3.subtract(mousePosition, tablePosition);
+
+        // clamp local mousePosition to table field
+        if (mousePosition.x > fieldMaxOffset.x) {
+          mousePosition.x = fieldMaxOffset.x;
+        } else if (mousePosition.x < fieldMinOffset.x) {
+          mousePosition.x = fieldMinOffset.x;
+        }
+        if (mousePosition.z > fieldMaxOffset.z) {
+          mousePosition.z = fieldMaxOffset.z;
+        } else if (mousePosition.z < fieldMinOffset.z) {
+          mousePosition.z = fieldMinOffset.z;
+        }
+
+        // clamp to rotated square (for cut corners)
+        var rotation = Quat.angleAxis(45, { x:0, y:1, z:0 });
+        mousePosition = Vec3.multiplyQbyV(rotation, mousePosition);
+        if (mousePosition.x > halfCornerBoxWidth) {
+            mousePosition.x = halfCornerBoxWidth;
+        } else if (mousePosition.x < -halfCornerBoxWidth) {
+            mousePosition.x = -halfCornerBoxWidth;
+        }
+        if (mousePosition.z > halfCornerBoxWidth) {
+            mousePosition.z = halfCornerBoxWidth;
+        } else if (mousePosition.z < -halfCornerBoxWidth) {
+            mousePosition.z = -halfCornerBoxWidth;
+        }
+        // rotate back into local frame
+        rotation.y = -rotation.y;
+        mousePosition = Vec3.multiplyQbyV(rotation, mousePosition);
+        // translate into world-frame
+        mousePosition = Vec3.sum(tablePosition, mousePosition);
+
+        mousePosition.y = grabHeight;
+        targetPosition = mousePosition;
+      }
     }
   }
   prevMouse.x = event.x;
   prevMouse.y = event.y;
-
 }
-
 
 function keyReleaseEvent(event) {
   if (event.text === "SHIFT") {
@@ -235,13 +324,23 @@ function update(deltaTime) {
       newVelocity = Vec3.subtract(newVelocity, Vec3.multiply(newVelocity, DAMPING_RATE));
       //  Update entity
     } else {
-      newVelocity = {x: 0, y: 0, z: 0};
+      newVelocity = {
+        x: 0,
+        y: 0,
+        z: 0
+      };
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
     } else {
-      angularVelocity = entityProps.angularVelocity; 
+      angularVelocity = entityProps.angularVelocity;
     }
+
+    // enforce that grabee's rotation is only about y-axis while being grabbed
+    currentRotation.x = 0;
+    currentRotation.z = 0;
+    currentRotation.y = Math.sqrt(1.0 - currentRotation.w * currentRotation.w);
+    // Hrm... slamming the currentRotation doesn't seem to work
 
     Entities.editEntity(grabbedEntity, {
       position: currentPosition,

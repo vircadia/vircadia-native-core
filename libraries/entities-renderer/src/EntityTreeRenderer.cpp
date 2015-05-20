@@ -462,7 +462,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                  if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
                     stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
                     if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
-                        stage->getSkybox()->clearCubemap();
+                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
                     } else {
                         // Update the Texture of the Skybox with the one pointed by this zone
                         auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
@@ -850,9 +850,18 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
+        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, 
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+    });
 
     connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
     connect(this, &EntityTreeRenderer::holdingClickOnEntity, entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity);
@@ -900,7 +909,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
-        emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -930,7 +939,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseReleaseOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
@@ -979,7 +988,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         }
 
         //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
-        emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
         }
@@ -1102,6 +1111,9 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    if (!entity) {
+        return;
+    }
     QUuid simulatorID = entity->getSimulatorID();
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
@@ -1110,27 +1122,31 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (collisionSoundURL.isEmpty()) {
         return;
     }
-   SharedSoundPointer sound = DependencyManager::get<SoundCache>().data()->getSound(QUrl(collisionSoundURL));
-    if (!sound->isReady()) {
-        return;
-    }
-
     const float mass = entity->computeMass();
     const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     const float linearVelocity = glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
-    const float COLLISION_MINIMUM_VOLUME = 0.01f;
-    const float energyPercentOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
-    //qCDebug(entitiesrenderer) << energyPercentOfFull << energy << " " << " " << linearVelocity << " " << mass;
-    if (energyPercentOfFull < COLLISION_MINIMUM_VOLUME) {
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+    if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
-    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range 0.5-1.0, if we play it all.
-    const float COLLISION_SOUND_COMPRESSION = 0.5f;
-    const float volume = (energyPercentOfFull * COLLISION_SOUND_COMPRESSION) + (1.0f - COLLISION_SOUND_COMPRESSION);
-    //qCDebug(entitiesrenderer) << collisionSoundURL << " " << volume << " " << position << " " << sound->isStereo();
+
+    auto soundCache = DependencyManager::get<SoundCache>();
+    if (soundCache.isNull()) {
+        return;
+    }
+    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
+    if (sound.isNull() || !sound->isReady()) {
+        return;
+    }
+
+    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
+    float volume = energyFactorOfFull;
+    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
     
     // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
     AudioInjectorOptions options;
@@ -1139,6 +1155,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     options.volume = volume;
     AudioInjector* injector = new AudioInjector(sound.data(), options);
     injector->setLocalAudioInterface(_localAudioInterface);
+    injector->triggerDeleteAfterFinish();
     QThread* injectorThread = new QThread();
     injectorThread->setObjectName("Audio Injector Thread");
     injector->moveToThread(injectorThread);
@@ -1157,13 +1174,19 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if (!_tree || _shuttingDown) {
         return;
     }
+    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
+    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
+    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
+        return;
+    }
 
     // See if we should play sounds
     EntityTree* entityTree = static_cast<EntityTree*>(_tree);
     if (!entityTree->tryLockForRead()) {
         // I don't know why this can happen, but if it does,
         // the consequences are a deadlock, so bail.
-        qCDebug(entitiesrenderer) << "NOTICE: skipping collision.";
+        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
         return;
     }
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();

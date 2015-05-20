@@ -107,6 +107,8 @@ enum EntityPropertyList {
     PROP_SIMULATOR_ID, // all entities
     PROP_NAME, // all entities
     PROP_COLLISION_SOUND_URL,
+    PROP_RESTITUTION,
+    PROP_FRICTION,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line

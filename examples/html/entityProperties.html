@@ -233,6 +233,9 @@
             var elAngularVelocityZ = document.getElementById("property-avel-z");
             var elAngularDamping = document.getElementById("property-adamping");
 
+            var elRestitution = document.getElementById("property-restitution");
+            var elFriction = document.getElementById("property-friction");
+
             var elGravityX = document.getElementById("property-grav-x");
             var elGravityY = document.getElementById("property-grav-y");
             var elGravityZ = document.getElementById("property-grav-z");
@@ -427,6 +430,9 @@
                             elAngularVelocityZ.value = (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(2);
                             elAngularDamping.value = properties.angularDamping.toFixed(2);
 
+                            elRestitution.value = properties.restitution.toFixed(2);
+                            elFriction.value = properties.friction.toFixed(2);
+
                             elGravityX.value = properties.gravity.x.toFixed(2);
                             elGravityY.value = properties.gravity.y.toFixed(2);
                             elGravityZ.value = properties.gravity.z.toFixed(2);
@@ -607,7 +613,10 @@
             elAngularVelocityX.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityY.addEventListener('change', angularVelocityChangeFunction);
             elAngularVelocityZ.addEventListener('change', angularVelocityChangeFunction);
-            elAngularDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('angularDamping'))
+            elAngularDamping.addEventListener('change', createEmitNumberPropertyUpdateFunction('angularDamping'));
+
+            elRestitution.addEventListener('change', createEmitNumberPropertyUpdateFunction('restitution'));
+            elFriction.addEventListener('change', createEmitNumberPropertyUpdateFunction('friction'));
 
             var gravityChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'gravity', elGravityX, elGravityY, elGravityZ);
@@ -961,6 +970,18 @@
             <div class="label">Angular Damping</div>
             <div class="value">
                 <input class="coord" type='number' id="property-adamping"></input>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Restitution</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-restitution"></input>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Friction</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-friction"></input>
             </div>
         </div>
 

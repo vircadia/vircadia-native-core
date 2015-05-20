@@ -17,6 +17,7 @@
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
+#include <QMutex>
 
 #include <unordered_map>
 #include <functional>
@@ -347,6 +348,7 @@ private:
     
     QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
     bool _calculatedMeshTrianglesValid;
+    QMutex _mutex;
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
