@@ -668,6 +668,8 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+
+    quint64 _lastFaceTrackerUpdate;
 };
 
 #endif // hifi_Application_h
