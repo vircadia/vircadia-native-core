@@ -2461,7 +2461,6 @@ void Application::update(float deltaTime) {
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
-            _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
             _entitySimulation.unlock();
             _physicsEngine.dumpStatsIfNecessary();
         }
@@ -2469,9 +2468,11 @@ void Application::update(float deltaTime) {
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
-        // NOTE: the _entities.update() call below will wait for lock 
+        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+        _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
+        // NOTE: the _entities.update() call below will wait for lock
         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
-        _entities.update(); // update the models...
+       _entities.update(); // update the models...
     }
 
     {
