@@ -14,7 +14,7 @@ target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 find_package(PolyVox REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${POLYVOX_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
 
 link_hifi_libraries(avatars shared octree gpu model fbx networking animation environment)

@@ -49,7 +49,7 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
-    Model* getModel(EntityTreeRenderer* renderer);
+    virtual Model* getModel(EntityTreeRenderer* renderer);
 
     bool needsToCallUpdate() const;
 
@@ -60,7 +60,7 @@ public:
     
     virtual bool contains(const glm::vec3& point) const;
 
-private:
+protected:
     void remapTextures();
     
     Model* _model;
