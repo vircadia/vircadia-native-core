@@ -57,6 +57,9 @@ public:
     // FIXME Remove non Batch version once Cube3DOverlay uses the render pipeline
     void renderWireCube(float size, const glm::vec4& color);
     void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    
+    //// Renders a quad with the simple program.
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
 
     //// Renders a line with the simple program.
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 

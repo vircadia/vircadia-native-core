@@ -148,7 +148,14 @@ void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const
     releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
+void DeferredLightingEffect::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner,
+                                        const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, color);
+    releaseSimpleProgram(batch);
+}
+
+void DeferredLightingEffect::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
                                         const glm::vec4& color1, const glm::vec4& color2) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderLine(batch, p1, p2, color1, color2);
