@@ -14,6 +14,8 @@
 #include <QHttpMultiPart>
 #include <QTimer>
 
+#include "NetworkLogging.h"
+
 #include "UserActivityLogger.h"
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
@@ -52,7 +54,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    qDebug() << "Logging activity" << action;
+    qCDebug(networking) << "Logging activity" << action;
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
@@ -62,19 +64,18 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         params.errorCallbackMethod = "requestError";
     }
     
-    accountManager.authenticatedRequest(USER_ACTIVITY_URL,
-                                        QNetworkAccessManager::PostOperation,
-                                        params,
-                                        NULL,
-                                        multipart);
+    accountManager.sendRequest(USER_ACTIVITY_URL,
+                               AccountManagerAuth::Required,
+                               QNetworkAccessManager::PostOperation,
+                               params, NULL, multipart);
 }
 
 void UserActivityLogger::requestFinished(QNetworkReply& requestReply) {
-    // qDebug() << object;
+    // qCDebug(networking) << object;
 }
 
 void UserActivityLogger::requestError(QNetworkReply& errorReply) {
-    qDebug() << errorReply.error() << "-" << errorReply.errorString();
+    qCDebug(networking) << errorReply.error() << "-" << errorReply.errorString();
 }
 
 void UserActivityLogger::launch(QString applicationVersion) {
@@ -84,11 +85,6 @@ void UserActivityLogger::launch(QString applicationVersion) {
     actionDetails.insert(VERSION_KEY, applicationVersion);
     
     logAction(ACTION_NAME, actionDetails);
-}
-
-void UserActivityLogger::close() {
-    const QString ACTION_NAME = "close";
-    logAction(ACTION_NAME, QJsonObject());
 }
 
 void UserActivityLogger::changedDisplayName(QString displayName) {

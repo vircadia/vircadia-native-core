@@ -15,6 +15,7 @@
 #include <GeometryUtil.h>
 
 #include "EntityTree.h"
+#include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement(), _entityItems(NULL) {
@@ -49,8 +50,8 @@ EntityTreeElement* EntityTreeElement::addChildAtIndex(int index) {
 }
 
 void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) const { 
-    qDebug() << "EntityTreeElement::debugExtraEncodeData()... ";
-    qDebug() << "    element:" << getAACube();
+    qCDebug(entities) << "EntityTreeElement::debugExtraEncodeData()... ";
+    qCDebug(entities) << "    element:" << _cube;
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
@@ -58,9 +59,9 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
     if (extraEncodeData->contains(this)) {
         EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
                     = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
-        qDebug() << "    encode data:" << entityTreeElementExtraEncodeData;
+        qCDebug(entities) << "    encode data:" << entityTreeElementExtraEncodeData;
     } else {
-        qDebug() << "    encode data: MISSING!!";
+        qCDebug(entities) << "    encode data: MISSING!!";
     }
 }
 
@@ -159,7 +160,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     const bool wantDebug = false;
     
     if (wantDebug) {
-        qDebug() << "EntityTreeElement::elementEncodeComplete() element:" << getAACube();
+        qCDebug(entities) << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
 
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
@@ -194,15 +195,15 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
                                 = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement));
                                 
                 if (wantDebug) {
-                    qDebug() << "checking child: " << childElement->getAACube();
-                    qDebug() << "    childElement->isLeaf():" << childElement->isLeaf();
-                    qDebug() << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
-                    qDebug() << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
+                    qCDebug(entities) << "checking child: " << childElement->_cube;
+                    qCDebug(entities) << "    childElement->isLeaf():" << childElement->isLeaf();
+                    qCDebug(entities) << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
+                    qCDebug(entities) << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
                 }
                 
                 if (childElement->isLeaf() && childExtraEncodeData->elementCompleted) {
                     if (wantDebug) {
-                        qDebug() << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
+                        qCDebug(entities) << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
                     }
                     childExtraEncodeData->subtreeCompleted = true;
                 }
@@ -215,19 +216,19 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
     }
 
     if (wantDebug) {
-        qDebug() << "for this element: " << getAACube();
-        qDebug() << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qDebug() << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+        qCDebug(entities) << "for this element: " << _cube;
+        qCDebug(entities) << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qCDebug(entities) << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     }
     
     thisExtraEncodeData->subtreeCompleted = !someChildTreeNotComplete;
 
     if (wantDebug) {
-        qDebug() << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qDebug() << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+        qCDebug(entities) << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
+        qCDebug(entities) << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     
         if (thisExtraEncodeData->subtreeCompleted) {
-            qDebug() << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
+            qCDebug(entities) << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
         }
     }
 }
@@ -302,7 +303,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 // the entity may not be in view and then in view a frame later, let the client side handle it's view
                 // frustum culling on rendering.
                 AACube entityCube = entity->getMaximumAACube();
-                entityCube.scale(TREE_SCALE);
                 if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                     includeThisEntity = false; // out of view, don't include it
                 }
@@ -359,7 +359,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
         // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data. 
-        // Only our patent can remove our extra data in these cases and only after it knows that all of it's 
+        // Only our parent can remove our extra data in these cases and only after it knows that all of its
         // children have been encoded.
         // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
         // since that will signal that the entire element needs to be encoded on the next attempt
@@ -417,11 +417,11 @@ bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMaximumAACubeInTreeUnits());
+    return containsBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMaximumAACubeInTreeUnits());
+    return bestFitBounds(properties.getMaximumAACube());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
@@ -441,14 +441,14 @@ bool EntityTreeElement::bestFitBounds(const AABox& bounds) const {
 }
 
 bool EntityTreeElement::containsBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
     return _cube.contains(clampedMin) && _cube.contains(clampedMax);
 }
 
 bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3& maxPoint) const {
-    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, 1.0f);
-    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, 1.0f);
+    glm::vec3 clampedMin = glm::clamp(minPoint, 0.0f, (float)TREE_SCALE);
+    glm::vec3 clampedMax = glm::clamp(maxPoint, 0.0f, (float)TREE_SCALE);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
         
@@ -696,7 +696,6 @@ bool EntityTreeElement::removeEntityItem(EntityItem* entity) {
 // and dirty path marking in one pass.
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
-
     // If we're the root, but this bitstream doesn't support root elements with data, then
     // return without reading any bytes
     if (this == _myTree->getRoot() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
@@ -750,7 +749,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     if (bestFitBefore != bestFitAfter) {
                         // This is the case where the entity existed, and is in some element in our tree...                    
                         if (!bestFitBefore && bestFitAfter) {
-                            // This is the case where the entity existed, and is in some element in our tree...                    
+                            // This is the case where the entity existed, and is in some element in our tree...
                             if (currentContainingElement != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
                                 addEntityItem(entityItem);
@@ -820,23 +819,31 @@ bool EntityTreeElement::pruneChildren() {
     return somethingPruned;
 }
 
+void EntityTreeElement::expandExtentsToContents(Extents& extents) {
+    if (_entityItems->size()) {
+        for (uint16_t i = 0; i < _entityItems->size(); i++) {
+            EntityItem* entity = (*_entityItems)[i];
+            extents.add(entity->getAABox());
+        }
+    }
+}
+
+
 
 void EntityTreeElement::debugDump() {
-    qDebug() << "EntityTreeElement...";
-    AACube temp = getAACube();
-    temp.scale((float)TREE_SCALE);
-    qDebug() << "    cube:" << temp;
-    qDebug() << "    has child elements:" << getChildCount();
+    qCDebug(entities) << "EntityTreeElement...";
+    qCDebug(entities) << "    cube:" << _cube;
+    qCDebug(entities) << "    has child elements:" << getChildCount();
     if (_entityItems->size()) {
-        qDebug() << "    has entities:" << _entityItems->size();
-        qDebug() << "--------------------------------------------------";
+        qCDebug(entities) << "    has entities:" << _entityItems->size();
+        qCDebug(entities) << "--------------------------------------------------";
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             entity->debugDump();
         }
-        qDebug() << "--------------------------------------------------";
+        qCDebug(entities) << "--------------------------------------------------";
     } else {
-        qDebug() << "    NO entities!";
+        qCDebug(entities) << "    NO entities!";
     }
 }
     

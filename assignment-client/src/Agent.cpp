@@ -12,7 +12,6 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -46,7 +45,7 @@ Agent::Agent(const QByteArray& packet) :
     
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    DependencyManager::set<ResouceCacheSharedItems>();
+    DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 }
 
@@ -225,5 +224,7 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
-    NetworkAccessManager::getInstance().clearAccessCache();
+    
+    // our entity tree is going to go away so tell that to the EntityScriptingInterface
+    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
 }

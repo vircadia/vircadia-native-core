@@ -147,9 +147,7 @@ void ShapeInfoTests::testBoxShape() {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: NULL Box shape" << std::endl;
     }
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     if (key.getHash() != otherKey.getHash()) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -172,9 +170,7 @@ void ShapeInfoTests::testSphereShape() {
 
     btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     if (key.getHash() != otherKey.getHash()) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -198,9 +194,7 @@ void ShapeInfoTests::testCylinderShape() {
 
     btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     if (key.getHash() != otherKey.getHash()) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -225,9 +219,7 @@ void ShapeInfoTests::testCapsuleShape() {
 
     btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     if (key.getHash() != otherKey.getHash()) {
         std::cout << __FILE__ << ":" << __LINE__

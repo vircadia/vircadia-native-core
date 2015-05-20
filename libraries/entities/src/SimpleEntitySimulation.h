@@ -25,11 +25,10 @@ protected:
     virtual void updateEntitiesInternal(const quint64& now);
     virtual void addEntityInternal(EntityItem* entity);
     virtual void removeEntityInternal(EntityItem* entity);
-    virtual void entityChangedInternal(EntityItem* entity);
+    virtual void changeEntityInternal(EntityItem* entity);
     virtual void clearEntitiesInternal();
 
-    QSet<EntityItem*> _movingEntities;
-    QSet<EntityItem*> _movableButStoppedEntities;
+    SetOfEntities _hasSimulationOwnerEntities;
 };
 
 #endif // hifi_SimpleEntitySimulation_h

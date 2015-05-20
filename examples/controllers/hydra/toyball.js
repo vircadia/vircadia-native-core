@@ -48,7 +48,7 @@ var rightHandEntity = false;
 var newSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
 var throwSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
-var targetRadius = 1.0;
+var targetRadius = 0.25;
 
 
 var wantDebugging = false;
@@ -92,7 +92,6 @@ function checkControllerSide(whichSide) {
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[0]));
         linearVelocity = averageLinearVelocity[0];
         angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(LEFT_TIP));
-        angularVelocity = Vec3.multiply(180.0 / Math.PI, angularVelocity);
     } else {
         BUTTON_FWD = RIGHT_BUTTON_FWD;
         BUTTON_3 = RIGHT_BUTTON_3;
@@ -104,7 +103,6 @@ function checkControllerSide(whichSide) {
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[1]));
         linearVelocity = averageLinearVelocity[1];
         angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(RIGHT_TIP));
-        angularVelocity = Vec3.multiply(180.0 / Math.PI, angularVelocity);
         handMessage = "RIGHT";
     }
 
@@ -122,30 +120,33 @@ function checkControllerSide(whichSide) {
         var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
 
         if (closestEntity.isKnownID) {
+            var foundProperties = Entities.getEntityProperties(closestEntity);
+            if (Vec3.length(foundProperties.velocity) > 0.0) {
 
-            debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
+                debugPrint(handMessage + " - Catching a moving object!");
 
-            if (whichSide == LEFT_PALM) {
-                leftBallAlreadyInHand = true;
-                leftHandEntity = closestEntity;
-            } else {
-                rightBallAlreadyInHand = true;
-                rightHandEntity = closestEntity;
+                if (whichSide == LEFT_PALM) {
+                    leftBallAlreadyInHand = true;
+                    leftHandEntity = closestEntity;
+                } else {
+                    rightBallAlreadyInHand = true;
+                    rightHandEntity = closestEntity;
+                }
+                var ballPosition = getBallHoldPosition(whichSide);
+                var properties = { position: { x: ballPosition.x, 
+                                               y: ballPosition.y, 
+                                               z: ballPosition.z },
+                                    rotation: palmRotation,
+                                    color: HELD_COLOR, 
+                                    velocity : { x: 0, y: 0, z: 0}, 
+                                    gravity: { x: 0, y: 0, z: 0}
+                                    };
+                Entities.editEntity(closestEntity, properties);
+                
+    			Audio.playSound(catchSound, { position: ballPosition });
+                
+                return; // exit early
             }
-            var ballPosition = getBallHoldPosition(whichSide);
-            var properties = { position: { x: ballPosition.x, 
-                                           y: ballPosition.y, 
-                                           z: ballPosition.z },
-                                rotation: palmRotation,
-                                color: HELD_COLOR, 
-                                velocity : { x: 0, y: 0, z: 0}, 
-                                gravity: { x: 0, y: 0, z: 0}
-                                };
-            Entities.editEntity(closestEntity, properties);
-            
-			Audio.playSound(catchSound, { position: ballPosition });
-            
-            return; // exit early
         }
     }
 

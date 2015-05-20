@@ -19,6 +19,7 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 #include "SphereEntityItem.h"
 
 
@@ -32,9 +33,6 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
 { 
     _type = EntityTypes::Sphere;
     setProperties(properties);
-    // NOTE: _volumeMultiplier is used to compute volume:
-    // volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z
-    // The formula below looks funny because _dimension.xyz = diameter rather than radius.
     _volumeMultiplier *= PI / 6.0f;
 }
 
@@ -54,7 +52,7 @@ bool SphereEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "SphereEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
@@ -69,7 +67,7 @@ int SphereEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     return bytesRead;
 }
@@ -91,18 +89,14 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                      void** intersectedObject, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere
-    glm::mat4 translation = glm::translate(getPosition());
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 scale = glm::scale(getDimensions());
-    glm::mat4 registration = glm::translate(glm::vec3(0.5f, 0.5f, 0.5f) - getRegistrationPoint());
-    glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
+    glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f)));
@@ -114,19 +108,19 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
         glm::vec3 entityFrameHitAt = entityFrameOrigin + (entityFrameDirection * localDistance);
         // then translate back to work coordinates
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
-        distance = glm::distance(origin,hitAt);
+        distance = glm::distance(origin, hitAt);
         return true;
     }
-    return false;                
+    return false;
 }
 
 
 void SphereEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qDebug() << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qDebug() << "            position:" << debugTreeVector(_position);
-    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
-    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "            position:" << debugTreeVector(_position);
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

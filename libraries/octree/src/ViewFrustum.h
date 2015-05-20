@@ -20,6 +20,7 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Transform.h"
 #include "AABox.h"
 #include "AACube.h"
 #include "Plane.h"
@@ -29,20 +30,20 @@
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
-const float DEFAULT_NEAR_CLIP = 0.08f;
-const float DEFAULT_FAR_CLIP = TREE_SCALE;
+//const float DEFAULT_NEAR_CLIP = 0.08f;
+const float DEFAULT_NEAR_CLIP = 0.25f;
+const float DEFAULT_FAR_CLIP = (float)TREE_SCALE;
 
 class ViewFrustum {
 public:
     ViewFrustum();
     
     // setters for camera attributes
-    void setPosition(const glm::vec3& p) { _position = p; _positionVoxelScale = (p / (float)TREE_SCALE); }
+    void setPosition(const glm::vec3& p) { _position = p; }
     void setOrientation(const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
     const glm::vec3& getPosition() const { return _position; }
-    const glm::vec3& getPositionVoxelScale() const { return _positionVoxelScale; }
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getDirection() const { return _direction; }
     const glm::vec3& getUp() const { return _up; }
@@ -119,12 +120,11 @@ public:
     OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
     
-    // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
-    void getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const;
-
     float distanceToCamera(const glm::vec3& point) const;
     
     void evalProjectionMatrix(glm::mat4& proj) const;
+    void evalViewTransform(Transform& view) const;
+
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
@@ -135,8 +135,7 @@ private:
     void calculateOrthographic();
     
     // camera location/orientation attributes
-    glm::vec3 _position = glm::vec3(0.0f); // the position in TREE_SCALE
-    glm::vec3 _positionVoxelScale = glm::vec3(0.0f); // the position in voxel scale
+    glm::vec3 _position = glm::vec3(0.0f); // the position in world-frame
     glm::quat _orientation = glm::quat();
 
     // calculated for orientation

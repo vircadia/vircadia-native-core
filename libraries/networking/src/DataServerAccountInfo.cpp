@@ -14,7 +14,12 @@
 #include <qjsondocument.h>
 #include <QtCore/QDebug>
 
+#include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"
+
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 DataServerAccountInfo::DataServerAccountInfo() :
     _accessToken(),
@@ -30,7 +35,7 @@ DataServerAccountInfo::DataServerAccountInfo() :
 
 }
 
-DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) {
+DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
     _xmppPassword = otherInfo._xmppPassword;
@@ -71,7 +76,7 @@ void DataServerAccountInfo::setUsername(const QString& username) {
         // clear our username signature so it has to be re-created
         _usernameSignature = QByteArray();
         
-        qDebug() << "Username changed to" << username;
+        qCDebug(networking) << "Username changed to" << username;
     }
 }
 
@@ -139,16 +144,16 @@ const QByteArray& DataServerAccountInfo::getUsernameSignature() {
                                                         rsaPrivateKey, RSA_PKCS1_PADDING);
                 
                 if (encryptReturn == -1) {
-                    qDebug() << "Error encrypting username signature.";
-                    qDebug() << "Will re-attempt on next domain-server check in.";
+                    qCDebug(networking) << "Error encrypting username signature.";
+                    qCDebug(networking) << "Will re-attempt on next domain-server check in.";
                     _usernameSignature = QByteArray();
                 }
                 
                 // free the private key RSA struct now that we are done with it
                 RSA_free(rsaPrivateKey);
             } else {
-                qDebug() << "Could not create RSA struct from QByteArray private key.";
-                qDebug() << "Will re-attempt on next domain-server check in.";
+                qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
+                qCDebug(networking) << "Will re-attempt on next domain-server check in.";
             }
         }
     }

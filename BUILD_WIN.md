@@ -29,12 +29,12 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 
 * [Download the online installer](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
-        * Qt > Qt 5.3.2 > **msvc2013 32-bit OpenGL**
+        * Qt > Qt 5.4.1 > **msvc2013 32-bit OpenGL**
 
-* [Download the offline installer](http://download.qt-project.org/official_releases/qt/5.3/5.3.2/qt-opensource-windows-x86-msvc2013_opengl-5.3.2.exe)
+* [Download the offline installer](http://download.qt.io/official_releases/qt/5.4/5.4.1/qt-opensource-windows-x86-msvc2013_opengl-5.4.1.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.3.2\msvc2013_opengl\lib\cmake` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.4.1\msvc2013_opengl\lib\cmake` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 
 ###External Libraries
@@ -71,7 +71,7 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
 
 To prevent these problems, install OpenSSL yourself. Download the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
 * Visual C++ 2008 Redistributables
-* Win32 OpenSSL v1.0.1L
+* Win32 OpenSSL v1.0.1m
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 

@@ -20,6 +20,8 @@ var GRAVITY = -1.0;
 var LIFETIME = 600;
 var DAMPING = 0.50;
 
+var TWO_PI = 2.0 * Math.PI;
+
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(SCALE * 3.0, Quat.getFront(Camera.getOrientation())));
 
 var floor = Entities.addEntity(
@@ -122,7 +124,8 @@ var spinner = Entities.addEntity(
 	        position: center, 
 			dimensions: { x: SCALE / 1.5, y: SCALE / 3.0, z: SCALE / 8.0 }, 
 	      	color: { red: 255, green: 0, blue: 0 },
-	      	angularVelocity: { x: 0, y: 360, z: 0 },
+            // NOTE: angularVelocity is in radians/sec
+	      	angularVelocity: { x: 0, y: TWO_PI, z: 0 },
 	      	angularDamping: 0.0,
 	      	gravity: {  x: 0, y: 0, z: 0 },
 	        ignoreCollisions: false,

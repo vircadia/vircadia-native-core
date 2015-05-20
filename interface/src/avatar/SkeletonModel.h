@@ -16,11 +16,8 @@
 #include <CapsuleShape.h>
 #include <Model.h>
 
-#include "SkeletonRagdoll.h"
-
 class Avatar;
 class MuscleConstraint;
-class SkeletonRagdoll;
 
 /// A skeleton loaded from a model.
 class SkeletonModel : public Model {
@@ -31,16 +28,13 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
     ~SkeletonModel();
    
-    void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
 
     void simulate(float deltaTime, bool fullUpdate = true);
 
     /// \param jointIndex index of hand joint
     /// \param shapes[out] list in which is stored pointers to hand shapes
     void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
-
-    ///  \param shapes[out] list of shapes for body collisions
-    void getBodyShapes(QVector<const Shape*>& shapes) const;
 
     void renderIKConstraints();
     
@@ -106,24 +100,22 @@ public:
     void updateStandingFoot();
     const glm::vec3& getStandingOffset() const { return _standingOffset; }
 
-    virtual void updateVisibleJointStates();
-
-    SkeletonRagdoll* buildRagdoll();
-    SkeletonRagdoll* getRagdoll() { return _ragdoll; }
-    
-    void moveShapesTowardJoints(float fraction);
-
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(float alpha);
-    void renderJointCollisionShapes(float alpha);
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
     const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }
 
     void resetShapePositionsToDefaultPose(); // DEBUG method
 
-    void renderRagdoll();
-    
+    bool hasSkeleton();
+
+    float getHeadClipDistance() const { return _headClipDistance; }
+
+signals:
+
+    void skeletonLoaded();
+
 protected:
 
     void buildShapes();
@@ -165,12 +157,13 @@ private:
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
-    SkeletonRagdoll* _ragdoll;
 
     glm::vec3 _defaultEyeModelPosition;
     int _standingFoot;
     glm::vec3 _standingOffset;
     glm::vec3 _clampedFootPosition;
+
+    float _headClipDistance;  // Near clip distance to use if no separate head model
 };
 
 #endif // hifi_SkeletonModel_h

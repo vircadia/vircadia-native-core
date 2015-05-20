@@ -21,7 +21,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <FBXReader.h>
+#include "FBXReader.h"
+#include "OBJReader.h"
 
 #include <AnimationCache.h>
 
@@ -197,6 +198,7 @@ public:
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.
@@ -323,7 +325,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
-//
+
     QVector<int> getJointMappings(const AnimationPointer& animation);
 
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);

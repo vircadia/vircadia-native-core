@@ -11,9 +11,13 @@
 
 #include "Texture.h"
 #include <math.h>
+#include <glm/gtc/constants.hpp>
+
 #include <QDebug>
 
 using namespace gpu;
+
+uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _sysmem(size, bytes),
@@ -26,97 +30,133 @@ Texture::Pixels::~Pixels() {
 
 void Texture::Storage::assignTexture(Texture* texture) {
     _texture = texture;
-}
-
-Stamp Texture::Storage::getStamp(uint16 level) const {
-    PixelsPointer mip = getMip(level);
-    if (mip) {
-        return mip->_sysmem.getStamp();
+    if (_texture) {
+        _type = _texture->getType();
     }
-    return 0;
 }
 
 void Texture::Storage::reset() {
     _mips.clear();
+    bumpStamp();
 }
 
-Texture::PixelsPointer Texture::Storage::editMip(uint16 level) {
+Texture::PixelsPointer Texture::Storage::editMipFace(uint16 level, uint8 face) {
     if (level < _mips.size()) {
-        return _mips[level];
+        assert(face < _mips[level].size());
+        bumpStamp();
+        return _mips[level][face];
     }
     return PixelsPointer();
 }
 
-const Texture::PixelsPointer Texture::Storage::getMip(uint16 level) const {
+const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 face) const {
     if (level < _mips.size()) {
-        return _mips[level];
+        assert(face < _mips[level].size());
+        return _mips[level][face];
     }
     return PixelsPointer();
 }
 
-void Texture::Storage::notifyGPULoaded(uint16 level) const {
-    PixelsPointer mip = getMip(level);
-    if (mip) {
-        mip->_isGPULoaded = true;
-        mip->_sysmem.resize(0);
+void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
+    PixelsPointer mipFace = getMipFace(level, face);
+    if (mipFace && (_type != TEX_CUBE)) {
+        mipFace->_isGPULoaded = true;
+        mipFace->_sysmem.resize(0);
     }
 }
 
-bool Texture::Storage::isMipAvailable(uint16 level) const {
-    PixelsPointer mip = getMip(level);
-    return (mip && mip->_sysmem.getSize());
+bool Texture::Storage::isMipAvailable(uint16 level, uint8 face) const {
+    PixelsPointer mipFace = getMipFace(level, face);
+    return (mipFace && mipFace->_sysmem.getSize());
 }
 
 bool Texture::Storage::allocateMip(uint16 level) {
     bool changed = false;
     if (level >= _mips.size()) {
-        _mips.resize(level+1, PixelsPointer());
+        _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
         changed = true;
     }
 
-    if (!_mips[level]) {
-        _mips[level] = PixelsPointer(new Pixels());
-        changed = true;
+    auto& mip = _mips[level];
+    for (auto& face : mip) {
+        if (!face) {
+            face.reset(new Pixels());
+            changed = true;
+        }
     }
+
+    bumpStamp();
 
     return changed;
 }
 
 bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size size, const Byte* bytes) {
-        // Ok we should be able to do that...
+
     allocateMip(level);
-    auto mip = _mips[level];
-    mip->_format = format;
-    Size allocated = mip->_sysmem.setData(size, bytes);
-    mip->_isGPULoaded = false;
+    auto& mip = _mips[level];
+
+    // here we grabbed an array of faces
+    // The bytes assigned here are supposed to contain all the faces bytes of the mip.
+    // For tex1D, 2D, 3D there is only one face
+    // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
+    int sizePerFace = size / mip.size();
+    auto faceBytes = bytes;
+    Size allocated = 0;
+    for (auto& face : mip) {
+        face->_format = format;
+        allocated += face->_sysmem.setData(sizePerFace, faceBytes);
+        face->_isGPULoaded = false;
+        faceBytes += sizePerFace;
+    }
+
+    bumpStamp();
 
     return allocated == size;
 }
 
-Texture* Texture::create1D(const Element& texelFormat, uint16 width) {
-    return create(TEX_1D, texelFormat, width, 1, 1, 1, 1);
+
+bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
+
+    allocateMip(level);
+    auto mip = _mips[level];
+    Size allocated = 0;
+    if (face < mip.size()) { 
+        auto mipFace = mip[face];
+        mipFace->_format = format;
+        allocated += mipFace->_sysmem.setData(size, bytes);
+        mipFace->_isGPULoaded = false;
+        bumpStamp();
+    }
+
+    return allocated == size;
 }
 
-Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height) {
-    return create(TEX_2D, texelFormat, width, height, 1, 1, 1);
+Texture* Texture::create1D(const Element& texelFormat, uint16 width, const Sampler& sampler) { 
+    return create(TEX_1D, texelFormat, width, 1, 1, 1, 1, sampler);
 }
 
-Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth) {
-    return create(TEX_3D, texelFormat, width, height, depth, 1, 1);
+Texture* Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler) {
+    return create(TEX_2D, texelFormat, width, height, 1, 1, 1, sampler);
 }
 
-Texture* Texture::createCube(const Element& texelFormat, uint16 width) {
-    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 1);
+Texture* Texture::create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler) {
+    return create(TEX_3D, texelFormat, width, height, depth, 1, 1, sampler);
 }
 
-Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices)
+Texture* Texture::createCube(const Element& texelFormat, uint16 width, const Sampler& sampler) {
+    return create(TEX_CUBE, texelFormat, width, width, 1, 1, 1, sampler);
+}
+
+Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler)
 {
     Texture* tex = new Texture();
     tex->_storage.reset(new Storage());
-    tex->_storage->_texture = tex;
     tex->_type = type;
+    tex->_storage->assignTexture(tex);
     tex->_maxMip = 0;
     tex->resize(type, texelFormat, width, height, depth, numSamples, numSlices);
+
+    tex->_sampler = sampler;
 
     return tex;
 }
@@ -129,19 +169,7 @@ Texture* Texture::createFromStorage(Storage* storage) {
 }
 
 Texture::Texture():
-    Resource(),
-    _storage(),
-    _stamp(0),
-    _size(0),
-    _width(1),
-    _height(1),
-    _depth(1),
-    _numSamples(1),
-    _numSlices(1),
-    _maxMip(0),
-    _type(TEX_1D),
-    _autoGenerateMips(false),
-    _defined(false)
+    Resource()
 {
 }
 
@@ -184,10 +212,9 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
             _depth = depth;
             changed = true;
         }
-
+        
         // Evaluate the new size with the new format
-        const int DIM_SIZE[] = {1, 1, 1, 6};
-        uint32_t size = DIM_SIZE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
+        uint32_t size = NUM_FACES_PER_TYPE[_type] *_width * _height * _depth * _numSamples * texelFormat.getSize();
 
         // If size change then we need to reset 
         if (changed || (size != getSize())) {
@@ -284,6 +311,37 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
     return false;
 }
 
+
+bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size, const Byte* bytes, uint8 face) {
+    // Check that level accessed make sense
+    if (level != 0) {
+        if (_autoGenerateMips) {
+            return false;
+        }
+        if (level >= evalNumMips()) {
+            return false;
+        }
+    }
+
+    // THen check that the mem buffer passed make sense with its format
+    Size expectedSize = evalStoredMipFaceSize(level, format);
+    if (size == expectedSize) {
+        _storage->assignMipFaceData(level, format, size, bytes, face);
+        _stamp++;
+        return true;
+    } else if (size > expectedSize) {
+        // NOTE: We are facing this case sometime because apparently QImage (from where we get the bits) is generating images
+        // and alligning the line of pixels to 32 bits.
+        // We should probably consider something a bit more smart to get the correct result but for now (UI elements)
+        // it seems to work...
+        _storage->assignMipFaceData(level, format, size, bytes, face);
+        _stamp++;
+        return true;
+    }
+
+    return false;
+}
+
 uint16 Texture::autoGenerateMips(uint16 maxMip) {
     _autoGenerateMips = true;
     _maxMip = std::min((uint16) (evalNumMips() - 1), maxMip);
@@ -292,15 +350,15 @@ uint16 Texture::autoGenerateMips(uint16 maxMip) {
 }
 
 uint16 Texture::getStoredMipWidth(uint16 level) const {
-    PixelsPointer mip = accessStoredMip(level);
-    if (mip && mip->_sysmem.getSize()) {
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->_sysmem.getSize()) {
         return evalMipWidth(level);
     }
     return 0;
 }
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
-    PixelsPointer mip = accessStoredMip(level);
+    PixelsPointer mip = accessStoredMipFace(level);
     if (mip && mip->_sysmem.getSize()) {
         return evalMipHeight(level);
     }
@@ -308,24 +366,24 @@ uint16 Texture::getStoredMipHeight(uint16 level) const {
 }
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
-    PixelsPointer mip = accessStoredMip(level);
-    if (mip && mip->_sysmem.getSize()) {
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->_sysmem.getSize()) {
         return evalMipDepth(level);
     }
     return 0;
 }
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
-    PixelsPointer mip = accessStoredMip(level);
-    if (mip && mip->_sysmem.getSize()) {
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
     }
     return 0;
 }
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
-    PixelsPointer mip = accessStoredMip(level);
-    if (mip && mip->_sysmem.getSize()) {
+    PixelsPointer mipFace = accessStoredMipFace(level);
+    if (mipFace && mipFace->_sysmem.getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
     }
     return 0;
@@ -345,4 +403,368 @@ uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried) {
         sample = 8;
 
     return sample;
+}
+
+void Texture::setSampler(const Sampler& sampler) {
+    _sampler = sampler;
+    _samplerStamp++;
+}
+
+
+bool Texture::generateIrradiance() {
+    if (getType() != TEX_CUBE) {
+        return false;
+    }
+    if (!isDefined()) {
+        return false;
+    }
+    if (!_irradiance) {
+        _irradiance.reset(new SphericalHarmonics());
+    }
+
+    _irradiance->evalFromTexture(*this);
+    return true;
+}
+
+void SphericalHarmonics::assignPreset(int p) {
+    switch (p) {
+    case OLD_TOWN_SQUARE: {
+            L00    = glm::vec3( 0.871297f, 0.875222f, 0.864470f);
+            L1m1   = glm::vec3( 0.175058f, 0.245335f, 0.312891f);
+            L10    = glm::vec3( 0.034675f, 0.036107f, 0.037362f);
+            L11    = glm::vec3(-0.004629f,-0.029448f,-0.048028f);
+            L2m2   = glm::vec3(-0.120535f,-0.121160f,-0.117507f);
+            L2m1   = glm::vec3( 0.003242f, 0.003624f, 0.007511f);
+            L20    = glm::vec3(-0.028667f,-0.024926f,-0.020998f);
+            L21    = glm::vec3(-0.077539f,-0.086325f,-0.091591f);
+            L22    = glm::vec3(-0.161784f,-0.191783f,-0.219152f);
+        }
+        break;
+    case GRACE_CATHEDRAL: {
+            L00    = glm::vec3( 0.79f,  0.44f,  0.54f);
+            L1m1   = glm::vec3( 0.39f,  0.35f,  0.60f);
+            L10    = glm::vec3(-0.34f, -0.18f, -0.27f);
+            L11    = glm::vec3(-0.29f, -0.06f,  0.01f);
+            L2m2   = glm::vec3(-0.11f, -0.05f, -0.12f);
+            L2m1   = glm::vec3(-0.26f, -0.22f, -0.47f);
+            L20    = glm::vec3(-0.16f, -0.09f, -0.15f);
+            L21    = glm::vec3( 0.56f,  0.21f,  0.14f);
+            L22    = glm::vec3( 0.21f, -0.05f, -0.30f);
+        }
+        break;
+    case EUCALYPTUS_GROVE: {
+            L00    = glm::vec3( 0.38f,  0.43f,  0.45f);
+            L1m1   = glm::vec3( 0.29f,  0.36f,  0.41f);
+            L10    = glm::vec3( 0.04f,  0.03f,  0.01f);
+            L11    = glm::vec3(-0.10f, -0.10f, -0.09f);
+            L2m2   = glm::vec3(-0.06f, -0.06f, -0.04f);
+            L2m1   = glm::vec3( 0.01f, -0.01f, -0.05f);
+            L20    = glm::vec3(-0.09f, -0.13f, -0.15f);
+            L21    = glm::vec3(-0.06f, -0.05f, -0.04f);
+            L22    = glm::vec3( 0.02f,  0.00f, -0.05f);
+        }
+        break;
+    case ST_PETERS_BASILICA: {
+            L00    = glm::vec3( 0.36f,  0.26f,  0.23f);
+            L1m1   = glm::vec3( 0.18f,  0.14f,  0.13f);
+            L10    = glm::vec3(-0.02f, -0.01f,  0.00f);
+            L11    = glm::vec3( 0.03f,  0.02f, -0.00f);
+            L2m2   = glm::vec3( 0.02f,  0.01f, -0.00f);
+            L2m1   = glm::vec3(-0.05f, -0.03f, -0.01f);
+            L20    = glm::vec3(-0.09f, -0.08f, -0.07f);
+            L21    = glm::vec3( 0.01f,  0.00f,  0.00f);
+            L22    = glm::vec3(-0.08f, -0.03f, -0.00f);
+        }
+        break;
+    case UFFIZI_GALLERY: {
+            L00    = glm::vec3( 0.32f,  0.31f,  0.35f);
+            L1m1   = glm::vec3( 0.37f,  0.37f,  0.43f);
+            L10    = glm::vec3( 0.00f,  0.00f,  0.00f);
+            L11    = glm::vec3(-0.01f, -0.01f, -0.01f);
+            L2m2   = glm::vec3(-0.02f, -0.02f, -0.03f);
+            L2m1   = glm::vec3(-0.01f, -0.01f, -0.01f);
+            L20    = glm::vec3(-0.28f, -0.28f, -0.32f);
+            L21    = glm::vec3( 0.00f,  0.00f,  0.00f);
+            L22    = glm::vec3(-0.24f, -0.24f, -0.28f);
+        }
+        break;
+    case GALILEOS_TOMB: {
+            L00    = glm::vec3( 1.04f,  0.76f,  0.71f);
+            L1m1   = glm::vec3( 0.44f,  0.34f,  0.34f);
+            L10    = glm::vec3(-0.22f, -0.18f, -0.17f);
+            L11    = glm::vec3( 0.71f,  0.54f,  0.56f);
+            L2m2   = glm::vec3( 0.64f,  0.50f,  0.52f);
+            L2m1   = glm::vec3(-0.12f, -0.09f, -0.08f);
+            L20    = glm::vec3(-0.37f, -0.28f, -0.32f);
+            L21    = glm::vec3(-0.17f, -0.13f, -0.13f);
+            L22    = glm::vec3( 0.55f,  0.42f,  0.42f);
+        }
+        break;
+    case VINE_STREET_KITCHEN: {
+            L00    = glm::vec3( 0.64f,  0.67f,  0.73f);
+            L1m1   = glm::vec3( 0.28f,  0.32f,  0.33f);
+            L10    = glm::vec3( 0.42f,  0.60f,  0.77f);
+            L11    = glm::vec3(-0.05f, -0.04f, -0.02f);
+            L2m2   = glm::vec3(-0.10f, -0.08f, -0.05f);
+            L2m1   = glm::vec3( 0.25f,  0.39f,  0.53f);
+            L20    = glm::vec3( 0.38f,  0.54f,  0.71f);
+            L21    = glm::vec3( 0.06f,  0.01f, -0.02f);
+            L22    = glm::vec3(-0.03f, -0.02f, -0.03f);
+        }
+        break;
+    case BREEZEWAY: {
+            L00    = glm::vec3( 0.32f,  0.36f,  0.38f);
+            L1m1   = glm::vec3( 0.37f,  0.41f,  0.45f);
+            L10    = glm::vec3(-0.01f, -0.01f, -0.01f);
+            L11    = glm::vec3(-0.10f, -0.12f, -0.12f);
+            L2m2   = glm::vec3(-0.13f, -0.15f, -0.17f);
+            L2m1   = glm::vec3(-0.01f, -0.02f,  0.02f);
+            L20    = glm::vec3(-0.07f, -0.08f, -0.09f);
+            L21    = glm::vec3( 0.02f,  0.03f,  0.03f);
+            L22    = glm::vec3(-0.29f, -0.32f, -0.36f);
+        }
+        break;
+    case CAMPUS_SUNSET: {
+            L00    = glm::vec3( 0.79f,  0.94f,  0.98f);
+            L1m1   = glm::vec3( 0.44f,  0.56f,  0.70f);
+            L10    = glm::vec3(-0.10f, -0.18f, -0.27f);
+            L11    = glm::vec3( 0.45f,  0.38f,  0.20f);
+            L2m2   = glm::vec3( 0.18f,  0.14f,  0.05f);
+            L2m1   = glm::vec3(-0.14f, -0.22f, -0.31f);
+            L20    = glm::vec3(-0.39f, -0.40f, -0.36f);
+            L21    = glm::vec3( 0.09f,  0.07f,  0.04f);
+            L22    = glm::vec3( 0.67f,  0.67f,  0.52f);
+        }
+        break;
+    case FUNSTON_BEACH_SUNSET: {
+            L00    = glm::vec3( 0.68f,  0.69f,  0.70f);
+            L1m1   = glm::vec3( 0.32f,  0.37f,  0.44f);
+            L10    = glm::vec3(-0.17f, -0.17f, -0.17f);
+            L11    = glm::vec3(-0.45f, -0.42f, -0.34f);
+            L2m2   = glm::vec3(-0.17f, -0.17f, -0.15f);
+            L2m1   = glm::vec3(-0.08f, -0.09f, -0.10f);
+            L20    = glm::vec3(-0.03f, -0.02f, -0.01f);
+            L21    = glm::vec3( 0.16f,  0.14f,  0.10f);
+            L22    = glm::vec3( 0.37f,  0.31f,  0.20f);
+        }
+        break;
+    }
+}
+
+
+
+glm::vec3 sRGBToLinear(glm::vec3& color) {
+    const float GAMMA_CORRECTION = 2.2f;
+    return glm::pow(color, glm::vec3(GAMMA_CORRECTION));
+}
+
+glm::vec3 linearTosRGB(glm::vec3& color) {
+    const float GAMMA_CORRECTION_INV = 1.0f / 2.2f;
+    return glm::pow(color, glm::vec3(GAMMA_CORRECTION_INV));
+}
+
+// Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) © 2007-2014 "
+void sphericalHarmonicsAdd(float * result, int order, const float * inputA, const float * inputB) {
+   const int numCoeff = order * order;
+   for(int i=0; i < numCoeff; i++) {
+      result[i] = inputA[i] + inputB[i];
+   }
+}
+
+void sphericalHarmonicsScale(float * result, int order, const float * input, float scale) {
+   const int numCoeff = order * order;
+   for(int i=0; i < numCoeff; i++) {
+      result[i] = input[i] * scale;
+   }
+}
+
+void sphericalHarmonicsEvaluateDirection(float * result, int order,  const glm::vec3 & dir) {
+   // calculate coefficients for first 3 bands of spherical harmonics
+   double P_0_0 = 0.282094791773878140;
+   double P_1_0 = 0.488602511902919920 * dir.z;
+   double P_1_1 = -0.488602511902919920;
+   double P_2_0 = 0.946174695757560080 * dir.z * dir.z - 0.315391565252520050;
+   double P_2_1 = -1.092548430592079200 * dir.z;
+   double P_2_2 = 0.546274215296039590;
+   result[0] = P_0_0;
+   result[1] = P_1_1 * dir.y;
+   result[2] = P_1_0;
+   result[3] = P_1_1 * dir.x;
+   result[4] = P_2_2 * (dir.x * dir.y + dir.y * dir.x);
+   result[5] = P_2_1 * dir.y;
+   result[6] = P_2_0;
+   result[7] = P_2_1 * dir.x;
+   result[8] = P_2_2 * (dir.x * dir.x - dir.y * dir.y);
+}
+
+bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order) {
+    const uint sqOrder = order*order;
+
+    // allocate memory for calculations
+    output.resize(sqOrder);
+    std::vector<float> resultR(sqOrder);
+    std::vector<float> resultG(sqOrder);
+    std::vector<float> resultB(sqOrder);
+
+    int width, height;
+
+    // initialize values
+    float fWt = 0.0f;
+    for(uint i=0; i < sqOrder; i++) {
+        output[i] = glm::vec3(0.0f);
+        resultR[i] = 0.0f;
+        resultG[i] = 0;
+        resultB[i] = 0;
+    }
+    std::vector<float> shBuff(sqOrder);
+    std::vector<float> shBuffB(sqOrder);
+    // get width and height
+    width = height = cubeTexture.getWidth();
+    if(width != height) {
+        return false;
+    }
+
+    const float UCHAR_TO_FLOAT = 1.0f / float(std::numeric_limits<unsigned char>::max());
+
+    // for each face of cube texture
+    for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
+
+        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getDimensionCount();
+        auto data = cubeTexture.accessStoredMipFace(0,face)->_sysmem.readData();
+        if (data == nullptr) {
+            continue;
+        }
+
+        // step between two texels for range [0, 1]
+        float invWidth = 1.0f / float(width);
+        // initial negative bound for range [-1, 1]
+        float negativeBound = -1.0f + invWidth;
+        // step between two texels for range [-1, 1]
+        float invWidthBy2 = 2.0f / float(width);
+
+        for(int y=0; y < width; y++) {
+            // texture coordinate V in range [-1 to 1]
+            const float fV = negativeBound + float(y) * invWidthBy2;
+
+            for(int x=0; x < width; x++) {
+                // texture coordinate U in range [-1 to 1]
+                const float fU = negativeBound + float(x) * invWidthBy2;
+
+                // determine direction from center of cube texture to current texel
+                glm::vec3 dir;
+                switch(face) {
+                case gpu::Texture::CUBE_FACE_RIGHT_POS_X: {
+                    dir.x = 1.0f;
+                    dir.y = 1.0f - (invWidthBy2 * float(y) + invWidth);
+                    dir.z = 1.0f - (invWidthBy2 * float(x) + invWidth);
+                    dir = -dir;
+                    break;
+                }
+                case gpu::Texture::CUBE_FACE_LEFT_NEG_X: {
+                    dir.x = -1.0f;
+                    dir.y = 1.0f - (invWidthBy2 * float(y) + invWidth);
+                    dir.z = -1.0f + (invWidthBy2 * float(x) + invWidth);
+                    dir = -dir;
+                    break;
+                }
+                case gpu::Texture::CUBE_FACE_TOP_POS_Y: {
+                    dir.x = - 1.0f + (invWidthBy2 * float(x) + invWidth);
+                    dir.y = 1.0f;
+                    dir.z = - 1.0f + (invWidthBy2 * float(y) + invWidth);
+                    dir = -dir;
+                    break;
+                }
+                case gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y: {
+                    dir.x = - 1.0f + (invWidthBy2 * float(x) + invWidth);
+                    dir.y = - 1.0f;
+                    dir.z = 1.0f - (invWidthBy2 * float(y) + invWidth);
+                    dir = -dir;
+                    break;
+                }
+                case gpu::Texture::CUBE_FACE_BACK_POS_Z: {
+                    dir.x = - 1.0f + (invWidthBy2 * float(x) + invWidth);
+                    dir.y = 1.0f - (invWidthBy2 * float(y) + invWidth);
+                    dir.z = 1.0f;
+                    break;
+                }
+                case gpu::Texture::CUBE_FACE_FRONT_NEG_Z: {
+                    dir.x = 1.0f - (invWidthBy2 * float(x) + invWidth);
+                    dir.y = 1.0f - (invWidthBy2 * float(y) + invWidth);
+                    dir.z = - 1.0f;
+                    break;
+                }
+                default:
+                    return false;
+                }
+
+                // normalize direction
+                dir = glm::normalize(dir);
+
+                // scale factor depending on distance from center of the face
+                const float fDiffSolid = 4.0f / ((1.0f + fU*fU + fV*fV) *
+                                            sqrtf(1.0f + fU*fU + fV*fV));
+                fWt += fDiffSolid;
+
+                // calculate coefficients of spherical harmonics for current direction
+                sphericalHarmonicsEvaluateDirection(shBuff.data(), order, dir);
+
+                // index of texel in texture
+                uint pixOffsetIndex = (x + y * width) * numComponents;
+
+                // get color from texture and map to range [0, 1]
+                glm::vec3 clr(float(data[pixOffsetIndex]) * UCHAR_TO_FLOAT,
+                            float(data[pixOffsetIndex+1]) * UCHAR_TO_FLOAT,
+                            float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
+
+                // Gamma correct
+                clr = sRGBToLinear(clr);
+
+                // scale color and add to previously accumulated coefficients
+                sphericalHarmonicsScale(shBuffB.data(), order,
+                        shBuff.data(), clr.r * fDiffSolid);
+                sphericalHarmonicsAdd(resultR.data(), order,
+                        resultR.data(), shBuffB.data());
+                sphericalHarmonicsScale(shBuffB.data(), order,
+                        shBuff.data(), clr.g * fDiffSolid);
+                sphericalHarmonicsAdd(resultG.data(), order,
+                        resultG.data(), shBuffB.data());
+                sphericalHarmonicsScale(shBuffB.data(), order,
+                        shBuff.data(), clr.b * fDiffSolid);
+                sphericalHarmonicsAdd(resultB.data(), order,
+                        resultB.data(), shBuffB.data());
+            }
+        }
+    }
+
+    // final scale for coefficients
+    const float fNormProj = (4.0f * glm::pi<float>()) / fWt;
+    sphericalHarmonicsScale(resultR.data(), order, resultR.data(), fNormProj);
+    sphericalHarmonicsScale(resultG.data(), order, resultG.data(), fNormProj);
+    sphericalHarmonicsScale(resultB.data(), order, resultB.data(), fNormProj);
+
+    // save result
+    for(uint i=0; i < sqOrder; i++) {
+        // gamma Correct
+        // output[i] = linearTosRGB(glm::vec3(resultR[i], resultG[i], resultB[i]));
+        output[i] = glm::vec3(resultR[i], resultG[i], resultB[i]);
+    }
+
+    return true;
+}
+
+void SphericalHarmonics::evalFromTexture(const Texture& texture) {
+    if (texture.isDefined()) {
+        std::vector< glm::vec3 > coefs;
+        sphericalHarmonicsFromTexture(texture, coefs, 3);
+
+        L00 = coefs[0];
+        L1m1 = coefs[1];
+        L10  = coefs[2];
+        L11  = coefs[3];
+        L2m2 = coefs[4];
+        L2m1 = coefs[5];
+        L20 = coefs[6];
+        L21 = coefs[7];
+        L22 = coefs[8];
+    }
 }

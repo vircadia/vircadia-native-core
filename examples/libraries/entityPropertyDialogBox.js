@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+
 EntityPropertyDialogBox = (function () {
     var that = {};
 
@@ -48,6 +51,10 @@ EntityPropertyDialogBox = (function () {
 
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
+            index++;
+            array.push({ label: "Shape Type:", value: properties.shapeType });
+            index++;
+            array.push({ label: "Compound Shape URL:", value: properties.compoundShapeURL });
             index++;
             array.push({ label: "Animation URL:", value: properties.animationURL });
             index++;
@@ -146,11 +153,12 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
+        // NOTE: angular velocity is in radians/sec but we display degrees/sec for users
+        array.push({ label: "Angular Pitch:", value: (properties.angularVelocity.x * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
+        array.push({ label: "Angular Yaw:", value: (properties.angularVelocity.y * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
-        array.push({ label: "Angular Roll:", value: properties.angularVelocity.z.toFixed(decimals) });
+        array.push({ label: "Angular Roll:", value: (properties.angularVelocity.z * RADIANS_TO_DEGREES).toFixed(decimals) });
         index++;
         array.push({ label: "Angular Damping:", value: properties.angularDamping.toFixed(decimals) });
         index++;
@@ -162,6 +170,13 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
         index++;
 
+        array.push({ label: "Acceleration X:", value: properties.acceleration.x.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Y:", value: properties.acceleration.y.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Z:", value: properties.acceleration.z.toFixed(decimals) });
+        index++;
+
         array.push({ label: "Collisions:", type: "header" });
         index++;
         array.push({ label: "Density:", value: properties.density.toFixed(decimals) });
@@ -170,6 +185,8 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
+        array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
+	index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;
@@ -271,6 +288,8 @@ EntityPropertyDialogBox = (function () {
             properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
+                properties.shapeType = array[index++].value;
+                properties.compoundShapeURL = array[index++].value;
                 properties.animationURL = array[index++].value;
 
                 var newAnimationIsPlaying = array[index++].value;
@@ -343,14 +362,19 @@ EntityPropertyDialogBox = (function () {
             properties.velocity.z = array[index++].value;
             properties.damping = array[index++].value;
 
-            properties.angularVelocity.x = array[index++].value;
-            properties.angularVelocity.y = array[index++].value;
-            properties.angularVelocity.z = array[index++].value;
+            // NOTE: angular velocity is in radians/sec but we display degrees/sec for users
+            properties.angularVelocity.x = array[index++].value * DEGREES_TO_RADIANS;
+            properties.angularVelocity.y = array[index++].value * DEGREES_TO_RADIANS;
+            properties.angularVelocity.z = array[index++].value * DEGREES_TO_RADIANS;
             properties.angularDamping = array[index++].value;
 
             properties.gravity.x = array[index++].value;
             properties.gravity.y = array[index++].value;
             properties.gravity.z = array[index++].value;
+
+            properties.acceleration.x = array[index++].value;
+            properties.acceleration.y = array[index++].value;
+            properties.acceleration.z = array[index++].value;
 
             index++; // skip header
             properties.density = array[index++].value;

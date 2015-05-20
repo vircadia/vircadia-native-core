@@ -66,7 +66,9 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
 }
 
 // less common utils can be enabled with DEBUG
-#ifdef DEBUG
+// FIXME, remove the second defined clause once these compile, or remove the
+// functions.
+#if defined(DEBUG) && defined(FIXED_STREAMS)
 
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c) {
     s << "{penetration=" << c._penetration 
@@ -141,6 +143,14 @@ QDebug& operator<<(QDebug& dbg, const glm::mat4& m) {
         dbg << ' ' << m[0][j] << ' ' << m[1][j] << ' ' << m[2][j] << ' ' << m[3][j] << ';';
     }
     return dbg << " ]}";
+}
+
+QDebug& operator<<(QDebug& dbg, const QVariantHash& v) {
+    dbg.nospace() << "[";
+    for (QVariantHash::const_iterator it = v.constBegin(); it != v.constEnd(); it++) {
+        dbg << it.key() << ":" << it.value();
+    }
+    return dbg << " ]";
 }
 
 #endif // QT_NO_DEBUG_STREAM

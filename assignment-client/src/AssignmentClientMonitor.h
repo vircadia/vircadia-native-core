@@ -28,27 +28,37 @@ class AssignmentClientMonitor : public QObject {
     Q_OBJECT
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
-                            const unsigned int maxAssignmentClientForks, QString assignmentPool, QUuid walletUUID,
-                            QString assignmentServerHostname, quint16 assignmentServerPort);
+                            const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
+                            QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                            quint16 assignmentServerPort);
     ~AssignmentClientMonitor();
-    
+
     void stopChildProcesses();
 private slots:
     void readPendingDatagrams();
     void checkSpares();
+    void childProcessFinished();
+    
+public slots:
+    void aboutToQuit();
 
 private:
     void spawnChildClient();
+    void simultaneousWaitOnChildren(int waitMsecs);
+
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 
     const unsigned int _numAssignmentClientForks;
     const unsigned int _minAssignmentClientForks;
     const unsigned int _maxAssignmentClientForks;
 
+    Assignment::Type _requestAssignmentType;
     QString _assignmentPool;
     QUuid _walletUUID;
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
+
+    QMap<qint64, QProcess*> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

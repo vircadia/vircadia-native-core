@@ -21,7 +21,9 @@ const int   TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of t
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
 const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * 400.0f; 
-const float MAX_LOD_SIZE_MULTIPLIER = 2000.0f;
+
+// This is used in the LOD Tools to translate between the size scale slider and the values used to set the OctreeSizeScale
+const float MAX_LOD_SIZE_MULTIPLIER = 800.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
 

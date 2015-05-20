@@ -12,13 +12,15 @@
 #ifndef hifi_InboundAudioStream_h
 #define hifi_InboundAudioStream_h
 
-#include "NodeData.h"
+#include <NodeData.h>
+#include <NumericalConstants.h>
+#include <PacketHeaders.h>
+#include <StDev.h>
+
 #include "AudioRingBuffer.h"
 #include "MovingMinMaxAvg.h"
 #include "SequenceNumberStats.h"
 #include "AudioStreamStats.h"
-#include "PacketHeaders.h"
-#include "StDev.h"
 #include "TimeWeightedAvg.h"
 
 // This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.

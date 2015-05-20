@@ -9,10 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <VariantMapToScriptValue.h>
+
 #include "EntityScriptingInterface.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "ZoneEntityItem.h"
+#include "EntitiesLogging.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -21,6 +25,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
+    connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -28,11 +33,42 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
-
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanAdjustLocks();
 }
+
+bool EntityScriptingInterface::canRez() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRez();
+}
+
+void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
+    if (_entityTree) {
+        disconnect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        disconnect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        disconnect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        disconnect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
+
+    _entityTree = modelTree;
+
+    if (_entityTree) {
+        connect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
+        connect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
+        connect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
+        connect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
+    }
+}
+
+void bidForSimulationOwnership(EntityItemProperties& properties) {
+    // We make a bid for simulation ownership by declaring our sessionID as simulation owner 
+    // in the outgoing properties.  The EntityServer may accept the bid or might not.
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+    properties.setSimulatorID(myNodeID);
+}
+
 
 
 EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
@@ -40,17 +76,30 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     // The application will keep track of creatorTokenID
     uint32_t creatorTokenID = EntityItemID::getNextCreatorTokenID();
 
-    EntityItemID id(NEW_ENTITY, creatorTokenID, false );
+    EntityItemProperties propertiesWithSimID = properties;
+
+    EntityItemID id(NEW_ENTITY, creatorTokenID, false);
 
     // If we have a local entity tree set, then also update it.
+    bool success = true;
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->addEntity(id, properties);
+        EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        if (entity) {
+            entity->setLastBroadcast(usecTimestampNow());
+            // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+            bidForSimulationOwnership(propertiesWithSimID);
+        } else {
+            qCDebug(entities) << "script failed to add new Entity to local Octree";
+            success = false;
+        }
         _entityTree->unlock();
     }
 
     // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+    if (success) {
+        queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
+    }
 
     return id;
 }
@@ -112,12 +161,12 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
             entityID.isKnownID = true;
         }
     }
-    
+
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
     // the actual id, because we can edit out local entities just with creatorTokenID
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties, canAdjustLocks());
+        _entityTree->updateEntity(entityID, properties);
         _entityTree->unlock();
     }
 
@@ -127,14 +176,16 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
         if (properties.getType() == EntityTypes::Unknown) {
             EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                EntityItemProperties tempProperties = properties;
-                tempProperties.setType(entity->getType());
-                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, tempProperties);
+                // we need to change the outgoing properties, so we make a copy, modify, and send.
+                EntityItemProperties modifiedProperties = properties;
+                entity->setLastBroadcast(usecTimestampNow());
+                modifiedProperties.setType(entity->getType());
+                bidForSimulationOwnership(modifiedProperties);
+                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
                 return entityID;
             }
         }
-        
-        // if the properties already includes the type, then use it as is
+
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     
@@ -182,12 +233,10 @@ EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center
     EntityItemID result(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false);
     if (_entityTree) {
         _entityTree->lockForRead();
-        const EntityItem* closestEntity = _entityTree->findClosestEntity(center/(float)TREE_SCALE, 
-                                                                                radius/(float)TREE_SCALE);
+        const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result.id = closestEntity->getID();
-            result.isKnownID = true;
+            result = closestEntity->getEntityItemID();
         }
     }
     return result;
@@ -207,12 +256,27 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     if (_entityTree) {
         _entityTree->lockForRead();
         QVector<const EntityItem*> entities;
-        _entityTree->findEntities(center/(float)TREE_SCALE, radius/(float)TREE_SCALE, entities);
+        _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
-
+        
         foreach (const EntityItem* entity, entities) {
-            EntityItemID thisEntityItemID(entity->getID(), UNKNOWN_ENTITY_TOKEN, true);
-            result << thisEntityItemID;
+            result << entity->getEntityItemID();
+        }
+    }
+    return result;
+}
+
+QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<EntityItemID> result;
+    if (_entityTree) {
+        _entityTree->lockForRead();
+        AABox box(corner, dimensions);
+        QVector<EntityItem*> entities;
+        _entityTree->findEntities(box, entities);
+        _entityTree->unlock();
+        
+        foreach (const EntityItem* entity, entities) {
+            result << entity->getEntityItemID();
         }
     }
     return result;
@@ -253,6 +317,22 @@ void EntityScriptingInterface::setLightsArePickable(bool value) {
 
 bool EntityScriptingInterface::getLightsArePickable() const {
     return LightEntityItem::getLightsArePickable();
+}
+
+void EntityScriptingInterface::setZonesArePickable(bool value) {
+    ZoneEntityItem::setZonesArePickable(value);
+}
+
+bool EntityScriptingInterface::getZonesArePickable() const {
+    return ZoneEntityItem::getZonesArePickable();
+}
+
+void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
+    ZoneEntityItem::setDrawZoneBoundaries(value);
+}
+
+bool EntityScriptingInterface::getDrawZoneBoundaries() const {
+    return ZoneEntityItem::getDrawZoneBoundaries();
 }
 
 void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {

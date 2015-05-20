@@ -13,11 +13,12 @@
 #define hifi_EntityTree_h
 
 #include <QSet>
+#include <QVector>
 
 #include <Octree.h>
+
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
-
 
 class Model;
 class EntitySimulation;
@@ -31,6 +32,7 @@ class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem) = 0;    
+    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem) = 0;
 };
 
 
@@ -39,6 +41,7 @@ public:
     glm::vec3 root;
     EntityTree* localTree;
     EntityEditPacketSender* packetSender;
+    QVector<EntityItemID>* newEntityIDs;
 };
 
 
@@ -80,21 +83,21 @@ public:
     virtual void update();
 
     // The newer API...
-    EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     // use this method if you only know the entityID
-    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange);
+    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
-    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange);
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false);
-    void removeEntityFromSimulation(EntityItem* entity);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
 
+    /// \param position point of query in world-frame (meters)
+    /// \param targetRadius radius of query (meters)
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
     EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);
@@ -103,17 +106,23 @@ public:
 
 
     /// finds all entities that touch a sphere
-    /// \param center the center of the sphere
-    /// \param radius the radius of the sphere
+    /// \param center the center of the sphere in world-frame (meters)
+    /// \param radius the radius of the sphere in world-frame (meters)
     /// \param foundEntities[out] vector of const EntityItem*
     /// \remark Side effect: any initial contents in foundEntities will be lost
     void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
-
+    
     /// finds all entities that touch a cube
-    /// \param cube the query cube
+    /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-const EntityItem*
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
+    
+    /// finds all entities that touch a box
+    /// \param box the query box in world-frame (meters)
+    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \remark Side effect: any initial contents in entities will be lost
+    void findEntities(const AABox& box, QVector<EntityItem*>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -144,7 +153,7 @@ public:
     virtual void dumpTree();
     virtual void pruneTree();
 
-    void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
+    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void entityChanged(EntityItem* entity);
 
@@ -155,20 +164,28 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
+    bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
+    bool readFromMap(QVariantMap& entityDescription);
+    
+    float getContentsLargestDimension();
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void clearingEntities();
 
 private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
-                                 EntityTreeElement* containingElement, bool allowLockChange);
+                                 EntityTreeElement* containingElement,
+                                 const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);
+    static bool findInBoxOperation(OctreeElement* element, void* extraData);
     static bool sendEntitiesOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
@@ -181,6 +198,7 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
     

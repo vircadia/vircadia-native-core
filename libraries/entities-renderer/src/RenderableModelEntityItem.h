@@ -16,11 +16,12 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem  {
+class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -52,6 +53,13 @@ public:
 
     bool needsToCallUpdate() const;
 
+    virtual void setCompoundShapeURL(const QString& url);
+
+    bool isReadyToComputeShape();
+    void computeShapeInfo(ShapeInfo& info);
+    
+    virtual bool contains(const glm::vec3& point) const;
+
 private:
     void remapTextures();
     
@@ -62,6 +70,7 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
+    QVector<QVector<glm::vec3>> _points;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

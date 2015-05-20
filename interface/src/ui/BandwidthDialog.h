@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QFormLayout>
 #include <QVector>
+#include <QTimer>
 
 #include "Node.h"
 #include "BandwidthRecorder.h"

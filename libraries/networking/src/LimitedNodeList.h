@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <iterator>
 #include <memory>
+#include <unordered_map>
 
 #ifndef _WIN32
 #include <unistd.h> // not on windows, not needed for mac or windows
@@ -34,6 +35,7 @@
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "PacketHeaders.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -41,8 +43,6 @@ const int MAX_PACKET_SIZE = 1450;
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 
 extern const char SOLO_NODE_TYPES[2];
-
-extern const QUrl DEFAULT_NODE_AUTH_URL;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
@@ -52,10 +52,10 @@ const unsigned short STUN_SERVER_PORT = 3478;
 const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
 const QString DOMAIN_SERVER_LOCAL_HTTP_PORT_SMEM_KEY = "domain-server.local-http-port";
 const QString DOMAIN_SERVER_LOCAL_HTTPS_PORT_SMEM_KEY = "domain-server.local-https-port";
-const QString ASSIGNMENT_CLIENT_MONITOR_LOCAL_PORT_SMEM_KEY = "assignment-client-monitor.local-port";
 
-const char DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME[] = "localhost";
-const unsigned short DEFAULT_ASSIGNMENT_CLIENT_MONITOR_PORT = 40104;
+const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::LocalHost;
+
+const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 class HifiSockAddr;
 
@@ -86,12 +86,22 @@ public:
 
     bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
     void setThisNodeCanAdjustLocks(bool canAdjustLocks);
+
+    bool getThisNodeCanRez() const { return _thisNodeCanRez; }
+    void setThisNodeCanRez(bool canRez);
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     QUdpSocket& getDTLSSocket();
     
     bool packetVersionAndHashMatch(const QByteArray& packet);
+
+    QByteArray byteArrayWithPopulatedHeader(PacketType packetType) 
+        { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
+    int populatePacketHeader(QByteArray& packet, PacketType packetType) 
+        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
+    int populatePacketHeader(char* packet, PacketType packetType) 
+        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
 
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
     
@@ -102,13 +112,14 @@ public:
                                const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+
     qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
-    void(*linkedDataCreateCallback)(Node *);
+    void (*linkedDataCreateCallback)(Node *);
     
     int size() const { return _nodeHash.size(); }
 
@@ -116,7 +127,8 @@ public:
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
+                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                      bool canAdjustLocks, bool canRez);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -151,7 +163,18 @@ public:
             functor(it->second);
         }
     }
-    
+
+    template<typename PredLambda, typename NodeLambda>
+    void eachMatchingNode(PredLambda predicate, NodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (predicate(it->second)) {
+                functor(it->second);
+            }
+        }
+    }
+
     template<typename BreakableNodeLambda>
     void eachNodeBreakable(BreakableNodeLambda functor) {
         QReadLocker readLock(&_nodeMutex);
@@ -197,6 +220,7 @@ signals:
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
+    void canRezChanged(bool canRez);
 
     void dataSent(const quint8 channel_type, const int bytes);
     void dataReceived(const quint8 channel_type, const int bytes);
@@ -208,15 +232,15 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
-                         const QUuid& connectionSecret);
+    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+
+    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType);
     
     void changeSocketBufferSizes(int numBytes);
     
     void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
-    bool _thisNodeCanAdjustLocks;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;
@@ -230,6 +254,10 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
+    bool _thisNodeCanAdjustLocks;
+    bool _thisNodeCanRez;
+
+    std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
     
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {

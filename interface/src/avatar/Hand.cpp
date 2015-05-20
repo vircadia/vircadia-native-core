@@ -103,7 +103,7 @@ void Hand::resolvePenetrations() {
 }
 
 void Hand::render(bool isMine, Model::RenderMode renderMode) {
-    if (renderMode != Model::SHADOW_RENDER_MODE && 
+    if (renderMode != RenderArgs::SHADOW_RENDER_MODE && 
                 Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
@@ -119,7 +119,7 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
         }
     }
     
-    if (renderMode != Model::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
+    if (renderMode != RenderArgs::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
         renderHandTargets(isMine);
     }
 

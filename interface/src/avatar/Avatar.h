@@ -59,7 +59,6 @@ class Texture;
 
 class Avatar : public AvatarData {
     Q_OBJECT
-    Q_PROPERTY(quint32 collisionGroups READ getCollisionGroups WRITE setCollisionGroups)
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -68,10 +67,8 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    
-    enum RenderMode { NORMAL_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE };
-    
-    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE,
+
+    virtual void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE,
         bool postLighting = false);
 
     //setters
@@ -134,12 +131,6 @@ public:
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
-    /// \return bounding radius of avatar
-    virtual float getBoundingRadius() const;
-
-    quint32 getCollisionGroups() const { return _collisionGroups; }
-    virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
-
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
     virtual glm::vec3 getSkeletonPosition() const;
@@ -155,7 +146,6 @@ public:
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
@@ -172,9 +162,8 @@ public:
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
-public slots:
-    void updateCollisionGroups();
-    
+    virtual void rebuildSkeletonBody();
+
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -184,11 +173,9 @@ protected:
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
 
-    glm::vec3 _velocity;
-
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
-    // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained 
     // by setting these values.
     // Floating point error prevents us from accurately measuring velocity using a naive approach 
     // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
@@ -206,8 +193,6 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
     
-    quint32 _collisionGroups;
- 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -223,11 +208,11 @@ protected:
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
     void renderDisplayName();
-    virtual void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
+    virtual void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
+    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
 
     virtual void updateJointMappings();
     
@@ -245,6 +230,8 @@ private:
     static int _jointConesID;
 
     int _voiceSphereID;
+
+    //AvatarMotionState* _motionState = nullptr;
 };
 
 #endif // hifi_Avatar_h

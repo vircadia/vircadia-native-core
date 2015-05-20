@@ -16,6 +16,8 @@
 
 using namespace gpu;
 
+const Element Element::COLOR_RGBA_32 = Element(VEC4, UINT8, RGBA);
+
 Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
     if ( !dataAllocated ) { 
         qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
@@ -27,7 +29,7 @@ Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size)
     if (size > 0) {
         // Try allocating as much as the required size + one block of memory
         newSize = size;
-        (*dataAllocated) = new Byte[newSize];
+        (*dataAllocated) = new (std::nothrow) Byte[newSize];
         // Failed?
         if (!(*dataAllocated)) {
             qWarning() << "Buffer::Sysmem::allocate() : Can't allocate a system memory buffer of " << newSize << "bytes. Fails to create the buffer Sysmem.";

@@ -12,6 +12,7 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntitiesLogging.h"
 
 #include "MovingEntitiesOperator.h"
 
@@ -28,19 +29,19 @@ MovingEntitiesOperator::MovingEntitiesOperator(EntityTree* tree) :
 MovingEntitiesOperator::~MovingEntitiesOperator() {
     if (_wantDebug) {
         bool stopExecution = false;
-        qDebug() << "MovingEntitiesOperator::~MovingEntitiesOperator() -----------------------------";
-        qDebug() << "    _lookingCount:" << _lookingCount;
-        qDebug() << "    _foundOldCount:" << _foundOldCount;
-        qDebug() << "    _foundNewCount:" << _foundNewCount;
+        qCDebug(entities) << "MovingEntitiesOperator::~MovingEntitiesOperator() -----------------------------";
+        qCDebug(entities) << "    _lookingCount:" << _lookingCount;
+        qCDebug(entities) << "    _foundOldCount:" << _foundOldCount;
+        qCDebug(entities) << "    _foundNewCount:" << _foundNewCount;
         if (_foundOldCount < _lookingCount) {
-            qDebug() << "    FAILURE: **** _foundOldCount < _lookingCount ******";
+            qCDebug(entities) << "    FAILURE: **** _foundOldCount < _lookingCount ******";
             stopExecution = true;
         }
         if (_foundNewCount < _lookingCount) {
-            qDebug() << "    FAILURE: **** _foundNewCount < _lookingCount ******";
+            qCDebug(entities) << "    FAILURE: **** _foundNewCount < _lookingCount ******";
             stopExecution = true;
         }
-        qDebug() << "--------------------------------------------------------------------------";
+        qCDebug(entities) << "--------------------------------------------------------------------------";
         if(stopExecution) {
             debug();
             assert(false);
@@ -51,23 +52,23 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
-    AABox newCubeClamped = newCube.clamp(0.0f, 1.0f);
+    AABox newCubeClamped = newCube.clamp(0.0f, (float)TREE_SCALE);
 
     if (_wantDebug) {
-        qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
-        qDebug() << "    newCube:" << newCube;
-        qDebug() << "    newCubeClamped:" << newCubeClamped;
+        qCDebug(entities) << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
+        qCDebug(entities) << "    newCube:" << newCube;
+        qCDebug(entities) << "    newCubeClamped:" << newCubeClamped;
         if (oldContainingElement) {
-            qDebug() << "    oldContainingElement:" << oldContainingElement->getAACube();
-            qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped):" 
+            qCDebug(entities) << "    oldContainingElement:" << oldContainingElement->getAACube();
+            qCDebug(entities) << "    oldContainingElement->bestFitBounds(newCubeClamped):" 
                             << oldContainingElement->bestFitBounds(newCubeClamped);
         } else {
-            qDebug() << "    WARNING NO OLD CONTAINING ELEMENT!!!";
+            qCDebug(entities) << "    WARNING NO OLD CONTAINING ELEMENT!!!";
         }
     }
     
     if (!oldContainingElement) {
-            qDebug() << "UNEXPECTED!!!! attempting to move entity "<< entity->getEntityItemID() 
+            qCDebug(entities) << "UNEXPECTED!!!! attempting to move entity "<< entity->getEntityItemID() 
                             << "that has no containing element. ";
         return; // bail without adding.
     }
@@ -88,22 +89,22 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
         _lookingCount++;
 
         if (_wantDebug) {
-            qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
-            qDebug() << "    details.entity:" << details.entity->getEntityItemID();
-            qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-            qDebug() << "    details.newCube:" << details.newCube;
-            qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
-            qDebug() << "    _lookingCount:" << _lookingCount;
-            qDebug() << "--------------------------------------------------------------------------";
+            qCDebug(entities) << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
+            qCDebug(entities) << "    details.entity:" << details.entity->getEntityItemID();
+            qCDebug(entities) << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+            qCDebug(entities) << "    details.newCube:" << details.newCube;
+            qCDebug(entities) << "    details.newCubeClamped:" << details.newCubeClamped;
+            qCDebug(entities) << "    _lookingCount:" << _lookingCount;
+            qCDebug(entities) << "--------------------------------------------------------------------------";
         }
     } else {
         if (_wantDebug) {
-            qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped) IS BEST FIT... NOTHING TO DO";
+            qCDebug(entities) << "    oldContainingElement->bestFitBounds(newCubeClamped) IS BEST FIT... NOTHING TO DO";
         }
     }
 
     if (_wantDebug) {
-        qDebug() << "--------------------------------------------------------------------------";
+        qCDebug(entities) << "--------------------------------------------------------------------------";
     }
 }
 
@@ -114,20 +115,20 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
     // If we don't have an old entity, then we don't contain the entity, otherwise
     // check the bounds
     if (_entitiesToMove.size() > 0) {
-        AACube elementCube = element->getAACube();
+        const AACube& elementCube = element->getAACube();
         int detailIndex = 0;
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
 
             if (_wantDebug) {
-                qDebug() << "MovingEntitiesOperator::shouldRecurseSubTree() details["<< detailIndex <<"]-----------------------------";
-                qDebug() << "    element:" << element->getAACube();
-                qDebug() << "    details.entity:" << details.entity->getEntityItemID();
-                qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-                qDebug() << "    details.newCube:" << details.newCube;
-                qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
-                qDebug() << "    elementCube.contains(details.newCube)" << elementCube.contains(details.newCube);
-                qDebug() << "    elementCube.contains(details.newCubeClamped)" << elementCube.contains(details.newCubeClamped);
-                qDebug() << "--------------------------------------------------------------------------";
+                qCDebug(entities) << "MovingEntitiesOperator::shouldRecurseSubTree() details["<< detailIndex <<"]-----------------------------";
+                qCDebug(entities) << "    element:" << element->getAACube();
+                qCDebug(entities) << "    details.entity:" << details.entity->getEntityItemID();
+                qCDebug(entities) << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+                qCDebug(entities) << "    details.newCube:" << details.newCube;
+                qCDebug(entities) << "    details.newCubeClamped:" << details.newCubeClamped;
+                qCDebug(entities) << "    elementCube.contains(details.newCube)" << elementCube.contains(details.newCube);
+                qCDebug(entities) << "    elementCube.contains(details.newCubeClamped)" << elementCube.contains(details.newCubeClamped);
+                qCDebug(entities) << "--------------------------------------------------------------------------";
             }
 
             if (elementCube.contains(details.oldContainingElementCube) || elementCube.contains(details.newCubeClamped)) {
@@ -163,17 +164,17 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
         
             if (_wantDebug) {
-                qDebug() << "MovingEntitiesOperator::preRecursion() details["<< detailIndex <<"]-----------------------------";
-                qDebug() << "    entityTreeElement:" << entityTreeElement->getAACube();
-                qDebug() << "    entityTreeElement->bestFitBounds(details.newCube):" << entityTreeElement->bestFitBounds(details.newCube);
-                qDebug() << "    details.entity:" << details.entity->getEntityItemID();
-                qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
-                qDebug() << "    entityTreeElement:" << entityTreeElement;
-                qDebug() << "    details.newCube:" << details.newCube;
-                qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
-                qDebug() << "    _lookingCount:" << _lookingCount;
-                qDebug() << "    _foundOldCount:" << _foundOldCount;
-                qDebug() << "--------------------------------------------------------------------------";
+                qCDebug(entities) << "MovingEntitiesOperator::preRecursion() details["<< detailIndex <<"]-----------------------------";
+                qCDebug(entities) << "    entityTreeElement:" << entityTreeElement->getAACube();
+                qCDebug(entities) << "    entityTreeElement->bestFitBounds(details.newCube):" << entityTreeElement->bestFitBounds(details.newCube);
+                qCDebug(entities) << "    details.entity:" << details.entity->getEntityItemID();
+                qCDebug(entities) << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+                qCDebug(entities) << "    entityTreeElement:" << entityTreeElement;
+                qCDebug(entities) << "    details.newCube:" << details.newCube;
+                qCDebug(entities) << "    details.newCubeClamped:" << details.newCubeClamped;
+                qCDebug(entities) << "    _lookingCount:" << _lookingCount;
+                qCDebug(entities) << "    _foundOldCount:" << _foundOldCount;
+                qCDebug(entities) << "--------------------------------------------------------------------------";
             }
         
 
@@ -183,10 +184,10 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
-                    qDebug() << "MovingEntitiesOperator::preRecursion() -----------------------------";
-                    qDebug() << "    FOUND OLD - REMOVING";
-                    qDebug() << "    entityTreeElement == details.oldContainingElement";
-                    qDebug() << "--------------------------------------------------------------------------";
+                    qCDebug(entities) << "MovingEntitiesOperator::preRecursion() -----------------------------";
+                    qCDebug(entities) << "    FOUND OLD - REMOVING";
+                    qCDebug(entities) << "    entityTreeElement == details.oldContainingElement";
+                    qCDebug(entities) << "--------------------------------------------------------------------------";
                 }
             }
 
@@ -205,10 +206,10 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
                 if (_wantDebug) {
-                    qDebug() << "MovingEntitiesOperator::preRecursion() -----------------------------";
-                    qDebug() << "    FOUND NEW - ADDING";
-                    qDebug() << "    entityTreeElement->bestFitBounds(details.newCube)";
-                    qDebug() << "--------------------------------------------------------------------------";
+                    qCDebug(entities) << "MovingEntitiesOperator::preRecursion() -----------------------------";
+                    qCDebug(entities) << "    FOUND NEW - ADDING";
+                    qCDebug(entities) << "    entityTreeElement->bestFitBounds(details.newCube)";
+                    qCDebug(entities) << "--------------------------------------------------------------------------";
                 }
             }
             detailIndex++;

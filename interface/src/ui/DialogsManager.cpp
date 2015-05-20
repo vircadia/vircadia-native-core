@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DialogsManager.h"
+
 #include <QMessageBox>
 
 #include <AccountManager.h>
@@ -18,8 +20,10 @@
 #include "AddressBarDialog.h"
 #include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
+#include "AvatarAppearanceDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
+#include "DiskCacheEditor.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
@@ -27,24 +31,22 @@
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
 
-#include "DialogsManager.h"
 
 void DialogsManager::toggleAddressBar() {
-    maybeCreateDialog(_addressBarDialog);
-    
-    if (!_addressBarDialog->isVisible()) {
-        _addressBarDialog->show();
-    }
+    AddressBarDialog::toggle();
+}
+
+void DialogsManager::toggleDiskCacheEditor() {
+    maybeCreateDialog(_diskCacheEditor);
+    _diskCacheEditor->toggle();
 }
 
 void DialogsManager::toggleLoginDialog() {
-    maybeCreateDialog(_loginDialog);
-    _loginDialog->toggleQAction();
+    LoginDialog::toggleAction();
 }
 
 void DialogsManager::showLoginDialog() {
-    maybeCreateDialog(_loginDialog);
-    _loginDialog->showLoginForCurrentDomain();
+    LoginDialog::show();
 }
 
 void DialogsManager::octreeStatsDetails() {
@@ -61,7 +63,6 @@ void DialogsManager::octreeStatsDetails() {
 }
 
 void DialogsManager::cachesSizeDialog() {
-    qDebug() << "Caches size:" << _cachesSizeDialog.isNull();
     if (!_cachesSizeDialog) {
         maybeCreateDialog(_cachesSizeDialog);
         
@@ -77,6 +78,15 @@ void DialogsManager::editPreferences() {
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
+    }
+}
+
+void DialogsManager::changeAvatarAppearance() {
+    if (!_avatarAppearanceDialog) {
+        maybeCreateDialog(_avatarAppearanceDialog);
+        _avatarAppearanceDialog->show();
+    } else {
+        _avatarAppearanceDialog->close();
     }
 }
 
@@ -148,6 +158,7 @@ void DialogsManager::hmdToolsClosed() {
 
 void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
+    _scriptEditor->show();
     _scriptEditor->raise();
 }
 
@@ -164,3 +175,4 @@ void DialogsManager::showIRCLink() {
     
     _ircInfoBox->raise();
 }
+

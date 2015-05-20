@@ -125,6 +125,10 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
+    /// \param center center of sphere in meters
+    /// \param radius radius of sphere in meters
+    /// \param[out] penetration pointing into cube from sphere
+    /// \param penetratedObject unused
     virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
                         glm::vec3& penetration, void** penetratedObject) const;
 

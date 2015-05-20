@@ -14,6 +14,9 @@
 
 #include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
+#include <gpu/Framebuffer.h>
+
+#include <model/Light.h>
 
 #include <QImage>
 #include <QMap>
@@ -22,13 +25,11 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-class QOpenGLFramebufferObject;
-
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE, CUBE_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -36,9 +37,6 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-
-    void associateWithWidget(QGLWidget* widget);
-    
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -54,17 +52,26 @@ public:
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
 
+    /// Returns a texture version of an image file
+    gpu::TexturePointer getImageTexture(const QString & path);
+
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
         const QByteArray& content = QByteArray());
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
-    QOpenGLFramebufferObject* getPrimaryFramebufferObject();
-    
+    gpu::FramebufferPointer getPrimaryFramebuffer();
+
+    gpu::TexturePointer getPrimaryDepthTexture();
+    gpu::TexturePointer getPrimaryColorTexture();
+    gpu::TexturePointer getPrimaryNormalTexture();
+    gpu::TexturePointer getPrimarySpecularTexture();
+
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     GLuint getPrimaryDepthTextureID();
-    
+    GLuint getPrimaryColorTextureID();
+
     /// Returns the ID of the primary framebuffer object's normal texture.
     GLuint getPrimaryNormalTextureID();
     
@@ -76,20 +83,19 @@ public:
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
-    QOpenGLFramebufferObject* getSecondaryFramebufferObject();
+    gpu::FramebufferPointer getSecondaryFramebuffer();
     
     /// Returns a pointer to the tertiary framebuffer object, used as an additional render target when performing full
     /// screen effects.
-    QOpenGLFramebufferObject* getTertiaryFramebufferObject();
+    gpu::FramebufferPointer getTertiaryFramebuffer();
     
-    /// Returns a pointer to the framebuffer object used to render shadow maps.
-    QOpenGLFramebufferObject* getShadowFramebufferObject();
-    
+    /// Returns the framebuffer object used to render shadow maps;
+    gpu::FramebufferPointer getShadowFramebuffer();
+
+
     /// Returns the ID of the shadow framebuffer object's depth texture.
     GLuint getShadowDepthTextureID();
     
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -99,27 +105,28 @@ private:
     TextureCache();
     virtual ~TextureCache();
     friend class DilatableNetworkTexture;
-    
-    QOpenGLFramebufferObject* createFramebufferObject();
  
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
     gpu::TexturePointer _blueTexture;
+
     
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
-    
-    GLuint _primaryDepthTextureID;
-    GLuint _primaryNormalTextureID;
-    GLuint _primarySpecularTextureID;
-    QOpenGLFramebufferObject* _primaryFramebufferObject;
-    QOpenGLFramebufferObject* _secondaryFramebufferObject;
-    QOpenGLFramebufferObject* _tertiaryFramebufferObject;
-    
-    QOpenGLFramebufferObject* _shadowFramebufferObject;
-    GLuint _shadowDepthTextureID;
+   
+    gpu::TexturePointer _primaryDepthTexture;
+    gpu::TexturePointer _primaryColorTexture;
+    gpu::TexturePointer _primaryNormalTexture;
+    gpu::TexturePointer _primarySpecularTexture;
+    gpu::FramebufferPointer _primaryFramebuffer;
+    void createPrimaryFramebuffer();
+
+    gpu::FramebufferPointer _secondaryFramebuffer;
+    gpu::FramebufferPointer _tertiaryFramebuffer;
+
+    gpu::FramebufferPointer _shadowFramebuffer;
+    gpu::TexturePointer _shadowTexture;
 
     QSize _frameBufferSize;
-    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.
@@ -141,6 +148,7 @@ private:
 };
 
 /// A texture loaded from the network.
+
 class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
@@ -159,13 +167,14 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-
+    TextureType getType() const { return _type; }
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+    // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
+    Q_INVOKABLE void setImage(const QImage& image, void* texture, bool translucent, const QColor& averageColor, int originalWidth,
                               int originalHeight);
 
     virtual void imageLoaded(const QImage& image);

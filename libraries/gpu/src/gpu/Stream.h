@@ -101,9 +101,9 @@ public:
         uint32 getNumAttributes() const { return _attributes.size(); }
         const AttributeMap& getAttributes() const { return _attributes; }
 
-        uint8  getNumChannels() const { return _channels.size(); }
+        uint8 getNumChannels() const { return _channels.size(); }
         const ChannelMap& getChannels() const { return _channels; }
-        const Offset getChannelStride(Slot channel) const { return _channels.at(channel)._stride; }
+        Offset getChannelStride(Slot channel) const { return _channels.at(channel)._stride; }
 
         uint32 getElementTotalSize() const { return _elementTotalSize; }
 
@@ -117,7 +117,7 @@ public:
         void evaluateCache();
     };
 
-    typedef QSharedPointer<Format> FormatPointer;
+    typedef std::shared_ptr<Format> FormatPointer;
 };
 
 typedef std::vector< Offset > Offsets;
@@ -143,7 +143,7 @@ protected:
     Offsets _offsets;
     Strides _strides;
 };
-typedef QSharedPointer<BufferStream> BufferStreamPointer;
+typedef std::shared_ptr<BufferStream> BufferStreamPointer;
 
 };
 

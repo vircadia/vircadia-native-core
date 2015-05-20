@@ -9,12 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <assert.h>
-#include <math.h>
-#include <SharedUtil.h>
-#include "AudioRingBuffer.h"
-#include "AudioFormat.h"
-#include "AudioBuffer.h"
+#include <NumericalConstants.h>
+
 #include "AudioSourceTone.h"
 
 AudioSourceTone::AudioSourceTone() {

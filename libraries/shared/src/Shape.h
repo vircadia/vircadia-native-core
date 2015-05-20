@@ -21,7 +21,6 @@
 #include "RayIntersectionInfo.h"
 
 class PhysicsEntity;
-class VerletPoint;
 
 const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
@@ -87,8 +86,6 @@ public:
     /// \return volume of shape in cubic meters
     virtual float getVolume() const { return 1.0; }
 
-    virtual void getVerletPoints(QVector<VerletPoint*>& points) {}
-    
     virtual QDebug& dumpToDebug(QDebug& debugConext) const;
 
 protected:

@@ -30,6 +30,8 @@ class AbstractAudioInterface;
 
 class AudioInjector : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
@@ -51,7 +53,9 @@ public slots:
     void triggerDeleteAfterFinish() { _shouldDeleteAfterFinish = true; }
     void stopAndDeleteLater();
     
-    void setOptions(AudioInjectorOptions& options) { _options = options; }
+    const AudioInjectorOptions& getOptions() const { return _options; }
+    void setOptions(const AudioInjectorOptions& options) { _options = options; }
+    
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return !_isFinished; }

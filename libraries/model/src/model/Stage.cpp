@@ -12,6 +12,10 @@
 
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
+#include <qcompilerdetection.h>
+
+#include "SkyFromAtmosphere_vert.h"
+#include "SkyFromAtmosphere_frag.h"
 
 using namespace model;
 
@@ -89,8 +93,8 @@ void EarthSunModel::setSurfaceOrientation(const Quat& orientation) {
 double moduloRange(double val, double minVal, double maxVal) {
     double range = maxVal - minVal;
     double rval = (val - minVal) / range;
-    double intval;
-    return modf(rval, &intval) * range + minVal;
+    rval =  rval - floor(rval);
+    return rval * range + minVal;
 }
 
 const float MAX_LONGITUDE = 180.0f;
@@ -132,16 +136,68 @@ void EarthSunModel::setSunLongitude(float lon) {
     invalidate();
 }
 
+Atmosphere::Atmosphere() {
+    // only if created from nothing shall we create the Buffer to store the properties
+    Data data;
+    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
+
+    setScatteringWavelength(_scatteringWavelength);
+    setRayleighScattering(_rayleighScattering);
+    setInnerOuterRadiuses(getInnerRadius(), getOuterRadius());
+}
+
+void Atmosphere::setScatteringWavelength(Vec3 wavelength) {
+    _scatteringWavelength = wavelength;
+    Data& data = editData();
+    data._invWaveLength = Vec4(1.0f / powf(wavelength.x, 4.0f), 1.0f / powf(wavelength.y, 4.0f), 1.0f / powf(wavelength.z, 4.0f), 0.0f);
+}
+
+void Atmosphere::setRayleighScattering(float scattering) {
+    _rayleighScattering = scattering;
+    updateScattering();
+}
+
+void Atmosphere::setMieScattering(float scattering) {
+    _mieScattering = scattering;
+    updateScattering();
+}
+
+void Atmosphere::setSunBrightness(float brightness) {
+    _sunBrightness = brightness;
+    updateScattering();
+}
+
+void Atmosphere::updateScattering() {
+    Data& data = editData();
+
+    data._scatterings.x = getRayleighScattering() * getSunBrightness();
+    data._scatterings.y = getMieScattering() * getSunBrightness();
+
+    data._scatterings.z = getRayleighScattering() * 4.0f * glm::pi<float>();
+    data._scatterings.w = getMieScattering() * 4.0f * glm::pi<float>();
+}
+
+void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
+    Data& data = editData();
+    data._radiuses.x = inner;
+    data._radiuses.y = outer;
+    data._scales.x = 1.0f / (outer - inner);
+    data._scales.z = data._scales.x / data._scales.y;
+}
+
+
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
-    _sunLight(new Light())
+    _sunLight(new Light()),
+    _skybox(new Skybox())
 {
     _sunLight->setType(Light::SUN);
  
     setSunIntensity(1.0f);
+    setSunAmbientIntensity(0.5f);
     setSunColor(Vec3(1.0f, 1.0f, 1.0f));
 
     // Default origin location is a special place in the world...
@@ -150,6 +206,21 @@ SunSkyStage::SunSkyStage() :
     setDayTime(12.0f);
     // Begining of march
     setYearTime(60.0f);
+
+    auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
+    auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
+    auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
+
+    auto skyState = gpu::StatePointer(new gpu::State());
+ //   skyState->setStencilEnable(false);
+   // skyState->setBlendEnable(false);
+
+    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
+
+
+    _skybox.reset(new Skybox());
+    _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
+
 }
 
 SunSkyStage::~SunSkyStage() {
@@ -177,11 +248,25 @@ void SunSkyStage::setOriginLocation(float longitude, float latitude, float altit
     invalidate();
 }
 
+void SunSkyStage::setSunModelEnable(bool isEnabled) {
+    _sunModelEnable = isEnabled;
+    invalidate();
+}
+
 void SunSkyStage::setSunColor(const Vec3& color) {
     _sunLight->setColor(color);
 }
 void SunSkyStage::setSunIntensity(float intensity) {
     _sunLight->setIntensity(intensity);
+}
+void SunSkyStage::setSunAmbientIntensity(float intensity) {
+    _sunLight->setAmbientIntensity(intensity);
+}
+
+void SunSkyStage::setSunDirection(const Vec3& direction) {
+    if (!isSunModelEnabled()) {
+        _sunLight->setDirection(direction);
+    }
 }
 
 // THe sun declinaison calculus is taken from https://en.wikipedia.org/wiki/Position_of_the_Sun
@@ -199,11 +284,42 @@ void SunSkyStage::updateGraphicsObject() const {
     // And update the sunLAtitude as the declinaison depending of the time of the year
     _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
-    Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
-    _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
+    if (isSunModelEnabled()) {
+        Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
+        _sunLight->setDirection(Vec3(sunLightDir.x, sunLightDir.y, sunLightDir.z));
 
-    double originAlt = _earthSunModel.getAltitude();
-    _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+        double originAlt = _earthSunModel.getAltitude();
+        _sunLight->setPosition(Vec3(0.0f, originAlt, 0.0f));
+    }
 
+    // Background
+    switch (getBackgroundMode()) {
+        case NO_BACKGROUND: {
+            break;
+        }
+        case SKY_DOME: {
+            break;
+        }
+        case SKY_BOX: {
+            break;
+        }
+        case NUM_BACKGROUND_MODES:
+            Q_UNREACHABLE();
+    };
+
+    static int firstTime = 0;
+    if (firstTime == 0) {
+        firstTime++;
+        gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
+    }
 }
 
+void SunSkyStage::setBackgroundMode(BackgroundMode mode) {
+    _backgroundMode = mode;
+    invalidate();
+}
+
+void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
+    _skybox = skybox;
+    invalidate();
+}

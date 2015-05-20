@@ -12,6 +12,8 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
+#include <QtCore/QJsonObject>
+
 #include <AABox.h>
 #include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
 #include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
@@ -46,7 +48,7 @@ public:
 
     void removeDeadInjectedStreams();
 
-    QString getAudioStreamStatsString() const;
+    QJsonObject getAudioStreamStats() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
     

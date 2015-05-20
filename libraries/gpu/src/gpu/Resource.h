@@ -17,26 +17,33 @@
 
 #include <vector>
 
-#include <QSharedPointer>
+#include <memory>
 #ifdef _DEBUG
 #include <QDebug>
 #endif
 
 namespace gpu {
 
-class GPUObject;
-
-typedef int  Stamp;
-
 class Resource {
 public:
-    typedef unsigned char Byte;
     typedef unsigned int Size;
 
     static const Size NOT_ALLOCATED = -1;
 
     // The size in bytes of data stored in the resource
     virtual Size getSize() const = 0;
+
+    enum Type {
+        BUFFER = 0,
+        TEXTURE_1D,
+        TEXTURE_2D,
+        TEXTURE_3D,
+        TEXTURE_CUBE,
+        TEXTURE_1D_ARRAY,
+        TEXTURE_2D_ARRAY,
+        TEXTURE_3D_ARRAY,
+        TEXTURE_CUBE_ARRAY,
+    };
 
 protected:
 
@@ -140,16 +147,15 @@ protected:
 
     Sysmem* _sysmem = NULL;
 
-    mutable GPUObject* _gpuObject = NULL;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
+    mutable GPUObject* _gpuObject = NULL;
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
     GPUObject* getGPUObject() const { return _gpuObject; }
-
     friend class Backend;
 };
 
-typedef QSharedPointer<Buffer> BufferPointer;
+typedef std::shared_ptr<Buffer> BufferPointer;
 typedef std::vector< BufferPointer > Buffers;
 
 
@@ -310,7 +316,7 @@ public:
 
     template <typename T> const T& get() const {
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
@@ -326,7 +332,7 @@ public:
 
     template <typename T> T& edit() {
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - _offset)) {
@@ -343,7 +349,7 @@ public:
     template <typename T> const T& get(const Index index) const {
         Resource::Size elementOffset = index * sizeof(T) + _offset;
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {
@@ -359,7 +365,7 @@ public:
     template <typename T> T& edit(const Index index) const {
         Resource::Size elementOffset = index * sizeof(T) + _offset;
  #if _DEBUG
-        if (_buffer.isNull()) {
+        if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";
         }
         if (sizeof(T) > (_buffer->getSize() - elementOffset)) {

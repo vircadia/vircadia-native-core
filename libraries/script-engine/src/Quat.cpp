@@ -15,6 +15,7 @@
 
 #include <OctreeConstants.h>
 #include <GLMHelpers.h>
+#include "ScriptEngineLogging.h"
 #include "Quat.h"
 
 
@@ -62,6 +63,14 @@ glm::quat Quat::angleAxis(float angle, const glm::vec3& v) {
     return glm::angleAxis(glm::radians(angle), v);
 }
 
+glm::vec3 Quat::axis(const glm::quat& orientation) {
+    return glm::axis(orientation);
+}
+
+float Quat::angle(const glm::quat& orientation) {
+    return glm::angle(orientation);
+}
+
 glm::quat Quat::mix(const glm::quat& q1, const glm::quat& q2, float alpha) {
     return safeMix(q1, q2, alpha);
 }
@@ -81,7 +90,7 @@ float Quat::dot(const glm::quat& q1, const glm::quat& q2) {
 }
 
 void Quat::print(const QString& lable, const glm::quat& q) {
-    qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
+    qCDebug(scriptengine) << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
 
 bool Quat::equal(const glm::vec3& q1, const glm::vec3& q2) {

@@ -14,6 +14,7 @@
 #include <QtDebug>
 
 #include "SharedUtil.h"
+#include "NetworkLogging.h"
 
 #include "NetworkPacket.h"
 
@@ -22,7 +23,7 @@ void NetworkPacket::copyContents(const SharedNodePointer& node, const QByteArray
         _node = node;
         _byteArray = packet;
     } else {
-        qDebug(">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
+        qCDebug(networking, ">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
     }
 }
 

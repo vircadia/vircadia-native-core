@@ -23,6 +23,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
+#include "PacketHeaders.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 
@@ -43,9 +44,9 @@ namespace NodeType {
 
 class Node : public NetworkPeer {
     Q_OBJECT
-public:
+public: 
     Node(const QUuid& uuid, NodeType_t type,
-         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks);
+         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez);
     ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -79,10 +80,17 @@ public:
 
     void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
     bool getCanAdjustLocks() { return _canAdjustLocks; }
+
+    void setCanRez(bool canRez) { _canRez = canRez; }
+    bool getCanRez() { return _canRez; }
     
     void activatePublicSocket();
     void activateLocalSocket();
     void activateSymmetricSocket();
+
+    void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType packetType)
+        { _lastSequenceNumbers[packetType] = sequenceNumber; }
+    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType packetType) const;
     
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
@@ -105,6 +113,9 @@ private:
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     bool _canAdjustLocks;
+    bool _canRez;
+
+    PacketTypeSequenceMap _lastSequenceNumbers;
 };
 
 QDebug operator<<(QDebug debug, const Node &message);

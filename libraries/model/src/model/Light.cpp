@@ -18,7 +18,7 @@ Light::Light() :
     _transform() {
     // only if created from nothing shall we create the Buffer to store the properties
     Schema schema;
-    _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Buffer::Byte*) &schema));
+    _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Byte*) &schema));
 }
 
 Light::Light(const Light& light) :
@@ -64,6 +64,10 @@ void Light::setIntensity(float intensity) {
     editSchema()._intensity = intensity;
 }
 
+void Light::setAmbientIntensity(float intensity) {
+    editSchema()._ambientIntensity = intensity;
+}
+
 void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
@@ -95,3 +99,6 @@ void Light::setShowContour(float show) {
     }
     editSchema()._control.w = show;
 }
+
+
+

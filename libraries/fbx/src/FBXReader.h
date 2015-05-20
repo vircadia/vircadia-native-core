@@ -12,6 +12,8 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
+#define USE_MODEL_MESH 1
+
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -153,7 +155,10 @@ public:
     bool hasSpecularTexture() const;
     bool hasEmissiveTexture() const;
 
+    unsigned int meshIndex; // the order the meshes appeared in the object file
+#   if USE_MODEL_MESH
     model::Mesh _mesh;
+#   endif
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -202,6 +207,16 @@ public:
     glm::vec3 position; // relative postion
     glm::quat rotation; // relative orientation
 };
+
+inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
+}
+
+inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
+}
 
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
@@ -252,20 +267,17 @@ public:
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
 
+    bool convexHullContains(const glm::vec3& point) const;
 
     QHash<int, QString> meshIndicesToModelNames;
     
     /// given a meshIndex this will return the name of the model that mesh belongs to if known
     QString getModelNameOfMesh(int meshIndex) const;
+    
+    QList<QString> blendshapeChannelNames;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
-
-/// Reads an FST mapping from the supplied data.
-QVariantHash readMapping(const QByteArray& data);
-
-/// Writes an FST mapping to a byte array.
-QByteArray writeMapping(const QVariantHash& mapping);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing

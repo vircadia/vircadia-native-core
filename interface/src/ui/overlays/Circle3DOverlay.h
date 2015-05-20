@@ -70,6 +70,7 @@ protected:
     int _majorTicksVerticesID;
     int _minorTicksVerticesID;
 
+    xColor _lastColor;
     float _lastStartAt;
     float _lastEndAt;
     float _lastOuterRadius;

@@ -13,7 +13,7 @@
 #include <qwebview.h>
 
 #include <AccountManager.h>
-#include <LimitedNodeList.h>
+#include <NetworkingConstants.h>
 
 #include "Application.h"
 #include "DataWebPage.h"
@@ -39,7 +39,7 @@ DataWebDialog* DataWebDialog::dialogForPath(const QString& path,
     connect(dialogWebView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
             dialogWebView, &DataWebDialog::addJavascriptObjectsToWindow);
     
-    QUrl dataWebUrl(DEFAULT_NODE_AUTH_URL);
+    QUrl dataWebUrl(NetworkingConstants::METAVERSE_SERVER_URL);
     dataWebUrl.setPath(path);
     
     qDebug() << "Opening a data web dialog for" << dataWebUrl.toString();

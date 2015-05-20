@@ -21,10 +21,8 @@ void ShapeManagerTests::testShapeAccounting() {
     ShapeInfo info;
     info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
     
-    // NOTE: ShapeManager returns -1 as refcount when the shape is unknown, 
-    // which is distinct from "known but with zero references"
     int numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != -1) {
+    if (numReferences != 0) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: expected ignorant ShapeManager after initialization" << std::endl;
     }
@@ -104,8 +102,7 @@ void ShapeManagerTests::testShapeAccounting() {
     if (shapeManager.getNumShapes() != 0) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected zero shapes after release" << std::endl;
     }
-    numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != -1) {
+    if (shapeManager.hasShape(shape)) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: expected ignorant ShapeManager after garbage collection" << std::endl;
     }
@@ -122,32 +119,63 @@ void ShapeManagerTests::testShapeAccounting() {
 void ShapeManagerTests::addManyShapes() {
     ShapeManager shapeManager;
 
+    QVector<btCollisionShape*> shapes;
+
     int numSizes = 100;
     float startSize = 1.0f;
     float endSize = 99.0f;
     float deltaSize = (endSize - startSize) / (float)numSizes;
     ShapeInfo info;
     for (int i = 0; i < numSizes; ++i) {
+        // make a sphere
         float s = startSize + (float)i * deltaSize;
         glm::vec3 scale(s, 1.23f + s, s - 0.573f);
         info.setBox(0.5f * scale);
         btCollisionShape* shape = shapeManager.getShape(info);
+        shapes.push_back(shape);
         if (!shape) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: i = " << i << " null box shape for scale = " << scale << std::endl;
         }
+
+        // make a box
         float radius = 0.5f * s;
         info.setSphere(radius);
         shape = shapeManager.getShape(info);
+        shapes.push_back(shape);
         if (!shape) {
             std::cout << __FILE__ << ":" << __LINE__
                 << " ERROR: i = " << i << " null sphere shape for radius = " << radius << std::endl;
         }
     }
+
+    // verify shape count
     int numShapes = shapeManager.getNumShapes();
     if (numShapes != 2 * numSizes) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: expected numShapes = " << numSizes << " but found numShapes = " << numShapes << std::endl;
+    }
+
+    // release each shape by pointer
+    for (int i = 0; i < numShapes; ++i) {
+        btCollisionShape* shape = shapes[i];
+        bool success = shapeManager.releaseShape(shape);
+        if (!success) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: failed to release shape index " << i << std::endl;
+            break;
+        }
+    }
+
+    // verify zero references
+    for (int i = 0; i < numShapes; ++i) {
+        btCollisionShape* shape = shapes[i];
+        int numReferences = shapeManager.getNumReferences(shape);
+        if (numReferences != 0) {
+            std::cout << __FILE__ << ":" << __LINE__
+                << " ERROR: expected zero references for shape " << i 
+                << " but refCount = " << numReferences << std::endl;
+        }
     }
 }
 
@@ -159,9 +187,7 @@ void ShapeManagerTests::addBoxShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -177,9 +203,7 @@ void ShapeManagerTests::addSphereShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -197,9 +221,7 @@ void ShapeManagerTests::addCylinderShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -218,9 +240,7 @@ void ShapeManagerTests::addCapsuleShape() {
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
-    ShapeInfo otherInfo;
-    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
-
+    ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
         std::cout << __FILE__ << ":" << __LINE__

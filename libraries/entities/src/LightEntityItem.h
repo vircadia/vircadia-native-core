@@ -56,7 +56,10 @@ public:
     }
 
     bool getIsSpotlight() const { return _isSpotlight; }
-    void setIsSpotlight(bool value) { _isSpotlight = value; }
+    void setIsSpotlight(bool value);
+
+    void setIgnoredColor(const rgbColor& value) { }
+    void setIgnoredAttenuation(float value) { }
 
     float getIntensity() const { return _intensity; }
     void setIntensity(float value) { _intensity = value; }
@@ -65,7 +68,7 @@ public:
     void setExponent(float value) { _exponent = value; }
 
     float getCutoff() const { return _cutoff; }
-    void setCutoff(float value) { _cutoff = value; }
+    void setCutoff(float value);
     
     static bool getLightsArePickable() { return _lightsArePickable; }
     static void setLightsArePickable(bool value) { _lightsArePickable = value; }

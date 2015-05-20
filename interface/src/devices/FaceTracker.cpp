@@ -9,9 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QTimer>
+
 #include <GLMHelpers.h>
 
 #include "FaceTracker.h"
+#include "InterfaceLogging.h"
+#include "Menu.h"
+
+const int FPS_TIMER_DELAY = 2000;  // ms
+const int FPS_TIMER_DURATION = 2000;  // ms
+
+void FaceTracker::init() {
+    _isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+    _isInitialized = true;  // FaceTracker can be used now
+}
 
 inline float FaceTracker::getBlendshapeCoefficient(int index) const {
     return isValidBlendshapeIndex(index) ? glm::mix(0.0f, _blendshapeCoefficients[index], getFadeCoefficient())
@@ -65,4 +77,32 @@ void FaceTracker::update(float deltaTime) {
         _relaxationStatus = glm::clamp(_relaxationStatus - deltaTime / RELAXATION_TIME, 0.0f, 1.0f);
         _fadeCoefficient = std::exp(-(1.0f - _relaxationStatus) * INVERSE_AT_EPSILON);
     }
+}
+
+void FaceTracker::reset() {
+    if (isActive() && !_isCalculatingFPS) {
+        QTimer::singleShot(FPS_TIMER_DELAY, this, SLOT(startFPSTimer()));
+        _isCalculatingFPS = true;
+    }
+}
+
+void FaceTracker::startFPSTimer() {
+    _frameCount = 0;
+    QTimer::singleShot(FPS_TIMER_DURATION, this, SLOT(finishFPSTimer()));
+}
+
+void FaceTracker::countFrame() {
+    if (_isCalculatingFPS) {
+        _frameCount++;
+    }
+}
+
+void FaceTracker::finishFPSTimer() {
+    qCDebug(interfaceapp) << "Face tracker FPS =" << (float)_frameCount / ((float)FPS_TIMER_DURATION / 1000.0f);
+    _isCalculatingFPS = false;
+}
+
+void FaceTracker::toggleMute() {
+    _isMuted = !_isMuted;
+    emit muteToggled();
 }

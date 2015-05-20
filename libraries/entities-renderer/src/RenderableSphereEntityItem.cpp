@@ -26,9 +26,9 @@ EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, co
 void RenderableSphereEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
     assert(getType() == EntityTypes::Sphere);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 center = getCenterInMeters();
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 center = getCenter();
+    glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 
     const float MAX_COLOR = 255.0f;

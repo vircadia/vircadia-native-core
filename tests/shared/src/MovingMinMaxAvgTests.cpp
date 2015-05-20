@@ -10,7 +10,10 @@
 //
 
 #include "MovingMinMaxAvgTests.h"
+
 #include <qqueue.h>
+
+#include <NumericalConstants.h>
 
 quint64 MovingMinMaxAvgTests::randQuint64() {
     quint64 ret = 0;
@@ -59,7 +62,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001 || abs(stats.getAverage() - average) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON || fabs(stats.getAverage() - average) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -78,7 +81,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001 || abs(stats.getAverage() - average) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON || fabs(stats.getAverage() - average) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -123,7 +126,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -142,7 +145,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -187,7 +190,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -206,7 +209,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(abs(stats.getAverage() / average - 1.0) < 0.000001);
+                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());

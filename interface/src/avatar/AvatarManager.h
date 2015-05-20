@@ -37,10 +37,12 @@ public:
     
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
+    void renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
-    
+   
+    bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
+
     class LocalLight {
     public:
         glm::vec3 color;
@@ -49,17 +51,20 @@ public:
     
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
-    
+   
+public slots:
+    void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+
 private:
     AvatarManager(QObject* parent = 0);
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
+    void renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode);
     
     AvatarSharedPointer newSharedAvatar();
     
-    // virtual override
+    // virtual overrides
     AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
     
     QVector<AvatarSharedPointer> _avatarFades;
@@ -67,6 +72,8 @@ private:
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;
+
+    bool _shouldShowReceiveStats = false;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

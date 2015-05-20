@@ -22,6 +22,8 @@ class GLCanvas : public QGLWidget {
     
 public:
     GLCanvas();
+    
+    void stopFrameTimer();
 
     bool isThrottleRendering() const;
     
@@ -38,22 +40,7 @@ protected:
     virtual void initializeGL();
     virtual void paintGL();
     virtual void resizeGL(int width, int height);
-
-    virtual void keyPressEvent(QKeyEvent* event);
-    virtual void keyReleaseEvent(QKeyEvent* event);
-
-    virtual void focusOutEvent(QFocusEvent* event);
-
-    virtual void mouseMoveEvent(QMouseEvent* event);
-    virtual void mousePressEvent(QMouseEvent* event);
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-
     virtual bool event(QEvent* event);
-
-    virtual void wheelEvent(QWheelEvent* event);
-
-    virtual void dragEnterEvent(QDragEnterEvent *event);
-    virtual void dropEvent(QDropEvent* event);
 
 private slots:
     void activeChanged(Qt::ApplicationState state);

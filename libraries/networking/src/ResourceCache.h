@@ -21,6 +21,8 @@
 #include <QSharedPointer>
 #include <QUrl>
 #include <QWeakPointer>
+#include <QReadWriteLock>
+#include <QQueue>
 
 #include <DependencyManager.h>
 
@@ -46,14 +48,14 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 // ResourceCache derived classes. Since we can't count on the ordering of
 // static members destruction, we need to use this Dependency manager implemented
 // object instead
-class ResouceCacheSharedItems : public Dependency  {
+class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 public:
     QList<QPointer<Resource> > _pendingRequests;
     QList<Resource*> _loadingRequests;
 private:
-    ResouceCacheSharedItems() { }
-    virtual ~ResouceCacheSharedItems() { }
+    ResourceCacheSharedItems() { }
+    virtual ~ResourceCacheSharedItems() { }
 };
 
 
@@ -69,15 +71,18 @@ public:
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
     static const QList<Resource*>& getLoadingRequests() 
-        { return DependencyManager::get<ResouceCacheSharedItems>()->_loadingRequests; }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->_loadingRequests; }
 
     static int getPendingRequestCount() 
-        { return DependencyManager::get<ResouceCacheSharedItems>()->_pendingRequests.size(); }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->_pendingRequests.size(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
 
     void refresh(const QUrl& url);
+
+public slots:
+    void checkAsynchronousGets();
 
 protected:
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
@@ -89,7 +94,7 @@ protected:
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
     Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-        bool delayLoad = false, void* extra = NULL);
+                                                     bool delayLoad = false, void* extra = NULL);
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -109,6 +114,11 @@ private:
     int _lastLRUKey = 0;
     
     static int _requestLimit;
+
+    void getResourceAsynchronously(const QUrl& url);
+    QReadWriteLock _resourcesToBeGottenLock;
+    QQueue<QUrl> _resourcesToBeGotten;
+
 };
 
 /// Base class for resources.
@@ -149,7 +159,7 @@ public:
 
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
-
+    
     /// Refreshes the resource.
     void refresh();
 
@@ -169,6 +179,10 @@ signals:
 protected slots:
 
     void attemptRequest();
+    
+    /// Refreshes the resource if the last modified date on the network
+    /// is greater than the last modified date in the cache.
+    void maybeRefresh();
 
 protected:
 

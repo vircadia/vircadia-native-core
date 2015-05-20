@@ -43,9 +43,6 @@ const int CHECK_NODE_ONLY = -1;
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, 
         int descendentsChild = CHECK_NODE_ONLY);
 
-// Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
-// but other than that these do the same thing.
-float * firstVertexForCode(const unsigned char* octalCode);
 void copyFirstVertexForCode(const unsigned char* octalCode, float* output);
 
 struct VoxelPositionSize {

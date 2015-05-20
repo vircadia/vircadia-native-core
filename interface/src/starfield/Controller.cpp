@@ -11,6 +11,7 @@
 
 #include <QElapsedTimer>
 
+#include "InterfaceLogging.h"
 #include "starfield/Controller.h"
 
 using namespace starfield;
@@ -25,7 +26,7 @@ bool Controller::computeStars(unsigned numStars, unsigned seed) {
     
     double NSEC_TO_MSEC = 1.0 / 1000000.0;
     double timeDiff = (double)startTime.nsecsElapsed() * NSEC_TO_MSEC;
-    qDebug() << "Total time to retile and generate stars: " << timeDiff << "msec";
+    qCDebug(interfaceapp) << "Total time to retile and generate stars: " << timeDiff << "msec";
     
     return true;
 }

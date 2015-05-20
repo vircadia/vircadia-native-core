@@ -43,12 +43,14 @@ typedef unsigned long long quint64;
 #include <QVariantMap>
 #include <QVector>
 #include <QtScript/QScriptable>
+#include <QReadWriteLock>
 
 #include <CollisionInfo.h>
-#include <RegisteredMetaTypes.h>
-
 #include <Node.h>
+#include <RegisteredMetaTypes.h>
+#include <SimpleMovingAverage.h>
 
+#include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
 #include "Player.h"
@@ -59,21 +61,13 @@ typedef unsigned long long quint64;
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
-const quint32 AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY = 1U << 2;
-const quint32 AVATAR_MOTION_OBEY_LOCAL_GRAVITY = 1U << 3;
-const quint32 AVATAR_MOTION_STAND_ON_NEARBY_FLOORS = 1U << 4;
-
 const quint32 AVATAR_MOTION_DEFAULTS = 
         AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
 const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
-        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED |
-        AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | 
-        AVATAR_MOTION_OBEY_LOCAL_GRAVITY | 
-        AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+        AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 
 // Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
@@ -90,7 +84,7 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
-const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
+const int UNUSED_AVATAR_STATE_BIT_5 = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 
@@ -109,6 +103,12 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
+const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
+
+const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
+const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
+
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -247,7 +247,6 @@ public:
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
 
-    bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
@@ -294,11 +293,16 @@ public:
     Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
-    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
-     
-    virtual float getBoundingRadius() const { return 1.0f; }
-    
+    const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
+
+    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
+    int getAverageBytesReceivedPerSecond() const;
+    int getReceiveRate() const;
+
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
+    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
+    glm::vec3 getTargetVelocity() const { return _targetVelocity; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -356,15 +360,14 @@ protected:
     // key state
     KeyState _keyState;
 
-    bool _isChatCirclingEnabled;
     bool _forceFaceTrackerConnected;
     bool _hasNewJointRotations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
     HandData* _handData;
 
-    QUrl _faceModelURL = DEFAULT_HEAD_MODEL_URL;
-    QUrl _skeletonModelURL = DEFAULT_BODY_MODEL_URL;
+    QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
+    QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
@@ -381,13 +384,19 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
     QWeakPointer<Node> _owningAvatarMixer;
-    QElapsedTimer _lastUpdateTimer;
     
     PlayerPointer _player;
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
     void changeReferential(Referential* ref);
+
+    glm::vec3 _velocity;
+    glm::vec3 _targetVelocity;
+
+    AABox _localAABox;
+
+    SimpleMovingAverage _averageBytesReceived;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

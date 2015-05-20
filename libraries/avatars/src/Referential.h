@@ -39,7 +39,6 @@ public:
     
     glm::vec3 getTranslation() const { return _translation; }
     glm::quat getRotation() const { return _rotation; }
-    float getScale() const {return _scale; }
     QByteArray getExtraData() const { return _extraDataBuffer; }
     
     virtual void update() {}
@@ -62,13 +61,12 @@ protected:
     AvatarData* _avatar;
     QByteArray _extraDataBuffer;
     
-    glm::vec3 _refPosition;
-    glm::quat _refRotation;
-    float _refScale;
+    glm::vec3 _refPosition; // position of object in world-frame
+    glm::quat _refRotation; // rotation of object in world-frame
+    glm::vec3 _lastRefDimension; // dimension of object when _translation was last computed
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
-    float _scale;
+    glm::vec3 _translation; // offset of avatar in object local-frame
+    glm::quat _rotation; // rotation of avatar in object local-frame
 };
 
 

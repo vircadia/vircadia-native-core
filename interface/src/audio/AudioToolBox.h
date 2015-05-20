@@ -14,19 +14,20 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <QOpenGLTexture>
 
 class AudioToolBox : public Dependency {
     SINGLETON_DEPENDENCY
 public:
-    void render(int x, int y, bool boxed);
+    void render(int x, int y, int padding, bool boxed);
     
     bool mousePressEvent(int x, int y);
 protected:
     AudioToolBox();
 private:
-    GLuint _micTextureId = 0;
-    GLuint _muteTextureId = 0;
-    GLuint _boxTextureId = 0;
+    gpu::TexturePointer _micTexture;
+    gpu::TexturePointer _muteTexture;
+    gpu::TexturePointer _boxTexture;
     int _boxQuadID = GeometryCache::UNKNOWN_ID;
     QRect _iconBounds;
     qint64 _iconPulseTimeReference = 0;

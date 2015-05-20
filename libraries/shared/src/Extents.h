@@ -14,9 +14,12 @@
 #define hifi_Extents_h
 
 #include <glm/glm.hpp>
+#include <glm/gtx/extented_min_max.hpp>
 
 #include <QDebug>
 #include "StreamUtils.h"
+
+class AABox;
 
 class Extents {
 public:
@@ -26,6 +29,10 @@ public:
     /// \param extents another intance of extents
     /// expand current limits to contain other extents
     void addExtents(const Extents& extents);
+
+    /// \param aabox another intance of extents
+    /// expand current limits to contain other aabox
+    void add(const AABox& box);
 
     /// \param point new point to compare against existing limits
     /// compare point to current limits and expand them if necessary to contain point
@@ -45,6 +52,9 @@ public:
     
     /// rotate the extents around orign by rotation
     void rotate(const glm::quat& rotation);
+
+    glm::vec3 size() const { return maximum - minimum; }
+    float largestDimension() const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }
 
     /// \return new Extents which is original rotated around orign by rotation
     Extents getRotated(const glm::quat& rotation) const {

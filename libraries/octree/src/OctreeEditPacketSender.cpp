@@ -15,6 +15,7 @@
 
 #include <OctalCode.h>
 #include <PacketHeaders.h>
+#include "OctreeLogging.h"
 #include "OctreeEditPacketSender.h"
 
 const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND;
@@ -119,7 +120,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 quint64 queuedAt = usecTimestampNow();
                 quint64 transitTime = queuedAt - createdAt;
                 
-                qDebug() << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
+                qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << buffer[0] <<
                 " - command to node bytes=" << length <<
                 " satoshiCost=" << satoshiCost <<
                 " sequence=" << sequence <<
@@ -327,7 +328,8 @@ void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer)
 }
 
 void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew) {
-    packetBuffer._currentSize = populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
+    packetBuffer._currentSize =
+        DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out
     packetBuffer._currentSize += sizeof(quint16);

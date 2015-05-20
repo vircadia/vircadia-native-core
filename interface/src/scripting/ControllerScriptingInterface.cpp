@@ -286,8 +286,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    return glm::vec2(glCanvas->width(), glCanvas->height());
+    return Application::getInstance()->getCanvasSize();
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
@@ -353,7 +352,7 @@ void InputController::update() {
     // TODO for now the InputController is only supporting a JointTracker from a MotionTracker
     MotionTracker* motionTracker = dynamic_cast< MotionTracker*> (DeviceTracker::getDevice(_deviceTrackerId));
     if (motionTracker) {
-        if (_subTrackerId < motionTracker->numJointTrackers()) {
+        if ((int)_subTrackerId < motionTracker->numJointTrackers()) {
             const MotionTracker::JointTracker* joint = motionTracker->getJointTracker(_subTrackerId);
 
             if (joint->isActive()) {

@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
+#include "OctreeLogging.h"
 #include "OctreeRenderer.h"
 
 OctreeRenderer::OctreeRenderer() :
@@ -49,11 +50,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     bool extraDebugging = false;
     
     if (extraDebugging) {
-        qDebug() << "OctreeRenderer::processDatagram()";
+        qCDebug(octree) << "OctreeRenderer::processDatagram()";
     }
 
     if (!_tree) {
-        qDebug() << "OctreeRenderer::processDatagram() called before init, calling init()...";
+        qCDebug(octree) << "OctreeRenderer::processDatagram() called before init, calling init()...";
         this->init();
     }
 
@@ -65,7 +66,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     unsigned int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
-    PacketVersion expectedVersion = _tree->expectedVersion(); // TODO: would be better to read this from the packet!
+    // packetVersion is the second byte
+    PacketVersion packetVersion = dataByteArray[1];
     
     if(command == expectedType) {
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
@@ -93,7 +95,7 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         unsigned int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
-            qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+            qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                    sequence, flightTime, packetLength, dataBytes);
@@ -117,12 +119,12 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                sourceUUID, sourceNode, false, expectedVersion);
+                                                sourceUUID, sourceNode, false, packetVersion);
                 _tree->lockForWrite();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
-                    qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+                    qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
@@ -130,11 +132,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                            packetData.getUncompressedSize());
                 }
                 if (extraDebugging) {
-                    qDebug() << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
                 }
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                 if (extraDebugging) {
-                    qDebug() << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
                 }
                 _tree->unlock();
             
@@ -162,9 +164,11 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void OctreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide, 
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+void OctreeRenderer::render(RenderArgs::RenderMode renderMode,
+                            RenderArgs::RenderSide renderSide,
+                            RenderArgs::DebugFlags renderDebugFlags) {
+    RenderArgs args(this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(),
+                    renderMode, renderSide, renderDebugFlags);
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <math.h>
@@ -16,6 +17,8 @@
 #include <QtCore/QDebug>
 
 #include <PacketHeaders.h>
+
+#include "AudioLogging.h"
 
 #include "AudioRingBuffer.h"
 
@@ -126,7 +129,7 @@ int AudioRingBuffer::writeData(const char* data, int maxSize) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     if (_endOfLastWrite + samplesToCopy <= _buffer + _bufferLength) {
@@ -172,7 +175,7 @@ int AudioRingBuffer::addSilentSamples(int silentSamples) {
     if (silentSamples > samplesRoomFor) {
         // there's not enough room for this write. write as many silent samples as we have room for
         silentSamples = samplesRoomFor;
-        qDebug() << "Dropping some silent samples to prevent ring buffer overflow";
+        qCDebug(audio) << "Dropping some silent samples to prevent ring buffer overflow";
     }
 
     // memset zeroes into the buffer, accomodate a wrap around the end
@@ -208,7 +211,7 @@ float AudioRingBuffer::getFrameLoudness(const int16_t* frameStart) const {
     const int16_t* _bufferLastAt = _buffer + _bufferLength - 1;
 
     for (int i = 0; i < _numFrameSamples; ++i) {
-        loudness += fabsf(*sampleAt);
+        loudness += std::abs(*sampleAt);
         sampleAt = sampleAt == _bufferLastAt ? _buffer : sampleAt + 1;
     }
     loudness /= _numFrameSamples;
@@ -236,7 +239,7 @@ int AudioRingBuffer::writeSamples(ConstIterator source, int maxSamples) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;
@@ -257,7 +260,7 @@ int AudioRingBuffer::writeSamplesWithFade(ConstIterator source, int maxSamples, 
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qDebug() << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;

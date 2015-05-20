@@ -31,34 +31,43 @@ Q_DECLARE_METATYPE(DownloadInfoResult)
 QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result);
 void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result);
 
-
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString myUsername READ getMyUsername)
-    GlobalServicesScriptingInterface();
-    ~GlobalServicesScriptingInterface();
+    
+    Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy)
+    
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    QString getMyUsername();
+    const QString& getUsername() const;
     
 public slots:
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
+    void editFriends();
 
 private slots:
     void loggedOut();
     void checkDownloadInfo();
+    
+    QString getFindableBy() const;
+    void setFindableBy(const QString& discoverabilityMode);
+    void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
 signals:
     void connected();
     void disconnected(const QString& reason);
-    void incomingMessage(const QString& username, const QString& message);
-    void onlineUsersChanged(const QStringList& usernames);
     void myUsernameChanged(const QString& username);
     void downloadInfoChanged(DownloadInfoResult info);
+    void findableByChanged(const QString& discoverabilityMode);
 
 private:
+    GlobalServicesScriptingInterface();
+    ~GlobalServicesScriptingInterface();
+    
+    QString findableByString(Discoverability::Mode discoverabilityMode) const;
+
     bool _downloading;
 };
 

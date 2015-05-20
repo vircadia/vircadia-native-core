@@ -18,6 +18,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QVariant>
 
+#include "SharedLogging.h"
 #include "HifiConfigVariantMap.h"
 
 QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
@@ -71,7 +72,7 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     int configIndex = argumentList.indexOf(CONFIG_FILE_OPTION);
 
     QString configFilePath;
-    
+
     if (configIndex != -1) {
         // we have a config file - try and read it
         configFilePath = argumentList[configIndex + 1];
@@ -81,8 +82,8 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
                                                              QCoreApplication::organizationName(),
                                                              QCoreApplication::applicationName());
     }
-    
-    
+
+
 
     return mergedMap;
 }
@@ -93,23 +94,23 @@ HifiConfigVariantMap::HifiConfigVariantMap() :
     _userConfig(),
     _mergedConfig()
 {
-    
+
 }
 
 void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentList) {
     // check if there is a master config file
     const QString MASTER_CONFIG_FILE_OPTION = "--master-config";
-    
+
     int masterConfigIndex = argumentList.indexOf(MASTER_CONFIG_FILE_OPTION);
     if (masterConfigIndex != -1) {
         QString masterConfigFilepath = argumentList[masterConfigIndex + 1];
-        
+
         loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
-    
+
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
-    
+
     int userConfigIndex = argumentList.indexOf(USER_CONFIG_FILE_OPTION);
     if (userConfigIndex != -1) {
         _userConfigFilename = argumentList[userConfigIndex + 1];
@@ -118,28 +119,28 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
                                                                   QCoreApplication::organizationName(),
                                                                   QCoreApplication::applicationName());
     }
-    
+
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
-    
+
     // the merged config is initially matched to the master config
     _mergedConfig = _masterConfig;
-    
+
     // then we merge in anything missing from the user config
     addMissingValuesToExistingMap(_mergedConfig, _userConfig);
 }
 
 void HifiConfigVariantMap::loadMapFromJSONFile(QVariantMap& existingMap, const QString& filename) {
     QFile configFile(filename);
-    
+
     if (configFile.exists()) {
-        qDebug() << "Reading JSON config file at" << filename;
+        qCDebug(shared) << "Reading JSON config file at" << filename;
         configFile.open(QIODevice::ReadOnly);
-        
+
         QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
         existingMap = configDocument.toVariant().toMap();
-        
+
     } else {
-        qDebug() << "Could not find JSON config file at" << filename;
+        qCDebug(shared) << "Could not find JSON config file at" << filename;
     }
 }
 
@@ -147,7 +148,7 @@ void HifiConfigVariantMap::addMissingValuesToExistingMap(QVariantMap& existingMa
     foreach(const QString& key, newMap.keys()) {
         if (existingMap.contains(key)) {
             // if this is just a regular value, we're done - we don't ovveride
-            
+
             if (newMap[key].canConvert(QMetaType::QVariantMap) && existingMap[key].canConvert(QMetaType::QVariantMap)) {
                 // there's a variant map below and the existing map has one too, so we need to keep recursing
                 addMissingValuesToExistingMap(*static_cast<QVariantMap*>(existingMap[key].data()), newMap[key].toMap());
@@ -158,11 +159,11 @@ void HifiConfigVariantMap::addMissingValuesToExistingMap(QVariantMap& existingMa
     }
 }
 
-const QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath) {
+QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath) {
     int dotIndex = keyPath.indexOf('.');
-    
+
     QString firstKey = (dotIndex == -1) ? keyPath : keyPath.mid(0, dotIndex);
-    
+
     if (variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
@@ -170,6 +171,6 @@ const QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath)
             return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1));
         }
     }
-    
+
     return NULL;
 }

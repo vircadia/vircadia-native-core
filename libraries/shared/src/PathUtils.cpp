@@ -11,7 +11,10 @@
 
 #include <QCoreApplication>
 #include <QString>
-
+#include <QVector>
+#include <QDateTime>
+#include <QFileInfo>
+#include <QDir>
 #include "PathUtils.h"
 
 
@@ -21,5 +24,32 @@ QString& PathUtils::resourcesPath() {
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
+
     return staticResourcePath;
+}
+
+
+QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
+    QString fileNameLowered = fileName.toLower();
+    foreach (const QString possibleExtension, possibleExtensions) {
+        if (fileNameLowered.endsWith(possibleExtension.toLower())) {
+            return fileName.left(fileName.count() - possibleExtension.count() - 1);
+        }
+    }
+    return fileName;
+}
+
+QString findMostRecentFileExtension(const QString& originalFileName, QVector<QString> possibleExtensions) {
+    QString sansExt = fileNameWithoutExtension(originalFileName, possibleExtensions);
+    QString newestFileName = originalFileName;
+    QDateTime newestTime = QDateTime::fromMSecsSinceEpoch(0);
+    foreach (QString possibleExtension, possibleExtensions) {
+        QString fileName = sansExt + "." + possibleExtension;
+        QFileInfo fileInfo(fileName);
+        if (fileInfo.exists() && fileInfo.lastModified() > newestTime) {
+            newestFileName = fileName;
+            newestTime = fileInfo.lastModified();
+        }
+    }
+    return newestFileName;
 }

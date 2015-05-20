@@ -16,8 +16,9 @@
 
 #include <QtCore/QDebug>
 
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 #include "OctalCode.h"
+#include "SharedUtil.h"
 
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
     if (maxBytes == OVERFLOWED_OCTCODE_BUFFER) {
@@ -129,18 +130,17 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
 void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxelPositionSize) {
     float output[3];
     memset(&output[0], 0, 3 * sizeof(float));
-    float currentScale = 1.0;
+    float currentScale = 1.0f;
 
     if (octalCode) {
         for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
-            currentScale *= 0.5;
+            currentScale *= 0.5f;
             int sectionIndex = sectionValue(octalCode + 1 + (BITS_IN_OCTAL * i / BITS_IN_BYTE), 
                                             (BITS_IN_OCTAL * i) % BITS_IN_BYTE);
         
             for (int j = 0; j < BITS_IN_OCTAL; j++) {
-                output[j] += currentScale * (int)oneAtBit(sectionIndex, (BITS_IN_BYTE - BITS_IN_OCTAL) + j);
+                output[j] += currentScale * (float)oneAtBit(sectionIndex, (BITS_IN_BYTE - BITS_IN_OCTAL) + j);
             }
-        
         }
     }
     voxelPositionSize.x = output[0];
@@ -152,7 +152,7 @@ void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxe
 void copyFirstVertexForCode(const unsigned char* octalCode, float* output) {
     memset(output, 0, 3 * sizeof(float));
     
-    float currentScale = 0.5;
+    float currentScale = 0.5f;
     
     for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
         int sectionIndex = sectionValue(octalCode + 1 + (3 * i / 8), (3 * i) % 8);
@@ -163,12 +163,6 @@ void copyFirstVertexForCode(const unsigned char* octalCode, float* output) {
         
         currentScale *= 0.5;
     }
-}
-
-float * firstVertexForCode(const unsigned char* octalCode) {
-    float * firstVertex = new float[3];
-    copyFirstVertexForCode(octalCode, firstVertex);
-    return firstVertex;
 }
 
 OctalCodeComparison compareOctalCodes(const unsigned char* codeA, const unsigned char* codeB) {

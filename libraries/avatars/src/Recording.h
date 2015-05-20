@@ -56,6 +56,7 @@ public:
     qint32 getFrameTimestamp(int i) const;
     const RecordingFrame& getFrame(int i) const;
     const QByteArray& getAudioData() const { return _audioData; }
+    int numberAudioChannel() const;
     
 protected:
     void addFrame(int timestamp, RecordingFrame& frame);

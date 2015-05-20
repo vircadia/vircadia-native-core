@@ -55,6 +55,10 @@ void MainWindow::saveGeometry() {
     }
 }
 
+void MainWindow::closeEvent(QCloseEvent* event) {
+    qApp->quit();
+}
+
 void MainWindow::moveEvent(QMoveEvent* event) {
     emit windowGeometryChanged(QRect(event->pos(), size()));
     QMainWindow::moveEvent(event);

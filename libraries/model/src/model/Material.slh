@@ -14,7 +14,8 @@
 struct Material { 
     vec4 _diffuse;
     vec4 _specular;
-
+    vec4 _emissive;
+    vec4 _spare;
 };
 
 float getMaterialOpacity(Material m) { return m._diffuse.a; }
@@ -24,36 +25,21 @@ float getMaterialShininess(Material m) { return m._specular.a; }
 
 
 
-<@if GLPROFILE == PC_GL@>
+<@if GPU_FEATURE_PROFILE == GPU_CORE@>
 uniform materialBuffer {
     Material _mat;
 };
 Material getMaterial() {
     return _mat;
 }
-<@elif GLPROFILE == MAC_GL@>
-uniform vec4 materialBuffer[2];
-Material getMaterial() {
-    Material mat;
-    mat._diffuse = materialBuffer[0];
-    mat._specular = materialBuffer[1];
-    return mat;
-}
-<!/* tryed and failed...
-   bindable uniform struct {
-   Material mat;
-   } materialBuffer;
-   
-   Material getMaterial() {
-   return materialBuffer.mat;
-   }
-   */!>
 <@else@>
-uniform vec4 materialBuffer[2];
+uniform vec4 materialBuffer[4];
 Material getMaterial() {
     Material mat;
     mat._diffuse = materialBuffer[0];
     mat._specular = materialBuffer[1];
+    mat._emissive = materialBuffer[2];
+    mat._spare = materialBuffer[3];
     return mat;    
 }
 <@endif@>

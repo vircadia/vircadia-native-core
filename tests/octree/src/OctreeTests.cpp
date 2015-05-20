@@ -32,6 +32,7 @@ enum ExamplePropertyList {
     EXAMPLE_PROP_POSITION,
     EXAMPLE_PROP_RADIUS,
     EXAMPLE_PROP_MODEL_URL,
+    EXAMPLE_PROP_COLLISION_MODEL_URL,
     EXAMPLE_PROP_ROTATION,
     EXAMPLE_PROP_COLOR,
     EXAMPLE_PROP_SCRIPT,
@@ -73,6 +74,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
         props.setHasProperty(PROP_POSITION);
         props.setHasProperty(PROP_RADIUS);
         props.setHasProperty(PROP_MODEL_URL);
+        props.setHasProperty(PROP_COMPOUND_SHAPE_URL);
         props.setHasProperty(PROP_ROTATION);
     
         QByteArray encoded = props.encode();

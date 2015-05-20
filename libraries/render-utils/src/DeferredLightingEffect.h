@@ -15,11 +15,12 @@
 #include <QVector>
 
 #include <DependencyManager.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "ProgramObject.h"
 
 #include "model/Light.h"
+#include "model/Stage.h"
 
 class AbstractViewStateInterface;
 class PostLightingRenderable;
@@ -53,6 +54,10 @@ public:
     //// Renders a wireframe cube with the simple program.
     void renderWireCube(float size, const glm::vec4& color);
 
+    //// Renders a line with the simple program.
+    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2);
+
     //// Renders a solid cone with the simple program.
     void renderSolidCone(float base, float height, int slices, int stacks);
     
@@ -72,8 +77,10 @@ public:
 
     // update global lighting
     void setAmbientLightMode(int preset);
-    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity);
+    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
+    void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
+    void setGlobalSkybox(const model::SkyboxPointer& skybox);
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
@@ -89,6 +96,7 @@ private:
         int radius;
         int ambientSphere;
         int lightBufferUnit;
+        int atmosphereBufferUnit;
         int invViewMat;
     };
     
@@ -97,6 +105,13 @@ private:
     ProgramObject _simpleProgram;
     int _glowIntensityLocation;
     
+    ProgramObject _directionalSkyboxLight;
+    LightLocations _directionalSkyboxLightLocations;
+    ProgramObject _directionalSkyboxLightShadowMap;
+    LightLocations _directionalSkyboxLightShadowMapLocations;
+    ProgramObject _directionalSkyboxLightCascadedShadowMap;
+    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+
     ProgramObject _directionalAmbientSphereLight;
     LightLocations _directionalAmbientSphereLightLocations;
     ProgramObject _directionalAmbientSphereLightShadowMap;
@@ -146,6 +161,8 @@ private:
     AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
+    model::AtmospherePointer _atmosphere;
+    model::SkyboxPointer _skybox;
 };
 
 /// Simple interface for objects that require something to be rendered after deferred lighting.

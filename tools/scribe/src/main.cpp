@@ -192,9 +192,17 @@ int main (int argc, char** argv) {
         targetStringStream << "#ifndef scribe_" << targetName << "_h" << std::endl;
         targetStringStream << "#define scribe_" << targetName << "_h" << std::endl << std::endl;
 
-        targetStringStream << "const char " << targetName << "[] = R\"XXXX(" << destStringStream.str() << ")XXXX\";";
+       // targetStringStream << "const char " << targetName << "[] = R\"XXXX(" << destStringStream.str() << ")XXXX\";";
+       std::istringstream destStringStreamAgain(destStringStream.str());
+        targetStringStream << "const char " << targetName << "[] = \n";
+        while (!destStringStreamAgain.eof()) {
+            std::string lineToken;
+            std::getline(destStringStreamAgain, lineToken);
+           // targetStringStream << "\"" << lineToken << "\"\n";
+            targetStringStream << "R\"X(" << lineToken << ")X\"\"\\n\"\n";
+        }
 
-        targetStringStream << std::endl << std::endl;
+        targetStringStream << ";\n" << std::endl << std::endl;
         targetStringStream << "#endif" << std::endl;
     } else {
         targetStringStream << destStringStream.str();

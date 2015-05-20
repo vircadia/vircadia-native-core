@@ -19,12 +19,14 @@
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
+#include <qurl.h>
+
 namespace model {
-typedef gpu::BufferView UniformBufferView;
-typedef gpu::TextureView TextureView;
 
 class Material {
 public:
+    typedef gpu::BufferView UniformBufferView;
+    typedef gpu::TextureView TextureView;
 
     typedef glm::vec3 Color;
 
@@ -39,6 +41,7 @@ public:
         NUM_MAPS,
     };
     typedef std::map<MapChannel, TextureView> TextureMap;
+    typedef std::bitset<NUM_MAPS> MapFlags;
 
     enum FlagBit {
         DIFFUSE_BIT = 0,
@@ -79,20 +82,15 @@ public:
     class Schema {
     public:
         
-        Color _diffuse;
-        float _opacity;
-        Color _specular;
-        float _shininess;
-        Color _emissive;
-        float _spare0;
+        Color _diffuse{0.5f};
+        float _opacity{1.f};
+        Color _specular{0.03f};
+        float _shininess{0.1f};
+        Color _emissive{0.0f};
+        float _spare0{0.0f};
+        glm::vec4  _spareVec4{0.0f}; // for alignment beauty, Material size == Mat4x4
 
-        Schema() :
-            _diffuse(0.5f),
-            _opacity(1.0f),
-            _specular(0.03f),
-            _shininess(0.1f),
-            _emissive(0.0f)
-            {}
+        Schema() {}
     };
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
@@ -107,7 +105,7 @@ protected:
     TextureMap _textureMap;
 
 };
-typedef QSharedPointer< Material > MaterialPointer;
+typedef std::shared_ptr< Material > MaterialPointer;
 
 };
 

@@ -30,14 +30,14 @@ EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, cons
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     assert(getType() == EntityTypes::Text);
-    glm::vec3 position = getPositionInMeters();
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
     float leftMargin = 0.1f;
     float topMargin = 0.1f;
 
-    //qDebug() << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
+    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
 
     glPushMatrix(); 
     {

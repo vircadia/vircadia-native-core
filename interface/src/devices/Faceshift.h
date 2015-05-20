@@ -87,7 +87,7 @@ signals:
     void connectionStateChanged();
 
 public slots:
-    void setTCPEnabled(bool enabled);
+    void setEnabled(bool enabled);
     
 private slots:
     void connectSocket();
@@ -95,7 +95,8 @@ private slots:
     void noteError(QAbstractSocket::SocketError error);
     void readPendingDatagrams();
     void readFromSocket();        
-    
+    void noteDisconnected();
+
 private:
     Faceshift();
     virtual ~Faceshift() {}
@@ -113,7 +114,8 @@ private:
     bool _tcpEnabled = true;
     int _tcpRetryCount = 0;
     bool _tracking = false;
-    quint64 _lastTrackingStateReceived = 0;
+    quint64 _lastReceiveTimestamp = 0;
+    quint64 _lastMessageReceived = 0;
     float _averageFrameTime = STARTING_FACESHIFT_FRAME_TIME;
     
     glm::vec3 _headAngularVelocity = glm::vec3(0.0f);

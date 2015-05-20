@@ -26,11 +26,15 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 
+#include "AvatarLogging.h"
 #include "AvatarData.h"
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
+
+const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
+const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 AvatarData::AvatarData() :
     _sessionUUID(),
@@ -43,7 +47,6 @@ AvatarData::AvatarData() :
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
-    _isChatCirclingEnabled(false),
     _forceFaceTrackerConnected(false),
     _hasNewJointRotations(true),
     _headData(NULL),
@@ -55,9 +58,11 @@ AvatarData::AvatarData() :
     _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _lastUpdateTimer()
+    _velocity(0.0f),
+    _targetVelocity(0.0f),
+    _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
-    
+
 }
 
 AvatarData::~AvatarData() {
@@ -115,7 +120,7 @@ void AvatarData::setClampedTargetScale(float targetScale, bool overideReferentia
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     
     setTargetScale(targetScale, overideReferential);
-    qDebug() << "Changed scale to " << _targetScale;
+    qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
@@ -194,9 +199,6 @@ QByteArray AvatarData::toByteArray() {
     if (_headData->_isFaceTrackerConnected) {
         setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
     }
-    if (_isChatCirclingEnabled) {
-        setAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
-    }
     if (_referential != NULL && _referential->isValid()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
@@ -266,9 +268,6 @@ bool AvatarData::shouldLogError(const quint64& now) {
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     
-    // reset the last heard timer since we have new data for this AvatarData
-    _lastUpdateTimer.restart();
-    
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
@@ -304,7 +303,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     int maxAvailableSize = packet.size() - offset;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet at the start; "
+            qCDebug(avatars) << "Malformed AvatarData packet at the start; "
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -321,7 +320,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         
         if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -334,7 +333,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &roll);
         if (glm::isnan(yaw) || glm::isnan(pitch) || glm::isnan(roll)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -350,7 +349,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, scale);
         if (glm::isnan(scale)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -365,7 +364,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headRoll);
         if (glm::isnan(headYaw) || glm::isnan(headPitch) || glm::isnan(headRoll)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::headYaw,headPitch,headRoll; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -380,7 +379,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += sizeof(lookAt);
         if (glm::isnan(lookAt.x) || glm::isnan(lookAt.y) || glm::isnan(lookAt.z)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
@@ -394,7 +393,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         sourceBuffer += sizeof(float);
         if (glm::isnan(audioLoudness)) {
             if (shouldLogError(now)) {
-                qDebug() << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
+                qCDebug(avatars) << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
          }
@@ -418,7 +417,6 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
         
         _headData->_isFaceTrackerConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
-        _isChatCirclingEnabled = oneAtBit(bitItems, IS_CHAT_CIRCLING_ENABLED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
         
         // Referential
@@ -442,7 +440,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             minPossibleSize++; // one byte for blendDataSize
             if (minPossibleSize > maxAvailableSize) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Malformed AvatarData packet after BitItems;"
+                    qCDebug(avatars) << "Malformed AvatarData packet after BitItems;"
                         << " displayName = '" << _displayName << "'"
                         << " minPossibleSize = " << minPossibleSize 
                         << " maxAvailableSize = " << maxAvailableSize;
@@ -465,7 +463,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             if (glm::isnan(leftEyeBlink) || glm::isnan(rightEyeBlink) 
                     || glm::isnan(averageLoudness) || glm::isnan(browAudioLift)) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
+                    qCDebug(avatars) << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
                 }
                 return maxAvailableSize;
             }
@@ -479,7 +477,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             minPossibleSize += blendDataSize;
             if (minPossibleSize > maxAvailableSize) {
                 if (shouldLogError(now)) {
-                    qDebug() << "Malformed AvatarData packet after Blendshapes;"
+                    qCDebug(avatars) << "Malformed AvatarData packet after Blendshapes;"
                         << " displayName = '" << _displayName << "'"
                         << " minPossibleSize = " << minPossibleSize 
                         << " maxAvailableSize = " << maxAvailableSize;
@@ -505,7 +503,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     minPossibleSize += bytesOfValidity;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet after JointValidityBits;"
+            qCDebug(avatars) << "Malformed AvatarData packet after JointValidityBits;"
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -536,7 +534,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     minPossibleSize += numValidJoints * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
-            qDebug() << "Malformed AvatarData packet after JointData;"
+            qCDebug(avatars) << "Malformed AvatarData packet after JointData;"
                 << " displayName = '" << _displayName << "'"
                 << " minPossibleSize = " << minPossibleSize 
                 << " maxAvailableSize = " << maxAvailableSize;
@@ -554,7 +552,17 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         }
     } // numJoints * 8 bytes
     
-    return sourceBuffer - startPosition;
+    int numBytesRead = sourceBuffer - startPosition;
+    _averageBytesReceived.updateAverage(numBytesRead); 
+    return numBytesRead;
+}
+
+int AvatarData::getAverageBytesReceivedPerSecond() const {
+    return lrint(_averageBytesReceived.getAverageSampleValuePerSecond()); 
+}
+
+int AvatarData::getReceiveRate() const {
+    return lrint(1.0f / _averageBytesReceived.getEventDeltaAverage()); 
 }
 
 bool AvatarData::hasReferential() {
@@ -916,13 +924,13 @@ bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
 void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL;
     
-    qDebug() << "Changing face model for avatar to" << _faceModelURL.toString();
+    qCDebug(avatars) << "Changing face model for avatar to" << _faceModelURL.toString();
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL.isEmpty() ? DEFAULT_BODY_MODEL_URL : skeletonModelURL;
     
-    qDebug() << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
     
     updateJointMappings();
 }
@@ -930,7 +938,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void AvatarData::setDisplayName(const QString& displayName) {
     _displayName = displayName;
 
-    qDebug() << "Changing display name for avatar to" << displayName;
+    qCDebug(avatars) << "Changing display name for avatar to" << displayName;
 }
 
 QVector<AttachmentData> AvatarData::getAttachmentData() const {
@@ -1011,14 +1019,14 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 void AvatarData::setBillboard(const QByteArray& billboard) {
     _billboard = billboard;
     
-    qDebug() << "Changing billboard for avatar.";
+    qCDebug(avatars) << "Changing billboard for avatar.";
 }
 
 void AvatarData::setBillboardFromURL(const QString &billboardURL) {
     _billboardURL = billboardURL;
     
     
-    qDebug() << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
+    qCDebug(avatars) << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
     
     QNetworkRequest billboardRequest;
     billboardRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -1069,25 +1077,31 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 }
 
 void AvatarData::sendAvatarDataPacket() {
-    QByteArray dataPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    QByteArray dataPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarData);
     dataPacket.append(toByteArray());
     
-    DependencyManager::get<NodeList>()->broadcastToNodes(dataPacket, NodeSet() << NodeType::AvatarMixer);
+    nodeList->broadcastToNodes(dataPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void AvatarData::sendIdentityPacket() {
-    QByteArray identityPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
     identityPacket.append(identityByteArray());
     
-    DependencyManager::get<NodeList>()->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
+    nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void AvatarData::sendBillboardPacket() {
     if (!_billboard.isEmpty()) {
-        QByteArray billboardPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
         billboardPacket.append(_billboard);
         
-        DependencyManager::get<NodeList>()->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
+        nodeList->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
     }
 }
 

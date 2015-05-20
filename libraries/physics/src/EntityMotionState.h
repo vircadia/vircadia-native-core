@@ -25,21 +25,15 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    // The OutgoingEntityQueue is a pointer to a QSet (owned by an EntitySimulation) of EntityItem*'s 
-    // that have been changed by the physics simulation.
-    // All ObjectMotionState's with outgoing changes put themselves on the list.
-    static void setOutgoingEntityList(QSet<EntityItem*>* list);
-    static void enqueueOutgoingEntity(EntityItem* entity);
-
-    EntityMotionState() = delete; // prevent compiler from making default ctor
-    EntityMotionState(EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItem* item);
     virtual ~EntityMotionState();
 
-    /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    virtual MotionType computeMotionType() const;
+    void updateServerPhysicsVariables(uint32_t flags);
+    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
-    virtual void updateKinematicState(uint32_t substep);
-    virtual void stepKinematicSimulation(quint64 now);
+    /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
+    virtual MotionType computeObjectMotionType() const;
 
     virtual bool isMoving() const;
 
@@ -49,22 +43,71 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    // these relay incoming values to the RigidBody
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame);
-    virtual void updateObjectVelocities();
+    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
 
-    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
-    virtual float computeMass(const ShapeInfo& shapeInfo) const;
+    bool isCandidateForOwnership(const QUuid& sessionID) const;
+    bool remoteSimulationOutOfSync(uint32_t simulationStep);
+    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
+    void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame);
+    virtual uint32_t getAndClearIncomingDirtyFlags() const;
 
-    virtual uint32_t getIncomingDirtyFlags() const;
-    virtual void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
+    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
+    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
+    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+
+    virtual float getObjectRestitution() const { return _entity->getRestitution(); }
+    virtual float getObjectFriction() const { return _entity->getFriction(); }
+    virtual float getObjectLinearDamping() const { return _entity->getDamping(); }
+    virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
+
+    virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
+    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
+    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
+
+    virtual const QUuid& getObjectID() const { return _entity->getID(); }
+
+    virtual QUuid getSimulatorID() const;
+    virtual void bump();
 
     EntityItem* getEntity() const { return _entity; }
 
+    void resetMeasuredBodyAcceleration();
+    void measureBodyAcceleration();
+
+    virtual QString getName();
+
+    friend class PhysicalEntitySimulation;
+
 protected:
+    void clearEntity();
+
+    virtual void setMotionType(MotionType motionType);
+
     EntityItem* _entity;
+
+    bool _sentActive;   // true if body was active when we sent last update
+    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
+
+    // these are for the prediction of the remote server's simple extrapolation
+    uint32_t _lastStep; // last step of server extrapolation
+    glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
+    glm::quat _serverRotation;
+    glm::vec3 _serverVelocity;
+    glm::vec3 _serverAngularVelocity; // radians per second
+    glm::vec3 _serverGravity;
+    glm::vec3 _serverAcceleration;
+
+    uint32_t _lastMeasureStep;
+    glm::vec3 _lastVelocity;
+    glm::vec3 _measuredAcceleration;
+
+    quint8 _accelerationNearlyGravityCount;
+    bool _candidateForOwnership;
+    uint32_t _loopsSinceOwnershipBid;
+    uint32_t _loopsWithoutOwner;
 };
 
 #endif // hifi_EntityMotionState_h

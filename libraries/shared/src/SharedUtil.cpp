@@ -29,7 +29,9 @@
 #include <QElapsedTimer>
 #include <QThread>
 
+#include "NumericalConstants.h"
 #include "OctalCode.h"
+#include "SharedLogging.h"
 #include "SharedUtil.h"
 
 static int usecTimestampNowAdjust = 0; // in usec
@@ -65,14 +67,14 @@ quint64 usecTimestampNow(bool wantDebug) {
         now = TIME_REFERENCE + ::usecTimestampNowAdjust;
 
         if (wantDebug) {
-            qDebug() << "usecTimestampNow() - resetting QElapsedTimer. ";
-            qDebug() << "    msecsCurrentTime:" << msecsCurrentTime;
-            qDebug() << "       msecsEstimate:" << msecsEstimate;
-            qDebug() << "        possibleSkew:" << possibleSkew;
-            qDebug() << "           TOLERANCE:" << TOLERANCE;
+            qCDebug(shared) << "usecTimestampNow() - resetting QElapsedTimer. ";
+            qCDebug(shared) << "    msecsCurrentTime:" << msecsCurrentTime;
+            qCDebug(shared) << "       msecsEstimate:" << msecsEstimate;
+            qCDebug(shared) << "        possibleSkew:" << possibleSkew;
+            qCDebug(shared) << "           TOLERANCE:" << TOLERANCE;
             
-            qDebug() << "        nsecsElapsed:" << nsecsElapsed;
-            qDebug() << "        usecsElapsed:" << usecsElapsed;
+            qCDebug(shared) << "        nsecsElapsed:" << nsecsElapsed;
+            qCDebug(shared) << "        usecsElapsed:" << usecsElapsed;
 
             QDateTime currentLocalTime = QDateTime::currentDateTime();
 
@@ -80,11 +82,11 @@ quint64 usecTimestampNow(bool wantDebug) {
             QDateTime nowAsString;
             nowAsString.setMSecsSinceEpoch(msecsNow);
 
-            qDebug() << "                 now:" << now;
-            qDebug() << "            msecsNow:" << msecsNow;
+            qCDebug(shared) << "                 now:" << now;
+            qCDebug(shared) << "            msecsNow:" << msecsNow;
 
-            qDebug() << "         nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-            qDebug() << "    currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+            qCDebug(shared) << "         nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+            qCDebug(shared) << "    currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
         }
     } else {
         now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
@@ -101,16 +103,16 @@ quint64 usecTimestampNow(bool wantDebug) {
         QDateTime timeReferenceAsString;
         timeReferenceAsString.setMSecsSinceEpoch(msecsTimeReference);
 
-        qDebug() << "usecTimestampNow() - details... ";
-        qDebug() << "           TIME_REFERENCE:" << TIME_REFERENCE;
-        qDebug() << "    timeReferenceAsString:" << timeReferenceAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        qDebug() << "   usecTimestampNowAdjust:" << usecTimestampNowAdjust;
-        qDebug() << "             nsecsElapsed:" << nsecsElapsed;
-        qDebug() << "             usecsElapsed:" << usecsElapsed;
-        qDebug() << "                      now:" << now;
-        qDebug() << "                 msecsNow:" << msecsNow;
-        qDebug() << "              nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        qDebug() << "         currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qCDebug(shared) << "usecTimestampNow() - details... ";
+        qCDebug(shared) << "           TIME_REFERENCE:" << TIME_REFERENCE;
+        qCDebug(shared) << "    timeReferenceAsString:" << timeReferenceAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qCDebug(shared) << "   usecTimestampNowAdjust:" << usecTimestampNowAdjust;
+        qCDebug(shared) << "             nsecsElapsed:" << nsecsElapsed;
+        qCDebug(shared) << "             usecsElapsed:" << usecsElapsed;
+        qCDebug(shared) << "                      now:" << now;
+        qCDebug(shared) << "                 msecsNow:" << msecsNow;
+        qCDebug(shared) << "              nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qCDebug(shared) << "         currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
     }
     
     return now;
@@ -427,16 +429,16 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
 void printVoxelCode(unsigned char* voxelCode) {
     unsigned char octets = voxelCode[0];
-	unsigned int voxelSizeInBits = octets*3;
-	unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
-	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
-	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
+    unsigned int voxelSizeInBits = octets*3;
+    unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
+    unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
+    unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    qDebug("octets=%d",octets);
-    qDebug("voxelSizeInBits=%d",voxelSizeInBits);
-    qDebug("voxelSizeInBytes=%d",voxelSizeInBytes);
-    qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
-    qDebug("voxelBufferSize=%d",voxelBufferSize);
+    qCDebug(shared, "octets=%d",octets);
+    qCDebug(shared, "voxelSizeInBits=%d",voxelSizeInBits);
+    qCDebug(shared, "voxelSizeInBytes=%d",voxelSizeInBytes);
+    qCDebug(shared, "voxelSizeInOctets=%d",voxelSizeInOctets);
+    qCDebug(shared, "voxelBufferSize=%d",voxelBufferSize);
 
     for(unsigned int i=0; i < voxelBufferSize; i++) {
         QDebug voxelBufferDebug = qDebug();

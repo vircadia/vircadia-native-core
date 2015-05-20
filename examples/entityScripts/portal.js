@@ -9,15 +9,20 @@
     
     this.preload = function(entityID) {
         teleport = SoundCache.getSound("http://s3.amazonaws.com/hifi-public/birarda/teleport.raw");
-        
+
         var properties = Entities.getEntityProperties(entityID);
-        portalDestination = properties.userData;
         animationURL = properties.modelURL;
         
         print("The portal destination is " + portalDestination);
     }
 
     this.enterEntity = function(entityID) {
+
+      var properties = Entities.getEntityProperties(entityID); // in case the userData/portalURL has changed
+      portalDestination = properties.userData;
+
+      print("enterEntity() .... The portal destination is " + portalDestination);
+
       if (portalDestination.length > 0) {
         print("Teleporting to hifi://" + portalDestination);
         Window.location = "hifi://" + portalDestination;

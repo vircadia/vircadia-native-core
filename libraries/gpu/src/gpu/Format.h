@@ -16,6 +16,10 @@
 
 namespace gpu {
 
+class GPUObject;
+
+typedef int  Stamp;
+
 typedef unsigned int uint32;
 typedef int int32;
 typedef unsigned short uint16;
@@ -23,6 +27,8 @@ typedef short int16;
 typedef unsigned char uint8;
 typedef char int8;
 
+typedef unsigned char Byte;
+    
 typedef uint32 Offset;
 
 typedef glm::mat4 Mat4;
@@ -30,6 +36,8 @@ typedef glm::mat3 Mat3;
 typedef glm::vec4 Vec4;
 typedef glm::vec3 Vec3;
 typedef glm::vec2 Vec2;
+typedef glm::ivec2 Vec2i;
+typedef glm::uvec2 Vec2u;
 
 // Description of a scalar type
 enum Type {
@@ -53,6 +61,8 @@ enum Type {
     NUINT8,
 
     NUM_TYPES,
+
+    BOOL = UINT8,
 };
 // Array providing the size in bytes for a given scalar type
 static const int TYPE_SIZE[NUM_TYPES] = {
@@ -81,9 +91,9 @@ enum Dimension {
     VEC2,
     VEC3,
     VEC4,
+    MAT2,
     MAT3,
     MAT4,
-
     NUM_DIMENSIONS,
 };
 // Count (of scalars) in an Element for a given Dimension
@@ -92,8 +102,9 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
     2,
     3,
     4,
+    4,
     9,
-    16
+    16,
 };
 
 // Semantic of an Element
@@ -111,13 +122,21 @@ enum Semantic {
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
 
-    DEPTH, // Depth buffer
+    DEPTH, // Depth only buffer
+    STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
     SRGB,
     SRGBA,
     SBGRA,
 
+    UNIFORM,
+    UNIFORM_BUFFER,
+    SAMPLER,
+    SAMPLER_MULTISAMPLE,
+    SAMPLER_SHADOW,
+  
+ 
     NUM_SEMANTICS,
 };
 
@@ -157,10 +176,26 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_RGBA_32;
+
  protected:
     uint8 _semantic;
     uint8 _dimension : 4;
     uint8 _type : 4;
+};
+
+  
+enum ComparisonFunction {
+    NEVER = 0,
+    LESS,
+    EQUAL,
+    LESS_EQUAL,
+    GREATER,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    ALWAYS,
+
+    NUM_COMPARISON_FUNCS,
 };
 
 };

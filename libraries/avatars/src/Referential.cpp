@@ -12,6 +12,7 @@
 #include <GLMHelpers.h>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Referential.h"
 
 Referential::Referential(Type type, AvatarData* avatar) :
@@ -62,7 +63,7 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     _isValid = (bytesRead == expectedSize);
     if (!_isValid) {
         // Will occur if the new instance unpacking is of the wrong type
-        qDebug() << "[ERROR] Referential extra data overflow";
+        qCDebug(avatars) << "[ERROR] Referential extra data overflow";
     }
     sourceBuffer += expectedSize;
     return sourceBuffer - startPosition;
@@ -76,7 +77,6 @@ int Referential::pack(unsigned char* destinationBuffer) const {
     
     destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, _translation, 0);
     destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _rotation);
-    destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, _scale, 0);
     return destinationBuffer - startPosition;
 }
 
@@ -91,7 +91,6 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
     
     sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, _translation, 0);
     sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _rotation);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((const int16_t*) sourceBuffer, &_scale, 0);
     return sourceBuffer - startPosition;
 }
 

@@ -12,8 +12,8 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
-#include <PhysicsSimulation.h>
 #include <SettingHandle.h>
+#include <DynamicCharacterController.h>
 
 #include "Avatar.h"
 
@@ -25,7 +25,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
-    Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
+    //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
 	MyAvatar();
@@ -37,20 +37,18 @@ public:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
 
-    void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE, bool postLighting = false);
-    void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
+    void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE, bool postLighting = false);
+    void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
+    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
     void renderDebugBodyPoints();
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
-    void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
     // getters
     float getLeanScale() const { return _leanScale; }
-    glm::vec3 getGravity() const { return _gravity; }
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
@@ -89,8 +87,9 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    void jump() { _shouldJump = true; };
     
+    void relayDriveKeysToCharacterController();
+
     bool isMyAvatar() { return true; }
     
     bool isLookingAtLeftEye();
@@ -117,11 +116,28 @@ public:
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
     virtual void clearJointsData();
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
+    Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
+    Q_INVOKABLE void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
+    Q_INVOKABLE void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());
+    Q_INVOKABLE void useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, const QString& headName = QString(), const QString& bodyName = QString());
+
+    Q_INVOKABLE bool getUseFullAvatar() const { return _useFullAvatar; }
+    Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
+    Q_INVOKABLE const QUrl& getHeadURLFromPreferences() const { return _headURLFromPreferences; }
+    Q_INVOKABLE const QUrl& getBodyURLFromPreferences() const { return _skeletonURLFromPreferences; }
+
+    Q_INVOKABLE const QString& getHeadModelName() const { return _headModelName; }
+    Q_INVOKABLE const QString& getBodyModelName() const { return _bodyModelName; }
+    Q_INVOKABLE const QString& getFullAvartarModelName() const { return _fullAvatarModelName; }
+
+    Q_INVOKABLE QString getModelDescription() const;
+
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     virtual glm::vec3 getSkeletonPosition() const;
+    void updateLocalAABox();
+    DynamicCharacterController* getCharacterController() { return &_characterController; }
     
     void clearJointAnimationPriorities();
 
@@ -139,10 +155,6 @@ public:
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
         
-    virtual void setCollisionGroups(quint32 collisionGroups);
-
-    void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
-
     /// Renders a laser pointer for UI picking
     void renderLaserPointers();
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
@@ -164,10 +176,7 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-
     void updateMotionBehavior();
-    void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
@@ -182,19 +191,24 @@ public slots:
     void stopRecording();
     void saveRecording(QString filename);
     void loadLastRecording();
+
+    virtual void rebuildSkeletonBody();
     
 signals:
     void transformChanged();
 
 protected:
-    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
     
 private:
+
+    // These are made private for MyAvatar so that you will use the "use" methods instead
+    virtual void setFaceModelURL(const QUrl& faceModelURL);
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+
     float _turningKeyPressTime;
     glm::vec3 _gravity;
-    float _distanceToNearestAvatar; // How close is the nearest avatar?
 
-    bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
@@ -210,6 +224,8 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
+    DynamicCharacterController _characterController;
+
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -217,7 +233,6 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    PhysicsSimulation _physicsSimulation;
     
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
@@ -230,17 +245,21 @@ private:
     
 	// private methods
     void updateOrientation(float deltaTime);
-    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
+    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    void updateCollisionWithAvatars(float deltaTime);
-    void updateCollisionWithEnvironment(float deltaTime, float radius);
-    void updateCollisionWithVoxels(float deltaTime, float radius);
-    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void updateChatCircle(float deltaTime);
     void maybeUpdateBillboard();
-    void setGravity(const glm::vec3& gravity);
+    
+    // Avatar Preferences
+    bool _useFullAvatar = false;
+    QUrl _fullAvatarURLFromPreferences;
+    QUrl _headURLFromPreferences;
+    QUrl _skeletonURLFromPreferences;
+    
+    QString _headModelName;
+    QString _bodyModelName;
+    QString _fullAvatarModelName;
 };
 
 #endif // hifi_MyAvatar_h

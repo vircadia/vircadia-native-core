@@ -77,7 +77,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                         if (_drawOnHUD) {
                             DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         } else {
-                            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+                            DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
                         }
 
                     glPopMatrix();
@@ -89,7 +89,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     if (_drawOnHUD) {
                         DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, cubeColor);
                     } else {
-                        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
+                        DependencyManager::get<GeometryCache>()->renderSolidCube(1.0f, cubeColor);
                     }
                 glPopMatrix();
             } else {

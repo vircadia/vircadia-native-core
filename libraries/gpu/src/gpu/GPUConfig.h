@@ -14,14 +14,23 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 
+#define GPU_CORE 1
+#define GPU_LEGACY 0
+
 #if defined(__APPLE__)
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
+
+#define GPU_FEATURE_PROFILE GPU_LEGACY
+#define GPU_TRANSFORM_PROFILE GPU_LEGACY
 
 #elif defined(WIN32)
 #include <windowshacks.h>
 #include <GL/glew.h>
 #include <GL/wglew.h>
+
+#define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 
 #elif defined(ANDROID)
 
@@ -29,6 +38,8 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
+#define GPU_FEATURE_PROFILE GPU_LEGACY
+#define GPU_TRANSFORM_PROFILE GPU_LEGACY
 
 #endif
 

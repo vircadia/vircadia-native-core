@@ -25,11 +25,6 @@
 
 #include "WindowScriptingInterface.h"
 
-WindowScriptingInterface* WindowScriptingInterface::getInstance() {
-    static WindowScriptingInterface sharedInstance;
-    return &sharedInstance;
-}
-
 WindowScriptingInterface::WindowScriptingInterface() :
     _editDialog(NULL),
     _nonBlockingFormActive(false),
@@ -37,19 +32,32 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::hostnameChanged, this, &WindowScriptingInterface::domainChanged);
+    connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
+    connect(Application::getInstance(), &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
-    return new WebWindowClass(title, url, width, height);
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow) {
+    return new WebWindowClass(title, url, width, height, isToolWindow);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
-    return Application::getInstance()->getGLWidget()->hasFocus();
+    return Application::getInstance()->hasFocus();
 }
 
 void WindowScriptingInterface::setFocus() {
-    Application::getInstance()->getWindow()->activateWindow();
-    Application::getInstance()->getWindow()->setFocus();
+    // It's forbidden to call focus() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        auto window = Application::getInstance()->getWindow();
+        window->activateWindow();
+        window->setFocus();
+    });
+}
+
+void WindowScriptingInterface::raiseMainWindow() {
+    // It's forbidden to call raise() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        Application::getInstance()->getWindow()->raise();
+    });
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {
@@ -636,7 +644,7 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
 /// \param const QString& nameFilter filter to filter filenames
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::showS3Browse(const QString& nameFilter) {
-    ModelsBrowser browser(ENTITY_MODEL);
+    ModelsBrowser browser(FSTReader::ENTITY_MODEL);
     if (nameFilter != "") {
         browser.setNameFilter(nameFilter);
     }

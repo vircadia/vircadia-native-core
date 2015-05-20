@@ -15,6 +15,7 @@
 #include <iostream>
 
 #include <QByteArray>
+#include <QVariantHash>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -54,6 +55,7 @@ QDebug& operator<<(QDebug& s, const glm::vec3& v);
 QDebug& operator<<(QDebug& s, const glm::vec4& v);
 QDebug& operator<<(QDebug& s, const glm::quat& q);
 QDebug& operator<<(QDebug& s, const glm::mat4& m);
+QDebug& operator<<(QDebug& dbg, const QVariantHash& v);
 #endif // QT_NO_DEBUG_STREAM
 
 #endif // hifi_StreamUtils_h

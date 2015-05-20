@@ -13,6 +13,7 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
+#include "EntitiesLogging.h"
 #include "DeleteEntityOperator.h"
 
 DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
@@ -43,7 +44,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
         details.entity = details.containingElement->getEntityWithEntityItemID(searchEntityID);
         if (!details.entity) {
             //assert(false);
-            qDebug() << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
+            qCDebug(entities) << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         } else {
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;
@@ -60,7 +61,7 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElement* el
     // If we don't have an old entity, then we don't contain the entity, otherwise
     // check the bounds
     if (_entitiesToDelete.size() > 0) {
-        AACube elementCube = element->getAACube();
+        const AACube& elementCube = element->getAACube();
         foreach(const EntityToDeleteDetails& details, _entitiesToDelete) {
             if (elementCube.contains(details.cube)) {
                 containsEntity = true;

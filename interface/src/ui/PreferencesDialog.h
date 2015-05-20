@@ -17,11 +17,15 @@
 #include <QDialog>
 #include <QString>
 
+#include "scripting/WebWindowClass.h"
+
 class PreferencesDialog : public QDialog {
     Q_OBJECT
     
 public:
     PreferencesDialog(QWidget* parent = nullptr);
+
+    void avatarDescriptionChanged();
 
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);
@@ -29,21 +33,20 @@ protected:
 private:
     void loadPreferences();
     void savePreferences();
-    void openHeadModelBrowser();
-    void openBodyModelBrowser();
 
     Ui_PreferencesDialog ui;
-    QString _faceURLString;
-    QString _skeletonURLString;
+
     QString _displayNameString;
+    
+    WebWindowClass* _marketplaceWindow = NULL;
 
 private slots:
     void accept();
-    void setHeadUrl(QString modelUrl);
-    void setSkeletonUrl(QString modelUrl);
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
-    
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 };
 
 #endif // hifi_PreferencesDialog_h

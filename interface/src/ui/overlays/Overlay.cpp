@@ -11,10 +11,9 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <SharedUtil.h>
-
 #include "Overlay.h"
 
+#include <NumericalConstants.h>
 
 Overlay::Overlay() :
     _isLoaded(true),

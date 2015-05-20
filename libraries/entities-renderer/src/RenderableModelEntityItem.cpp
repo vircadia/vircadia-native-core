@@ -20,6 +20,7 @@
 #include <PerfStat.h>
 
 #include "EntityTreeRenderer.h"
+#include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
 
 EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -61,7 +62,7 @@ void RenderableModelEntityItem::remapTextures() {
     }
     
     if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded it's default textures
+        return; // nothing to do if the model has not yet loaded its default textures
     }
     
     if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
@@ -92,7 +93,7 @@ void RenderableModelEntityItem::remapTextures() {
         // contain this texture, then remove it by setting the URL to null
         if (!textureMap.contains(key)) {
             QUrl noURL;
-            qDebug() << "Removing texture named" << key << "by replacing it with no URL";
+            qCDebug(entitiesrenderer) << "Removing texture named" << key << "by replacing it with no URL";
             _model->setTextureWithNameToURL(key, noURL);
         }
     }
@@ -100,13 +101,12 @@ void RenderableModelEntityItem::remapTextures() {
     // here's where we remap any textures if needed...
     foreach(const QString& key, textureMap.keys()) {
         QUrl newTextureURL = textureMap[key].toUrl();
-        qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+        qCDebug(entitiesrenderer) << "Updating texture named" << key << "to texture at URL" << newTextureURL;
         _model->setTextureWithNameToURL(key, newTextureURL);
     }
     
     _currentTextures = _textures;
 }
-
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
@@ -114,11 +114,19 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     
     bool drawAsModel = hasModel();
 
-    glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float size = getSize() * (float)TREE_SCALE;
-    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
-    
-    if (drawAsModel) {
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+
+    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
+    bool highlightSimulationOwnership = false;
+    if (debugSimulationOwnership) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
+    }
+
+    bool didDraw = false;
+    if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
         glPushMatrix();
         {
@@ -171,35 +179,24 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
                         if (movingOrAnimating) {
                             _model->renderInScene(alpha, args);
+                            didDraw = true;
                         }
                     } else {
                         _model->renderInScene(alpha, args);
+                        didDraw = true;
                     }
-                } else {
-                    // if we couldn't get a model, then just draw a cube
-                    glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-                    glPushMatrix();
-                        glTranslatef(position.x, position.y, position.z);
-                        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-                    glPopMatrix();
                 }
-            } else {
-                // if we couldn't get a model, then just draw a cube
-                glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-                glPushMatrix();
-                    glTranslatef(position.x, position.y, position.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-                glPopMatrix();
             }
         }
         glPopMatrix();
-    } else {
-        glm::vec4 color(getColor()[RED_INDEX]/255, getColor()[GREEN_INDEX]/255, getColor()[BLUE_INDEX]/255, 1.0f);
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(size, color);
-        glPopMatrix();
     }
+
+    if (!didDraw) {
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+    }
+
+    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
@@ -220,13 +217,13 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     // if we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
     
-        // if we have a previously allocated model, but it's URL doesn't match
+        // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
         if (_model && QUrl(getModelURL()) != _model->getURL()) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL());
+            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL());
+            result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else { // we already have the model we want...
             result = _model;
@@ -260,23 +257,171 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     if (!_model) {
         return true;
     }
+    //qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
     
-    glm::vec3 originInMeters = origin * (float)TREE_SCALE;
     QString extraInfo;
-    float localDistance;
-    
-    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
-    
-    bool intersectsModel = _model->findRayIntersectionAgainstSubMeshes(originInMeters, direction, 
-                                            localDistance, face, extraInfo, precisionPicking);
-    
-    if (intersectsModel) {
-        // NOTE: findRayIntersectionAgainstSubMeshes() does work in meters, but we're expected to return
-        // results in tree scale.
-        distance = localDistance / (float)TREE_SCALE;
-    }
-
-    return intersectsModel; // we only got here if we intersected our non-aabox                         
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo, precisionPicking);
 }
 
+void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    ModelEntityItem::setCompoundShapeURL(url);
+    if (_model) {
+        _model->setCollisionModelURL(QUrl(url));
+    }
+}
 
+bool RenderableModelEntityItem::isReadyToComputeShape() {
+    ShapeType type = getShapeType();
+    if (type == SHAPE_TYPE_COMPOUND) {
+
+        if (!_model) {
+            return false; // hmm...
+        }
+
+        if (_needsInitialSimulation) {
+            // the _model's offset will be wrong until _needsInitialSimulation is false
+            return false;
+        }
+
+        assert(!_model->getCollisionURL().isEmpty());
+    
+        if (_model->getURL().isEmpty()) {
+            // we need a render geometry with a scale to proceed, so give up.
+            return false;
+        }
+    
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+    
+        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
+            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+            // we have both URLs AND both geometries AND they are both fully loaded.
+            return true;
+        }
+
+        // the model is still being downloaded.
+        return false;
+    }
+    return true;
+}
+
+void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
+    ShapeType type = getShapeType();
+    if (type != SHAPE_TYPE_COMPOUND) {
+        ModelEntityItem::computeShapeInfo(info);
+        info.setParams(type, 0.5f * getDimensions());
+    } else {
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+
+        // should never fall in here when collision model not fully loaded
+        // hence we assert collisionNetworkGeometry is not NULL
+        assert(!collisionNetworkGeometry.isNull());
+
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+        const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
+
+        _points.clear();
+        unsigned int i = 0;
+
+        // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
+        // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
+        foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
+            // each meshPart is a convex hull
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                QVector<glm::vec3> pointsInPart;
+
+                // run through all the triangles and (uniquely) add each point to the hull
+                unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
+                for (unsigned int j = 0; j < triangleCount; j++) {
+                    unsigned int p0Index = meshPart.triangleIndices[j*3];
+                    unsigned int p1Index = meshPart.triangleIndices[j*3+1];
+                    unsigned int p2Index = meshPart.triangleIndices[j*3+2];
+                    glm::vec3 p0 = mesh.vertices[p0Index];
+                    glm::vec3 p1 = mesh.vertices[p1Index];
+                    glm::vec3 p2 = mesh.vertices[p2Index];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                }
+
+                // run through all the quads and (uniquely) add each point to the hull
+                unsigned int quadCount = meshPart.quadIndices.size() / 4;
+                assert((unsigned int)meshPart.quadIndices.size() == quadCount*4);
+                for (unsigned int j = 0; j < quadCount; j++) {
+                    unsigned int p0Index = meshPart.quadIndices[j*4];
+                    unsigned int p1Index = meshPart.quadIndices[j*4+1];
+                    unsigned int p2Index = meshPart.quadIndices[j*4+2];
+                    unsigned int p3Index = meshPart.quadIndices[j*4+3];
+                    glm::vec3 p0 = mesh.vertices[p0Index];
+                    glm::vec3 p1 = mesh.vertices[p1Index];
+                    glm::vec3 p2 = mesh.vertices[p2Index];
+                    glm::vec3 p3 = mesh.vertices[p3Index];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                    if (!pointsInPart.contains(p3)) {
+                        pointsInPart << p3;
+                    }
+                }
+
+                if (pointsInPart.size() == 0) {
+                    qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
+                    continue;
+                }
+
+                // add next convex hull
+                QVector<glm::vec3> newMeshPoints;
+                _points << newMeshPoints;
+                // add points to the new convex hull
+                _points[i++] << pointsInPart;
+            }
+        }
+
+        // We expect that the collision model will have the same units and will be displaced
+        // from its origin in the same way the visual model is.  The visual model has
+        // been centered and probably scaled.  We take the scaling and offset which were applied
+        // to the visual model and apply them to the collision model (without regard for the
+        // collision model's extents).
+
+        glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
+        // multiply each point by scale before handing the point-set off to the physics engine.
+        // also determine the extents of the collision model.
+        AABox box;
+        for (int i = 0; i < _points.size(); i++) {
+            for (int j = 0; j < _points[i].size(); j++) {
+                // compensate for registraion
+                _points[i][j] += _model->getOffset();
+                // scale so the collision points match the model points
+                _points[i][j] *= scale;
+                box += _points[i][j];
+            }
+        }
+
+        glm::vec3 collisionModelDimensions = box.getDimensions();
+        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
+        info.setConvexHulls(_points);
+    }
+}
+
+bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
+    if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
+        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
+        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
+        return collisionGeometry.convexHullContains(worldToEntity(point));
+    }
+    
+    return false;
+}

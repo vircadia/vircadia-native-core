@@ -9,11 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptEngineLogging.h"
 #include "ScriptAudioInjector.h"
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in) {
+    // The AudioScriptingInterface::playSound method can return null, so we need to account for that.
+    if (!in) {
+        return QScriptValue(QScriptValue::NullValue);
+    }
+
     // when the script goes down we want to cleanup the injector
-    
     QObject::connect(engine, &QScriptEngine::destroyed, in, &ScriptAudioInjector::stopInjectorImmediately,
                      Qt::DirectConnection);
     
@@ -38,6 +43,6 @@ ScriptAudioInjector::~ScriptAudioInjector() {
 }
 
 void ScriptAudioInjector::stopInjectorImmediately() {
-    qDebug() << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
+    qCDebug(scriptengine) << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
     _injector->stopAndDeleteLater();
 }

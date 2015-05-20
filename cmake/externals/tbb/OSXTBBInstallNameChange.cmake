@@ -10,7 +10,7 @@
 #
 
 # first find the so files in the source dir
-set(_TBB_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/libc++)
+set(_TBB_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 file(GLOB_RECURSE _TBB_LIBRARIES "${_TBB_LIBRARY_DIR}/*.dylib")
 
 # raise an error if we found none
@@ -27,20 +27,6 @@ find_program(LIPO_COMMAND NAMES lipo DOC "Path to the lipo command")
 # enumerate the libraries
 foreach(_TBB_LIBRARY ${_TBB_LIBRARIES})
   get_filename_component(_TBB_LIBRARY_FILENAME ${_TBB_LIBRARY} NAME)
-  
-  set(_LIPO_ARGS -remove i386 ${_TBB_LIBRARY_FILENAME} -output ${_TBB_LIBRARY_FILENAME})
-  message(STATUS "${LIPO_COMMAND} ${_LIPO_ARGS}")
-   
-  # first we use lipo to remove i386 from each dylib
-  execute_process(
-    COMMAND ${LIPO_COMMAND} ${_LIPO_ARGS}
-    WORKING_DIRECTORY ${_TBB_LIBRARY_DIR}
-    ERROR_VARIABLE _LIPO_ERROR
-  )
-  
-  if (_LIPO_ERROR)
-    message(FATAL_ERROR "There was an error removing i386 for ${_TBB_LIBRARY_FILENAME} - ${_LIPO_ERROR}")
-  endif ()
   
   set(_INSTALL_NAME_ARGS ${INSTALL_NAME_TOOL_COMMAND} -id ${_TBB_LIBRARY} ${_TBB_LIBRARY_FILENAME})
   

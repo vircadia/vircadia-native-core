@@ -24,6 +24,7 @@
 #include <QPair>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Recording.h"
 
 // HFR file format magic number (Inspired by PNG)
@@ -63,6 +64,15 @@ qint32 Recording::getFrameTimestamp(int i) const {
 const RecordingFrame& Recording::getFrame(int i) const {
     assert(i < _timestamps.size());
     return _frames[i];
+}
+
+
+int Recording::numberAudioChannel() const {
+    // Check for stereo audio
+    int MSEC_PER_SEC = 1000;
+    int channelLength = (getLength() / MSEC_PER_SEC) *
+                        AudioConstants::SAMPLE_RATE * sizeof(AudioConstants::AudioSample);
+    return glm::round((float)channelLength / (float)getAudioData().size());
 }
 
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
@@ -119,18 +129,18 @@ bool readFloat(QDataStream& stream, float& value, int radix) {
 
 void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
     if (!recording || recording->getFrameNumber() < 1) {
-        qDebug() << "Can't save empty recording";
+        qCDebug(avatars) << "Can't save empty recording";
         return;
     }
     
     QElapsedTimer timer;
     QFile file(filename);
     if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate)){
-        qDebug() << "Couldn't open " << filename;
+        qCDebug(avatars) << "Couldn't open " << filename;
         return;
     }
     timer.start();
-    qDebug() << "Writing recording to " << filename << ".";
+    qCDebug(avatars) << "Writing recording to " << filename << ".";
     
     QDataStream fileStream(&file);
     
@@ -324,38 +334,38 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
     
     bool wantDebug = true;
     if (wantDebug) {
-        qDebug() << "[DEBUG] WRITE recording";
-        qDebug() << "Header:";
-        qDebug() << "File Format version:" << VERSION;
-        qDebug() << "Data length:" << dataLength;
-        qDebug() << "Data offset:" << dataOffset;
-        qDebug() << "CRC-16:" << crc16;
+        qCDebug(avatars) << "[DEBUG] WRITE recording";
+        qCDebug(avatars) << "Header:";
+        qCDebug(avatars) << "File Format version:" << VERSION;
+        qCDebug(avatars) << "Data length:" << dataLength;
+        qCDebug(avatars) << "Data offset:" << dataOffset;
+        qCDebug(avatars) << "CRC-16:" << crc16;
         
-        qDebug() << "Context block:";
-        qDebug() << "Global timestamp:" << context.globalTimestamp;
-        qDebug() << "Domain:" << context.domain;
-        qDebug() << "Position:" << context.position;
-        qDebug() << "Orientation:" << context.orientation;
-        qDebug() << "Scale:" << context.scale;
-        qDebug() << "Head Model:" << context.headModel;
-        qDebug() << "Skeleton Model:" << context.skeletonModel;
-        qDebug() << "Display Name:" << context.displayName;
-        qDebug() << "Num Attachments:" << context.attachments.size();
+        qCDebug(avatars) << "Context block:";
+        qCDebug(avatars) << "Global timestamp:" << context.globalTimestamp;
+        qCDebug(avatars) << "Domain:" << context.domain;
+        qCDebug(avatars) << "Position:" << context.position;
+        qCDebug(avatars) << "Orientation:" << context.orientation;
+        qCDebug(avatars) << "Scale:" << context.scale;
+        qCDebug(avatars) << "Head Model:" << context.headModel;
+        qCDebug(avatars) << "Skeleton Model:" << context.skeletonModel;
+        qCDebug(avatars) << "Display Name:" << context.displayName;
+        qCDebug(avatars) << "Num Attachments:" << context.attachments.size();
         for (int i = 0; i < context.attachments.size(); ++i) {
-            qDebug() << "Model URL:" << context.attachments[i].modelURL;
-            qDebug() << "Joint Name:" << context.attachments[i].jointName;
-            qDebug() << "Translation:" << context.attachments[i].translation;
-            qDebug() << "Rotation:" << context.attachments[i].rotation;
-            qDebug() << "Scale:" << context.attachments[i].scale;
+            qCDebug(avatars) << "Model URL:" << context.attachments[i].modelURL;
+            qCDebug(avatars) << "Joint Name:" << context.attachments[i].jointName;
+            qCDebug(avatars) << "Translation:" << context.attachments[i].translation;
+            qCDebug(avatars) << "Rotation:" << context.attachments[i].rotation;
+            qCDebug(avatars) << "Scale:" << context.attachments[i].scale;
         }
         
-        qDebug() << "Recording:";
-        qDebug() << "Total frames:" << recording->getFrameNumber();
-        qDebug() << "Audio array:" << recording->getAudioData().size();
+        qCDebug(avatars) << "Recording:";
+        qCDebug(avatars) << "Total frames:" << recording->getFrameNumber();
+        qCDebug(avatars) << "Audio array:" << recording->getAudioData().size();
     }
     
     qint64 checksumTime = timer.elapsed();
-    qDebug() << "Wrote" << file.size() << "bytes in" << writingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
+    qCDebug(avatars) << "Wrote" << file.size() << "bytes in" << writingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& filename) {
@@ -368,7 +378,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     // Return if data unavailable
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
         // Download file if necessary
-        qDebug() << "Downloading recording at" << url;
+        qCDebug(avatars) << "Downloading recording at" << url;
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest networkRequest = QNetworkRequest(url);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -377,20 +387,20 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
         loop.exec(); // wait for file
         if (reply->error() != QNetworkReply::NoError) {
-            qDebug() << "Error while downloading recording: " << reply->error();
+            qCDebug(avatars) << "Error while downloading recording: " << reply->error();
             reply->deleteLater();
             return recording;
         }
         byteArray = reply->readAll();
         reply->deleteLater();
         // print debug + restart timer
-        qDebug() << "Downloaded " << byteArray.size() << " bytes in " << timer.restart() << " ms.";
+        qCDebug(avatars) << "Downloaded " << byteArray.size() << " bytes in " << timer.restart() << " ms.";
     } else {
         // If local file, just read it.
-        qDebug() << "Reading recording from " << filename << ".";
+        qCDebug(avatars) << "Reading recording from " << filename << ".";
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly)){
-            qDebug() << "Could not open local file: " << url;
+            qCDebug(avatars) << "Could not open local file: " << url;
             return recording;
         }
         byteArray = file.readAll();
@@ -398,11 +408,11 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     }
     
     if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
-        qDebug() << "Old .rec format";
+        qCDebug(avatars) << "Old .rec format";
         readRecordingFromRecFile(recording, filename, byteArray);
         return recording;
     } else if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
-        qDebug() << "File extension not recognized";
+        qCDebug(avatars) << "File extension not recognized";
     }
     
     // Reset the recording passed in the arguments
@@ -415,7 +425,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     // HEADER
     QByteArray magicNumber(MAGIC_NUMBER, MAGIC_NUMBER_SIZE);
     if (!byteArray.startsWith(magicNumber)) {
-        qDebug() << "ERROR: This is not a .HFR file. (Magic Number incorrect)";
+        qCDebug(avatars) << "ERROR: This is not a .HFR file. (Magic Number incorrect)";
         return recording;
     }
     fileStream.skipRawData(MAGIC_NUMBER_SIZE);
@@ -423,7 +433,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     QPair<quint8, quint8> version;
     fileStream >> version; // File format version
     if (version != VERSION && version != QPair<quint8, quint8>(0,1)) {
-        qDebug() << "ERROR: This file format version is not supported.";
+        qCDebug(avatars) << "ERROR: This file format version is not supported.";
         return recording;
     }
     
@@ -438,7 +448,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     // Check checksum
     quint16 computedCRC16 = qChecksum(byteArray.constData() + dataOffset, dataLength);
     if (computedCRC16 != crc16) {
-        qDebug() << "Checksum does not match. Bailling!";
+        qCDebug(avatars) << "Checksum does not match. Bailling!";
         recording.clear();
         return recording;
     }
@@ -456,13 +466,13 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     fileStream >> context.domain;
     // Position
     if (!readVec3(fileStream, context.position)) {
-        qDebug() << "Couldn't read file correctly. (Invalid vec3)";
+        qCDebug(avatars) << "Couldn't read file correctly. (Invalid vec3)";
         recording.clear();
         return recording;
     }
     // Orientation
     if (!readQuat(fileStream, context.orientation)) {
-        qDebug() << "Couldn't read file correctly. (Invalid quat)";
+        qCDebug(avatars) << "Couldn't read file correctly. (Invalid quat)";
         recording.clear();
         return recording;
     }
@@ -493,12 +503,12 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         fileStream >> data.jointName;
         // Translation
         if (!readVec3(fileStream, data.translation)) {
-            qDebug() << "Couldn't read attachment correctly. (Invalid vec3)";
+            qCDebug(avatars) << "Couldn't read attachment correctly. (Invalid vec3)";
             continue;
         }
         // Rotation
         if (!readQuat(fileStream, data.rotation)) {
-            qDebug() << "Couldn't read attachment correctly. (Invalid quat)";
+            qCDebug(avatars) << "Couldn't read attachment correctly. (Invalid quat)";
             continue;
         }
         
@@ -601,38 +611,38 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     
     bool wantDebug = true;
     if (wantDebug) {
-        qDebug() << "[DEBUG] READ recording";
-        qDebug() << "Header:";
-        qDebug() << "File Format version:" << VERSION;
-        qDebug() << "Data length:" << dataLength;
-        qDebug() << "Data offset:" << dataOffset;
-        qDebug() << "CRC-16:" << crc16;
+        qCDebug(avatars) << "[DEBUG] READ recording";
+        qCDebug(avatars) << "Header:";
+        qCDebug(avatars) << "File Format version:" << VERSION;
+        qCDebug(avatars) << "Data length:" << dataLength;
+        qCDebug(avatars) << "Data offset:" << dataOffset;
+        qCDebug(avatars) << "CRC-16:" << crc16;
         
-        qDebug() << "Context block:";
-        qDebug() << "Global timestamp:" << context.globalTimestamp;
-        qDebug() << "Domain:" << context.domain;
-        qDebug() << "Position:" << context.position;
-        qDebug() << "Orientation:" << context.orientation;
-        qDebug() << "Scale:" << context.scale;
-        qDebug() << "Head Model:" << context.headModel;
-        qDebug() << "Skeleton Model:" << context.skeletonModel;
-        qDebug() << "Display Name:" << context.displayName;
-        qDebug() << "Num Attachments:" << numAttachments;
+        qCDebug(avatars) << "Context block:";
+        qCDebug(avatars) << "Global timestamp:" << context.globalTimestamp;
+        qCDebug(avatars) << "Domain:" << context.domain;
+        qCDebug(avatars) << "Position:" << context.position;
+        qCDebug(avatars) << "Orientation:" << context.orientation;
+        qCDebug(avatars) << "Scale:" << context.scale;
+        qCDebug(avatars) << "Head Model:" << context.headModel;
+        qCDebug(avatars) << "Skeleton Model:" << context.skeletonModel;
+        qCDebug(avatars) << "Display Name:" << context.displayName;
+        qCDebug(avatars) << "Num Attachments:" << numAttachments;
         for (int i = 0; i < numAttachments; ++i) {
-            qDebug() << "Model URL:" << context.attachments[i].modelURL;
-            qDebug() << "Joint Name:" << context.attachments[i].jointName;
-            qDebug() << "Translation:" << context.attachments[i].translation;
-            qDebug() << "Rotation:" << context.attachments[i].rotation;
-            qDebug() << "Scale:" << context.attachments[i].scale;
+            qCDebug(avatars) << "Model URL:" << context.attachments[i].modelURL;
+            qCDebug(avatars) << "Joint Name:" << context.attachments[i].jointName;
+            qCDebug(avatars) << "Translation:" << context.attachments[i].translation;
+            qCDebug(avatars) << "Rotation:" << context.attachments[i].rotation;
+            qCDebug(avatars) << "Scale:" << context.attachments[i].scale;
         }
         
-        qDebug() << "Recording:";
-        qDebug() << "Total frames:" << recording->getFrameNumber();
-        qDebug() << "Audio array:" << recording->getAudioData().size();
+        qCDebug(avatars) << "Recording:";
+        qCDebug(avatars) << "Total frames:" << recording->getFrameNumber();
+        qCDebug(avatars) << "Audio array:" << recording->getAudioData().size();
         
     }
     
-    qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
+    qCDebug(avatars) << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
 }
 
@@ -778,7 +788,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     
     recording->addAudioPacket(audioArray);
     
-    qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
+    qCDebug(avatars) << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     
     // Set new filename
     QString newFilename = filename;
@@ -793,6 +803,6 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     
     // Set recording to new format
     writeRecordingToFile(recording, newFilename);
-    qDebug() << "Recording has been successfully converted at" << newFilename;
+    qCDebug(avatars) << "Recording has been successfully converted at" << newFilename;
     return recording;
 }

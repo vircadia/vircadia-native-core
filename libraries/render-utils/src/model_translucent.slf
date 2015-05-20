@@ -19,7 +19,9 @@
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
-varying vec4 normal;
+varying vec4 interpolatedNormal;
+
+varying vec3 color;
 
 void main(void) {
 
@@ -29,9 +31,9 @@ void main(void) {
     Material mat = getMaterial();
 
     packDeferredFragmentTranslucent(
-        normalize(normal.xyz), 
+        normalize(interpolatedNormal.xyz),
         getMaterialOpacity(mat) * diffuse.a,
-        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 

@@ -121,6 +121,14 @@ input.coord {
     display: block;
 }
 
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+    display: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
 table#entity-table {
     border-collapse: collapse;
     font-family: Sans-Serif;
@@ -194,6 +202,10 @@ input:disabled, textarea:disabled {
     color: rgb(160, 160, 160);
 }
 
+#properties-list input[type=checkbox] {
+    vertical-align: bottom;
+}
+
 #properties-list input[type=button] {
     cursor: pointer;
     background-color: rgb(51, 102, 102);
@@ -210,8 +222,8 @@ input:disabled, textarea:disabled {
 }
 
 #properties-list .property {
-    padding: 6pt 6pt;
-    border-top: 0.75pt solid rgb(63, 63, 63);
+    padding: 4pt;
+    border-bottom: 0.75pt solid rgb(63, 63, 63);
     min-height: 1em;
 }
 
@@ -225,17 +237,12 @@ table#properties-list {
     table-layout: fixed;
 }
 
-#properties-list > div {
-    margin: 3pt 0;
-}
-
 #properties-list {
     border-bottom: 0.75pt solid #e5e5e5;
 }
 
 #properties-list .label {
     font-weight: bold;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 
@@ -274,4 +281,41 @@ td {
     padding: 10pt;
     font-weight: bold;
     font-style: italic;
+}
+
+input[type="number"] {
+    position: relative;
+}
+
+/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
+    width: 0.9em;
+    height: 4px;
+    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-inner-spin-button:active{
+    opacity: .8;
+}
+
+input#property-name {
+    width: 100%;
+}
+
+.color-picker {
+	width: 50px;
+	height: 10px;
+	margin: 5px;
+	border: 1px solid white;
 }

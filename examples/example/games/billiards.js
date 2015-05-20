@@ -39,126 +39,130 @@ hitSounds.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "Collisions-ballhitsandc
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var screenSize = Controller.getViewportDimensions();
 var reticle = Overlays.addOverlay("image", {
-                    x: screenSize.x / 2 - 16,
-                    y: screenSize.y / 2 - 16,
-                    width: 32,
-                    height: 32,
-                    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1
-                });
+    x: screenSize.x / 2 - 16,
+    y: screenSize.y / 2 - 16,
+    width: 32,
+    height: 32,
+    imageURL: HIFI_PUBLIC_BUCKET + "images/billiardsReticle.png",
+    color: { red: 255, green: 255, blue: 255},
+    alpha: 1
+});
 
 function makeTable(pos) {
-	// Top 
-	tableParts.push(Entities.addEntity(
+    // Top 
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: pos, 
-		dimensions: { x: LENGTH * SCALE, y: HEIGHT, z: WIDTH * SCALE }, 
-      	color: {  red: 0, green: 255, blue: 0 } }));
-	// Long Bumpers 
-	tableParts.push(Entities.addEntity(
+          position: pos, 
+	  dimensions: { x: LENGTH * SCALE, y: HEIGHT, z: WIDTH * SCALE }, 
+      	  color: {  red: 0, green: 255, blue: 0 } }));
+    // Long Bumpers 
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x - LENGTH / 2.0, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z - (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
-		dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
-	tableParts.push(Entities.addEntity(
+          position: { x: pos.x - LENGTH / 2.0, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z - (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
+	  dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x + LENGTH / 2.0, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z - (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
-		dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
+          position: { x: pos.x + LENGTH / 2.0, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z - (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
+	  dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
 
-	tableParts.push(Entities.addEntity(
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x - LENGTH / 2.0, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z + (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
-		dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
-	tableParts.push(Entities.addEntity(
+          position: { x: pos.x - LENGTH / 2.0, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z + (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
+	  dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x + LENGTH / 2.0, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z + (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
-		dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
-	// End bumpers 
-	tableParts.push(Entities.addEntity(
+          position: { x: pos.x + LENGTH / 2.0, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z + (WIDTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE },
+	  dimensions: { x: (LENGTH - 3.0 * HOLE_SIZE) * SCALE / 2.0, y: BUMPER_HEIGHT, z: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
+    // End bumpers 
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x + (LENGTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z },
-		dimensions: { z: (WIDTH - 2.0 * HOLE_SIZE) * SCALE, y: BUMPER_HEIGHT, x: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
+          position: { x: pos.x + (LENGTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z },
+	  dimensions: { z: (WIDTH - 2.0 * HOLE_SIZE) * SCALE, y: BUMPER_HEIGHT, x: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
 
-	tableParts.push(Entities.addEntity(
+    tableParts.push(Entities.addEntity(
     	{ type: "Box",
-        position: { x: pos.x - (LENGTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE, 
-        		    y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
-        		    z: pos.z },
-		dimensions: { z: (WIDTH - 2.0 * HOLE_SIZE) * SCALE, y: BUMPER_HEIGHT, x: BUMPER_WIDTH * SCALE }, 
-      	color: {  red: 237, green: 201, blue: 175 } }));
+          position: { x: pos.x - (LENGTH / 2.0 + BUMPER_WIDTH / 2.0) * SCALE, 
+        	      y: pos.y + (HEIGHT / 2.0 + BUMPER_HEIGHT / 2.0), 
+        	      z: pos.z },
+	  dimensions: { z: (WIDTH - 2.0 * HOLE_SIZE) * SCALE, y: BUMPER_HEIGHT, x: BUMPER_WIDTH * SCALE }, 
+      	  color: {  red: 237, green: 201, blue: 175 } }));
 
 }
 
 function makeBalls(pos) {
-	// Object balls 
+    // Object balls 
     var whichBall = [ 1, 14, 15, 4, 8, 7, 12, 9, 3, 13, 10, 5, 6, 11, 2 ];
     var ballNumber = 0;
-	var ballPosition = { x: pos.x + (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
-	for (var row = 1; row <= 5; row++) {
-		ballPosition.z = pos.z - ((row - 1.0) / 2.0 * (BALL_SIZE + BALL_GAP) * SCALE); 
-		for (var spot = 0; spot < row; spot++) {
-			balls.push(Entities.addEntity(
+    var ballPosition = { x: pos.x + (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
+    for (var row = 1; row <= 5; row++) {
+	ballPosition.z = pos.z - ((row - 1.0) / 2.0 * (BALL_SIZE + BALL_GAP) * SCALE); 
+	for (var spot = 0; spot < row; spot++) {
+	    balls.push(Entities.addEntity(
 	    	{ type: "Model",
-            modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/ball_" + whichBall[ballNumber].toString() + ".fbx",
-	        position: ballPosition,   
-			dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
-            rotation: Quat.fromPitchYawRollDegrees((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20),
-	      	color: { red: 255, green: 255, blue: 255 },
-	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
-	        ignoreCollisions: false,
-	        damping: 0.50,
-            shapeType: "sphere",
-	        collisionsWillMove: true }));
-	        ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
+                  modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/ball_" +
+                      whichBall[ballNumber].toString() + ".fbx",
+	          position: ballPosition,   
+		  dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
+                  rotation: Quat.fromPitchYawRollDegrees((Math.random() - 0.5) * 20,
+                                                         (Math.random() - 0.5) * 20,
+                                                         (Math.random() - 0.5) * 20),
+	      	  color: { red: 255, green: 255, blue: 255 },
+	      	  gravity: {  x: 0, y: GRAVITY, z: 0 },
+	          velocity: {x: 0, y: -0.2, z: 0 },
+	          ignoreCollisions: false,
+	          damping: 0.50,
+                  shapeType: "sphere",
+	          collisionsWillMove: true }));
+	    ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
             ballNumber++;
-		}
-		ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
 	}
+	ballPosition.x += (BALL_GAP + Math.sqrt(3.0) / 2.0 * BALL_SIZE) * SCALE;
+    }
 
     // Cue Ball 
     cuePosition = { x: pos.x - (LENGTH / 4.0) * SCALE, y: pos.y + HEIGHT / 2.0 + DROP_HEIGHT, z: pos.z }; 
     cueBall = Entities.addEntity(
-	    	{ type: "Model",
-            modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/cue_ball.fbx",
-	        position: cuePosition,   
-			dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
-	      	color: { red: 255, green: 255, blue: 255 },
-	      	gravity: {  x: 0, y: GRAVITY, z: 0 },
-	      	angularVelocity: { x: 0, y: 0, z: 0 },
-	      	velocity: {x: 0, y: 0, z: 0 },
-	        ignoreCollisions: false,
-	        damping: 0.50,
-            shapeType: "sphere",
-	        collisionsWillMove: true });
-	       
+	{ type: "Model",
+          modelURL: "https://s3.amazonaws.com/hifi-public/models/props/Pool/cue_ball.fbx",
+	  position: cuePosition,   
+	  dimensions: { x: BALL_SIZE * SCALE, y: BALL_SIZE * SCALE, z: BALL_SIZE * SCALE }, 
+	  color: { red: 255, green: 255, blue: 255 },
+	  gravity: {  x: 0, y: GRAVITY, z: 0 },
+	  angularVelocity: { x: 0, y: 0, z: 0 },
+	  velocity: {x: 0, y: -0.2, z: 0 },
+	  ignoreCollisions: false,
+	  damping: 0.50,
+          shapeType: "sphere",
+	  collisionsWillMove: true });
+    
 }
 
 function isObjectBall(id) {
-	for (var i; i < balls.length; i++) {
-		if (balls[i].id == id) {
-			return true;
-		}		
-	}
-	return false; 
+    for (var i; i < balls.length; i++) {
+	if (balls[i].id == id) {
+	    return true;
+	}		
+    }
+    return false; 
 }
 
 function shootCue(velocity) {
-	var DISTANCE_FROM_CAMERA = BALL_SIZE * 5.0 * SCALE;
+    var DISTANCE_FROM_CAMERA = BALL_SIZE * 5.0 * SCALE;
     var camera = Camera.getPosition();
     var forwardVector = Quat.getFront(Camera.getOrientation());
     var cuePosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_FROM_CAMERA));
@@ -180,14 +184,14 @@ function shootCue(velocity) {
           density: 8000,
           ignoreCollisions: false,
           collisionsWillMove: true
-      });
+        });
     print("Shot, velocity = " + velocity);
 }
 
 function keyReleaseEvent(event) {
-	if ((startStroke > 0) && event.text == "SPACE") {
-		var endTime = new Date().getTime();
-		var delta = endTime - startStroke;
+    if ((startStroke > 0) && event.text == "SPACE") {
+	var endTime = new Date().getTime();
+	var delta = endTime - startStroke;
         shootCue(delta / 100.0);
         startStroke = 0;
     }
@@ -201,49 +205,49 @@ function keyPressEvent(event) {
 }
 
 function cleanup() {
-	for (var i = 0; i < tableParts.length; i++) {
-		if (!tableParts[i].isKnownID) {
-	        tableParts[i] = Entities.identifyEntity(tableParts[i]);
-	    }
-		Entities.deleteEntity(tableParts[i]);
+    for (var i = 0; i < tableParts.length; i++) {
+	if (!tableParts[i].isKnownID) {
+	    tableParts[i] = Entities.identifyEntity(tableParts[i]);
 	}
-	for (var i = 0; i < balls.length; i++) {
-		if (!balls[i].isKnownID) {
-	        balls[i] = Entities.identifyEntity(balls[i]);
-	    }
-		Entities.deleteEntity(balls[i]);
+	Entities.deleteEntity(tableParts[i]);
+    }
+    for (var i = 0; i < balls.length; i++) {
+	if (!balls[i].isKnownID) {
+	    balls[i] = Entities.identifyEntity(balls[i]);
 	}
-	Overlays.deleteOverlay(reticle); 
-	Entities.deleteEntity(cueBall);
+	Entities.deleteEntity(balls[i]);
+    }
+    Overlays.deleteOverlay(reticle); 
+    Entities.deleteEntity(cueBall);
 }
 
 function update(deltaTime) {
-	if (!cueBall.isKnownID) {
-	   cueBall = Entities.identifyEntity(cueBall);
-	} else {
-		//  Check if cue ball has fallen off table, re-drop if so 
-		var cueProperties = Entities.getEntityProperties(cueBall);
-		if (cueProperties.position.y < tableCenter.y) {
-			// Replace the cueball 
-			Entities.editEntity(cueBall, { position: cuePosition } );
+    if (!cueBall.isKnownID) {
+	cueBall = Entities.identifyEntity(cueBall);
+    } else {
+	//  Check if cue ball has fallen off table, re-drop if so 
+	var cueProperties = Entities.getEntityProperties(cueBall);
+	if (cueProperties.position.y < tableCenter.y) {
+	    // Replace the cueball 
+	    Entities.editEntity(cueBall, { position: cuePosition } );
 
-		}
 	}
+    }
 
 }
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
-	/*
-	NOT WORKING YET
-    if ((entity1.id == cueBall.id) || (entity2.id == cueBall.id)) {
-    	print("Cue ball collision!");
-    	//audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
-        //Audio.playSound(hitSounds[0], { position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())) });
-    }
+    /*
+      NOT WORKING YET
+      if ((entity1.id == cueBall.id) || (entity2.id == cueBall.id)) {
+      print("Cue ball collision!");
+      //audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
+      //Audio.playSound(hitSounds[0], { position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())) });
+      }
 
-    else if (isObjectBall(entity1.id) || isObjectBall(entity2.id)) {
-    	print("Object ball collision");
-    } */
+      else if (isObjectBall(entity1.id) || isObjectBall(entity2.id)) {
+      print("Object ball collision");
+      } */
 }
 
 tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));

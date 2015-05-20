@@ -16,6 +16,7 @@
 
 #include "BoxEntityItem.h"
 #include "EntityTree.h"
+#include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
 
 
@@ -55,7 +56,7 @@ bool BoxEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "BoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "BoxEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
@@ -70,7 +71,7 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     return bytesRead;
 }
@@ -93,15 +94,15 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 void BoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qDebug() << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qDebug() << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qDebug() << "            position:" << debugTreeVector(_position);
-    qDebug() << "          dimensions:" << debugTreeVector(_dimensions);
-    qDebug() << "       getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
+    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "            position:" << debugTreeVector(_position);
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

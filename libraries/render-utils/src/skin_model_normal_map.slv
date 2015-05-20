@@ -13,6 +13,7 @@
 //
 
 <@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
 
 const int MAX_TEXCOORDS = 2;
 const int MAX_CLUSTERS = 128;
@@ -33,6 +34,8 @@ varying vec4 interpolatedNormal;
 // the interpolated tangent
 varying vec4 interpolatedTangent;
 
+varying vec3 color;
+
 void main(void) {
     vec4 interpolatedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
@@ -44,22 +47,23 @@ void main(void) {
         interpolatedNormal += clusterMatrix * vec4(gl_Normal, 0.0) * clusterWeight;
         interpolatedTangent += clusterMatrix * vec4(tangent, 0.0) * clusterWeight;
     }
-  //  interpolatedNormal = gl_ModelViewMatrix * interpolatedNormal;
-  //  interpolatedTangent = gl_ModelViewMatrix * interpolatedTangent;
-    
+
     // pass along the diffuse color
-    gl_FrontColor = gl_Color;
+    color = gl_Color.xyz;
 
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
-    gl_Position = gl_ModelViewProjectionMatrix * interpolatedPosition;
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
+    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
 
-    // use standard pipeline transform
+    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    gl_Position = transformModelToClipPos(cam, obj, interpolatedPosition);
+    <$transformModelToClipPos(cam, obj, interpolatedPosition, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
+    <$transformModelToEyeDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 
-    interpolatedNormal = vec4(normalize(transformModelToEyeDir(cam, obj, interpolatedNormal.xyz)), 0.0);
-    interpolatedTangent = vec4(normalize(transformModelToEyeDir(cam, obj, interpolatedTangent.xyz)), 0.0);
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
+    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
 }

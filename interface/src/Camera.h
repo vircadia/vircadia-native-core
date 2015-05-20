@@ -54,7 +54,6 @@ public:
     void setFarClip(float f);
     void setEyeOffsetPosition(const glm::vec3& p) { _eyeOffsetPosition = p; }
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
-    void setScale(const float s) { _scale = s; }
     
     glm::quat getRotation() const { return _rotation * _hmdRotation; }
     const glm::vec3& getHmdPosition() const { return _hmdPosition; }
@@ -63,11 +62,10 @@ public:
     CameraMode getMode() const { return _mode; }
     float getFieldOfView() const { return _fieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
-    float getNearClip() const { return _scale * _nearClip; }
+    float getNearClip() const { return _nearClip; }
     float getFarClip() const;
     const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
-    float getScale() const { return _scale; }
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
@@ -79,7 +77,6 @@ public slots:
     glm::quat getOrientation() const { return getRotation(); }
     
     PickRay computePickRay(float x, float y);
-    PickRay computeViewPickRay(float xRatio, float yRatio);
 
     // These only work on independent cameras
     /// one time change to what the camera is looking at
@@ -107,7 +104,6 @@ private:
     glm::quat _rotation;
     glm::vec3 _hmdPosition;
     glm::quat _hmdRotation;
-    float _scale;
     bool _isKeepLookingAt;
     glm::vec3 _lookingAt;
 };

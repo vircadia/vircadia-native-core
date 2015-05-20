@@ -448,11 +448,8 @@ CameraManager = function() {
 
         var scale = Math.min(dt * EASING_MULTIPLIER, 1.0);
 
-        var dYaw = that.targetYaw - that.yaw;
-        if (dYaw > 180) dYaw -= 360;
-        if (dYaw < -180) dYaw += 360;
-
-        var dPitch = that.targetPitch - that.pitch;
+        var dYaw = normalizeDegrees(that.targetYaw - that.yaw);
+        var dPitch = normalizeDegrees(that.targetPitch - that.pitch);
 
         that.yaw += scale * dYaw;
         that.pitch += scale * dPitch;

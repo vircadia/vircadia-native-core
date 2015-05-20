@@ -50,9 +50,6 @@ public:
             _color[BLUE_INDEX] = value.blue;
     }
 
-    // TODO: implement proper contains for 3D ellipsoid
-    //virtual bool contains(const glm::vec3& point) const;
-
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_SPHERE; }
     
     virtual bool supportsDetailedRayIntersection() const { return true; }

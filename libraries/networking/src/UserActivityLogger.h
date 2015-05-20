@@ -30,7 +30,7 @@ public slots:
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
     void launch(QString applicationVersion);
-    void close();
+    
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
     void changedDomain(QString domainURL);

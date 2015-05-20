@@ -12,6 +12,7 @@
 #ifndef hifi_ApplicationOverlay_h
 #define hifi_ApplicationOverlay_h
 
+#include <gpu/Texture.h>
 class Camera;
 class Overlays;
 class QOpenGLFramebufferObject;
@@ -20,42 +21,49 @@ const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
+const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
 
 // Handles the drawing of the overlays to the screen
-class ApplicationOverlay {
+// TODO, move divide up the rendering, displaying and input handling
+// facilities of this class
+class ApplicationOverlay : public QObject {
+    Q_OBJECT
 public:
     ApplicationOverlay();
     ~ApplicationOverlay();
 
-    void renderOverlay(bool renderToTexture = false);
+    void renderOverlay();
     void displayOverlayTexture();
-    void displayOverlayTextureOculus(Camera& whichCamera);
-    void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
-    
-    void computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
+    void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
+    void displayOverlayTextureHmd(Camera& whichCamera);
+
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
     
     bool hasMagnifier() const { return _magnifier; }
     void toggleMagnifier() { _magnifier = !_magnifier; }
 
-    float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
-    void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; }
-    
+    float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
+    void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
+
     // Converter from one frame of reference to another.
     // Frame of reference:
+    // Direction: Ray that represents the spherical values
     // Screen: Position on the screen (x,y)
     // Spherical: Pitch and yaw that gives the position on the sphere we project on (yaw,pitch)
     // Overlay: Position on the overlay (x,y)
     // (x,y) in Overlay are similar than (x,y) in Screen except they can be outside of the bound of te screen.
     // This allows for picking outside of the screen projection in 3D.
-    glm::vec2 screenToSpherical(glm::vec2 screenPos) const;
-    glm::vec2 sphericalToScreen(glm::vec2 sphericalPos) const;
-    glm::vec2 sphericalToOverlay(glm::vec2 sphericalPos) const;
-    glm::vec2 overlayToSpherical(glm::vec2 overlayPos) const;
-    glm::vec2 screenToOverlay(glm::vec2 screenPos) const;
-    glm::vec2 overlayToScreen(glm::vec2 overlayPos) const;
+    glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
+    glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
+    glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
+    glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
+    void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
+
+    static glm::vec2 directionToSpherical(const glm::vec3 & direction);
+    static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
+    static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
+    static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
     
 private:
     // Interleaved vertex data
@@ -72,8 +80,7 @@ private:
         
         void bind();
         void release();
-        void bindTexture();
-        void releaseTexture();
+        GLuint getTexture();
         
         void buildFramebufferObject();
         void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
@@ -88,7 +95,7 @@ private:
         VerticesIndices _vbo;
     };
     
-    float _oculusUIAngularSize = DEFAULT_OCULUS_UI_ANGULAR_SIZE;
+    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;
@@ -98,6 +105,7 @@ private:
     void renderPointersOculus(const glm::vec3& eyePos);
     
     void renderAudioMeter();
+    void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
 
@@ -114,11 +122,13 @@ private:
     quint64 _lastMouseMove;
     bool _magnifier;
 
-    float _alpha;
+    float _alpha = 1.0f;
     float _oculusUIRadius;
     float _trailingAudioLoudness;
 
-    GLuint _crosshairTexture;
+
+    gpu::TexturePointer _crosshairTexture;
+    GLuint _newUiTexture{ 0 };
     
     int _reticleQuad;
     int _magnifierQuad;

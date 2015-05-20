@@ -26,6 +26,7 @@
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 #include "Octree.h"
+#include "OctreeLogging.h"
 #include "SharedUtil.h"
 
 quint64 OctreeElement::_octreeMemoryUsage = 0;
@@ -194,14 +195,14 @@ void OctreeElement::setShouldRender(bool shouldRender) {
 }
 
 void OctreeElement::calculateAACube() {
-    glm::vec3 corner;
-
     // copy corner into cube
-    copyFirstVertexForCode(getOctalCode(),(float*)&corner);
+    glm::vec3 corner;
+    copyFirstVertexForCode(getOctalCode(), (float*)&corner);
 
     // this tells you the "size" of the voxel
-    float voxelScale = 1 / powf(2, numberOfThreeBitSectionsInCode(getOctalCode()));
-    _cube.setBox(corner,voxelScale);
+    float voxelScale = (float)TREE_SCALE / powf(2.0f, numberOfThreeBitSectionsInCode(getOctalCode()));
+    corner *= (float)TREE_SCALE;
+    _cube.setBox(corner, voxelScale);
 }
 
 void OctreeElement::deleteChildAtIndex(int childIndex) {
@@ -282,7 +283,7 @@ void OctreeElement::auditChildren(const char* label) const {
             OctreeElement* testChildNew = getChildAtIndex(childIndex);
             OctreeElement* testChildOld = _childrenArray[childIndex];
 
-            qDebug("child at index %d... testChildOld=%p testChildNew=%p %s",
+            qCebug("child at index %d... testChildOld=%p testChildNew=%p %s",
                     childIndex, testChildOld, testChildNew ,
                     ((testChildNew != testChildOld) ? " DOES NOT MATCH <<<< BAD <<<<" : " - OK ")
             );
@@ -435,7 +436,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
                         if (externalIndex < childCount && externalIndex >= 0) {
                             result = _children.external[externalIndex];
                         } else {
-                            qDebug("getChildAtIndex() attempt to access external client out of "
+                            qCDebug(octree, "getChildAtIndex() attempt to access external client out of "
                                 "bounds externalIndex=%d <<<<<<<<<< WARNING!!!", externalIndex);
                         }
                         break;
@@ -446,7 +447,7 @@ OctreeElement* OctreeElement::getChildAtIndex(int childIndex) const {
     }
 #ifdef HAS_AUDIT_CHILDREN
     if (result != _childrenArray[childIndex]) {
-        qDebug("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!!",
+        qCDebug(octree, "getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!!",
             caseStr, result,_childrenArray[childIndex]);
     }
 #endif // def HAS_AUDIT_CHILDREN
@@ -1119,7 +1120,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         _externalChildrenMemoryUsage += newChildCount * sizeof(OctreeElement*);
     } else {
         //assert(false);
-        qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d",previousChildCount, newChildCount);
+        qCDebug(octree, "THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d",previousChildCount, newChildCount);
     }
 
     // check to see if we could store these 4 children locally
@@ -1163,7 +1164,7 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "OctreeElement::safeDeepDeleteChildAtIndex\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
-        qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        qCDebug(octree) << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return deleteApproved;
     }
     OctreeElement* childToDelete = getChildAtIndex(childIndex);
@@ -1221,9 +1222,7 @@ float OctreeElement::getEnclosingRadius() const {
 }
 
 ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) const {
-    AACube cube = _cube; // use temporary cube so we can scale it
-    cube.scale(TREE_SCALE);
-    return viewFrustum.cubeInFrustum(cube);
+    return viewFrustum.cubeInFrustum(_cube);
 }
 
 // There are two types of nodes for which we want to "render"
@@ -1257,14 +1256,13 @@ bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float 
 // does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 furthestPoint;
-    viewFrustum.getFurthestPointFromCameraVoxelScale(getAACube(), furthestPoint);
-    glm::vec3 temp = viewFrustum.getPositionVoxelScale() - furthestPoint;
-    float distanceToFurthestPoint = sqrtf(glm::dot(temp, temp));
-    return distanceToFurthestPoint * (float)TREE_SCALE;
+    viewFrustum.getFurthestPointFromCamera(_cube, furthestPoint);
+    glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
+    return sqrtf(glm::dot(temp, temp));
 }
 
 float OctreeElement::distanceToCamera(const ViewFrustum& viewFrustum) const {
-    glm::vec3 center = _cube.calcCenter() * (float)TREE_SCALE;
+    glm::vec3 center = _cube.calcCenter();
     glm::vec3 temp = viewFrustum.getPosition() - center;
     float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
@@ -1337,16 +1335,12 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     keepSearching = true; // assume that we will continue searching after this.
 
-    AACube cube = getAACube();
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
 
-    AACube debugCube = cube;
-    debugCube.scale((float)TREE_SCALE);
-
     // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {
+    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {
         keepSearching = false; // no point in continuing to search
         return false; // we did not intersect
     }
@@ -1358,7 +1352,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
-    if (cube.contains(origin) || distanceToElementCube < distance) {
+    if (_cube.contains(origin) || distanceToElementCube < distance) {
 
         if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails, 
                                             face, intersectedObject, precisionPicking, distanceToElementCube)) {
@@ -1392,6 +1386,7 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
+    // center and radius are in meters, so we have to scale the _cube into world-frame
     return _cube.findSpherePenetration(center, radius, penetration);
 }
 
@@ -1404,7 +1399,7 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     float halfOurScale = ourScale / 2.0f;
 
     if(s > ourScale) {
-        qDebug("UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
+        qCDebug(octree, "UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
     }
 
     if (s > halfOurScale) {
@@ -1527,17 +1522,17 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
 
     // TODO: consider changing this to assert()
     if (cubeScale > ourScale) {
-        qDebug() << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
-        qDebug() << "    cube=" << cube;
-        qDebug() << "    elements AACube=" << getAACube();
-        qDebug() << "    cubeScale=" << cubeScale;
-        qDebug() << "    ourScale=" << ourScale;
+        qCDebug(octree) << "UNEXPECTED -- OctreeElement::getMyChildContaining() -- (cubeScale > ourScale)";
+        qCDebug(octree) << "    cube=" << cube;
+        qCDebug(octree) << "    elements AACube=" << _cube;
+        qCDebug(octree) << "    cubeScale=" << cubeScale;
+        qCDebug(octree) << "    ourScale=" << ourScale;
         assert(false);
     }
 
     // Determine which of our children the minimum and maximum corners of the cube live in...
-    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, 1.0f);
-    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, 1.0f);
+    glm::vec3 cubeCornerMinimum = glm::clamp(cube.getCorner(), 0.0f, (float)TREE_SCALE);
+    glm::vec3 cubeCornerMaximum = glm::clamp(cube.calcTopFarLeft(), 0.0f, (float)TREE_SCALE);
 
     if (_cube.contains(cubeCornerMinimum) && _cube.contains(cubeCornerMaximum)) {
         int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
@@ -1559,7 +1554,7 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
 
     // TODO: consider changing this to assert()
     if(boxLargestScale > ourScale) {
-        qDebug("UNEXPECTED -- OctreeElement::getMyChildContaining() "
+        qCDebug(octree, "UNEXPECTED -- OctreeElement::getMyChildContaining() "
                     "boxLargestScale=[%f] > ourScale=[%f] ", boxLargestScale, ourScale);
     }
 

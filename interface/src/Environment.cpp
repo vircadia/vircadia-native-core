@@ -24,6 +24,7 @@
 #include "Application.h"
 #include "Camera.h"
 #include "world.h"
+#include "InterfaceLogging.h"
 
 #include "Environment.h"
 
@@ -49,7 +50,7 @@ Environment::~Environment() {
 
 void Environment::init() {
     if (_initialized) {
-        qDebug("[ERROR] Environment is already initialized.");
+        qCDebug(interfaceapp, "[ERROR] Environment is already initialized.");
         return;
     }
 
@@ -70,15 +71,46 @@ void Environment::resetToDefault() {
 void Environment::renderAtmospheres(Camera& camera) {    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
-    
-    foreach (const ServerData& serverData, _data) {
-        // TODO: do something about EnvironmentData
-        foreach (const EnvironmentData& environmentData, serverData) {
-            renderAtmosphere(camera, environmentData);
+
+    if (_environmentIsOverridden) {
+        renderAtmosphere(camera, _overrideData);
+    } else {
+        foreach (const ServerData& serverData, _data) {
+            // TODO: do something about EnvironmentData
+            foreach (const EnvironmentData& environmentData, serverData) {
+                renderAtmosphere(camera, environmentData);
+            }
         }
     }
 }
 
+EnvironmentData Environment::getClosestData(const glm::vec3& position) {
+    if (_environmentIsOverridden) {
+        return _overrideData;
+    }
+    
+    // get the lock for the duration of the call
+    QMutexLocker locker(&_mutex);
+    
+    EnvironmentData closest;
+    float closestDistance = FLT_MAX;
+    foreach (const ServerData& serverData, _data) {
+        foreach (const EnvironmentData& environmentData, serverData) {
+            float distance = glm::distance(position, environmentData.getAtmosphereCenter(position)) -
+                environmentData.getAtmosphereOuterRadius();
+            if (distance < closestDistance) {
+                closest = environmentData;
+                closestDistance = distance;
+            }
+        }
+    }
+    return closest;
+}
+
+
+// NOTE: Deprecated - I'm leaving this in for now, but it's not actually used. I made it private
+// so that if anyone wants to start using this in the future they will consider how to make it 
+// work with new physics systems.
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
     //
     // 'Default' gravity pulls you downward in Y when you are near the X/Z plane
@@ -112,25 +144,6 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
     }
     
     return gravity;
-}
-
-const EnvironmentData Environment::getClosestData(const glm::vec3& position) {
-    // get the lock for the duration of the call
-    QMutexLocker locker(&_mutex);
-    
-    EnvironmentData closest;
-    float closestDistance = FLT_MAX;
-    foreach (const ServerData& serverData, _data) {
-        foreach (const EnvironmentData& environmentData, serverData) {
-            float distance = glm::distance(position, environmentData.getAtmosphereCenter(position)) -
-                environmentData.getAtmosphereOuterRadius();
-            if (distance < closestDistance) {
-                closest = environmentData;
-                closestDistance = distance;
-            }
-        }
-    }
-    return closest;
 }
 
 bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
@@ -216,14 +229,14 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
 }
 
 void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) {
-    glm::vec3 center = data.getAtmosphereCenter(camera.getPosition());
+    glm::vec3 center = data.getAtmosphereCenter();
     
     glPushMatrix();
     glTranslatef(center.x, center.y, center.z);
     
     glm::vec3 relativeCameraPos = camera.getPosition() - center;
     float height = glm::length(relativeCameraPos);
-    
+
     // use the appropriate shader depending on whether we're inside or outside
     ProgramObject* program;
     int* locations;
@@ -260,9 +273,11 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
         (1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius())) / 0.25f);
     program->setUniformValue(locations[G_LOCATION], -0.990f);
     program->setUniformValue(locations[G2_LOCATION], -0.990f * -0.990f);
-    
+
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
     DependencyManager::get<GeometryCache>()->renderSphere(1.0f, 100, 50, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     

@@ -18,7 +18,7 @@
 #include <EntityItem.h>
 
 #include "ContactInfo.h"
-#include "ShapeInfo.h"
+#include "ShapeManager.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -27,7 +27,7 @@ enum MotionType {
 };
 
 enum MotionStateType {
-    MOTION_STATE_TYPE_UNKNOWN,
+    MOTION_STATE_TYPE_INVALID,
     MOTION_STATE_TYPE_ENTITY,
     MOTION_STATE_TYPE_AVATAR
 };
@@ -35,103 +35,106 @@ enum MotionStateType {
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
 // and re-added to the physics engine and "easy" which just updates the body properties.
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
-const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY |
-                EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
+const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES |
+                                                     EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
-const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS;
+const uint32_t DIRTY_PHYSICS_FLAGS = HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |
+                                     EntityItem::DIRTY_MATERIAL | (uint32_t)EntityItem::DIRTY_PHYSICS_ACTIVATION;
 
 // These are the outgoing flags that the PhysicsEngine can affect:
-const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_POSITION | EntityItem::DIRTY_VELOCITY;
+const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES;
 
 
 class OctreeEditPacketSender;
+class PhysicsEngine;
+
+extern const int MAX_NUM_NON_MOVING_UPDATES;
 
 class ObjectMotionState : public btMotionState {
 public:
-    // The WorldOffset is used to keep the positions of objects in the simulation near the origin, to
-    // reduce numerical error when computing vector differences.  In other words: The EntityMotionState 
-    // class translates between the simulation-frame and the world-frame as known by the render pipeline, 
-    // various object trees, etc.  The EntityMotionState class uses a static "worldOffset" to help in
-    // the translations.
+    // These poroperties of the PhysicsEngine are "global" within the context of all ObjectMotionStates
+    // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the 
+    // ObjectMotionState context.
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
-    ObjectMotionState();
+    static void setWorldSimulationStep(uint32_t step);
+    static uint32_t getWorldSimulationStep();
+
+    static void setShapeManager(ShapeManager* manager);
+    static ShapeManager* getShapeManager();
+
+    ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    // An EASY update does not require the object to be removed and then reinserted into the PhysicsEngine
-    virtual void updateObjectEasy(uint32_t flags, uint32_t frame) = 0;
-    virtual void updateObjectVelocities() = 0;
+    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+
+    virtual void updateBodyMaterialProperties();
+    virtual void updateBodyVelocities();
 
     MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual void computeShapeInfo(ShapeInfo& info) = 0;
-    virtual float computeMass(const ShapeInfo& shapeInfo) const = 0;
+    void setMass(float mass) { _mass = fabsf(mass); }
+    float getMass() { return _mass; }
 
-    void setFriction(float friction);
-    void setRestitution(float restitution);
-    void setLinearDamping(float damping);
-    void setAngularDamping(float damping);
+    void setBodyLinearVelocity(const glm::vec3& velocity) const;
+    void setBodyAngularVelocity(const glm::vec3& velocity) const;
+    void setBodyGravity(const glm::vec3& gravity) const;
 
-    void setVelocity(const glm::vec3& velocity) const;
-    void setAngularVelocity(const glm::vec3& velocity) const;
-    void setGravity(const glm::vec3& gravity) const;
+    glm::vec3 getBodyLinearVelocity() const;
+    glm::vec3 getBodyAngularVelocity() const;
 
-    void getVelocity(glm::vec3& velocityOut) const;
-    void getAngularVelocity(glm::vec3& angularVelocityOut) const;
+    virtual uint32_t getAndClearIncomingDirtyFlags() const = 0;
 
-    virtual uint32_t getIncomingDirtyFlags() const = 0;
-    virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
-    void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
+    virtual MotionType computeObjectMotionType() const = 0;
+    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo) = 0;
 
-    bool doesNotNeedToSendUpdate() const;
-    virtual bool shouldSendUpdate(uint32_t simulationFrame);
-    virtual void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t frame) = 0;
 
-    virtual MotionType computeMotionType() const = 0;
-
-    virtual void updateKinematicState(uint32_t substep) = 0;
-
+    btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
 
-    bool isKinematic() const { return _isKinematic; }
-
-    void setKinematic(bool kinematic, uint32_t substep);
-    virtual void stepKinematicSimulation(quint64 now) = 0;
+    void releaseShape();
 
     virtual bool isMoving() const = 0;
 
+    // These pure virtual methods must be implemented for each MotionState type
+    // and make it possible to implement more complicated methods in this base class.
+
+    virtual float getObjectRestitution() const = 0;
+    virtual float getObjectFriction() const = 0;
+    virtual float getObjectLinearDamping() const = 0;
+    virtual float getObjectAngularDamping() const = 0;
+    
+    virtual glm::vec3 getObjectPosition() const = 0;
+    virtual const glm::quat& getObjectRotation() const = 0;
+    virtual const glm::vec3& getObjectLinearVelocity() const = 0;
+    virtual const glm::vec3& getObjectAngularVelocity() const = 0;
+    virtual const glm::vec3& getObjectGravity() const = 0;
+
+    virtual const QUuid& getObjectID() const = 0;
+
+    virtual QUuid getSimulatorID() const = 0;
+    virtual void bump() = 0;
+
+    virtual QString getName() { return ""; }
+
     friend class PhysicsEngine;
+
 protected:
+    virtual void setMotionType(MotionType motionType);
     void setRigidBody(btRigidBody* body);
 
-    MotionStateType _type = MOTION_STATE_TYPE_UNKNOWN;
+    MotionStateType _type = MOTION_STATE_TYPE_INVALID; // type of MotionState
+    MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
-    // TODO: move these materials properties outside of ObjectMotionState
-    float _friction;
-    float _restitution;
-    float _linearDamping;
-    float _angularDamping;
-
-    MotionType _motionType;
-
+    btCollisionShape* _shape;
     btRigidBody* _body;
+    float _mass;
 
-    bool _isKinematic = false;
-    uint32_t _lastKinematicSubstep = 0;
-
-    bool _sentMoving;   // true if last update was moving
-    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
-
-    uint32_t _outgoingPacketFlags;
-    uint32_t _sentFrame;
-    glm::vec3 _sentPosition;    // in simulation-frame (not world-frame)
-    glm::quat _sentRotation;;
-    glm::vec3 _sentVelocity;
-    glm::vec3 _sentAngularVelocity; // radians per second
-    glm::vec3 _sentAcceleration;
+    uint32_t _lastKinematicStep;
 };
 
 #endif // hifi_ObjectMotionState_h

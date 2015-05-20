@@ -2,7 +2,7 @@ EntityListTool = function(opts) {
     var that = {};
 
     var url = Script.resolvePath('html/entityList.html');
-    var webView = new WebWindow('Entities', url, 200, 280);
+    var webView = new WebWindow('Entities', url, 200, 280, true);
 
     var visible = false;
 
@@ -28,11 +28,10 @@ EntityListTool = function(opts) {
             type: 'selectionUpdate',
             selectedIDs: selectedIDs,
         };
-        print("Sending: " + JSON.stringify(data));
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
-    function sendUpdate() {
+    that.sendUpdate = function() {
         var entities = [];
         var ids = Entities.findEntities(MyAvatar.position, 100);
         for (var i = 0; i < ids.length; i++) {
@@ -40,6 +39,7 @@ EntityListTool = function(opts) {
             var properties = Entities.getEntityProperties(id);
             entities.push({
                 id: id.id,
+                name: properties.name,
                 type: properties.type,
                 url: properties.type == "Model" ? properties.modelURL : "",
             });
@@ -59,7 +59,6 @@ EntityListTool = function(opts) {
     }
 
     webView.eventBridge.webEventReceived.connect(function(data) {
-        print("Got: " + data);
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
@@ -78,7 +77,7 @@ EntityListTool = function(opts) {
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         } else if (data.type == "refresh") {
-            sendUpdate();
+            that.sendUpdate();
         } else if (data.type == "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;

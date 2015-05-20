@@ -98,6 +98,9 @@ void Circle3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 color(colorX.red / MAX_COLOR, colorX.green / MAX_COLOR, colorX.blue / MAX_COLOR, alpha);
 
+    bool colorChanged = colorX.red != _lastColor.red || colorX.green != _lastColor.green || colorX.blue != _lastColor.blue;
+    _lastColor = colorX;
+
     glDisable(GL_LIGHTING);
     
     glm::vec3 position = getPosition();
@@ -131,7 +134,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     _quadVerticesID = geometryCache->allocateID();
                 }
                 
-                if (geometryChanged) {
+                if (geometryChanged || colorChanged) {
                     
                     QVector<glm::vec2> points;
 
@@ -170,7 +173,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     _lineVerticesID = geometryCache->allocateID();
                 }
 
-                if (geometryChanged) {
+                if (geometryChanged || colorChanged) {
                     QVector<glm::vec2> points;
                     
                     float angle = startAt;

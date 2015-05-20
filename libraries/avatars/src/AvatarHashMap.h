@@ -20,6 +20,7 @@
 #include <Node.h>
 
 #include "AvatarData.h"
+#include <glm/glm.hpp>
 
 typedef QSharedPointer<AvatarData> AvatarSharedPointer;
 typedef QWeakPointer<AvatarData> AvatarWeakPointer;
@@ -36,6 +37,7 @@ public:
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool containsAvatarWithDisplayName(const QString& displayName);
+    bool isAvatarInRange(const glm::vec3 & position, const float range);
     AvatarWeakPointer avatarWithDisplayName(const QString& displayname);
     
 private slots:

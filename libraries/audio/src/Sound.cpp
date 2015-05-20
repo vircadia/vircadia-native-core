@@ -27,6 +27,7 @@
 #include "AudioFormat.h"
 #include "AudioBuffer.h"
 #include "AudioEditBuffer.h"
+#include "AudioLogging.h"
 #include "Sound.h"
 
 static int soundMetaTypeId = qRegisterMetaType<Sound*>();
@@ -77,7 +78,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
             // since it's raw the only way for us to know that is if the file was called .stereo.raw
             if (reply->url().fileName().toLower().endsWith("stereo.raw")) {
                 _isStereo = true;
-                qDebug() << "Processing sound from" << reply->url() << "as stereo audio file.";
+                qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << reply->url() << "as stereo audio file.";
             }
             
             // Process as RAW file
@@ -85,7 +86,7 @@ void Sound::downloadFinished(QNetworkReply* reply) {
         }
         trimFrames();
     } else {
-        qDebug() << "Network reply without 'Content-Type'.";
+        qCDebug(audio) << "Network reply without 'Content-Type'.";
     }
     
     _isReady = true;
@@ -94,30 +95,39 @@ void Sound::downloadFinished(QNetworkReply* reply) {
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
     // assume that this was a RAW file and is now an array of samples that are
-    // signed, 16-bit, 48Khz, mono
+    // signed, 16-bit, 48Khz
 
     // we want to convert it to the format that the audio-mixer wants
-    // which is signed, 16-bit, 24Khz, mono
-
-    _byteArray.resize(rawAudioByteArray.size() / 2);
-
-    int numSourceSamples = rawAudioByteArray.size() / sizeof(int16_t);
+    // which is signed, 16-bit, 24Khz
+    
+    int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
+    
+    int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
+    if (_isStereo && numSourceSamples % 2 != 0) {
+        numDestinationBytes += sizeof(AudioConstants::AudioSample);
+    }
+    
+    _byteArray.resize(numDestinationBytes);
+    
     int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
     int16_t* destinationSamples = (int16_t*) _byteArray.data();
 
-    
     if (_isStereo) {
         for (int i = 0; i < numSourceSamples; i += 4) {
-            destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
-            destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
+            if (i + 2 >= numSourceSamples) {
+                destinationSamples[i / 2] = sourceSamples[i];
+                destinationSamples[(i / 2) + 1] = sourceSamples[i + 1];
+            } else {
+                destinationSamples[i / 2] = (sourceSamples[i] + sourceSamples[i + 2]) / 2;
+                destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] + sourceSamples[i + 3]) / 2;
+            }
         }
     } else {
         for (int i = 1; i < numSourceSamples; i += 2) {
             if (i + 1 >= numSourceSamples) {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
+                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] + sourceSamples[i]) / 2;
             } else {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2)
-                                                + (sourceSamples[i + 1] / 4);
+                destinationSamples[(i - 1) / 2] = ((sourceSamples[i - 1] + sourceSamples[i + 1]) / 4) + (sourceSamples[i] / 2);
             }
         }
     }
@@ -207,34 +217,34 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         } else {
             // descriptor.id == "RIFX" also signifies BigEndian file
             // waveStream.setByteOrder(QDataStream::BigEndian);
-            qDebug() << "Currently not supporting big-endian audio files.";
+            qCDebug(audio) << "Currently not supporting big-endian audio files.";
             return;
         }
 
         if (strncmp(fileHeader.riff.type, "WAVE", 4) != 0
             || strncmp(fileHeader.wave.descriptor.id, "fmt", 3) != 0) {
-            qDebug() << "Not a WAVE Audio file.";
+            qCDebug(audio) << "Not a WAVE Audio file.";
             return;
         }
 
         // added the endianess check as an extra level of security
 
         if (qFromLittleEndian<quint16>(fileHeader.wave.audioFormat) != 1) {
-            qDebug() << "Currently not supporting non PCM audio files.";
+            qCDebug(audio) << "Currently not supporting non PCM audio files.";
             return;
         }
         if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 2) {
             _isStereo = true;
         } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) > 2) {
-            qDebug() << "Currently not support audio files with more than 2 channels.";
+            qCDebug(audio) << "Currently not support audio files with more than 2 channels.";
         }
         
         if (qFromLittleEndian<quint16>(fileHeader.wave.bitsPerSample) != 16) {
-            qDebug() << "Currently not supporting non 16bit audio files.";
+            qCDebug(audio) << "Currently not supporting non 16bit audio files.";
             return;
         }
         if (qFromLittleEndian<quint32>(fileHeader.wave.sampleRate) != 48000) {
-            qDebug() << "Currently not supporting non 48KHz audio files.";
+            qCDebug(audio) << "Currently not supporting non 48KHz audio files.";
             return;
         }
 
@@ -251,7 +261,7 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
                 }
                 waveStream.skipRawData(dataHeader.descriptor.size);
             } else {
-                qDebug() << "Could not read wav audio data header.";
+                qCDebug(audio) << "Could not read wav audio data header.";
                 return;
             }
         }
@@ -260,11 +270,11 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(dataHeader.descriptor.size);
         outputAudioByteArray.resize(outputAudioByteArraySize);
         if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
-            qDebug() << "Error reading WAV file";
+            qCDebug(audio) << "Error reading WAV file";
         }
 
     } else {
-        qDebug() << "Could not read wav audio file header.";
+        qCDebug(audio) << "Could not read wav audio file header.";
         return;
     }
 }

@@ -14,16 +14,15 @@
 
 #include <stdint.h>
 
-#include <QSet>
+#include <QUuid>
+#include <QVector>
 #include <btBulletDynamicsCommon.h>
-
-#include <EntityItem.h>
-#include <EntitySimulation.h>
+#include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
 #include "BulletUtil.h"
 #include "ContactInfo.h"
-#include "EntityMotionState.h"
-#include "ShapeManager.h"
+#include "DynamicCharacterController.h"
+#include "PhysicsTypedefs.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
@@ -37,37 +36,47 @@ public:
     ContactKey(void* a, void* b) : _a(a), _b(b) {}
     bool operator<(const ContactKey& other) const { return _a < other._a || (_a == other._a && _b < other._b); }
     bool operator==(const ContactKey& other) const { return _a == other._a && _b == other._b; }
-    void* _a;
-    void* _b;
+    void* _a; // ObjectMotionState pointer
+    void* _b; // ObjectMotionState pointer
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef std::pair<ContactKey, ContactInfo> ContactMapElement;
+typedef QVector<Collision> CollisionEvents;
 
-class PhysicsEngine : public EntitySimulation {
+class PhysicsEngine {
 public:
     // TODO: find a good way to make this a non-static method
     static uint32_t getNumSubsteps();
 
-    PhysicsEngine() = delete; // prevent compiler from creating default ctor
     PhysicsEngine(const glm::vec3& offset);
-
     ~PhysicsEngine();
+    void init();
 
-    // overrides for EntitySimulation
-    void updateEntitiesInternal(const quint64& now);
-    void addEntityInternal(EntityItem* entity);
-    void removeEntityInternal(EntityItem* entity);
-    void entityChangedInternal(EntityItem* entity);
-    void sortEntitiesThatMovedInternal();
-    void clearEntitiesInternal();
+    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
+    const QUuid& getSessionID() const { return _sessionID; }
 
-    virtual void init(EntityEditPacketSender* packetSender);
+    void addObject(ObjectMotionState* motionState);
+    void removeObject(ObjectMotionState* motionState);
+
+    void deleteObjects(VectorOfMotionStates& objects);
+    void deleteObjects(SetOfMotionStates& objects); // only called during teardown
+    void addObjects(VectorOfMotionStates& objects);
+    void changeObjects(VectorOfMotionStates& objects);
+    void reinsertObject(ObjectMotionState* object);
 
     void stepSimulation();
-    void stepNonPhysicalKinematics(const quint64& now);
+    void updateContactMap();
 
-    void computeCollisionEvents();
+    bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
+
+    /// \return reference to list of changed MotionStates.  The list is only valid until beginning of next simulation loop.
+    VectorOfMotionStates& getOutgoingChanges();
+
+    /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
+    CollisionEvents& getCollisionEvents();
+
+    /// \brief prints timings for last frame if stats have been requested.
+    void dumpStatsIfNecessary();
 
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
@@ -75,22 +84,22 @@ public:
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
-    /// \param motionState pointer to Object's MotionState
-    /// \return true if Object added
-    void addObject(const ShapeInfo& shapeInfo, btCollisionShape* shape, ObjectMotionState* motionState);
+    /// \brief call bump on any objects that touch the object corresponding to motionState
+    void bump(ObjectMotionState* motionState);
 
-    /// process queue of changed from external sources
-    void relayIncomingChangesToSimulation();
+    void removeRigidBody(btRigidBody* body);
+
+    void setCharacterController(DynamicCharacterController* character);
+
+    void dumpNextStats() { _dumpNextStats = true; }
+
+    static bool physicsInfoIsActive(void* physicsInfo);
+    static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
 
 private:
-    /// \param motionState pointer to Object's MotionState
-    void removeObjectFromBullet(ObjectMotionState* motionState);
-
     void removeContacts(ObjectMotionState* motionState);
 
-    // return 'true' of update was successful
-    bool updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
-    void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+    void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig = NULL;
@@ -98,21 +107,22 @@ private:
     btBroadphaseInterface* _broadphaseFilter = NULL;
     btSequentialImpulseConstraintSolver* _constraintSolver = NULL;
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
-    ShapeManager _shapeManager;
+    btGhostPairCallback* _ghostPairCallback = NULL;
 
     glm::vec3 _originOffset;
-
-    // EntitySimulation stuff
-    QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
-    QSet<ObjectMotionState*> _nonPhysicalKinematicObjects; // not in physics simulation, but still need kinematic simulation
-    QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
-    QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
-
-    EntityEditPacketSender* _entityPacketSender = NULL;
 
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
+
+    /// character collisions
+    DynamicCharacterController* _characterController = NULL;
+
+    bool _dumpNextStats = false;
+    bool _hasOutgoingChanges = false;
+
+    QUuid _sessionID;
+    CollisionEvents _collisionEvents;
 };
 
 #endif // hifi_PhysicsEngine_h

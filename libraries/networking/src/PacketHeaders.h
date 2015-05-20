@@ -12,14 +12,19 @@
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
+#pragma once
+
+#include <cstdint>
+#include <map>
+
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QSet>
 #include <QtCore/QUuid>
 
 #include "UUID.h"
 
-// NOTE: if adding a new packet type, you can replace one marked usable or add at the end
-// NOTE: if you want the name of the packet type to be available for debugging or logging, update nameForPacketType() as well
+// NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
+// NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 enum PacketType {
     PacketTypeUnknown, // 0
     PacketTypeStunResponse,
@@ -42,8 +47,8 @@ enum PacketType {
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
     PacketTypeDataServerConfirm, // 20
-    UNUSED_1,
-    UNUSED_2,
+    PacketTypeDomainServerPathQuery,
+    PacketTypeDomainServerPathResponse,
     UNUSED_3,
     UNUSED_4,
     UNUSED_5, // 25
@@ -79,6 +84,11 @@ enum PacketType {
 
 typedef char PacketVersion;
 
+typedef uint16_t PacketSequenceNumber;
+const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
+
+typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
+
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
@@ -86,39 +96,61 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeNodeJsonStats << PacketTypeEntityQuery
     << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
     << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode;
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+    << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
+
+const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
+    << PacketTypeAvatarData;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
 const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
 
-PacketVersion versionForPacketType(PacketType type);
-QString nameForPacketType(PacketType type);
+PacketType packetTypeForPacket(const QByteArray& packet);
+PacketType packetTypeForPacket(const char* packet);
+
+PacketVersion versionForPacketType(PacketType packetType);
+QString nameForPacketType(PacketType packetType);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithPopulatedHeader(PacketType type, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(QByteArray& packet, PacketType type, const QUuid& connectionUUID = nullUUID);
-int populatePacketHeader(char* packet, PacketType type, const QUuid& connectionUUID = nullUUID);
+QByteArray byteArrayWithUUIDPopulatedHeader(PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, const QUuid& connectionUUID);
+int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID);
 
-int numHashBytesInPacketHeaderGivenPacketType(PacketType type);
+int numHashBytesForType(PacketType packetType);
+int numSequenceNumberBytesForType(PacketType packetType);
 
 int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
-int numBytesForPacketHeaderGivenPacketType(PacketType type);
+int numBytesForArithmeticCodedPacketType(PacketType packetType);
+int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
 
 QUuid uuidFromPacketHeader(const QByteArray& packet);
 
+int hashOffsetForPacketType(PacketType packetType);
+int sequenceNumberOffsetForPacketType(PacketType packetType);
+
 QByteArray hashFromPacketHeader(const QByteArray& packet);
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
-void replaceHashInPacketGivenConnectionUUID(QByteArray& packet, const QUuid& connectionUUID);
 
-PacketType packetTypeForPacket(const QByteArray& packet);
-PacketType packetTypeForPacket(const char* packet);
+// NOTE: The following four methods accept a PacketType which defaults to PacketTypeUnknown.
+// If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
+
+PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType packetType = PacketTypeUnknown);
+
+void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType packetType = PacketTypeUnknown);
+
+void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber,
+                                   PacketType packetType = PacketTypeUnknown);
+
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
+                                          PacketType packetType = PacketTypeUnknown);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
+const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
 const PacketVersion VERSION_ENTITIES_SUPPORT_SPLIT_MTU = 3;
@@ -129,6 +161,22 @@ const PacketVersion VERSION_ENTITIES_HAVE_USER_DATA = 6;
 const PacketVersion VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME = 7;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SHAPE_TYPE = 8;
 const PacketVersion VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES = 9;
-const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
+const PacketVersion VERSION_ENTITIES_HAS_PARTICLES = 10;
+const PacketVersion VERSION_ENTITIES_USE_METERS_AND_RADIANS = 11;
+const PacketVersion VERSION_ENTITIES_HAS_COLLISION_MODEL = 12;
+const PacketVersion VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED = 13;
+const PacketVersion VERSION_ENTITIES_HAS_MARKETPLACE_ID = 14;
+const PacketVersion VERSION_ENTITIES_HAVE_ACCELERATION = 15;
+const PacketVersion VERSION_ENTITIES_HAVE_UUIDS = 16;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_EXIST = 17;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_DYNAMIC_SHAPE = 18;
+const PacketVersion VERSION_ENTITIES_HAVE_NAMES = 19;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_ATMOSPHERE = 20;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_HAVE_SKYBOX = 21;
+const PacketVersion VERSION_ENTITIES_ZONE_ENTITIES_STAGE_HAS_AUTOMATIC_HOURDAY = 22;
+const PacketVersion VERSION_ENTITIES_PARTICLE_ENTITIES_HAVE_TEXTURES = 23;
+const PacketVersion VERSION_ENTITIES_HAVE_LINE_TYPE = 24;
+const PacketVersion VERSION_ENTITIES_HAVE_COLLISION_SOUND_URL = 25;
+const PacketVersion VERSION_ENTITIES_HAVE_FRICTION = 26;
 
 #endif // hifi_PacketHeaders_h

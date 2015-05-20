@@ -16,7 +16,8 @@ AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArr
     _rawAudioArray(rawAudioArray),
     _shouldLoop(false),
     _isStopped(false),
-    _currentOffset(0)
+    _currentOffset(0),
+    _volume(1.0f)
 {
     
 }
@@ -35,6 +36,18 @@ bool AudioInjectorLocalBuffer::seek(qint64 pos) {
     }
 }
 
+void copy(char* to, char* from, int size, qreal factor) {
+    int16_t* toArray = (int16_t*) to;
+    int16_t* fromArray = (int16_t*) from;
+    int sampleSize = size / sizeof(int16_t);
+    
+    for (int i = 0; i < sampleSize; i++) {
+        *toArray = factor * (*fromArray);
+        toArray++;
+        fromArray++;
+    }
+}
+
 qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
     if (!_isStopped) {
         
@@ -47,7 +60,7 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
             bytesRead = bytesToEnd;
         }
         
-        memcpy(data, _rawAudioArray.data() + _currentOffset, bytesRead);
+        copy(data, _rawAudioArray.data() + _currentOffset, bytesRead, _volume);
         
         // now check if we are supposed to loop and if we can copy more from the beginning
         if (_shouldLoop && maxSize != bytesRead) {
@@ -59,6 +72,8 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
         if (!_shouldLoop && bytesRead == bytesToEnd) {
             // we hit the end of the buffer, emit a signal
             emit bufferEmpty();
+        } else if (_shouldLoop && _currentOffset == _rawAudioArray.size()) {
+            _currentOffset = 0;
         }
         
         return bytesRead;
@@ -76,11 +91,11 @@ qint64 AudioInjectorLocalBuffer::recursiveReadFromFront(char* data, qint64 maxSi
     }
     
     // copy that amount
-    memcpy(data, _rawAudioArray.data(), bytesRead);
+    copy(data, _rawAudioArray.data(), bytesRead, _volume);
     
     // check if we need to call ourselves again and pull from the front again
     if (bytesRead < maxSize) {
-        return bytesRead + recursiveReadFromFront(data, maxSize);
+        return bytesRead + recursiveReadFromFront(data + bytesRead, maxSize - bytesRead);
     } else {
         _currentOffset = bytesRead;
         return bytesRead;

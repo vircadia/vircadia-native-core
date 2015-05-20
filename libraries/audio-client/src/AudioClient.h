@@ -1,6 +1,6 @@
 //
 //  AudioClient.h
-//  interface/src
+//  libraries/audio-client/src
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -108,8 +108,6 @@ public:
     
     bool isMuted() { return _muted; }
     
-    void setIsStereoInput(bool isStereoInput);
-    
     const AudioIOStats& getStats() const { return _stats; }
 
     float getInputRingBufferMsecsAvailable() const;
@@ -143,23 +141,23 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
     
-    void toggleAudioSourceInject();
-    void selectAudioSourcePinkNoise();
-    void selectAudioSourceSine440();
-    
+    virtual void enableAudioSourceInject(bool enable);
+    virtual void selectAudioSourcePinkNoise();
+    virtual void selectAudioSourceSine440();
+
+    virtual void setIsStereoInput(bool stereo);
+
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
     
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
     
-    void toggleStereoInput() { setIsStereoInput(!_isStereoInput); }
-  
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
     void setOutputBufferSize(int numFrames);
 
-    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
+    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector);
 
     bool switchInputToAudioDevice(const QString& inputDeviceName);
     bool switchOutputToAudioDevice(const QString& outputDeviceName);

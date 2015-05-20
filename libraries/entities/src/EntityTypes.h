@@ -35,7 +35,11 @@ public:
         Sphere,
         Light,
         Text,
-        LAST = Text
+        ParticleEffect,
+        Zone,
+        Web,
+        Line,
+        LAST = Line
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

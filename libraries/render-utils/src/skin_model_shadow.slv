@@ -13,6 +13,7 @@
 //
 
 <@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
 
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
@@ -30,8 +31,8 @@ void main(void) {
         position += clusterMatrix * gl_Vertex * clusterWeight;
     }
 
-    // use standard pipeline transform
+   // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    gl_Position = transformModelToClipPos(cam, obj, position);
+    <$transformModelToClipPos(cam, obj, position, gl_Position)$>
 }

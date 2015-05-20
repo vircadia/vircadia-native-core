@@ -75,8 +75,6 @@ public:
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
-    static void attachQueryNodeToNode(Node* newNode);
-    
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
     static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
@@ -146,17 +144,20 @@ protected:
     QString getStatusLink();
 
     void setupDatagramProcessingThread();
-    
+
     int _argc;
     const char** _argv;
     char** _parsedArgV;
     QJsonObject _settings;
+
+    bool _isShuttingDown = false;
 
     HTTPManager* _httpManager;
     int _statusPort;
     QString _statusHost;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
+    QString _persistAsFileType;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
     Octree* _tree; // this IS a reaveraging tree

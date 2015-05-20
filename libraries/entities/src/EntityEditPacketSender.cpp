@@ -14,6 +14,7 @@
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include "EntityEditPacketSender.h"
+#include "EntitiesLogging.h"
 #include "EntityItem.h"
 
 
@@ -37,9 +38,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
 
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
         #ifdef WANT_DEBUG
-            qDebug() << "calling queueOctreeEditMessage()...";
-            qDebug() << "    id:" << modelID;
-            qDebug() << "    properties:" << properties;
+            qCDebug(entities) << "calling queueOctreeEditMessage()...";
+            qCDebug(entities) << "    id:" << modelID;
+            qCDebug(entities) << "    properties:" << properties;
         #endif
         queueOctreeEditMessage(type, bufferOut, sizeOut);
     }

@@ -10,6 +10,7 @@
 //
 
 #include "SequenceNumberStats.h"
+#include "NetworkLogging.h"
 
 #include <limits>
 
@@ -42,8 +43,8 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
     // if the sender node has changed, reset all stats
     if (senderUUID != _lastSenderUUID) {
         if (_stats._received > 0) {
-            qDebug() << "sequence number stats was reset due to new sender node";
-            qDebug() << "previous:" << _lastSenderUUID << "current:" << senderUUID;
+            qCDebug(networking) << "sequence number stats was reset due to new sender node";
+            qCDebug(networking) << "previous:" << _lastSenderUUID << "current:" << senderUUID;
             reset();
         }
         _lastSenderUUID = senderUUID;
@@ -61,7 +62,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
     } else { // out of order
 
         if (wantExtraDebugging) {
-            qDebug() << "out of order... got:" << incoming << "expected:" << expected;
+            qCDebug(networking) << "out of order... got:" << incoming << "expected:" << expected;
         }
 
         int incomingInt = (int)incoming;
@@ -80,7 +81,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            qDebug() << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
+            qCDebug(networking) << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
 
             _stats._unreasonable++;
             
@@ -98,8 +99,8 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
             arrivalInfo._status = Early;
 
             if (wantExtraDebugging) {
-                qDebug() << "this packet is earlier than expected...";
-                qDebug() << ">>>>>>>> missing gap=" << (incomingInt - expectedInt);
+                qCDebug(networking) << "this packet is earlier than expected...";
+                qCDebug(networking) << ">>>>>>>> missing gap=" << (incomingInt - expectedInt);
             }
             int skipped = incomingInt - expectedInt;
             _stats._early++;
@@ -119,7 +120,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
             }
         } else { // late
             if (wantExtraDebugging) {
-                qDebug() << "this packet is later than expected...";
+                qCDebug(networking) << "this packet is later than expected...";
             }
 
             _stats._late++;
@@ -131,7 +132,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                 arrivalInfo._status = Recovered;
 
                 if (wantExtraDebugging) {
-                    qDebug() << "found it in _missingSet";
+                    qCDebug(networking) << "found it in _missingSet";
                 }
                 _stats._lost--;
                 _stats._recovered++;
@@ -142,7 +143,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
                 arrivalInfo._status = Unreasonable;
 
-                qDebug() << "unreasonable sequence number:" << incoming << "(possible duplicate)";
+                qCDebug(networking) << "unreasonable sequence number:" << incoming << "(possible duplicate)";
 
                 _stats._unreasonable++;
 
@@ -185,7 +186,7 @@ void SequenceNumberStats::receivedUnreasonable(quint16 incoming) {
             _statsHistory.clear();
             _consecutiveUnreasonableOnTime = 0;
 
-            qDebug() << "re-synced with sequence number sender";
+            qCDebug(networking) << "re-synced with sequence number sender";
         }
     } else {
         _consecutiveUnreasonableOnTime = 0;
@@ -194,7 +195,7 @@ void SequenceNumberStats::receivedUnreasonable(quint16 incoming) {
 
 void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
     if (wantExtraDebugging) {
-        qDebug() << "pruning _missingSet! size:" << _missingSet.size();
+        qCDebug(networking) << "pruning _missingSet! size:" << _missingSet.size();
     }
 
     // some older sequence numbers may be from before a rollover point; this must be handled.
@@ -207,14 +208,14 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
         while (i != _missingSet.end()) {
             quint16 missing = *i;
             if (wantExtraDebugging) {
-                qDebug() << "checking item:" << missing << "is it in need of pruning?";
-                qDebug() << "old age cutoff:" << nonRolloverCutoff;
+                qCDebug(networking) << "checking item:" << missing << "is it in need of pruning?";
+                qCDebug(networking) << "old age cutoff:" << nonRolloverCutoff;
             }
 
             if (missing > _lastReceivedSequence || missing < nonRolloverCutoff) {
                 i = _missingSet.erase(i);
                 if (wantExtraDebugging) {
-                    qDebug() << "pruning really old missing sequence:" << missing;
+                    qCDebug(networking) << "pruning really old missing sequence:" << missing;
                 }
             } else {
                 i++;
@@ -226,14 +227,14 @@ void SequenceNumberStats::pruneMissingSet(const bool wantExtraDebugging) {
         while (i != _missingSet.end()) {
             quint16 missing = *i;
             if (wantExtraDebugging) {
-                qDebug() << "checking item:" << missing << "is it in need of pruning?";
-                qDebug() << "old age cutoff:" << rolloverCutoff;
+                qCDebug(networking) << "checking item:" << missing << "is it in need of pruning?";
+                qCDebug(networking) << "old age cutoff:" << rolloverCutoff;
             }
 
             if (missing > _lastReceivedSequence && missing < rolloverCutoff) {
                 i = _missingSet.erase(i);
                 if (wantExtraDebugging) {
-                    qDebug() << "pruning really old missing sequence:" << missing;
+                    qCDebug(networking) << "pruning really old missing sequence:" << missing;
                 }
             } else {
                 i++;

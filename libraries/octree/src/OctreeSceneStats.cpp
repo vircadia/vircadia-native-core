@@ -14,11 +14,12 @@
 #include <QStringList>
 
 #include <LogHandler.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
-#include <SharedUtil.h>
 
 #include "OctreePacketData.h"
 #include "OctreeElement.h"
+#include "OctreeLogging.h"
 #include "OctreeSceneStats.h"
 
 
@@ -384,7 +385,8 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeOctreeStats);
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                PacketTypeOctreeStats);
     destinationBuffer += headerLength;
     
     memcpy(destinationBuffer, &_start, sizeof(_start));
@@ -630,51 +632,51 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
 
 
 void OctreeSceneStats::printDebugDetails() {
-    qDebug() << "\n------------------------------";
-    qDebug() << "OctreeSceneStats:";
-    qDebug() << "start: " << _start;
-    qDebug() << "end: " << _end;
-    qDebug() << "elapsed: " << _elapsed;
-    qDebug() << "encoding: " << _totalEncodeTime;
-    qDebug();
-    qDebug() << "full scene: " << debug::valueOf(_isFullScene);
-    qDebug() << "moving: " << debug::valueOf(_isMoving);
-    qDebug();
-    qDebug() << "packets: " << _packets;
-    qDebug() << "bytes: " << _bytes;
-    qDebug();
-    qDebug() << "total elements: " << _totalElements;
-    qDebug() << "internal: " << _totalInternal;
-    qDebug() << "leaves: " << _totalLeaves;
-    qDebug() << "traversed: " << _traversed;
-    qDebug() << "internal: " << _internal;
-    qDebug() << "leaves: " << _leaves;
-    qDebug() << "skipped distance: " << _skippedDistance;
-    qDebug() << "internal: " << _internalSkippedDistance;
-    qDebug() << "leaves: " << _leavesSkippedDistance;
-    qDebug() << "skipped out of view: " << _skippedOutOfView;
-    qDebug() << "internal: " << _internalSkippedOutOfView;
-    qDebug() << "leaves: " << _leavesSkippedOutOfView;
-    qDebug() << "skipped was in view: " << _skippedWasInView;
-    qDebug() << "internal: " << _internalSkippedWasInView;
-    qDebug() << "leaves: " << _leavesSkippedWasInView;
-    qDebug() << "skipped no change: " << _skippedNoChange;
-    qDebug() << "internal: " << _internalSkippedNoChange;
-    qDebug() << "leaves: " << _leavesSkippedNoChange;
-    qDebug() << "skipped occluded: " << _skippedOccluded;
-    qDebug() << "internal: " << _internalSkippedOccluded;
-    qDebug() << "leaves: " << _leavesSkippedOccluded;
-    qDebug();
-    qDebug() << "color sent: " << _colorSent;
-    qDebug() << "internal: " << _internalColorSent;
-    qDebug() << "leaves: " << _leavesColorSent;
-    qDebug() << "Didn't Fit: " << _didntFit;
-    qDebug() << "internal: " << _internalDidntFit;
-    qDebug() << "leaves: " << _leavesDidntFit;
-    qDebug() << "color bits: " << _colorBitsWritten;
-    qDebug() << "exists bits: " << _existsBitsWritten;
-    qDebug() << "in packet bit: " << _existsInPacketBitsWritten;
-    qDebug() << "trees removed: " << _treesRemoved;
+    qCDebug(octree) << "\n------------------------------";
+    qCDebug(octree) << "OctreeSceneStats:";
+    qCDebug(octree) << "start: " << _start;
+    qCDebug(octree) << "end: " << _end;
+    qCDebug(octree) << "elapsed: " << _elapsed;
+    qCDebug(octree) << "encoding: " << _totalEncodeTime;
+    qCDebug(octree);
+    qCDebug(octree) << "full scene: " << debug::valueOf(_isFullScene);
+    qCDebug(octree) << "moving: " << debug::valueOf(_isMoving);
+    qCDebug(octree);
+    qCDebug(octree) << "packets: " << _packets;
+    qCDebug(octree) << "bytes: " << _bytes;
+    qCDebug(octree);
+    qCDebug(octree) << "total elements: " << _totalElements;
+    qCDebug(octree) << "internal: " << _totalInternal;
+    qCDebug(octree) << "leaves: " << _totalLeaves;
+    qCDebug(octree) << "traversed: " << _traversed;
+    qCDebug(octree) << "internal: " << _internal;
+    qCDebug(octree) << "leaves: " << _leaves;
+    qCDebug(octree) << "skipped distance: " << _skippedDistance;
+    qCDebug(octree) << "internal: " << _internalSkippedDistance;
+    qCDebug(octree) << "leaves: " << _leavesSkippedDistance;
+    qCDebug(octree) << "skipped out of view: " << _skippedOutOfView;
+    qCDebug(octree) << "internal: " << _internalSkippedOutOfView;
+    qCDebug(octree) << "leaves: " << _leavesSkippedOutOfView;
+    qCDebug(octree) << "skipped was in view: " << _skippedWasInView;
+    qCDebug(octree) << "internal: " << _internalSkippedWasInView;
+    qCDebug(octree) << "leaves: " << _leavesSkippedWasInView;
+    qCDebug(octree) << "skipped no change: " << _skippedNoChange;
+    qCDebug(octree) << "internal: " << _internalSkippedNoChange;
+    qCDebug(octree) << "leaves: " << _leavesSkippedNoChange;
+    qCDebug(octree) << "skipped occluded: " << _skippedOccluded;
+    qCDebug(octree) << "internal: " << _internalSkippedOccluded;
+    qCDebug(octree) << "leaves: " << _leavesSkippedOccluded;
+    qCDebug(octree);
+    qCDebug(octree) << "color sent: " << _colorSent;
+    qCDebug(octree) << "internal: " << _internalColorSent;
+    qCDebug(octree) << "leaves: " << _leavesColorSent;
+    qCDebug(octree) << "Didn't Fit: " << _didntFit;
+    qCDebug(octree) << "internal: " << _internalDidntFit;
+    qCDebug(octree) << "leaves: " << _leavesDidntFit;
+    qCDebug(octree) << "color bits: " << _colorBitsWritten;
+    qCDebug(octree) << "exists bits: " << _existsBitsWritten;
+    qCDebug(octree) << "in packet bit: " << _existsInPacketBitsWritten;
+    qCDebug(octree) << "trees removed: " << _treesRemoved;
 }
 
 OctreeSceneStats::ItemInfo OctreeSceneStats::_ITEMS[] = {
@@ -845,10 +847,10 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
     qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
     if (wantExtraDebugging) {
-        qDebug() << "sentAt:" << sentAt << " usecs";
-        qDebug() << "arrivedAt:" << arrivedAt << " usecs";
-        qDebug() << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
-        qDebug() << "flightTime:" << flightTime << " usecs";
+        qCDebug(octree) << "sentAt:" << sentAt << " usecs";
+        qCDebug(octree) << "arrivedAt:" << arrivedAt << " usecs";
+        qCDebug(octree) << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
+        qCDebug(octree) << "flightTime:" << flightTime << " usecs";
     }
 
     // Guard against possible corrupted packets... with bad timestamps
@@ -859,7 +861,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
             = LogHandler::getInstance().addRepeatedMessageRegex(
                     "ignoring unreasonable packet... flightTime: -?\\d+ nodeClockSkewUsec: -?\\d+ usecs");
 
-        qDebug() << "ignoring unreasonable packet... flightTime:" << flightTime
+        qCDebug(octree) << "ignoring unreasonable packet... flightTime:" << flightTime
                     << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs";;
         return; // ignore any packets that are unreasonable
     }

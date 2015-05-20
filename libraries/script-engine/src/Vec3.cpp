@@ -13,6 +13,7 @@
 
 #include <QDebug>
 
+#include "ScriptEngineLogging.h"
 #include "Vec3.h"
 
 glm::vec3 Vec3::reflect(const glm::vec3& v1, const glm::vec3& v2) {
@@ -66,7 +67,7 @@ glm::vec3 Vec3::mix(const glm::vec3& v1, const glm::vec3& v2, float m) {
 }
 
 void Vec3::print(const QString& lable, const glm::vec3& v) {
-    qDebug() << qPrintable(lable) << v.x << "," << v.y << "," << v.z;
+    qCDebug(scriptengine) << qPrintable(lable) << v.x << "," << v.y << "," << v.z;
 }
 
 bool Vec3::equal(const glm::vec3& v1, const glm::vec3& v2) {

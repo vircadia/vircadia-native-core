@@ -42,13 +42,13 @@ private:
 
 class Snapshot {
 public:
-    static QString saveSnapshot();
-    static QTemporaryFile* saveTempSnapshot();
+    static QString saveSnapshot(QImage image);
+    static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
     
     static Setting::Handle<QString> snapshotsLocation;
 private:
-    static QFile* savedFileForSnapshot(bool isTemporary);
+    static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
 };
 
 #endif // hifi_Snapshot_h

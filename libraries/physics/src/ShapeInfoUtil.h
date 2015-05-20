@@ -19,14 +19,12 @@
 
 // translates between ShapeInfo and btShape
 
+// TODO: rename this to ShapeFactory
 namespace ShapeInfoUtil {
-    void collectInfoFromShape(const btCollisionShape* shape, ShapeInfo& info);
+
+    btConvexHullShape* createConvexHull(const QVector<glm::vec3>& points);
 
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
-
-    // TODO? just use bullet shape types everywhere?
-    int toBulletShapeType(int shapeInfoType);
-    int fromBulletShapeType(int bulletShapeType);
 };
 
 #endif // hifi_ShapeInfoUtil_h

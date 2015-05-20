@@ -21,7 +21,7 @@
 
 #include "WebWindowClass.h"
 
-class WindowScriptingInterface : public QObject {
+class WindowScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
     Q_PROPERTY(int innerHeight READ getInnerHeight)
@@ -29,7 +29,7 @@ class WindowScriptingInterface : public QObject {
     Q_PROPERTY(int y READ getY)
     Q_PROPERTY(bool cursorVisible READ isCursorVisible WRITE setCursorVisible)
 public:
-    static WindowScriptingInterface* getInstance();
+    WindowScriptingInterface();
     int getInnerWidth();
     int getInnerHeight();
     int getX();
@@ -43,6 +43,7 @@ public slots:
     void setCursorVisible(bool visible);
     QScriptValue hasFocus();
     void setFocus();
+    void raiseMainWindow();
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue form(const QString& title, QScriptValue array);
@@ -60,6 +61,8 @@ signals:
     void domainChanged(const QString& domainHostname);
     void inlineButtonClicked(const QString& name);
     void nonBlockingFormClosed();
+    void svoImportRequested(const QString& url);
+    void domainConnectionRefused(const QString& reason);
 
 private slots:
     QScriptValue showAlert(const QString& message);
@@ -82,10 +85,9 @@ private slots:
     void nonBlockingFormAccepted() { _nonBlockingFormActive = false; _formResult = QDialog::Accepted; emit nonBlockingFormClosed(); }
     void nonBlockingFormRejected() { _nonBlockingFormActive = false; _formResult = QDialog::Rejected; emit nonBlockingFormClosed(); }
 
-    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+    WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow);
     
 private:
-    WindowScriptingInterface();
     QString jsRegExp2QtRegExp(QString string);
     QDialog* createForm(const QString& title, QScriptValue form);
     

@@ -14,6 +14,7 @@
 #include <qnetworkinterface.h>
 
 #include "HifiSockAddr.h"
+#include "NetworkLogging.h"
 
 static int hifiSockAddrMetaTypeId = qMetaTypeId<HifiSockAddr>();
 
@@ -32,6 +33,7 @@ HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
 }
 
 HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
+    QObject(),
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {
@@ -52,12 +54,12 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
     if (_address.protocol() != QAbstractSocket::IPv4Protocol) {
         // lookup the IP by the hostname
         if (shouldBlockForLookup) {
-            qDebug() << "Synchronously looking up IP address for hostname" << hostname;
+            qCDebug(networking) << "Synchronously looking up IP address for hostname" << hostname;
             QHostInfo result = QHostInfo::fromName(hostname);
             handleLookupResult(result);
         } else {
             int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
-            qDebug() << "Asynchronously looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
+            qCDebug(networking) << "Asynchronously looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
         }
     }
 }
@@ -85,7 +87,7 @@ bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
 
 void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     if (hostInfo.error() != QHostInfo::NoError) {
-        qDebug() << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
+        qCDebug(networking) << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
         emit lookupFailed();
     }
     
@@ -93,7 +95,7 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
         // just take the first IPv4 address
         if (address.protocol() == QAbstractSocket::IPv4Protocol) {
             _address = address;
-            qDebug() << "QHostInfo lookup result for"
+            qCDebug(networking) << "QHostInfo lookup result for"
                 << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
             emit lookupCompleted();
             break;

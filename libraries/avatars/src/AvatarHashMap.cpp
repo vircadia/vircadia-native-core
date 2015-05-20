@@ -11,7 +11,9 @@
 
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
+#include "AvatarLogging.h"
 #include "AvatarHashMap.h"
 
 AvatarHashMap::AvatarHashMap() {
@@ -20,15 +22,15 @@ AvatarHashMap::AvatarHashMap() {
 
 
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
-    qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
+    qCDebug(avatars) << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
 }
 
-const qint64 AVATAR_SILENCE_THRESHOLD_MSECS = 5 * 1000;
+const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
     return (sharedAvatar->getOwningAvatarMixer() == NULL
-            || sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
+            || sharedAvatar->getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS);
 }
 
 void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -52,6 +54,17 @@ void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const
 
 bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
     return !avatarWithDisplayName(displayName).isNull();
+}
+
+bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
+    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+        glm::vec3 avatarPosition = sharedAvatar->getPosition();
+        float distance = glm::distance(avatarPosition, position);
+        if (distance < range) {
+            return true;
+        }
+    }
+    return false;
 }
 
 AvatarWeakPointer AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
@@ -84,7 +97,7 @@ AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID,
         // insert the new avatar into our hash
         matchingAvatar = newSharedAvatar();
     
-        qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
+        qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
         
         matchingAvatar->setSessionUUID(sessionUUID);
         matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);

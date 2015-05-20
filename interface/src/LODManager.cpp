@@ -1,6 +1,6 @@
 //
 //  LODManager.cpp
-//
+//  interface/src/LODManager.h
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -14,95 +14,169 @@
 
 #include "Application.h"
 #include "ui/DialogsManager.h"
+#include "InterfaceLogging.h"
 
 #include "LODManager.h"
 
-Setting::Handle<bool> automaticAvatarLOD("automaticAvatarLOD", true);
-Setting::Handle<float> avatarLODDecreaseFPS("avatarLODDecreaseFPS", DEFAULT_ADJUST_AVATAR_LOD_DOWN_FPS);
-Setting::Handle<float> avatarLODIncreaseFPS("avatarLODIncreaseFPS",  ADJUST_LOD_UP_FPS);
-Setting::Handle<float> avatarLODDistanceMultiplier("avatarLODDistanceMultiplier",
-                                                           DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER);
-Setting::Handle<int> boundaryLevelAdjust("boundaryLevelAdjust", 0);
-Setting::Handle<float> octreeSizeScale("octreeSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
+Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
+Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
+
+LODManager::LODManager() {
+    calculateAvatarLODDistanceMultiplier();
+}
+
+float LODManager::getLODDecreaseFPS() {
+    if (Application::getInstance()->isHMDMode()) {
+        return getHMDLODDecreaseFPS();
+    }
+    return getDesktopLODDecreaseFPS();
+}
+
+float LODManager::getLODIncreaseFPS() {
+    if (Application::getInstance()->isHMDMode()) {
+        return getHMDLODIncreaseFPS();
+    }
+    return getDesktopLODIncreaseFPS();
+}
 
 
 void LODManager::autoAdjustLOD(float currentFPS) {
+    
     // NOTE: our first ~100 samples at app startup are completely all over the place, and we don't
     // really want to count them in our average, so we will ignore the real frame rates and stuff
     // our moving average with simulated good data
     const int IGNORE_THESE_SAMPLES = 100;
-    const float ASSUMED_FPS = 60.0f;
-    if (_fpsAverage.getSampleCount() < IGNORE_THESE_SAMPLES) {
+    if (_fpsAverageUpWindow.getSampleCount() < IGNORE_THESE_SAMPLES) {
         currentFPS = ASSUMED_FPS;
+        _lastStable = _lastUpShift = _lastDownShift = usecTimestampNow();
     }
-    _fpsAverage.updateAverage(currentFPS);
-    _fastFPSAverage.updateAverage(currentFPS);
+    
+    _fpsAverageStartWindow.updateAverage(currentFPS);
+    _fpsAverageDownWindow.updateAverage(currentFPS);
+    _fpsAverageUpWindow.updateAverage(currentFPS);
     
     quint64 now = usecTimestampNow();
-    
-    const quint64 ADJUST_AVATAR_LOD_DOWN_DELAY = 1000 * 1000;
-    if (_automaticAvatarLOD) {
-        if (_fastFPSAverage.getAverage() < _avatarLODDecreaseFPS) {
-            if (now - _lastAvatarDetailDrop > ADJUST_AVATAR_LOD_DOWN_DELAY) {
-                // attempt to lower the detail in proportion to the fps difference
-                float targetFps = (_avatarLODDecreaseFPS + _avatarLODIncreaseFPS) * 0.5f;
-                float averageFps = _fastFPSAverage.getAverage();
-                const float MAXIMUM_MULTIPLIER_SCALE = 2.0f;
-                _avatarLODDistanceMultiplier = qMin(MAXIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER, _avatarLODDistanceMultiplier *
-                                                    (averageFps < EPSILON ? MAXIMUM_MULTIPLIER_SCALE :
-                                                     qMin(MAXIMUM_MULTIPLIER_SCALE, targetFps / averageFps)));
-                _lastAvatarDetailDrop = now;
-            }
-        } else if (_fastFPSAverage.getAverage() > _avatarLODIncreaseFPS) {
-            // let the detail level creep slowly upwards
-            const float DISTANCE_DECREASE_RATE = 0.05f;
-            _avatarLODDistanceMultiplier = qMax(MINIMUM_AVATAR_LOD_DISTANCE_MULTIPLIER,
-                                                _avatarLODDistanceMultiplier - DISTANCE_DECREASE_RATE);
-        }
-    }
-    
+
     bool changed = false;
-    quint64 elapsed = now - _lastAdjust;
+    quint64 elapsedSinceDownShift = now - _lastDownShift;
+    quint64 elapsedSinceUpShift = now - _lastUpShift;
+
+    quint64 lastStableOrUpshift = glm::max(_lastUpShift, _lastStable);
+    quint64 elapsedSinceStableOrUpShift = now - lastStableOrUpshift;
     
-    if (elapsed > ADJUST_LOD_DOWN_DELAY && _fpsAverage.getAverage() < ADJUST_LOD_DOWN_FPS
-        && _octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
-        
-        _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
-        
-        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
-            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+    if (_automaticLODAdjust) {
+    
+        // LOD Downward adjustment 
+        // If we've been downshifting, we watch a shorter downshift window so that we will quickly move toward our
+        // target frame rate. But if we haven't just done a downshift (either because our last shift was an upshift,
+        // or because we've just started out) then we look at a much longer window to consider whether or not to start
+        // downshifting.
+        bool doDownShift = false; 
+
+        if (_isDownshifting) {
+            // only consider things if our DOWN_SHIFT time has elapsed...
+            if (elapsedSinceDownShift > DOWN_SHIFT_ELPASED) {
+                doDownShift = _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS();
+                
+                if (!doDownShift) {
+                    qCDebug(interfaceapp) << "---- WE APPEAR TO BE DONE DOWN SHIFTING -----";
+                    _isDownshifting = false;
+                    _lastStable = now;
+                }
+            }
+        } else {
+            doDownShift = (elapsedSinceStableOrUpShift > START_SHIFT_ELPASED 
+                                && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS());
         }
-        changed = true;
-        _lastAdjust = now;
-        qDebug() << "adjusting LOD down... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
-    }
+        
+        if (doDownShift) {
+
+            // Octree items... stepwise adjustment
+            if (_octreeSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
+                _octreeSizeScale *= ADJUST_LOD_DOWN_BY;
+                if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+                    _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+                }
+                changed = true;
+            }
+
+            if (changed) {
+                if (_isDownshifting) {
+                    // subsequent downshift
+                    qCDebug(interfaceapp) << "adjusting LOD DOWN..."
+                                << "average fps for last "<< DOWN_SHIFT_WINDOW_IN_SECS <<"seconds was " 
+                                << _fpsAverageDownWindow.getAverage() 
+                                << "minimum is:" << getLODDecreaseFPS() 
+                                << "elapsedSinceDownShift:" << elapsedSinceDownShift
+                                << " NEW _octreeSizeScale=" << _octreeSizeScale;
+                } else {
+                    // first downshift
+                    qCDebug(interfaceapp) << "adjusting LOD DOWN after initial delay..."
+                                << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was " 
+                                << _fpsAverageStartWindow.getAverage() 
+                                << "minimum is:" << getLODDecreaseFPS() 
+                                << "elapsedSinceUpShift:" << elapsedSinceUpShift
+                                << " NEW _octreeSizeScale=" << _octreeSizeScale;
+                }
+
+                _lastDownShift = now;
+                _isDownshifting = true;
+
+                emit LODDecreased();
+            }
+        } else {
     
-    if (elapsed > ADJUST_LOD_UP_DELAY && _fpsAverage.getAverage() > ADJUST_LOD_UP_FPS
-        && _octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
-        _octreeSizeScale *= ADJUST_LOD_UP_BY;
-        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
-            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+            // LOD Upward adjustment
+            if (elapsedSinceUpShift > UP_SHIFT_ELPASED) {
+            
+                if (_fpsAverageUpWindow.getAverage() > getLODIncreaseFPS()) {
+
+                    // Octee items... stepwise adjustment
+                    if (_octreeSizeScale < ADJUST_LOD_MAX_SIZE_SCALE) {
+                        if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
+                            _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
+                        } else {
+                            _octreeSizeScale *= ADJUST_LOD_UP_BY;
+                        }
+                        if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
+                            _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
+                        }
+                        changed = true;
+                    }
+                }
+        
+                if (changed) {
+                    qCDebug(interfaceapp) << "adjusting LOD UP... average fps for last "<< UP_SHIFT_WINDOW_IN_SECS <<"seconds was " 
+                                << _fpsAverageUpWindow.getAverage()
+                                << "upshift point is:" << getLODIncreaseFPS() 
+                                << "elapsedSinceUpShift:" << elapsedSinceUpShift
+                                << " NEW _octreeSizeScale=" << _octreeSizeScale;
+
+                    _lastUpShift = now;
+                    _isDownshifting = false;
+
+                    emit LODIncreased();
+                }
+            }
         }
-        changed = true;
-        _lastAdjust = now;
-        qDebug() << "adjusting LOD up... average fps for last approximately 5 seconds=" << _fpsAverage.getAverage()
-        << "_octreeSizeScale=" << _octreeSizeScale;
-    }
     
-    if (changed) {
-        _shouldRenderTableNeedsRebuilding = true;
-        auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
-        if (lodToolsDialog) {
-            lodToolsDialog->reloadSliders();
+        if (changed) {
+            calculateAvatarLODDistanceMultiplier();
+            _shouldRenderTableNeedsRebuilding = true;
+            auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
+            if (lodToolsDialog) {
+                lodToolsDialog->reloadSliders();
+            }
         }
     }
 }
 
 void LODManager::resetLODAdjust() {
-    _fpsAverage.reset();
-    _fastFPSAverage.reset();
-    _lastAvatarDetailDrop = _lastAdjust = usecTimestampNow();
+    _fpsAverageStartWindow.reset();
+    _fpsAverageDownWindow.reset();
+    _fpsAverageUpWindow.reset();
+    _lastUpShift = _lastDownShift = usecTimestampNow();
+    _isDownshifting = false;
 }
 
 QString LODManager::getLODFeedbackText() {
@@ -112,29 +186,33 @@ QString LODManager::getLODFeedbackText() {
     
     switch (boundaryLevelAdjust) {
         case 0: {
-            granularityFeedback = QString("at standard granularity.");
+            granularityFeedback = QString(".");
         } break;
         case 1: {
-            granularityFeedback = QString("at half of standard granularity.");
+            granularityFeedback = QString(" at half of standard granularity.");
         } break;
         case 2: {
-            granularityFeedback = QString("at a third of standard granularity.");
+            granularityFeedback = QString(" at a third of standard granularity.");
         } break;
         default: {
-            granularityFeedback = QString("at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
+            granularityFeedback = QString(" at 1/%1th of standard granularity.").arg(boundaryLevelAdjust + 1);
         } break;
     }
     
     // distance feedback
     float octreeSizeScale = getOctreeSizeScale();
     float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    int relativeToTwentyTwenty = 20 / relativeToDefault;
+
     QString result;
     if (relativeToDefault > 1.01) {
-        result = QString("%1 further %2").arg(relativeToDefault,8,'f',2).arg(granularityFeedback);
+        result = QString("20:%1 or %2 times further than average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault,0,'f',2).arg(granularityFeedback);
     } else if (relativeToDefault > 0.99) {
-        result = QString("the default distance %1").arg(granularityFeedback);
+        result = QString("20:20 or the default distance for average vision%1").arg(granularityFeedback);
+    } else if (relativeToDefault > 0.01) {
+        result = QString("20:%1 or %2 of default distance for average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault,0,'f',3).arg(granularityFeedback);
     } else {
-        result = QString("%1 of default %2").arg(relativeToDefault,8,'f',3).arg(granularityFeedback);
+        result = QString("%2 of default distance for average vision%3").arg(relativeToDefault,0,'f',3).arg(granularityFeedback);
     }
     return result;
 }
@@ -180,7 +258,12 @@ bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
+    calculateAvatarLODDistanceMultiplier();
     _shouldRenderTableNeedsRebuilding = true;
+}
+
+void LODManager::calculateAvatarLODDistanceMultiplier() {
+    _avatarLODDistanceMultiplier = AVATAR_TO_ENTITY_RATIO / (_octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE);
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
@@ -190,21 +273,13 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 
 
 void LODManager::loadSettings() {
-    setAutomaticAvatarLOD(automaticAvatarLOD.get());
-    setAvatarLODDecreaseFPS(avatarLODDecreaseFPS.get());
-    setAvatarLODIncreaseFPS(avatarLODIncreaseFPS.get());
-    setAvatarLODDistanceMultiplier(avatarLODDistanceMultiplier.get());
-    setBoundaryLevelAdjust(boundaryLevelAdjust.get());
-    setOctreeSizeScale(octreeSizeScale.get());
+    setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
+    setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
 }
 
 void LODManager::saveSettings() {
-    automaticAvatarLOD.set(getAutomaticAvatarLOD());
-    avatarLODDecreaseFPS.set(getAvatarLODDecreaseFPS());
-    avatarLODIncreaseFPS.set(getAvatarLODIncreaseFPS());
-    avatarLODDistanceMultiplier.set(getAvatarLODDistanceMultiplier());
-    boundaryLevelAdjust.set(getBoundaryLevelAdjust());
-    octreeSizeScale.set(getOctreeSizeScale());
+    desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
+    hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
 }
 
 

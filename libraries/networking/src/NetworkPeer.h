@@ -54,6 +54,12 @@ public:
     int getConnectionAttempts() const  { return _connectionAttempts; }
     void incrementConnectionAttempts() { ++_connectionAttempts; }
     void resetConnectionAttemps() { _connectionAttempts = 0; }
+
+    void recordBytesSent(int count);
+    void recordBytesReceived(int count);
+
+    float getOutboundBandwidth(); // in kbps
+    float getInboundBandwidth(); // in kbps
     
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);

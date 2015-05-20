@@ -19,12 +19,10 @@
 #include <QScreen>
 #include <QWindow>
 
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
-
 #include "devices/OculusManager.h"
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
@@ -87,7 +85,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     }
     
     // when the application is about to quit, leave HDM mode
-    connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(Application::getInstance(), SIGNAL(beforeAboutToQuit()), this, SLOT(aboutToQuit()));
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
@@ -162,11 +160,16 @@ void HMDToolsDialog::enterHDMMode() {
             close();
         }
 
-        Application::getInstance()->setFullscreen(true);
         Application::getInstance()->setEnableVRMode(true);
     
         const int SLIGHT_DELAY = 500;
-        QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
+        // If we go to fullscreen immediately, it ends up on the primary monitor,
+        // even though we've already moved the window.  By adding this delay, the
+        // fullscreen target screen ends up correct.
+        QTimer::singleShot(SLIGHT_DELAY, this, [&]{
+            Application::getInstance()->setFullscreen(true);
+            activateWindowAfterEnterMode();
+        });
     
         _inHDMMode = true;
     }
@@ -184,8 +187,8 @@ void HMDToolsDialog::leaveHDMMode() {
         _switchModeButton->setText("Enter HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
-        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->setEnableVRMode(false);
+        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->getWindow()->activateWindow();
 
         if (_wasMoved) {

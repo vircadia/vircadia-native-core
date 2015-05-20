@@ -15,6 +15,8 @@
 
 #include "Resource.h"
 #include "Texture.h"
+#include "Pipeline.h"
+#include "Framebuffer.h"
 
 namespace gpu {
 
@@ -41,30 +43,63 @@ public:
         Mat4 _viewInverse;
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
+        Mat4 _projectionInverse;
         Vec4 _viewport;
     };
 
     template< typename T >
-    static void setGPUObject(const Buffer& buffer, T* bo) {
-        buffer.setGPUObject(reinterpret_cast<GPUObject*>(bo));
+    static void setGPUObject(const Buffer& buffer, T* object) {
+        buffer.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Buffer& buffer) {
         return reinterpret_cast<T*>(buffer.getGPUObject());
     }
 
-    void syncGPUObject(const Buffer& buffer);
-
     template< typename T >
-    static void setGPUObject(const Texture& texture, T* to) {
-        texture.setGPUObject(reinterpret_cast<GPUObject*>(to));
+    static void setGPUObject(const Texture& texture, T* object) {
+        texture.setGPUObject(object);
     }
     template< typename T >
     static T* getGPUObject(const Texture& texture) {
         return reinterpret_cast<T*>(texture.getGPUObject());
     }
+    
+    template< typename T >
+    static void setGPUObject(const Shader& shader, T* object) {
+        shader.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Shader& shader) {
+        return reinterpret_cast<T*>(shader.getGPUObject());
+    }
 
-    void syncGPUObject(const Texture& texture);
+    template< typename T >
+    static void setGPUObject(const Pipeline& pipeline, T* object) {
+        pipeline.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Pipeline& pipeline) {
+        return reinterpret_cast<T*>(pipeline.getGPUObject());
+    }
+
+    template< typename T >
+    static void setGPUObject(const State& state, T* object) {
+        state.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const State& state) {
+        return reinterpret_cast<T*>(state.getGPUObject());
+    }
+
+    template< typename T >
+    static void setGPUObject(const Framebuffer& framebuffer, T* object) {
+        framebuffer.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Framebuffer& framebuffer) {
+        return reinterpret_cast<T*>(framebuffer.getGPUObject());
+    }
 
 protected:
 
@@ -78,8 +113,17 @@ public:
 
     void enqueueBatch(Batch& batch);
 
+
+
 protected:
 
+    // This function can only be called by "static Shader::makeProgram()"
+    // makeProgramShader(...) make a program shader ready to be used in a Batch.
+    // It compiles the sub shaders, link them and defines the Slots and their bindings.
+    // If the shader passed is not a program, nothing happens. 
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+
+    friend class Shader;
 };
 
 

@@ -15,6 +15,9 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
+#include <LinearMath/btQuickprof.h>
+
+#include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
@@ -25,50 +28,51 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
     :   btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration) {
 }
 
-int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
-	int subSteps = 0;
-	if (maxSubSteps) {
-		//fixed timestep with interpolation
-		m_fixedTimeStep = fixedTimeStep;
-		m_localTime += timeStep;
-		if (m_localTime >= fixedTimeStep)
-		{
-			subSteps = int( m_localTime / fixedTimeStep);
-			m_localTime -= subSteps * fixedTimeStep;
-		}
-	} else {
-		//variable timestep
-		fixedTimeStep = timeStep;
-		m_localTime = m_latencyMotionStateInterpolation ? 0 : timeStep;
-		m_fixedTimeStep = 0;
-		if (btFuzzyZero(timeStep))
-		{
-			subSteps = 0;
-			maxSubSteps = 0;
-		} else
-		{
-			subSteps = 1;
-			maxSubSteps = 1;
-		}
-	}
+int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
+    BT_PROFILE("stepSimulation");
+    int subSteps = 0;
+    if (maxSubSteps) {
+        //fixed timestep with interpolation
+        m_fixedTimeStep = fixedTimeStep;
+        m_localTime += timeStep;
+        if (m_localTime >= fixedTimeStep)
+        {
+            subSteps = int( m_localTime / fixedTimeStep);
+            m_localTime -= subSteps * fixedTimeStep;
+        }
+    } else {
+        //variable timestep
+        fixedTimeStep = timeStep;
+        m_localTime = m_latencyMotionStateInterpolation ? 0 : timeStep;
+        m_fixedTimeStep = 0;
+        if (btFuzzyZero(timeStep))
+        {
+            subSteps = 0;
+            maxSubSteps = 0;
+        } else
+        {
+            subSteps = 1;
+            maxSubSteps = 1;
+        }
+    }
 
-	/*//process some debugging flags
-	if (getDebugDrawer()) {
-		btIDebugDraw* debugDrawer = getDebugDrawer ();
-		gDisableDeactivation = (debugDrawer->getDebugMode() & btIDebugDraw::DBG_NoDeactivation) != 0;
-	}*/
-	if (subSteps) {
-		//clamp the number of substeps, to prevent simulation grinding spiralling down to a halt
-		int clampedSimulationSteps = (subSteps > maxSubSteps)? maxSubSteps : subSteps;
+    /*//process some debugging flags
+    if (getDebugDrawer()) {
+        btIDebugDraw* debugDrawer = getDebugDrawer();
+        gDisableDeactivation = (debugDrawer->getDebugMode() & btIDebugDraw::DBG_NoDeactivation) != 0;
+    }*/
+    if (subSteps) {
+        //clamp the number of substeps, to prevent simulation grinding spiralling down to a halt
+        int clampedSimulationSteps = (subSteps > maxSubSteps)? maxSubSteps : subSteps;
 
-		saveKinematicState(fixedTimeStep*clampedSimulationSteps);
+        saveKinematicState(fixedTimeStep*clampedSimulationSteps);
 
-		applyGravity();
+        applyGravity();
 
-		for (int i=0;i<clampedSimulationSteps;i++) {
-			internalSingleStepSimulation(fixedTimeStep);
-		}
-	}
+        for (int i=0;i<clampedSimulationSteps;i++) {
+            internalSingleStepSimulation(fixedTimeStep);
+        }
+    }
 
     // NOTE: We do NOT call synchronizeMotionState() after each substep (to avoid multiple locks on the
     // object data outside of the physics engine).  A consequence of this is that the transforms of the
@@ -77,7 +81,37 @@ int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
     // NOTE: We do NOT call synchronizeMotionStates() here.  Instead it is called by an external class
     // that knows how to lock threads correctly.
 
-	clearForces();
+    clearForces();
 
     return subSteps;
 }
+
+void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
+    _changedMotionStates.clear();
+    BT_PROFILE("synchronizeMotionStates");
+    if (m_synchronizeAllMotionStates) {
+        //iterate  over all collision objects
+        for (int i=0;i<m_collisionObjects.size();i++) {
+            btCollisionObject* colObj = m_collisionObjects[i];
+            btRigidBody* body = btRigidBody::upcast(colObj);
+            if (body) {
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
+            }
+        }
+    } else  {       
+        //iterate over all active rigid bodies
+        for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
+            btRigidBody* body = m_nonStaticRigidBodies[i];
+            if (body->isActive()) {
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
+            }
+        }
+    }   
+}       
+

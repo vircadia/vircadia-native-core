@@ -20,6 +20,8 @@
 #include <AccountManager.h>
 #include <HTTPConnection.h>
 #include <LogHandler.h>
+#include <NetworkingConstants.h>
+#include <NumericalConstants.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"
@@ -211,14 +213,6 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-void OctreeServer::attachQueryNodeToNode(Node* newNode) {
-    if (!newNode->getLinkedData() && _instance) {
-        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
-        newQueryNodeData->init();
-        newNode->setLinkedData(newQueryNodeData);
-    }
-}
-
 OctreeServer::OctreeServer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _argc(0),
@@ -252,7 +246,7 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     
     // make sure the AccountManager has an Auth URL for payment redemptions
     
-    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {
@@ -265,16 +259,19 @@ OctreeServer::~OctreeServer() {
     }
 
     if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
         _jurisdictionSender->terminate();
         _jurisdictionSender->deleteLater();
     }
 
     if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
         _octreeInboundPacketProcessor->terminate();
         _octreeInboundPacketProcessor->deleteLater();
     }
 
     if (_persistThread) {
+        _persistThread->terminating();
         _persistThread->terminate();
         _persistThread->deleteLater();
     }
@@ -831,42 +828,42 @@ void OctreeServer::parsePayload() {
 
 void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
+
+    // If we know we're shutting down we just drop these packets on the floor.
+    // This stops us from initializing send threads we just shut down.
     
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        PacketType packetType = packetTypeForPacket(receivedPacket);
-        SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-        if (packetType == getMyQueryMessageType()) {
-            // If we got a query packet, then we're talking to an agent, and we
-            // need to make sure we have it in our nodeList.
-            if (matchingNode) {
-                nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+    if (!_isShuttingDown) {
+        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+            PacketType packetType = packetTypeForPacket(receivedPacket);
+            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+            if (packetType == getMyQueryMessageType()) {
+                // If we got a query packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
                     
-                    // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
-                    // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
-                    // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
-                    // same SharedAssignmentPointer that was ref counted by the assignment client.                    
-                    SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
-                    nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
+                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                        nodeData->initializeOctreeSendThread(this, matchingNode);
+                    }
                 }
-            }
-        } else if (packetType == PacketTypeOctreeDataNack) {
-            // If we got a nack packet, then we're talking to an agent, and we
-            // need to make sure we have it in our nodeList.
-            if (matchingNode) {
-                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                if (nodeData) {
-                    nodeData->parseNackPacket(receivedPacket);
+            } else if (packetType == PacketTypeOctreeDataNack) {
+                // If we got a nack packet, then we're talking to an agent, and we
+                // need to make sure we have it in our nodeList.
+                if (matchingNode) {
+                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                    if (nodeData) {
+                        nodeData->parseNackPacket(receivedPacket);
+                    }
                 }
+            } else if (packetType == PacketTypeJurisdictionRequest) {
+                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+            } else {
+                // let processNodeData handle it.
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
-        } else if (packetType == PacketTypeJurisdictionRequest) {
-            _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-        } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-            _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
-        } else {
-            // let processNodeData handle it.
-            DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
         }
     }
 }
@@ -1036,6 +1033,13 @@ void OctreeServer::readConfiguration() {
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
 
+        QString persistAsFileType;
+        if (!readOptionString(QString("persistAsFileType"), settingsSectionObject, persistAsFileType)) {
+            persistAsFileType = "svo";
+        }
+        _persistAsFileType = persistAsFileType;
+        qDebug() << "persistAsFileType=" << _persistAsFileType;
+
         _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
         readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
         qDebug() << "persistInterval=" << _persistInterval;
@@ -1087,8 +1091,6 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...
@@ -1122,7 +1124,11 @@ void OctreeServer::run() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
 
-    nodeList->linkedDataCreateCallback = &OctreeServer::attachQueryNodeToNode;
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
+        newQueryNodeData->init();
+        node->setLinkedData(newQueryNodeData);
+    };
 
     srand((unsigned)time(0));
 
@@ -1131,7 +1137,7 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _settings, _debugTimestampNow);
+                                                 _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         if (_persistThread) {
             _persistThread->initialize(true);
         }
@@ -1210,16 +1216,34 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
+
+    _isShuttingDown = true;
+
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
-    _octreeInboundPacketProcessor->shuttingDown();
+
+    // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeQueryNode objects.
+    // This ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->linkedDataCreateCallback = NULL;
     
-    DependencyManager::get<NodeList>()->eachNode([this](const SharedNodePointer& node) {
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->terminating();
+    }
+
+    if (_jurisdictionSender) {
+        _jurisdictionSender->terminating();
+    }
+
+    // force a shutdown of all of our OctreeSendThreads - at this point it has to be impossible for a
+    // linkedDataCreateCallback to be called for a new node
+    nodeList->eachNode([this](const SharedNodePointer& node) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
     });
     
     if (_persistThread) {
         _persistThread->aboutToFinish();
+        _persistThread->terminating();
     }
 
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";

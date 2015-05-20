@@ -12,7 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-#include <QOpenGLFramebufferObject>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -42,6 +41,10 @@
 #include "directional_ambient_light_shadow_map_frag.h"
 #include "directional_ambient_light_cascaded_shadow_map_frag.h"
 
+#include "directional_skybox_light_frag.h"
+#include "directional_skybox_light_shadow_map_frag.h"
+#include "directional_skybox_light_cascaded_shadow_map_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -67,6 +70,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
         _directionalAmbientSphereLightCascadedShadowMapLocations);
 
+    loadLightProgram(directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
+        _directionalSkyboxLightShadowMapLocations);
+    loadLightProgram(directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
+        _directionalSkyboxLightCascadedShadowMapLocations);
+
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
 
@@ -80,7 +89,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
-    lp->setAmbientSpherePreset(model::SphericalHarmonics::Preset(_ambientLightMode % model::SphericalHarmonics::NUM_PRESET));
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -120,6 +129,14 @@ void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) 
     releaseSimpleProgram();
 }
 
+void DeferredLightingEffect::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                                        const glm::vec4& color1, const glm::vec4& color2) {
+    bindSimpleProgram();
+    DependencyManager::get<GeometryCache>()->renderLine(p1, p2, color1, color2);
+    releaseSimpleProgram();
+}
+
+
 void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
     bindSimpleProgram();
     DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
@@ -134,7 +151,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(model::LightPointer(new model::Light()));
     }
@@ -183,15 +200,18 @@ void DeferredLightingEffect::render() {
 
     auto textureCache = DependencyManager::get<TextureCache>();
     
-    QOpenGLFramebufferObject* primaryFBO = textureCache->getPrimaryFramebufferObject();
-    primaryFBO->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0 );
+
+    QSize framebufferSize = textureCache->getFrameBufferSize();
     
-    QOpenGLFramebufferObject* freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebufferObject();
-    freeFBO->bind();
+    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFBO));
+ 
     glClear(GL_COLOR_BUFFER_BIT);
    // glEnable(GL_FRAMEBUFFER_SRGB);
 
-    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+   // glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryColorTextureID());
     
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryNormalTextureID());
@@ -209,11 +229,14 @@ void DeferredLightingEffect::render() {
     const int VIEWPORT_Y_INDEX = 1;
     const int VIEWPORT_WIDTH_INDEX = 2;
     const int VIEWPORT_HEIGHT_INDEX = 3;
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
-   
+
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
+    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
+    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+
+    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
+
     // Fetch the ViewMatrix;
     glm::mat4 invViewMat;
     _viewState->getViewTransform().getMatrix(invViewMat);
@@ -230,7 +253,10 @@ void DeferredLightingEffect::render() {
         if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightCascadedShadowMap;
+                locations = &_directionalSkyboxLightCascadedShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightCascadedShadowMap;
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
@@ -238,17 +264,23 @@ void DeferredLightingEffect::render() {
             program->setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightShadowMap;
+                locations = &_directionalSkyboxLightShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightShadowMap;
                 locations = &_directionalAmbientSphereLightShadowMapLocations;
             }
             program->bind();
         }
         program->setUniformValue(locations->shadowScale,
-            1.0f / textureCache->getShadowFramebufferObject()->width());
+            1.0f / textureCache->getShadowFramebuffer()->getWidth());
         
     } else {
-        if (_ambientLightMode > -1) {
+        if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLight;
+                locations = &_directionalSkyboxLightLocations;
+        } else if (_ambientLightMode > -1) {
             program = &_directionalAmbientSphereLight;
             locations = &_directionalAmbientSphereLightLocations;
         }
@@ -259,15 +291,29 @@ void DeferredLightingEffect::render() {
         auto globalLight = _allocatedLights[_globalLights.front()];
     
         if (locations->ambientSphere >= 0) {
-            auto sh = globalLight->getAmbientSphere();
-            for (int i =0; i <model::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+            gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
+            if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
+                sh = (*_skybox->getCubemap()->getIrradiance());
+            }
+            for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
                 program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
             }
         }
     
+        if (useSkyboxCubemap) {
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, gpu::GLBackend::getTextureID(_skybox->getCubemap()));
+        }
+
         if (locations->lightBufferUnit >= 0) {
             gpu::Batch batch;
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
+            gpu::GLBackend::renderBatch(batch);
+        }
+        
+        if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
+            gpu::Batch batch;
+            batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
             gpu::GLBackend::renderBatch(batch);
         }
         glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
@@ -290,7 +336,14 @@ void DeferredLightingEffect::render() {
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     program->release();
-    
+
+    if (useSkyboxCubemap) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        if (!shadowsEnabled) {
+            glActiveTexture(GL_TEXTURE3);
+        }
+    }
+
     if (shadowsEnabled) {
         glBindTexture(GL_TEXTURE_2D, 0);        
         glActiveTexture(GL_TEXTURE3);
@@ -422,7 +475,9 @@ void DeferredLightingEffect::render() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    freeFBO->release();
+    //freeFBO->release();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   //  glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
@@ -431,9 +486,12 @@ void DeferredLightingEffect::render() {
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glColorMask(true, true, true, false);
     
-    primaryFBO->bind();
+    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryFramebuffer());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
+
+    //primaryFBO->bind();
     
-    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFBO->getRenderBuffer(0)));
     glEnable(GL_TEXTURE_2D);
     
     glPushMatrix();
@@ -477,6 +535,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     program.setUniformValue("specularMap", 2);
     program.setUniformValue("depthMap", 3);
     program.setUniformValue("shadowMap", 4);
+    program.setUniformValue("skyboxMap", 5);
     locations.shadowDistances = program.uniformLocation("shadowDistances");
     locations.shadowScale = program.uniformLocation("shadowScale");
     locations.nearLocation = program.uniformLocation("near");
@@ -488,18 +547,13 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     locations.invViewMat = program.uniformLocation("invViewMat");
 
     GLint loc = -1;
-#if defined(Q_OS_MAC)
-    loc = program.uniformLocation("lightBuffer");
-    if (loc >= 0) {
-        locations.lightBufferUnit = loc;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#elif defined(Q_OS_WIN)
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint LIGHT_GPU_SLOT = 3;
     loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, 0);
-        locations.lightBufferUnit = 0;
+        glUniformBlockBinding(program.programId(), loc, LIGHT_GPU_SLOT);
+        locations.lightBufferUnit = LIGHT_GPU_SLOT;
     } else {
         locations.lightBufferUnit = -1;
     }
@@ -511,20 +565,47 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
         locations.lightBufferUnit = -1;
     }
 #endif
+
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
+    const GLint ATMOSPHERE_GPU_SLOT = 4;
+    loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
+    if (loc >= 0) {
+        glUniformBlockBinding(program.programId(), loc, ATMOSPHERE_GPU_SLOT);
+        locations.atmosphereBufferUnit = ATMOSPHERE_GPU_SLOT;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#else
+    loc = program.uniformLocation("atmosphereBufferUnit");
+    if (loc >= 0) {
+        locations.atmosphereBufferUnit = loc;
+    } else {
+        locations.atmosphereBufferUnit = -1;
+    }
+#endif
+
     program.release();
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= -1) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < gpu::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
-        light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+        light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(preset % gpu::SphericalHarmonics::NUM_PRESET));
+    } else {
+        // force to preset 0
+        setAmbientLightMode(0);
     }
 }
 
-void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity) {
+void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity) {
     auto light = _allocatedLights.front();
     light->setDirection(direction);
     light->setColor(diffuse);
     light->setIntensity(intensity);
+    light->setAmbientIntensity(ambientIntensity);
+}
+
+void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
+    _skybox = skybox;
 }

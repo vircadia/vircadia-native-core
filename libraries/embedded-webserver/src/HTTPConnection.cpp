@@ -15,6 +15,7 @@
 #include <QTcpSocket>
 
 #include "HTTPConnection.h"
+#include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
 
 const char* HTTPConnection::StatusCode200 = "200 OK";
@@ -45,7 +46,7 @@ HTTPConnection::~HTTPConnection() {
     // log the destruction
     if (_socket->error() != QAbstractSocket::UnknownSocketError
         && _socket->error() != QAbstractSocket::RemoteHostClosedError) {
-        qDebug() << _socket->errorString() << "-" << _socket->error();
+        qCDebug(embeddedwebserver) << _socket->errorString() << "-" << _socket->error();
     }
 }
 

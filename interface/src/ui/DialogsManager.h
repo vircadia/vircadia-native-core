@@ -24,14 +24,16 @@ class QAction;
 class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
-class CachesSizeDialog;
 class BandwidthDialog;
+class CachesSizeDialog;
+class DiskCacheEditor;
 class LodToolsDialog;
 class LoginDialog;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
+class AvatarAppearanceDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -42,9 +44,11 @@ public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
+    QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
     
 public slots:
     void toggleAddressBar();
+    void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
@@ -57,6 +61,7 @@ public slots:
     void hmdTools(bool showTools);
     void showScriptEditor();
     void showIRCLink();
+    void changeAvatarAppearance();
 
 private slots:
     void toggleToolWindow();
@@ -73,7 +78,7 @@ private:
             member = new T(parent);
             Q_CHECK_PTR(member);
             
-            if (_hmdToolsDialog) {
+            if (_hmdToolsDialog && member->windowHandle()) {
                 _hmdToolsDialog->watchWindow(member->windowHandle());
             }
         }
@@ -84,6 +89,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<BandwidthDialog> _bandwidthDialog;
     QPointer<CachesSizeDialog> _cachesSizeDialog;
+    QPointer<DiskCacheEditor> _diskCacheEditor;
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
@@ -91,6 +97,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
+    QPointer<AvatarAppearanceDialog> _avatarAppearanceDialog;
 };
 
 #endif // hifi_DialogsManager_h

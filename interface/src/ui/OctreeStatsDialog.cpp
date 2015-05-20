@@ -273,7 +273,6 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
                     serverDetails << " jurisdiction: "
                     << qPrintable(rootCodeHex)
                     << " ["

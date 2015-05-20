@@ -18,6 +18,7 @@
 
 #include "AddressManager.h"
 #include "Application.h"
+#include "InterfaceLogging.h"
 
 #ifdef Q_OS_WIN
 static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
@@ -36,11 +37,10 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 }
 #endif
 
-
 int main(int argc, const char* argv[]) {
 #ifdef Q_OS_WIN
     // Run only one instance of Interface at a time.
-    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface");
+    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface - " + qgetenv("USERNAME"));
     DWORD result = GetLastError();
     if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
         // Interface is already running.
@@ -90,9 +90,13 @@ int main(int argc, const char* argv[]) {
     if (clockSkewOption) {
         int clockSkew = atoi(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qDebug("clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+        qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
-    
+    // Oculus initialization MUST PRECEDE OpenGL context creation.
+    // The nature of the Application constructor means this has to be either here,
+    // or in the main window ctor, before GL startup.
+    Application::initPlugins();
+
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -102,14 +106,15 @@ int main(int argc, const char* argv[]) {
         translator.load("interface_en");
         app.installTranslator(&translator);
     
-        qDebug( "Created QT Application.");
+        qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
     }
 
+    Application::shutdownPlugins();
 #ifdef Q_OS_WIN
     ReleaseMutex(mutex);
 #endif
 
-    qDebug("Normal exit.");
+    qCDebug(interfaceapp, "Normal exit.");
     return exitCode;
 }   

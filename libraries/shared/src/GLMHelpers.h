@@ -17,6 +17,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+// Bring the most commonly used GLM types into the default namespace
+using glm::ivec3;
+using glm::ivec2;
+using glm::uvec2;
+using glm::mat3;
+using glm::mat4;
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
+using glm::quat;
+
 #include <QtCore/QByteArray>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QColor>
@@ -71,6 +82,8 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2);
 
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
 
+bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2);
+
 glm::vec3 extractTranslation(const glm::mat4& matrix);
 
 void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
@@ -99,8 +112,18 @@ glm::vec2 toGlm(const QPointF & pt);
 glm::vec3 toGlm(const xColor & color);
 glm::vec4 toGlm(const QColor & color);
 
+QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
+
+template <typename T>
+float aspect(const T& t) {
+    return (float)t.x / (float)t.y;
+}
+
+#define YAW(euler) euler.y
+#define PITCH(euler) euler.x
+#define ROLL(euler) euler.z
 
 #endif // hifi_GLMHelpers_h

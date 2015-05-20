@@ -1,4 +1,4 @@
-//
+//Merge branch 'master' of ssh://github.com/highfidelity/hifi into isentropic/
 //  OctreePacketProcessor.cpp
 //  interface/src/octree
 //
@@ -14,6 +14,7 @@
 #include "Application.h"
 #include "Menu.h"
 #include "OctreePacketProcessor.h"
+#include "SceneScriptingInterface.h"
 
 void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -81,13 +82,13 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
 
         switch(voxelPacketType) {
             case PacketTypeEntityErase: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+                if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                     app->_entities.processEraseMessage(mutablePacket, sendingNode);
                 }
             } break;
 
             case PacketTypeEntityData: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
+                if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                     app->_entities.processDatagram(mutablePacket, sendingNode);
                 }
             } break;

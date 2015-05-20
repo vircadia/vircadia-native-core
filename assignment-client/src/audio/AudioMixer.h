@@ -29,49 +29,46 @@ class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AudioMixer(const QByteArray& packet);
+
+    void deleteLater() { qDebug() << "DELETE LATER CALLED?"; QObject::deleteLater(); }
 public slots:
     /// threaded run of assignment
     void run();
-    
+
     void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
-    
+
     void sendStatsPacket();
 
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
-    
+
 private:
     /// adds one stream to the mix for a listening node
     int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
                                                     const QUuid& streamUUID,
                                                     PositionalAudioStream* streamToAdd,
                                                     AvatarAudioStream* listeningNodeStream);
-    
+
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
-    
+
     /// Send Audio Environment packet for a single node
     void sendAudioEnvironmentPacket(SharedNodePointer node);
 
     // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
     // data from a phase delay as well as an entire network buffer
     int16_t _preMixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
-    
+
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
     int16_t _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
     void perSecondActions();
-    
+
     bool shouldMute(float quietestFrame);
 
-    QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
-    QString getReadPendingDatagramsPacketsPerCallStatsString() const;
-    QString getReadPendingDatagramsTimeStatsString() const;
-    QString getReadPendingDatagramsHashMatchTimeStatsString() const;
-    
     void parseSettingsObject(const QJsonObject& settingsObject);
-    
+
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
     float _performanceThrottlingRatio;
@@ -80,7 +77,7 @@ private:
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
-    
+
     QHash<QString, AABox> _audioZones;
     struct ZonesSettings {
         QString source;
@@ -94,12 +91,12 @@ private:
         float wetLevel;
     };
     QVector<ReverbSettings> _zoneReverbSettings;
-    
+
     static InboundAudioStream::Settings _streamSettings;
 
     static bool _printStreamStats;
     static bool _enableFilter;
-    
+
     quint64 _lastPerSecondCallbackTime;
 
     bool _sendAudioStreamStats;

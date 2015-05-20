@@ -9,9 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-#include "Stars.h" 
+#include "Stars.h"
 
+#include <NumericalConstants.h>
+
+#include "InterfaceConfig.h"
 #include "starfield/Controller.h"
 
 Stars::Stars() : 

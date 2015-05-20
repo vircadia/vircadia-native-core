@@ -34,6 +34,8 @@ varying vec4 interpolatedTangent;
 
 varying vec2 interpolatedTexcoord1;
 
+varying vec3 color;
+
 void main(void) {
     // compute the view normal from the various bits
     vec3 normalizedNormal = normalize(vec3(interpolatedNormal));
@@ -52,7 +54,7 @@ void main(void) {
     packDeferredFragmentLightmap(
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb,
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat),
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));

@@ -1,9 +1,9 @@
 ###Dependencies
 
 * [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
-* [Qt](http://qt-project.org/downloads) ~> 5.3.2
-* [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1g
-  * IMPORTANT: OpenSSL 1.0.1g is critical to avoid a security vulnerability.
+* [Qt](http://www.qt.io/download-open-source) ~> 5.4.1
+* [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1m
+  * IMPORTANT: Using the recommended version of OpenSSL is critical to avoid security vulnerabilities.
 * [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
 ####CMake External Project Dependencies
@@ -19,9 +19,9 @@ The following external projects are optional dependencies. You can indicate to C
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
   * Enables game controller support in Interface
 
-The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build-ext` directory in each of the subfolders for each external project. 
+The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project. 
 
-These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build-ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build-ext` folder.
+These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build/ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build/ext` folder.
 
 If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DGET_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
 
@@ -37,12 +37,12 @@ Hifi uses CMake to generate build files and project files for your platform.
 ####Qt
 In order for CMake to find the Qt5 find modules, you will need to set an ENV variable pointing to your Qt installation.
 
-For example, a Qt5 5.3.2 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
+For example, a Qt5 5.4.1 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
 
 The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.3.2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.4.1/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.4.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
 ####Generating build files
@@ -57,7 +57,7 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.3.2/lib/cmake
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.4.1/lib/cmake
 
 ####Finding Dependencies
 

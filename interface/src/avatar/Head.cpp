@@ -22,7 +22,6 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 
 using namespace std;
 
@@ -73,25 +72,6 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    if (isMine) {
-        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-        
-        // Only use face trackers when not playing back a recording.
-        if (!myAvatar->isPlaying()) {
-            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            _isFaceTrackerConnected = faceTracker != NULL;
-            if (_isFaceTrackerConnected) {
-                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-            }
-        }
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
-    }
-   
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
@@ -102,7 +82,44 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     } else {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
-    
+
+    if (isMine) {
+        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+        
+        // Only use face trackers when not playing back a recording.
+        if (!myAvatar->isPlaying()) {
+            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+            _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
+            if (_isFaceTrackerConnected) {
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+
+                if (typeid(*faceTracker) == typeid(DdeFaceTracker) 
+                    && Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
+
+                    calculateMouthShapes();
+
+                    const int JAW_OPEN_BLENDSHAPE = 21;
+                    const int MMMM_BLENDSHAPE = 34;
+                    const int FUNNEL_BLENDSHAPE = 40;
+                    const int SMILE_LEFT_BLENDSHAPE = 28;
+                    const int SMILE_RIGHT_BLENDSHAPE = 29;
+                    _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                    _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                    _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                    _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                    _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+
+                }
+            }
+        }
+        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+        //  since everyone else will see the full joint rotations for other people.  
+        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+        float currentTwist = getTorsoTwist();
+        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+    }
+   
     if (!(_isFaceTrackerConnected || billboard)) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
@@ -177,33 +194,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
         
         // use data to update fake Faceshift blendshape coefficients
-        
-        const float JAW_OPEN_SCALE = 0.015f;
-        const float JAW_OPEN_RATE = 0.9f;
-        const float JAW_CLOSE_RATE = 0.90f;
-        float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
-        if (audioDelta > _audioJawOpen) {
-            _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
-        } else {
-            _audioJawOpen *= JAW_CLOSE_RATE;
-        }
-        _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
-        
-        // _mouth2 = "mmmm" shape
-        // _mouth3 = "funnel" shape
-        // _mouth4 = "smile" shape
-        const float FUNNEL_PERIOD = 0.985f;
-        const float FUNNEL_RANDOM_PERIOD = 0.01f;
-        const float MMMM_POWER = 0.25f;
-        const float MMMM_PERIOD = 0.91f;
-        const float MMMM_RANDOM_PERIOD = 0.15f;
-        const float SMILE_PERIOD = 0.925f;
-        const float SMILE_RANDOM_PERIOD = 0.05f;
-
-        _mouth3 = glm::mix(_audioJawOpen, _mouth3, FUNNEL_PERIOD + randFloat() * FUNNEL_RANDOM_PERIOD);
-        _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
-        _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
-        
+        calculateMouthShapes();
         DependencyManager::get<Faceshift>()->updateFakeCoefficients(_leftEyeBlink,
                                                                     _rightEyeBlink,
                                                                     _browAudioLift,
@@ -228,6 +219,34 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     _eyePosition = calculateAverageEyePosition();
 
+}
+
+void Head::calculateMouthShapes() {
+    const float JAW_OPEN_SCALE = 0.015f;
+    const float JAW_OPEN_RATE = 0.9f;
+    const float JAW_CLOSE_RATE = 0.90f;
+    float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
+    if (audioDelta > _audioJawOpen) {
+        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
+    } else {
+        _audioJawOpen *= JAW_CLOSE_RATE;
+    }
+    _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
+
+    // _mouth2 = "mmmm" shape
+    // _mouth3 = "funnel" shape
+    // _mouth4 = "smile" shape
+    const float FUNNEL_PERIOD = 0.985f;
+    const float FUNNEL_RANDOM_PERIOD = 0.01f;
+    const float MMMM_POWER = 0.25f;
+    const float MMMM_PERIOD = 0.91f;
+    const float MMMM_RANDOM_PERIOD = 0.15f;
+    const float SMILE_PERIOD = 0.925f;
+    const float SMILE_RANDOM_PERIOD = 0.05f;
+
+    _mouth3 = glm::mix(_audioJawOpen, _mouth3, FUNNEL_PERIOD + randFloat() * FUNNEL_RANDOM_PERIOD);
+    _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
+    _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
 }
 
 void Head::relaxLean(float deltaTime) {
@@ -289,7 +308,7 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (OculusManager::isConnected()) {
+    if (qApp->isHMDMode()) {
         return getOrientation();
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);

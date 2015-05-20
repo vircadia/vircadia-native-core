@@ -87,7 +87,8 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
 void FaceModel::updateJointState(int index) {
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1) {
+    // guard against out-of-bounds access to _jointStates
+    if (joint.parentIndex != -1 && joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.neckJointIndex) {
