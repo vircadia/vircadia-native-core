@@ -64,6 +64,8 @@ const float ENTITY_ITEM_DEFAULT_FRICTION = 0.5f;
 const bool ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE = false;
 
+const float ENTITY_ITEM_DEFAULT_CUTOFF = PI / 2;
+
 const QString ENTITY_ITEM_DEFAULT_NAME = QString("");
 
 #endif // hifi_EntityItemPropertiesDefaults_h
