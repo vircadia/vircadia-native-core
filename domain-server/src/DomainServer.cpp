@@ -44,8 +44,6 @@ int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 
-
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
 const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
