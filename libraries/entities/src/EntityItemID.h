@@ -23,37 +23,37 @@
 const QUuid UNKNOWN_ENTITY_ID; // null uuid
 
 /// Abstract ID for editing model items. Used in EntityItem JS API.
-class EntityItemID {
+class EntityItemID : public QUuid {
 public:
     EntityItemID();
     EntityItemID(const QUuid& id);
-    EntityItemID(const EntityItemID& other);
+    // EntityItemID(const EntityItemID& other);
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead);
     QScriptValue toScriptValue(QScriptEngine* engine) const;
 
-    bool isInvalidID() const { return id == UNKNOWN_ENTITY_ID; }
+    bool isInvalidID() const { return *this == UNKNOWN_ENTITY_ID; }
 
-    QUuid id;
+    // QUuid id;
 };
 
-inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
-    return a.id < b.id;
-}
+// inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
+//     return a.id < b.id;
+// }
 
-inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
-    return a.id == b.id;
-}
+// inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
+//     return a.id == b.id;
+// }
 
-inline bool operator!=(const EntityItemID& a, const EntityItemID& b) {
-    return !(a == b);
-}
+// inline bool operator!=(const EntityItemID& a, const EntityItemID& b) {
+//     return !(a == b);
+// }
 
-inline uint qHash(const EntityItemID& a, uint seed) {
-    return qHash(a.id, seed);
-}
+// inline uint qHash(const EntityItemID& a, uint seed) {
+//     return qHash(a.id, seed);
+// }
 
 inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
-    debug << "[entity-id:" << id.id << "]";
+    debug << "[entity-id:" << id.toString() << "]";
     return debug;
 }
 

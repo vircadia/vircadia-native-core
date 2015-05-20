@@ -119,7 +119,6 @@ QString nameForPacketType(PacketType packetType) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityData);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddOrEdit);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);

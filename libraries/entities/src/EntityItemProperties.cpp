@@ -586,7 +586,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // id
         // encode our ID as a byte count coded byte stream
-        QByteArray encodedID = id.id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
+        QByteArray encodedID = id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
 
         // encode our ID as a byte count coded byte stream
         ByteCountCoded<quint32> tokenCoder;
@@ -990,7 +990,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
 
-    QUuid entityID = entityItemID.id;
+    QUuid entityID = entityItemID;
     QByteArray encodedEntityID = entityID.toRfc4122();
 
     memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);

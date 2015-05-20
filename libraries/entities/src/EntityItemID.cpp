@@ -18,20 +18,18 @@
 #include "EntityItemID.h"
 
 
-EntityItemID::EntityItemID() :
-    id(UNKNOWN_ENTITY_ID)
-{ 
-}
-
-
-EntityItemID::EntityItemID(const QUuid& id) :
-    id(id)
-{ 
-}
-
-EntityItemID::EntityItemID(const EntityItemID& other) : id(other.id)
+EntityItemID::EntityItemID() : QUuid()
 {
 }
+
+
+EntityItemID::EntityItemID(const QUuid& id) : QUuid(id)
+{
+}
+
+// EntityItemID::EntityItemID(const EntityItemID& other) : QUuid(other)
+// {
+// }
 
 EntityItemID EntityItemID::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead) {
     EntityItemID result;
@@ -39,7 +37,7 @@ EntityItemID EntityItemID::readEntityItemIDFromBuffer(const unsigned char* data,
     if (bytesLeftToRead >= NUM_BYTES_RFC4122_UUID) {
         // id
         QByteArray encodedID((const char*)data, NUM_BYTES_RFC4122_UUID);
-        result.id = QUuid::fromRfc4122(encodedID);
+        result = QUuid::fromRfc4122(encodedID);
     }
     return result;
 }
@@ -49,9 +47,9 @@ QScriptValue EntityItemID::toScriptValue(QScriptEngine* engine) const {
 }
 
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& id) {
-    return quuidToScriptValue(engine, id.id);
+    return quuidToScriptValue(engine, id);
 }
 
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& id) {
-    quuidFromScriptValue(object, id.id);
+    quuidFromScriptValue(object, id);
 }

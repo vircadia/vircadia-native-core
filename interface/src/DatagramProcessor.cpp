@@ -82,9 +82,6 @@ void DatagramProcessor::processDatagrams() {
 
                     break;
                 }
-                case PacketTypeEntityAddResponse:
-                    application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
-                    break;
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
                 case PacketTypeOctreeStats:

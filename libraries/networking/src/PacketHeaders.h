@@ -70,7 +70,7 @@ enum PacketType {
     PacketTypeEntityData,
     PacketTypeEntityAddOrEdit,
     PacketTypeEntityErase,
-    PacketTypeEntityAddResponse,
+    UNUSED_11,
     PacketTypeOctreeDataNack, // 45
     PacketTypeStopNode,
     PacketTypeAudioEnvironment,

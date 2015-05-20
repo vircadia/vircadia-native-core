@@ -30,7 +30,7 @@ bool EntityItem::_sendPhysicsUpdates = true;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
-    _id(entityItemID.id),
+    _id(entityItemID),
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),

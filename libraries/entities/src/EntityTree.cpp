@@ -367,7 +367,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             // set up the deleted entities ID
             quint64 deletedAt = usecTimestampNow();
             _recentlyDeletedEntitiesLock.lockForWrite();
-            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID().id);
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
             _recentlyDeletedEntitiesLock.unlock();
         }
 
@@ -378,14 +378,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     }
     if (_simulation) {
         _simulation->unlock();
-    }
-}
-
-void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
-
-    if (!getIsClient()) {
-        qCDebug(entities) << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
-        return;
     }
 }
 

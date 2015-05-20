@@ -72,7 +72,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     EntityItemProperties propertiesWithSimID = properties;
 
-    EntityItemID id = EntityItemID(UNKNOWN_ENTITY_ID);
+    EntityItemID id = EntityItemID(QUuid::createUuid());
 
     // If we have a local entity tree set, then also update it.
     bool success = true;
@@ -95,7 +95,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         queueEntityMessage(PacketTypeEntityAddOrEdit, id, propertiesWithSimID);
     }
 
-    return id.id;
+    return id;
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
@@ -189,7 +189,7 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
             result = closestEntity->getEntityItemID();
         }
     }
-    return result.id;
+    return result;
 }
 
 
@@ -210,7 +210,7 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getEntityItemID().id;
+            result << entity->getEntityItemID();
         }
     }
     return result;
@@ -226,7 +226,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getEntityItemID().id;
+            result << entity->getEntityItemID();
         }
     }
     return result;
@@ -253,7 +253,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
-            result.entityID = intersectedEntity->getEntityItemID().id;
+            result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
