@@ -161,16 +161,16 @@ public:
     typedef std::shared_ptr< Observer > ObserverPointer;
     typedef std::vector< ObserverPointer > Observers;
 
-    class ChangeBatch {
+    class PendingChanges {
     public:
-        ChangeBatch() {}
-        ~ChangeBatch();
+        PendingChanges() {}
+        ~PendingChanges();
 
         void resetItem(ID id, PayloadPointer& payload);
         void removeItem(ID id);
         void moveItem(ID id);
 
-        void mergeBatch(ChangeBatch& newBatch);
+        void mergeBatch(PendingChanges& newBatch);
 
         Payloads _resetPayloads;
         ItemIDs _resetItems; 
@@ -179,7 +179,7 @@ public:
 
     protected:
     };
-    typedef std::queue<ChangeBatch> ChangeBatchQueue;
+    typedef std::queue<PendingChanges> PendingChangesQueue;
 
     Scene();
     ~Scene() {}
@@ -188,7 +188,7 @@ public:
     ID allocateID();
 
     /// Enqueue change batch to the scene
-    void enqueueChangeBatch(const ChangeBatch& changeBatch);
+    void enqueuePendingChanges(const PendingChanges& pendingChanges);
 
     /// Scene Observer listen to any change and get notified
     void registerObserver(ObserverPointer& observer);
@@ -198,7 +198,7 @@ protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator;
     std::mutex _changeQueueMutex;
-    ChangeBatchQueue _changeQueue;
+    PendingChangesQueue _changeQueue;
 
     // The actual database
     // database of items is protected for editing by a mutex
@@ -206,7 +206,7 @@ protected:
     Items _items;
     ItemLists _buckets;
 
-    void processChangeBatchQueue();
+    void processPendingChangesQueue();
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void moveItems(const ItemIDs& ids);

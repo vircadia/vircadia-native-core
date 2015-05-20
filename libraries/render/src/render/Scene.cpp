@@ -12,21 +12,21 @@
 
 using namespace render;
 
-void Scene::ChangeBatch::resetItem(ID id, PayloadPointer& payload) {
+void Scene::PendingChanges::resetItem(ID id, PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
 }
 
-void Scene::ChangeBatch::removeItem(ID id) {
+void Scene::PendingChanges::removeItem(ID id) {
     _removedItems.push_back(id);
 }
 
-void Scene::ChangeBatch::moveItem(ID id) {
+void Scene::PendingChanges::moveItem(ID id) {
     _movedItems.push_back(id);
 }
 
         
-void Scene::ChangeBatch::mergeBatch(ChangeBatch& newBatch) {
+void Scene::PendingChanges::mergeBatch(PendingChanges& newBatch) {
     _resetItems.insert(_resetItems.end(), newBatch._resetItems.begin(), newBatch._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), newBatch._resetPayloads.begin(), newBatch._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), newBatch._removedItems.begin(), newBatch._removedItems.end());
@@ -44,24 +44,24 @@ Item::ID Scene::allocateID() {
 }
 
 /// Enqueue change batch to the scene
-void Scene::enqueueChangeBatch(const ChangeBatch& changeBatch) {
+void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
     _changeQueueMutex.lock();
-    _changeQueue.push(changeBatch);
+    _changeQueue.push(pendingChanges);
     _changeQueueMutex.unlock();
 }
 
-void consolidateChangeQueue(Scene::ChangeBatchQueue& queue, Scene::ChangeBatch& singleBatch) {
+void consolidateChangeQueue(Scene::PendingChangesQueue& queue, Scene::PendingChanges& singleBatch) {
     while (!queue.empty()) {
-        auto changeBatch = queue.front();
-        singleBatch.mergeBatch(changeBatch);
+        auto pendingChanges = queue.front();
+        singleBatch.mergeBatch(pendingChanges);
         queue.pop();
     };
 }
  
-void Scene::processChangeBatchQueue() {
+void Scene::processPendingChangesQueue() {
     _changeQueueMutex.lock();
-    ChangeBatch consolidatedChangeBatch;
-    consolidateChangeQueue(_changeQueue, consolidatedChangeBatch);
+    PendingChanges consolidatedPendingChanges;
+    consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
     _changeQueueMutex.unlock();
     
     _itemsMutex.lock();
@@ -72,10 +72,10 @@ void Scene::processChangeBatchQueue() {
             _items.resize(maxID + 100); // allocate the maxId and more
         }
         // Now we know for sure that we have enough items in the array to
-        // capture anything coming from the changeBatch
-        resetItems(consolidatedChangeBatch._resetItems, consolidatedChangeBatch._resetPayloads);
-        removeItems(consolidatedChangeBatch._removedItems);
-        moveItems(consolidatedChangeBatch._movedItems);
+        // capture anything coming from the pendingChanges
+        resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
+        removeItems(consolidatedPendingChanges._removedItems);
+        moveItems(consolidatedPendingChanges._movedItems);
 
      // ready to go back to rendering activities
     _itemsMutex.unlock();
