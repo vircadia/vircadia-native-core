@@ -767,7 +767,8 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, keypath, setting_value, isLocked) {
-  var isArray = !_.has(setting, 'key')
+  var isArray = !_.has(setting, 'key');
+  var isHash = !isArray;
 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
@@ -780,7 +781,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
-    + "' name='" + keypath + "' id='" + setting.html_id + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
+    + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
+    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
   // Column names
   html += "<tr class='headers'>"
@@ -809,33 +811,38 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   var row_num = 1;
 
   if (keypath.length > 0 && _.size(setting_value) > 0) {
-    _.each(setting_value, function(row, indexOrName) {
-      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + indexOrName + "'") + ">"
+    _.each(setting_value, function(row, rowIndexOrName) {
+      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
       }
 
       if (setting.key) {
-          html += "<td class='key'>" + indexOrName + "</td>"
+          html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
       _.each(setting.columns, function(col) {
-        html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
 
         if (isArray) {
-          rowIsObject = setting.columns.length > 1
-          colValue = rowIsObject ? row[col.name] : row
-          html += colValue
-
-          // for arrays we add a hidden input to this td so that values can be posted appropriately
-          html += "<input type='hidden' name='" + keypath + "[" + indexOrName + "]"
-            + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
-        } else if (row.hasOwnProperty(col.name)) {
-          html += row[col.name]
+          rowIsObject = setting.columns.length > 1;
+          colValue = rowIsObject ? row[col.name] : row;
+          colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
+        } else {
+          colValue = row[col.name];
+          colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        html += "</td>"
+        // setup the td for this column
+        html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
+
+        // add the actual value to the td so it is displayed
+        html += colValue;
+
+        // for values to be posted properly we add a hidden input to this td
+        html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
+
+        html += "</td>";
       })
 
       if (!isLocked && !setting.read_only) {
