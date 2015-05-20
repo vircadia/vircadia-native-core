@@ -30,6 +30,7 @@
 #include <ShapeInfo.h>
 
 #include "AtmospherePropertyGroup.h"
+#include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
@@ -162,20 +163,20 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType command, QUuid id, const EntityItemProperties& properties,
-                                       unsigned char* bufferOut, int sizeIn, int& sizeOut);
+    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
-    static bool encodeEraseEntityMessage(const QUuid& entityItemID, 
+    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, 
                                             unsigned char* outputBuffer, size_t maxLength, size_t& outputLength);
 
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        QUuid& entityID, EntityItemProperties& properties);
+                        EntityItemID& entityID, EntityItemProperties& properties);
 
     bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
-    void clearID() { _id = QUuid(); _idSet = false; }
+    void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
     void setSittingPoints(const QVector<SittingPoint>& sittingPoints);

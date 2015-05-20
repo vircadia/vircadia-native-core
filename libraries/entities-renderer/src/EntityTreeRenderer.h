@@ -97,23 +97,23 @@ signals:
     void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
     void mouseReleaseOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
 
-    void clickDownOnEntity(const QUuid& entityItemID, const MouseEvent& event);
-    void holdingClickOnEntity(const QUuid& entityItemID, const MouseEvent& event);
-    void clickReleaseOnEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
 
-    void hoverEnterEntity(const QUuid& entityItemID, const MouseEvent& event);
-    void hoverOverEntity(const QUuid& entityItemID, const MouseEvent& event);
-    void hoverLeaveEntity(const QUuid& entityItemID, const MouseEvent& event);
+    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
 
-    void enterEntity(const QUuid& entityItemID);
-    void leaveEntity(const QUuid& entityItemID);
+    void enterEntity(const EntityItemID& entityItemID);
+    void leaveEntity(const EntityItemID& entityItemID);
 
 public slots:
-    void addingEntity(const QUuid& entityID);
-    void deletingEntity(const QUuid& entityID);
-    void changingEntityID(const QUuid& oldEntityID, const QUuid& newEntityID);
-    void entitySciptChanging(const QUuid& entityID);
-    void entityCollisionWithEntity(const QUuid& idA, const QUuid& idB, const Collision& collision);
+    void addingEntity(const EntityItemID& entityID);
+    void deletingEntity(const EntityItemID& entityID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void entitySciptChanging(const EntityItemID& entityID);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     // optional slots that can be wired to menu items
     void setDisplayElementChildProxies(bool value) { _displayElementChildProxies = value; }
@@ -126,37 +126,37 @@ protected:
 
 private:
     void renderElementProxy(EntityTreeElement* entityTreeElement);
-    void checkAndCallPreload(const QUuid& entityID);
-    void checkAndCallUnload(const QUuid& entityID);
+    void checkAndCallPreload(const EntityItemID& entityID);
+    void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
                                                                 bool precisionPicking);
 
-    QUuid _currentHoverOverEntityID;
-    QUuid _currentClickingOnEntityID;
+    EntityItemID _currentHoverOverEntityID;
+    EntityItemID _currentClickingOnEntityID;
 
-    QScriptValueList createEntityArgs(const QUuid& entityID);
+    QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
     void leaveAllEntities();
     glm::vec3 _lastAvatarPosition;
-    QVector<QUuid> _currentEntitiesInside;
+    QVector<EntityItemID> _currentEntitiesInside;
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
     ScriptEngine* _sandboxScriptEngine;
 
     QScriptValue loadEntityScript(EntityItem* entity, bool isPreload = false);
-    QScriptValue loadEntityScript(const QUuid& entityItemID, bool isPreload = false);
-    QScriptValue getPreviouslyLoadedEntityScript(const QUuid& entityItemID);
+    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false);
+    QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
     QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url);
-    QScriptValueList createMouseEventArgs(const QUuid& entityID, QMouseEvent* event, unsigned int deviceID);
-    QScriptValueList createMouseEventArgs(const QUuid& entityID, const MouseEvent& mouseEvent);
+    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
+    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
-    QHash<QUuid, EntityScriptDetails> _entityScripts;
+    QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 
-    void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const QUuid& id, const Collision& collision);
+    void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
     AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
@@ -170,7 +170,7 @@ private:
     
     bool _shuttingDown = false;
 
-    QMultiMap<QUrl, QUuid> _waitingOnPreload;
+    QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
     bool _hasPreviousZone = false;
     const ZoneEntityItem* _bestZone;

@@ -20,12 +20,11 @@
 
 #include "RenderableParticleEffectEntityItem.h"
 
-EntityItem* RenderableParticleEffectEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableParticleEffectEntityItem(entityID, properties);
 }
 
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const QUuid& entityItemID,
-                                                                       const EntityItemProperties& properties) :
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     ParticleEffectEntityItem(entityItemID, properties) {
     _cacheID = DependencyManager::get<GeometryCache>()->allocateID();
 }

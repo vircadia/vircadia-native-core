@@ -16,7 +16,7 @@
 #include "EntitiesLogging.h"
 #include "DeleteEntityOperator.h"
 
-DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const QUuid& searchEntityID) :
+DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID) :
     _tree(tree),
     _changeTime(usecTimestampNow()),
     _foundCount(0),
@@ -36,7 +36,7 @@ DeleteEntityOperator::DeleteEntityOperator(EntityTree* tree) :
 {
 }
 
-void DeleteEntityOperator::addEntityIDToDeleteList(const QUuid& searchEntityID) {
+void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEntityID) {
     // check our tree, to determine if this entity is known
     EntityToDeleteDetails details;
     details.containingElement = _tree->getContainingElement(searchEntityID);
@@ -95,7 +95,7 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
                 EntityItem* theEntity = details.entity;
                 bool entityDeleted = entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 assert(entityDeleted);
-                _tree->setContainingElement(details.entity->getID(), NULL); // update or id to element lookup
+                _tree->setContainingElement(details.entity->getEntityItemID(), NULL); // update or id to element lookup
                 _foundCount++;
             }
         }

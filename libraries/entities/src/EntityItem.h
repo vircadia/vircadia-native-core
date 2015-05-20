@@ -23,6 +23,7 @@
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
 
+#include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
 #include "EntityItemPropertiesDefaults.h" 
 #include "EntityTypes.h"
@@ -88,13 +89,14 @@ public:
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
-    EntityItem(const QUuid& entityItemID);
-    EntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
+    EntityItem(const EntityItemID& entityItemID);
+    EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     const QUuid& getID() const { return _id; }
     void setID(const QUuid& id) { _id = id; }
+    EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
@@ -138,8 +140,8 @@ public:
                                     int& propertyCount, 
                                     OctreeElement::AppendState& appendState) const { /* do nothing*/ };
 
-    static QUuid readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
-                                            ReadBitstreamToTreeParams& args);
+    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+                                    ReadBitstreamToTreeParams& args);
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 

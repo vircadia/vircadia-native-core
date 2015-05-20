@@ -14,6 +14,7 @@
 
 #include <ByteCountCoding.h>
 
+#include "EntityItemID.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "EntitiesLogging.h"
@@ -21,12 +22,12 @@
 
 bool LightEntityItem::_lightsArePickable = false;
 
-EntityItem* LightEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new LightEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
-LightEntityItem::LightEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties) 
 {
     _type = EntityTypes::Light;

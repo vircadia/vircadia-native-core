@@ -46,7 +46,7 @@ bool AddEntityOperator::preRecursion(OctreeElement* element) {
         if (entityTreeElement->bestFitBounds(_newEntityBox)) {
 
             entityTreeElement->addEntityItem(_newEntity);
-            _tree->setContainingElement(_newEntity->getID(), entityTreeElement);
+            _tree->setContainingElement(_newEntity->getEntityItemID(), entityTreeElement);
 
             _foundNew = true;
             keepSearching = false;

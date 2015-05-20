@@ -18,7 +18,7 @@
 
 #include "RenderableLineEntityItem.h"
 
-EntityItem* RenderableLineEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableLineEntityItem(entityID, properties);
 }
 

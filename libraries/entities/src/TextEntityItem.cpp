@@ -28,12 +28,12 @@ const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
 const xColor TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
 const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 
-EntityItem* TextEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new TextEntityItem(entityID, properties);
     return result;
 }
 
-TextEntityItem::TextEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Text;

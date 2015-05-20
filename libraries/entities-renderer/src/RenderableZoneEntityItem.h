@@ -19,9 +19,9 @@ class NetworkGeometry;
 
 class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
-    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
-    RenderableZoneEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+    RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     ZoneEntityItem(entityItemID, properties),
     _model(NULL),
     _needsInitialSimulation(true)

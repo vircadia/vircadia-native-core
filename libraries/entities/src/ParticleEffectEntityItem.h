@@ -17,9 +17,9 @@
 class ParticleEffectEntityItem : public EntityItem {
 public:
 
-    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ParticleEffectEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
+    ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~ParticleEffectEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated

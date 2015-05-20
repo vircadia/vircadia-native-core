@@ -22,20 +22,20 @@ public:
 typedef QSet<EntityToDeleteDetails> RemovedEntities;
 
 inline uint qHash(const EntityToDeleteDetails& a, uint seed) {
-    return qHash(a.entity->getID(), seed);
+    return qHash(a.entity->getEntityItemID(), seed);
 }
 
 inline bool operator==(const EntityToDeleteDetails& a, const EntityToDeleteDetails& b) {
-    return a.entity->getID() == b.entity->getID();
+    return a.entity->getEntityItemID() == b.entity->getEntityItemID();
 }
 
 class DeleteEntityOperator : public RecurseOctreeOperator {
 public:
     DeleteEntityOperator(EntityTree* tree);
-    DeleteEntityOperator(EntityTree* tree, const QUuid& searchEntityID);
+    DeleteEntityOperator(EntityTree* tree, const EntityItemID& searchEntityID);
     ~DeleteEntityOperator();
 
-    void addEntityIDToDeleteList(const QUuid& searchEntityID);
+    void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
     virtual bool preRecursion(OctreeElement* element);
     virtual bool postRecursion(OctreeElement* element);
 

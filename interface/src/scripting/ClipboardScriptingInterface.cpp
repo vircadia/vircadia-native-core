@@ -18,7 +18,7 @@ float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
     return Application::getInstance()->getEntityClipboard()->getContentsLargestDimension();
 }
 
-bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<QUuid>& entityIDs) {
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     return Application::getInstance()->exportEntities(filename, entityIDs);
 }
 
@@ -30,6 +30,6 @@ bool ClipboardScriptingInterface::importEntities(const QString& filename) {
     return Application::getInstance()->importEntities(filename);
 }
 
-QVector<QUuid> ClipboardScriptingInterface::pasteEntities(glm::vec3 position) {
+QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(glm::vec3 position) {
     return Application::getInstance()->pasteEntities(position.x, position.y, position.z);
 }

@@ -26,8 +26,8 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type,
     }
 }
 
-void EntityEditPacketSender::queueEditEntityMessage(PacketType type, QUuid modelID, 
-                                                    const EntityItemProperties& properties) {
+void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
+                                                                const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }
@@ -46,7 +46,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, QUuid model
     }
 }
 
-void EntityEditPacketSender::queueEraseEntityMessage(const QUuid& entityItemID) {
+void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
     if (!_shouldSend) {
         return; // bail early
     }

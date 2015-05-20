@@ -20,12 +20,12 @@
 #include "EntityTreeElement.h"
 
 
-EntityItem* LineEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new LineEntityItem(entityID, properties);
     return result;
 }
 
-LineEntityItem::LineEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) 
 {
     _type = EntityTypes::Line;
@@ -99,7 +99,7 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
 void LineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qCDebug(entities) << "   LINE EntityItem id:" << getID() << "---------------------------------------------";
+    qCDebug(entities) << "   LINE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "            position:" << debugTreeVector(_position);
     qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);

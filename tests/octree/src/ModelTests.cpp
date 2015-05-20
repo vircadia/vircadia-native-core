@@ -40,7 +40,8 @@ void EntityTests::entityTreeTests(bool verbose) {
 
     // Tree, id, and entity properties used in many tests below...
     EntityTree tree;
-    QUuid entityID = QUuid::createUuid();
+    QUuid id = QUuid::createUuid();
+    EntityItemID entityID(id);
     EntityItemProperties properties;
     float oneMeter = 1.0f;
     float halfOfDomain = TREE_SCALE * 0.5f;
@@ -247,7 +248,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 totalElapsedAdd = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            QUuid entityID = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+            QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+            EntityItemID entityID(id);
 
             float randomX = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             float randomY = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
@@ -349,7 +351,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 totalElapsedDelete = 0;
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
-            QUuid entityID = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+            QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+            EntityItemID entityID(id);
 
             if (extraVerbose) {
                 qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();
@@ -428,9 +431,11 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 totalElapsedFind = 0;
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
 
-            QSet<QUuid> entitiesToDelete;
+            QSet<EntityItemID> entitiesToDelete;
             for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
                 //uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
+                QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+                EntityItemID entityID(id);
                 entitiesToDelete << entityID;
             }
 
@@ -450,7 +455,8 @@ void EntityTests::entityTreeTests(bool verbose) {
             quint64 startFind = usecTimestampNow();
             for (int j = 0; j < ENTITIES_PER_ITERATION; j++) {        
                 //uint32_t id = 2 + (i * ENTITIES_PER_ITERATION) + j; // These are the entities we added above
-                QUuid entityID = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+                QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
+                EntityItemID entityID(id);
                 const EntityItem* foundEntityByID = tree.findEntityByEntityItemID(entityID);
                 EntityTreeElement* containingElement = tree.getContainingElement(entityID);
 

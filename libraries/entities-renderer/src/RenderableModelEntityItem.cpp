@@ -23,7 +23,7 @@
 #include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
 
-EntityItem* RenderableModelEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableModelEntityItem(entityID, properties);
 }
 

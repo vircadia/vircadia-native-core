@@ -16,8 +16,8 @@
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 public:
-    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
-    RenderableParticleEffectEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties);
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
 
     void renderUntexturedQuads(RenderArgs* args);

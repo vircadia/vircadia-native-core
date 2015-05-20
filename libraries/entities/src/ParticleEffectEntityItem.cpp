@@ -55,12 +55,12 @@ const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
-EntityItem* ParticleEffectEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new ParticleEffectEntityItem(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...
-ParticleEffectEntityItem::ParticleEffectEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID, properties),
     _maxParticles(DEFAULT_MAX_PARTICLES),
     _lifespan(DEFAULT_LIFESPAN),
@@ -274,7 +274,7 @@ void ParticleEffectEntityItem::update(const quint64& now) {
 
 void ParticleEffectEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
-    qCDebug(entities) << "PA EFFECT EntityItem id:" << getID() << "---------------------------------------------";
+    qCDebug(entities) << "PA EFFECT EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "                  color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "               position:" << debugTreeVector(_position);
     qCDebug(entities) << "             dimensions:" << debugTreeVector(_dimensions);

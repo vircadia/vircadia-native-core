@@ -427,7 +427,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {
-        QUuid id(_entity->getID());
+        EntityItemID id(_entity->getID());
         EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
         #ifdef WANT_DEBUG
             qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";

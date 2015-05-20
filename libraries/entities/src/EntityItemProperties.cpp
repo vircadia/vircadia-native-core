@@ -91,7 +91,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
     CONSTRUCT_PROPERTY(sourceUrl, ""),
 
-    _id(QUuid()),
+    _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
     _lastEdited(0),
     _created(UNKNOWN_CREATED_TIME),
@@ -557,7 +557,7 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, QUuid id, const EntityItemProperties& properties,
+bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                                   unsigned char* bufferOut, int sizeIn, int& sizeOut) {
     OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
@@ -586,7 +586,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, QUuid id, 
 
         // id
         // encode our ID as a byte count coded byte stream
-        QByteArray encodedID = id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
+        QByteArray encodedID = id.id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
 
         // encode our ID as a byte count coded byte stream
         ByteCountCoded<quint32> tokenCoder;
@@ -818,7 +818,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, QUuid id, 
 // TODO: Implement support for script and visible properties.
 //
 bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                                                  QUuid& entityID, EntityItemProperties& properties) {
+                                                  EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
     const unsigned char* dataAt = data;
@@ -975,7 +975,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 // NOTE: This version will only encode the portion of the edit message immediately following the
 // header it does not include the send times and sequence number because that is handled by the 
 // edit packet sender...
-bool EntityItemProperties::encodeEraseEntityMessage(const QUuid& entityItemID, 
+bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, 
                                                     unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
 
     unsigned char* copyAt = outputBuffer;
@@ -990,7 +990,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const QUuid& entityItemID,
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
 
-    QUuid entityID = entityItemID;
+    QUuid entityID = entityItemID.id;
     QByteArray encodedEntityID = entityID.toRfc4122();
 
     memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);

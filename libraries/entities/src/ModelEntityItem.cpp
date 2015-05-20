@@ -28,11 +28,11 @@ const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
 const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 
 
-EntityItem* ModelEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new ModelEntityItem(entityID, properties);
 }
 
-ModelEntityItem::ModelEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID, properties)
 {
     _type = EntityTypes::Model;
@@ -267,7 +267,7 @@ void ModelEntityItem::update(const quint64& now) {
 }
 
 void ModelEntityItem::debugDump() const {
-    qCDebug(entities) << "ModelEntityItem id:" << getID();
+    qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
     qCDebug(entities) << "    edited ago:" << getEditedAgo();
     qCDebug(entities) << "    position:" << getPosition();
     qCDebug(entities) << "    dimensions:" << getDimensions();

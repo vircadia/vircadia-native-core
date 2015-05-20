@@ -28,9 +28,9 @@
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
-EntityItem::EntityItem(const QUuid& entityItemID) :
+EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
-    _id(entityItemID),
+    _id(entityItemID.id),
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),
@@ -76,7 +76,7 @@ EntityItem::EntityItem(const QUuid& entityItemID) :
     _lastUpdated = now;
 }
 
-EntityItem::EntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
+EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
 {
     setProperties(properties);
 }
@@ -156,8 +156,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
-    if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getID())) {
-        requestedProperties = entityTreeElementExtraEncodeData->entities.value(getID());
+    if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
+        requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
     }
 
     LevelDetails entityLevel = packetData->startLevel();
@@ -167,7 +167,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     #ifdef WANT_DEBUG
         float editedAgo = getEditedAgo();
         QString agoAsString = formatSecondsElapsed(editedAgo);
-        qCDebug(entities) << "Writing entity " << getID() << " to buffer, lastEdited =" << lastEdited 
+        qCDebug(entities) << "Writing entity " << getEntityItemID() << " to buffer, lastEdited =" << lastEdited 
                         << " ago=" << editedAgo << "seconds - " << agoAsString;
     #endif
 
@@ -284,7 +284,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // If any part of the model items didn't fit, then the element is considered partial
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
-        entityTreeElementExtraEncodeData->entities.insert(getID(), propertiesDidntFit);
+        entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
     }
 
     return appendState;
@@ -308,6 +308,16 @@ int EntityItem::expectedBytes() {
 
 
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+
+    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
+    
+        // NOTE: This shouldn't happen. The only versions of the bit stream that didn't support split mtu buffers should
+        // be handled by the model subclass and shouldn't call this routine.
+        qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... "
+                        "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
+        return 0;
+    }
+
     // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
     glm::vec3 savePosition = _position;
     glm::quat saveRotation = _rotation;
@@ -375,7 +385,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             QString agoAsString = formatSecondsElapsed(editedAgo);
             QString ageAsString = formatSecondsElapsed(getAge());
             qCDebug(entities) << "------------------------------------------";
-            qCDebug(entities) << "Loading entity " << getID() << " from buffer...";
+            qCDebug(entities) << "Loading entity " << getEntityItemID() << " from buffer...";
             qCDebug(entities) << "------------------------------------------";
             debugDump();
             qCDebug(entities) << "------------------------------------------";
@@ -402,7 +412,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         #ifdef WANT_DEBUG
             qCDebug(entities) << "data from server **************** ";
-            qCDebug(entities) << "                           entityItemID:" << getID();
+            qCDebug(entities) << "                           entityItemID:" << getEntityItemID();
             qCDebug(entities) << "                                    now:" << now;
             qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
             qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
@@ -492,7 +502,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         
         #ifdef WANT_DEBUG
             if (overwriteLocalData) {
-                qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getID();
+                qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
                 qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
                 qCDebug(entities) << "                       getLastSimulated:" << debugTime(getLastSimulated(), now);
                 qCDebug(entities) << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
@@ -626,7 +636,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 void EntityItem::debugDump() const {
-    qCDebug(entities) << "EntityItem id:" << getID();
+    qCDebug(entities) << "EntityItem id:" << getEntityItemID();
     qCDebug(entities, " edited ago:%f", getEditedAgo());
     qCDebug(entities, " position:%f,%f,%f", _position.x, _position.y, _position.z);
     qCDebug(entities) << " dimensions:" << _dimensions;
@@ -700,7 +710,7 @@ void EntityItem::simulate(const quint64& now) {
 
     #ifdef WANT_DEBUG
         qCDebug(entities) << "********** EntityItem::simulate()";
-        qCDebug(entities) << "    entity ID=" << getID();
+        qCDebug(entities) << "    entity ID=" << getEntityItemID();
         qCDebug(entities) << "    simulator ID=" << getSimulatorID();
         qCDebug(entities) << "    now=" << now;
         qCDebug(entities) << "    _lastSimulated=" << _lastSimulated;

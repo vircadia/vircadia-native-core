@@ -86,7 +86,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
         }
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
-            entityTreeElementExtraEncodeData->entities.insert(entity->getID(), entity->getEntityProperties(params));
+            entityTreeElementExtraEncodeData->entities.insert(entity->getEntityItemID(), entity->getEntityProperties(params));
         }
         
         // TODO: some of these inserts might be redundant!!!
@@ -258,14 +258,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 if (child->hasEntities()) {
                     entityTreeElementExtraEncodeData->childCompleted[i] = false;
                 } else {
-                    // if the child doesn't have enities, it is completed
-                    entityTreeElementExtraEncodeData->childCompleted[i] = true;
+                    entityTreeElementExtraEncodeData->childCompleted[i] = true; // if the child doesn't have enities, it is completed
                 }
             }
         }
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
-            entityTreeElementExtraEncodeData->entities.insert(entity->getID(), entity->getEntityProperties(params));
+            entityTreeElementExtraEncodeData->entities.insert(entity->getEntityItemID(), entity->getEntityProperties(params));
         }
     }
 
@@ -294,7 +293,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         
             if (hadElementExtraData) {
                 includeThisEntity = includeThisEntity && 
-                                        entityTreeElementExtraEncodeData->entities.contains(entity->getID());
+                                        entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
             }
         
             if (includeThisEntity && params.viewFrustum) {
@@ -339,7 +338,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             
             // If the entity item got completely appended, then we can remove it from the extra encode data
             if (appendEntityState == OctreeElement::COMPLETED) {
-                entityTreeElementExtraEncodeData->entities.remove(entity->getID());
+                entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
             }
 
             // If any part of the entity items didn't fit, then the element is considered partial
@@ -612,11 +611,11 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
     }
 }
 
-const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const QUuid& id) const {
+const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
     const EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i]->getID() == id) {
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = (*_entityItems)[i];
             break;
         }
@@ -624,11 +623,11 @@ const EntityItem* EntityTreeElement::getEntityWithEntityItemID(const QUuid& id) 
     return foundEntity;
 }
    
-EntityItem* EntityTreeElement::getEntityWithEntityItemID(const QUuid& id) {
+EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) {
     EntityItem* foundEntity = NULL;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i]->getID() == id) {
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = (*_entityItems)[i];
             break;
         }
@@ -646,11 +645,11 @@ void EntityTreeElement::cleanupEntities() {
     _entityItems->clear();
 }
 
-bool EntityTreeElement::removeEntityWithEntityItemID(const QUuid& id) {
+bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        if ((*_entityItems)[i]->getID() == id) {
+        if ((*_entityItems)[i]->getEntityItemID() == id) {
             foundEntity = true;
             (*_entityItems)[i]->_element = NULL;
             _entityItems->removeAt(i);
@@ -706,12 +705,16 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
-                QUuid entityItemID;
+                EntityItemID entityItemID;
                 EntityItem* entityItem = NULL;
 
-                QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID);
-                entityItemID = QUuid::fromRfc4122(encodedID);
-                entityItem = _myTree->findEntityByEntityItemID(entityItemID);
+                // Old model files don't have UUIDs in them. So we don't want to try to read those IDs from the stream.
+                // Since this can only happen on loading an old file, we can safely treat these as new entity cases,
+                // which will correctly handle the case of creating models and letting them parse the old format.
+                if (args.bitstreamVersion >= VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
+                    entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+                    entityItem = _myTree->findEntityByEntityItemID(entityItemID);
+                }
 
                 // If the item already exists in our tree, we want do the following...
                 // 1) allow the existing item to read from the databuffer
@@ -752,7 +755,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                         addEntityItem(entityItem); // add this new entity to this elements entities
-                        entityItemID = entityItem->getID();
+                        entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->postAddEntity(entityItem);
                     }

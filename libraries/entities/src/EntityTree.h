@@ -41,7 +41,7 @@ public:
     glm::vec3 root;
     EntityTree* localTree;
     EntityEditPacketSender* packetSender;
-    QVector<QUuid>* newEntityIDs;
+    QVector<EntityItemID>* newEntityIDs;
 };
 
 
@@ -85,25 +85,24 @@ public:
     // The newer API...
     void postAddEntity(EntityItem* entityItem);
 
-    EntityItem* addEntity(const QUuid& entityID, const EntityItemProperties& properties);
+    EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     // use this method if you only know the entityID
-    bool updateEntity(const QUuid& entityID, const EntityItemProperties& properties,
-                      const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
+    bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    void deleteEntity(const QUuid& entityID, bool force = false, bool ignoreWarnings = false);
-    void deleteEntities(QSet<QUuid> entityIDs, bool force = false, bool ignoreWarnings = false);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
-    EntityItem* findEntityByEntityItemID(const QUuid& entityID);
+    EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);
 
-    QUuid assignEntityID(const QUuid& entityItemID); /// Assigns a known ID for a creator token ID
+    EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
 
     /// finds all entities that touch a sphere
@@ -147,17 +146,17 @@ public:
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
     
-    EntityTreeElement* getContainingElement(const QUuid& entityItemID)  /*const*/;
-    void setContainingElement(const QUuid& entityItemID, EntityTreeElement* element);
+    EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
+    void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
     virtual void dumpTree();
     virtual void pruneTree();
 
-    QVector<QUuid> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
+    QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void entityChanged(EntityItem* entity);
 
-    void emitEntityScriptChanging(const QUuid& entityItemID);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);
     
@@ -170,10 +169,10 @@ public:
     float getContentsLargestDimension();
 
 signals:
-    void deletingEntity(const QUuid& entityID);
-    void addingEntity(const QUuid& entityID);
-    void entityScriptChanging(const QUuid& entityItemID);
-    void changingEntityID(const QUuid& oldEntityID, const QUuid& newEntityID);
+    void deletingEntity(const EntityItemID& entityID);
+    void addingEntity(const EntityItemID& entityID);
+    void entityScriptChanging(const EntityItemID& entityItemID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void clearingEntities();
 
 private:
@@ -197,7 +196,7 @@ private:
     QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
-    QHash<QUuid, EntityTreeElement*> _entityToElementMap;
+    QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
     EntitySimulation* _simulation;
     

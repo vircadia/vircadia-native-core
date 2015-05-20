@@ -29,11 +29,11 @@ const int FIXED_FONT_POINT_SIZE = 40;
 const float DPI = 30.47;
 const float METERS_TO_INCHES = 39.3701;
 
-EntityItem* RenderableWebEntityItem::factory(const QUuid& entityID, const EntityItemProperties& properties) {
+EntityItem* RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableWebEntityItem(entityID, properties);
 }
 
-RenderableWebEntityItem::RenderableWebEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     WebEntityItem(entityItemID, properties) {
     qDebug() << "Created web entity " << getID();
 }
@@ -99,7 +99,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 return;
             }
 
-            if (intersection.entityID == getID()) {
+            if (intersection.entityID.id == getID()) {
                 if (event->button() == Qt::MouseButton::RightButton) {
                     if (event->type() == QEvent::MouseButtonRelease) {
                         AbstractViewStateInterface::instance()->postLambdaEvent([this] {

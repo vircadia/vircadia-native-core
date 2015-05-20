@@ -47,7 +47,7 @@ public:
     bool elementCompleted;
     bool subtreeCompleted;
     bool childCompleted[NUMBER_OF_CHILDREN];
-    QMap<QUuid, EntityPropertyFlags> entities;
+    QMap<EntityItemID, EntityPropertyFlags> entities;
 };
 
 inline QDebug operator<<(QDebug debug, const EntityTreeElementExtraEncodeData* data) {
@@ -165,13 +165,13 @@ public:
     void getEntities(const AACube& box, QVector<EntityItem*>& foundEntities);
 
     const EntityItem* getEntityWithID(uint32_t id) const;
-    const EntityItem* getEntityWithEntityItemID(const QUuid& id) const;
+    const EntityItem* getEntityWithEntityItemID(const EntityItemID& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItem*>& foundEntities);
 
-    EntityItem* getEntityWithEntityItemID(const QUuid& id);
+    EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
-    bool removeEntityWithEntityItemID(const QUuid& id);
+    bool removeEntityWithEntityItemID(const EntityItemID& id);
     bool removeEntityItem(EntityItem* entity);
 
     bool containsEntityBounds(const EntityItem* entity) const;

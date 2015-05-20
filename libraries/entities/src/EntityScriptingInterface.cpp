@@ -28,7 +28,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
-                                                  QUuid entityID, const EntityItemProperties& properties) {
+                                                  EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
 
@@ -46,7 +46,6 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     if (_entityTree) {
         disconnect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         disconnect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
-        disconnect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
         disconnect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
     }
 
@@ -55,7 +54,6 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     if (_entityTree) {
         connect(_entityTree, &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         connect(_entityTree, &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
-        connect(_entityTree, &EntityTree::changingEntityID, this, &EntityScriptingInterface::changingEntityID);
         connect(_entityTree, &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
     }
 }
@@ -70,10 +68,11 @@ void bidForSimulationOwnership(EntityItemProperties& properties) {
 
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     EntityItemProperties propertiesWithSimID = properties;
-    QUuid id = QUuid::createUuid();
+
+    EntityItemID id = EntityItemID(QUuid::createUuid());
 
     // If we have a local entity tree set, then also update it.
     bool success = true;
@@ -99,11 +98,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     return id;
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID identity) {
     EntityItemProperties results;
     if (_entityTree) {
         _entityTree->lockForRead();
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
+        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(EntityItemID(identity)));
         
         if (entity) {
             results = entity->getProperties();
@@ -127,7 +126,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     return results;
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid entityID, const EntityItemProperties& properties) {
+EntityItemID EntityScriptingInterface::editEntity(EntityItemID id, const EntityItemProperties& properties) {
+    EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
@@ -145,16 +145,16 @@ QUuid EntityScriptingInterface::editEntity(QUuid entityID, const EntityItemPrope
             modifiedProperties.setType(entity->getType());
             bidForSimulationOwnership(modifiedProperties);
             queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, modifiedProperties);
-            return entityID;
+            return id;
         }
     }
 
     queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
-    return entityID;
+    return id;
 }
 
-void EntityScriptingInterface::deleteEntity(QUuid entityID) {
-
+void EntityScriptingInterface::deleteEntity(EntityItemID id) {
+    EntityItemID entityID(id);
     bool shouldDelete = true;
 
     // If we have a local entity tree set, then also update it.
@@ -179,14 +179,14 @@ void EntityScriptingInterface::deleteEntity(QUuid entityID) {
     }
 }
 
-QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
+EntityItemID EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     QUuid result; 
     if (_entityTree) {
         _entityTree->lockForRead();
         const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
-            result = closestEntity->getID();
+            result = closestEntity->getEntityItemID().id;
         }
     }
     return result;
@@ -201,8 +201,8 @@ void EntityScriptingInterface::dumpTree() const {
     }
 }
 
-QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
-    QVector<QUuid> result;
+QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
+    QVector<EntityItemID> result;
     if (_entityTree) {
         _entityTree->lockForRead();
         QVector<const EntityItem*> entities;
@@ -210,14 +210,14 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getID();
+            result << entity->getEntityItemID();
         }
     }
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
-    QVector<QUuid> result;
+QVector<EntityItemID> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const {
+    QVector<EntityItemID> result;
     if (_entityTree) {
         _entityTree->lockForRead();
         AABox box(corner, dimensions);
@@ -226,7 +226,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
         _entityTree->unlock();
         
         foreach (const EntityItem* entity, entities) {
-            result << entity->getID();
+            result << entity->getEntityItemID();
         }
     }
     return result;
@@ -253,7 +253,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
-            result.entityID = intersectedEntity->getID();
+            result.entityID = intersectedEntity->getEntityItemID().id;
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
         }
@@ -309,7 +309,7 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
-    QScriptValue entityItemValue = quuidToScriptValue(engine, value.entityID);
+    QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
     obj.setProperty("entityID", entityItemValue);
 
     QScriptValue propertiesValue = EntityItemPropertiesToScriptValue(engine, value.properties);
@@ -353,7 +353,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
     QScriptValue entityIDValue = object.property("entityID");
-    quuidFromScriptValue(entityIDValue, value.entityID);
+    EntityItemIDfromScriptValue(entityIDValue, value.entityID);
     QScriptValue entityPropertiesValue = object.property("properties");
     if (entityPropertiesValue.isValid()) {
         EntityItemPropertiesFromScriptValue(entityPropertiesValue, value.properties);

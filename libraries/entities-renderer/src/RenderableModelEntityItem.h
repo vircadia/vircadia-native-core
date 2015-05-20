@@ -23,9 +23,9 @@ class EntityTreeRenderer;
 
 class RenderableModelEntityItem : public ModelEntityItem {
 public:
-    static EntityItem* factory(const QUuid& entityID, const EntityItemProperties& properties);
+    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderableModelEntityItem(const QUuid& entityItemID, const EntityItemProperties& properties) :
+    RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         ModelEntityItem(entityItemID, properties),
         _model(NULL),
         _needsInitialSimulation(true),
