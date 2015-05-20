@@ -20,13 +20,7 @@
 #include <QScriptEngine>
 #include <QUuid>
 
-// const uint32_t UNKNOWN_ENTITY_TOKEN = 0xFFFFFFFF;
-// const uint32_t NEW_ENTITY = 0xFFFFFFFF;
-// const uint32_t UNKNOWN_ENTITY_ID = 0xFFFFFFFF;
-
-const QUuid NEW_ENTITY;
-const QUuid UNKNOWN_ENTITY_ID;
-
+const QUuid UNKNOWN_ENTITY_ID; // null uuid
 
 /// Abstract ID for editing model items. Used in EntityItem JS API.
 class EntityItemID {
@@ -43,7 +37,7 @@ public:
 };
 
 inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
-    return a.id == b.id;
+    return a.id < b.id;
 }
 
 inline bool operator==(const EntityItemID& a, const EntityItemID& b) {

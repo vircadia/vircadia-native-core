@@ -840,7 +840,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
-            result.entityID = intersectedEntity->getEntityItemID();
+            result.entityID = intersectedEntity->getEntityItemID().id;
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);
             result.entity = intersectedEntity;

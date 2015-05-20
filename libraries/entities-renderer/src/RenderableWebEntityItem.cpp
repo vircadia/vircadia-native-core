@@ -99,7 +99,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 return;
             }
 
-            if (intersection.entityID.id == getID()) {
+            if (intersection.entityID == getID()) {
                 if (event->button() == Qt::MouseButton::RightButton) {
                     if (event->type() == QEvent::MouseButtonRelease) {
                         AbstractViewStateInterface::instance()->postLambdaEvent([this] {

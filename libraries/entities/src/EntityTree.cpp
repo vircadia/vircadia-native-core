@@ -1062,7 +1062,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
         EntityItem* entity = addEntity(entityItemID, properties);
         if (!entity) {
-            qCDebug(entities) << "adding Entity failed:" << entityItemID << entity->getType();
+            qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
 
