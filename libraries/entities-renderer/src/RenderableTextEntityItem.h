@@ -23,10 +23,8 @@ public:
         { }
 
     virtual void render(RenderArgs* args);
-
+    
 private:
-    void enableClipPlane(GLenum plane, float x, float y, float z, float w);
-
 };
 
 

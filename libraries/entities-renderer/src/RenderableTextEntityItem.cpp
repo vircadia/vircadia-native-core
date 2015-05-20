@@ -70,11 +70,6 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glPopMatrix();
 }
 
-void RenderableTextEntityItem::enableClipPlane(GLenum plane, float x, float y, float z, float w) {
-    GLdouble coefficients[] = { x, y, z, w };
-    glClipPlane(plane, coefficients);
-    glEnable(plane);
-}
 
 
 
