@@ -60,7 +60,7 @@ public:
     
     virtual bool contains(const glm::vec3& point) const;
 
-protected:
+private:
     void remapTextures();
     
     Model* _model;

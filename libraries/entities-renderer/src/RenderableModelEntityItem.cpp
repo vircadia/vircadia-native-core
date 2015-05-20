@@ -110,7 +110,7 @@ void RenderableModelEntityItem::remapTextures() {
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
-    assert(getType() == EntityTypes::Model || getType() == EntityTypes::PolyVox);
+    assert(getType() == EntityTypes::Model);
     
     bool drawAsModel = hasModel();
 

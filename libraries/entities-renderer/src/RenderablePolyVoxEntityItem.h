@@ -14,18 +14,29 @@
 
 #include <PolyVoxCore/SimpleVolume.h>
 
-#include "RenderableModelEntityItem.h"
+#include "PolyVoxEntityItem.h"
 #include "RenderableDebugableEntityItem.h"
 
-class RenderablePolyVoxEntityItem : public RenderableModelEntityItem {
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        RenderableModelEntityItem(entityItemID, properties) { }
+        PolyVoxEntityItem(entityItemID, properties) { }
 
+    void render(RenderArgs* args);
     virtual bool hasModel() const { return true; }
     virtual Model* getModel(EntityTreeRenderer* renderer);
+
+private:
+    Model* _model = nullptr;
+    bool _needsInitialSimulation = true;
+    bool _needsModelReload = true;
+    EntityTreeRenderer* _myRenderer = nullptr;
+    // QString _currentTextures;
+    // QStringList _originalTextures;
+    // bool _originalTexturesRead;
+    // QVector<QVector<glm::vec3>> _points;
 };
 
 

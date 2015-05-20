@@ -14,6 +14,7 @@
 #include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
+#include <Model.h>
 #include <PerfStat.h>
 
 #include <PolyVoxCore/CubicSurfaceExtractorWithNormals.h>
@@ -58,7 +59,75 @@ void createSphereInVolume(PolyVox::SimpleVolume<uint8_t>& volData, float fRadius
 }
 
 
-// virtual
+
+void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
+    PerformanceTimer perfTimer("PolyVoxrender");
+    assert(getType() == EntityTypes::PolyVox);
+    
+    bool drawAsModel = hasModel();
+
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+
+    bool didDraw = false;
+    if (drawAsModel) {
+        glPushMatrix();
+        {
+            float alpha = getLocalRenderAlpha();
+
+            if (!_model || _needsModelReload) {
+                // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+                PerformanceTimer perfTimer("getModel");
+                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                getModel(renderer);
+            }
+            
+            if (_model) {
+                glm::quat rotation = getRotation();
+                bool movingOrAnimating = isMoving();
+                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive()) {
+                    _model->setScaleToFit(true, dimensions);
+                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+                    _model->setRotation(rotation);
+                    _model->setTranslation(position);
+                    
+                    // make sure to simulate so everything gets set up correctly for rendering
+                    {
+                        PerformanceTimer perfTimer("_model->simulate");
+                        _model->simulate(0.0f);
+                    }
+                    _needsInitialSimulation = false;
+                }
+
+                if (_model->isActive()) {
+                    // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
+                    // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
+                    PerformanceTimer perfTimer("model->render");
+                    // filter out if not needed to render
+                    if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
+                        if (movingOrAnimating) {
+                            _model->renderInScene(alpha, args);
+                            didDraw = true;
+                        }
+                    } else {
+                        _model->renderInScene(alpha, args);
+                        didDraw = true;
+                    }
+                }
+            }
+        }
+        glPopMatrix();
+    }
+
+    if (!didDraw) {
+        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+    }
+
+    RenderableDebugableEntityItem::render(this, args);
+}
+
+
 Model* RenderablePolyVoxEntityItem::getModel(EntityTreeRenderer* renderer) {
     PolyVox::SimpleVolume<uint8_t> volData(PolyVox::Region(PolyVox::Vector3DInt32(0,0,0),
                                                            PolyVox::Vector3DInt32(63, 63, 63)));
@@ -96,13 +165,10 @@ Model* RenderablePolyVoxEntityItem::getModel(EntityTreeRenderer* renderer) {
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
 
-    result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
-    assert(_model);
+    // result = _model = _myRenderer->allocateModel("", "");
+    // assert(_model);
 
     _needsInitialSimulation = true;
-
-
-
 
     return result;
 }
