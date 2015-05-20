@@ -128,7 +128,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool didDraw = false;
     if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
-        glPushMatrix();
         {
             float alpha = getLocalRenderAlpha();
 
@@ -188,7 +187,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
             }
         }
-        glPopMatrix();
     }
 
     if (!didDraw) {
