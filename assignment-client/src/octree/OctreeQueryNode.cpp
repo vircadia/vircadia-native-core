@@ -258,11 +258,11 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     float originalFOV = getCameraFov();
     float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
 
-    newestViewFrustum.setFieldOfView(wideFOV); // hack
-    newestViewFrustum.setAspectRatio(getCameraAspectRatio());
-    newestViewFrustum.setNearClip(getCameraNearClip());
-    newestViewFrustum.setFarClip(getCameraFarClip());
-    newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
+    newestViewFrustum.setProjection(glm::perspective(
+        glm::radians(wideFOV), // hack
+        getCameraAspectRatio(),
+        getCameraNearClip(),
+        getCameraFarClip()));
 
     // if there has been a change, then recalculate
     if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
