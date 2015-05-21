@@ -104,6 +104,9 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // write the new settings to the json file
                 persistToFile();
+
+                // reload the master and user config so that the merged config is right
+                _configMap.loadMasterAndUserConfig(argumentList);
             }
         }
     }
