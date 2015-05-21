@@ -79,35 +79,39 @@ void RenderablePolyVoxEntityItem::getModel() {
     //Execute the surface extractor.
     surfaceExtractor.execute();
 
+
+    model::Mesh* mesh = new model::Mesh();
+    model::MeshPointer meshPtr(mesh);
+
+
     const std::vector<uint32_t>& vecIndices = polyVoxMesh.getIndices();
+    auto indexBuffer = new gpu::Buffer(vecIndices.size() * sizeof(uint32_t), (gpu::Byte*)vecIndices.data());
+    auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
+    mesh->setIndexBuffer(gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW)));
+
+
     const std::vector<PolyVox::PositionMaterialNormal>& vecVertices = polyVoxMesh.getVertices();
+    auto vertexBuffer = new gpu::Buffer(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
+                                        (gpu::Byte*)vecVertices.data());
+    auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
+    mesh->setVertexBuffer(gpu::BufferView(vertexBufferPtr,
+                                          0,
+                                          vertexBufferPtr->getSize() - sizeof(float) * 3,
+                                          sizeof(float) * 7,
+                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+    mesh->addAttribute(gpu::Stream::NORMAL,
+                       gpu::BufferView(vertexBufferPtr,
+                                       sizeof(float) * 3,
+                                       vertexBufferPtr->getSize() - sizeof(float) * 3,
+                                       sizeof(float) * 7,
+                                       gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+
 
     qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------";
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
     // [DEBUG] [05/19 20:46:38] ---- vecIndices.size() = 101556
     // [DEBUG] [05/19 20:46:38] ---- vecVertices.size() = 67704
-
-    model::Mesh* mesh = new model::Mesh();
-    model::MeshPointer meshPtr(mesh);
-
-    auto indexBuffer = gpu::BufferPointer (new gpu::Buffer(vecIndices.size() * sizeof(uint32_t),
-                                                           (gpu::Byte*)vecIndices.data()));
-    auto vertexBuffer = gpu::BufferPointer(new gpu::Buffer(vecVertices.size() * sizeof(PolyVox::PositionMaterialNormal),
-                                                           (gpu::Byte*)vecVertices.data()));
-
-    mesh->setIndexBuffer(gpu::BufferView(indexBuffer, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW)));
-    mesh->setVertexBuffer(gpu::BufferView(vertexBuffer,
-                                          0,
-                                          vertexBuffer->getSize() - sizeof(float) * 3,
-                                          sizeof(float) * 6, // MAGIC NUMBER!
-                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
-    mesh->addAttribute(gpu::Stream::NORMAL,
-                       gpu::BufferView(vertexBuffer,
-                                       sizeof(float) * 3, // MAGIC NUMBER!
-                                       vertexBuffer->getSize() - sizeof(float) * 3,
-                                       sizeof(float) * 6, // MAGIC NUMBER!
-                                       gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
 
     _modelGeometry.setMesh(meshPtr);
@@ -127,20 +131,18 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     // glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
-    glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
-        // DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
-
         gpu::Batch batch;
 
-        batch.setInputFormat(_modelGeometry.getMesh()->getVertexFormat());
-        batch.setIndexBuffer(gpu::UINT32, _modelGeometry.getMesh()->getIndexBuffer()._buffer, 0);
-        batch.setInputStream(0, _modelGeometry.getMesh()->makeBufferStream());
-        batch.drawIndexed(gpu::TRIANGLES, _modelGeometry.getMesh()->getNumIndices(), 0);
+        auto mesh = _modelGeometry.getMesh();
+        batch.setInputFormat(mesh->getVertexFormat());
+        batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
+        batch.setInputStream(0, mesh->makeBufferStream());
+        batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
         gpu::GLBackend::renderBatch(batch);
 
     glPopMatrix();
