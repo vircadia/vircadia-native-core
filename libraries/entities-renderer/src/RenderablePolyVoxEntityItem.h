@@ -26,17 +26,16 @@ public:
 
     void render(RenderArgs* args);
     virtual bool hasModel() const { return true; }
-    virtual Model* getModel(EntityTreeRenderer* renderer);
+    void getModel();
 
 private:
-    Model* _model = nullptr;
-    bool _needsInitialSimulation = true;
+    // Model* _model = nullptr;
+    // bool _needsInitialSimulation = true;
+    // bool _needsModelReload = true;
+    // EntityTreeRenderer* _myRenderer = nullptr;
+
+    model::Geometry _modelGeometry;
     bool _needsModelReload = true;
-    EntityTreeRenderer* _myRenderer = nullptr;
-    // QString _currentTextures;
-    // QStringList _originalTextures;
-    // bool _originalTexturesRead;
-    // QVector<QVector<glm::vec3>> _points;
 };
 
 
