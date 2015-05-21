@@ -22,17 +22,17 @@
     } 
 
     this.preload = function(entityID) { 
-        print("preload("+entityID.id+")");
+        print("preload("+entityID+")");
         bird = SoundCache.getSound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
     }; 
 
     this.enterEntity = function(entityID) { 
-        print("enterEntity("+entityID.id+")");
+        print("enterEntity("+entityID+")");
         playSound();
     }; 
 
     this.leaveEntity = function(entityID) {
-        print("leaveEntity("+entityID.id+")");
+        print("leaveEntity("+entityID+")");
         playSound();
     }; 
 })

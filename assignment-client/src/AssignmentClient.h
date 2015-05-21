@@ -44,7 +44,6 @@ private:
     QPointer<ThreadedAssignment> _currentAssignment;
     QString _assignmentServerHostname;
     HifiSockAddr _assignmentServerSocket;
-    QSharedMemory* _localASPortSharedMem; // memory shared with domain server
     QTimer _requestTimer; // timer for requesting and assignment
     QTimer _statsTimerACM; // timer for sending stats to assignment client monitor
 

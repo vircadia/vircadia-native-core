@@ -43,9 +43,9 @@ void TV3DManager::connect() {
 void TV3DManager::setFrustum(const Camera& whichCamera) {
     const double DTR = 0.0174532925; // degree to radians
     const double IOD = 0.05; //intraocular distance
-    double fovy = whichCamera.getFieldOfView(); // field of view in y-axis
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double screenZ = Application::getInstance()->getViewFrustum()->getFocalLength(); // screen projection plane
+    double fovy = DEFAULT_FIELD_OF_VIEW_DEGREES; // field of view in y-axis
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double screenZ = 0.25f; // screen projection plane
 
     double top = nearZ * tan(DTR * fovy / 2.0); //sets top of frustum based on fovy and near clipping plane
     double right = _aspect * top; // sets right of frustum based on aspect ratio
@@ -83,8 +83,8 @@ void TV3DManager::configureCamera(Camera& whichCamera_, int screenWidth, int scr
 }
 
 void TV3DManager::display(Camera& whichCamera) {
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double farZ = whichCamera.getFarClip(); // far clipping plane
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
     // left eye portal
     int portalX = 0;
@@ -97,7 +97,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
     DependencyManager::get<GlowEffect>()->prepare();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     Camera eyeCamera;
     eyeCamera.setRotation(whichCamera.getRotation());
     eyeCamera.setPosition(whichCamera.getPosition());
@@ -120,7 +120,6 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
         qApp->displaySide(eyeCamera, false, RenderArgs::MONO);
 #if 0
         qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);

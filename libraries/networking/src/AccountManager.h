@@ -65,7 +65,7 @@ public:
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
-    
+
     void disableSettingsFilePersistence() { _shouldPersistToSettingsFile = false; }
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
@@ -79,7 +79,7 @@ public:
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
-    
+
     void requestAccessTokenFinished();
     void requestProfileFinished();
     void requestAccessTokenError(QNetworkReply::NetworkError error);
@@ -105,7 +105,7 @@ private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
     void operator=(AccountManager const& other); // not implemented
-    
+
     void persistAccountToSettings();
 
     void passSuccessToCallback(QNetworkReply* reply);

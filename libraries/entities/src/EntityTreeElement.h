@@ -151,9 +151,6 @@ public:
     bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItem* entity);
 
-
-    void updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID);
-
     const EntityItem* getClosestEntity(glm::vec3 position) const;
 
     /// finds all entities that touch a sphere

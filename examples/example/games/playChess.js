@@ -157,7 +157,7 @@ ChessGame.Piece = (function(position, dimensions, url, rotation) {
 });
 // Build the user data string
 ChessGame.Piece.prototype.buildUserDataString = function() {
-    if (!(ChessGame.board !== null || ChessGame.board.entity.isKnownID)) {
+    if (!ChessGame.board) {
         print("ChessGame.Piece.prototype.buildUserDataString(): Called before proper initialization, bailing.");
         return null;
     }
@@ -200,9 +200,7 @@ ChessGame.scriptStarting = function() {
 }
 
 ChessGame.update = function() {
-    ChessGame.board.entity = Entities.identifyEntity(ChessGame.board.entity);
-  
-    if (ChessGame.board.entity.isKnownID && ChessGame.pieces.length == 0) {
+    if (ChessGame.board.entity && ChessGame.pieces.length == 0) {
         // Setup white pieces
         var isWhite = true;
         var row = 1;

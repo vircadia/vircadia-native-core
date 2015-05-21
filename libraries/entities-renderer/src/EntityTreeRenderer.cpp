@@ -66,8 +66,8 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     
-    _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+    _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
@@ -961,7 +961,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
 }
@@ -1041,7 +1041,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
                 currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
             }
 
-            _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+            _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
 
@@ -1174,8 +1174,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if (!_tree || _shuttingDown) {
         return;
     }
-    // Don't respond to small continuous contacts. It causes deadlocks when locking the entityTree.
-    // Note that any entity script is likely to Entities.getEntityProperties(), which locks the tree.
+    // Don't respond to small continuous contacts.
     const float COLLISION_MINUMUM_PENETRATION = 0.005;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
@@ -1183,16 +1182,9 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
 
     // See if we should play sounds
     EntityTree* entityTree = static_cast<EntityTree*>(_tree);
-    if (!entityTree->tryLockForRead()) {
-        // I don't know why this can happen, but if it does,
-        // the consequences are a deadlock, so bail.
-        qCDebug(entitiesrenderer) << "NOTICE: skipping collision type " << collision.type << " penetration " << glm::length(collision.penetration);
-        return;
-    }
     const QUuid& myNodeID = DependencyManager::get<NodeList>()->getSessionUUID();
     playEntityCollisionSound(myNodeID, entityTree, idA, collision);
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
-    entityTree->unlock();
 
     // And now the entity scripts
     QScriptValue entityScriptA = loadEntityScript(idA);

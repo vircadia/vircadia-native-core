@@ -64,7 +64,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(isSpotlight, false),
     CONSTRUCT_PROPERTY(intensity, 1.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
-    CONSTRUCT_PROPERTY(cutoff, PI),
+    CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
     CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
     CONSTRUCT_PROPERTY(textures, ""),
     CONSTRUCT_PROPERTY(animationSettings, ""),
@@ -350,9 +350,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     if (_idSet) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(isKnownID, (_id != UNKNOWN_ENTITY_ID));
-    } else {
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(isKnownID, false);
     }
 
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
@@ -561,7 +558,7 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 // TODO: Implement support for script and visible properties.
 //
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+                                                  unsigned char* bufferOut, int sizeIn, int& sizeOut) {
     OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -586,22 +583,14 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     if (success) {
 
         // Now add our edit content details...
-        bool isNewEntityItem = (id.id == NEW_ENTITY);
 
         // id
         // encode our ID as a byte count coded byte stream
-        QByteArray encodedID = id.id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
+        QByteArray encodedID = id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
 
         // encode our ID as a byte count coded byte stream
         ByteCountCoded<quint32> tokenCoder;
         QByteArray encodedToken;
-
-        // special case for handling "new" modelItems
-        if (isNewEntityItem) {
-            // encode our creator token as a byte count coded byte stream
-            tokenCoder = id.creatorTokenID;
-            encodedToken = tokenCoder;
-        }
 
         // encode our type as a byte count coded byte stream
         ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
@@ -631,7 +620,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         bool successLastEditedFits = packetData->appendValue(lastEdited);
 
         bool successIDFits = packetData->appendValue(encodedID);
-        if (isNewEntityItem && successIDFits) {
+        if (successIDFits) {
             successIDFits = packetData->appendValue(encodedToken);
         }
         bool successTypeFits = packetData->appendValue(encodedType);
@@ -829,7 +818,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 // TODO: Implement support for script and visible properties.
 //
 bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        EntityItemID& entityID, EntityItemProperties& properties) {
+                                                  EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
 
     const unsigned char* dataAt = data;
@@ -863,36 +852,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += encodedID.size();
     processedBytes += encodedID.size();
 
-    bool isNewEntityItem = (editID == NEW_ENTITY);
-
-    if (isNewEntityItem) {
-        // If this is a NEW_ENTITY, then we assume that there's an additional uint32_t creatorToken, that
-        // we want to send back to the creator as an map to the actual id
-
-        QByteArray encodedToken((const char*)dataAt, (bytesToRead - processedBytes));
-        ByteCountCoded<quint32> tokenCoder = encodedToken;
-        quint32 creatorTokenID = tokenCoder;
-        encodedToken = tokenCoder; // determine true bytesToRead
-        dataAt += encodedToken.size();
-        processedBytes += encodedToken.size();
-
-        //newEntityItem.setCreatorTokenID(creatorTokenID);
-        //newEntityItem._newlyCreated = true;
-        
-        entityID.id = NEW_ENTITY;
-        entityID.creatorTokenID = creatorTokenID;
-        entityID.isKnownID = false;
-
-        valid = true;
-
-        // created time is lastEdited time
-        properties.setCreated(lastEdited);
-    } else {
-        entityID.id = editID;
-        entityID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
-        entityID.isKnownID = true;
-        valid = true;
-    }
+    entityID = editID;
+    valid = true;
 
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
@@ -1015,7 +976,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 // header it does not include the send times and sequence number because that is handled by the 
 // edit packet sender...
 bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, 
-                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
+                                                    unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
 
     unsigned char* copyAt = outputBuffer;
     uint16_t numberOfIds = 1; // only one entity ID in this message
@@ -1029,7 +990,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
 
-    QUuid entityID = entityItemID.id;                
+    QUuid entityID = entityItemID;
     QByteArray encodedEntityID = entityID.toRfc4122();
 
     memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);

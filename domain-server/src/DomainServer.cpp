@@ -44,12 +44,9 @@ int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 
-
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
 const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
 const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
-
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -279,16 +276,19 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 }
 
 bool DomainServer::didSetupAccountManagerWithAccessToken() {
-    AccountManager& accountManager = AccountManager::getInstance();
-
-    if (accountManager.hasValidAccessToken()) {
+    if (AccountManager::getInstance().hasValidAccessToken()) {
         // we already gave the account manager a valid access token
         return true;
     }
 
+    return resetAccountManagerAccessToken();
+}
+
+const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
+
+bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {
         // check for an access-token in our settings, can optionally be overidden by env value
-        const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
         const QString ENV_ACCESS_TOKEN_KEY = "DOMAIN_SERVER_ACCESS_TOKEN";
 
         QString accessToken = QProcessEnvironment::systemEnvironment().value(ENV_ACCESS_TOKEN_KEY);
@@ -310,7 +310,7 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
         }
 
         // give this access token to the AccountManager
-        accountManager.setAccessTokenForCurrentAuthURL(accessToken);
+        AccountManager::getInstance().setAccessTokenForCurrentAuthURL(accessToken);
 
         return true;
 
@@ -773,9 +773,8 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const HifiSockAddr& senderSockAddr,
                                                  QString& reasonReturn) {
 
-    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
-    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    bool isRestrictingAccess =
+        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
     // we always let in a user who is sending a packet from our local socket or from the localhost address
     if (senderSockAddr.getAddress() == DependencyManager::get<LimitedNodeList>()->getLocalSockAddr().getAddress()
@@ -783,45 +782,50 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
         return true;
     }
 
-    if (allowedUsers.count() > 0) {
+    if (isRestrictingAccess) {
+
+        QStringList allowedUsers =
+            _settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
+
         if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
-                return true;
+            if (!verifyUsersKey(username, usernameSignature, reasonReturn)) {
+                return false;
             }
         } else {
             qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
             reasonReturn = "User not on whitelist.";
-        }
-        return false;
-    } else {
-        // we have no allowed user list.
 
-        // if this user is in the editors list, exempt them from the max-capacity check
-        const QVariant* allowedEditorsVariant =
-            valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
-        QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
-        if (allowedEditors.contains(username)) {
-            if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
-                return true;
-            }
+            return false;
         }
-
-        // if we haven't reached max-capacity, let them in.
-        const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-        unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
-        if (maximumUserCapacity > 0) {
-            unsigned int connectedUsers = countConnectedUsers();
-            if (connectedUsers >= maximumUserCapacity) {
-                // too many users, deny the new connection.
-                qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
-                reasonReturn = "Too many connected users.";
-                return false;
-            }
-            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
-        }
-
-        return true;
     }
+
+    // either we aren't restricting users, or this user is in the allowed list
+
+    // if this user is in the editors list, exempt them from the max-capacity check
+    const QVariant* allowedEditorsVariant =
+        valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+    QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
+    if (allowedEditors.contains(username)) {
+        if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+            return true;
+        }
+    }
+
+    // if we haven't reached max-capacity, let them in.
+    const QVariant* maximumUserCapacityVariant = valueForKeyPath(_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    if (maximumUserCapacity > 0) {
+        unsigned int connectedUsers = countConnectedUsers();
+        if (connectedUsers >= maximumUserCapacity) {
+            // too many users, deny the new connection.
+            qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
+            reasonReturn = "Too many connected users.";
+            return false;
+        }
+        qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, perhaps allowing new connection.";
+    }
+
+    return true;
 }
 
 void DomainServer::preloadAllowedUserPublicKeys() {
@@ -1252,10 +1256,8 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                          ALLOWED_USERS_SETTINGS_KEYPATH);
-    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
-    domainObject[RESTRICTED_ACCESS_FLAG] = (allowedUsers.size() > 0);
+    domainObject[RESTRICTED_ACCESS_FLAG] =
+        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
@@ -1509,12 +1511,15 @@ QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     return newPath;
 }
 
+const QString URI_OAUTH = "/oauth";
+
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
+    const QString URI_SETTINGS = "/settings";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1792,7 +1797,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
-    const QString URI_OAUTH = "/oauth";
     qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
 

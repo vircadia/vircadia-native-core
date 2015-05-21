@@ -405,6 +405,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking, 
         Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
         qApp, SLOT(toggleFaceTrackerMute()));
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, true);
 #endif
     
     auto avatarManager = DependencyManager::get<AvatarManager>(); 
