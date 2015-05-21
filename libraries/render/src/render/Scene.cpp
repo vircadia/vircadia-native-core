@@ -12,25 +12,58 @@
 
 using namespace render;
 
-void Scene::PendingChanges::resetItem(ID id, PayloadPointer& payload) {
+void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
+    // Insert the itemID in every bucket where it filters true
+    for (auto& bucket : (*this)) {
+        if (filterTest(bucket.first, key)) {
+            bucket.second.insert(id);
+        }
+    }
+}
+void ItemBucketMap::erase(const ItemID& id, const ItemKey& key) {
+    // Remove the itemID in every bucket where it filters true
+    for (auto& bucket : (*this)) {
+        if (filterTest(bucket.first, key)) {
+            bucket.second.erase(id);
+        }
+    }
+}
+
+void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey) {
+    // Reset the itemID in every bucket,
+    // Remove from the buckets where oldKey filters true AND newKey filters false
+    // Insert into the buckets where newKey filters true
+    for (auto& bucket : (*this)) {
+        if (filterTest(bucket.first, oldKey)) {
+            if (!filterTest(bucket.first, newKey)) {
+                bucket.second.erase(id);
+            }
+        } else if (filterTest(bucket.first, newKey)) {
+            bucket.second.insert(id);
+        }
+    }
+}
+
+
+void Scene::PendingChanges::resetItem(ItemID id, PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
 }
 
-void Scene::PendingChanges::removeItem(ID id) {
+void Scene::PendingChanges::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
 
-void Scene::PendingChanges::moveItem(ID id) {
+void Scene::PendingChanges::moveItem(ItemID id) {
     _movedItems.push_back(id);
 }
 
         
-void Scene::PendingChanges::mergeBatch(PendingChanges& newBatch) {
-    _resetItems.insert(_resetItems.end(), newBatch._resetItems.begin(), newBatch._resetItems.end());
-    _resetPayloads.insert(_resetPayloads.end(), newBatch._resetPayloads.begin(), newBatch._resetPayloads.end());
-    _removedItems.insert(_removedItems.end(), newBatch._removedItems.begin(), newBatch._removedItems.end());
-    _movedItems.insert(_movedItems.end(), newBatch._movedItems.begin(), newBatch._movedItems.end());
+void Scene::PendingChanges::merge(PendingChanges& changes) {
+    _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
+    _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
+    _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
+    _movedItems.insert(_movedItems.end(), changes._movedItems.begin(), changes._movedItems.end());
 }
 
 Scene::Scene() :
@@ -38,7 +71,7 @@ Scene::Scene() :
 {
 }
 
-Item::ID Scene::allocateID() {
+ItemID Scene::allocateID() {
     // Just increment and return the proevious value initialized at 0
     return _IDAllocator.fetch_add(1);
 }
@@ -53,7 +86,7 @@ void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
 void consolidateChangeQueue(Scene::PendingChangesQueue& queue, Scene::PendingChanges& singleBatch) {
     while (!queue.empty()) {
         auto pendingChanges = queue.front();
-        singleBatch.mergeBatch(pendingChanges);
+        singleBatch.merge(pendingChanges);
         queue.pop();
     };
 }
@@ -65,9 +98,9 @@ void Scene::processPendingChangesQueue() {
     _changeQueueMutex.unlock();
     
     _itemsMutex.lock();
-        // Here we should be able to check the value of last ID allocated 
+        // Here we should be able to check the value of last ItemID allocated 
         // and allocate new items accordingly
-        ID maxID = _IDAllocator.load();
+        ItemID maxID = _IDAllocator.load();
         if (maxID > _items.size()) {
             _items.resize(maxID + 100); // allocate the maxId and more
         }
@@ -85,12 +118,18 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
     auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
     for (;resetID != ids.end(); resetID++, resetPayload++) {
-        _items[(*resetID)].resetPayload(*resetPayload);
+        auto item = _items[(*resetID)];
+        auto oldKey = item.getKey();
+        item.resetPayload(*resetPayload);
+
+        _buckets.reset((*resetID), oldKey, item.getKey());
     }
+
 }
 
 void Scene::removeItems(const ItemIDs& ids) {
     for (auto removedID :ids) {
+        _buckets.erase(removedID, _items[removedID].getKey());
         _items[removedID].kill();
     }
 }

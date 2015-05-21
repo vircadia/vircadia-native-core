@@ -15,6 +15,7 @@
 #include <bitset>
 #include <memory>
 #include <vector>
+#include <set>
 #include <map>
 #include <AABox.h>
 #include <atomic>
@@ -34,7 +35,7 @@ public:
     typedef std::vector<Item> Vector;
     typedef unsigned int ID;
 
-    // State is the KEY to filter Items and create specialized lists
+    // Key is the KEY to filter Items and create specialized lists
     enum FlagBit {
         TYPE_SHAPE = 0, // Item is a Shape
         TYPE_LIGHT,     // Item is a Light
@@ -46,10 +47,12 @@ public:
         SHADOW_CASTER,  // Item cast shadows
         PICKABLE,       // Item can be picked/selected
     
+        INVERT_FLAG,     // If true then the meaning of the other flags is inverted
+
         NUM_FLAGS,      // Not a valid flag
     };
-    typedef std::bitset<NUM_FLAGS> State; 
-
+    typedef std::bitset<NUM_FLAGS> Key; 
+             
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     
@@ -63,7 +66,7 @@ public:
     // Payload is whatever is in this Item and implement the Payload Interface
     class PayloadInterface {
     public:
-        virtual const State getState() const = 0;
+        virtual const Key getKey() const = 0;
         virtual const Bound getBound() const = 0;
         virtual void render(Context& context) = 0;
 
@@ -83,25 +86,25 @@ public:
     void kill();
     void move();
 
-    // Check heuristic flags of the state
-    const State& getState() const { return _state; }
+    // Check heuristic flags of the key
+    const Key& getKey() const { return _key; }
 
-    bool isOpaque() const { return !_state[TRANSLUCENT]; }
-    bool isTranslucent() const { return _state[TRANSLUCENT]; }
+    bool isOpaque() const { return !_key[TRANSLUCENT]; }
+    bool isTranslucent() const { return _key[TRANSLUCENT]; }
 
-    bool isWorldSpace() const { return !_state[VIEW_SPACE]; }
-    bool isViewSpace() const { return _state[VIEW_SPACE]; }
+    bool isWorldSpace() const { return !_key[VIEW_SPACE]; }
+    bool isViewSpace() const { return _key[VIEW_SPACE]; }
  
-    bool isStatic() const { return !_state[DYNAMIC]; }
-    bool isDynamic() const { return _state[DYNAMIC]; }
-    bool isDeformed() const { return _state[DEFORMED]; }
+    bool isStatic() const { return !_key[DYNAMIC]; }
+    bool isDynamic() const { return _key[DYNAMIC]; }
+    bool isDeformed() const { return _key[DEFORMED]; }
  
-    bool isVisible() const { return !_state[INVISIBLE]; }
-    bool isUnvisible() const { return _state[INVISIBLE]; }
+    bool isVisible() const { return !_key[INVISIBLE]; }
+    bool isUnvisible() const { return _key[INVISIBLE]; }
 
-    bool isShadowCaster() const { return _state[SHADOW_CASTER]; }
+    bool isShadowCaster() const { return _key[SHADOW_CASTER]; }
 
-    bool isPickable() const { return _state[PICKABLE]; }
+    bool isPickable() const { return _key[PICKABLE]; }
  
     // Payload Interface
     const Bound getBound() const { return _payload->getBound(); }
@@ -109,40 +112,94 @@ public:
 
 protected:
     PayloadPointer _payload;
-    State _state = 0;
+    Key _key = 0;
 
     friend class Scene;
 };
 
-template <class T> const Item::State payloadGetState(const T* payload) { return Item::State(); }
+// THe Payload class is the real Payload to be used
+// THis allow anything to be turned into a Payload as long as the required interface functions are available
+// When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
+// of th ePayload interface
+template <class T> const Item::Key payloadGetKey(const T* payload) { return Item::Key(); }
 template <class T> const Item::Bound payloadGetBound(const T* payload) { return Item::Bound(); }
 template <class T> void payloadRender(const T* payload) { }
     
-template <class T> class ItemPayload : public Item::PayloadInterface {
+template <class T> class Payload : public Item::PayloadInterface {
 public:
-    virtual const Item::State getState() const { return payloadGetState<T>(_pointee); }
-    virtual const Item::Bound getBound() const { return payloadGetBound<T>(_pointee); }
-    virtual void render(Context& context) { payloadRender<T>(_pointee, context); }
+    virtual const Item::Key getState() const { return payloadGetKey<T>(_data); }
+    virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
+    virtual void render(Context& context) { payloadRender<T>(_data, context); }
     
-    ItemPayload(std::shared_ptr<T>& pointee) : _pointee(pointee) {}
+    Payload(std::shared_ptr<T>& data) : _data(data) {}
 protected:
-    std::shared_ptr<T> _pointee;
+    std::shared_ptr<T> _data;
 };
-    
-typedef Item::PayloadInterface Payload;
+
+// Let's show how to make a simple FooPayload example:
+class Foo {
+public:
+    mutable Item::Key _myownKey;
+    void makeMywnKey() const {
+        _myownKey.set(Item::TYPE_SHAPE);
+    }
+};
+
+typedef Payload<Foo> FooPayload;
+
+template <>
+const Item::Key payloadGetKey(const Foo* payload) {
+    payload->makeMywnKey();
+    return payload->_myownKey;
+}
+// End of the example
+
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
+
+typedef Item::Key ItemKey;
+
+// Item Key operator testing if a key pass a filter test
+// the filter can have several flags on and the test is true if
+// (key AND filter) == filter
+// IF the filter has the INVERT_FLAGS On then we need to use the
+// !key value instead of key
+bool filterTest(const ItemKey& filter, const ItemKey& key) {
+    if (filter[Item::INVERT_FLAG]) {
+        return (filter & ~key) == filter;
+    } else {
+        return (filter & key) == filter;
+    }
+}
+
+// A few typedefs for standard containers of ItemIDs 
+typedef Item::ID ItemID;
+typedef std::vector<ItemID> ItemIDs;
+typedef std::set<ItemID> ItemIDSet;
+
+// A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly
+class ItemBucketMap : public std::map<ItemKey, ItemIDSet> {
+public:
+
+    ItemBucketMap() {}
+
+    void insert(const ItemID& id, const ItemKey& key);
+    void erase(const ItemID& id, const ItemKey& key);
+    void reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey);
+
+};
 
 class Engine;
 class Observer;
 
+// Scene is a container for Items
+// Items are introduced, modified or erased in the scene through PendingChanges
+// Once per Frame, the PendingChanges are all flushed
+// During the flush the standard buckets are updated
+// Items are notified accordingly on any update message happening
 class Scene {
 public:
-    typedef Item::Vector Items;
-    typedef Item::ID ID;
-    typedef std::vector<Item::ID> ItemIDs;
-    typedef std::map<Item::State, ItemIDs> ItemLists;
-
+ 
     class Observer {
     public:
         Observer(Scene* scene) {
@@ -177,11 +234,11 @@ public:
         PendingChanges() {}
         ~PendingChanges();
 
-        void resetItem(ID id, PayloadPointer& payload);
-        void removeItem(ID id);
-        void moveItem(ID id);
+        void resetItem(ItemID id, PayloadPointer& payload);
+        void removeItem(ItemID id);
+        void moveItem(ItemID id);
 
-        void mergeBatch(PendingChanges& newBatch);
+        void merge(PendingChanges& changes);
 
         Payloads _resetPayloads;
         ItemIDs _resetItems; 
@@ -196,7 +253,7 @@ public:
     ~Scene() {}
 
     /// This call is thread safe, can be called from anywhere to allocate a new ID
-    ID allocateID();
+    ItemID allocateID();
 
     /// Enqueue change batch to the scene
     void enqueuePendingChanges(const PendingChanges& pendingChanges);
@@ -214,13 +271,14 @@ protected:
     // The actual database
     // database of items is protected for editing by a mutex
     std::mutex _itemsMutex;
-    Items _items;
-    ItemLists _buckets;
+    Item::Vector _items;
+    ItemBucketMap _buckets;
 
     void processPendingChangesQueue();
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void moveItems(const ItemIDs& ids);
+
 
     // The scene context listening for any change to the database
     Observers _observers;
