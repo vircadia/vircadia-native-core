@@ -72,7 +72,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
         _isSpotlight = value;
 
         if (_isSpotlight) {
-            const float length = _dimensions.z;
+            const float length = getDimensions().z;
             const float width = length * glm::sin(glm::radians(_cutoff));
             setDimensions(glm::vec3(width, width, length));
         } else {
@@ -88,7 +88,7 @@ void LightEntityItem::setCutoff(float value) {
     if (_isSpotlight) {
         // If we are a spotlight, adjusting the cutoff will affect the area we encapsulate,
         // so update the dimensions to reflect this.
-        const float length = _dimensions.z;
+        const float length = getDimensions().z;
         const float width = length * glm::sin(glm::radians(_cutoff));
         setDimensions(glm::vec3(width, width, length));
     }
