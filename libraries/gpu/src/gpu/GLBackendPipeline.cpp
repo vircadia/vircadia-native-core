@@ -64,10 +64,10 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
         return;
     }
    
-    if (_pipeline._needStateSync) {
+   /* if (_pipeline._needStateSync) {
         syncPipelineStateCache();
         _pipeline._needStateSync = false;
-    }
+    }*/
 
     // null pipeline == reset
     if (!pipeline) {
@@ -111,12 +111,12 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 #define DEBUG_GLSTATE
 void GLBackend::updatePipeline() {
 #ifdef DEBUG_GLSTATE
-    if (_pipeline._needStateSync) {
+  /*  if (_pipeline._needStateSync) {
          State::Data state;
          getCurrentGLState(state);
          State::Signature signature = State::evalSignature(state);
          (void) signature; // quiet compiler
-    }
+    }*/
 #endif
 
     if (_pipeline._invalidProgram) {
