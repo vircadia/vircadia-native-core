@@ -64,7 +64,7 @@ EntityItemProperties::EntityItemProperties() :
     CONSTRUCT_PROPERTY(isSpotlight, false),
     CONSTRUCT_PROPERTY(intensity, 1.0f),
     CONSTRUCT_PROPERTY(exponent, 0.0f),
-    CONSTRUCT_PROPERTY(cutoff, PI),
+    CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
     CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
     CONSTRUCT_PROPERTY(textures, ""),
     CONSTRUCT_PROPERTY(animationSettings, ""),
