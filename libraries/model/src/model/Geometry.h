@@ -47,7 +47,7 @@ public:
     void setVertexBuffer(const BufferView& buffer);
     const BufferView& getVertexBuffer() const { return _vertexBuffer; }
     uint getNumVertices() const { return _vertexBuffer.getNumElements(); }
-    bool hasVertexData() const { return !_vertexBuffer._buffer; }
+    bool hasVertexData() const { return _vertexBuffer._buffer.get() != nullptr; }
 
     // Attribute Buffers
     int getNumAttributes() const { return _attributeBuffers.size(); }

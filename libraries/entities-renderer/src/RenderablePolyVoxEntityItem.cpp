@@ -97,24 +97,35 @@ void RenderablePolyVoxEntityItem::getModel() {
     mesh->setVertexBuffer(gpu::BufferView(vertexBufferPtr,
                                           0,
                                           vertexBufferPtr->getSize() - sizeof(float) * 3,
-                                          sizeof(float) * 3,
-                                          // sizeof(PolyVox::PositionMaterialNormal),
-                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+                                          sizeof(PolyVox::PositionMaterialNormal),
+                                          gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)
+                                          ));
     mesh->addAttribute(gpu::Stream::NORMAL,
                        gpu::BufferView(vertexBufferPtr,
                                        sizeof(float) * 3,
                                        vertexBufferPtr->getSize() - sizeof(float) * 3,
-                                       sizeof(float) * 7,
-                                       // sizeof(PolyVox::PositionMaterialNormal),
-                                       gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+                                       sizeof(PolyVox::PositionMaterialNormal),
+                                       gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)
+                                       ));
 
 
     qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------";
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
+    qDebug() << "---- sizeof(vecIndices[0]) =" << sizeof(vecIndices[0]);
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
-    // [DEBUG] [05/19 20:46:38] ---- vecIndices.size() = 101556
-    // [DEBUG] [05/19 20:46:38] ---- vecVertices.size() = 67704
+    qDebug() << "---- sizeof(vecVertices[0]) =" << sizeof(vecVertices[0]);
+    qDebug() << "---- sizeof(uint32_t) =" << sizeof(uint32_t);
+    qDebug() << "---- sizeof(float) =" << sizeof(float);
+    qDebug() << "---- sizeof(PolyVox::PositionMaterialNormal) =" << sizeof(PolyVox::PositionMaterialNormal);
 
+    //           -------------XXXXXXXXXXXXXXXXXXXX-------------------
+    //           ---- vecIndices.size() = 25524
+    //           ---- sizeof(vecIndices[0]) = 4
+    //           ---- vecVertices.size() = 17016
+    //           ---- sizeof(vecVertices[0]) = 28
+    //           ---- sizeof(uint32_t) = 4
+    //           ---- sizeof(float) = 4
+    //           ---- sizeof(PolyVox::PositionMaterialNormal) = 28
 
     _modelGeometry.setMesh(meshPtr);
     _needsModelReload = false;
