@@ -61,8 +61,11 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const;
 
+    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) { _voxelVolumeSize = voxelVolumeSize; }
+
  protected:
     rgbColor _color;
+    glm::vec3 _voxelVolumeSize = glm::vec3(64, 64, 64);
 };
 
 #endif // hifi_PolyVoxEntityItem_h

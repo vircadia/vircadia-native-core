@@ -65,7 +65,7 @@ private:
     
     Model* _model;
     bool _needsInitialSimulation;
-    bool _needsModelReload;
+    bool _needsModelReload = true;
     EntityTreeRenderer* _myRenderer;
     QString _currentTextures;
     QStringList _originalTextures;

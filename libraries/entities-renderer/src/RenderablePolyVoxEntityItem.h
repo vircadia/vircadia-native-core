@@ -24,16 +24,16 @@ public:
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         PolyVoxEntityItem(entityItemID, properties) { }
 
+    virtual ~RenderablePolyVoxEntityItem();
+
     void render(RenderArgs* args);
     virtual bool hasModel() const { return true; }
     void getModel();
 
-private:
-    // Model* _model = nullptr;
-    // bool _needsInitialSimulation = true;
-    // bool _needsModelReload = true;
-    // EntityTreeRenderer* _myRenderer = nullptr;
+    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
 
+private:
+    PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
     bool _needsModelReload = true;
 };
