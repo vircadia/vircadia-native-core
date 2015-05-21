@@ -43,8 +43,7 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                                    QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                                    quint16 assignmentMonitorPort) :
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _localASPortSharedMem(NULL)
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
 
