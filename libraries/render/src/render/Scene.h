@@ -24,7 +24,11 @@
 namespace render {
 
 class Context;
+    
+    
 
+
+    
 class Item {
 public:
     typedef std::vector<Item> Vector;
@@ -59,24 +63,16 @@ public:
     // Payload is whatever is in this Item and implement the Payload Interface
     class PayloadInterface {
     public:
-        virtual const State&& getState() const = 0;
-        virtual const Bound&& getBound() const = 0;
+        virtual const State getState() const = 0;
+        virtual const Bound getBound() const = 0;
         virtual void render(Context& context) = 0;
 
         ~PayloadInterface() {}
     protected:
     };
-
-    template <class T> class Payload : public PayloadInterface {
-    public:
-        virtual const State&& getState() const { return getState<T>(*this); }
-        virtual const Bound&& getBound() const { return getBound<T>(*this); }
-        virtual void render(Context& context) { render<T>(*this, context); }
-    protected:
-    };
-
+    
     typedef std::shared_ptr<PayloadInterface> PayloadPointer;
-
+    
     Item() {}
     Item(PayloadPointer& payload):
         _payload(payload) {}
@@ -108,7 +104,7 @@ public:
     bool isPickable() const { return _state[PICKABLE]; }
  
     // Payload Interface
-    const Bound&& getBound() const { return _payload->getBound(); }
+    const Bound getBound() const { return _payload->getBound(); }
     void render(Context& context) { _payload->render(context); }
 
 protected:
@@ -118,6 +114,21 @@ protected:
     friend class Scene;
 };
 
+template <class T> const Item::State payloadGetState(const T* payload) { return Item::State(); }
+template <class T> const Item::Bound payloadGetBound(const T* payload) { return Item::Bound(); }
+template <class T> void payloadRender(const T* payload) { }
+    
+template <class T> class ItemPayload : public Item::PayloadInterface {
+public:
+    virtual const Item::State getState() const { return payloadGetState<T>(_pointee); }
+    virtual const Item::Bound getBound() const { return payloadGetBound<T>(_pointee); }
+    virtual void render(Context& context) { payloadRender<T>(_pointee, context); }
+    
+    ItemPayload(std::shared_ptr<T>& pointee) : _pointee(pointee) {}
+protected:
+    std::shared_ptr<T> _pointee;
+};
+    
 typedef Item::PayloadInterface Payload;
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
@@ -216,6 +227,8 @@ protected:
 
     friend class Engine;
 };
+
+
 
 typedef std::shared_ptr<Scene> ScenePointer;
 typedef std::vector<ScenePointer> Scenes;
