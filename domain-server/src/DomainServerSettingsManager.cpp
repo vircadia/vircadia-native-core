@@ -14,6 +14,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
+#include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
@@ -42,33 +43,76 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
 
-    _descriptionArray = QJsonDocument::fromJson(descriptionFile.readAll()).array();
+    QJsonDocument descriptionDocument = QJsonDocument::fromJson(descriptionFile.readAll());
+
+    if (descriptionDocument.isObject()) {
+        QJsonObject descriptionObject = descriptionDocument.object();
+
+        const QString DESCRIPTION_VERSION_KEY = "version";
+
+        if (descriptionObject.contains(DESCRIPTION_VERSION_KEY)) {
+            // read the version from the settings description
+            _descriptionVersion = descriptionObject[DESCRIPTION_VERSION_KEY].toDouble();
+
+            if (descriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
+                _descriptionArray = descriptionDocument.object()[DESCRIPTION_SETTINGS_KEY].toArray();
+                return;
+            }
+        }
+    }
+
+    qCritical() << "Did not find settings decription in JSON at" << SETTINGS_DESCRIPTION_RELATIVE_PATH
+            << "- Unable to continue. domain-server will quit.";
+    QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
     _configMap.loadMasterAndUserConfig(argumentList);
 
-    // for now we perform a temporary transition from http-username and http-password to http_username and http_password
-    const QVariant* oldUsername = valueForKeyPath(_configMap.getUserConfig(), "security.http-username");
-    const QVariant* oldPassword = valueForKeyPath(_configMap.getUserConfig(), "security.http-password");
+    // What settings version were we before and what are we using now?
+    // Do we need to do any re-mapping?
+    QSettings appSettings;
+    const QString JSON_SETTINGS_VERSION_KEY = "json-settings/version";
+    double oldVersion = appSettings.value(JSON_SETTINGS_VERSION_KEY, 0.0).toDouble();
 
-    if (oldUsername || oldPassword) {
-        QVariantMap& settingsMap = *reinterpret_cast<QVariantMap*>(_configMap.getUserConfig()["security"].data());
+    if (oldVersion != _descriptionVersion) {
+        qDebug() << "Previous domain-server settings version was"
+            << QString::number(oldVersion, 'g', 8) << "and the new version is"
+            << QString::number(_descriptionVersion, 'g', 8) << "- checking if any re-mapping is required";
 
-        // remove old keys, move to new format
-        if (oldUsername) {
-            settingsMap["http_username"] = oldUsername->toString();
-            settingsMap.remove("http-username");
+        // we have a version mismatch - for now handle custom behaviour here since there are not many remappings
+        if (oldVersion < 1.0) {
+            // This was prior to the introduction of security.restricted_access
+            // If the user has a list of allowed users then set their value for security.restricted_access to true
+
+            QVariant* allowedUsers = valueForKeyPath(_configMap.getMergedConfig(), ALLOWED_USERS_SETTINGS_KEYPATH);
+
+            if (allowedUsers
+                && allowedUsers->canConvert(QMetaType::QVariantList)
+                && reinterpret_cast<QVariantList*>(allowedUsers)->size() > 0) {
+
+                qDebug() << "Forcing security.restricted_access to TRUE since there was an"
+                    << "existing list of allowed users.";
+
+                // In the pre-toggle system the user had a list of allowed users, so
+                // we need to set security.restricted_access to true
+                QVariant* restrictedAccess = valueForKeyPath(_configMap.getUserConfig(),
+                                                             RESTRICTED_ACCESS_SETTINGS_KEYPATH,
+                                                             true);
+
+                *restrictedAccess = QVariant(true);
+
+                // write the new settings to the json file
+                persistToFile();
+
+                // reload the master and user config so that the merged config is right
+                _configMap.loadMasterAndUserConfig(argumentList);
+            }
         }
-
-        if (oldPassword) {
-            settingsMap["http_password"] = oldPassword->toString();
-            settingsMap.remove("http-password");
-        }
-
-        // save the updated settings
-        persistToFile();
     }
+
+    // write the current description version to our settings
+    appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString &keyPath) {

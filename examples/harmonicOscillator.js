@@ -42,9 +42,6 @@ function randomColor() {
 
 function update(deltaTime) {
   time += deltaTime;
-  if (!ball.isKnownID) {
-     ball = Entities.identifyEntity(ball);
-  }	 
   rotation = Quat.angleAxis(time * omega  /Math.PI * 180.0, { x: 0, y: 1, z: 0 });
   Entities.editEntity(ball, 
 	{

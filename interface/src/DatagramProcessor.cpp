@@ -82,11 +82,6 @@ void DatagramProcessor::processDatagrams() {
 
                     break;
                 }
-                case PacketTypeEntityAddResponse:
-                    // this will keep creatorTokenIDs to IDs mapped correctly
-                    EntityItemID::handleAddEntityResponse(incomingPacket);
-                    application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
-                    break;
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
                 case PacketTypeOctreeStats:

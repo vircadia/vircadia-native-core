@@ -135,7 +135,6 @@ public:
 
     int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    void handleAddEntityResponse(const QByteArray& packet);
     
     EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
@@ -148,7 +147,6 @@ public:
     
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
-    void resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
     virtual void dumpTree();
     virtual void pruneTree();
@@ -198,7 +196,6 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
-    QHash<EntityItemID, EntityItemID> _changedEntityIDs;
 
     EntitySimulation* _simulation;
     

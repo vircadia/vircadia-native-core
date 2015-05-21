@@ -198,7 +198,7 @@ function checkControllerSide(hand) {
         var closestEntity = Entities.findClosestEntity(hand.palmPosition(), CATCH_RADIUS);
         var modelUrl = Entities.getEntityProperties(closestEntity).modelURL;
         print("lol2"+closestEntity.isKnownID);
-        if (closestEntity.isKnownID && validFrisbeeURL(Entities.getEntityProperties(closestEntity).modelURL)) {
+        if (closestEntity && validFrisbeeURL(Entities.getEntityProperties(closestEntity).modelURL)) {
             print("lol");
             Entities.editEntity(closestEntity, {modelScale: 1, inHand: true, position: hand.holdPosition(), shouldDie: true});
             Entities.deleteEntity(closestEntity);

@@ -60,30 +60,6 @@ void EntityServer::beforeRun() {
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
-
-    unsigned char outputBuffer[MAX_PACKET_SIZE];
-    unsigned char* copyAt = outputBuffer;
-
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    int numBytesPacketHeader = nodeList->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityAddResponse);
-    int packetLength = numBytesPacketHeader;
-    copyAt += numBytesPacketHeader;
-
-    // encode the creatorTokenID
-    uint32_t creatorTokenID = newEntity.getCreatorTokenID();
-    memcpy(copyAt, &creatorTokenID, sizeof(creatorTokenID));
-    copyAt += sizeof(creatorTokenID);
-    packetLength += sizeof(creatorTokenID);
-
-    // encode the entity ID
-    QUuid entityID = newEntity.getID();
-    QByteArray encodedID = entityID.toRfc4122();
-    memcpy(copyAt, encodedID.constData(), encodedID.size());
-    copyAt += sizeof(entityID);
-    packetLength += sizeof(entityID);
-
-    nodeList->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 
