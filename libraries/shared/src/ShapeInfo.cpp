@@ -17,7 +17,7 @@
 
 void ShapeInfo::clear() {
     _type = SHAPE_TYPE_NONE;
-    _halfExtents = glm::vec3(0.0f);
+    _halfExtents = _offset = glm::vec3(0.0f);
     _doubleHashKey.clear();
 }
 
@@ -45,6 +45,7 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             _halfExtents = halfExtents;
             break;
     }
+    _doubleHashKey.clear();
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
@@ -82,6 +83,11 @@ void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _type = SHAPE_TYPE_CAPSULE_Y;
     _halfExtents = glm::vec3(radius, halfHeight, radius);
     _points.clear();
+    _doubleHashKey.clear();
+}
+
+void ShapeInfo::setOffset(const glm::vec3& offset) {
+    _offset = offset;
     _doubleHashKey.clear();
 }
 
@@ -190,9 +196,12 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
-            uint32_t floatHash =
-                DoubleHashKey::hashFunction((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), primeIndex++);
-            hash ^= floatHash;
+            hash ^= DoubleHashKey::hashFunction(
+                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), 
+                    primeIndex++);
+            hash ^= DoubleHashKey::hashFunction(
+                    (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f), 
+                    primeIndex++);
         }
         key.setHash(hash);
     
@@ -201,8 +210,10 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
-            uint32_t floatHash =
-                DoubleHashKey::hashFunction2((uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f));
+            uint32_t floatHash = DoubleHashKey::hashFunction2(
+                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f));
+            floatHash ^= DoubleHashKey::hashFunction2(
+                    (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f));
             hash += ~(floatHash << 17);
             hash ^=  (floatHash >> 11);
             hash +=  (floatHash << 4);

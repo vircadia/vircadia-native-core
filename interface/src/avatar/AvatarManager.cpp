@@ -174,7 +174,6 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
 // virtual 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-    // TODO: create MotionState for avatar and add to internal lists
     return avatar;
 }
 
@@ -184,6 +183,16 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     if (avatarIterator != _avatarHash.end()) {
         Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
         if (avatar != _myAvatar && avatar->isInitialized()) {
+            AvatarMotionState* motionState= avatar->_motionState;
+            if (motionState) {
+                // clean up physics stuff
+                motionState->clearObjectBackPointer();
+                avatar->_motionState = nullptr;
+                _avatarMotionStates.remove(motionState);
+                _motionStatesToAdd.remove(motionState);
+                _motionStatesToDelete.push_back(motionState);
+            }
+
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
@@ -225,14 +234,28 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
 }
 
 VectorOfMotionStates& AvatarManager::getObjectsToDelete() {
+    _tempMotionStates.clear();
+    _tempMotionStates.swap(_motionStatesToDelete);
     return _tempMotionStates;
 }
 
 VectorOfMotionStates& AvatarManager::getObjectsToAdd() {
+    _tempMotionStates.clear();
+
+    for (auto motionState : _motionStatesToAdd) {
+        _tempMotionStates.push_back(motionState);
+    }
+    _motionStatesToAdd.clear();
     return _tempMotionStates;
 }
 
 VectorOfMotionStates& AvatarManager::getObjectsToChange() {
+    _tempMotionStates.clear();
+    for (auto state : _avatarMotionStates) {
+        if (state->_dirtyFlags > 0) {
+            _tempMotionStates.push_back(state);
+        }
+    }
     return _tempMotionStates;
 }
 
@@ -242,3 +265,23 @@ void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
 void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
 }
 
+void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
+    AvatarHash::iterator avatarItr = _avatarHash.find(id);
+    if (avatarItr != _avatarHash.end()) {
+        Avatar* avatar = static_cast<Avatar*>(avatarItr.value().data());
+        AvatarMotionState* motionState = avatar->_motionState;
+        if (motionState) {
+            motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);
+        } else {
+            ShapeInfo shapeInfo;
+            avatar->computeShapeInfo(shapeInfo);
+            btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+            if (shape) {
+                AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                avatar->_motionState = motionState;
+                _motionStatesToAdd.insert(motionState);
+                _avatarMotionStates.insert(motionState);
+            }
+        }
+    }
+}

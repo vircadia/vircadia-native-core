@@ -43,14 +43,14 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
+    virtual btCollisionShape* computeNewShape();
 
     bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const;
+    virtual uint32_t getAndClearIncomingDirtyFlags();
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -82,8 +82,7 @@ public:
     friend class PhysicalEntitySimulation;
 
 protected:
-    void clearEntity();
-
+    virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
     EntityItem* _entity;

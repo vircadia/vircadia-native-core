@@ -12,7 +12,7 @@
 #ifndef hifi_AvatarMotionState_h
 #define hifi_AvatarMotionState_h
 
-#include <QVector>
+#include <QSet>
 
 #include <ObjectMotionState.h>
 
@@ -26,42 +26,53 @@ public:
     virtual void handleEasyChanges(uint32_t flags);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
-    virtual void updateBodyMaterialProperties();
-    virtual void updateBodyVelocities();
-
     virtual MotionType getMotionType() const { return _motionType; }
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const = 0;
+    virtual uint32_t getAndClearIncomingDirtyFlags();
 
-    virtual MotionType computeObjectMotionType() const = 0;
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo) = 0;
+    virtual MotionType computeObjectMotionType() const;
+    virtual btCollisionShape* computeNewShape();
 
-    virtual bool isMoving() const = 0;
+    virtual bool isMoving() const;
+
+    // this relays incoming position/rotation to the RigidBody
+    virtual void getWorldTransform(btTransform& worldTrans) const;
+
+    // this relays outgoing position/rotation to the EntityItem
+    virtual void setWorldTransform(const btTransform& worldTrans);
+
 
     // These pure virtual methods must be implemented for each MotionState type
     // and make it possible to implement more complicated methods in this base class.
 
-    virtual float getObjectRestitution() const = 0;
-    virtual float getObjectFriction() const = 0;
-    virtual float getObjectLinearDamping() const = 0;
-    virtual float getObjectAngularDamping() const = 0;
+    virtual float getObjectRestitution() const;
+    virtual float getObjectFriction() const;
+    virtual float getObjectLinearDamping() const;
+    virtual float getObjectAngularDamping() const;
     
-    virtual glm::vec3 getObjectPosition() const = 0;
-    virtual glm::quat getObjectRotation() const = 0;
-    virtual const glm::vec3& getObjectLinearVelocity() const = 0;
-    virtual const glm::vec3& getObjectAngularVelocity() const = 0;
-    virtual const glm::vec3& getObjectGravity() const = 0;
+    virtual glm::vec3 getObjectPosition() const;
+    virtual glm::quat getObjectRotation() const;
+    virtual const glm::vec3& getObjectLinearVelocity() const;
+    virtual const glm::vec3& getObjectAngularVelocity() const;
+    virtual const glm::vec3& getObjectGravity() const;
 
-    virtual const QUuid& getObjectID() const = 0;
+    virtual const QUuid& getObjectID() const;
 
-    virtual QUuid getSimulatorID() const = 0;
-    virtual void bump() = 0;
+    virtual QUuid getSimulatorID() const;
+    virtual void bump();
+
+    void setBoundingBox(const glm::vec3& corner, const glm::vec3& diagonal);
+
+    void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
+
+    friend class AvatarManager;
 
 protected:
-    virtual void setMotionType(MotionType motionType);
+    virtual void clearObjectBackPointer();
     Avatar* _avatar;
+    uint32_t _dirtyFlags;
 };
 
-typedef QVector<AvatarMotionState*> VectorOfAvatarMotionStates;
+typedef QSet<AvatarMotionState*> SetOfAvatarMotionStates;
 
 #endif // hifi_AvatarMotionState_h

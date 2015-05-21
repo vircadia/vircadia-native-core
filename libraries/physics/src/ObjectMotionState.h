@@ -30,9 +30,9 @@ enum MotionType {
 };
 
 enum MotionStateType {
-    MOTION_STATE_TYPE_INVALID,
-    MOTION_STATE_TYPE_ENTITY,
-    MOTION_STATE_TYPE_AVATAR
+    MOTIONSTATE_TYPE_INVALID,
+    MOTIONSTATE_TYPE_ENTITY,
+    MOTIONSTATE_TYPE_AVATAR
 };
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
@@ -74,8 +74,9 @@ public:
     virtual void handleEasyChanges(uint32_t flags);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
-    virtual void updateBodyMaterialProperties();
-    virtual void updateBodyVelocities();
+    void updateBodyMaterialProperties();
+    void updateBodyVelocities();
+    virtual void updateBodyMassProperties();
 
     MotionStateType getType() const { return _type; }
     virtual MotionType getMotionType() const { return _motionType; }
@@ -90,11 +91,10 @@ public:
     glm::vec3 getBodyLinearVelocity() const;
     glm::vec3 getBodyAngularVelocity() const;
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const = 0;
+    virtual uint32_t getAndClearIncomingDirtyFlags() = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo) = 0;
-
+    virtual btCollisionShape* computeNewShape() = 0;
 
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
@@ -127,10 +127,14 @@ public:
     friend class PhysicsEngine;
 
 protected:
-    virtual void setMotionType(MotionType motionType);
+    void setMotionType(MotionType motionType);
+
+    // clearObjectBackPointer() overrrides should call the base method, then actually clear the object back pointer.
+    virtual void clearObjectBackPointer() { _type = MOTIONSTATE_TYPE_INVALID; }
+
     void setRigidBody(btRigidBody* body);
 
-    MotionStateType _type = MOTION_STATE_TYPE_INVALID; // type of MotionState
+    MotionStateType _type = MOTIONSTATE_TYPE_INVALID; // type of MotionState
     MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
     btCollisionShape* _shape;

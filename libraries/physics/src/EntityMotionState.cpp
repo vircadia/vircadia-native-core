@@ -39,7 +39,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _loopsSinceOwnershipBid(0),
     _loopsWithoutOwner(0)
 {
-    _type = MOTION_STATE_TYPE_ENTITY;
+    _type = MOTIONSTATE_TYPE_ENTITY;
     assert(entity != nullptr);
 }
 
@@ -98,10 +98,9 @@ void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
     ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
-void EntityMotionState::clearEntity() {
+void EntityMotionState::clearObjectBackPointer() {
+    ObjectMotionState::clearObjectBackPointer();
     _entity = nullptr;
-    // set the type to INVALID so that external logic that pivots on the type won't try to access _entity
-    _type = MOTION_STATE_TYPE_INVALID;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {
@@ -178,10 +177,13 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
+btCollisionShape* EntityMotionState::computeNewShape() {
     if (_entity) {
+        ShapeInfo shapeInfo;
         _entity->computeShapeInfo(shapeInfo);
+        return getShapeManager()->getShape(shapeInfo);
     }
+    return nullptr;
 }
 
 // RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
@@ -445,7 +447,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _lastStep = step;
 }
 
-uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() const { 
+uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() { 
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags(); 

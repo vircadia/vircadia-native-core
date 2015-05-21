@@ -59,6 +59,8 @@ public:
     VectorOfMotionStates& getObjectsToChange();
     void handleOutgoingChanges(VectorOfMotionStates& motionStates);
     void handleCollisionEvents(CollisionEvents& collisionEvents);
+
+    void updateAvatarPhysicsShape(const QUuid& id);
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -83,7 +85,9 @@ private:
 
     bool _shouldShowReceiveStats = false;
 
-    VectorOfAvatarMotionStates _avatarMotionStates;
+    SetOfAvatarMotionStates _avatarMotionStates;
+    SetOfMotionStates _motionStatesToAdd;
+    VectorOfMotionStates _motionStatesToDelete;
     VectorOfMotionStates _tempMotionStates;
 };
 

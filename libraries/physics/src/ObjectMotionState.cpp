@@ -140,20 +140,14 @@ void ObjectMotionState::handleEasyChanges(uint32_t flags) {
     }
 
     if (flags & EntityItem::DIRTY_MASS) {
-        float mass = getMass();
-        btVector3 inertia(0.0f, 0.0f, 0.0f);
-        _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
-        _body->setMassProps(mass, inertia);
-        _body->updateInertiaTensor();
+        updateBodyMassProperties();
     }
 }
 
 void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     if (flags & EntityItem::DIRTY_SHAPE) {
         // make sure the new shape is valid
-        ShapeInfo shapeInfo;
-        computeObjectShapeInfo(shapeInfo);
-        btCollisionShape* newShape = getShapeManager()->getShape(shapeInfo);
+        btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
@@ -168,17 +162,21 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
             }
         }
         getShapeManager()->releaseShape(_shape);
-        _shape = newShape;
-        _body->setCollisionShape(_shape);
-        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            handleEasyChanges(flags);
-        }
-    } else {
-        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            handleEasyChanges(flags);
+        if (_shape != newShape) {
+            // huh... the shape didn't actually change, so we remove the DIRTY_SHAPE flag
+            _shape = newShape;
+            _body->setCollisionShape(_shape);
+            flags &= ~EntityItem::DIRTY_SHAPE;
         }
     }
-    engine->reinsertObject(this);
+    if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+        handleEasyChanges(flags);
+    }
+    // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
+    // so we check again befoe we reinsert:
+    if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
+        engine->reinsertObject(this);
+    }
 }
 
 void ObjectMotionState::updateBodyMaterialProperties() {
@@ -192,4 +190,12 @@ void ObjectMotionState::updateBodyVelocities() {
     setBodyAngularVelocity(getObjectAngularVelocity());
     setBodyGravity(getObjectGravity());
     _body->setActivationState(ACTIVE_TAG);
+}
+
+void ObjectMotionState::updateBodyMassProperties() {
+    float mass = getMass();
+    btVector3 inertia(0.0f, 0.0f, 0.0f);
+    _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+    _body->setMassProps(mass, inertia);
+    _body->updateInertiaTensor();
 }

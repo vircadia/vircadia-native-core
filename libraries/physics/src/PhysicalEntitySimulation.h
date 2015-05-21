@@ -23,8 +23,6 @@
 #include "PhysicsEngine.h"
 #include "EntityMotionState.h"
 
-class ShapeManager;
-
 typedef QSet<EntityMotionState*> SetOfEntityMotionStates;
 
 class PhysicalEntitySimulation :public EntitySimulation {
@@ -32,7 +30,7 @@ public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();
 
-    void init(EntityTree* tree, PhysicsEngine* engine, ShapeManager* shapeManager, EntityEditPacketSender* packetSender);
+    void init(EntityTree* tree, PhysicsEngine* engine, EntityEditPacketSender* packetSender);
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
@@ -62,7 +60,6 @@ private:
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
     VectorOfMotionStates _tempVector; // temporary array reference, valid immediately after getObjectsToRemove() (and friends)
 
-    ShapeManager* _shapeManager = nullptr;
     PhysicsEngine* _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
