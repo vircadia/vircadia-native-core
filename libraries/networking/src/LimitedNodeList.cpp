@@ -55,46 +55,46 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     static bool firstCall = true;
     if (firstCall) {
         NodeType::init();
-        
+
         // register the SharedNodePointer meta-type for signals/slots
         qRegisterMetaType<SharedNodePointer>();
         firstCall = false;
     }
-    
+
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
     qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
-    
+
     if (dtlsListenPort > 0) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
-        
+
         _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
-    
+
     const int LARGER_BUFFER_SIZE = 1048576;
     changeSocketBufferSizes(LARGER_BUFFER_SIZE);
-    
+
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
     QTimer* localSocketUpdate = new QTimer(this);
     connect(localSocketUpdate, &QTimer::timeout, this, &LimitedNodeList::updateLocalSockAddr);
     localSocketUpdate->start(LOCAL_SOCKET_UPDATE_INTERVAL_MSECS);
-    
+
     QTimer* silentNodeTimer = new QTimer(this);
     connect(silentNodeTimer, &QTimer::timeout, this, &LimitedNodeList::removeSilentNodes);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
-    
+
     // check the local socket right now
     updateLocalSockAddr();
-    
+
     _packetStatTimer.start();
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldUUID = _sessionUUID;
     _sessionUUID = sessionUUID;
-    
+
     if (sessionUUID != oldUUID) {
         qCDebug(networking) << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
         << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
@@ -120,16 +120,16 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
     if (!_dtlsSocket) {
         // DTLS socket getter called but no DTLS socket exists, create it now
         _dtlsSocket = new QUdpSocket(this);
-        
+
         _dtlsSocket->bind(QHostAddress::AnyIPv4, 0, QAbstractSocket::DontShareAddress);
-        
+
         // we're using DTLS and our socket is good to go, so make the required DTLS changes
         // DTLS requires that IP_DONTFRAG be set
         // This is not accessible on some platforms (OS X) so we need to make sure DTLS still works without it
-        
+
         qCDebug(networking) << "LimitedNodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
-    
+
     return *_dtlsSocket;
 }
 
@@ -140,7 +140,7 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         if (i == 0) {
             bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
             bufferTypeString = "send";
-            
+
         } else {
             bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
             bufferTypeString = "receive";
@@ -148,7 +148,7 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
         int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
         if (oldBufferSize < numBytes) {
             int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
-            
+
             qCDebug(networking) << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
                 << newBufferSize << "bytes";
         } else {
@@ -162,13 +162,13 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     PacketType checkType = packetTypeForPacket(packet);
     int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
-    
+
     if (packet[numPacketTypeBytes] != versionForPacketType(checkType)
         && checkType != PacketTypeStunResponse) {
         PacketType mismatchType = packetTypeForPacket(packet);
-        
+
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
-        
+
         QUuid senderUUID = uuidFromPacketHeader(packet);
         if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
             qCDebug(networking) << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
@@ -176,13 +176,13 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
 
             emit packetVersionMismatch();
-            
+
             versionDebugSuppressMap.insert(senderUUID, checkType);
         }
-        
+
         return false;
     }
-    
+
     if (!NON_VERIFIED_PACKETS.contains(checkType)) {
         // figure out which node this is from
         SharedNodePointer sendingNode = sendingNodeForPacket(packet);
@@ -192,26 +192,26 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                 return true;
             } else {
                 static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
-                
+
                 QUuid senderUUID = uuidFromPacketHeader(packet);
                 if (!hashDebugSuppressMap.contains(senderUUID, checkType)) {
                     qCDebug(networking) << "Packet hash mismatch on" << checkType << "- Sender"
                     << uuidFromPacketHeader(packet);
-                    
+
                     hashDebugSuppressMap.insert(senderUUID, checkType);
                 }
             }
         } else {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
-            
+
             qCDebug(networking) << "Packet of type" << checkType << "received from unknown node with UUID"
                 << qPrintable(uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet)));
         }
     } else {
         return true;
     }
-    
+
     return false;
 }
 
@@ -226,7 +226,7 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
     } else {
         emit dataReceived(NodeType::Unassigned, incomingPacket.size());
     }
-        
+
     return result;
 }
 
@@ -235,14 +235,14 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     // stat collection for packets
     ++_numCollectedPackets;
     _numCollectedBytes += datagram.size();
-    
+
     qint64 bytesWritten = _nodeSocket.writeDatagram(datagram,
                                                     destinationSockAddr.getAddress(), destinationSockAddr.getPort());
-    
+
     if (bytesWritten < 0) {
         qCDebug(networking) << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
     }
-    
+
     return bytesWritten;
 }
 
@@ -269,7 +269,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
 
         QByteArray datagramCopy = datagram;
-        
+
         // if we're here and the connection secret is null, debug out - this could be a problem
         if (destinationNode->getConnectionSecret().isNull()) {
             qDebug() << "LimitedNodeList::writeDatagram called for verified datagram with null connection secret for"
@@ -278,21 +278,21 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
         }
 
         // perform replacement of hash and optionally also sequence number in the header
-        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) { 
+        if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
             PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode->getUUID(), packetType);
             replaceHashAndSequenceNumberInPacket(datagramCopy, destinationNode->getConnectionSecret(),
                                                  sequenceNumber, packetType);
         } else {
             replaceHashInPacket(datagramCopy, destinationNode->getConnectionSecret(), packetType);
         }
-        
+
         emit dataSent(destinationNode->getType(), datagram.size());
         auto bytesWritten = writeDatagram(datagramCopy, *destinationSockAddr);
         // Keep track of per-destination-node bandwidth
         destinationNode->recordBytesSent(bytesWritten);
         return bytesWritten;
     }
-    
+
     // didn't have a destinationNode to send to, return 0
     return 0;
 }
@@ -311,7 +311,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
                 return 0;
             }
         }
-        
+
         PacketType packetType = packetTypeForPacket(datagram);
 
         // optionally peform sequence number replacement in the header
@@ -328,7 +328,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
             return writeDatagram(datagram, *destinationSockAddr);
         }
     }
-    
+
     // didn't have a destinationNode to send to, return 0
     return 0;
 }
@@ -348,11 +348,11 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, c
 }
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType) {
-    // Thanks to std::map and std::unordered_map this line either default constructs the 
+    // Thanks to std::map and std::unordered_map this line either default constructs the
     // PacketTypeSequenceMap and the PacketSequenceNumber or returns the existing value.
-    // We use the postfix increment so that the stored value is incremented and the next 
+    // We use the postfix increment so that the stored value is incremented and the next
     // return gives the correct value.
-    
+
     return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
@@ -367,21 +367,21 @@ void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const 
 
 int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray &packet) {
     QMutexLocker locker(&matchingNode->getMutex());
-    
+
     matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-    
+
     // if this was a sequence numbered packet we should store the last seq number for
     // a packet of this type for this node
     PacketType packetType = packetTypeForPacket(packet);
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
         matchingNode->setLastSequenceNumberForPacketType(sequenceNumberFromHeader(packet, packetType), packetType);
     }
-    
+
     NodeData* linkedData = matchingNode->getLinkedData();
     if (!linkedData && linkedDataCreateCallback) {
         linkedDataCreateCallback(matchingNode.data());
     }
-   
+
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
         return linkedData->parseData(packet);
@@ -391,42 +391,42 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
 
 int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
     SharedNodePointer matchingNode = sendingNodeForPacket(packet);
-    
+
     if (matchingNode) {
         return updateNodeWithDataFromPacket(matchingNode, packet);
     }
-    
+
     // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
     return 0;
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
     QReadLocker readLocker(&_nodeMutex);
-    
+
     NodeHash::const_iterator it = _nodeHash.find(nodeUUID);
     return it == _nodeHash.cend() ? SharedNodePointer() : it->second;
  }
 
 SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet) {
     QUuid nodeUUID = uuidFromPacketHeader(packet);
-    
+
     // return the matching node, or NULL if there is no match
     return nodeWithUUID(nodeUUID);
 }
 
 void LimitedNodeList::eraseAllNodes() {
     qCDebug(networking) << "Clearing the NodeList. Deleting all nodes in list.";
-    
+
     QSet<SharedNodePointer> killedNodes;
     eachNode([&killedNodes](const SharedNodePointer& node){
         killedNodes.insert(node);
     });
-    
+
     // iterate the current nodes, emit that they are dying and remove them from the hash
     _nodeMutex.lockForWrite();
     _nodeHash.clear();
     _nodeMutex.unlock();
-    
+
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
@@ -438,17 +438,17 @@ void LimitedNodeList::reset() {
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     _nodeMutex.lockForRead();
-    
+
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
     if (it != _nodeHash.end()) {
         SharedNodePointer matchingNode = it->second;
-        
+
         _nodeMutex.unlock();
-        
+
         _nodeMutex.lockForWrite();
         _nodeHash.unsafe_erase(it);
         _nodeMutex.unlock();
-        
+
         handleNodeKill(matchingNode);
     } else {
         _nodeMutex.unlock();
@@ -472,34 +472,34 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    bool canAdjustLocks, bool canRez) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
-    
+
     if (it != _nodeHash.end()) {
         SharedNodePointer& matchingNode = it->second;
-        
+
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setCanAdjustLocks(canAdjustLocks);
         matchingNode->setCanRez(canRez);
-        
+
         return matchingNode;
     } else {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks, canRez);
         SharedNodePointer newNodePointer(newNode);
-        
+
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
-        
+
         qCDebug(networking) << "Added" << *newNode;
-        
+
         emit nodeAdded(newNodePointer);
-        
+
         return newNodePointer;
     }
 }
 
 unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
-    
+
     eachNode([&](const SharedNodePointer& node){
         if (destinationNodeTypes.contains(node->getType())) {
             writeDatagram(packet, node);
@@ -516,35 +516,35 @@ QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVeri
 
     QByteArray pingPacket = byteArrayWithUUIDPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
                                                              packetUUID);
-    
+
     QDataStream packetStream(&pingPacket, QIODevice::Append);
-    
+
     packetStream << pingType;
     packetStream << usecTimestampNow();
-    
+
     return pingPacket;
 }
 
 QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
-    
+
     PingType_t typeFromOriginalPing;
     pingPacketStream >> typeFromOriginalPing;
-    
+
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
-    
+
     PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
-   
+
     QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
 
     QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetUUID);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
-    
+
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
-    
+
     return replyPacket;
 }
 
@@ -566,9 +566,9 @@ void LimitedNodeList::resetPacketStats() {
 }
 
 void LimitedNodeList::removeSilentNodes() {
-    
+
     QSet<SharedNodePointer> killedNodes;
-    
+
     eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
@@ -582,10 +582,10 @@ void LimitedNodeList::removeSilentNodes() {
             // we didn't erase this node, push the iterator forwards
             ++it;
         }
-        
+
         node->getMutex().unlock();
     });
-    
+
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
@@ -595,38 +595,38 @@ const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
 
 void LimitedNodeList::sendSTUNRequest() {
-    
+
     unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-    
+
     int packetIndex = 0;
-    
+
     const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-    
+
     // leading zeros + message type
     const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
     memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
     packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-    
+
     // message length (no additional attributes are included)
     uint16_t messageLength = 0;
     memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
     packetIndex += sizeof(messageLength);
-    
+
     memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
     packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-    
+
     // transaction ID (random 12-byte unsigned integer)
     const uint NUM_TRANSACTION_ID_BYTES = 12;
     QUuid randomUUID = QUuid::createUuid();
     memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
-    
+
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
                               _stunSockAddr.getAddress(), _stunSockAddr.getPort());
 }
 
 void LimitedNodeList::rebindNodeSocket() {
     quint16 oldPort = _nodeSocket.localPort();
-    
+
     _nodeSocket.close();
     _nodeSocket.bind(QHostAddress::AnyIPv4, oldPort);
 }
@@ -636,125 +636,125 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
     const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
-    
+
     const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-    
+
     int attributeStartIndex = NUM_BYTES_STUN_HEADER;
-    
+
     if (memcmp(packet.data() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
                sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
-        
+
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
         while (attributeStartIndex < packet.size()) {
             if (memcmp(packet.data() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
                 const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
-                
-                
-                
+
+
+
                 int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
-                
+
                 uint8_t addressFamily = 0;
                 memcpy(&addressFamily, packet.data() + byteIndex, sizeof(addressFamily));
-                
+
                 byteIndex += sizeof(addressFamily);
-                
+
                 if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
                     // grab the X-Port
                     uint16_t xorMappedPort = 0;
                     memcpy(&xorMappedPort, packet.data() + byteIndex, sizeof(xorMappedPort));
-                    
+
                     uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
-                    
+
                     byteIndex += sizeof(xorMappedPort);
-                    
+
                     // grab the X-Address
                     uint32_t xorMappedAddress = 0;
                     memcpy(&xorMappedAddress, packet.data() + byteIndex, sizeof(xorMappedAddress));
-                    
+
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-                    
+
                     QHostAddress newPublicAddress = QHostAddress(stunAddress);
-                    
+
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-                        
+
                         qCDebug(networking, "New public socket received from STUN server is %s:%hu",
                                _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                                _publicSockAddr.getPort());
-                        
-                        emit publicSockAddrChanged(_publicSockAddr);                        
+
+                        emit publicSockAddrChanged(_publicSockAddr);
                     }
-                    
+
                     return true;
                 }
             } else {
                 // push forward attributeStartIndex by the length of this attribute
                 const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
-                
+
                 uint16_t attributeLength = 0;
                 memcpy(&attributeLength, packet.data() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
                        sizeof(attributeLength));
                 attributeLength = ntohs(attributeLength);
-                
+
                 attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
             }
         }
     }
-    
+
     return false;
 }
 
 void LimitedNodeList::updateLocalSockAddr() {
     HifiSockAddr newSockAddr(getLocalAddress(), _nodeSocket.localPort());
     if (newSockAddr != _localSockAddr) {
-        
+
         if (_localSockAddr.isNull()) {
             qCDebug(networking) << "Local socket is" << newSockAddr;
         } else {
             qCDebug(networking) << "Local socket has changed from" << _localSockAddr << "to" << newSockAddr;
         }
-        
+
         _localSockAddr = newSockAddr;
-        
+
         emit localSockAddrChanged(_localSockAddr);
     }
 }
 
 void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
                                                QUuid headerID, const QUuid& connectionRequestID) {
-    
+
     if (headerID.isNull()) {
         headerID = _sessionUUID;
     }
-    
+
     QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
-    
+
     iceDataStream << _publicSockAddr << _localSockAddr;
-    
+
     if (!connectionRequestID.isNull()) {
         iceDataStream << connectionRequestID;
-        
+
         qCDebug(networking) << "Sending packet to ICE server to request connection info for peer with ID"
             << uuidStringWithoutCurlyBraces(connectionRequestID);
     }
-    
+
     writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }
 
 void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort) {
     // save our local port to shared memory so that assignment client children know how to talk to this parent
     QSharedMemory* sharedPortMem = new QSharedMemory(key, parent);
-    
+
     // attempt to create the shared memory segment
     if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
         sharedPortMem->lock();
         memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
         sharedPortMem->unlock();
-        
+
         qCDebug(networking) << "Wrote local listening port" << localPort << "to shared memory at key" << key;
     } else {
         qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
@@ -762,22 +762,15 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 }
 
 
-bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, QSharedMemory*& sharedMem,
-                                                         quint16& localPort) {
-    if (!sharedMem) {
-        sharedMem = new QSharedMemory(key, this);
-                
-        if (!sharedMem->attach(QSharedMemory::ReadOnly)) {
-            qWarning() << "Could not attach to shared memory at key" << key;
-        }
-    }
-
-    if (sharedMem->isAttached()) {
-        sharedMem->lock();
-        memcpy(&localPort, sharedMem->data(), sizeof(localPort));
-        sharedMem->unlock();
+bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, quint16& localPort) {
+    QSharedMemory sharedMem(key);
+    if (!sharedMem.attach(QSharedMemory::ReadOnly)) {
+        qWarning() << "Could not attach to shared memory at key" << key;
+        return false;
+    } else {
+        sharedMem.lock();
+        memcpy(&localPort, sharedMem.data(), sizeof(localPort));
+        sharedMem.unlock();
         return true;
     }
-
-    return false;
 }
