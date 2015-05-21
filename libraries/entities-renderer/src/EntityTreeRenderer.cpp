@@ -1190,3 +1190,16 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
 }
 
+template <> const render::Item::Key render::payloadGetKey(const RenderableEnitityItem* payload) {
+    return payload->getKey();
+}
+
+template <> const render::Item::Bound render::payloadGetBound(const RenderableEnitityItem* payload) {
+    return payload->getBounds(); 
+}
+
+template <> void render::payloadRender(const RenderableEnitityItem* payload, Context& context, RenderArgs* args) {
+    return payload->render(context, args); 
+}
+
+

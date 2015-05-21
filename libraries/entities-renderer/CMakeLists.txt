@@ -12,4 +12,4 @@ find_package(Bullet REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
-link_hifi_libraries(shared gpu script-engine render-utils)
+link_hifi_libraries(shared gpu script-engine render render-utils)

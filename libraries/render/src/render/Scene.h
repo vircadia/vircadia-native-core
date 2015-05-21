@@ -18,6 +18,7 @@
 #include <set>
 #include <map>
 #include <AABox.h>
+#include <RenderArgs.h>
 #include <atomic>
 #include <mutex>
 #include <queue>

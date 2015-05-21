@@ -19,6 +19,7 @@
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
+#include <render/Scene.h>
 #include <ScriptCache.h>
 #include <AbstractAudioInterface.h>
 
@@ -189,5 +190,33 @@ private:
     int _previousStageDay;
     
 };
+
+class RenderableEnitityItem {
+public:
+    RenderableEnitityItem(EntityItem* entity) {
+        _entity = entity;
+    }
+
+    const render::Item::Key& getKey() const {
+        _myKey.set(render::Item::TYPE_SHAPE);
+        return _myKey;
+    }
+
+    const render::Item::Bound getBounds() const {
+        return _entity->getAABox();
+    }
+    
+    void render(render::Context& context, RenderArgs* args) const {
+        _entity->render(args);
+    }
+
+private:
+    mutable render::Item::Key _myKey;
+    EntityItem* _entity = nullptr;
+};
+
+typedef render::Payload<RenderableEnitityItem> RenderableEnitityItemPayload;
+
+
 
 #endif // hifi_EntityTreeRenderer_h
