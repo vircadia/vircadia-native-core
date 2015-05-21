@@ -151,14 +151,15 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
         gpu::Batch batch;
 
-        // XXX why do I need these?
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-
         auto mesh = _modelGeometry.getMesh();
         batch.setInputFormat(mesh->getVertexFormat());
-        batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
-        batch.setInputStream(0, mesh->makeBufferStream());
+
+		batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
+		batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer, sizeof(float) * 3, mesh->getVertexBuffer()._stride);
+
+		//batch.setInputStream(0, mesh->makeBufferStream());
+		
+		batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
         batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
         gpu::GLBackend::renderBatch(batch);
 
