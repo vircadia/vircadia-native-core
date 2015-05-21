@@ -59,12 +59,6 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     gpu::Batch batch;
     renderSphere(batch, radius, slices, stacks, color, solid, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
@@ -409,11 +403,6 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
     gpu::Batch batch;
     renderGrid(batch, xDivisions, yDivisions, color);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color) {
@@ -492,13 +481,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
 
 void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     gpu::Batch batch;
-    renderGrid(x, y, width, height, rows, cols, color, id);
+    renderGrid(batch, x, y, width, height, rows, cols, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // TODO: properly handle the x,y,w,h changing for an ID
@@ -801,11 +785,6 @@ void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
     gpu::Batch batch;
     renderVertices(batch, primitiveType, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id) {
@@ -821,12 +800,6 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
     gpu::Batch batch;
     renderSolidCube(batch, size, color);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
@@ -947,12 +920,6 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
     gpu::Batch batch;
     renderWireCube(batch, size, color);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
@@ -1036,11 +1003,6 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
     gpu::Batch batch;
     renderBevelCornersRect(batch, x, y, width, height, bevelDistance, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
@@ -1145,11 +1107,6 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
     gpu::Batch batch;
     renderQuad(batch, minCorner, maxCorner, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
@@ -1229,12 +1186,6 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
     gpu::Batch batch;
     renderQuad(batch, minCorner, maxCorner, texCoordMinCorner, texCoordMaxCorner, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
@@ -1321,11 +1272,6 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
     gpu::Batch batch;
     renderQuad(batch, minCorner, maxCorner, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
@@ -1407,16 +1353,7 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
     gpu::Batch batch;
     renderQuad(batch, topLeft, bottomLeft, bottomRight, topRight, texCoordTopLeft, texCoordBottomLeft,
                texCoordBottomRight, texCoordTopRight, color, id);
-
-    glEnable(GL_TEXTURE_2D);
-
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
@@ -1507,28 +1444,15 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
 
-    //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
-
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-    
-    // TODO: The callers of this method (renderMagnifier and renderReticle) assume that we won't disable an unbind
-    // the texture after rendering. I'm not sure if this is correct in general but it's currently required for the
-    // oculus overlay to work.
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    //glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
     gpu::Batch batch;
     renderDashedLine(batch, start, end, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
@@ -1690,10 +1614,6 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
     gpu::Batch batch;
     renderLine(batch, p1, p2, color1, color2, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
@@ -1784,10 +1704,6 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2, const g
     gpu::Batch batch;
     renderLine(batch, p1, p2, color1, color2, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                

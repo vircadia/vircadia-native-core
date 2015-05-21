@@ -22,6 +22,7 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
+#include <Transform.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -179,21 +180,27 @@ public:
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
-    const glm::vec3& getPosition() const { return _position; } /// get position in meters
     
-    void setPosition(const glm::vec3& value) { 
-        _position = value; 
-    }
+    inline glm::vec3 getCenterPosition() const { return getTransformToCenter().getTranslation(); }
+    void setCenterPosition(const glm::vec3& position);
+    
+    const Transform getTransformToCenter() const;
+    void setTranformToCenter(const Transform& transform);
+    
+    inline const Transform& getTransform() const { return _transform; }
+    inline void setTransform(const Transform& transform) { _transform = transform; }
+    
+    /// Position in meters (0.0 - TREE_SCALE)
+    inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
+    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
+    
+    inline const glm::quat& getRotation() const { return _transform.getRotation(); }
+    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
+    
+    /// Dimensions in meters (0.0 - TREE_SCALE)
+    inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
+    inline virtual void setDimensions(const glm::vec3& value) { _transform.setScale(glm::abs(value)); }
 
-    glm::vec3 getCenter() const;
-
-    const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in meters
-
-    /// set dimensions in meter units (0.0 - TREE_SCALE)
-    virtual void setDimensions(const glm::vec3& value) { _dimensions = glm::abs(value); }
-
-    const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -303,7 +310,7 @@ public:
 
     virtual bool isReadyToComputeShape() { return true; }
     virtual void computeShapeInfo(ShapeInfo& info);
-    virtual float getVolumeEstimate() const { return _dimensions.x * _dimensions.y * _dimensions.z; }
+    virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -368,9 +375,7 @@ protected:
     quint64 _created;
     quint64 _changedOnServer;
 
-    glm::vec3 _position;
-    glm::vec3 _dimensions;
-    glm::quat _rotation;
+    Transform _transform;
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3

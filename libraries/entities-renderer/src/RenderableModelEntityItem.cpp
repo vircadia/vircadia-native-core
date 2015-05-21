@@ -128,7 +128,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool didDraw = false;
     if (drawAsModel && !highlightSimulationOwnership) {
         remapTextures();
-        glPushMatrix();
         {
             float alpha = getLocalRenderAlpha();
 
@@ -188,7 +187,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
             }
         }
-        glPopMatrix();
     }
 
     if (!didDraw) {
@@ -396,7 +394,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
+        glm::vec3 scale = getDimensions() / renderGeometry.getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;

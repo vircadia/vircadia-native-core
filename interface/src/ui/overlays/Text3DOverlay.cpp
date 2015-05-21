@@ -11,15 +11,12 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <TextRenderer.h>
-
 #include "Application.h"
 #include "Text3DOverlay.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
-const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
@@ -50,6 +47,7 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
 }
 
 Text3DOverlay::~Text3DOverlay() {
+    delete _textRenderer;
 }
 
 xColor Text3DOverlay::getBackgroundColor() {
@@ -106,8 +104,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
         
         // Same font properties as textSize()
-        TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
+        float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
 
@@ -124,7 +121,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
-        textRenderer->draw(0, 0, _text, textColor);
+        _textRenderer->draw(0, 0, _text, textColor);
 
         glDisable(GL_CLIP_PLANE0);
         glDisable(GL_CLIP_PLANE1);
@@ -228,10 +225,9 @@ Text3DOverlay* Text3DOverlay::createClone() const {
 }
 
 QSizeF Text3DOverlay::textSize(const QString& text) const {
-    auto textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-    auto extents = textRenderer->computeExtent(text);
+    auto extents = _textRenderer->computeExtent(text);
 
-    float maxHeight = (float)textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
+    float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
     float pointToWorldScale = (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
     return QSizeF(extents.x, extents.y) * pointToWorldScale;

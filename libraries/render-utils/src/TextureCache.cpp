@@ -9,14 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
 #include <gpu/GPUConfig.h>
 
-#include <QEvent>
-#include <QGLWidget>
 #include <QNetworkReply>
-#include <QOpenGLFramebufferObject>
-#include <QResizeEvent>
+#include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
@@ -27,7 +25,6 @@
 #include "RenderUtilsLogging.h"
 #include "TextureCache.h"
 
-#include "gpu/GLBackend.h"
 
 #include <mutex>
 
@@ -247,6 +244,12 @@ GLuint TextureCache::getPrimarySpecularTextureID() {
 }
 
 void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
+    gpu::Batch batch;
+    setPrimaryDrawBuffers(batch, color, normal, specular);
+    gpu::GLBackend::renderBatch(batch);
+}
+    
+void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal, bool specular) {
     GLenum buffers[3];
     int bufferCount = 0;
     if (color) {
@@ -258,7 +261,7 @@ void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular)
     if (specular) {
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
     }
-    glDrawBuffers(bufferCount, buffers);
+    batch._glDrawBuffers(bufferCount, buffers);
 }
 
 gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {
