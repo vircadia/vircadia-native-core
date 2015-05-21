@@ -68,8 +68,8 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
     
-    _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+    _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
@@ -963,7 +963,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
-    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+    _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
     _lastMouseEvent = MouseEvent(*event, deviceID);
     _lastMouseEventValid = true;
 }
@@ -1043,7 +1043,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
                 currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
             }
 
-            _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+            _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
 

@@ -42,7 +42,6 @@ void EntityTests::entityTreeTests(bool verbose) {
     EntityTree tree;
     QUuid id = QUuid::createUuid();
     EntityItemID entityID(id);
-    entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
     EntityItemProperties properties;
     float oneMeter = 1.0f;
     float halfOfDomain = TREE_SCALE * 0.5f;
@@ -89,8 +88,6 @@ void EntityTests::entityTreeTests(bool verbose) {
             qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName);
         }
     }
-
-    entityID.isKnownID = true; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
     {
         testsTaken++;
@@ -253,7 +250,6 @@ void EntityTests::entityTreeTests(bool verbose) {
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
             QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
             EntityItemID entityID(id);
-            entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
             float randomX = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
             float randomY = randFloatInRange(1.0f ,(float)TREE_SCALE - 1.0f);
@@ -357,7 +353,6 @@ void EntityTests::entityTreeTests(bool verbose) {
         for (int i = 0; i < TEST_ITERATIONS; i++) {        
             QUuid id = QUuid::createUuid();// make sure it doesn't collide with previous entity ids
             EntityItemID entityID(id);
-            entityID.isKnownID = true; // this is a temporary workaround to allow local tree entities to be added with known IDs
 
             if (extraVerbose) {
                 qDebug() << "before:" << i << "getOctreeElementsCount()=" << tree.getOctreeElementsCount();

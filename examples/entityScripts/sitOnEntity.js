@@ -312,7 +312,7 @@
                                              this.indicator[i].position,
                                              this.indicator[i].scale / 2)) {
                        clickedOnSeat = true;
-                       seat.model = this.entityID; // ??
+                       seat.model = this.entityID;
                        seat.position = this.indicator[i].position;
                        seat.rotation = this.indicator[i].orientation;
                    }
@@ -333,8 +333,8 @@
 
     // All callbacks start by updating the properties
     this.updateProperties = function(entityID) {
-        if (this.entityID === null || !this.entityID.isKnownID) {
-            this.entityID = Entities.identifyEntity(entityID);
+        if (this.entityID === null) {
+            this.entityID = entityID;
         }
         this.properties = Entities.getEntityProperties(this.entityID);
     };

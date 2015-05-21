@@ -159,16 +159,17 @@ void HifiConfigVariantMap::addMissingValuesToExistingMap(QVariantMap& existingMa
     }
 }
 
-QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath) {
+QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool shouldCreateIfMissing) {
     int dotIndex = keyPath.indexOf('.');
 
     QString firstKey = (dotIndex == -1) ? keyPath : keyPath.mid(0, dotIndex);
 
-    if (variantMap.contains(firstKey)) {
+    if (shouldCreateIfMissing || variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
         } else if (variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
-            return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1));
+            return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
+                                   shouldCreateIfMissing);
         }
     }
 
