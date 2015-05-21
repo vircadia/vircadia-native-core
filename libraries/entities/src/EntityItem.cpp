@@ -40,9 +40,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
     _changedOnServer(0),
-    _position(ENTITY_ITEM_ZERO_VEC3),
-    _dimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS),
-    _rotation(ENTITY_ITEM_DEFAULT_ROTATION),
+    _transform(ENTITY_ITEM_DEFAULT_ROTATION,
+               ENTITY_ITEM_DEFAULT_DIMENSIONS,
+               ENTITY_ITEM_DEFAULT_POSITION),
     _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
@@ -321,8 +321,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = _position;
-    glm::quat saveRotation = _rotation;
+    glm::vec3 savePosition = getPosition();
+    glm::quat saveRotation = getRotation();
     // glm::vec3 saveVelocity = _velocity;
     // glm::vec3 saveAngularVelocity = _angularVelocity;
     // glm::vec3 saveGravity = _gravity;
@@ -628,8 +628,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
         // the packet that produced this bitstream originally came from physics simulations performed by
         // this node, so our version has to be newer than what the packet contained.
-        _position = savePosition;
-        _rotation = saveRotation;
+        setPosition(savePosition);
+        setRotation(saveRotation);
         // _velocity = saveVelocity;
         // _angularVelocity = saveAngularVelocity;
         // _gravity = saveGravity;
@@ -640,10 +640,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 void EntityItem::debugDump() const {
+    auto position = getPosition();
     qCDebug(entities) << "EntityItem id:" << getEntityItemID();
     qCDebug(entities, " edited ago:%f", getEditedAgo());
-    qCDebug(entities, " position:%f,%f,%f", _position.x, _position.y, _position.z);
-    qCDebug(entities) << " dimensions:" << _dimensions;
+    qCDebug(entities, " position:%f,%f,%f", position.x, position.y, position.z);
+    qCDebug(entities) << " dimensions:" << getDimensions();
 }
 
 // adjust any internal timestamps to fix clock skew for this server
@@ -666,8 +667,8 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     #endif
 }
 
-float EntityItem::computeMass() const { 
-    return _density * _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z;
+float EntityItem::computeMass() const {
+    return _density * _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
 }
 
 void EntityItem::setDensity(float density) {
@@ -692,8 +693,8 @@ void EntityItem::setMass(float mass) {
     // Setting the mass actually changes the _density (at fixed volume), however
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
-
-    float volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z;
+    
+    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
 
     // compute new density
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
@@ -997,10 +998,30 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = _created;
 }
 
+void EntityItem::setCenterPosition(const glm::vec3& position) {
+    Transform transformToCenter = getTransformToCenter();
+    transformToCenter.setTranslation(position);
+    setTranformToCenter(transformToCenter);
+}
 
-// TODO: doesn't this need to handle rotation?
-glm::vec3 EntityItem::getCenter() const {
-    return _position + (_dimensions * (glm::vec3(0.5f,0.5f,0.5f) - _registrationPoint));
+const Transform EntityItem::getTransformToCenter() const {
+    Transform result = getTransform();
+    if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
+        result.postTranslate(ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()); // Position to center
+    }
+    return result;
+}
+
+void EntityItem::setTranformToCenter(const Transform& transform) {
+    if (getRegistrationPoint() == ENTITY_ITEM_HALF_VEC3) {
+        // If it is already centered, just call setTransform
+        setTransform(transform);
+        return;
+    }
+    
+    Transform copy = transform;
+    copy.postTranslate(getRegistrationPoint() - ENTITY_ITEM_HALF_VEC3); // Center to position
+    setTransform(copy);
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1008,13 +1029,13 @@ glm::vec3 EntityItem::getCenter() const {
 /// 
 AACube EntityItem::getMaximumAACube() const { 
     // * we know that the position is the center of rotation
-    glm::vec3 centerOfRotation = _position; // also where _registration point is
+    glm::vec3 centerOfRotation = getPosition(); // also where _registration point is
 
     // * we know that the registration point is the center of rotation
     // * we can calculate the length of the furthest extent from the registration point
     //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-    glm::vec3 registrationPoint = (_dimensions * _registrationPoint);
-    glm::vec3 registrationRemainder = (_dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
+    glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
+    glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
     glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
     
     // * we know that if you rotate in any direction you would create a sphere
@@ -1036,13 +1057,13 @@ AACube EntityItem::getMinimumAACube() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
-    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
+    glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
 
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
     
     // the cube that best encompasses extents is...
     AABox box(rotatedExtentsRelativeToRegistrationPoint);
@@ -1060,13 +1081,13 @@ AABox EntityItem::getAABox() const {
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
     
-    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
-    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
+    glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
     
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
     
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
@@ -1087,7 +1108,7 @@ AABox EntityItem::getAABox() const {
 void EntityItem::setRadius(float value) { 
     float diameter = value * 2.0f;
     float maxDimension = sqrt((diameter * diameter) / 3.0f);
-    _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+    setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
 }
 
 // TODO: get rid of all users of this function...
@@ -1095,7 +1116,7 @@ void EntityItem::setRadius(float value) {
 //    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
 float EntityItem::getRadius() const { 
-    return 0.5f * glm::length(_dimensions);
+    return 0.5f * glm::length(getDimensions());
 }
 
 bool EntityItem::contains(const glm::vec3& point) const {
@@ -1118,10 +1139,10 @@ void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) { 
-    auto delta = glm::distance(_position, value);
+    auto delta = glm::distance(getPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
         _dirtyFlags |= EntityItem::DIRTY_POSITION;
-        _position = value;
+        setPosition(value);
         if (delta > ACTIVATION_POSITION_DELTA) {
             _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         }
@@ -1134,9 +1155,9 @@ void EntityItem::updateDimensionsInDomainUnits(const glm::vec3& value) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
-    auto delta = glm::distance(_dimensions, value);
+    auto delta = glm::distance(getDimensions(), value);
     if (delta > IGNORE_DIMENSIONS_DELTA) {
-        _dimensions = value;
+        setDimensions(value);
         if (delta > ACTIVATION_DIMENSIONS_DELTA) {
             // rebuilding the shape will always activate
             _dirtyFlags |= (EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS);
@@ -1145,10 +1166,10 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) { 
-    if (_rotation != rotation) {
-        _rotation = rotation;
+    if (getRotation() != rotation) {
+        setRotation(rotation);
 
-        auto alignmentDot = glm::abs(glm::dot(_rotation, rotation));
+        auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
         if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
             _dirtyFlags |= EntityItem::DIRTY_ROTATION;
         }
@@ -1163,7 +1184,7 @@ void EntityItem::updateMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    float volume = _volumeMultiplier * _dimensions.x * _dimensions.y * _dimensions.z;
+    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
 
     // compute new density
     float newDensity = _density;

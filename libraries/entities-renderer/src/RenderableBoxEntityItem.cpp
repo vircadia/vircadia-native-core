@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
@@ -24,17 +25,8 @@ EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const
 
 void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
-    assert(getType() == EntityTypes::Box);
-    glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-
-    const float MAX_COLOR = 255.0f;
-
-    glm::vec4 cubeColor(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR,
-                    getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
-
+    Q_ASSERT(getType() == EntityTypes::Box);
+    glm::vec4 cubeColor(toGlm(getXColor()), getLocalRenderAlpha());
 
     bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
     bool highlightSimulationOwnership = false;
@@ -43,22 +35,15 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         const QUuid& myNodeID = nodeList->getSessionUUID();
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
     }
-
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
-            if (highlightSimulationOwnership) {
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
-            } else {
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(1.0f, cubeColor);
-            }
-        glPopMatrix();
-    glPopMatrix();
+    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getTransformToCenter());
+    if (highlightSimulationOwnership) {
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    } else {
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
+    }
 
     RenderableDebugableEntityItem::render(this, args);
 };

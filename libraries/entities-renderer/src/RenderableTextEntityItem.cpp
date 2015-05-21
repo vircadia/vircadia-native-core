@@ -16,12 +16,10 @@
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
 
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
 
 EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
@@ -57,24 +55,17 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
         DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
 
-        TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
-
         glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
         glm::vec4 textColor(toGlm(getTextColorX()), alpha);
         // this is a ratio determined through experimentation
         const float scaleFactor = 0.08f * _lineHeight;
         glScalef(scaleFactor, -scaleFactor, scaleFactor);
         glm::vec2 bounds(dimensions.x / scaleFactor, dimensions.y / scaleFactor);
-        textRenderer->draw(0, 0, _text, textColor, bounds);
+        _textRenderer->draw(0, 0, _text, textColor, bounds);
     } 
     glPopMatrix();
 }
 
-void RenderableTextEntityItem::enableClipPlane(GLenum plane, float x, float y, float z, float w) {
-    GLdouble coefficients[] = { x, y, z, w };
-    glClipPlane(plane, coefficients);
-    glEnable(plane);
-}
 
 
 

@@ -39,7 +39,7 @@ const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
 void WebEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Web Entities always have a "depth" of 1cm.
-    _dimensions = glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH);
+    EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
 EntityItemProperties WebEntityItem::getProperties() const {
@@ -113,7 +113,7 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     PlaneShape plane;
 
     const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
-    glm::vec3 normal = _rotation * UNROTATED_NORMAL;
+    glm::vec3 normal = getRotation() * UNROTATED_NORMAL;
     plane.setNormal(normal);
     plane.setPoint(getPosition()); // the position is definitely a point on our plane
 

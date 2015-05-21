@@ -126,6 +126,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
+                    // FIXME Remove non Batch version of renderWireCube once we use the render pipeline
                     DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
                 }
             }

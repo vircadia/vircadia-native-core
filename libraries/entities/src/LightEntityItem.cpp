@@ -47,10 +47,10 @@ void LightEntityItem::setDimensions(const glm::vec3& value) {
         // recalculate the x/y dimensions to properly encapsulate the spotlight.
         const float length = value.z;
         const float width = length * glm::sin(glm::radians(_cutoff));
-        _dimensions = glm::vec3(width, width, length);
+        EntityItem::setDimensions(glm::vec3(width, width, length));
     } else {
         float maxDimension = glm::max(value.x, value.y, value.z);
-        _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+        EntityItem::setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
     }
 }
 
@@ -74,10 +74,10 @@ void LightEntityItem::setIsSpotlight(bool value) {
         if (_isSpotlight) {
             const float length = _dimensions.z;
             const float width = length * glm::sin(glm::radians(_cutoff));
-            _dimensions = glm::vec3(width, width, length);
+            setDimensions(glm::vec3(width, width, length));
         } else {
-            float maxDimension = glm::max(_dimensions.x, _dimensions.y, _dimensions.z);
-            _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+            float maxDimension = glm::max(getDimensions().x, getDimensions().y, getDimensions().z);
+            setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
         }
     }
 }
@@ -90,7 +90,7 @@ void LightEntityItem::setCutoff(float value) {
         // so update the dimensions to reflect this.
         const float length = _dimensions.z;
         const float width = length * glm::sin(glm::radians(_cutoff));
-        _dimensions = glm::vec3(width, width, length);
+        setDimensions(glm::vec3(width, width, length));
     }
 }
 
