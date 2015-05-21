@@ -71,7 +71,7 @@ public:
     public:
         virtual const State&& getState() const { return getState<T>(*this); }
         virtual const Bound&& getBound() const { return getBound<T>(*this); }
-        virtual void render(Context& context) { render<T>(this*, context); }
+        virtual void render(Context& context) { render<T>(*this, context); }
     protected:
     };
 
