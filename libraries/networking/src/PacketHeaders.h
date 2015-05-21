@@ -68,9 +68,9 @@ enum PacketType {
     PacketTypeNodeJsonStats,
     PacketTypeEntityQuery, // 40
     PacketTypeEntityData,
-    UNUSED_11,
+    PacketTypeEntityAdd,
     PacketTypeEntityErase,
-    UNUSED_12,
+    PacketTypeEntityEdit,
     PacketTypeOctreeDataNack, // 45
     PacketTypeStopNode,
     PacketTypeAudioEnvironment,
@@ -79,9 +79,7 @@ enum PacketType {
     PacketTypeIceServerHeartbeat, // 50
     PacketTypeIceServerHeartbeatResponse,
     PacketTypeUnverifiedPing,
-    PacketTypeUnverifiedPingReply,
-    PacketTypeEntityAdd,
-    PacketTypeEntityEdit
+    PacketTypeUnverifiedPingReply
 };
 
 typedef char PacketVersion;

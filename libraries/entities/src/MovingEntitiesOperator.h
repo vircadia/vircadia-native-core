@@ -25,11 +25,11 @@ public:
 };
 
 inline uint qHash(const EntityToMoveDetails& a, uint seed) {
-    return qHash(a.entity, seed);
+    return qHash(a.entity->getEntityItemID(), seed);
 }
 
 inline bool operator==(const EntityToMoveDetails& a, const EntityToMoveDetails& b) {
-    return a.entity == b.entity;
+    return a.entity->getEntityItemID() == b.entity->getEntityItemID();
 }
 
 class MovingEntitiesOperator : public RecurseOctreeOperator {

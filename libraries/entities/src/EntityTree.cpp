@@ -587,6 +587,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                             qCDebug(entities) << "User [" << senderNode->getUUID() << "] adding entity.";
                             qCDebug(entities) << "   properties:" << properties;
                         }
+                        properties.setCreated(properties.getLastEdited());
                         EntityItem* newEntity = addEntity(entityItemID, properties);
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
