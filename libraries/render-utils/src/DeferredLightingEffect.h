@@ -44,18 +44,24 @@ public:
 
     //// Renders a solid sphere with the simple program.
     void renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
 
     //// Renders a wireframe sphere with the simple program.
     void renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
     
     //// Renders a solid cube with the simple program.
     void renderSolidCube(float size, const glm::vec4& color);
+    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
 
     //// Renders a wireframe cube with the simple program.
     void renderWireCube(float size, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
 
     //// Renders a line with the simple program.
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2);
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2);
 
     //// Renders a solid cone with the simple program.
