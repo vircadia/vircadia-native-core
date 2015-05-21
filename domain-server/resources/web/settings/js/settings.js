@@ -60,10 +60,15 @@ var viewHelpers = {
       if (setting.label) {
         form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       }
-      form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
-      form_group += "<label for='" + keypath + "'>"
-      form_group += "<input type='checkbox'" + common_attrs() + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
-      form_group += " " + setting.help + "</label>";
+
+      form_group += "<div class='toggle-checkbox-container" + (isLocked ? " disabled" : "") + "'>"
+      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "")
+      form_group += (isLocked ? " disabled" : "") + "/>"
+
+      if (setting.help) {
+        form_group += "<span class='help-block checkbox-help'>" + setting.help + "</span>";
+      }
+
       form_group += "</div>"
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
@@ -168,12 +173,20 @@ $(document).ready(function(){
 
         if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
           // set focus to next input
-          sibling.find('input').focus()
-        } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-          sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+          sibling.find('input').focus();
+        } else {
 
-          // set focus to the first input in the new row
-          $target.closest('table').find('tr.inputs input:first').focus()
+          // jump over the re-order row, if that's what we're on
+          if (sibling.hasClass(Settings.REORDER_BUTTONS_CLASS)) {
+            sibling = sibling.next();
+          }
+
+          if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+            sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+
+            // set focus to the first input in the new row
+            $target.closest('table').find('tr.inputs input:first').focus()
+          }
         }
 
       } else if ($target.is('input')) {
@@ -193,10 +206,17 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
-    $(this).attr('data-changed', true)
+    $(this).attr('data-changed', true);
 
-    badgeSidebarForDifferences($(this))
-  })
+    badgeSidebarForDifferences($(this));
+  });
+
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function(){
+    // this checkbox was changed, add the changed data attribute to it
+    $(this).attr('data-changed', true);
+
+    badgeSidebarForDifferences($(this));
+  });
 
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
@@ -727,6 +747,9 @@ function reloadSettings() {
     // call our method to setup the place names table
     setupPlacesTable();
 
+    // setup any bootstrap switches
+    $('.toggle-checkbox').bootstrapSwitch();
+
     // add tooltip to locked settings
     $('label.locked').tooltip({
       placement: 'right',
@@ -767,7 +790,8 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, keypath, setting_value, isLocked) {
-  var isArray = !_.has(setting, 'key')
+  var isArray = !_.has(setting, 'key');
+  var isHash = !isArray;
 
   if (!isArray && setting.can_order) {
     setting.can_order = false;
@@ -780,7 +804,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
-    + "' name='" + keypath + "' id='" + setting.html_id + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
+    + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
+    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
   // Column names
   html += "<tr class='headers'>"
@@ -799,8 +824,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
   if (!isLocked && !setting.read_only) {
     if (setting.can_order) {
-      html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
-              "><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
+      html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
+              "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
     }
     html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
   }
@@ -809,33 +834,38 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   var row_num = 1;
 
   if (keypath.length > 0 && _.size(setting_value) > 0) {
-    _.each(setting_value, function(row, indexOrName) {
-      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + indexOrName + "'") + ">"
+    _.each(setting_value, function(row, rowIndexOrName) {
+      html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">"
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
       }
 
       if (setting.key) {
-          html += "<td class='key'>" + indexOrName + "</td>"
+          html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
       _.each(setting.columns, function(col) {
-        html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
 
         if (isArray) {
-          rowIsObject = setting.columns.length > 1
-          colValue = rowIsObject ? row[col.name] : row
-          html += colValue
-
-          // for arrays we add a hidden input to this td so that values can be posted appropriately
-          html += "<input type='hidden' name='" + keypath + "[" + indexOrName + "]"
-            + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
-        } else if (row.hasOwnProperty(col.name)) {
-          html += row[col.name]
+          rowIsObject = setting.columns.length > 1;
+          colValue = rowIsObject ? row[col.name] : row;
+          colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
+        } else {
+          colValue = row[col.name];
+          colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        html += "</td>"
+        // setup the td for this column
+        html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
+
+        // add the actual value to the td so it is displayed
+        html += colValue;
+
+        // for values to be posted properly we add a hidden input to this td
+        html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
+
+        html += "</td>";
       })
 
       if (!isLocked && !setting.read_only) {
