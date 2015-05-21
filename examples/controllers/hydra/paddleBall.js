@@ -132,12 +132,6 @@ function update(deltaTime) {
 		return;
 	}
 
-	if (!paddle.isKnownID) {
-		paddle = Entities.identifyEntity(paddle);
-	}
-	if (!ball.isKnownID) {
-	   ball = Entities.identifyEntity(ball);
-	} else {
         var paddleOrientation = leftHanded ? PADDLE_ORIENTATION : Quat.multiply(PADDLE_ORIENTATION, Quat.fromPitchYawRollDegrees(0, 180, 0));
 		var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), paddleOrientation);
 		var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
@@ -157,7 +151,7 @@ function update(deltaTime) {
     	Entities.editEntity(paddleModel, { position: Vec3.sum(holdPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_BOX_OFFSET)), 
     								  velocity: Controller.getSpatialControlVelocity(controllerID),
     								  rotation: paddleWorldOrientation });
-	}
+
 }
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
