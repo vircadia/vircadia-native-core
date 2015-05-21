@@ -579,16 +579,6 @@ function findClickedEntity(event) {
     }
 
     var foundEntity = result.entityID;
-
-    if (!foundEntity.isKnownID) {
-        var identify = Entities.identifyEntity(foundEntity);
-        if (!identify.isKnownID) {
-            print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            return null;
-        }
-        foundEntity = identify;
-    }
-
     return { pickRay: pickRay, entityID: foundEntity };
 }
 
@@ -610,7 +600,7 @@ function mousePressEvent(event) {
     }
 }
 
-var highlightedEntityID = { isKnownID: false };
+var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
@@ -625,9 +615,6 @@ function mouseMove(event) {
     mouseHasMovedSincePress = true;
 
     if (placingEntityID) {
-        if (!placingEntityID.isKnownID) {
-            placingEntityID = Entities.identifyEntity(placingEntityID);
-        }
         var pickRay = Camera.computePickRay(event.x, event.y);
         var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
         var offset = Vec3.multiply(distance, pickRay.direction);
@@ -664,9 +651,9 @@ function highlightEntityUnderCursor(position, accurateRay) {
     var pickRay = Camera.computePickRay(position.x, position.y);
     var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
     if (entityIntersection.accurate) {
-        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+        if(highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
             selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = { id: -1, isKnownID: false };
+            highlightedEntityID = { id: -1 };
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
@@ -677,7 +664,7 @@ function highlightEntityUnderCursor(position, accurateRay) {
         var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                         && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
-        if (entityIntersection.entityID.isKnownID && sizeOK) {
+        if (entityIntersection.entityID && sizeOK) {
             if (wantEntityGlow) {
                 Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
             }
@@ -736,7 +723,7 @@ function mouseClickEvent(event) {
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -967,8 +954,8 @@ function deleteSelectedEntities() {
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entityID = SelectionManager.selections[i];
-            var initialProperties = SelectionManager.savedProperties[entityID.id];
-            SelectionManager.savedProperties[entityID.id];
+            var initialProperties = SelectionManager.savedProperties[entityID];
+            SelectionManager.savedProperties[entityID];
             savedProperties.push({
                 entityID: entityID,
                 properties: initialProperties
@@ -1127,8 +1114,8 @@ function applyEntityProperties(data) {
     var selectedEntityIDs = [];
     for (var i = 0; i < properties.length; i++) {
         var entityID = properties[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.editEntity(entityID, properties[i].properties);
         selectedEntityIDs.push(entityID);
@@ -1137,15 +1124,15 @@ function applyEntityProperties(data) {
         var entityID = data.createEntities[i].entityID;
         var properties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(properties);
-        DELETED_ENTITY_MAP[entityID.id] = newEntityID;
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
         }
     }
     for (var i = 0; i < data.deleteEntities.length; i++) {
         var entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
     }
@@ -1170,7 +1157,7 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
-        var initialProperties = SelectionManager.savedProperties[entityID.id];
+        var initialProperties = SelectionManager.savedProperties[entityID];
         var currentProperties = Entities.getEntityProperties(entityID);
         undoData.setProperties.push({
             entityID: entityID,

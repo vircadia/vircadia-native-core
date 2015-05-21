@@ -334,7 +334,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step) {
     assert(_entity);
-    assert(_entity->isKnownID());
 
     bool active = _body->isActive();
     if (!active) {
@@ -434,7 +433,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
         #endif
 
-        entityPacketSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+        entityPacketSender->queueEditEntityMessage(PacketTypeEntityEdit, id, properties);
         _entity->setLastBroadcast(usecTimestampNow());
     } else {
         #ifdef WANT_DEBUG
