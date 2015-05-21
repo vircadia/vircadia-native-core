@@ -117,29 +117,46 @@ protected:
     friend class Scene;
 };
 
+// THe Payload class is the real Payload to be used
+// THis allow anything to be turned into a Payload as long as the required interface functions are available
+// When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
+// of th ePayload interface
 template <class T> const Item::Key payloadGetKey(const T* payload) { return Item::Key(); }
 template <class T> const Item::Bound payloadGetBound(const T* payload) { return Item::Bound(); }
 template <class T> void payloadRender(const T* payload) { }
     
-template <class T> class PayloadModel : public Item::PayloadInterface {
+template <class T> class Payload : public Item::PayloadInterface {
 public:
     virtual const Item::Key getState() const { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
     virtual void render(Context& context) { payloadRender<T>(_data, context); }
     
-    ItemPayload(std::shared_ptr<T>& data) : _data(data) {}
+    Payload(std::shared_ptr<T>& data) : _data(data) {}
 protected:
     std::shared_ptr<T> _data;
 };
-    
-typedef Item::PayloadInterface Payload;
+
+// Let's show how to make a simple FooPayload example:
+class Foo {
+public:
+    mutable Item::Key _myownKey;
+    void makeMywnKey() const {
+        _myownKey.set(Item::TYPE_SHAPE);
+    }
+};
+
+typedef Payload<Foo> FooPayload;
+
+template <>
+const Item::Key payloadGetKey(const Foo* payload) {
+    payload->makeMywnKey();
+    return payload->_myownKey;
+}
+// End of the example
+
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
 
-typedef Item::Vector Items;
-typedef Item::ID ItemID;
-typedef std::vector<ItemID> ItemIDs;
-typedef std::set<ItemID> ItemIDSet;
 typedef Item::Key ItemKey;
 
 // Item Key operator testing if a key pass a filter test
@@ -155,6 +172,12 @@ bool filterTest(const ItemKey& filter, const ItemKey& key) {
     }
 }
 
+// A few typedefs for standard containers of ItemIDs 
+typedef Item::ID ItemID;
+typedef std::vector<ItemID> ItemIDs;
+typedef std::set<ItemID> ItemIDSet;
+
+// A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly
 class ItemBucketMap : public std::map<ItemKey, ItemIDSet> {
 public:
 
@@ -162,11 +185,18 @@ public:
 
     void insert(const ItemID& id, const ItemKey& key);
     void erase(const ItemID& id, const ItemKey& key);
+    void reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey);
+
 };
 
 class Engine;
 class Observer;
 
+// Scene is a container for Items
+// Items are introduced, modified or erased in the scene through PendingChanges
+// Once per Frame, the PendingChanges are all flushed
+// During the flush the standard buckets are updated
+// Items are notified accordingly on any update message happening
 class Scene {
 public:
  
@@ -241,7 +271,7 @@ protected:
     // The actual database
     // database of items is protected for editing by a mutex
     std::mutex _itemsMutex;
-    Items _items;
+    Item::Vector _items;
     ItemBucketMap _buckets;
 
     void processPendingChangesQueue();

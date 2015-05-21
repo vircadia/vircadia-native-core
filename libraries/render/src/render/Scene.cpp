@@ -13,7 +13,7 @@
 using namespace render;
 
 void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
-    // DIspatch insert the itemID in every bucket where it filters true
+    // Insert the itemID in every bucket where it filters true
     for (auto& bucket : (*this)) {
         if (filterTest(bucket.first, key)) {
             bucket.second.insert(id);
@@ -21,13 +21,29 @@ void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
     }
 }
 void ItemBucketMap::erase(const ItemID& id, const ItemKey& key) {
-    // DIspatch insert the itemID in every bucket where it filters true
+    // Remove the itemID in every bucket where it filters true
     for (auto& bucket : (*this)) {
         if (filterTest(bucket.first, key)) {
             bucket.second.erase(id);
         }
     }
 }
+
+void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey) {
+    // Reset the itemID in every bucket,
+    // Remove from the buckets where oldKey filters true AND newKey filters false
+    // Insert into the buckets where newKey filters true
+    for (auto& bucket : (*this)) {
+        if (filterTest(bucket.first, oldKey)) {
+            if (!filterTest(bucket.first, newKey)) {
+                bucket.second.erase(id);
+            }
+        } else if (filterTest(bucket.first, newKey)) {
+            bucket.second.insert(id);
+        }
+    }
+}
+
 
 void Scene::PendingChanges::resetItem(ItemID id, PayloadPointer& payload) {
     _resetItems.push_back(id);
@@ -102,9 +118,11 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
     auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
     for (;resetID != ids.end(); resetID++, resetPayload++) {
-        _items[(*resetID)].resetPayload(*resetPayload);
+        auto item = _items[(*resetID)];
+        auto oldKey = item.getKey();
+        item.resetPayload(*resetPayload);
 
-        _buckets.insert((*resetID), _items[(*resetID)].getKey());
+        _buckets.reset((*resetID), oldKey, item.getKey());
     }
 
 }
