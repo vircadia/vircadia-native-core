@@ -54,7 +54,7 @@ public:
     void addAttribute(Slot slot, const BufferView& buffer);
 
     // Stream format
-    const VertexFormat& getVertexFormat() const { return _vertexFormat; }
+    const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
@@ -114,7 +114,7 @@ public:
 
 protected:
 
-    VertexFormat _vertexFormat;
+    gpu::Stream::FormatPointer _vertexFormat;
 
     BufferView _vertexBuffer;
     BufferViewMap _attributeBuffers;
