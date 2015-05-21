@@ -31,7 +31,8 @@ uint32_t AvatarMotionState::getAndClearIncomingDirtyFlags() {
 }
 
 MotionType AvatarMotionState::computeObjectMotionType() const {
-    return _motionType;
+    // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
+    return MOTION_TYPE_DYNAMIC;
 }
 
 // virtual
