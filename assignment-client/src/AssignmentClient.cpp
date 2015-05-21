@@ -189,7 +189,11 @@ void AssignmentClient::sendAssignmentRequest() {
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
+            } else {
+                qDebug() << "Failed to read local assignment server port from shared memory"
+                    << "- will send assignment request to previous assignment server socket.";
             }
+
         }
 
         nodeList->sendAssignment(_requestAssignment);
