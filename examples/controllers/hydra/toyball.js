@@ -109,17 +109,10 @@ function checkControllerSide(whichSide) {
     var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3) || (Controller.getTriggerValue(TRIGGER) > 0.5));
 
     // If I don't currently have a ball in my hand, then try to catch closest one
-    if (leftHandEntity && !leftHandEntity.isKnownID) {
-       leftHandEntity = Entities.identifyEntity(leftHandEntity);
-    }
-    if (rightHandEntity && !rightHandEntity.isKnownID) {
-       rightHandEntity = Entities.identifyEntity(rightHandEntity);
-    }
-
     if (!ballAlreadyInHand && grabButtonPressed) {
         var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
 
-        if (closestEntity.isKnownID) {
+        if (closestEntity) {
             var foundProperties = Entities.getEntityProperties(closestEntity);
             if (Vec3.length(foundProperties.velocity) > 0.0) {
 

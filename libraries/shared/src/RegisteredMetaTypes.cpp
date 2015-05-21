@@ -200,11 +200,18 @@ void collisionFromScriptValue(const QScriptValue &object, Collision& collision) 
 }
 
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid) {
+    if (uuid.isNull()) {
+        return QScriptValue::NullValue;
+    }
     QScriptValue obj(uuid.toString());
     return obj;
 }
 
 void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
+    if (object.isNull()) {
+        uuid = QUuid();
+        return;
+    }
     QString uuidAsString = object.toVariant().toString();
     QUuid fromString(uuidAsString);
     uuid = fromString;

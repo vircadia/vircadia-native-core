@@ -183,8 +183,6 @@ function initializeInvaders() {
                         modelURL: invaderModels[row].modelURL,
                         lifetime: itemLifetimes
                     });
-                
-            print("invaders[row][column].creatorTokenID=" + invaders[row][column].creatorTokenID);
         }
     }
 }
@@ -193,7 +191,7 @@ function moveInvaders() {
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             props = Entities.getEntityProperties(invaders[row][column]);
-            if (props.isKnownID) {
+            if (props.id) {
                 invaderPosition = getInvaderPosition(row, column);
                 Entities.editEntity(invaders[row][column], 
                         { 
@@ -292,7 +290,6 @@ function endGame() {
 }
 
 function moveShipTo(position) {
-    myShip = Entities.identifyEntity(myShip);
     Entities.editEntity(myShip, { position: position });
 }
 
@@ -303,9 +300,8 @@ function fireMissile() {
     // If we've fired a missile, then check to see if it's still alive
     if (missileFired) {
         var missileProperties = Entities.getEntityProperties(myMissile);
-        print("missileProperties.isKnownID=" + missileProperties.isKnownID);
     
-        if (!missileProperties.isKnownID) {
+        if (!missileProperties) {
             print("canFire = true");
             canFire = true;
         }    
@@ -374,24 +370,21 @@ Controller.captureKeyEvents({text: " "});
 function deleteIfInvader(possibleInvaderEntity) {
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
-            invaders[row][column] = Entities.identifyEntity(invaders[row][column]);
-            if (invaders[row][column].isKnownID) {
-                if (invaders[row][column].id == possibleInvaderEntity.id) {
-                    Entities.deleteEntity(possibleInvaderEntity);
-                    Entities.deleteEntity(myMissile);
+            if (invaders[row][column].id && invaders[row][column].id == possibleInvaderEntity.id) {
+                Entities.deleteEntity(possibleInvaderEntity);
+                Entities.deleteEntity(myMissile);
 
-                    // play the hit sound
-                    var options = {};
-                    if (soundInMyHead) {
-                        options.position = { x: MyAvatar.position.x + 0.0, 
-                                             y: MyAvatar.position.y + 0.1, 
-                                             z: MyAvatar.position.z + 0.0 };
-                    } else {
-                        options.position = getInvaderPosition(row, column);
-                    }
-                    
-                    Audio.playSound(hitSound, options);
+                // play the hit sound
+                var options = {};
+                if (soundInMyHead) {
+                    options.position = { x: MyAvatar.position.x + 0.0, 
+                                         y: MyAvatar.position.y + 0.1, 
+                                         z: MyAvatar.position.z + 0.0 };
+                } else {
+                    options.position = getInvaderPosition(row, column);
                 }
+                
+                Audio.playSound(hitSound, options);
             }
         }
     }
@@ -402,7 +395,6 @@ function entityCollisionWithEntity(entityA, entityB, collision) {
     Vec3.print('entityCollisionWithEntity() penetration=', collision.penetration);
     Vec3.print('entityCollisionWithEntity() contactPoint=', collision.contactPoint);
     if (missileFired) {
-        myMissile = Entities.identifyEntity(myMissile);
         if (myMissile.id == entityA.id) {
             deleteIfInvader(entityB);
         } else if (myMissile.id == entityB.id) {

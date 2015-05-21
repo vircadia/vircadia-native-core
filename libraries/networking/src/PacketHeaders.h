@@ -68,9 +68,9 @@ enum PacketType {
     PacketTypeNodeJsonStats,
     PacketTypeEntityQuery, // 40
     PacketTypeEntityData,
-    PacketTypeEntityAddOrEdit,
+    PacketTypeEntityAdd,
     PacketTypeEntityErase,
-    PacketTypeEntityAddResponse,
+    PacketTypeEntityEdit,
     PacketTypeOctreeDataNack, // 45
     PacketTypeStopNode,
     PacketTypeAudioEnvironment,
@@ -178,5 +178,6 @@ const PacketVersion VERSION_ENTITIES_PARTICLE_ENTITIES_HAVE_TEXTURES = 23;
 const PacketVersion VERSION_ENTITIES_HAVE_LINE_TYPE = 24;
 const PacketVersion VERSION_ENTITIES_HAVE_COLLISION_SOUND_URL = 25;
 const PacketVersion VERSION_ENTITIES_HAVE_FRICTION = 26;
+const PacketVersion VERSION_NO_ENTITY_ID_SWAP = 27;
 
 #endif // hifi_PacketHeaders_h

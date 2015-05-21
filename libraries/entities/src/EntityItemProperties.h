@@ -70,9 +70,6 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
-    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
-    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
-    
     AACube getMaximumAACube() const;
     AABox getAABox() const;
 

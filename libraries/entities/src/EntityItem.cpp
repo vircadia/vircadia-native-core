@@ -30,9 +30,7 @@ bool EntityItem::_sendPhysicsUpdates = true;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
-    _id(entityItemID.id),
-    _creatorTokenID(entityItemID.creatorTokenID),
-    _newlyCreated(false),
+    _id(entityItemID),
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),
@@ -351,8 +349,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // id
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
         _id = QUuid::fromRfc4122(encodedID);
-        _creatorTokenID = UNKNOWN_ENTITY_TOKEN; // if we know the id, then we don't care about the creator token
-        _newlyCreated = false;
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         

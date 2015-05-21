@@ -206,15 +206,9 @@ function keyPressEvent(event) {
 
 function cleanup() {
     for (var i = 0; i < tableParts.length; i++) {
-	if (!tableParts[i].isKnownID) {
-	    tableParts[i] = Entities.identifyEntity(tableParts[i]);
-	}
 	Entities.deleteEntity(tableParts[i]);
     }
     for (var i = 0; i < balls.length; i++) {
-	if (!balls[i].isKnownID) {
-	    balls[i] = Entities.identifyEntity(balls[i]);
-	}
 	Entities.deleteEntity(balls[i]);
     }
     Overlays.deleteOverlay(reticle); 
@@ -222,18 +216,13 @@ function cleanup() {
 }
 
 function update(deltaTime) {
-    if (!cueBall.isKnownID) {
-	cueBall = Entities.identifyEntity(cueBall);
-    } else {
-	//  Check if cue ball has fallen off table, re-drop if so 
-	var cueProperties = Entities.getEntityProperties(cueBall);
-	if (cueProperties.position.y < tableCenter.y) {
-	    // Replace the cueball 
-	    Entities.editEntity(cueBall, { position: cuePosition } );
+    //  Check if cue ball has fallen off table, re-drop if so 
+    var cueProperties = Entities.getEntityProperties(cueBall);
+    if (cueProperties.position.y < tableCenter.y) {
+        // Replace the cueball 
+        Entities.editEntity(cueBall, { position: cuePosition } );
 
-	}
     }
-
 }
 
 function entityCollisionWithEntity(entity1, entity2, collision) {
