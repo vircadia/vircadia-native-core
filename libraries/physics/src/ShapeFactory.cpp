@@ -1,5 +1,5 @@
 //
-//  ShapeInfoUtil.cpp
+//  ShapeFactory.cpp
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.12.01
@@ -11,12 +11,12 @@
 
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
-#include "ShapeInfoUtil.h"
+#include "ShapeFactory.h"
 #include "BulletUtil.h"
 
 
 
-btConvexHullShape* ShapeInfoUtil::createConvexHull(const QVector<glm::vec3>& points) {
+btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& points) {
     assert(points.size() > 0);
 
     btConvexHullShape* hull = new btConvexHullShape();
@@ -57,7 +57,7 @@ btConvexHullShape* ShapeInfoUtil::createConvexHull(const QVector<glm::vec3>& poi
     return hull;
 }
 
-btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
+btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     switch(info.getType()) {
         case SHAPE_TYPE_BOX: {

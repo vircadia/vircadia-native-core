@@ -12,7 +12,6 @@
 #include "PhysicalEntitySimulation.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
-#include "ShapeInfoUtil.h"
 #include "ShapeManager.h"
 
 PhysicalEntitySimulation::PhysicalEntitySimulation() {
