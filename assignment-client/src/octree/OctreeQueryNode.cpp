@@ -186,15 +186,15 @@ void OctreeQueryNode::resetOctreePacket() {
     _currentPacketIsCompressed = getWantCompression();
     OCTREE_PACKET_FLAGS flags = 0;
     if (_currentPacketIsColor) {
-        setAtBit(flags,PACKET_IS_COLOR_BIT);
+        setAtBit(flags, PACKET_IS_COLOR_BIT);
     }
     if (_currentPacketIsCompressed) {
-        setAtBit(flags,PACKET_IS_COMPRESSED_BIT);
+        setAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     }
 
     _octreePacketAvailableBytes = MAX_PACKET_SIZE;
     int numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(_octreePacket),
-                                                                                        _myPacketType);
+        _myPacketType);
 
     _octreePacketAt = _octreePacket + numBytesPacketHeader;
     _octreePacketAvailableBytes -= numBytesPacketHeader;
@@ -204,7 +204,7 @@ void OctreeQueryNode::resetOctreePacket() {
     *flagsAt = flags;
     _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
     _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
-    
+
     // pack in sequence number
     OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
     *sequenceAt = _sequenceNumber;
@@ -258,11 +258,16 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     float originalFOV = getCameraFov();
     float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
 
-    newestViewFrustum.setFieldOfView(wideFOV); // hack
-    newestViewFrustum.setAspectRatio(getCameraAspectRatio());
-    newestViewFrustum.setNearClip(getCameraNearClip());
-    newestViewFrustum.setFarClip(getCameraFarClip());
-    newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
+    if (0.0f != getCameraAspectRatio() && 
+        0.0f != getCameraNearClip() && 
+        0.0f != getCameraFarClip()) {
+        newestViewFrustum.setProjection(glm::perspective(
+            glm::radians(wideFOV), // hack
+            getCameraAspectRatio(),
+            getCameraNearClip(),
+            getCameraFarClip()));
+    }
+
 
     // if there has been a change, then recalculate
     if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {

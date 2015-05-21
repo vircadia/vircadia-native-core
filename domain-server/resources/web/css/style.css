@@ -62,7 +62,11 @@ span.port {
 }
 
 td.buttons {
-  width: 14px;
+  width: 30px;
+}
+
+td.buttons.reorder-buttons {
+  width: 40px;
 }
 
 td .glyphicon {
@@ -78,6 +82,11 @@ td.reorder-buttons .glyphicon {
   display: inherit;
 }
 
+td a.glyphicon {
+  color: black;
+  text-decoration: none;
+}
+
 tr.new-row {
   color: #3c763d;
   background-color: #dff0d8;
@@ -85,4 +94,62 @@ tr.new-row {
 
 .highchart-modal .modal-dialog {
   width: 650px;
+}
+
+table {
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
+#xs-advanced-container {
+  margin-bottom: 20px;
+}
+
+#advanced-toggle-button-xs {
+  width: 100%;
+}
+
+.spinner {
+  margin: 30px auto 0;
+  width: 70px;
+  text-align: center;
+}
+
+.spinner > div {
+  width: 18px;
+  height: 18px;
+  background-color: #333;
+
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: bouncedelay 1.4s infinite ease-in-out;
+  animation: bouncedelay 1.4s infinite ease-in-out;
+  /* Prevent first frame from flickering when animation starts */
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+
+.spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+.spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes bouncedelay {
+  0%, 80%, 100% { -webkit-transform: scale(0.0) }
+  40% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes bouncedelay {
+  0%, 80%, 100% {
+    transform: scale(0.0);
+    -webkit-transform: scale(0.0);
+  } 40% {
+    transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+  }
 }
