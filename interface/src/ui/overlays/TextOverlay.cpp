@@ -14,7 +14,6 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
 
 #include "TextOverlay.h"
 
@@ -39,6 +38,7 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
 }
 
 TextOverlay::~TextOverlay() {
+    delete _textRenderer;
 }
 
 xColor TextOverlay::getBackgroundColor() {
@@ -79,9 +79,6 @@ void TextOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-
-    // Same font properties as textSize()
-    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
     const int topAdjust = -2; // required to make text render relative to top edge of bounds
@@ -90,7 +87,7 @@ void TextOverlay::render(RenderArgs* args) {
     
     float alpha = getAlpha();
     glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
-    textRenderer->draw(x, y, _text, textColor);
+    _textRenderer->draw(x, y, _text, textColor);
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {
@@ -163,8 +160,7 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
 }
 
 QSizeF TextOverlay::textSize(const QString& text) const {
-    auto textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
-    auto extents = textRenderer->computeExtent(text);
+    auto extents = _textRenderer->computeExtent(text);
 
     return QSizeF(extents.x, extents.y);
 }
