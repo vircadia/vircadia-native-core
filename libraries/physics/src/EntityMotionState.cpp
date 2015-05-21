@@ -88,7 +88,6 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
-
 }
 
 

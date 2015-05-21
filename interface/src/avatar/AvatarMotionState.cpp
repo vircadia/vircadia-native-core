@@ -11,20 +11,13 @@
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
+#include "BulletUtil.h"
 
 AvatarMotionState::AvatarMotionState(Avatar* avatar, btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
 }
 
 AvatarMotionState::~AvatarMotionState() {
     _avatar = nullptr;
-}
-
-// virtual
-void AvatarMotionState::handleEasyChanges(uint32_t flags) {
-}
-
-// virtual
-void AvatarMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
 }
 
 // virtual
@@ -58,12 +51,28 @@ bool AvatarMotionState::isMoving() const {
 
 // virtual
 void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
-    // TODO: implement this
+    if (!_avatar) {
+        return;
+    }
+    worldTrans.setOrigin(glmToBullet(getObjectPosition()));
+    worldTrans.setRotation(glmToBullet(getObjectRotation()));
+    _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+    _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
 }
 
 // virtual 
 void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
-    // TODO: implement this
+    if (!_avatar) {
+        return;
+    }
+    // The PhysicsEngine does not move other Avatars.  
+    // Instead we enforce the current transform of the Avatar
+    btTransform newTransform;
+    newTransform.setOrigin(glmToBullet(getObjectPosition()));
+    newTransform.setRotation(glmToBullet(getObjectRotation()));
+    _body->setWorldTransform(newTransform);
+    _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+    _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
 }
 
 // These pure virtual methods must be implemented for each MotionState type

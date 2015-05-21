@@ -23,9 +23,6 @@ public:
     AvatarMotionState(Avatar* avatar, btCollisionShape* shape);
     ~AvatarMotionState();
 
-    virtual void handleEasyChanges(uint32_t flags);
-    virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
-
     virtual MotionType getMotionType() const { return _motionType; }
 
     virtual uint32_t getAndClearIncomingDirtyFlags();
