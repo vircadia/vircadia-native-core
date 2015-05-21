@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/norm.hpp>
+
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
 #include "ShapeFactory.h"
@@ -59,7 +61,8 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
 
 btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
-    switch(info.getType()) {
+    int type = info.getType();
+    switch(type) {
         case SHAPE_TYPE_BOX: {
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
         }
@@ -94,6 +97,18 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             }
         }
         break;
+    }
+    if (shape && type != SHAPE_TYPE_COMPOUND) {
+        if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
+            // this shape has an offset, which we support by wrapping the true shape
+            // in a btCompoundShape with a local transform
+            auto compound = new btCompoundShape(); 
+            btTransform trans;
+            trans.setIdentity();
+            trans.setOrigin(glmToBullet(info.getOffset()));
+            compound->addChildShape(trans, shape);
+            shape = compound;
+        }
     }
     return shape;
 }

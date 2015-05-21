@@ -16,8 +16,11 @@
 #include <QString>
 #include <QUrl>
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include "DoubleHashKey.h"
+
+const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
 enum ShapeType {
     SHAPE_TYPE_NONE,
