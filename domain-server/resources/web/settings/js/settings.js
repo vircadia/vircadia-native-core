@@ -60,10 +60,15 @@ var viewHelpers = {
       if (setting.label) {
         form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       }
-      form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
-      form_group += "<label for='" + keypath + "'>"
-      form_group += "<input type='checkbox'" + common_attrs() + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
-      form_group += " " + setting.help + "</label>";
+
+      form_group += "<div class='toggle-checkbox-container" + (isLocked ? " disabled" : "") + "'>"
+      form_group += "<input type='checkbox'" + common_attrs('toggle-checkbox') + (setting_value ? "checked" : "")
+      form_group += (isLocked ? " disabled" : "") + "/>"
+
+      if (setting.help) {
+        form_group += "<span class='help-block checkbox-help'>" + setting.help + "</span>";
+      }
+
       form_group += "</div>"
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
@@ -201,10 +206,17 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
-    $(this).attr('data-changed', true)
+    $(this).attr('data-changed', true);
 
-    badgeSidebarForDifferences($(this))
-  })
+    badgeSidebarForDifferences($(this));
+  });
+
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function(){
+    // this checkbox was changed, add the changed data attribute to it
+    $(this).attr('data-changed', true);
+
+    badgeSidebarForDifferences($(this));
+  });
 
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
@@ -734,6 +746,9 @@ function reloadSettings() {
 
     // call our method to setup the place names table
     setupPlacesTable();
+
+    // setup any bootstrap switches
+    $('.toggle-checkbox').bootstrapSwitch();
 
     // add tooltip to locked settings
     $('label.locked').tooltip({
