@@ -335,12 +335,8 @@ void NodeList::sendDomainServerCheckIn() {
             if (_domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
                 || _domainHandler.getHostname() == "localhost") {
 
-                static QSharedMemory* localDSPortSharedMem = NULL;
-
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
-                getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY,
-                                                   localDSPortSharedMem,
-                                                   domainPort);
+                getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);
                 qCDebug(networking) << "Local domain-server port read from shared memory (or default) is" << domainPort;
                 _domainHandler.setPort(domainPort);
             }
