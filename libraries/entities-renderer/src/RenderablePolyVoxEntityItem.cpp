@@ -179,16 +179,12 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     glm::vec3 center = getCenter();
     glm::quat rotation = getRotation();
     glPushMatrix();
-        // glm::vec3 positionToCenter = center - position;
-        // glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-        // glm::vec3 axis = glm::axis(rotation);
-        // glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        // glScalef(dimensions.x, dimensions.y, dimensions.z);
-
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glm::vec3 positionToCenter = center - position;
+        // make the voxel volume be centered on the entity's position
+        positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f);
         glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
         glScalef(scale.x, scale.y, scale.z);
 

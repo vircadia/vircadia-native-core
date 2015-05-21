@@ -21,9 +21,9 @@ class PolyVoxEntityItem : public EntityItem {
     PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
-    
-        // methods for getting/setting all properties of an entity
-        virtual EntityItemProperties getProperties() const;
+
+    // methods for getting/setting all properties of an entity
+    virtual EntityItemProperties getProperties() const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
