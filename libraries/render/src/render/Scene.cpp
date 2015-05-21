@@ -15,7 +15,7 @@ using namespace render;
 void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
     // Insert the itemID in every bucket where it filters true
     for (auto& bucket : (*this)) {
-        if (filterTest(bucket.first, key)) {
+        if (key.filterTest(bucket.first)) {
             bucket.second.insert(id);
         }
     }
@@ -23,7 +23,7 @@ void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
 void ItemBucketMap::erase(const ItemID& id, const ItemKey& key) {
     // Remove the itemID in every bucket where it filters true
     for (auto& bucket : (*this)) {
-        if (filterTest(bucket.first, key)) {
+        if (key.filterTest(bucket.first)) {
             bucket.second.erase(id);
         }
     }
@@ -34,11 +34,11 @@ void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey
     // Remove from the buckets where oldKey filters true AND newKey filters false
     // Insert into the buckets where newKey filters true
     for (auto& bucket : (*this)) {
-        if (filterTest(bucket.first, oldKey)) {
-            if (!filterTest(bucket.first, newKey)) {
+        if (oldKey.filterTest(bucket.first)) {
+            if (!newKey.filterTest(bucket.first)) {
                 bucket.second.erase(id);
             }
-        } else if (filterTest(bucket.first, newKey)) {
+        } else if (newKey.filterTest(bucket.first)) {
             bucket.second.insert(id);
         }
     }

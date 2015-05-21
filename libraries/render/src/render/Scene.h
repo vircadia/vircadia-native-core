@@ -26,16 +26,9 @@ namespace render {
 
 class Context;
     
-    
-
-
-    
-class Item {
+// Key is the KEY to filter Items and create specialized lists
+class ItemKey {
 public:
-    typedef std::vector<Item> Vector;
-    typedef unsigned int ID;
-
-    // Key is the KEY to filter Items and create specialized lists
     enum FlagBit {
         TYPE_SHAPE = 0, // Item is a Shape
         TYPE_LIGHT,     // Item is a Light
@@ -51,8 +44,74 @@ public:
 
         NUM_FLAGS,      // Not a valid flag
     };
-    typedef std::bitset<NUM_FLAGS> Key; 
-             
+    typedef std::bitset<NUM_FLAGS> Flags; 
+    
+    // THe key is the Flags
+    Flags _flags;
+
+    ItemKey() : _flags(0) {}
+    ItemKey(const Flags& flags) : _flags(flags) {}
+
+    class Builder {
+        Flags _flags;
+    public:
+        Builder() {}
+
+        const ItemKey& build() const { return ItemKey(_flags); }
+
+        Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
+        Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
+        Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
+        Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
+        Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
+        Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
+        Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
+        Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
+        Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
+    };
+
+
+    bool isOpaque() const { return !_flags[TRANSLUCENT]; }
+    bool isTranslucent() const { return _flags[TRANSLUCENT]; }
+
+    bool isWorldSpace() const { return !_flags[VIEW_SPACE]; }
+    bool isViewSpace() const { return _flags[VIEW_SPACE]; }
+ 
+    bool isStatic() const { return !_flags[DYNAMIC]; }
+    bool isDynamic() const { return _flags[DYNAMIC]; }
+
+    bool isRigid() const { return !_flags[DEFORMED]; }
+    bool isDeformed() const { return _flags[DEFORMED]; }
+ 
+    bool isVisible() const { return !_flags[INVISIBLE]; }
+    bool isUnvisible() const { return _flags[INVISIBLE]; }
+
+    bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
+
+    bool isPickable() const { return _flags[PICKABLE]; }
+ 
+ 
+    // Item Key operator testing if a key pass a filter test
+    // the filter can have several flags on and the test is true if
+    // (key AND filter) == filter
+    // IF the filter has the INVERT_FLAGS On then we need to use the
+    // !key value instead of key
+    bool filterTest(const ItemKey& filter) const {
+        if (filter._flags[INVERT_FLAG]) {
+            return (filter._flags & ~_flags) == filter._flags;
+        } else {
+            return (filter._flags & _flags) == filter._flags;
+        }
+    }
+};
+
+class RenderArgs;
+
+class Item {
+public:
+    typedef std::vector<Item> Vector;
+    typedef unsigned int ID;
+
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     
@@ -66,9 +125,9 @@ public:
     // Payload is whatever is in this Item and implement the Payload Interface
     class PayloadInterface {
     public:
-        virtual const Key getKey() const = 0;
+        virtual const ItemKey getKey() const = 0;
         virtual const Bound getBound() const = 0;
-        virtual void render(Context& context) = 0;
+        virtual void render(RenderArgs* args) = 0;
 
         ~PayloadInterface() {}
     protected:
@@ -86,33 +145,16 @@ public:
     void kill();
     void move();
 
-    // Check heuristic flags of the key
-    const Key& getKey() const { return _key; }
+    // Check heuristic key
+    const ItemKey& getKey() const { return _key; }
 
-    bool isOpaque() const { return !_key[TRANSLUCENT]; }
-    bool isTranslucent() const { return _key[TRANSLUCENT]; }
-
-    bool isWorldSpace() const { return !_key[VIEW_SPACE]; }
-    bool isViewSpace() const { return _key[VIEW_SPACE]; }
- 
-    bool isStatic() const { return !_key[DYNAMIC]; }
-    bool isDynamic() const { return _key[DYNAMIC]; }
-    bool isDeformed() const { return _key[DEFORMED]; }
- 
-    bool isVisible() const { return !_key[INVISIBLE]; }
-    bool isUnvisible() const { return _key[INVISIBLE]; }
-
-    bool isShadowCaster() const { return _key[SHADOW_CASTER]; }
-
-    bool isPickable() const { return _key[PICKABLE]; }
- 
     // Payload Interface
     const Bound getBound() const { return _payload->getBound(); }
-    void render(Context& context) { _payload->render(context); }
+    void render(RenderArgs* args) { _payload->render(args); }
 
 protected:
     PayloadPointer _payload;
-    Key _key = 0;
+    ItemKey _key;
 
     friend class Scene;
 };
@@ -120,57 +162,60 @@ protected:
 // THe Payload class is the real Payload to be used
 // THis allow anything to be turned into a Payload as long as the required interface functions are available
 // When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
-// of th ePayload interface
-template <class T> const Item::Key payloadGetKey(const T* payload) { return Item::Key(); }
-template <class T> const Item::Bound payloadGetBound(const T* payload) { return Item::Bound(); }
-template <class T> void payloadRender(const T* payload) { }
+// of the Payload interface
+template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payloadData) { return ItemKey(); }
+template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
+template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 template <class T> class Payload : public Item::PayloadInterface {
 public:
-    virtual const Item::Key getState() const { return payloadGetKey<T>(_data); }
+    typedef std::shared_ptr<T> DataPointer;
+
+    virtual const ItemKey getKey() const { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
-    virtual void render(Context& context) { payloadRender<T>(_data, context); }
+    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
     
-    Payload(std::shared_ptr<T>& data) : _data(data) {}
+    Payload(DataPointer& data) : _data(data) {}
 protected:
-    std::shared_ptr<T> _data;
+    DataPointer _data;
 };
 
 // Let's show how to make a simple FooPayload example:
+/*
 class Foo {
 public:
-    mutable Item::Key _myownKey;
+    mutable ItemKey _myownKey;
     void makeMywnKey() const {
-        _myownKey.set(Item::TYPE_SHAPE);
+        _myownKey = ItemKey::Builder().withTypeShape().build();
+    }
+
+    const Item::Bound evaluateMyBound() {
+        // Do stuff here to get your final Bound
+        return Item::Bound();
     }
 };
 
 typedef Payload<Foo> FooPayload;
+typedef std::shared_ptr<Foo> FooPointer;
 
-template <>
-const Item::Key payloadGetKey(const Foo* payload) {
-    payload->makeMywnKey();
-    return payload->_myownKey;
+// In a Source file, not a header, implement the Payload interface function specialized for Foo:
+template <> const ItemKey payloadGetKey(const FooPointer& foo) {
+    // Foo's way of provinding its Key
+    foo->makeMyKey();
+    return foo->_myownKey;
 }
+template <> const Item::Bound payloadGetBound(const FooPointer& foo) {
+    // evaluate Foo's own bound
+    return foo->evaluateMyBound();
+}
+
+// In this example, do not specialize the payloadRender call which means the compiler will use the default version which does nothing 
+
+*/
 // End of the example
 
 typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
-
-typedef Item::Key ItemKey;
-
-// Item Key operator testing if a key pass a filter test
-// the filter can have several flags on and the test is true if
-// (key AND filter) == filter
-// IF the filter has the INVERT_FLAGS On then we need to use the
-// !key value instead of key
-bool filterTest(const ItemKey& filter, const ItemKey& key) {
-    if (filter[Item::INVERT_FLAG]) {
-        return (filter & ~key) == filter;
-    } else {
-        return (filter & key) == filter;
-    }
-}
 
 // A few typedefs for standard containers of ItemIDs 
 typedef Item::ID ItemID;
