@@ -97,13 +97,15 @@ void RenderablePolyVoxEntityItem::getModel() {
     mesh->setVertexBuffer(gpu::BufferView(vertexBufferPtr,
                                           0,
                                           vertexBufferPtr->getSize() - sizeof(float) * 3,
-                                          sizeof(float) * 7,
+                                          sizeof(float) * 3,
+                                          // sizeof(PolyVox::PositionMaterialNormal),
                                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
     mesh->addAttribute(gpu::Stream::NORMAL,
                        gpu::BufferView(vertexBufferPtr,
                                        sizeof(float) * 3,
                                        vertexBufferPtr->getSize() - sizeof(float) * 3,
                                        sizeof(float) * 7,
+                                       // sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
 
@@ -137,6 +139,10 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
         gpu::Batch batch;
+
+        // XXX why do I need these?
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
 
         auto mesh = _modelGeometry.getMesh();
         batch.setInputFormat(mesh->getVertexFormat());

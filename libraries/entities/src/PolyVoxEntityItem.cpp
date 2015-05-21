@@ -21,6 +21,7 @@
 
 
 EntityItem* PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    qDebug() << "XXXXXXXXXXXX XXXXXXXXXXXX making PolyVoxEntityItem entity";
     EntityItem* result = new PolyVoxEntityItem(entityID, properties);
     return result;
 }
@@ -28,6 +29,8 @@ EntityItem* PolyVoxEntityItem::factory(const EntityItemID& entityID, const Entit
 PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) 
 {
+    qDebug() << "XXXXXXXXXXXX XXXXXXXXXXXX making PolyVoxEntityItem entity";
+
     _type = EntityTypes::PolyVox;
     _created = properties.getCreated();
     setProperties(properties);
