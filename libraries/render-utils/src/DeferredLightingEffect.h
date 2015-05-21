@@ -38,28 +38,32 @@ public:
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
     void bindSimpleProgram();
+    void bindSimpleProgram(gpu::Batch& batch);
     
     /// Tears down the state necessary to render static untextured geometry with the simple program.
     void releaseSimpleProgram();
+    void releaseSimpleProgram(gpu::Batch& batch);
 
     //// Renders a solid sphere with the simple program.
-    void renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
 
     //// Renders a wireframe sphere with the simple program.
-    void renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
     
     //// Renders a solid cube with the simple program.
-    void renderSolidCube(float size, const glm::vec4& color);
+    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
 
     //// Renders a wireframe cube with the simple program.
+    // FIXME Remove non Batch version once Cube3DOverlay uses the render pipeline
     void renderWireCube(float size, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    
+    //// Renders a quad with the simple program.
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
 
     //// Renders a line with the simple program.
-    void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2);
-
-    //// Renders a solid cone with the simple program.
-    void renderSolidCone(float base, float height, int slices, int stacks);
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),

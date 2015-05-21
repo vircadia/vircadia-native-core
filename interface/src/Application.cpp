@@ -3310,6 +3310,13 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         float originSphereRadius = 0.05f;
         DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         
+        
+        // render JS/scriptable overlays
+        {
+            PerformanceTimer perfTimer("3dOverlays");
+            _overlays.renderWorld(false);
+        }
+        
         // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             PerformanceTimer perfTimer("entities");
@@ -3335,12 +3342,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 // Restaure polygon mode
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
-        }
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false);
         }
 
         // render the ambient occlusion effect if enabled

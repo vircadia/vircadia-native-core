@@ -10,6 +10,7 @@
 //
 
 #include <gpu/GPUConfig.h>
+#include <gpu/GLBackend.h>
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -392,6 +393,87 @@ void EntityTreeRenderer::leaveAllEntities() {
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     }
 }
+
+void EntityTreeRenderer::applyZonePropertiesToScene(const ZoneEntityItem* zone) {
+    QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
+    if (zone) {
+        if (!_hasPreviousZone) {
+            _previousKeyLightColor = scene->getKeyLightColor();
+            _previousKeyLightIntensity = scene->getKeyLightIntensity();
+            _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
+            _previousKeyLightDirection = scene->getKeyLightDirection();
+            _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
+            _previousStageLongitude = scene->getStageLocationLongitude();
+            _previousStageLatitude = scene->getStageLocationLatitude();
+            _previousStageAltitude = scene->getStageLocationAltitude();
+            _previousStageHour = scene->getStageDayTime();
+            _previousStageDay = scene->getStageYearTime();
+            _hasPreviousZone = true;
+        }
+        scene->setKeyLightColor(zone->getKeyLightColorVec3());
+        scene->setKeyLightIntensity(zone->getKeyLightIntensity());
+        scene->setKeyLightAmbientIntensity(zone->getKeyLightAmbientIntensity());
+        scene->setKeyLightDirection(zone->getKeyLightDirection());
+        scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
+        scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
+                                zone->getStageProperties().getAltitude());
+        scene->setStageDayTime(zone->getStageProperties().calculateHour());
+        scene->setStageYearTime(zone->getStageProperties().calculateDay());
+        
+        if (zone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+            EnvironmentData data = zone->getEnvironmentData();
+            glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+            glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
+            
+            // NOTE: is this right? It seems like the "sun" should be based on the center of the
+            //       atmosphere, not where the camera is.
+            glm::vec3 keyLightLocation = _viewState->getAvatarPosition()
+            + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+            
+            data.setSunLocation(keyLightLocation);
+            
+            const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
+            float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+            data.setSunBrightness(sunBrightness);
+            
+            _viewState->overrideEnvironmentData(data);
+            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+            
+        } else {
+            _viewState->endOverrideEnvironmentData();
+            auto stage = scene->getSkyStage();
+            if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
+                stage->getSkybox()->setColor(zone->getSkyboxProperties().getColorVec3());
+                if (zone->getSkyboxProperties().getURL().isEmpty()) {
+                    stage->getSkybox()->setCubemap(gpu::TexturePointer());
+                } else {
+                    // Update the Texture of the Skybox with the one pointed by this zone
+                    auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                    stage->getSkybox()->setCubemap(cubeMap->getGPUTexture());
+                }
+                stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+            } else {
+                stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+            }
+        }
+    } else {
+        if (_hasPreviousZone) {
+            scene->setKeyLightColor(_previousKeyLightColor);
+            scene->setKeyLightIntensity(_previousKeyLightIntensity);
+            scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
+            scene->setKeyLightDirection(_previousKeyLightDirection);
+            scene->setStageSunModelEnable(_previousStageSunModelEnabled);
+            scene->setStageLocation(_previousStageLongitude, _previousStageLatitude,
+                                    _previousStageAltitude);
+            scene->setStageDayTime(_previousStageHour);
+            scene->setStageYearTime(_previousStageDay);
+            _hasPreviousZone = false;
+        }
+        _viewState->endOverrideEnvironmentData();
+        scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
+    }
+}
+
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
                                 RenderArgs::RenderSide renderSide,
                                 RenderArgs::DebugFlags renderDebugFlags) {
@@ -400,9 +482,18 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
 
         ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
-
+        
+        // Setup batch transform matrices
+        gpu::Batch batch;
+        glm::mat4 projMat;
+        Transform viewMat;
+        frustum->evalProjectionMatrix(projMat);
+        frustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        
         RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
-                        renderMode, renderSide, renderDebugFlags);
+                        renderMode, renderSide, renderDebugFlags, &batch);
 
         _tree->lockForRead();
 
@@ -411,91 +502,17 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         _bestZoneVolume = std::numeric_limits<float>::max();
         _tree->recurseTreeWithOperation(renderOperation, &args);
 
-        QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
-        
-        if (_bestZone) {
-            if (!_hasPreviousZone) {
-                _previousKeyLightColor = scene->getKeyLightColor();
-                _previousKeyLightIntensity = scene->getKeyLightIntensity();
-                _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
-                _previousKeyLightDirection = scene->getKeyLightDirection();
-                _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
-                _previousStageLongitude = scene->getStageLocationLongitude();
-                _previousStageLatitude = scene->getStageLocationLatitude();
-                _previousStageAltitude = scene->getStageLocationAltitude();
-                _previousStageHour = scene->getStageDayTime();
-                _previousStageDay = scene->getStageYearTime();
-                _hasPreviousZone = true;
-            }
-            scene->setKeyLightColor(_bestZone->getKeyLightColorVec3());
-            scene->setKeyLightIntensity(_bestZone->getKeyLightIntensity());
-            scene->setKeyLightAmbientIntensity(_bestZone->getKeyLightAmbientIntensity());
-            scene->setKeyLightDirection(_bestZone->getKeyLightDirection());
-            scene->setStageSunModelEnable(_bestZone->getStageProperties().getSunModelEnabled());
-            scene->setStageLocation(_bestZone->getStageProperties().getLongitude(), _bestZone->getStageProperties().getLatitude(),
-                                    _bestZone->getStageProperties().getAltitude());
-            scene->setStageDayTime(_bestZone->getStageProperties().calculateHour());
-            scene->setStageYearTime(_bestZone->getStageProperties().calculateDay());
-
-            if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
-                EnvironmentData data = _bestZone->getEnvironmentData();
-                glm::vec3 keyLightDirection = scene->getKeyLightDirection();
-                glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
-                
-                // NOTE: is this right? It seems like the "sun" should be based on the center of the 
-                //       atmosphere, not where the camera is.
-                glm::vec3 keyLightLocation = _viewState->getAvatarPosition() 
-                                                + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
-                                                
-                data.setSunLocation(keyLightLocation);
-
-                const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
-                float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
-                data.setSunBrightness(sunBrightness);
-
-                _viewState->overrideEnvironmentData(data);
-                scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
-
-            } else {
-                _viewState->endOverrideEnvironmentData();
-                auto stage = scene->getSkyStage();
-                 if (_bestZone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                    stage->getSkybox()->setColor(_bestZone->getSkyboxProperties().getColorVec3());
-                    if (_bestZone->getSkyboxProperties().getURL().isEmpty()) {
-                        stage->getSkybox()->setCubemap(gpu::TexturePointer());
-                    } else {
-                        // Update the Texture of the Skybox with the one pointed by this zone
-                        auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(_bestZone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-                        stage->getSkybox()->setCubemap(cubeMap->getGPUTexture()); 
-                    }
-                    stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
-                } else {
-                    stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
-                }
-            }
-
-        } else {
-            if (_hasPreviousZone) {
-                scene->setKeyLightColor(_previousKeyLightColor);
-                scene->setKeyLightIntensity(_previousKeyLightIntensity);
-                scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
-                scene->setKeyLightDirection(_previousKeyLightDirection);
-                scene->setStageSunModelEnable(_previousStageSunModelEnabled);
-                scene->setStageLocation(_previousStageLongitude, _previousStageLatitude, 
-                                        _previousStageAltitude);
-                scene->setStageDayTime(_previousStageHour);
-                scene->setStageYearTime(_previousStageDay);
-                _hasPreviousZone = false;
-            }
-            _viewState->endOverrideEnvironmentData();
-            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
-        }
+        applyZonePropertiesToScene(_bestZone);
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
         Model::endScene(renderMode, &args);
         _tree->unlock();
-    
+        
+        glPushMatrix();
+        gpu::GLBackend::renderBatch(batch);
+        glPopMatrix();
+        
         // stats...
         _meshesConsidered = args._meshesConsidered;
         _meshesRendered = args._meshesRendered;
@@ -561,57 +578,36 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const Entit
     return result;
 }
 
-void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement) {
+void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args) {
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    Transform transform;
+    
     glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter();
     float elementSize = entityTreeElement->getScale();
-    glPushMatrix();
-        glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    glPopMatrix();
+    
+    auto drawWireCube = [&](glm::vec3 offset, float size, glm::vec4 color) {
+        transform.setTranslation(elementCenter + offset);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, size, color);
+    };
+    
+    drawWireCube(glm::vec3(), elementSize, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
     if (_displayElementChildProxies) {
         // draw the children
         float halfSize = elementSize / 2.0f;
         float quarterSize = elementSize / 4.0f;
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x - quarterSize, elementCenter.y + quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y - quarterSize, elementCenter.z + quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
-        glPopMatrix();
-
-        glPushMatrix();
-            glTranslatef(elementCenter.x + quarterSize, elementCenter.y + quarterSize, elementCenter.z - quarterSize);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-        glPopMatrix();
+        
+        drawWireCube(glm::vec3(-quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, -quarterSize, -quarterSize), halfSize, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        drawWireCube(glm::vec3(-quarterSize, quarterSize, quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.5f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, -quarterSize, quarterSize), halfSize, glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
+        drawWireCube(glm::vec3(quarterSize, quarterSize, -quarterSize), halfSize, glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
     }
 }
 
@@ -628,43 +624,31 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glm::vec3 minCenter = minCube.calcCenter();
         glm::vec3 entityBoxCenter = entityBox.calcCenter();
         glm::vec3 entityBoxScale = entityBox.getScale();
+        
+        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+        Transform transform;
 
         // draw the max bounding cube
-        glPushMatrix();
-            glTranslatef(maxCenter.x, maxCenter.y, maxCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(maxCenter);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, maxCube.getScale(), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
 
         // draw the min bounding cube
-        glPushMatrix();
-            glTranslatef(minCenter.x, minCenter.y, minCenter.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(minCenter);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, minCube.getScale(), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         
         // draw the entityBox bounding box
-        glPushMatrix();
-            glTranslatef(entityBoxCenter.x, entityBoxCenter.y, entityBoxCenter.z);
-            glScalef(entityBoxScale.x, entityBoxScale.y, entityBoxScale.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-        glPopMatrix();
+        transform.setTranslation(entityBoxCenter);
+        transform.setScale(entityBoxScale);
+        batch.setModelTransform(transform);
+        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
-
-        glm::vec3 position = entity->getPosition();
-        glm::vec3 center = entity->getCenter();
-        glm::vec3 dimensions = entity->getDimensions();
-        glm::quat rotation = entity->getRotation();
-
-        glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
-            glPopMatrix();
-        glPopMatrix();
+        // Rotated bounding box
+        batch.setModelTransform(entity->getTransformToCenter());
+        deferredLighting->renderWireCube(batch, 1.0f, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
     }
 }
 
@@ -682,7 +666,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
 
     if (!isShadowMode && _displayModelElementProxy && numberOfEntities > 0) {
-        renderElementProxy(entityTreeElement);
+        renderElementProxy(entityTreeElement, args);
     }
     
     for (uint16_t i = 0; i < numberOfEntities; i++) {

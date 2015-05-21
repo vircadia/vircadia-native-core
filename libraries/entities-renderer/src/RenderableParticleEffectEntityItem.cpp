@@ -30,8 +30,7 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
 }
 
 void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
-
-    assert(getType() == EntityTypes::ParticleEffect);
+    Q_ASSERT(getType() == EntityTypes::ParticleEffect);
     PerformanceTimer perfTimer("RenderableParticleEffectEntityItem::render");
 
     if (_texturesChangedFlag) {
@@ -45,143 +44,67 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
         _texturesChangedFlag = false;
     }
 
-    if (!_texture) {
-        renderUntexturedQuads(args);
-    } else if (_texture && !_texture->isLoaded()) {
-        renderUntexturedQuads(args);
-    } else {
-        renderTexturedQuads(args);
+    bool textured = _texture && _texture->isLoaded();
+    updateQuads(args, textured);
+    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    if (textured) {
+        batch.setUniformTexture(0, _texture->getGPUTexture());
     }
+    batch.setModelTransform(getTransformToCenter());
+    DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUADS, _cacheID);
 };
-
-void RenderableParticleEffectEntityItem::renderUntexturedQuads(RenderArgs* args) {
-
-    float particleRadius = getParticleRadius();
-
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 particleColor(getColor()[RED_INDEX] / MAX_COLOR,
-                            getColor()[GREEN_INDEX] / MAX_COLOR,
-                            getColor()[BLUE_INDEX] / MAX_COLOR,
-                            getLocalRenderAlpha());
-
-    glm::vec3 upOffset = args->_viewFrustum->getUp() * particleRadius;
-    glm::vec3 rightOffset = args->_viewFrustum->getRight() * particleRadius;
-
-    QVector<glm::vec3> vertices(getLivingParticleCount() * VERTS_PER_PARTICLE);
-    quint32 count = 0;
-    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        glm::vec3 pos = _particlePositions[i];
-
-        // generate corners of quad, aligned to face the camera
-        vertices.append(pos - rightOffset + upOffset);
-        vertices.append(pos + rightOffset + upOffset);
-        vertices.append(pos + rightOffset - upOffset);
-        vertices.append(pos - rightOffset - upOffset);
-        count++;
-    }
-
-    // just double checking, cause if this invarient is false, we might have memory corruption bugs.
-    assert(count == getLivingParticleCount());
-
-    // update geometry cache with all the verts in model coordinates.
-    DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, vertices, particleColor);
-
-    glPushMatrix();
-
-        glm::vec3 position = getPosition();
-        glTranslatef(position.x, position.y, position.z);
-        glm::quat rotation = getRotation();
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        glPushMatrix();
-
-            glm::vec3 positionToCenter = getCenter() - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-
-            DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);
-
-        glPopMatrix();
-
-    glPopMatrix();
-}
 
 static glm::vec3 zSortAxis;
 static bool zSort(const glm::vec3& rhs, const glm::vec3& lhs) {
     return glm::dot(rhs, ::zSortAxis) > glm::dot(lhs, ::zSortAxis);
 }
 
-void RenderableParticleEffectEntityItem::renderTexturedQuads(RenderArgs* args) {
-
+void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool textured) {
     float particleRadius = getParticleRadius();
-
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 particleColor(getColor()[RED_INDEX] / MAX_COLOR,
-                            getColor()[GREEN_INDEX] / MAX_COLOR,
-                            getColor()[BLUE_INDEX] / MAX_COLOR,
-                            getLocalRenderAlpha());
-
-    QVector<glm::vec3> positions(getLivingParticleCount());
-    quint32 count = 0;
-    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        positions.append(_particlePositions[i]);
-        count++;
-    }
-
-    // just double checking, cause if this invarient is false, we might have memory corruption bugs.
-    assert(count == getLivingParticleCount());
-
-    // sort particles back to front
-    ::zSortAxis = args->_viewFrustum->getDirection();
-    qSort(positions.begin(), positions.end(), zSort);
-
-    QVector<glm::vec3> vertices(getLivingParticleCount() * VERTS_PER_PARTICLE);
-    QVector<glm::vec2> textureCoords(getLivingParticleCount() * VERTS_PER_PARTICLE);
-
+    glm::vec4 particleColor(toGlm(getXColor()), getLocalRenderAlpha());
+    
     glm::vec3 upOffset = args->_viewFrustum->getUp() * particleRadius;
     glm::vec3 rightOffset = args->_viewFrustum->getRight() * particleRadius;
-
+    
+    QVector<glm::vec3> vertices;
+    QVector<glm::vec3> positions;
+    QVector<glm::vec2> textureCoords;
+    vertices.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
+    
+    if (textured) {
+        positions.reserve(getLivingParticleCount());
+        textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
+        
+        for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
+            positions.append(_particlePositions[i]);
+            
+            textureCoords.append(glm::vec2(0, 1));
+            textureCoords.append(glm::vec2(1, 1));
+            textureCoords.append(glm::vec2(1, 0));
+            textureCoords.append(glm::vec2(0, 0));
+        }
+        
+        // sort particles back to front
+        ::zSortAxis = args->_viewFrustum->getDirection();
+        qSort(positions.begin(), positions.end(), zSort);
+    }
+    
     for (int i = 0; i < positions.size(); i++) {
-        glm::vec3 pos = positions[i];
+        glm::vec3 pos = (textured) ? positions[i] : _particlePositions[i];
 
         // generate corners of quad aligned to face the camera.
         vertices.append(pos - rightOffset + upOffset);
         vertices.append(pos + rightOffset + upOffset);
         vertices.append(pos + rightOffset - upOffset);
         vertices.append(pos - rightOffset - upOffset);
-
-        textureCoords.append(glm::vec2(0, 1));
-        textureCoords.append(glm::vec2(1, 1));
-        textureCoords.append(glm::vec2(1, 0));
-        textureCoords.append(glm::vec2(0, 0));
     }
-
-    // update geometry cache with all the verts in model coordinates.
-    DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, vertices, textureCoords, particleColor);
-
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, _texture->getID());
-
-    glPushMatrix();
-
-        glm::vec3 position = getPosition();
-        glTranslatef(position.x, position.y, position.z);
-        glm::quat rotation = getRotation();
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        glPushMatrix();
-
-            glm::vec3 positionToCenter = getCenter() - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-
-            DependencyManager::get<GeometryCache>()->renderVertices(gpu::QUADS, _cacheID);
-
-        glPopMatrix();
-
-    glPopMatrix();
-
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    if (textured) {
+        DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, vertices, textureCoords, particleColor);
+    } else {
+        DependencyManager::get<GeometryCache>()->updateVertices(_cacheID, vertices, particleColor);
+    }
 }
 

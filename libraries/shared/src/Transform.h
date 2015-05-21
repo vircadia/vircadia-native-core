@@ -34,7 +34,14 @@ public:
     Transform() :
         _rotation(1.0f, 0, 0, 0),
         _scale(1.0f),
-        _translation(0),
+        _translation(0.0f),
+        _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
+    {
+    }
+    Transform(Quat rotation, Vec3 scale, Vec3 translation) :
+        _rotation(rotation),
+        _scale(scale),
+        _translation(translation),
         _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
     {
     }

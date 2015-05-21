@@ -13,6 +13,9 @@
 #define hifi_RenderableTextEntityItem_h
 
 #include <TextEntityItem.h>
+#include <TextRenderer.h>
+
+const int FIXED_FONT_POINT_SIZE = 40;
 
 class RenderableTextEntityItem : public TextEntityItem  {
 public:
@@ -21,12 +24,12 @@ public:
     RenderableTextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         TextEntityItem(entityItemID, properties)
         { }
+    ~RenderableTextEntityItem() { delete _textRenderer; }
 
     virtual void render(RenderArgs* args);
-
+    
 private:
-    void enableClipPlane(GLenum plane, float x, float y, float z, float w);
-
+    TextRenderer* _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
 };
 
 
