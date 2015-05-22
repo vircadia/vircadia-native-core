@@ -49,7 +49,7 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
-    virtual Model* getModel(EntityTreeRenderer* renderer);
+    Model* getModel(EntityTreeRenderer* renderer);
 
     bool needsToCallUpdate() const;
 
@@ -65,7 +65,7 @@ private:
     
     Model* _model;
     bool _needsInitialSimulation;
-    bool _needsModelReload = true;
+    bool _needsModelReload;
     EntityTreeRenderer* _myRenderer;
     QString _currentTextures;
     QStringList _originalTextures;
