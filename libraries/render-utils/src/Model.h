@@ -371,7 +371,7 @@ private:
 
     // helper functions used by render() or renderInScene()
     void renderSetup(RenderArgs* args);
-    bool renderCore(float alpha, RenderArgs::RenderMode mode, RenderArgs* args);
+    bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
                         bool forceRenderMeshes = false);

@@ -777,14 +777,16 @@ bool Model::render(RenderArgs* renderArgs, float alpha) {
     }
 
     renderSetup(renderArgs);
-    return renderCore(alpha, renderArgs->_renderMode, renderArgs);
+    return renderCore(renderArgs, alpha);
 }
 
-bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
+bool Model::renderCore(RenderArgs* args, float alpha) {
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
         return false;
     }
+
+    auto mode = args->_renderMode;
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
