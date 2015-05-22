@@ -510,7 +510,7 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         _tree->unlock();
         
         glPushMatrix();
-        gpu::GLBackend::renderBatch(batch);
+        gpu::GLBackend::renderBatch(batch, true);
         glPopMatrix();
         
         // stats...

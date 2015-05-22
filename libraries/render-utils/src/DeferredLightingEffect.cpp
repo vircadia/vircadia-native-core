@@ -12,7 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
@@ -48,16 +47,26 @@
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
+static const std::string glowIntensityShaderHandle = "glowIntensity";
+
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
+    auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
+    auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_frag)));
+    gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(glowIntensityShaderHandle, 0));
+
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+    gpu::Shader::makeProgram(*program, slotBindings);
+
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    state->setCullMode(gpu::State::CULL_BACK);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setBlendFunction(false,
+    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+
     _viewState = viewState;
-    _simpleProgram.addShaderFromSourceCode(QGLShader::Vertex, simple_vert);
-    _simpleProgram.addShaderFromSourceCode(QGLShader::Fragment, simple_frag);
-    _simpleProgram.link();
-    
-    _simpleProgram.bind();
-    _glowIntensityLocation = _simpleProgram.uniformLocation("glowIntensity");
-    _simpleProgram.release();
-    
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(directional_light_shadow_map_frag, false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
@@ -92,29 +101,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram() {
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
-    _simpleProgram.bind();
-    _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
-    glDisable(GL_BLEND);
-}
-
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch) {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
-    batch._glUseProgram(_simpleProgram.programId());
-    batch._glUniform1f(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
-    batch._glDisable(GL_BLEND);
-}
-
-void DeferredLightingEffect::releaseSimpleProgram() {
-    glEnable(GL_BLEND);
-    _simpleProgram.release();
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
+    batch.setPipeline(_simpleProgram);
 }
 
 void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
-    batch._glEnable(GL_BLEND);
-    batch._glUseProgram(0);
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
 }
 
@@ -134,12 +126,6 @@ void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, cons
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSolidCube(batch, size, color);
     releaseSimpleProgram(batch);
-}
-
-void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) {
-    gpu::Batch batch;
-    renderWireCube(batch, size, color);
-    gpu::GLBackend::renderBatch(batch);
 }
 
 void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
