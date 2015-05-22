@@ -216,8 +216,10 @@ protected:
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
     
-    void initInput();
-    void killInput();
+    void pushInputState();
+    void popInputState();
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncInputStateCache();
     void updateInput();
     struct InputStageState {
         bool _invalidFormat;

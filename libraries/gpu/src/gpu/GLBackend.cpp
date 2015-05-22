@@ -76,12 +76,10 @@ GLBackend::GLBackend() :
     _output()
 {
     initTransform();
-    initInput();
 }
 
 GLBackend::~GLBackend() {
     killTransform();
-    killInput();
 }
 
 void GLBackend::render(Batch& batch) {
@@ -143,6 +141,7 @@ bool GLBackend::checkGLError(const char* name) {
 void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
+    syncInputStateCache();
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
