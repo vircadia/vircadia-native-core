@@ -25,17 +25,15 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext) {
     }
     auto scene = sceneContext->_scene;
 
-    auto itemBucketMap = scene->getMasterBucketMap();
+    auto itemBucketMap = scene->getMasterBucket();
     
+    RenderArgs args;
     // render opaques
-    auto& opaqueShapeItems = itemBucketMap.find(ItemKey::Builder().withTypeShape().build());
-    if (opaqueShapeItems != itemBucketMap.end()) {
-        
-        for (auto id : opaqueShapeItems.second) {
-            auto item = scene->getItem(id);
-            item.render()
-        }
+    auto& opaqueShapeItems = itemBucketMap[ItemFilter::Builder::opaqueShape()];
+    
+    for (auto id : opaqueShapeItems) {
+        auto item = scene->getItem(id);
+            item.render(&args);
     }
-
 };
 

@@ -144,7 +144,7 @@ public:
 
     class Less {
     public:
-        bool operator() (const ItemFilter& left, const ItemFilter& right) {
+        bool operator() (const ItemFilter& left, const ItemFilter& right) const {
             if (left._value.to_ulong() > right._value.to_ulong()) {
                 return left._mask.to_ulong() < right._mask.to_ulong();
             } else {
