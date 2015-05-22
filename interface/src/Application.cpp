@@ -3105,7 +3105,7 @@ QImage Application::renderAvatarBillboard() {
     Glower glower;
 
     const int BILLBOARD_SIZE = 64;
-    // TODO: Pass a RenderArgs renderAvatarBillboard
+    // TODO: Pass a RenderArgs to renderAvatarBillboard
     auto lodManager = DependencyManager::get<LODManager>();
     RenderArgs renderArgs(NULL, Application::getInstance()->getViewFrustum(),
                           lodManager->getOctreeSizeScale(),
