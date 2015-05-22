@@ -50,29 +50,48 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
 }
 
-void createSphereInVolume(PolyVox::SimpleVolume<uint8_t>& volData, float fRadius) {
-    // This vector hold the position of the center of the volume
-    PolyVox::Vector3DFloat v3dVolCenter(volData.getWidth() / 2, volData.getHeight() / 2, volData.getDepth() / 2);
-
+void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 center, float radius) {
     // This three-level for loop iterates over every voxel in the volume
-    for (int z = 0; z < volData.getDepth(); z++) {
-        for (int y = 0; y < volData.getHeight(); y++) {
-            for (int x = 0; x < volData.getWidth(); x++) {
+    for (int z = 0; z < _volData->getDepth(); z++) {
+        for (int y = 0; y < _volData->getHeight(); y++) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
                 // Store our current position as a vector...
-                PolyVox::Vector3DFloat v3dCurrentPos(x,y,z);	
+                glm::vec3 pos(x, y, z);
                 // And compute how far the current position is from the center of the volume
-                float fDistToCenter = (v3dCurrentPos - v3dVolCenter).length();
-
-                uint8_t uVoxelValue = 0;
-
+                float fDistToCenter = glm::distance(pos, center);
+                uint8_t uVoxelValue = _volData->getVoxelAt(x, y, z);
                 // If the current voxel is less than 'radius' units from the center then we make it solid.
-                if(fDistToCenter <= fRadius) {
+                if (fDistToCenter <= radius) {
                     // Our new voxel value
                     uVoxelValue = 255;
                 }
 
                 // Wrte the voxel value into the volume	
-                volData.setVoxelAt(x, y, z, uVoxelValue);
+                _volData->setVoxelAt(x, y, z, uVoxelValue);
+            }
+        }
+    }
+}
+
+
+void RenderablePolyVoxEntityItem::clearSphereInVolume(glm::vec3 center, float radius) {
+    // This three-level for loop iterates over every voxel in the volume
+    for (int z = 0; z < _volData->getDepth(); z++) {
+        for (int y = 0; y < _volData->getHeight(); y++) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                // Store our current position as a vector...
+                glm::vec3 pos(x, y, z);
+                // And compute how far the current position is from the center of the volume
+                float fDistToCenter = glm::distance(pos, center);
+                uint8_t uVoxelValue = _volData->getVoxelAt(x, y, z);
+                // If the current voxel is less than 'radius' units from the center then we make it solid.
+                if (fDistToCenter <= radius) {
+                    // Our new voxel value
+                    uVoxelValue = 0;
+                }
+
+                // Wrte the voxel value into the volume	
+                _volData->setVoxelAt(x, y, z, uVoxelValue);
             }
         }
     }
@@ -84,9 +103,12 @@ void RenderablePolyVoxEntityItem::getModel() {
         setVoxelVolumeSize(_voxelVolumeSize);
     }
 
-    // PolyVox::SimpleVolume<uint8_t> volData(PolyVox::Region(PolyVox::Vector3DInt32(0,0,0),
-    //                                                        PolyVox::Vector3DInt32(63, 63, 63)));
-    createSphereInVolume(*_volData, 15);
+    glm::vec3 center(_volData->getDepth() / 2.0f,
+                     _volData->getHeight() / 2.0f,
+                     _volData->getWidth() / 2.0f);
+    createSphereInVolume(center, 15);
+    createSphereInVolume(center + glm::vec3(8.0f, 0.0f, 0.0f), 15);
+    clearSphereInVolume(center + glm::vec3(4.0f, 0.0f, 4.0f), 15);
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;

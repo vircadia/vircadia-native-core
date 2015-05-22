@@ -31,6 +31,8 @@ public:
     void getModel();
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
+    void createSphereInVolume(glm::vec3 center, float radius);
+    void clearSphereInVolume(glm::vec3 center, float radius);
 
 private:
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
