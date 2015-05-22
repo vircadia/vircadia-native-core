@@ -51,9 +51,9 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         
         // TODO: Determine if we want these entities to have the deferred lighting effect? I think we do, so that the color
         // used for a sphere, or box have the same look as those used on a text entity.
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
+        //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
-        DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
+        //DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
 
         glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
         glm::vec4 textColor(toGlm(getTextColorX()), alpha);

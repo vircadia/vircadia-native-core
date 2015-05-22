@@ -98,10 +98,9 @@ private:
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
-   
-    ProgramObject _simpleProgram;
-    int _glowIntensityLocation;
     
+    gpu::PipelinePointer _simpleProgram;
+
     ProgramObject _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;
     ProgramObject _directionalSkyboxLightShadowMap;
