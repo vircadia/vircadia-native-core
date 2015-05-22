@@ -38,6 +38,7 @@ static const QString DDE_PROGRAM_PATH = "/dde.app/Contents/MacOS/dde";
 static const QStringList DDE_ARGUMENTS = QStringList() 
     << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
     << "--receiver=" + QString::number(DDE_CONTROL_PORT)
+    << "--facedet_interval=500"  // ms
     << "--headless";
 
 static const int NUM_EXPRESSIONS = 46;
