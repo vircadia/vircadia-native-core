@@ -57,8 +57,10 @@ void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
     }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(getObjectRotation()));
-    _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-    _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+    if (_body) {
+        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+    }
 }
 
 // virtual 

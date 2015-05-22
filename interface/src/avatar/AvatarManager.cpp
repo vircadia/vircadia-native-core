@@ -177,21 +177,26 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     return avatar;
 }
 
+// protected
+void AvatarManager::removeAvatarMotionState(Avatar* avatar) {
+    AvatarMotionState* motionState= avatar->_motionState;
+    if (motionState) {
+        // clean up physics stuff
+        motionState->clearObjectBackPointer();
+        avatar->_motionState = nullptr;
+        _avatarMotionStates.remove(motionState);
+        _motionStatesToAdd.remove(motionState);
+        _motionStatesToDelete.push_back(motionState);
+    }
+}
+
 // virtual 
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
     if (avatarIterator != _avatarHash.end()) {
         Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
         if (avatar != _myAvatar && avatar->isInitialized()) {
-            AvatarMotionState* motionState= avatar->_motionState;
-            if (motionState) {
-                // clean up physics stuff
-                motionState->clearObjectBackPointer();
-                avatar->_motionState = nullptr;
-                _avatarMotionStates.remove(motionState);
-                _motionStatesToAdd.remove(motionState);
-                _motionStatesToDelete.push_back(motionState);
-            }
+            removeAvatarMotionState(avatar);
 
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
@@ -208,6 +213,7 @@ void AvatarManager::clearOtherAvatars() {
             // don't remove myAvatar or uninitialized avatars from the list
             ++avatarIterator;
         } else {
+            removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         }
@@ -260,9 +266,11 @@ VectorOfMotionStates& AvatarManager::getObjectsToChange() {
 }
 
 void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
+    // TODO: extract the MyAvatar results once we use a MotionState for it.
 }
 
 void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
+    // TODO: expose avatar collision events to JS
 }
 
 void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
