@@ -106,8 +106,6 @@ public:
     }
 };
 
-class RenderArgs;
-
 class Item {
 public:
     typedef std::vector<Item> Vector;
