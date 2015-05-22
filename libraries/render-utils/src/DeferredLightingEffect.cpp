@@ -92,24 +92,11 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram() {
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
-    _simpleProgram.bind();
-    _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
-    glDisable(GL_BLEND);
-}
-
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch) {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
     batch._glUseProgram(_simpleProgram.programId());
     batch._glUniform1f(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
     batch._glDisable(GL_BLEND);
-}
-
-void DeferredLightingEffect::releaseSimpleProgram() {
-    glEnable(GL_BLEND);
-    _simpleProgram.release();
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
@@ -134,12 +121,6 @@ void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, cons
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSolidCube(batch, size, color);
     releaseSimpleProgram(batch);
-}
-
-void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) {
-    gpu::Batch batch;
-    renderWireCube(batch, size, color);
-    gpu::GLBackend::renderBatch(batch);
 }
 
 void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
