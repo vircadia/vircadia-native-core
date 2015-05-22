@@ -50,7 +50,8 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
 }
 
-void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 center, float radius) {
+
+void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {
     // This three-level for loop iterates over every voxel in the volume
     for (int z = 0; z < _volData->getDepth(); z++) {
         for (int y = 0; y < _volData->getHeight(); y++) {
@@ -63,7 +64,7 @@ void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 center, float r
                 // If the current voxel is less than 'radius' units from the center then we make it solid.
                 if (fDistToCenter <= radius) {
                     // Our new voxel value
-                    uVoxelValue = 255;
+                    uVoxelValue = toValue;
                 }
 
                 // Wrte the voxel value into the volume	
@@ -73,28 +74,13 @@ void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 center, float r
     }
 }
 
+void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 center, float radius) {
+    setSphereInVolume(center, radius, 255);
+}
 
-void RenderablePolyVoxEntityItem::clearSphereInVolume(glm::vec3 center, float radius) {
-    // This three-level for loop iterates over every voxel in the volume
-    for (int z = 0; z < _volData->getDepth(); z++) {
-        for (int y = 0; y < _volData->getHeight(); y++) {
-            for (int x = 0; x < _volData->getWidth(); x++) {
-                // Store our current position as a vector...
-                glm::vec3 pos(x, y, z);
-                // And compute how far the current position is from the center of the volume
-                float fDistToCenter = glm::distance(pos, center);
-                uint8_t uVoxelValue = _volData->getVoxelAt(x, y, z);
-                // If the current voxel is less than 'radius' units from the center then we make it solid.
-                if (fDistToCenter <= radius) {
-                    // Our new voxel value
-                    uVoxelValue = 0;
-                }
 
-                // Wrte the voxel value into the volume	
-                _volData->setVoxelAt(x, y, z, uVoxelValue);
-            }
-        }
-    }
+void RenderablePolyVoxEntityItem::eraseSphereInVolume(glm::vec3 center, float radius) {
+    setSphereInVolume(center, radius, 0);
 }
 
 void RenderablePolyVoxEntityItem::getModel() {
@@ -108,32 +94,19 @@ void RenderablePolyVoxEntityItem::getModel() {
                      _volData->getWidth() / 2.0f);
     createSphereInVolume(center, 15);
     createSphereInVolume(center + glm::vec3(8.0f, 0.0f, 0.0f), 15);
-    clearSphereInVolume(center + glm::vec3(4.0f, 0.0f, 4.0f), 15);
+    eraseSphereInVolume(center + glm::vec3(4.0f, 0.0f, 4.0f), 15);
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     //Create a surface extractor. Comment out one of the following two lines to decide which type gets created.
-    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    // PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    //     (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
         (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-    // MarchingCubesSurfaceExtractor<SimpleVolume<uint8_t>> surfaceExtractor(_volData,
-    //                                                                       _volData->getEnclosingRegion(),
-    //                                                                       &polyVoxMesh);
 
     //Execute the surface extractor.
     surfaceExtractor.execute();
-
-
-    // find dimensions
-    // AABox box;
-    // const std::vector<PolyVox::PositionMaterialNormal>& vertices = polyVoxMesh.getVertices();
-    // foreach (const PolyVox::PositionMaterialNormal vertexMaterialNormal, vertices) {
-    //     const PolyVox::Vector3DFloat& vertex = vertexMaterialNormal.position;
-    //     glm::vec3 v(vertex.getX(), vertex.getY(), vertex.getZ());
-    //     box += v;
-    // }
-    // glm::vec3 dimensions = box.getDimensions();
-    // setDimensions(dimensions);
 
 
     // convert PolyVox mesh to a Sam mesh
