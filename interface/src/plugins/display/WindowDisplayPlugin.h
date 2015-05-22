@@ -11,11 +11,10 @@
 
 #include "SimpleDisplayPlugin.h"
 
-#include <QWindow>
-#include <QOpenGLContext>
+#include <GlWindow.h>
 #include <QTimer>
 
-class WindowDisplayPlugin : public SimpleDisplayPlugin<QWindow> {
+class WindowDisplayPlugin : public GlWindowDisplayPlugin {
     Q_OBJECT
 public:
     static const QString NAME;
@@ -27,14 +26,6 @@ public:
     virtual void activate();
     virtual void deactivate();
     virtual bool eventFilter(QObject* object, QEvent* event);
-    virtual QSize getRecommendedFramebufferSize() const;
-
-protected:
-    virtual void makeCurrent();
-    virtual void doneCurrent();
-    virtual void swapBuffers();
-
 private:
     QTimer _timer;
-    QOpenGLContext * _context{ nullptr };
 };

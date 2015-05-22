@@ -35,10 +35,11 @@ void SimpleGlDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& scene
     glPushMatrix();
     glLoadIdentity();
 
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0, 0, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_TEXTURE_2D);
     
+    glViewport(0, 0, getDeviceSize().width(), getDeviceSize().height());
     if (sceneTexture) {
         glBindTexture(GL_TEXTURE_2D, sceneTexture);
         glBegin(GL_QUADS);
@@ -74,7 +75,7 @@ void SimpleGlDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& scene
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
-    Q_ASSERT(!glGetError());
+    //Q_ASSERT(!glGetError());
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
@@ -84,5 +85,5 @@ void SimpleGlDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& scene
     glEnable(GL_DEPTH_TEST);
 
     glFinish();
-    doneCurrent();
 }
+

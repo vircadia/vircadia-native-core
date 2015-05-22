@@ -82,6 +82,8 @@ private:
     float _magSizeMult[NUMBER_OF_RETICLES];
     quint64 _lastMouseMove;
     bool _magnifier;
+    float _hmdUIRadius{ 1.0 };
+
 
     float _alpha = 1.0f;
     float _trailingAudioLoudness;

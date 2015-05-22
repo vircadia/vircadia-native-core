@@ -40,7 +40,6 @@
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
-#include <OffscreenGlContext.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -84,6 +83,7 @@ class QMouseEvent;
 class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
+class OffscreenGlCanvas;
 
 class FaceTracker;
 class MainWindow;
@@ -222,23 +222,22 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
 
-    glm::ivec2 getMouse() const;
-    int getMouseX() const { return getMouse().x; }
-    int getMouseY() const { return getMouse().y; }
+    inline glm::ivec2 getMouse() const;
+    inline int getMouseX() const { return getMouse().x; }
+    inline int getMouseY() const { return getMouse().y; }
 
-    glm::ivec2 getTrueMousePosition() const;
-    int getTrueMouseX() const { return getTrueMousePosition().x; }
-    int getTrueMouseY() const { return getTrueMousePosition().y; }
+    inline glm::ivec2 getTrueMousePosition() const;
+    inline int getTrueMouseX() const { return getTrueMousePosition().x; }
+    inline int getTrueMouseY() const { return getTrueMousePosition().y; }
 
-    glm::ivec2 getMouseDragStarted() const;
-    int getMouseDragStartedX() const;
-    int getMouseDragStartedY() const;
+    inline glm::ivec2 getMouseDragStarted() const;
+    inline int getMouseDragStartedX() const { return getMouseDragStarted().x; }
+    inline int getMouseDragStartedY() const { return getMouseDragStarted().y; }
     
-    const glm::ivec2 & getTrueMouseDragStarted() const { return _mouseDragStarted; }
-    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
-    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
+    inline const glm::ivec2& getTrueMouseDragStarted() const { return _mouseDragStarted; }
+    inline int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    inline int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
 
-    
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
@@ -521,7 +520,7 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlContext* _offscreenContext{ new OffscreenGlContext() };
+    OffscreenGlCanvas* _offscreenContext;
 
     MainWindow* _window;
 
@@ -666,8 +665,6 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
-    
-
     void checkSkeleton();
 
     QWidget* _fullscreenMenuWidget = new QWidget();

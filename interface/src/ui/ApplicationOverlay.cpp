@@ -194,7 +194,7 @@ void ApplicationOverlay::renderOverlay() {
     Overlays& overlays = qApp->getOverlays();
     
     glm::uvec2 size = qApp->getCanvasSize();
-    if (!_framebufferObject || size == toGlm(_framebufferObject->size())) {
+    if (!_framebufferObject || size != toGlm(_framebufferObject->size())) {
         if(_framebufferObject) {
             delete _framebufferObject;
         }
@@ -511,7 +511,7 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 intersectionWithUi = glm::normalize(worldSpaceDirection) * _oculusUIRadius;
+    glm::vec3 intersectionWithUi = glm::normalize(worldSpaceDirection) * _hmdUIRadius;
     intersectionWithUi += overlayPosition;
 
     // Intersection in world space

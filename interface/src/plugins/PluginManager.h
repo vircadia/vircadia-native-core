@@ -1,7 +1,7 @@
 #pragma once
 
 #include "plugins/Plugin.h"
-#include "plugins/render/DisplayPlugin.h"
+#include "plugins/display/DisplayPlugin.h"
 #include <QList>
 #include <QSharedPointer>
 

@@ -30,8 +30,5 @@ public:
     virtual void preDisplay();
 
 protected:
-    virtual void makeCurrent();
-    virtual void doneCurrent();
-    virtual void swapBuffers();
     virtual void idle();
 };

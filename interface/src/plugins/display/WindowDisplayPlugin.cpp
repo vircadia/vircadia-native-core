@@ -25,41 +25,15 @@ const QString & WindowDisplayPlugin::getName() {
 }
 
 void WindowDisplayPlugin::activate() {
-    Q_ASSERT(nullptr == _window);
-
-    _context = new QOpenGLContext;
-
-    _window = new QWindow;
-    _window->setSurfaceType(QSurface::OpenGLSurface);
+    GlWindowDisplayPlugin::activate();
     _window->installEventFilter(this);
-    glMatrixMode(0);
-    {
-        QSurfaceFormat format;
-        format.setDepthBufferSize(0);
-        format.setStencilBufferSize(0);
-        format.setVersion(4, 1);
-        // Ugh....
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-        _window->setFormat(format);
-        _context->setFormat(format);
-    }
-
-    _context->setShareContext(QOpenGLContext::currentContext());
-    _context->create();
-
     _window->show();
-
     _timer.start(8);
 }
 
 void WindowDisplayPlugin::deactivate() {
     _timer.stop();
-    _context->doneCurrent();
-    _context->deleteLater();
-    _context = nullptr;
-    _window->hide();
-    _window->destroy();
-    _window = nullptr;
+    GlWindowDisplayPlugin::deactivate();
 }
 
 bool WindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
@@ -79,25 +53,6 @@ bool WindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
     }
     return false;
 }
-
-QSize WindowDisplayPlugin::getRecommendedFramebufferSize() const {
-    return _window->size();
-}
-
-void WindowDisplayPlugin::makeCurrent() {
-    _context->makeCurrent(_window);
-    QSize windowSize = _window->size();
-    glViewport(0, 0, windowSize.width(), windowSize.height());
-}
-
-void WindowDisplayPlugin::doneCurrent() {
-    _context->doneCurrent();
-}
-
-void WindowDisplayPlugin::swapBuffers() {
-    _context->swapBuffers(_window);
-}
-
 
 #if 0
 

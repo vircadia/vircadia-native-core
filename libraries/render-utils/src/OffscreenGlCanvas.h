@@ -15,16 +15,22 @@
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 
+class QOpenGLDebugLogger;
+
 class OffscreenGlCanvas : public QObject {
 public:
     OffscreenGlCanvas();
     void create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
+    QOpenGLContext* getContext() {
+        return &_context;
+    }
 
 protected:
     QOpenGLContext _context;
     QOffscreenSurface _offscreenSurface;
+    QOpenGLDebugLogger * _logger{ nullptr };
 
 };
 

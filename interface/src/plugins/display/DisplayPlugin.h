@@ -70,24 +70,31 @@ public:
     // Convert from screen mouse coordinates to UI mouse coordinates
     virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const { return position; };
 
-    virtual PickRay computePickRay(const glm::vec2 & pos) const = 0;
+    virtual PickRay computePickRay(const glm::vec2 & pos) const {
+        // FIXME make pure virtual
+        return PickRay();
+    };
     virtual bool isMouseOnScreen() const;
-    virtual void overrideOffAxisFrustum(
-        float& left, float& right, float& bottom, float& top,
-        float& nearVal, float& farVal,
-        glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const { }
+
+    // Stereo specific methods
+    virtual glm::mat4 getProjection(Eye eye) const {
+        return glm::mat4();
+    }
 
     // HMD specific methods
     // TODO move these into another class
     virtual glm::mat4 headPose() const {
         static const glm::mat4 pose; return pose;
     }
+
     virtual glm::quat headOrientation() const {
         static const glm::quat orientation; return orientation;
     }
+
     virtual glm::vec3 headTranslation() const {
         static const glm::vec3 tranlsation; return tranlsation;
     }
+
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }

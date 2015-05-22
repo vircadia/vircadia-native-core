@@ -175,11 +175,12 @@ gpu::FramebufferPointer GlowEffect::render() {
             _diffuseProgram->release();
         }
         
+        destFBO = oldDiffusedFBO;
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         // add diffused texture to the primary
         glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(newDiffusedFBO->getRenderBuffer(0)));
         
-        destFBO = oldDiffusedFBO;
         glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(destFBO));
         glViewport(0, 0, framebufferSize.width(), framebufferSize.height());
         _addSeparateProgram->bind();

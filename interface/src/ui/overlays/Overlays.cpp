@@ -294,7 +294,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     if (qApp->isHMDMode()) {
         pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
     }
-
+    
     QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlaysHUD);
     i.toBack();

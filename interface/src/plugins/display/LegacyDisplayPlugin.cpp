@@ -27,6 +27,8 @@ void LegacyDisplayPlugin::activate() {
     QOpenGLContext * sourceContext = QOpenGLContext::currentContext();
     QSurfaceFormat format;
     format.setOption(QSurfaceFormat::DebugContext);
+
+
     QOpenGLContext * newContext = new QOpenGLContext();
     newContext->setFormat(format);
     _window->setContext(
@@ -49,9 +51,10 @@ void LegacyDisplayPlugin::activate() {
 void LegacyDisplayPlugin::deactivate() {
     _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
     _window->removeEventFilter(qApp);
-    if (qApp->getWindow()) {
-        qApp->getWindow()->setCentralWidget(oldWidget);
-    }
+    // FIXME, during shutdown, this causes an NPE.  Need to deactivate the plugin before the main window is destroyed.
+//    if (qApp->getWindow()) {
+//        qApp->getWindow()->setCentralWidget(oldWidget);
+//    }
     // stop the glWidget frame timer so it doesn't call paintGL
     _window->stopFrameTimer();
     _window->doneCurrent();
@@ -61,18 +64,6 @@ void LegacyDisplayPlugin::deactivate() {
 
 QSize LegacyDisplayPlugin::getDeviceSize() const {
     return _window->getDeviceSize();
-}
-
-void LegacyDisplayPlugin::makeCurrent() {
-    _window->makeCurrent();
-}
-
-void LegacyDisplayPlugin::doneCurrent() {
-    _window->doneCurrent();
-}
-
-void LegacyDisplayPlugin::swapBuffers() {
-    _window->swapBuffers();
 }
 
 void LegacyDisplayPlugin::idle() {
