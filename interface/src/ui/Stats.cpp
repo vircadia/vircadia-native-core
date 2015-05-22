@@ -224,9 +224,10 @@ void Stats::display(
     lines = 5;
     int columnOneWidth = _generalStatsWidth;
 
-    PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
-    
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+    bool performanceTimerIsActive = PerformanceTimer::isActive();
+    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
+    if (displayPerf && performanceTimerIsActive) {
+        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
 
         columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // 3 columns wide...
         // we will also include room for 1 line per timing record and a header of 4 lines
@@ -276,7 +277,7 @@ void Stats::display(
 
     
     // TODO: the display of these timing details should all be moved to JavaScript
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+    if (displayPerf && performanceTimerIsActive) {
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         // Timing details...
         verticalOffset += STATS_PELS_PER_LINE * 4; // skip 3 lines to be under the other columns
