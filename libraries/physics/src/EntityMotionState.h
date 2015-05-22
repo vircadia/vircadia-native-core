@@ -43,8 +43,6 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    virtual btCollisionShape* computeNewShape();
-
     bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
@@ -82,6 +80,7 @@ public:
     friend class PhysicalEntitySimulation;
 
 protected:
+    virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 

@@ -40,7 +40,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _loopsWithoutOwner(0)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
-    assert(entity != nullptr);
+    assert(_entity != nullptr);
+    setMass(_entity->computeMass());
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -176,6 +177,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
+// virtual and protected
 btCollisionShape* EntityMotionState::computeNewShape() {
     if (_entity) {
         ShapeInfo shapeInfo;

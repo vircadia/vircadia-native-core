@@ -28,7 +28,6 @@ public:
     virtual uint32_t getAndClearIncomingDirtyFlags();
 
     virtual MotionType computeObjectMotionType() const;
-    virtual btCollisionShape* computeNewShape();
 
     virtual bool isMoving() const;
 
@@ -65,6 +64,7 @@ public:
     friend class AvatarManager;
 
 protected:
+    virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     Avatar* _avatar;
     uint32_t _dirtyFlags;

@@ -156,12 +156,10 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
-                motionState->setMass(entity->computeMass());
                 _physicalObjects.insert(motionState);
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
-                // TODO: Seth to look into why this case is hit.
                 //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }

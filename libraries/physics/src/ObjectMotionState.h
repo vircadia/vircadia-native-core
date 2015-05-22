@@ -94,7 +94,6 @@ public:
     virtual uint32_t getAndClearIncomingDirtyFlags() = 0;
 
     virtual MotionType computeObjectMotionType() const = 0;
-    virtual btCollisionShape* computeNewShape() = 0;
 
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
@@ -127,6 +126,7 @@ public:
     friend class PhysicsEngine;
 
 protected:
+    virtual btCollisionShape* computeNewShape() = 0;
     void setMotionType(MotionType motionType);
 
     // clearObjectBackPointer() overrrides should call the base method, then actually clear the object back pointer.
