@@ -142,6 +142,7 @@
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
 
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
 extern "C" {
