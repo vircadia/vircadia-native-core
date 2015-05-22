@@ -325,8 +325,7 @@ void OctreeQueryNode::updateLastKnownViewFrustum() {
     }
 
     // save that we know the view has been sent.
-    quint64 now = usecTimestampNow();
-    setLastTimeBagEmpty(now); // is this what we want? poor names
+    setLastTimeBagEmpty();
 }
 
 
