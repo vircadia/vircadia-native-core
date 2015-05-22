@@ -51,7 +51,7 @@ public:
     virtual void init();
 
     /// render the content of the octree
-    virtual void render(RenderArgs& renderArgs);
+    virtual void render(RenderArgs* renderArgs);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }

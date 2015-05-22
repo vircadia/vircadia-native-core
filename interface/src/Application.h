@@ -268,9 +268,9 @@ public:
     virtual void setupWorldLight();
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-    QImage renderAvatarBillboard();
+    QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(RenderArgs& renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -499,8 +499,8 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap(RenderArgs& renderArgs);
-    void renderRearViewMirror(RenderArgs& renderArgs, const QRect& region, bool billboard = false);
+    void updateShadowMap(RenderArgs* renderArgs);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);

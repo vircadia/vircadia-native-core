@@ -37,9 +37,9 @@ public:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
 
-    void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE, bool postLighting = false);
-    void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
+    void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false);
+    void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const override;
     void renderDebugBodyPoints();
 
     // setters
@@ -198,7 +198,7 @@ signals:
     void transformChanged();
 
 protected:
-    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs* args);
     
 private:
 

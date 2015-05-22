@@ -853,7 +853,7 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay(renderArgs);
+        _applicationOverlay.renderOverlay(&renderArgs);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -903,7 +903,7 @@ void Application::paintGL() {
 
     if (getShadowsEnabled()) {
         renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        updateShadowMap(renderArgs);
+        updateShadowMap(&renderArgs);
     }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -911,16 +911,16 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_glWidget, renderArgs, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_glWidget, renderArgs, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
     } else if (TV3DManager::isConnected()) {
        
-        TV3DManager::display(renderArgs, _myCamera);
+        TV3DManager::display(&renderArgs, _myCamera);
 
     } else {
-        DependencyManager::get<GlowEffect>()->prepare(renderArgs);
+        DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -929,16 +929,16 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(renderArgs, _myCamera);
+        displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
+            _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(renderArgs, _mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
 
-        auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -2892,7 +2892,7 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-void Application::updateShadowMap(RenderArgs& renderArgs) {
+void Application::updateShadowMap(RenderArgs* renderArgs) {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
@@ -3013,7 +3013,7 @@ void Application::updateShadowMap(RenderArgs& renderArgs) {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(RenderArgs::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs);
         }
 
         {
@@ -3024,12 +3024,12 @@ void Application::updateShadowMap(RenderArgs& renderArgs) {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(renderArgs, false);
         }
 
         {
             PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(renderArgs, true);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3097,20 +3097,16 @@ PickRay Application::computePickRay(float x, float y) const {
     return result;
 }
 
-QImage Application::renderAvatarBillboard() {
+QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
-    Glower glower;
+    Glower glower(renderArgs);
 
     const int BILLBOARD_SIZE = 64;
     // TODO: Pass a RenderArgs to renderAvatarBillboard
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs renderArgs(NULL, Application::getInstance()->getViewFrustum(),
-                          lodManager->getOctreeSizeScale(),
-                          lodManager->getBoundaryLevelAdjust(),
-                          RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
     renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
@@ -3163,7 +3159,7 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool selfAvatarOnly) {
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3202,7 +3198,7 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
-    if (renderArgs._renderSide != RenderArgs::MONO) {
+    if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
         
         viewTransform.evalFromRawMatrix(invView);
@@ -3333,7 +3329,7 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false);
+            _overlays.renderWorld(renderArgs, false);
         }
         
         // render models...
@@ -3355,8 +3351,8 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
             if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
-            renderArgs._renderMode = renderMode;
-            renderArgs._debugFlags = renderDebugFlags;
+            renderArgs->_renderMode = renderMode;
+            renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
             
             if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
@@ -3378,8 +3374,9 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
     
     {
         PerformanceTimer perfTimer("avatars");
-        RenderArgs::RenderMode renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderMode, false, selfAvatarOnly);   
+        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
+        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
+        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
 
     {
@@ -3396,9 +3393,9 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        RenderArgs::RenderMode renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderMode, true, selfAvatarOnly);
-        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
+        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, true, selfAvatarOnly);
+        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
     
     //Render the sixense lasers
@@ -3422,7 +3419,7 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
                 "Application::displaySide() ... octree fades...");
             _octreeFadesLock.lockForWrite();
             for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
-                fade->render();
+                fade->render(renderArgs);
                 if(fade->isDone()) {
                     fade = _octreeFades.erase(fade);
                 } else {
@@ -3447,8 +3444,8 @@ void Application::displaySide(RenderArgs& renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
-        Glower glower;  // Sets alpha to 1.0
-        _overlays.renderWorld(true);
+        Glower glower(renderArgs);  // Sets alpha to 1.0
+        _overlays.renderWorld(renderArgs, true);
     }
     activeRenderingThread = nullptr;
 }
@@ -3526,7 +3523,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     return screenPoint;
 }
 
-void Application::renderRearViewMirror(RenderArgs& renderArgs, const QRect& region, bool billboard) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -3590,7 +3587,7 @@ void Application::renderRearViewMirror(RenderArgs& renderArgs, const QRect& regi
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
+        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     // reset Viewport and projection matrix

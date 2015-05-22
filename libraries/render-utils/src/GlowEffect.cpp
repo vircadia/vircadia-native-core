@@ -94,7 +94,7 @@ void GlowEffect::init(bool enabled) {
     _enabled = enabled;
 }
 
-void GlowEffect::prepare(RenderArgs& renderArgs) {
+void GlowEffect::prepare(RenderArgs* renderArgs) {
     auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
@@ -105,19 +105,19 @@ void GlowEffect::prepare(RenderArgs& renderArgs) {
     _isOddFrame = !_isOddFrame;
 }
 
-void GlowEffect::begin(float intensity) {
+void GlowEffect::begin(RenderArgs* renderArgs, float intensity) {
     // store the current intensity and add the new amount
     _intensityStack.push(_intensity);
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity += intensity);
     _isEmpty &= (_intensity == 0.0f);
 }
 
-void GlowEffect::end() {
+void GlowEffect::end(RenderArgs* renderArgs) {
     // restore the saved intensity
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-gpu::FramebufferPointer GlowEffect::render(RenderArgs& renderArgs) {
+gpu::FramebufferPointer GlowEffect::render(RenderArgs* renderArgs) {
     PerformanceTimer perfTimer("glowEffect");
 
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -212,10 +212,14 @@ void GlowEffect::toggleGlowEffect(bool enabled) {
 }
 
 Glower::Glower(float amount) {
-    DependencyManager::get<GlowEffect>()->begin(amount);
+    RenderArgs renderArgs;
+    DependencyManager::get<GlowEffect>()->begin(&renderArgs, amount);
+}
+Glower::Glower(RenderArgs* renderArgs, float amount) : _renderArgs(renderArgs) {
+    DependencyManager::get<GlowEffect>()->begin(_renderArgs, amount);
 }
 
 Glower::~Glower() {
-    DependencyManager::get<GlowEffect>()->end();
+    DependencyManager::get<GlowEffect>()->end(_renderArgs);
 }
 

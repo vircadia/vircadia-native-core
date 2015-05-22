@@ -164,29 +164,29 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void OctreeRenderer::render(RenderArgs& renderArgs) {
+void OctreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree) {
-        renderArgs._renderer = this;
+        renderArgs->_renderer = this;
         _tree->lockForRead();
-        _tree->recurseTreeWithOperation(renderOperation, &renderArgs);
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
         _tree->unlock();
     }
-    _meshesConsidered = renderArgs._meshesConsidered;
-    _meshesRendered = renderArgs._meshesRendered;
-    _meshesOutOfView = renderArgs._meshesOutOfView;
-    _meshesTooSmall = renderArgs._meshesTooSmall;
+    _meshesConsidered = renderArgs->_meshesConsidered;
+    _meshesRendered = renderArgs->_meshesRendered;
+    _meshesOutOfView = renderArgs->_meshesOutOfView;
+    _meshesTooSmall = renderArgs->_meshesTooSmall;
 
-    _elementsTouched = renderArgs._elementsTouched;
-    _itemsRendered = renderArgs._itemsRendered;
-    _itemsOutOfView = renderArgs._itemsOutOfView;
-    _itemsTooSmall = renderArgs._itemsTooSmall;
+    _elementsTouched = renderArgs->_elementsTouched;
+    _itemsRendered = renderArgs->_itemsRendered;
+    _itemsOutOfView = renderArgs->_itemsOutOfView;
+    _itemsTooSmall = renderArgs->_itemsTooSmall;
 
-    _materialSwitches = renderArgs._materialSwitches;
-    _trianglesRendered = renderArgs._trianglesRendered;
-    _quadsRendered = renderArgs._quadsRendered;
+    _materialSwitches = renderArgs->_materialSwitches;
+    _trianglesRendered = renderArgs->_trianglesRendered;
+    _quadsRendered = renderArgs->_quadsRendered;
 
-    _translucentMeshPartsRendered = renderArgs._translucentMeshPartsRendered;
-    _opaqueMeshPartsRendered = renderArgs._opaqueMeshPartsRendered;
+    _translucentMeshPartsRendered = renderArgs->_translucentMeshPartsRendered;
+    _opaqueMeshPartsRendered = renderArgs->_opaqueMeshPartsRendered;
 
 }
 

@@ -98,7 +98,7 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    bool render(float alpha = 1.0f, RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);

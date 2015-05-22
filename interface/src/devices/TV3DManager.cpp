@@ -80,7 +80,7 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     glLoadIdentity();
 }
 
-void TV3DManager::display(RenderArgs& renderArgs, Camera& whichCamera) {
+void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
@@ -118,7 +118,7 @@ void TV3DManager::display(RenderArgs& renderArgs, Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        renderArgs._renderSide = RenderArgs::MONO;
+        renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, eyeCamera, false);
         qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
         _activeEye = NULL;

@@ -465,7 +465,7 @@ void OculusManager::configureCamera(Camera& camera) {
 }
 
 //Displays everything for the oculus, frame timing must be active
-void OculusManager::display(QGLWidget * glCanvas, RenderArgs& renderArgs, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
+void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
 
 #ifdef DEBUG
     // Ensure the frame counter always increments by exactly 1
@@ -613,7 +613,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs& renderArgs, const 
 
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
-        renderArgs._renderSide = RenderArgs::MONO;
+        renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, *_camera, false);
         qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });

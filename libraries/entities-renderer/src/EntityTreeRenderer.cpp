@@ -474,11 +474,11 @@ void EntityTreeRenderer::applyZonePropertiesToScene(const ZoneEntityItem* zone) 
     }
 }
 
-void EntityTreeRenderer::render(RenderArgs& renderArgs) {
+void EntityTreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree && !_shuttingDown) {
-        Model::startScene(renderArgs._renderSide);
+        Model::startScene(renderArgs->_renderSide);
 
-        ViewFrustum* frustum = (renderArgs._renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+        ViewFrustum* frustum = (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
         
         // Setup batch transform matrices
@@ -490,44 +490,44 @@ void EntityTreeRenderer::render(RenderArgs& renderArgs) {
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         
-        renderArgs._renderer = this;
-        renderArgs._batch = &batch;
+        renderArgs->_renderer = this;
+        renderArgs->_batch = &batch;
 
         _tree->lockForRead();
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
         _bestZone = NULL;
         _bestZoneVolume = std::numeric_limits<float>::max();
-        _tree->recurseTreeWithOperation(renderOperation, &renderArgs);
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
 
         applyZonePropertiesToScene(_bestZone);
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
-        Model::endScene(renderArgs._renderMode, &renderArgs);
+        Model::endScene(renderArgs->_renderMode, renderArgs);
         _tree->unlock();
         
         glPushMatrix();
-        renderArgs._context->enqueueBatch(batch);
+        renderArgs->_context->enqueueBatch(batch);
         glPopMatrix();
         
         // stats...
-        _meshesConsidered = renderArgs._meshesConsidered;
-        _meshesRendered = renderArgs._meshesRendered;
-        _meshesOutOfView = renderArgs._meshesOutOfView;
-        _meshesTooSmall = renderArgs._meshesTooSmall;
+        _meshesConsidered = renderArgs->_meshesConsidered;
+        _meshesRendered = renderArgs->_meshesRendered;
+        _meshesOutOfView = renderArgs->_meshesOutOfView;
+        _meshesTooSmall = renderArgs->_meshesTooSmall;
 
-        _elementsTouched = renderArgs._elementsTouched;
-        _itemsRendered = renderArgs._itemsRendered;
-        _itemsOutOfView = renderArgs._itemsOutOfView;
-        _itemsTooSmall = renderArgs._itemsTooSmall;
+        _elementsTouched = renderArgs->_elementsTouched;
+        _itemsRendered = renderArgs->_itemsRendered;
+        _itemsOutOfView = renderArgs->_itemsOutOfView;
+        _itemsTooSmall = renderArgs->_itemsTooSmall;
 
-        _materialSwitches = renderArgs._materialSwitches;
-        _trianglesRendered = renderArgs._trianglesRendered;
-        _quadsRendered = renderArgs._quadsRendered;
+        _materialSwitches = renderArgs->_materialSwitches;
+        _trianglesRendered = renderArgs->_trianglesRendered;
+        _quadsRendered = renderArgs->_quadsRendered;
 
-        _translucentMeshPartsRendered = renderArgs._translucentMeshPartsRendered;
-        _opaqueMeshPartsRendered = renderArgs._opaqueMeshPartsRendered;
+        _translucentMeshPartsRendered = renderArgs->_translucentMeshPartsRendered;
+        _opaqueMeshPartsRendered = renderArgs->_opaqueMeshPartsRendered;
     }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
@@ -711,7 +711,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     
                     Glower* glower = NULL;
                     if (entityItem->getGlowLevel() > 0.0f) {
-                        glower = new Glower(entityItem->getGlowLevel());
+                        glower = new Glower(args, entityItem->getGlowLevel());
                     }
                     entityItem->render(args);
                     args->_itemsRendered++;

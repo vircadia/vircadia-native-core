@@ -328,13 +328,13 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
+void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
-    Avatar::render(cameraPosition, renderMode, postLighting);
+    Avatar::render(renderArgs, cameraPosition, postLighting);
     
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
@@ -1166,7 +1166,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1190,28 +1190,25 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
     }*/
 
     //  Render the body's voxels and head
-    RenderArgs::RenderMode modelRenderMode = renderMode;
     if (!postLighting) {
-        RenderArgs args;
-        args._viewFrustum = renderFrustum;
-        _skeletonModel.render(1.0f, modelRenderMode, &args);
-        renderAttachments(renderMode, &args);
+        _skeletonModel.render(renderArgs, 1.0f);
+        renderAttachments(renderArgs);
     }
     
     //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
+    if (shouldRenderHead(renderArgs, cameraPos)) {
+        getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
     if (postLighting) {
-        getHand()->render(true, modelRenderMode);
+        getHand()->render(renderArgs, true);
     }
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
+bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
     const Head* head = getHead();
-    return (renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
+    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1474,7 +1471,8 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-    QImage image = Application::getInstance()->renderAvatarBillboard();
+    RenderArgs renderArgs;
+    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1551,9 +1549,9 @@ void MyAvatar::updateMotionBehavior() {
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
-void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode, args);
+void MyAvatar::renderAttachments(RenderArgs* args) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        Avatar::renderAttachments(args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
@@ -1563,7 +1561,7 @@ void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* 
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, renderMode, args);        
+            _attachmentModels.at(i)->render(args, 1.0f);
         }
     }
 }

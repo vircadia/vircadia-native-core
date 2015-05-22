@@ -765,19 +765,19 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
-bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
+bool Model::render(RenderArgs* renderArgs, float alpha) {
     PROFILE_RANGE(__FUNCTION__);
 
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode, args);
+        attachment->render(renderArgs, alpha);
     }
     if (_meshStates.isEmpty()) {
         return false;
     }
 
-    renderSetup(args);
-    return renderCore(alpha, mode, args);
+    renderSetup(renderArgs);
+    return renderCore(alpha, renderArgs->_renderMode, renderArgs);
 }
 
 bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {

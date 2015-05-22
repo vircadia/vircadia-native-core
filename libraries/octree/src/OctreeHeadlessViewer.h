@@ -33,7 +33,7 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
 
     virtual void init();
-    virtual void render(RenderArgs& renderArgs) override { /* swallow these */ }
+    virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 
