@@ -1159,7 +1159,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         return;
     }
     // Don't respond to small continuous contacts.
-    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    const float COLLISION_MINUMUM_PENETRATION = 0.005f;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
