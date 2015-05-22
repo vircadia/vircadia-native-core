@@ -31,7 +31,8 @@ public:
         RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
     
-    RenderArgs(OctreeRenderer* renderer = nullptr,
+    RenderArgs(gpu::Context* context = nullptr,
+               OctreeRenderer* renderer = nullptr,
                ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
@@ -39,7 +40,6 @@ public:
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
                gpu::Batch* batch = nullptr,
-               gpu::Context* context = nullptr,
                
                int elementsTouched = 0,
                int itemsRendered = 0,
@@ -57,6 +57,7 @@ public:
                
                int translucentMeshPartsRendered = 0,
                int opaqueMeshPartsRendered = 0) :
+    _context(context),
     _renderer(renderer),
     _viewFrustum(viewFrustum),
     _sizeScale(sizeScale),
@@ -84,6 +85,7 @@ public:
     _opaqueMeshPartsRendered(opaqueMeshPartsRendered) {
     }
 
+    gpu::Context* _context;
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
     float _sizeScale;
@@ -92,7 +94,6 @@ public:
     RenderSide _renderSide;
     DebugFlags _debugFlags;
     gpu::Batch* _batch;
-    gpu::Context* _context;
 
     int _elementsTouched;
     int _itemsRendered;
