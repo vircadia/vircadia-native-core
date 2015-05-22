@@ -19,6 +19,7 @@
 #include "SharedUtil.h"
 #include "SimpleMovingAverage.h"
 
+#include <atomic>
 #include <cstring>
 #include <string>
 #include <map>

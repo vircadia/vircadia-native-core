@@ -105,7 +105,7 @@ PerformanceTimer::~PerformanceTimer() {
 }
 
 // static
-bool PerformanceTimer::PerformanceTimer::isActive() {
+bool PerformanceTimer::isActive() {
     return _isActive;
 }
 
