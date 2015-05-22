@@ -15,6 +15,8 @@
 #include <gpu/GPUConfig.h>
 #include <gpu/Framebuffer.h>
 
+#include "RenderArgs.h"
+
 #include <QObject>
 #include <QGLWidget>
 #include <QStack>
@@ -37,7 +39,7 @@ public:
     void init(bool enabled);
     
     /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
-    void prepare();
+    void prepare(const RenderArgs& renderArgs);
     
     /// Starts using the glow effect.
     /// \param intensity the desired glow intensity, from zero to one
@@ -52,7 +54,7 @@ public:
     /// Renders the glow effect.  To be called after rendering the scene.
     /// \param toTexture whether to render to a texture, rather than to the frame buffer
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
-    gpu::FramebufferPointer render();
+    gpu::FramebufferPointer render(const RenderArgs& renderArgs);
 
 public slots:
     void toggleGlowEffect(bool enabled);

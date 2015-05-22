@@ -16,6 +16,7 @@ class ViewFrustum;
 class OctreeRenderer;
 namespace gpu {
 class Batch;
+class Context;
 }
 
 class RenderArgs {
@@ -38,6 +39,7 @@ public:
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
                gpu::Batch* batch = nullptr,
+               gpu::Context* context = nullptr,
                
                int elementsTouched = 0,
                int itemsRendered = 0,
@@ -90,6 +92,7 @@ public:
     RenderSide _renderSide;
     DebugFlags _debugFlags;
     gpu::Batch* _batch;
+    gpu::Context* _context;
 
     int _elementsTouched;
     int _itemsRendered;

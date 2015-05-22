@@ -185,7 +185,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 }
 
 // Renders the overlays either to a texture or to the screen
-void ApplicationOverlay::renderOverlay() {
+void ApplicationOverlay::renderOverlay(const RenderArgs& renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Overlays& overlays = qApp->getOverlays();
     

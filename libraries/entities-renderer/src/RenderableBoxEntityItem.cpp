@@ -11,6 +11,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <gpu/GLBackend.h>
 #include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
@@ -44,6 +45,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     } else {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
     }
+    args->_context->enqueueBatch(batch);
 
     RenderableDebugableEntityItem::render(this, args);
 };
