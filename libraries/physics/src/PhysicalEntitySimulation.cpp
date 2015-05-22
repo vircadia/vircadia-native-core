@@ -188,7 +188,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItem* entity = entityState->getEntity();
             if (entity) {
-                if (entity->isKnownID() && entityState->isCandidateForOwnership(sessionID)) {
+                if (entityState->isCandidateForOwnership(sessionID)) {
                     _outgoingChanges.insert(entityState);
                 }
                 _entitiesToSort.insert(entityState->getEntity());

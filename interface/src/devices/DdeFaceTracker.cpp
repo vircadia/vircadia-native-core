@@ -38,6 +38,7 @@ static const QString DDE_PROGRAM_PATH = "/dde.app/Contents/MacOS/dde";
 static const QStringList DDE_ARGUMENTS = QStringList() 
     << "--udp=" + DDE_SERVER_ADDR.toString() + ":" + QString::number(DDE_SERVER_PORT) 
     << "--receiver=" + QString::number(DDE_CONTROL_PORT)
+    << "--facedet_interval=500"  // ms
     << "--headless";
 
 static const int NUM_EXPRESSIONS = 46;
@@ -293,6 +294,10 @@ void DdeFaceTracker::reset() {
 }
 
 bool DdeFaceTracker::isActive() const {
+    return (_ddeProcess != NULL);
+}
+
+bool DdeFaceTracker::isTracking() const {
     static const quint64 ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }

@@ -979,6 +979,14 @@ void ApplicationOverlay::renderStatsAndLogs() {
     glLineWidth(1.0f);
     glPointSize(1.0f);
 
+    // Determine whether to compute timing details
+    bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                                     Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
+                                     Stats::getInstance()->isExpanded();
+    if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
+        PerformanceTimer::setActive(shouldDisplayTimingDetail);
+    }
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         // let's set horizontal offset to give stats some margin to mirror
         int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;

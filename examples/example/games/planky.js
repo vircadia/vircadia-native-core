@@ -23,6 +23,8 @@ const GRAVITY = {x: 0, y: -2.8, z: 0};
 const DENSITY = 2000;
 const DAMPING_FACTOR = 0.98;
 const ANGULAR_DAMPING_FACTOR = 0.8;
+const FRICTION = 0.99;
+const RESTITUTION = 0.0;
 const SPAWN_DISTANCE = 3;
 const BLOCK_YAW_OFFSET = 45;
 const BUTTON_DIMENSIONS = {width: 49, height: 49};
@@ -110,6 +112,8 @@ function resetBlocks() {
                 rotation: Quat.multiply(layerRotation, offsetRot),
                 collisionsWillMove: true,
                 damping: DAMPING_FACTOR,
+                restitution: RESTITUTION,
+                friction: FRICTION,
                 angularDamping: ANGULAR_DAMPING_FACTOR,
                 gravity: GRAVITY,
                 density: DENSITY

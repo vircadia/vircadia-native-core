@@ -33,7 +33,7 @@ public:
     virtual void reset();
 
     virtual bool isActive() const;
-    virtual bool isTracking() const { return isActive(); }
+    virtual bool isTracking() const;
     
     float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
     float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }

@@ -23,6 +23,9 @@ const QString SETTINGS_PATHS_KEY = "paths";
 const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
 
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
+
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:
@@ -44,6 +47,7 @@ private:
     QJsonObject settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName);
     void persistToFile();
 
+    double _descriptionVersion;
     QJsonArray _descriptionArray;
     HifiConfigVariantMap _configMap;
 };

@@ -567,19 +567,6 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     return false;
 }
 
-void EntityTreeElement::updateEntityItemID(const EntityItemID& creatorTokenEntityID, const EntityItemID& knownIDEntityID) {
-    uint16_t numberOfEntities = _entityItems->size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* thisEntity = (*_entityItems)[i];
-
-        EntityItemID thisEntityID = thisEntity->getEntityItemID();
-        
-        if (thisEntityID == creatorTokenEntityID) {
-            thisEntity->setID(knownIDEntityID.id);
-        }
-    }
-}
-
 const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const {
     const EntityItem* closestEntity = NULL;
     float closestEntityDistance = FLT_MAX;

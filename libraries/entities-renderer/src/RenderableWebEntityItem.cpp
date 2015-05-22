@@ -25,7 +25,6 @@
 
 #include "EntityTreeRenderer.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
 const float DPI = 30.47;
 const float METERS_TO_INCHES = 39.3701;
 
@@ -99,7 +98,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 return;
             }
 
-            if (intersection.entityID.id == getID()) {
+            if (intersection.entityID == getID()) {
                 if (event->button() == Qt::MouseButton::RightButton) {
                     if (event->type() == QEvent::MouseButtonRelease) {
                         AbstractViewStateInterface::instance()->postLambdaEvent([this] {
@@ -161,7 +160,6 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
-        float alpha = 1.0f; 
         static const glm::vec2 texMin(0);
         static const glm::vec2 texMax(1);
         glm::vec2 topLeft(-halfDimensions.x, -halfDimensions.y);

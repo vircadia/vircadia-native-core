@@ -70,9 +70,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 1;
         case PacketTypeStopNode:
             return 1;
-        case PacketTypeEntityAddOrEdit:
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAVE_FRICTION;
+            return VERSION_NO_ENTITY_ID_SWAP;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
@@ -86,49 +87,50 @@ PacketVersion versionForPacketType(PacketType packetType) {
 
 QString nameForPacketType(PacketType packetType) {
     switch (packetType) {
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnknown);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeStunResponse);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainList);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypePing);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypePingReply);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeKillAvatar);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeInjectAudio);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMixedAudio);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMicrophoneAudioNoEcho);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMicrophoneAudioWithEcho);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeBulkAvatarData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeSilentAudioFrame);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEnvironmentData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainListRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeRequestAssignment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeCreateAssignment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectionDenied);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeMuteEnvironment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioStreamStats);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDataServerConfirm);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarIdentity);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarBillboard);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainServerRequireDTLS);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeNodeJsonStats);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityQuery);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddOrEdit);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeat);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeUnknown);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeStunResponse);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainList);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypePing);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypePingReply);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeKillAvatar);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarData);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeInjectAudio);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeMixedAudio);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeMicrophoneAudioNoEcho);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeMicrophoneAudioWithEcho);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeBulkAvatarData);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeSilentAudioFrame);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEnvironmentData);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainListRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeRequestAssignment);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeCreateAssignment);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectionDenied);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeMuteEnvironment);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioStreamStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDataServerConfirm);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarIdentity);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarBillboard);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainServerRequireDTLS);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeNodeJsonStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityQuery);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityData);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityErase);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeStopNode);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeat);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAdd);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEdit);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleEntitiesFix);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }
@@ -166,14 +168,14 @@ int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUui
         memset(position, 0, NUM_BYTES_MD5_HASH);
         position += NUM_BYTES_MD5_HASH;
     }
-
+    
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-       // Pack zeros for the number of bytes that the sequence number requires.
-       // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
-       memset(position, 0, sizeof(PacketSequenceNumber));
-       position += sizeof(PacketSequenceNumber);
+        // Pack zeros for the number of bytes that the sequence number requires.
+        // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
+        memset(position, 0, sizeof(PacketSequenceNumber));
+        position += sizeof(PacketSequenceNumber);
     }
-
+    
     // return the number of bytes written for pointer pushing
     return position - packet;
 }
@@ -193,7 +195,7 @@ int numBytesForArithmeticCodedPacketType(PacketType packetType) {
 }
 
 int numBytesForPacketHeaderGivenPacketType(PacketType packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType)   
+    return numBytesForArithmeticCodedPacketType(packetType)
     + numHashBytesForType(packetType)
     + numSequenceNumberBytesForType(packetType)
     + NUM_STATIC_HEADER_BYTES;
@@ -213,7 +215,7 @@ QUuid uuidFromPacketHeader(const QByteArray& packet) {
 }
 
 int hashOffsetForPacketType(PacketType packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES; 
+    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES;
 }
 
 int sequenceNumberOffsetForPacketType(PacketType packetType) {
@@ -233,13 +235,13 @@ PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketTy
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-
+    
     PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
     
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
         memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
-    } 
-
+    }
+    
     return result;
 }
 
@@ -248,7 +250,7 @@ void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, Packet
         packetType = packetTypeForPacket(packet);
     }
     
-    packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH, 
+    packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH,
                    hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
 
@@ -256,17 +258,17 @@ void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequ
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-
-    packet.replace(sequenceNumberOffsetForPacketType(packetType), 
+    
+    packet.replace(sequenceNumberOffsetForPacketType(packetType),
                    sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber), sizeof(PacketSequenceNumber));
-} 
+}
 
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber, 
+void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
                                           PacketType packetType) {
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-
+    
     replaceHashInPacket(packet, connectionUUID, packetType);
     replaceSequenceNumberInPacket(packet, sequenceNumber, packetType);
 }

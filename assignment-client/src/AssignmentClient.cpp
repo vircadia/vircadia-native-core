@@ -43,8 +43,7 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                                    QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                                    quint16 assignmentMonitorPort) :
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _localASPortSharedMem(NULL)
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
 
@@ -181,8 +180,7 @@ void AssignmentClient::sendAssignmentRequest() {
         if (_assignmentServerHostname == "localhost") {
             // we want to check again for the local domain-server port in case the DS has restarted
             quint16 localAssignmentServerPort;
-            if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, _localASPortSharedMem,
-                                                             localAssignmentServerPort)) {
+            if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
                     qDebug() << "Port for local assignment server read from shared memory is"
                         << localAssignmentServerPort;
@@ -190,7 +188,11 @@ void AssignmentClient::sendAssignmentRequest() {
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
+            } else {
+                qDebug() << "Failed to read local assignment server port from shared memory"
+                    << "- will send assignment request to previous assignment server socket.";
             }
+
         }
 
         nodeList->sendAssignment(_requestAssignment);
