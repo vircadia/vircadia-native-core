@@ -32,5 +32,5 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
 }
 
 void Context::enqueueBatch(Batch& batch) {
-    GLBackend::renderBatch(batch);
+    GLBackend::renderBatch(batch, true);
 }
