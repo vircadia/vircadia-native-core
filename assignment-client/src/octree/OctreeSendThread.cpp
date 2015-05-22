@@ -563,7 +563,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
 
         if (somethingToSend) {
-            qDebug() << "Hit PPS Limit";
+            qDebug() << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                     << "  maxPacketsPerInterval = " << maxPacketsPerInterval;
         }
 
 
