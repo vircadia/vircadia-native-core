@@ -165,6 +165,8 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         if (_shape != newShape) {
             _shape = newShape;
             _body->setCollisionShape(_shape);
+        } else {
+            // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~EntityItem::DIRTY_SHAPE;
         }
     }
