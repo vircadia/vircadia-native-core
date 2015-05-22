@@ -762,7 +762,7 @@ function mouseClickEvent(event) {
                     selectionManager.addEntity(foundEntity, true);
                 }
 
-                print("Model selected: " + foundEntity.id);
+                print("Model selected: " + foundEntity);
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -1201,7 +1201,7 @@ PropertiesTool = function(opts) {
         var selections = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entity = {};
-            entity.id = selectionManager.selections[i].id;
+            entity.id = selectionManager.selections[i];
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
             entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             selections.push(entity);
@@ -1251,7 +1251,7 @@ PropertiesTool = function(opts) {
                     var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
                     var diff = { x: 0, y: dY, z: 0 };
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var newPosition = Vec3.sum(properties.position, diff);
                         Entities.editEntity(selectionManager.selections[i], {
                             position: newPosition,
@@ -1264,7 +1264,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
                         var dY = grid.getOrigin().y - bottomY;
                         var diff = { x: 0, y: dY, z: 0 };
@@ -1280,7 +1280,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var naturalDimensions = properties.naturalDimensions;
 
                         // If any of the natural dimensions are not 0, resize
@@ -1302,7 +1302,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         Entities.editEntity(selectionManager.selections[i], {
                             dimensions: Vec3.multiply(multiplier, properties.dimensions),
                         });
@@ -1314,7 +1314,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         if (properties.type == "Zone") {
                             var centerOfZone = properties.boundingBox.center;
                             var atmosphereCenter = { x: centerOfZone.x, 
