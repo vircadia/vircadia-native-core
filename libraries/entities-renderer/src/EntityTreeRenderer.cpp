@@ -504,7 +504,7 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
-        Model::endScene(renderArgs->_renderMode, renderArgs);
+        Model::endScene(renderArgs);
         _tree->unlock();
         
         glPushMatrix();

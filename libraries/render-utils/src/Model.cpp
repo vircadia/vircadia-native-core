@@ -1846,7 +1846,7 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     batch.setViewTransform(_transforms[0]);
 }
 
-void Model::endScene(RenderMode mode, RenderArgs* args) {
+void Model::endScene(RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
 
@@ -1854,6 +1854,8 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     // with legacy transform profile, we still to protect that transform stack...
     glPushMatrix();
 #endif 
+
+    auto mode = args->_renderMode;
 
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {

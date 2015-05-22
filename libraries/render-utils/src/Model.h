@@ -103,7 +103,7 @@ public:
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
     bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endScene(RenderArgs* args);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
