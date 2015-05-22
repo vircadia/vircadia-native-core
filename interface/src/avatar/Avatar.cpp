@@ -494,8 +494,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         if (postLighting) {
             getHand()->render(renderArgs, false);
         } else {
-            // RenderArgs args;
-            // args._viewFrustum = renderFrustum;
             _skeletonModel.render(renderArgs, 1.0f);
             renderAttachments(renderArgs);
         }
