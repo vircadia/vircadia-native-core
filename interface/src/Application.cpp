@@ -834,12 +834,10 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs renderArgs(NULL, Application::getInstance()->getViewFrustum(),
-                          lodManager->getOctreeSizeScale(),
-                          lodManager->getBoundaryLevelAdjust(),
-                          RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
     gpu::Context context;
-    renderArgs._context = &context;
+    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+                          lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                          RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
     PerformanceTimer perfTimer("paintGL");
     //Need accurate frame timing for the oculus rift
