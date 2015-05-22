@@ -3105,7 +3105,6 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
 
     const int BILLBOARD_SIZE = 64;
     // TODO: Pass a RenderArgs to renderAvatarBillboard
-    auto lodManager = DependencyManager::get<LODManager>();
     renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
