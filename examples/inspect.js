@@ -44,6 +44,7 @@ var control = false;
 
 var isActive = false;
 
+var oldMode = Camera.mode;
 var noMode = 0;
 var orbitMode = 1;
 var radialMode = 2;
