@@ -59,6 +59,7 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     connect(_scriptEngine, SIGNAL(evaluationFinished(QScriptValue, bool)),
             this, SLOT(handleEvalutationFinished(QScriptValue, bool)));
     connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+    connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
 
     resizeTextInput();
 }
@@ -94,6 +95,10 @@ void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException)
     QString resultColor = (isException || result.isError()) ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
     QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</span>";
     appendMessage(gutter, resultStr);
+}
+
+void JSConsole::handleError(const QString& message) {
+    appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
 void JSConsole::handlePrint(const QString& message) {
