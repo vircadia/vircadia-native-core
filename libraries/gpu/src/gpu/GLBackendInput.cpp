@@ -46,21 +46,6 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 };
 #endif
 
-void GLBackend::pushInputState() {
-    glPushClientAttrib(GL_VERTEX_ARRAY);
-    glPushClientAttrib(GL_NORMAL_ARRAY);
-    glPushClientAttrib(GL_COLOR_ARRAY);
-    glPushClientAttrib(GL_TEXTURE_COORD_ARRAY);
-    
-}
-
-void GLBackend::popInputState() {
-    glPopClientAttrib(); // GL_VERTEX_ARRAY
-    glPopClientAttrib(); // GL_NORMAL_ARRAY
-    glPopClientAttrib(); // GL_COLOR_ARRAY
-    glPopClientAttrib(); // GL_TEXTURE_COORD_ARRAY
-}
-
 void GLBackend::syncInputStateCache() {
     for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
         _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
