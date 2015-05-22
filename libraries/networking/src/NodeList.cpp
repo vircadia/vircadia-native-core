@@ -64,6 +64,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
 
+    // send an ICE heartbeat as soon as we get ice server information
+    connect(&_domainHandler, &DomainHandler::iceSocketAndIDReceived, this, &NodeList::handleICEConnectionToDomainServer);
+
     // handle ICE signal from DS so connection is attempted immediately
     connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
 
@@ -160,6 +163,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             if (!_domainHandler.getSockAddr().isNull()) {
                 // only process a list from domain-server if we're talking to a domain
                 // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
+                qDebug() << "Processing domain server list at" << usecTimestampNow();
                 processDomainServerList(packet);
             }
             break;
@@ -198,6 +202,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             if (sendingNode) {
                 sendingNode->setLastHeardMicrostamp(usecTimestampNow());
 
+                qDebug() << "Activating socket for node" << sendingNode->getUUID() << "at" << usecTimestampNow();
+
                 // activate the appropriate socket for this node, if not yet updated
                 activateSocketFromNodeCommunication(packet, sendingNode);
 
@@ -215,6 +221,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypeUnverifiedPingReply: {
             qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
+
+            qDebug() << "Received reply from domain server at" << usecTimestampNow();
 
             // for now we're unsafely assuming this came back from the domain
             if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
@@ -379,6 +387,8 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
 
+        qDebug() << "Sending domain server check in at" << usecTimestampNow();
+
         if (!isUsingDTLS) {
             writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
         }
@@ -504,12 +514,16 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         _domainHandler.getICEPeer().resetConnectionAttemps();
 
+        qDebug() << "Sending heartbeat to ice server at" << usecTimestampNow();
+
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getICEDomainID());
     } else {
         qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+
+        qDebug() << "Sending ping packet to domain server at" << usecTimestampNow();
 
         // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
@@ -596,6 +610,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
+    qDebug() << "Sending ping punch to node" << node->getUUID() << "at" << usecTimestampNow();
 
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);

@@ -76,6 +76,7 @@ signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:
     void sendPendingDSPathQuery();
+    void handleICEConnectionToDomainServer();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -84,8 +85,6 @@ private:
 
     void sendSTUNRequest();
     bool processSTUNResponse(const QByteArray& packet);
-
-    void handleICEConnectionToDomainServer();
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();

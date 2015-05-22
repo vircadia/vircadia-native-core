@@ -106,6 +106,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
+        qDebug() << "Lookup of HF URL at" << usecTimestampNow();
+
         // there are 4 possible lookup strings
 
         // 1. global place name (name of domain or place) - example: sanfrancisco
@@ -162,6 +164,8 @@ void AddressManager::handleLookupString(const QString& lookupString) {
 void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
+
+    qDebug() << "Go to address from API response at" << usecTimestampNow();
 
     goToAddressFromObject(dataObject.toVariantMap(), requestReply);
 

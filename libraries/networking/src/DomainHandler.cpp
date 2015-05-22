@@ -135,10 +135,21 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         replaceableSockAddr->~HifiSockAddr();
         replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
 
+        if (_iceServerSockAddr.getAddress().isNull()) {
+            // connect to lookup completed for ice-server socket so we can request a heartbeat once hostname is looked up
+            connect(&_iceServerSockAddr, &HifiSockAddr::lookupCompleted, this, &DomainHandler::completedIceServerHostnameLookup);
+        } else {
+            completedIceServerHostnameLookup();
+        }
+
+
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
 
         qCDebug(networking) << "ICE required to connect to domain via ice server at" << iceServerHostname;
+
+        qDebug() << "ICE server info set at" << usecTimestampNow();
+
     }
 }
 
@@ -170,6 +181,14 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 
     // if we got here then we failed to lookup the address
     qCDebug(networking, "Failed domain server lookup");
+}
+
+void DomainHandler::completedIceServerHostnameLookup() {
+    qDebug() << "ICE server socket is at" << _iceServerSockAddr;
+    qDebug() << "ICE server socket lookup completed at" << usecTimestampNow();
+    // emit our signal so we can send a heartbeat to ice-server immediately
+    emit iceSocketAndIDReceived();
+
 }
 
 void DomainHandler::setIsConnected(bool isConnected) {
@@ -269,6 +288,8 @@ void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
 
     NetworkPeer packetPeer;
     iceResponseStream >> packetPeer;
+
+    qDebug() << "Recieved response for network peer from ICE server at" << usecTimestampNow();
 
     if (packetPeer.getUUID() != _iceDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";

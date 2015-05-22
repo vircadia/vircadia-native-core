@@ -68,6 +68,7 @@ void DatagramProcessor::processDatagrams() {
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
+                        // qDebug() << "Received audio data packet at" << usecTimestampNow();
                         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
