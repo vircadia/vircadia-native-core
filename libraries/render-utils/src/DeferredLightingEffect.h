@@ -33,15 +33,10 @@ public:
     
     void init(AbstractViewStateInterface* viewState);
 
-    /// Returns a reference to a simple program suitable for rendering static untextured geometry
-    ProgramObject& getSimpleProgram() { return _simpleProgram; }
-
     /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindSimpleProgram();
     void bindSimpleProgram(gpu::Batch& batch);
     
     /// Tears down the state necessary to render static untextured geometry with the simple program.
-    void releaseSimpleProgram();
     void releaseSimpleProgram(gpu::Batch& batch);
 
     //// Renders a solid sphere with the simple program.
@@ -54,8 +49,6 @@ public:
     void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
 
     //// Renders a wireframe cube with the simple program.
-    // FIXME Remove non Batch version once Cube3DOverlay uses the render pipeline
-    void renderWireCube(float size, const glm::vec4& color);
     void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     
     //// Renders a quad with the simple program.
@@ -105,10 +98,9 @@ private:
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
-   
-    ProgramObject _simpleProgram;
-    int _glowIntensityLocation;
     
+    gpu::PipelinePointer _simpleProgram;
+
     ProgramObject _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;
     ProgramObject _directionalSkyboxLightShadowMap;
