@@ -391,7 +391,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
     // downloads.
     QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache *geometryCache = geometryCacheP.data();
+    ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
@@ -3291,7 +3291,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
 
-            gpu::GLBackend::renderBatch(batch);
+            gpu::GLBackend::renderBatch(batch, true);
             glUseProgram(0);
         }
     }

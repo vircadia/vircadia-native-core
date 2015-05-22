@@ -22,6 +22,18 @@
 
 #include <memory>
 
+inline bool isValidScale(glm::vec3 scale) {
+    bool result = scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f;
+    assert(result);
+    return result;
+}
+
+inline bool isValidScale(float scale) {
+    bool result = scale != 0.0f;
+    assert(result);
+    return result;
+}
+
 class Transform {
 public:
     typedef glm::mat4 Mat4;
@@ -32,7 +44,7 @@ public:
     typedef glm::quat Quat;
 
     Transform() :
-        _rotation(1.0f, 0, 0, 0),
+        _rotation(1.0f, 0.0f, 0.0f, 0.0f),
         _scale(1.0f),
         _translation(0.0f),
         _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
@@ -44,6 +56,9 @@ public:
         _translation(translation),
         _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
     {
+        if (!isValidScale(_scale)) {
+            _scale = Vec3(1.0f);
+        }
     }
     Transform(const Transform& transform) :
         _rotation(transform._rotation),
@@ -166,8 +181,8 @@ protected:
 };
 
 inline void Transform::setIdentity() {
-    _translation = Vec3(0);
-    _rotation = Quat(1.0f, 0, 0, 0);
+    _translation = Vec3(0.0f);
+    _rotation = Quat(1.0f, 0.0f, 0.0f, 0.0f);
     _scale = Vec3(1.0f);
     _flags = Flags(FLAG_CACHE_INVALID_BITSET);
 }
@@ -187,19 +202,25 @@ inline void Transform::setTranslation(const Vec3& translation) {
 }
 
 inline void Transform::preTranslate(const Vec3& translation) {
-    if (translation == Vec3() ) return;
+    if (translation == Vec3()) {
+        return;
+    }
     invalidCache();
     flagTranslation();
     _translation += translation;
 }
 
 inline void Transform::postTranslate(const Vec3& translation) {
-    if (translation == Vec3() ) return;
+    if (translation == Vec3()) {
+        return;
+    }
     invalidCache();
     flagTranslation();
 
     Vec3 scaledT = translation;
-    if (isScaling()) scaledT *= _scale;
+    if (isScaling()) {
+        scaledT *= _scale;
+    }
 
     if (isRotating()) {
         _translation += glm::rotate(_rotation, scaledT);
@@ -223,7 +244,9 @@ inline void Transform::setRotation(const Quat& rotation) {
 }
 
 inline void Transform::preRotate(const Quat& rotation) {
-    if (rotation == Quat()) return;
+    if (rotation == Quat()) {
+        return;
+    }
     invalidCache();
     if (isRotating()) {
         _rotation = rotation * _rotation;
@@ -236,7 +259,9 @@ inline void Transform::preRotate(const Quat& rotation) {
 }
 
 inline void Transform::postRotate(const Quat& rotation) {
-    if (rotation == Quat()) return;
+    if (rotation == Quat()) {
+        return;
+    }
     invalidCache();
 
     if (isNonUniform()) {
@@ -269,8 +294,12 @@ inline const Transform::Vec3& Transform::getScale() const {
 }
 
 inline void Transform::setScale(float scale) {
+    if (!isValidScale(scale)) {
+        return;
+    }
     invalidCache();
     flagUniform();
+    
     if (scale == 1.0f) {
         unflagScaling();
     } else {
@@ -280,6 +309,9 @@ inline void Transform::setScale(float scale) {
 }
 
 inline void Transform::setScale(const Vec3& scale) {
+    if (!isValidScale(scale)) {
+        return;
+    }
     if ((scale.x == scale.y) && (scale.x == scale.z)) {
         setScale(scale.x);
     } else {
@@ -291,9 +323,11 @@ inline void Transform::setScale(const Vec3& scale) {
 }
 
 inline void Transform::postScale(float scale) {
-    if (scale == 1.0f) return;
+    if (isValidScale(scale) || scale == 1.0f) {
+        return;
+    }
     if (isScaling()) {
-        // if already scaling, just invalid cache and aply uniform scale
+        // if already scaling, just invalid cache and apply uniform scale
         invalidCache();
         _scale *= scale;
     } else {
@@ -302,6 +336,9 @@ inline void Transform::postScale(float scale) {
 }
 
 inline void Transform::postScale(const Vec3& scale) {
+    if (!isValidScale(scale)) {
+        return;
+    }
     invalidCache();
     if (isScaling()) {
         _scale *= scale;
@@ -360,7 +397,7 @@ inline Transform::Mat4& Transform::getRotationScaleMatrixInverse(Mat4& result) c
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation
-    if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.0f)) {
+    if ((matrix[0][3] == 0.0f) && (matrix[1][3] == 0.0f) && (matrix[2][3] == 0.0f) && (matrix[3][3] == 1.0f)) {
         setTranslation(Vec3(matrix[3]));
         evalFromRawMatrix(Mat3(matrix));
     }
@@ -377,15 +414,10 @@ inline void Transform::evalFromRawMatrix(const Mat3& rotationScaleMatrix) {
 inline Transform& Transform::evalInverse(Transform& inverse) const {
     inverse.setIdentity();
     if (isScaling()) {
-        // TODO: At some point we will face the case when scale is 0 and so 1/0 will blow up...
-        // WHat should we do for this one?
-        assert(_scale.x != 0);
-        assert(_scale.y != 0);
-        assert(_scale.z != 0);
         if (isNonUniform()) {
-            inverse.setScale(Vec3(1.0f/_scale.x, 1.0f/_scale.y, 1.0f/_scale.z));
+            inverse.setScale(Vec3(1.0f) / _scale);
         } else {
-            inverse.setScale(1.0f/_scale.x);
+            inverse.setScale(1.0f / _scale.x);
         }
     }
     if (isRotating()) {
@@ -421,8 +453,7 @@ inline Transform& Transform::inverseMult( Transform& result, const Transform& le
     result.setIdentity();
 
     if (left.isScaling()) {
-        const Vec3& s = left.getScale();
-        result.setScale(Vec3(1.0f / s.x, 1.0f / s.y, 1.0f / s.z));
+        result.setScale(Vec3(1.0f) / left.getScale());
     }
     if (left.isRotating()) {
         result.postRotate(glm::conjugate(left.getRotation()));
