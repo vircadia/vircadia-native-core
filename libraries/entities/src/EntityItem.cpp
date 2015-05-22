@@ -321,10 +321,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
     glm::vec3 savePosition = _position;
     glm::quat saveRotation = _rotation;
-    // glm::vec3 saveVelocity = _velocity;
-    // glm::vec3 saveAngularVelocity = _angularVelocity;
-    // glm::vec3 saveGravity = _gravity;
-    // glm::vec3 saveAcceleration = _acceleration;
+    glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveAngularVelocity = _angularVelocity;
+    glm::vec3 saveGravity = _gravity;
+    glm::vec3 saveAcceleration = _acceleration;
+    uint32_t saveFlags = _dirtyFlags;
 
 
     // Header bytes
@@ -626,10 +627,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // this node, so our version has to be newer than what the packet contained.
         _position = savePosition;
         _rotation = saveRotation;
-        // _velocity = saveVelocity;
-        // _angularVelocity = saveAngularVelocity;
-        // _gravity = saveGravity;
-        // _acceleration = saveAcceleration;
+        _velocity = saveVelocity;
+        _angularVelocity = saveAngularVelocity;
+        _gravity = saveGravity;
+        _acceleration = saveAcceleration;
+        _dirtyFlags &= ~(saveFlags & (EntityItem::DIRTY_POSITION |
+                                      EntityItem::DIRTY_ROTATION |
+                                      EntityItem::DIRTY_LINEAR_VELOCITY |
+                                      EntityItem::DIRTY_ANGULAR_VELOCITY |
+                                      EntityItem::DIRTY_PHYSICS_ACTIVATION));
     }
 
     return bytesRead;
