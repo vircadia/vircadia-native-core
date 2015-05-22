@@ -37,7 +37,7 @@ public:
     // If you know you don't rely on any state changed by naked gl calls then
     // leave to false where it belongs
     // if true, the needed resync IS EXPENSIVE
-    static void renderBatch(Batch& batch, bool syncCache = true);
+    static void renderBatch(Batch& batch, bool syncCache = false);
 
     static bool checkGLError(const char* name = nullptr);
 
@@ -318,7 +318,6 @@ protected:
 
         GLState* _state;
         bool _invalidState = false;
-      //  bool _needStateSync = true;
 
         PipelineStageState() :
             _pipeline(),
@@ -327,8 +326,7 @@ protected:
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),
             _state(nullptr),
-            _invalidState(false)//,
-      //      _needStateSync(true)
+            _invalidState(false)
              {}
     } _pipeline;
 
