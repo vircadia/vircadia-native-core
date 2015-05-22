@@ -1,5 +1,5 @@
 //
-//  Task.cpp
+//  DrawTask.h
 //  render/src/render
 //
 //  Created by Sam Gateau on 5/21/15.
@@ -9,18 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Task.h"
+#ifndef hifi_render_Task_h
+#define hifi_render_Task_h
 
-using namespace render;
+#include "Engine.h"
+
+namespace render {
 
 
-DrawSceneTask::~DrawSceneTask() {
-}
+class DrawSceneTask : public Task {
+public:
 
-void DrawSceneTask::setup(RenderArgs* args) {
-};
+    DrawSceneTask() : Task() {}
+    ~DrawSceneTask();
 
-void DrawSceneTask::run() {
+    virtual void run(const SceneContextPointer& sceneContext);
 };
 
 

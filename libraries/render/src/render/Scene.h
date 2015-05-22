@@ -17,6 +17,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <RenderArgs.h>
 #include <AABox.h>
 #include <atomic>
 #include <mutex>
@@ -32,21 +33,20 @@ public:
     enum FlagBit {
         TYPE_SHAPE = 0, // Item is a Shape
         TYPE_LIGHT,     // Item is a Light
-        TRANSLUCENT,    // Translucent and not opaque
+        TRANSPARENT,    // Transparent and not opaque
         VIEW_SPACE,     // Transformed in view space, and not in world space
         DYNAMIC,        // Dynamic and bound will change unlike static item
         DEFORMED,       // Deformed within bound, not solid 
         INVISIBLE,      // Visible or not? could be just here to cast shadow
         SHADOW_CASTER,  // Item cast shadows
         PICKABLE,       // Item can be picked/selected
-    
-        INVERT_FLAG,     // If true then the meaning of the other flags is inverted
 
         NUM_FLAGS,      // Not a valid flag
+        ALL_FLAGS_MASK = 0xFFFF,
     };
     typedef std::bitset<NUM_FLAGS> Flags; 
     
-    // THe key is the Flags
+    // The key is the Flags
     Flags _flags;
 
     ItemKey() : _flags(0) {}
@@ -57,22 +57,25 @@ public:
     public:
         Builder() {}
 
-        const ItemKey& build() const { return ItemKey(_flags); }
+        const ItemKey build() const { return ItemKey(_flags); }
 
         Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
         Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
-        Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
+        Builder& withTransparent() { _flags.set(TRANSPARENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
+
+        // Convenient standard keys that we will keep on using all over the place
+        static const ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
+        static const ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
     };
 
-
-    bool isOpaque() const { return !_flags[TRANSLUCENT]; }
-    bool isTranslucent() const { return _flags[TRANSLUCENT]; }
+    bool isOpaque() const { return !_flags[TRANSPARENT]; }
+    bool isTransparent() const { return _flags[TRANSPARENT]; }
 
     bool isWorldSpace() const { return !_flags[VIEW_SPACE]; }
     bool isViewSpace() const { return _flags[VIEW_SPACE]; }
@@ -89,20 +92,66 @@ public:
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
 
     bool isPickable() const { return _flags[PICKABLE]; }
+};
+
  
- 
-    // Item Key operator testing if a key pass a filter test
-    // the filter can have several flags on and the test is true if
-    // (key AND filter) == filter
-    // IF the filter has the INVERT_FLAGS On then we need to use the
-    // !key value instead of key
-    bool filterTest(const ItemKey& filter) const {
-        if (filter._flags[INVERT_FLAG]) {
-            return (filter._flags & ~_flags) == filter._flags;
-        } else {
-            return (filter._flags & _flags) == filter._flags;
+class ItemFilter {
+public:
+    ItemKey::Flags _value{ 0 };
+    ItemKey::Flags _mask{ 0 };
+
+
+    ItemFilter(const ItemKey::Flags& value = ItemKey::Flags(0), const ItemKey::Flags& mask = ItemKey::Flags(0)) : _value(value), _mask(mask) {}
+
+    class Builder {
+        ItemKey::Flags _value;
+        ItemKey::Flags _mask;
+    public:
+        Builder() {}
+
+        const ItemFilter build() const { return ItemFilter(_value, _mask); }
+
+        Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
+        Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
+        
+        Builder& withOpaque()           { _value.reset(ItemKey::TRANSPARENT); _mask.set(ItemKey::TRANSPARENT); return (*this); }
+        Builder& withTransparent()      { _value.set(ItemKey::TRANSPARENT); _mask.set(ItemKey::TRANSPARENT); return (*this); }
+        
+        Builder& withWorldSpace()       { _value.reset(ItemKey::VIEW_SPACE); _mask.set(ItemKey::VIEW_SPACE); return (*this); }
+        Builder& withViewSpace()        { _value.set(ItemKey::VIEW_SPACE);  _mask.set(ItemKey::VIEW_SPACE); return (*this); }
+
+        Builder& withStatic()           { _value.reset(ItemKey::DYNAMIC); _mask.set(ItemKey::DYNAMIC); return (*this); }
+        Builder& withDynamic()          { _value.set(ItemKey::DYNAMIC);  _mask.set(ItemKey::DYNAMIC); return (*this); }
+
+        Builder& withRigid()            { _value.reset(ItemKey::DEFORMED); _mask.set(ItemKey::DEFORMED); return (*this); }
+        Builder& withDeformed()         { _value.set(ItemKey::DEFORMED);  _mask.set(ItemKey::DEFORMED); return (*this); }
+
+        Builder& withVisible()          { _value.reset(ItemKey::INVISIBLE); _mask.set(ItemKey::INVISIBLE); return (*this); }
+        Builder& withInvisible()        { _value.set(ItemKey::INVISIBLE);  _mask.set(ItemKey::INVISIBLE); return (*this); }
+
+        Builder& withNoShadowCaster()   { _value.reset(ItemKey::SHADOW_CASTER); _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
+        Builder& withShadowCaster()     { _value.set(ItemKey::SHADOW_CASTER);  _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
+
+        Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
+
+        // Convenient standard keys that we will keep on using all over the place
+        static const ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().build(); }
+        static const ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+    };
+
+    // Item Filter operator testing if a key pass the filter
+    bool test(const ItemKey& key) const { return (key._flags & _mask) == (_value & _mask); }
+
+    class Less {
+    public:
+        bool operator() (const ItemFilter& left, const ItemFilter& right) {
+            if (left._value.to_ulong() > right._value.to_ulong()) {
+                return left._mask.to_ulong() < right._mask.to_ulong();
+            } else {
+                return true;
+            }
         }
-    }
+    };
 };
 
 class Item {
@@ -221,7 +270,7 @@ typedef std::vector<ItemID> ItemIDs;
 typedef std::set<ItemID> ItemIDSet;
 
 // A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly
-class ItemBucketMap : public std::map<ItemKey, ItemIDSet> {
+class ItemBucketMap : public std::map<ItemFilter, ItemIDSet, ItemFilter::Less> {
 public:
 
     ItemBucketMap() {}
@@ -230,6 +279,9 @@ public:
     void erase(const ItemID& id, const ItemKey& key);
     void reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey);
 
+    // standard builders allocating the main buckets
+    void allocateStandardOpaqueTranparentBuckets();
+    
 };
 
 class Engine;
@@ -305,6 +357,16 @@ public:
     void registerObserver(ObserverPointer& observer);
     void unregisterObserver(ObserverPointer& observer);
 
+
+    /// Access the main bucketmap of items
+    const ItemBucketMap& getMasterBucket() const { return _masterBucketMap; }
+
+    /// Access a particular item form its ID
+    /// WARNING, There is No check on the validity of the ID, so this could return a bad Item
+    const Item& getItem(const ItemID& id) const { return _items[id]; }
+
+    unsigned int getNumItems() const { return _items.size(); }
+
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator;
@@ -315,7 +377,7 @@ protected:
     // database of items is protected for editing by a mutex
     std::mutex _itemsMutex;
     Item::Vector _items;
-    ItemBucketMap _buckets;
+    ItemBucketMap _masterBucketMap;
 
     void processPendingChangesQueue();
     void resetItems(const ItemIDs& ids, Payloads& payloads);
