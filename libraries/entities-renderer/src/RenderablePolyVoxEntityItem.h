@@ -32,6 +32,9 @@ public:
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
 
+    glm::vec3 metersToVoxelCoordinates(glm::vec3 metersOffCenter);
+    glm::vec3 voxelCoordinatesToMeters(glm::vec3 voxelCoords);
+
     void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
     void createSphereInVolume(glm::vec3 center, float radius);
     void eraseSphereInVolume(glm::vec3 center, float radius);

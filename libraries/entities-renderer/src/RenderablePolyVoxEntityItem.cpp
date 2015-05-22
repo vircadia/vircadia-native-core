@@ -50,6 +50,23 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
 }
 
+glm::vec3 RenderablePolyVoxEntityItem::metersToVoxelCoordinates(glm::vec3 metersOffCenter) {
+    // convert a vector from the center of the entity with units of meters to a vector with units
+    // of index-into-volData.
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 scale = dimensions / _voxelVolumeSize; // meters / voxel-units
+    glm::vec3 voxelCoords = metersOffCenter / scale;
+    // the voxel volume is entirely in positive space, but the voxel space is centered at the entity's coords, so:
+    return voxelCoords + _voxelVolumeSize / 2.0f;
+}
+
+glm::vec3 RenderablePolyVoxEntityItem::voxelCoordinatesToMeters(glm::vec3 voxelCoords) {
+    // convert a vector is voxel-space to an offset from the entity-center in meters
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 scale = dimensions / _voxelVolumeSize; // meters / voxel-units
+    glm::vec3 centeredCoords = voxelCoords - _voxelVolumeSize / 2.0f;
+    return centeredCoords * scale;
+}
 
 void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {
     // This three-level for loop iterates over every voxel in the volume
@@ -100,10 +117,10 @@ void RenderablePolyVoxEntityItem::getModel() {
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     //Create a surface extractor. Comment out one of the following two lines to decide which type gets created.
-    // PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-    //     (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
         (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+    // PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    //     (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
 
     //Execute the surface extractor.
     surfaceExtractor.execute();
@@ -178,7 +195,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glm::vec3 positionToCenter = center - position;
-        // make the voxel volume be centered on the entity's position
+        // make the rendered voxel volume be centered on the entity's position
         positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f);
         glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
         glScalef(scale.x, scale.y, scale.z);
