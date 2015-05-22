@@ -234,6 +234,9 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             } else {
                 qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
             }
+
+            // immediately send a domain-server check in now that we have channel to talk to domain-server on
+            sendDomainServerCheckIn();
         }
         case PacketTypeStunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
