@@ -143,6 +143,7 @@
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
 
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
 extern "C" {
@@ -392,7 +393,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
     // downloads.
     QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache *geometryCache = geometryCacheP.data();
+    ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
@@ -3306,7 +3307,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             gpu::Batch batch;
             model::Skybox::render(batch, _viewFrustum, *skybox);
 
-            gpu::GLBackend::renderBatch(batch);
+            gpu::GLBackend::renderBatch(batch, true);
             glUseProgram(0);
         }
     }

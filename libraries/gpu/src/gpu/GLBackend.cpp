@@ -76,12 +76,10 @@ GLBackend::GLBackend() :
     _output()
 {
     initTransform();
-    initInput();
 }
 
 GLBackend::~GLBackend() {
     killTransform();
-    killInput();
 }
 
 void GLBackend::render(Batch& batch) {
@@ -98,8 +96,11 @@ void GLBackend::render(Batch& batch) {
     }
 }
 
-void GLBackend::renderBatch(Batch& batch) {
+void GLBackend::renderBatch(Batch& batch, bool syncCache) {
     GLBackend backend;
+    if (syncCache) {
+        backend.syncCache();
+    }
     backend.render(batch);
 }
 
@@ -134,6 +135,13 @@ bool GLBackend::checkGLError(const char* name) {
         }
         return true;
     }
+}
+
+
+void GLBackend::syncCache() {
+    syncTransformStateCache();
+    syncPipelineStateCache();
+    syncInputStateCache();
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
@@ -547,6 +555,5 @@ void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
     }
     glGetFloatv(target, glm::value_ptr(m));
 }
-
 
 
