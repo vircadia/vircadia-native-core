@@ -94,7 +94,7 @@ void GlowEffect::init(bool enabled) {
     _enabled = enabled;
 }
 
-void GlowEffect::prepare(const RenderArgs& renderArgs) {
+void GlowEffect::prepare(RenderArgs& renderArgs) {
     auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
@@ -117,7 +117,7 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
-gpu::FramebufferPointer GlowEffect::render(const RenderArgs& renderArgs) {
+gpu::FramebufferPointer GlowEffect::render(RenderArgs& renderArgs) {
     PerformanceTimer perfTimer("glowEffect");
 
     auto textureCache = DependencyManager::get<TextureCache>();
