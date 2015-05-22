@@ -254,12 +254,15 @@ $(document).ready(function(){
   });
 
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
+    $(this).blur();
     disonnectHighFidelityAccount();
+    e.preventDefault();
   });
 
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
     $(this).blur();
     prepareAccessTokenPrompt();
+    e.preventDefault();
   });
 
   var panelsSource = $('#panels-template').html()
@@ -345,7 +348,7 @@ function disonnectHighFidelityAccount() {
       + "</br></br>This could cause your domain to appear offline and no longer be reachable via any place names.",
     type: "warning",
     html: true,
-    showCancelButton: true,
+    showCancelButton: true
   }, function(){
     // we need to post to settings to clear the access-token
     $(Settings.ACCESS_TOKEN_SELECTOR).val('').change();
