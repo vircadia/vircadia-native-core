@@ -199,7 +199,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     RenderableDebugableEntityItem::render(this, args);
 }
 
-// virtual
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
 
@@ -208,11 +207,11 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         _myRenderer = renderer;
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
-
+    
     if (QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
-
+    
     _needsModelReload = false; // this is the reload
 
     // if we have a URL, then we will want to end up returning a model...
