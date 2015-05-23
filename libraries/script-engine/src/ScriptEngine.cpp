@@ -389,6 +389,30 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     }
 }
 
+void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    if (!_registeredHandlers.contains(entityID)) {
+        _registeredHandlers[entityID] = RegisteredEventHandlers();
+    }
+    _registeredHandlers[entityID][eventName] = handler;
+    if (eventName == "collisionWithEntity") {
+        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, &ScriptEngine::collisionWithEntity);
+    }
+    // FIXME: deletingEntity, changingEntityID
+}
+void ScriptEngine::removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    // FIXME
+}
+void ScriptEngine::collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+    if (!_registeredHandlers.contains(idA)) return;
+    const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[idA];
+    if (!handlersOnEntity.contains("collisionWithEntity")) return;
+    // FIXME: Need one more level of indirection. We need to allow multiple handlers per event, registered by different scripts.
+    QScriptValue handlerForEvent = handlersOnEntity["collisionWithEntity"];
+    QScriptValueList args = QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
+    handlerForEvent.call(QScriptValue(), args);
+}
+
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {
         return; // bail early

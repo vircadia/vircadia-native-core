@@ -201,6 +201,13 @@ void EntityScriptingInterface::dumpTree() const {
     }
 }
 
+void EntityScriptingInterface::addEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
+    emit addEntityEventHandler(entityID, entityEventName, handler);
+}
+void EntityScriptingInterface::removeEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
+    emit removeEntityEventHandler(entityID, entityEventName, handler);
+}
+
 QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {
     QVector<QUuid> result;
     if (_entityTree) {

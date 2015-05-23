@@ -31,10 +31,13 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
+#include "EntityItemID.h"
 
 const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
+
+typedef QHash<QString, QScriptValue> RegisteredEventHandlers;
 
 class ScriptEngine : public QScriptEngine, public ScriptUser {
     Q_OBJECT
@@ -98,6 +101,9 @@ public:
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
     virtual void errorInLoadingScript(const QUrl& url);
 
+    void addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
+    void removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
+
 public slots:
     void loadURL(const QUrl& scriptURL);
     void stop();
@@ -114,6 +120,7 @@ public slots:
     QUrl resolvePath(const QString& path) const;
 
     void nodeKilled(SharedNodePointer node);
+    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
@@ -164,6 +171,7 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
+    QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;

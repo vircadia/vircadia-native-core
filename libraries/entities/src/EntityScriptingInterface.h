@@ -119,8 +119,16 @@ public slots:
 
     Q_INVOKABLE void dumpTree() const;
 
+    // Register a function that will handle the given entityEventName on entityID
+    Q_INVOKABLE void addEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
+    Q_INVOKABLE void removeEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
+
 signals:
+    void addEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
+    void removeEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
+
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
