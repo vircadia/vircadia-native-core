@@ -50,7 +50,7 @@ bool OffscreenGlCanvas::makeCurrent() {
             connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
                 qDebug() << message;
             });
-            _logger->enableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::HighSeverity);
+            _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
             _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);
         }
     }

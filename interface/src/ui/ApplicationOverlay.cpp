@@ -394,6 +394,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     } glPopMatrix();
 }
+#endif
 
 // Draws the FBO texture for 3DTV.
 void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov) {
@@ -442,7 +443,7 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     GLfloat y = -halfQuadHeight;
     glDisable(GL_DEPTH_TEST);
 
-    with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+    with_each_texture(getOverlayTexture(), _newUiTexture, [&] {
         DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance),
                                                 glm::vec3(x + quadWidth, y + quadHeight, -distance),
                                                 glm::vec3(x + quadWidth, y, -distance),
@@ -488,7 +489,6 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
 }
-#endif
 
 
 void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {

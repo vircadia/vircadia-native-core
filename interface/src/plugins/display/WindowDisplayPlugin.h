@@ -25,7 +25,6 @@ public:
 
     virtual void activate();
     virtual void deactivate();
-    virtual bool eventFilter(QObject* object, QEvent* event);
 private:
     QTimer _timer;
 };

@@ -14,9 +14,9 @@
 #include <QSurfaceFormat>
 
 class QOpenGLContext;
+class QOpenGLDebugLogger;
 
 class GlWindow : public QWindow {
-    QOpenGLContext * _context{ nullptr };
 public:
     GlWindow(QOpenGLContext * shareContext = nullptr);
     GlWindow(const QSurfaceFormat& format, QOpenGLContext * shareContext = nullptr);
@@ -24,6 +24,11 @@ public:
     void makeCurrent();
     void doneCurrent();
     void swapBuffers();
+private:
+    QOpenGLContext * _context{ nullptr };
+#ifdef DEBUG
+    QOpenGLDebugLogger * _logger{ nullptr };
+#endif
 };
 
 #endif

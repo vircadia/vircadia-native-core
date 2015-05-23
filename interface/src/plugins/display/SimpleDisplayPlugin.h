@@ -52,31 +52,11 @@ protected:
 
 class GlWindowDisplayPlugin : public SimpleDisplayPlugin<GlWindow> {
 public:
-    virtual void activate() {
-        Q_ASSERT(nullptr == _window);
-        _window = new GlWindow(QOpenGLContext::currentContext());
-    }
-
-    virtual void deactivate() {
-        Q_ASSERT(nullptr != _window);
-        _window->hide();
-        _window->destroy();
-        _window->deleteLater();
-        _window = nullptr;
-    }
-
-    virtual QSize getDeviceSize() const final {
-        return _window->geometry().size() * _window->devicePixelRatio();
-    }
-
-    virtual glm::ivec2 getCanvasSize() const final {
-        return toGlm(_window->geometry().size());
-    }
-
-    virtual bool hasFocus() const {
-        return _window->isActive();
-    }
-
-
+    virtual void activate();
+    virtual void deactivate();
+    virtual QSize getDeviceSize() const final;
+    virtual glm::ivec2 getCanvasSize() const final;
+    virtual bool hasFocus() const;
+    virtual bool eventFilter(QObject* object, QEvent* event);
 };
 

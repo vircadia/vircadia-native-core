@@ -1164,7 +1164,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
         return;
     }
 
-    if (activeWindow() == _window) {
+    if (hasFocus()) {
         _keyboardMouseDevice.keyPressEvent(event);
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
@@ -1386,17 +1386,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 
-#define VR_MENU_ONLY_IN_HMD
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    if (event->key() == Qt::Key_Alt && _altPressed && _window->isActiveWindow()) {
-#ifdef VR_MENU_ONLY_IN_HMD
-        if (isHMDMode()) {
-#endif
+    if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
+        if (getActiveDisplayPlugin()->isStereo()) {
             VrMenu::toggle();
-#ifdef VR_MENU_ONLY_IN_HMD
         }
-#endif
     }
 
     _keysPressed.remove(event->key());
@@ -4700,52 +4695,36 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 
 using DisplayPluginList = QVector<DisplayPluginPointer>;
 
+static DisplayPlugin* PLUGIN_POOL[] = {
+    new LegacyDisplayPlugin(),
+#ifdef DEBUG
+    new NullDisplayPlugin(),
+#endif
+    new Tv3dDisplayPlugin(),
+    new WindowDisplayPlugin(),
+    nullptr
+};
+
 // FIXME move to a plugin manager class
 static const DisplayPluginList & getDisplayPlugins() {
     static DisplayPluginList RENDER_PLUGINS;
     static bool init = false;
     if (!init) {
         init = true;
-        DisplayPluginPointer displayPlugin = DisplayPluginPointer(new LegacyDisplayPlugin()); // new WindowDisplayPlugin();
-        if (displayPlugin->isSupported()) {
-            displayPlugin->init();
-            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [] {
-                qApp->paintGL();
-            });
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
-                qApp->resizeGL();
-            });
-            addDisplayPluginToMenu(displayPlugin, true);
-        }
-
-#ifdef DEBUG
-        displayPlugin = DisplayPluginPointer(new NullDisplayPlugin());
-        if (displayPlugin->isSupported()) {
-            addDisplayPluginToMenu(displayPlugin);
-            displayPlugin->init();
-            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
-        }
-#endif
-
-        displayPlugin = DisplayPluginPointer(new Tv3dDisplayPlugin());
-        if (displayPlugin->isSupported()) {
-            addDisplayPluginToMenu(displayPlugin);
-            displayPlugin->init();
-            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
-        }
-
-        displayPlugin = DisplayPluginPointer(new WindowDisplayPlugin());
-        if (displayPlugin->isSupported()) {
-            addDisplayPluginToMenu(displayPlugin);
-            displayPlugin->init();
-            RENDER_PLUGINS.push_back(DisplayPluginPointer(displayPlugin));
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [] {
-                qApp->paintGL();
-            });
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
-                qApp->resizeGL();
-            });
+        for (int i = 0; PLUGIN_POOL[i]; ++i) {
+            DisplayPlugin * plugin = PLUGIN_POOL[i];
+            if (plugin->isSupported()) {
+                plugin->init();
+                QObject::connect(plugin, &DisplayPlugin::requestRender, [] {
+                    qApp->paintGL();
+                });
+                QObject::connect(plugin, &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
+                    qApp->resizeGL();
+                });
+                DisplayPluginPointer pluginPointer(plugin);
+                addDisplayPluginToMenu(pluginPointer, plugin == *PLUGIN_POOL);
+                RENDER_PLUGINS.push_back(pluginPointer);
+            }
         }
     }
     return RENDER_PLUGINS;
@@ -4773,6 +4752,10 @@ void Application::updateDisplayMode() {
             newDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
         }
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->setMouseTranslator(getActiveDisplayPlugin()->getMouseTranslator());
+        updateCursorVisibility();
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

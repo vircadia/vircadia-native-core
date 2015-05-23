@@ -10,12 +10,13 @@
 #include "SimpleDisplayPlugin.h"
 #include <QOpenGLContext>
 #include <QCursor>
+#include <QCoreApplication>
 
 #include <RenderUtil.h>
 #include "DependencyManager.h"
 #include "TextureCache.h"
 #include "gpu/GLBackend.h"
-
+#include "OffscreenUi.h"
 
 void SimpleGlDisplayPlugin::activate() {
     makeCurrent();
@@ -87,3 +88,74 @@ void SimpleGlDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& scene
     glFinish();
 }
 
+bool GlWindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
+    if (qApp->eventFilter(object, event)) {
+        return true;
+    }
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (offscreenUi->eventFilter(object, event)) {
+        return true;
+    }
+
+    switch (event->type()) {
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
+            break;
+
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::FocusIn:
+        case QEvent::FocusOut:
+        case QEvent::Resize:
+        case QEvent::MouseMove:
+            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
+
+static QSurfaceFormat getPluginFormat() {
+    QSurfaceFormat format;
+    // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
+    format.setDepthBufferSize(16);
+    format.setStencilBufferSize(8);
+    format.setVersion(4, 1);
+#ifdef DEBUG
+    format.setOption(QSurfaceFormat::DebugContext);
+#endif
+    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    return format;
+}
+
+
+void GlWindowDisplayPlugin::activate() {
+    Q_ASSERT(nullptr == _window);
+    _window = new GlWindow(getPluginFormat(), QOpenGLContext::currentContext());
+    _window->installEventFilter(this);
+    DependencyManager::get<OffscreenUi>()->setProxyWindow(_window);
+}
+
+void GlWindowDisplayPlugin::deactivate() {
+    Q_ASSERT(nullptr != _window);
+    _window->hide();
+    _window->destroy();
+    _window->deleteLater();
+    _window = nullptr;
+}
+
+QSize GlWindowDisplayPlugin::getDeviceSize() const {
+    return _window->geometry().size() * _window->devicePixelRatio();
+}
+
+glm::ivec2 GlWindowDisplayPlugin::getCanvasSize() const {
+    return toGlm(_window->geometry().size());
+}
+
+bool GlWindowDisplayPlugin::hasFocus() const {
+    return _window->isActive();
+}

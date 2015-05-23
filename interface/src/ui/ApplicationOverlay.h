@@ -18,6 +18,8 @@ class Overlays;
 class QOpenGLFramebufferObject;
 class QOpenGLTexture;
 
+class PalmData;
+
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
@@ -41,6 +43,10 @@ public:
     
     bool hasMagnifier() const { return _magnifier; }
     void toggleMagnifier() { _magnifier = !_magnifier; }
+
+    // FIXME: remove
+    void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
+
 
     // Converter from one frame of reference to another.
     // Frame of reference:

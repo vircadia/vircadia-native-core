@@ -11,18 +11,23 @@
 #pragma once
 
 #include "SimpleDisplayPlugin.h"
-#include "LegacyDisplayPlugin.h"
+#include <QTimer>
 
-class Tv3dDisplayPlugin : public LegacyDisplayPlugin {
+class Tv3dDisplayPlugin : public GlWindowDisplayPlugin {
     Q_OBJECT
 public:
     static const QString NAME;
     virtual const QString & getName();
-
+    Tv3dDisplayPlugin();
     virtual bool isStereo() const final { return true; }
     void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
         GLuint overlayTexture, const glm::uvec2& overlaySize);
-    //virtual bool isMouseOnScreen() const { return true; }
-    //virtual bool isThrottled() const;
-    //virtual void preDisplay();
+    virtual void activate();
+    virtual void deactivate();
+
+    //virtual std::function<QPointF(const QPointF&)> getMouseTranslator();
+    //virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const;
+
+private:
+    QTimer _timer;
 };

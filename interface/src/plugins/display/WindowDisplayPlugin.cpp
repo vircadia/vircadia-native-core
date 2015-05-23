@@ -26,7 +26,6 @@ const QString & WindowDisplayPlugin::getName() {
 
 void WindowDisplayPlugin::activate() {
     GlWindowDisplayPlugin::activate();
-    _window->installEventFilter(this);
     _window->show();
     _timer.start(8);
 }
@@ -36,23 +35,6 @@ void WindowDisplayPlugin::deactivate() {
     GlWindowDisplayPlugin::deactivate();
 }
 
-bool WindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
-    switch (event->type()) {
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonRelease:
-    case QEvent::KeyPress:
-    case QEvent::KeyRelease:
-    case QEvent::FocusIn:
-    case QEvent::FocusOut:
-    case QEvent::Resize:
-    case QEvent::MouseMove:
-        QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-        break;
-    default:
-        break;
-    }
-    return false;
-}
 
 #if 0
 

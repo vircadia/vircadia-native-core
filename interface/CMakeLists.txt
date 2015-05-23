@@ -128,6 +128,15 @@ add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
+add_dependency_external_projects(boostconfig)
+find_package(BOOSTCONFIG REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
+
+add_dependency_external_projects(oglplus)
+find_package(OGLPLUS REQUIRED)
+target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
+
+
 add_dependency_external_projects(LibOVR)
 find_package(LibOVR REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
