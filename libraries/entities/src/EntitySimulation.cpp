@@ -39,15 +39,10 @@ void EntitySimulation::updateEntities() {
 
 void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
 
-    // FIX ME!!!
-    /*
-    for (auto entityItr : _entitiesToDelete) {
-        EntityItemPointer entity = (*entityItr);
+    for (auto entity : _entitiesToDelete) {
         // this entity is still in its tree, so we insert into the external list
         entitiesToDelete.push_back(entity);
-        ++entityItr;
     }
-     */
     _entitiesToDelete.clear();
 }
 

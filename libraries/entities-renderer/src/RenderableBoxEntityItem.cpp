@@ -45,6 +45,5 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
     }
 
-    // FIX ME!
-    //RenderableDebugableEntityItem::render(this, args);
+    RenderableDebugableEntityItem::render(this, args);
 };

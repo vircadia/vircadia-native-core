@@ -191,12 +191,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (!didDraw) {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-        // FIX ME
-        //RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
 
-    // FIX ME
-    //RenderableDebugableEntityItem::render(this, args);
+    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {

@@ -22,7 +22,7 @@
 #include "RenderableDebugableEntityItem.h"
 
 
-void RenderableDebugableEntityItem::renderBoundingBox(EntityItemPointer entity, RenderArgs* args,
+void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args,
                                                       float puffedOut, glm::vec4& color) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
@@ -44,7 +44,7 @@ void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArg
     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, blueColor);
 }
 
-void RenderableDebugableEntityItem::render(EntityItemPointer entity, RenderArgs* args) {
+void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {
     bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
 
     if (debugSimulationOwnership) {
