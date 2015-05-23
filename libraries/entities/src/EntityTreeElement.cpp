@@ -643,7 +643,9 @@ void EntityTreeElement::cleanupEntities() {
         EntityItemPointer entity = (*_entityItems)[i];
         entity->_element = NULL;
         
-        // FIX ME!!! -- maybe this is correct
+        // NOTE: We explicitly don't delete the EntityItem here because since we only
+        // access it by smart pointers, when we remove it from the _entityItems
+        // we know that it will be deleted.
         //delete entity;
     }
     _entityItems->clear();
