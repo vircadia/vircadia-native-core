@@ -560,8 +560,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
         if (findSphereSpherePenetration(center, radius, entityCenter, entityRadius, penetration)) {
             // return true on first valid entity penetration
             
-            // FIX ME!!
-            //*penetratedObject = (void*)(entity);
+            *penetratedObject = (void*)(entity.get());
             
             return true;
         }
@@ -641,7 +640,6 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
 void EntityTreeElement::cleanupEntities() {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        // FIX ME!!
         EntityItemPointer entity = (*_entityItems)[i];
         entity->_element = NULL;
         

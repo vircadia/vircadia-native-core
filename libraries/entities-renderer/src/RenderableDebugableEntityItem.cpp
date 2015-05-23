@@ -19,7 +19,7 @@
 #include "RenderableDebugableEntityItem.h"
 
 
-void RenderableDebugableEntityItem::renderBoundingBox(EntityItemPointer entity, RenderArgs* args,
+void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args,
                                                       float puffedOut, glm::vec4& color) {
     glm::vec3 position = entity->getPosition();
     glm::vec3 center = entity->getCenter();
@@ -39,7 +39,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItemPointer entity, 
     glPopMatrix();
 }
 
-void RenderableDebugableEntityItem::renderHoverDot(EntityItemPointer entity, RenderArgs* args) {
+void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArgs* args) {
     glm::vec3 position = entity->getPosition();
     glm::vec3 center = entity->getCenter();
     glm::vec3 dimensions = entity->getDimensions();
@@ -65,7 +65,7 @@ void RenderableDebugableEntityItem::renderHoverDot(EntityItemPointer entity, Ren
     glPopMatrix();
 }
 
-void RenderableDebugableEntityItem::render(EntityItemPointer entity, RenderArgs* args) {
+void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {
     bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
 
     if (debugSimulationOwnership) {

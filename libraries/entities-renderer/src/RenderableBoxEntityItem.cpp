@@ -60,6 +60,5 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glPopMatrix();
     glPopMatrix();
 
-    // FIX ME!
-    //RenderableDebugableEntityItem::render(this, args);
+    RenderableDebugableEntityItem::render(this, args);
 };

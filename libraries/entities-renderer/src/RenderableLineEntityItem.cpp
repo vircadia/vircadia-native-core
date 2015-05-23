@@ -38,6 +38,5 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
     glPopMatrix();
     
-    // FIX ME
-    //RenderableDebugableEntityItem::render(this, args);
+    RenderableDebugableEntityItem::render(this, args);
 };

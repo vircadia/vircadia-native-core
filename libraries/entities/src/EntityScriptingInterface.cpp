@@ -103,8 +103,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     if (_entityTree) {
         _entityTree->lockForRead();
 
-        // FIX ME!!
-        EntityItemPointer entity = nullptr; // const_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(EntityItemID(identity)));
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
         
         if (entity) {
             results = entity->getProperties();
@@ -163,8 +162,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     if (_entityTree) {
         _entityTree->lockForWrite();
 
-        // FIX ME!!
-        EntityItemPointer entity = nullptr; // const_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
             if (entity->getLocked()) {
                 shouldDelete = false;
