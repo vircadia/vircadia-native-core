@@ -23,8 +23,8 @@
 #include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
 
-EntityItem* RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableModelEntityItem(entityID, properties);
+EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableModelEntityItem(entityID, properties));
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -191,10 +191,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (!didDraw) {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        // FIX ME
+        //RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
 
-    RenderableDebugableEntityItem::render(this, args);
+    // FIX ME
+    //RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
