@@ -68,11 +68,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
-            // FIX ME
-            /*
-            qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-            qDebug() << "foundEntityByID=" << foundEntityByID;
-             */
+            qDebug() << "foundEntityByRadius=" << foundEntityByRadius.get();
+            qDebug() << "foundEntityByID=" << foundEntityByID.get();
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
                 << elementCube.getCorner().x << "," 
@@ -112,11 +109,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
-            // FIX ME!
-            /*
-            qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-            qDebug() << "foundEntityByID=" << foundEntityByID;
-             */
+            qDebug() << "foundEntityByRadius=" << foundEntityByRadius.get();
+            qDebug() << "foundEntityByID=" << foundEntityByID.get();
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
                 << elementCube.getCorner().x << "," 
@@ -155,11 +149,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         const AACube& elementCube = containingElement ? containingElement->getAACube() : AACube();
         
         if (verbose) {
-            // FIX ME!
-            /*
-             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-             qDebug() << "foundEntityByID=" << foundEntityByID;
-             */
+            qDebug() << "foundEntityByRadius=" << foundEntityByRadius.get();
+            qDebug() << "foundEntityByID=" << foundEntityByID.get();
             qDebug() << "containingElement=" << containingElement;
             qDebug() << "containingElement.box=" 
                 << elementCube.getCorner().x << "," 
@@ -195,10 +186,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         quint64 end = usecTimestampNow();
         
         if (verbose) {
-            // FIX ME!
-            /*
-             qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-             */
+             qDebug() << "foundEntityByRadius=" << foundEntityByRadius.get();
         }
 
         bool passed = true; // foundEntityByRadius;
@@ -301,11 +289,8 @@ void EntityTests::entityTreeTests(bool verbose) {
             bool elementIsBestFit = containingElement->bestFitEntityBounds(foundEntityByID);
             
             if (extraVerbose) {
-                // FIX ME!
-                /*
-                 qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-                 qDebug() << "foundEntityByID=" << foundEntityByID;
-                 */
+                qDebug() << "foundEntityByRadius=" << foundEntityByRadius.get();
+                qDebug() << "foundEntityByID=" << foundEntityByID.get();
                 qDebug() << "containingElement=" << containingElement;
                 qDebug() << "containingElement.box=" 
                     << elementCube.getCorner().x << "," 
@@ -391,11 +376,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             EntityTreeElement* containingElement = tree.getContainingElement(entityID);
             
             if (extraVerbose) {
-                // FIX ME!
-                /*
-                 qDebug() << "foundEntityByRadius=" << foundEntityByRadius;
-                 qDebug() << "foundEntityByID=" << foundEntityByID;
-                 */
+                 qDebug() << "foundEntityByID=" << foundEntityByID.get();
             }
             
             // Every 1000th test, show the size of the tree...
