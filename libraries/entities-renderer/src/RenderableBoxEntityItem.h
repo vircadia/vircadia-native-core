@@ -17,7 +17,7 @@
 
 class RenderableBoxEntityItem : public BoxEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableBoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         BoxEntityItem(entityItemID, properties)

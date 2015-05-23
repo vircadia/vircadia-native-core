@@ -18,8 +18,8 @@
 
 #include "RenderableLineEntityItem.h"
 
-EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLineEntityItem(entityID, properties);
+EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableLineEntityItem(entityID, properties));
 }
 
 void RenderableLineEntityItem::render(RenderArgs* args) {
@@ -37,5 +37,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         glm::vec3& p2 = dimensions;
         DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
     glPopMatrix();
-    RenderableDebugableEntityItem::render(this, args);
+    
+    // FIX ME
+    //RenderableDebugableEntityItem::render(this, args);
 };

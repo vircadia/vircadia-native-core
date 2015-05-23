@@ -75,7 +75,7 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::postAddEntity(EntityItem* entity) {
+void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
@@ -94,7 +94,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
 
-    EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         qCDebug(entities) << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
@@ -103,7 +103,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     return updateEntityWithElement(existingEntity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
+bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
         qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
@@ -113,7 +113,7 @@ bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& pr
     return updateEntityWithElement(entity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& origProperties, 
+bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties, 
                                          EntityTreeElement* containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
 
@@ -220,8 +220,8 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
     return true;
 }
 
-EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = NULL;
+EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result = NULL;
 
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
@@ -291,7 +291,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
             qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
@@ -328,7 +328,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
             continue;
         }
 
-        EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+        EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
                 qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
@@ -362,7 +362,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         _simulation->lock();
     }
     foreach(const EntityToDeleteDetails& details, entities) {
-        EntityItem* theEntity = details.entity;
+        EntityItemPointer theEntity = details.entity;
 
         if (getIsServer()) {
             // set up the deleted entities ID
@@ -374,8 +374,10 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (_simulation) {
             _simulation->removeEntity(theEntity);
-        } 
-        delete theEntity; // we can delete the entity immediately
+        }
+        
+        // FIX ME!!!
+        //delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
         _simulation->unlock();
@@ -388,7 +390,7 @@ public:
     glm::vec3 position;
     float targetRadius;
     bool found;
-    const EntityItem* closestEntity;
+    EntityItemPointer closestEntity;
     float closestEntityDistance;
 };
 
@@ -402,7 +404,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 
     // If this entityTreeElement contains the point, then search it...
     if (sphereIntersection) {
-        const EntityItem* thisClosestEntity = entityTreeElement->getClosestEntity(args->position);
+        EntityItemPointer thisClosestEntity = entityTreeElement->getClosestEntity(args->position);
 
         // we may have gotten NULL back, meaning no entity was available
         if (thisClosestEntity) {
@@ -428,7 +430,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
     return false;
 }
 
-const EntityItem* EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
+EntityItemPointer EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
@@ -441,7 +443,7 @@ class FindAllNearPointArgs {
 public:
     glm::vec3 position;
     float targetRadius;
-    QVector<const EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 };
 
 
@@ -462,8 +464,8 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities) {
-    FindAllNearPointArgs args = { center, radius, QVector<const EntityItem*>() };
+void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities) {
+    FindAllNearPointArgs args = { center, radius, QVector<EntityItemPointer>() };
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
 
@@ -478,7 +480,7 @@ public:
     }
 
     AACube _cube;
-    QVector<EntityItem*> _foundEntities;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
 bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
@@ -492,7 +494,7 @@ bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities) {
+void EntityTree::findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities) {
     FindEntitiesInCubeArgs args(cube);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
@@ -507,7 +509,7 @@ public:
     }
     
     AABox _box;
-    QVector<EntityItem*> _foundEntities;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
 bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
@@ -521,7 +523,7 @@ bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntities) {
+void EntityTree::findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities) {
     FindEntitiesInBoxArgs args(box);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInBoxOperation, &args);
@@ -529,13 +531,13 @@ void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntit
     foundEntities.swap(args._foundEntities);
 }
 
-EntityItem* EntityTree::findEntityByID(const QUuid& id) {
+EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
 }
 
-EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
-    EntityItem* foundEntity = NULL;
+EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
+    EntityItemPointer foundEntity = NULL;
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         foundEntity = containingElement->getEntityWithEntityItemID(entityID);
@@ -571,7 +573,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             // an existing entity... handle appropriately
             if (validEditPacket) {
                 // search for the entity by EntityItemID
-                EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
+                EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 if (existingEntity && packetType == PacketTypeEntityEdit) {
                     // if the EntityItem exists, then update it
                     if (wantEditLogging()) {
@@ -588,7 +590,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                             qCDebug(entities) << "   properties:" << properties;
                         }
                         properties.setCreated(properties.getLastEdited());
-                        EntityItem* newEntity = addEntity(entityItemID, properties);
+                        EntityItemPointer newEntity = addEntity(entityItemID, properties);
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
@@ -604,7 +606,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                                           << "] attempted to add an entity.";
                     }
                 } else {
-                    qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity;
+                    qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
             break;
@@ -652,7 +654,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
     extraEncodeData->clear();
 }
 
-void EntityTree::entityChanged(EntityItem* entity) {
+void EntityTree::entityChanged(EntityItemPointer entity) {
     if (_simulation) {
         _simulation->lock();
         _simulation->changeEntity(entity);
@@ -672,8 +674,9 @@ void EntityTree::update() {
         if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            for (auto entityItr : pendingDeletes) {
-                EntityItem* entity = &(*entityItr);
+            
+            // NOTE: TEST ME!!
+            for (auto entity : pendingDeletes) {
                 assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
@@ -1004,7 +1007,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
+    //const QList<EntityItemPointer>&  entities = entityTreeElement->getEntities();
+    const EntityItems&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
         EntityItemID newID(QUuid::createUuid());
         args->newEntityIDs->append(newID);
@@ -1056,7 +1060,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
-        EntityItem* entity = addEntity(entityItemID, properties);
+        EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }

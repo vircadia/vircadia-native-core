@@ -38,22 +38,26 @@ void EntitySimulation::updateEntities() {
 }
 
 void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
+
+    // FIX ME!!!
+    /*
     for (auto entityItr : _entitiesToDelete) {
-        EntityItem* entity = &(*entityItr);
+        EntityItemPointer entity = (*entityItr);
         // this entity is still in its tree, so we insert into the external list
         entitiesToDelete.push_back(entity);
         ++entityItr;
     }
+     */
     _entitiesToDelete.clear();
 }
 
-void EntitySimulation::addEntityInternal(EntityItem* entity) {
+void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (entity->isMoving() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     }
 }
 
-void EntitySimulation::changeEntityInternal(EntityItem* entity) {
+void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     if (entity->isMoving() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     } else {
@@ -68,7 +72,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
         _nextExpiry = quint64(-1);
         SetOfEntities::iterator itemItr = _mortalEntities.begin();
         while (itemItr != _mortalEntities.end()) {
-            EntityItem* entity = *itemItr;
+            EntityItemPointer entity = *itemItr;
             quint64 expiry = entity->getExpiry();
             if (expiry < now) {
                 _entitiesToDelete.insert(entity);
@@ -96,7 +100,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     PerformanceTimer perfTimer("updatingEntities");
     SetOfEntities::iterator itemItr = _entitiesToUpdate.begin();
     while (itemItr != _entitiesToUpdate.end()) {
-        EntityItem* entity = *itemItr;
+        EntityItemPointer entity = *itemItr;
         // TODO: catch transition from needing update to not as a "change" 
         // so we don't have to scan for it here.
         if (!entity->needsToCallUpdate()) {
@@ -117,7 +121,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
     AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
     while (itemItr != _entitiesToSort.end()) {
-        EntityItem* entity = *itemItr;
+        EntityItemPointer entity = *itemItr;
         // check to see if this movement has sent the entity outside of the domain.
         AACube newCube = entity->getMaximumAACube();
         if (!domainBounds.touches(newCube)) {
@@ -145,7 +149,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
     _entitiesToSort.clear();
 }
 
-void EntitySimulation::addEntity(EntityItem* entity) {
+void EntitySimulation::addEntity(EntityItemPointer entity) {
     assert(entity);
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
@@ -167,7 +171,7 @@ void EntitySimulation::addEntity(EntityItem* entity) {
     entity->clearDirtyFlags();
 }
 
-void EntitySimulation::removeEntity(EntityItem* entity) {
+void EntitySimulation::removeEntity(EntityItemPointer entity) {
     assert(entity);
     _entitiesToUpdate.remove(entity);
     _mortalEntities.remove(entity);
@@ -180,7 +184,7 @@ void EntitySimulation::removeEntity(EntityItem* entity) {
     entity->_simulated = false;
 }
 
-void EntitySimulation::changeEntity(EntityItem* entity) {
+void EntitySimulation::changeEntity(EntityItemPointer entity) {
     assert(entity);
     if (!entity->_simulated) {
         // This entity was either never added to the simulation or has been removed
@@ -250,7 +254,7 @@ void EntitySimulation::clearEntities() {
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
-        EntityItem* entity = *itemItr;
+        EntityItemPointer entity = *itemItr;
         if (entity->isMoving() && !entity->getPhysicsInfo()) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);

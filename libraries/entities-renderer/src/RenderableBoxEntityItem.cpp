@@ -18,8 +18,8 @@
 
 #include "RenderableBoxEntityItem.h"
 
-EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableBoxEntityItem(entityID, properties);
+EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableBoxEntityItem(entityID, properties));
 }
 
 void RenderableBoxEntityItem::render(RenderArgs* args) {
@@ -60,5 +60,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glPopMatrix();
     glPopMatrix();
 
-    RenderableDebugableEntityItem::render(this, args);
+    // FIX ME!
+    //RenderableDebugableEntityItem::render(this, args);
 };

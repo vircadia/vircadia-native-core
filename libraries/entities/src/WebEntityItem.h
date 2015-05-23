@@ -15,7 +15,7 @@ class WebEntityItem : public EntityItem {
 public:
     static const QString DEFAULT_SOURCE_URL;
 
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
