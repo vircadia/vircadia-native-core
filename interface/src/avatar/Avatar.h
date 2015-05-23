@@ -68,7 +68,7 @@ public:
     void init();
     void simulate(float deltaTime);
 
-    virtual void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE,
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
         bool postLighting = false);
 
     //setters
@@ -208,11 +208,11 @@ protected:
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
     void renderDisplayName();
-    virtual void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
     

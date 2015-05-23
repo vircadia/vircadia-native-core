@@ -82,34 +82,27 @@ void Overlays::update(float deltatime) {
     
 }
 
-void Overlays::renderHUD() {
+void Overlays::renderHUD(RenderArgs* renderArgs) {
     QReadLocker lock(&_lock);
     
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args(NULL, Application::getInstance()->getViewFrustum(),
-                    lodManager->getOctreeSizeScale(),
-                    lodManager->getBoundaryLevelAdjust(),
-                    RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
     foreach(Overlay* thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_LIGHTING);
 
-            thisOverlay->render(&args);
+            thisOverlay->render(renderArgs);
 
             glDisable(GL_LIGHTING);
             glDisable(GL_DEPTH_TEST);
         } else{
-            thisOverlay->render(&args);
+            thisOverlay->render(renderArgs);
         }
     }
 }
 
-void Overlays::renderWorld(bool drawFront,
-                           RenderArgs::RenderMode renderMode,
-                           RenderArgs::RenderSide renderSide,
-                           RenderArgs::DebugFlags renderDebugFlags) {
+void Overlays::renderWorld(RenderArgs* renderArgs, bool drawFront) {
     QReadLocker lock(&_lock);
     if (_overlaysWorld.size() == 0) {
         return;
@@ -123,11 +116,6 @@ void Overlays::renderWorld(bool drawFront,
     float myAvatarScale = 1.0f;
     
     auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args(NULL, Application::getInstance()->getDisplayViewFrustum(),
-                    lodManager->getOctreeSizeScale(),
-                    lodManager->getBoundaryLevelAdjust(),
-                    renderMode, renderSide, renderDebugFlags);
-    
 
     foreach(Overlay* thisOverlay, _overlaysWorld) {
         Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
@@ -154,7 +142,7 @@ void Overlays::renderWorld(bool drawFront,
             default:
                 break;
         }
-        thisOverlay->render(&args);
+        thisOverlay->render(renderArgs);
         glPopMatrix();
     }
 }

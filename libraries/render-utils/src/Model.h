@@ -98,12 +98,12 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    bool render(float alpha = 1.0f, RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
     bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endScene(RenderArgs* args);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -371,7 +371,7 @@ private:
 
     // helper functions used by render() or renderInScene()
     void renderSetup(RenderArgs* args);
-    bool renderCore(float alpha, RenderArgs::RenderMode mode, RenderArgs* args);
+    bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
                         bool forceRenderMeshes = false);

@@ -52,7 +52,7 @@ public:
     };
     
     void simulate(float deltaTime, bool isMine);
-    void render(bool isMine, Model::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
+    void render(RenderArgs* renderArgs, bool isMine);
 
     void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
 
