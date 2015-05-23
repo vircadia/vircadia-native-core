@@ -383,9 +383,9 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type
     _content(content) {
 }
 
-std::once_flag onceListSuppoertedFormatsflag;
+std::once_flag onceListSupportedFormatsflag;
 void listSupportedImageFormats() {
-    std::call_once(onceListSuppoertedFormatsflag, [](){
+    std::call_once(onceListSupportedFormatsflag, [](){
         auto supportedFormats = QImageReader::supportedImageFormats();
         QString formats;
         foreach(const QByteArray& f, supportedFormats) {
