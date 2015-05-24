@@ -874,22 +874,6 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
-
-    connect(entityScriptingInterface, &EntityScriptingInterface::addEntityEventHandler, this, &EntityTreeRenderer::addEntityEventHandler);
-    connect(entityScriptingInterface, &EntityScriptingInterface::removeEntityEventHandler, this, &EntityTreeRenderer::addEntityEventHandler);
-}
-
-void EntityTreeRenderer::addEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
-    if (engine) { // In case it's gone by the time we get the signal
-        engine->addEntityEventHandler(entityID, entityEventName, handler);
-    }
-}
-void EntityTreeRenderer::removeEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
-    if (engine) {
-        engine->removeEntityEventHandler(entityID, entityEventName, handler);
-    }
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {

@@ -17,6 +17,7 @@
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
+#include "../../script-engine/src/ScriptEngine.h" // FIXME
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -202,10 +203,16 @@ void EntityScriptingInterface::dumpTree() const {
 }
 
 void EntityScriptingInterface::addEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    emit addEntityEventHandler(entityID, entityEventName, handler);
+    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
+    if (engine) { // In case it's gone by the time we get the signal
+        engine->addEntityEventHandler(entityID, entityEventName, handler);
+    }
 }
 void EntityScriptingInterface::removeEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    emit removeEntityEventHandler(entityID, entityEventName, handler);
+    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
+    if (engine) {
+        engine->removeEntityEventHandler(entityID, entityEventName, handler);
+    }
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, float radius) const {

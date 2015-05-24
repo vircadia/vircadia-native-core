@@ -389,29 +389,84 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     }
 }
 
-void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
-    auto entities = DependencyManager::get<EntityScriptingInterface>();
-    if (!_registeredHandlers.contains(entityID)) {
-        _registeredHandlers[entityID] = RegisteredEventHandlers();
-    }
-    _registeredHandlers[entityID][eventName] = handler;
-    if (eventName == "collisionWithEntity") {
-        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, &ScriptEngine::collisionWithEntity);
-    }
-    // FIXME: deletingEntity, changingEntityID
+// Answer the previously registered handler for the given entityID/eventName, else an invalid QScriptValue.
+QScriptValue ScriptEngine::getEntityEventHandler(const EntityItemID& entityID, const QString& eventName) {
+    if (!_registeredHandlers.contains(entityID)) return _illegal;
+    const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
+    if (!handlersOnEntity.contains(eventName)) return _illegal;
+    // FIXME: Need one more level of indirection. We need to allow multiple handlers per event, registered by different scripts.
+    return handlersOnEntity[eventName];
 }
 void ScriptEngine::removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
     // FIXME
 }
-void ScriptEngine::collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
-    if (!_registeredHandlers.contains(idA)) return;
-    const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[idA];
-    if (!handlersOnEntity.contains("collisionWithEntity")) return;
-    // FIXME: Need one more level of indirection. We need to allow multiple handlers per event, registered by different scripts.
-    QScriptValue handlerForEvent = handlersOnEntity["collisionWithEntity"];
-    QScriptValueList args = QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
-    handlerForEvent.call(QScriptValue(), args);
+// FIXME: deletingEntity, changingEntityID
+void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    if (!_registeredHandlers.contains(entityID)) {
+        _registeredHandlers[entityID] = RegisteredEventHandlers();
+    }
+    _registeredHandlers[entityID][eventName] = handler;
+    
+    // The rest connects the Entities signal to the handler here.
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    
+    // Given thunk that generates the arglist, evaluate that thunk only if needed, and call the handler.
+    auto generalHandler = [=](std::function<QScriptValueList()> argGenerator) {
+        QScriptValue handlerForEvent = getEntityEventHandler(entityID, eventName);
+        if (handlerForEvent.isValid()) {
+            QScriptValueList args = argGenerator();
+            handlerForEvent.call(QScriptValue(), args);
+        }
+    };
+    // Two common cases of event handler, differing only in argument signature.
+    auto singleEntityHandler = [=](const EntityItemID& entityItemID) {
+        generalHandler([=]() {
+            return QScriptValueList() << entityItemID.toScriptValue(this);
+        });
+    };
+    auto mouseHandler = [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+        generalHandler([=]() {
+            return QScriptValueList() << entityItemID.toScriptValue(this) << event.toScriptValue(this);
+        });
+    };
+    // This string comparison maze only happens when adding a handler, which isn't often, rather than during events.
+    // Nonetheless, I wish it were more DRY. Variadic signals from strings? "I know reflection. I've worked with reflection. QT is no reflection."
+    if (eventName == "enterEntity") {
+        connect(entities.data(), &EntityScriptingInterface::enterEntity, this, singleEntityHandler);
+    } else if (eventName == "leaveEntity") {
+        connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, singleEntityHandler);
+
+    } else if (eventName == "mousePressOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, mouseHandler);
+    } else if (eventName == "mouseMoveOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, mouseHandler);
+    } else if (eventName == "mouseReleaseOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, mouseHandler);
+
+    } else if (eventName == "clickDownOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, mouseHandler);
+    } else if (eventName == "holdingClickOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, mouseHandler);
+    } else if (eventName == "clickReleaseOnEntity") {
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, mouseHandler);
+
+    } else if (eventName == "hoverEnterEntity") {
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, mouseHandler);
+    } else if (eventName == "hoverOverEntity") {
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, mouseHandler);
+    } else if (eventName == "hoverLeaveEntity") {
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, mouseHandler);
+
+    } else if (eventName == "collisionWithEntity") {
+        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this,
+                [=](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+                    generalHandler([=]() {
+                        return QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
+                    });
+                });
+    }
 }
+
 
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {

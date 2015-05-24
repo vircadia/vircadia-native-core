@@ -121,9 +121,6 @@ public slots:
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
     void setDisplayModelElementProxy(bool value) { _displayModelElementProxy = value; }
     void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
-    
-    void addEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
-    void removeEntityEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler);
 
 protected:
     virtual Octree* createTree() { return new EntityTree(true); }

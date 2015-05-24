@@ -31,7 +31,7 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
-#include "EntityItemID.h"
+#include "../../entities/src/EntityItem.h" // FIXME
 
 const QString NO_SCRIPT("");
 
@@ -120,7 +120,6 @@ public slots:
     QUrl resolvePath(const QString& path) const;
 
     void nodeKilled(SharedNodePointer node);
-    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
@@ -172,6 +171,8 @@ private:
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
+    QScriptValue _illegal;
+    QScriptValue getEntityEventHandler(const EntityItemID& entityID, const QString& eventName);
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
