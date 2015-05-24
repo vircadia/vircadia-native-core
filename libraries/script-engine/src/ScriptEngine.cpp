@@ -395,20 +395,27 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
     const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
     if (!handlersOnEntity.contains(eventName)) return;
     // FIXME: Need one more level of indirection. We need to allow multiple handlers per event, registered by different scripts.
-    QScriptValue handlerForEvent = handlersOnEntity[eventName];
-    if (handlerForEvent.isValid()) {
+    QScriptValueList handlersForEvent = handlersOnEntity[eventName];
+    if (!handlersForEvent.isEmpty()) {
         QScriptValueList args = argGenerator();
-        handlerForEvent.call(QScriptValue(), args);
+        for (int i = 0; i < handlersForEvent.count(); ++i) {
+            handlersForEvent[i].call(QScriptValue(), args);
+        }
     }
 }
-// Unregister the handler for this eventName and entityID.
+// Unregister the handlers for this eventName and entityID.
 void ScriptEngine::removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
     if (!_registeredHandlers.contains(entityID)) return;
     RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
-    if (!handlersOnEntity.contains(eventName)) return;
-    handlersOnEntity.remove(eventName);
+    QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
+    // QScriptValue does not have operator==(), so we can't use QList::removeOne and friends. So iterate.
+    for (int i = 0; i < handlersForEvent.count(); ++i) {
+        if (handlersForEvent[i].equals(handler)) {
+            handlersForEvent.removeAt(i);
+            return; // Design choice: since comparison is relatively expensive, just remove the first matching handler.
+        }
+    }
 }
-// FIXME: deletingEntity, changingEntityID
 // Register the handler.
 void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
     if (_registeredHandlers.count() == 0) { // First time any per-entity handler has been added in this script...
@@ -466,7 +473,8 @@ void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QSt
     if (!_registeredHandlers.contains(entityID)) {
         _registeredHandlers[entityID] = RegisteredEventHandlers();
     }
-    _registeredHandlers[entityID][eventName] = handler;
+    QScriptValueList& handlersForEvent = _registeredHandlers[entityID][eventName];
+    handlersForEvent << handler; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
 
