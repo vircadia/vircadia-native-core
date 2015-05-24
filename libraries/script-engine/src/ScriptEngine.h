@@ -171,8 +171,7 @@ private:
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
-    QScriptValue _illegal;
-    QScriptValue getEntityEventHandler(const EntityItemID& entityID, const QString& eventName);
+    void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
