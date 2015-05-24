@@ -491,22 +491,7 @@
                                 elModelAnimationFrame.value = properties.animationFrameIndex;
                                 elModelAnimationSettings.value = properties.animationSettings;
                                 elModelTextures.value = properties.textures;
-                                elModelOriginalTextures.value = properties.originalTextures;
-                                if (properties.type == "ParticleEffect") {
-                                    for (var i = 0; i < elParticleSections.length; i++) {
-                                        elParticleSections[i].style.display = 'block';
-                                    }
-
-                                    elParticleMaxParticles.value = properties.maxParticles;
-                                    elParticleLifeSpan.value = properties.lifespan.toFixed(2);
-                                    elParticleEmitRate.value = properties.emitRate.toFixed(1);
-                                    elParticleEmitDirectionX.value = properties.emitDirection.x.toFixed(2);
-                                    elParticleEmitDirectionY.value = properties.emitDirection.y.toFixed(2);
-                                    elParticleEmitDirectionZ.value = properties.emitDirection.z.toFixed(2);
-                                    elParticleEmitStrength.value = properties.emitStrength.toFixed(2);
-                                    elParticleLocalGravity.value = properties.localGravity.toFixed(2);
-                                    elParticleRadius.value = properties.particleRadius.toFixed(3);
-                                }  
+                                elModelOriginalTextures.value = properties.originalTextures;  
                             } else if (properties.type == "Web") {
                                 for (var i = 0; i < elWebSections.length; i++) {
                                     elWebSections[i].style.display = 'block';
@@ -589,6 +574,20 @@
                                 
                                 showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
+                            } else if (properties.type == "ParticleEffect") {
+                                for (var i = 0; i < elParticleSections.length; i++) {
+                                    elParticleSections[i].style.display = 'block';
+                                }
+
+                                elParticleMaxParticles.value = properties.maxParticles;
+                                elParticleLifeSpan.value = properties.lifespan.toFixed(2);
+                                elParticleEmitRate.value = properties.emitRate.toFixed(1);
+                                elParticleEmitDirectionX.value = properties.emitDirection.x.toFixed(2);
+                                elParticleEmitDirectionY.value = properties.emitDirection.y.toFixed(2);
+                                elParticleEmitDirectionZ.value = properties.emitDirection.z.toFixed(2);
+                                elParticleEmitStrength.value = properties.emitStrength.toFixed(2);
+                                elParticleLocalGravity.value = properties.localGravity.toFixed(2);
+                                elParticleRadius.value = properties.particleRadius.toFixed(3);
                             }
 
                             if (selected) {
@@ -709,7 +708,6 @@
             elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
             elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
             elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
-            elParticleEmitDirection.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitDirection'));
             var particleEmitDirectionChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(
                 'emitDirection', elParticleEmitDirectionX, elParticleEmitDirectionY, elParticleEmitDirectionZ, DEGREES_TO_RADIANS);
             elParticleEmitDirectionX.addEventListener('change', particleEmitDirectionChangeFunction);
