@@ -1020,6 +1020,13 @@ void EntityItem::setTranformToCenter(const Transform& transform) {
     setTransform(copy);
 }
 
+void EntityItem::setDimensions(const glm::vec3& value) {
+    if (value.x == 0.0f || value.y == 0.0f || value.z == 0.0f) {
+        return;
+    }
+    _transform.setScale(value);
+}
+
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 /// 
