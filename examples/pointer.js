@@ -1,77 +1,99 @@
-
 var lineEntityID = null;
 var lineIsRezzed = false;
-
+var altHeld = false;
+var lineCreated = false;
 
 function nearLinePoint(targetPosition) {
-    var handPosition = MyAvatar.getRightPalmPosition();
-    var along = Vec3.subtract(targetPosition, handPosition);
-    along = Vec3.normalize(along);
-    along = Vec3.multiply(along, 0.4);
-    return Vec3.sum(handPosition, along);
+  var handPosition = MyAvatar.getRightPalmPosition();
+  var along = Vec3.subtract(targetPosition, handPosition);
+  along = Vec3.normalize(along);
+  along = Vec3.multiply(along, 0.4);
+  return Vec3.sum(handPosition, along);
 }
 
 
 function removeLine() {
-    if (lineIsRezzed) {
-        Entities.deleteEntity(lineEntityID);
-        lineEntityID = null;
-        lineIsRezzed = false;
-    }
+  if (lineIsRezzed) {
+    Entities.deleteEntity(lineEntityID);
+    lineEntityID = null;
+    lineIsRezzed = false;
+  }
 }
 
 
 function createOrUpdateLine(event) {
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
-    var props = Entities.getEntityProperties(intersection.entityID);
+  var pickRay = Camera.computePickRay(event.x, event.y);
+  var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
+  var props = Entities.getEntityProperties(intersection.entityID);
 
-    if (intersection.intersects) {
-        var dim = Vec3.subtract(intersection.intersection, nearLinePoint(intersection.intersection));
-        if (lineIsRezzed) {
-            Entities.editEntity(lineEntityID, {
-                position: nearLinePoint(intersection.intersection),
-                dimensions: dim,
-                lifetime: 15 + props.lifespan // renew lifetime
-            });
-        } else {
-            lineIsRezzed = true;
-            lineEntityID = Entities.addEntity({
-                type: "Line",
-                position: nearLinePoint(intersection.intersection),
-                dimensions: dim,
-                color: { red: 255, green: 255, blue: 255 },
-                lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
-            });
-        }
+  if (intersection.intersects) {
+    var dim = Vec3.subtract(intersection.intersection, nearLinePoint(intersection.intersection));
+    if (lineIsRezzed) {
+      Entities.editEntity(lineEntityID, {
+        position: nearLinePoint(intersection.intersection),
+        dimensions: dim,
+        lifetime: 15 + props.lifespan // renew lifetime
+      });
     } else {
-        removeLine();
+      lineIsRezzed = true;
+      lineEntityID = Entities.addEntity({
+        type: "Line",
+        position: nearLinePoint(intersection.intersection),
+        dimensions: dim,
+        color: {
+          red: 255,
+          green: 255,
+          blue: 255
+        },
+        lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
+      });
     }
+  } else {
+    removeLine();
+  }
 }
 
 
 function mousePressEvent(event) {
-    if (!event.isLeftButton) {
-        return;
-    }
-    Controller.mouseMoveEvent.connect(mouseMoveEvent);
-    createOrUpdateLine(event);
- }
+  if (!event.isLeftButton || altHeld) {
+    return;
+  }
+  Controller.mouseMoveEvent.connect(mouseMoveEvent);
+  createOrUpdateLine(event);
+  lineCreated = true;
+}
 
 
 function mouseMoveEvent(event) {
-    createOrUpdateLine(event);
+  createOrUpdateLine(event);
 }
 
 
 function mouseReleaseEvent(event) {
-    if (!event.isLeftButton) {
-        return;
-    }
-    Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
-    removeLine();
+  if (!lineCreated) {
+    return;
+  }
+  Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
+  removeLine();
+  lineCreated = false;
+}
+
+function keyPressEvent(event) {
+  if (event.text == "ALT") {
+    altHeld = true;
+  }
+}
+
+function keyReleaseEvent(event) {
+  if (event.text == "ALT") {
+    altHeld = false;
+  }
+
 }
 
 
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+
+Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);

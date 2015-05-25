@@ -79,7 +79,8 @@ enum PacketType {
     PacketTypeIceServerHeartbeat, // 50
     PacketTypeIceServerHeartbeatResponse,
     PacketTypeUnverifiedPing,
-    PacketTypeUnverifiedPingReply
+    PacketTypeUnverifiedPingReply,
+    PacketTypeParticleEntitiesFix
 };
 
 typedef char PacketVersion;
@@ -90,17 +91,17 @@ const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
 typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-    << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
-    << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
-    << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-    << PacketTypeNodeJsonStats << PacketTypeEntityQuery
-    << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
-    << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
-    << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
+<< PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
+<< PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
+<< PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
+<< PacketTypeNodeJsonStats << PacketTypeEntityQuery
+<< PacketTypeOctreeDataNack << PacketTypeEntityEditNack
+<< PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
+<< PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+<< PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
 
 const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
-    << PacketTypeAvatarData;
+<< PacketTypeAvatarData;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
@@ -179,5 +180,6 @@ const PacketVersion VERSION_ENTITIES_HAVE_LINE_TYPE = 24;
 const PacketVersion VERSION_ENTITIES_HAVE_COLLISION_SOUND_URL = 25;
 const PacketVersion VERSION_ENTITIES_HAVE_FRICTION = 26;
 const PacketVersion VERSION_NO_ENTITY_ID_SWAP = 27;
+const PacketVersion VERSION_ENTITIES_PARTICLE_FIX = 28;
 
 #endif // hifi_PacketHeaders_h
