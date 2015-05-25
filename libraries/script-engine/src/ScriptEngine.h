@@ -23,6 +23,7 @@
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
+#include <EntityItemID.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
@@ -31,7 +32,6 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
-#include "../../entities/src/EntityItem.h" // FIXME
 
 const QString NO_SCRIPT("");
 
@@ -101,8 +101,8 @@ public:
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
     virtual void errorInLoadingScript(const QUrl& url);
 
-    void addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
-    void removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
+    Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
+    Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
 public slots:
     void loadURL(const QUrl& scriptURL);

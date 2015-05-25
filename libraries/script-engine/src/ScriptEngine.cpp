@@ -404,7 +404,7 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
     }
 }
 // Unregister the handlers for this eventName and entityID.
-void ScriptEngine::removeEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
     if (!_registeredHandlers.contains(entityID)) return;
     RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
     QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
@@ -417,7 +417,7 @@ void ScriptEngine::removeEntityEventHandler(const EntityItemID& entityID, const 
     }
 }
 // Register the handler.
-void ScriptEngine::addEntityEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
     if (_registeredHandlers.count() == 0) { // First time any per-entity handler has been added in this script...
         // Connect up ALL the handlers to the global entities object's signals.
         // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)

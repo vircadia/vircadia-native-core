@@ -17,8 +17,6 @@
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
-#include "../../script-engine/src/ScriptEngine.h" // FIXME
-
 
 EntityScriptingInterface::EntityScriptingInterface() :
     _entityTree(NULL)
@@ -201,19 +199,6 @@ void EntityScriptingInterface::dumpTree() const {
         _entityTree->lockForRead();
         _entityTree->dumpTree();
         _entityTree->unlock();
-    }
-}
-
-void EntityScriptingInterface::addEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
-    if (engine) { // In case it's gone by the time we get the signal
-        engine->addEntityEventHandler(entityID, entityEventName, handler);
-    }
-}
-void EntityScriptingInterface::removeEventHandler(EntityItemID entityID, QString entityEventName, QScriptValue handler) {
-    ScriptEngine* engine = static_cast<ScriptEngine*>(handler.engine());
-    if (engine) {
-        engine->removeEntityEventHandler(entityID, entityEventName, handler);
     }
 }
 
