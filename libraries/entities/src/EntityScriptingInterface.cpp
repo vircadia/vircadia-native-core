@@ -18,6 +18,7 @@
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
 
+
 EntityScriptingInterface::EntityScriptingInterface() :
     _entityTree(NULL)
 {
