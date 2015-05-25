@@ -19,6 +19,7 @@
 #include "SharedUtil.h"
 #include "SimpleMovingAverage.h"
 
+#include <atomic>
 #include <cstring>
 #include <string>
 #include <map>
@@ -76,14 +77,18 @@ public:
     PerformanceTimer(const QString& name);
     ~PerformanceTimer();
     
+    static bool isActive();
+    static void setActive(bool active);
+    
     static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
     static const QMap<QString, PerformanceTimerRecord>& getAllTimerRecords() { return _records; };
     static void tallyAllTimerRecords();
     static void dumpAllTimerRecords();
 
 private:
-    quint64 _start;
+    quint64 _start = 0;
     QString _name;
+    static std::atomic<bool> _isActive;
     static QHash<QThread*, QString> _fullNames;
     static QMap<QString, PerformanceTimerRecord> _records;
 };
