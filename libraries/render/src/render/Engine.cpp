@@ -10,6 +10,7 @@
 //
 #include "Engine.h"
 
+#include "DrawTask.h"
 using namespace render;
 
 
@@ -34,5 +35,11 @@ void Engine::run() {
     }
 }
 
+void Engine::buildStandardTaskPipeline() {
+    if (!_tasks.empty()) {
+        _tasks.clear();
+    }
 
+    addTask(TaskPointer(new DrawSceneTask()));
+}
 

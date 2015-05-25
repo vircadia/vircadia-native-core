@@ -369,7 +369,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    
+  
+  
+    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->registerScene(_main3DScene);
+      
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -3145,6 +3149,22 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
+class MyFirstStuff {
+public:
+    typedef render::Payload<MyFirstStuff> Payload;
+    typedef std::shared_ptr<MyFirstStuff> Pointer;
+        
+};
+
+template <> const render::ItemKey render::payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+template <> const render::Item::Bound render::payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
+template <> void render::payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
+    if (args) {
+        args->_elementsTouched ++;
+    }
+}
+
+
 void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -3361,6 +3381,23 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
+
+    static render::ItemID myFirstRenderItem = 0;
+
+    if (myFirstRenderItem == 0) {
+        std::shared_ptr<MyFirstStuff::Payload> myFirstPayload(new MyFirstStuff::Payload(std::shared_ptr<MyFirstStuff>(new MyFirstStuff())));
+        myFirstRenderItem = _main3DScene->allocateID();
+
+        render::Scene::PendingChanges pendingChanges;
+        pendingChanges.resetItem(myFirstRenderItem, myFirstPayload);
+
+        _main3DScene->enqueuePendingChanges(pendingChanges);
+    }
+    
+    _main3DScene->processPendingChangesQueue();
+
+    // Before the deferred pass, let's try to use the render engine
+    _renderEngine->run();
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
