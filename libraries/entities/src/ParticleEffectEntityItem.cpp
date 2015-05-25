@@ -490,19 +490,21 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 }
 
 void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
-    _maxParticles = maxParticles;
+    if (_maxParticles != maxParticles) {
+        _maxParticles = maxParticles;
 
-    // TODO: try to do something smart here and preserve the state of existing particles.
+        // TODO: try to do something smart here and preserve the state of existing particles.
 
-    // resize vectors
-    _particleLifetimes.resize(_maxParticles);
-    _particlePositions.resize(_maxParticles);
-    _particleVelocities.resize(_maxParticles);
+        // resize vectors
+        _particleLifetimes.resize(_maxParticles);
+        _particlePositions.resize(_maxParticles);
+        _particleVelocities.resize(_maxParticles);
 
-    // effectivly clear all particles and start emitting new ones from scratch.
-    _particleHeadIndex = 0;
-    _particleTailIndex = 0;
-    _timeUntilNextEmit = 0.0f;
+        // effectivly clear all particles and start emitting new ones from scratch.
+        _particleHeadIndex = 0;
+        _particleTailIndex = 0;
+        _timeUntilNextEmit = 0.0f;
+    }
 }
 
 // because particles are in a ring buffer, this isn't trivial
