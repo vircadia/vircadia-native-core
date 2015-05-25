@@ -434,16 +434,16 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
                 });
         
         // Two common cases of event handler, differing only in argument signature.
-        auto makeSingleEntityHandler = [=](const QString& eventName) {
-            return [=](const EntityItemID& entityItemID) {
-                generalHandler(entityItemID, eventName, [=]() {
+        auto makeSingleEntityHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&)> {
+            return [=](const EntityItemID& entityItemID) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
                     return QScriptValueList() << entityItemID.toScriptValue(this);
                 });
             };
         };
-        auto makeMouseHandler = [=](const QString& eventName) {
-            return [=](const EntityItemID& entityItemID, const MouseEvent& event) {
-                generalHandler(entityItemID, eventName, [=]() {
+        auto makeMouseHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&, const MouseEvent&)>  {
+            return [=](const EntityItemID& entityItemID, const MouseEvent& event) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
                     return QScriptValueList() << entityItemID.toScriptValue(this) << event.toScriptValue(this);
                 });
             };
