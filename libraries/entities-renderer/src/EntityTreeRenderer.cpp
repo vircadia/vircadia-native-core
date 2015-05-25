@@ -1198,7 +1198,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
     }
 
-    emit collisionWithEntity(idB, idB, collision);
+    emit collisionWithEntity(idB, idA, collision);
     QScriptValue entityScriptB = loadEntityScript(idB);
     if (entityScriptB.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
