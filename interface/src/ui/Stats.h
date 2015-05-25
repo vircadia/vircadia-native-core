@@ -27,6 +27,8 @@ public:
     static void drawBackground(unsigned int rgba, int x, int y, int width, int height);
 
     void toggleExpanded();
+    bool isExpanded() { return _expanded; }
+    
     void checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset);
     void resetWidth(int width, int horizontalOffset);
     void display(const float* color, int horizontalOffset, float fps, int inPacketsPerSecond, int outPacketsPerSecond,

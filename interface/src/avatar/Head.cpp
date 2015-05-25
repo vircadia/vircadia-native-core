@@ -262,15 +262,13 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting) {
+void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
     if (postLighting) {
         if (_renderLookatVectors) {
-            renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
+            renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
         }
     } else {
-        RenderArgs args;
-        args._viewFrustum = renderFrustum;
-        _faceModel.render(alpha, mode, &args);
+        _faceModel.render(renderArgs, alpha);
     }
 }
 
@@ -353,9 +351,9 @@ void Head::addLeanDeltas(float sideways, float forward) {
     _deltaLeanForward += forward;
 }
 
-void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    DependencyManager::get<GlowEffect>()->begin();
+    DependencyManager::get<GlowEffect>()->begin(renderArgs);
     
     glLineWidth(2.0);
     
@@ -364,7 +362,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     geometryCache->renderLine(leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
     geometryCache->renderLine(rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 
-    DependencyManager::get<GlowEffect>()->end();
+    DependencyManager::get<GlowEffect>()->end(renderArgs);
 }
 
 

@@ -16,6 +16,7 @@ class ViewFrustum;
 class OctreeRenderer;
 namespace gpu {
 class Batch;
+class Context;
 }
 
 class RenderArgs {
@@ -30,7 +31,8 @@ public:
         RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
     
-    RenderArgs(OctreeRenderer* renderer = nullptr,
+    RenderArgs(gpu::Context* context = nullptr,
+               OctreeRenderer* renderer = nullptr,
                ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
@@ -55,6 +57,7 @@ public:
                
                int translucentMeshPartsRendered = 0,
                int opaqueMeshPartsRendered = 0) :
+    _context(context),
     _renderer(renderer),
     _viewFrustum(viewFrustum),
     _sizeScale(sizeScale),
@@ -82,6 +85,7 @@ public:
     _opaqueMeshPartsRendered(opaqueMeshPartsRendered) {
     }
 
+    gpu::Context* _context;
     OctreeRenderer* _renderer;
     ViewFrustum* _viewFrustum;
     float _sizeScale;

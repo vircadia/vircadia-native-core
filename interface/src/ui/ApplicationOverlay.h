@@ -32,7 +32,7 @@ public:
     ApplicationOverlay();
     ~ApplicationOverlay();
 
-    void renderOverlay();
+    void renderOverlay(RenderArgs* renderArgs);
     void displayOverlayTexture();
     void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
     void displayOverlayTextureHmd(Camera& whichCamera);
