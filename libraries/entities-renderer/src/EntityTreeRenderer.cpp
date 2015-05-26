@@ -139,7 +139,7 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
-    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
     return loadEntityScript(entity, isPreload);
 }
 
@@ -191,7 +191,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -325,7 +325,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
         
         if (avatarPosition != _lastAvatarPosition) {
             float radius = 1.0f; // for now, assume 1 meter radius
-            QVector<const EntityItem*> foundEntities;
+            QVector<EntityItemPointer> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
             
             // find the entities near us
@@ -333,7 +333,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
             // create a list of entities that actually contain the avatar's position
-            foreach(const EntityItem* entity, foundEntities) {
+            foreach(EntityItemPointer entity, foundEntities) {
                 if (entity->contains(avatarPosition)) {
                     entitiesContainingAvatar << entity->getEntityItemID();
                 }
@@ -394,7 +394,7 @@ void EntityTreeRenderer::leaveAllEntities() {
     }
 }
 
-void EntityTreeRenderer::applyZonePropertiesToScene(const ZoneEntityItem* zone) {
+void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
     QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
     if (zone) {
         if (!_hasPreviousZone) {
@@ -474,13 +474,11 @@ void EntityTreeRenderer::applyZonePropertiesToScene(const ZoneEntityItem* zone) 
     }
 }
 
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
-                                RenderArgs::RenderSide renderSide,
-                                RenderArgs::DebugFlags renderDebugFlags) {
+void EntityTreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree && !_shuttingDown) {
-        Model::startScene(renderSide);
+        Model::startScene(renderArgs->_renderSide);
 
-        ViewFrustum* frustum = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
+        ViewFrustum* frustum = (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
         
         // Setup batch transform matrices
@@ -492,54 +490,54 @@ void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode,
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         
-        RenderArgs args(this, frustum, getSizeScale(), getBoundaryLevelAdjust(),
-                        renderMode, renderSide, renderDebugFlags, &batch);
+        renderArgs->_renderer = this;
+        renderArgs->_batch = &batch;
 
         _tree->lockForRead();
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-        _bestZone = NULL;
+        _bestZone = NULL; // NOTE: Is this what we want?
         _bestZoneVolume = std::numeric_limits<float>::max();
-        _tree->recurseTreeWithOperation(renderOperation, &args);
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
 
         applyZonePropertiesToScene(_bestZone);
 
         // we must call endScene while we still have the tree locked so that no one deletes a model
         // on us while rendering the scene    
-        Model::endScene(renderMode, &args);
+        Model::endScene(renderArgs);
         _tree->unlock();
         
         glPushMatrix();
-        gpu::GLBackend::renderBatch(batch, true);
+        renderArgs->_context->enqueueBatch(batch);
         glPopMatrix();
         
         // stats...
-        _meshesConsidered = args._meshesConsidered;
-        _meshesRendered = args._meshesRendered;
-        _meshesOutOfView = args._meshesOutOfView;
-        _meshesTooSmall = args._meshesTooSmall;
+        _meshesConsidered = renderArgs->_meshesConsidered;
+        _meshesRendered = renderArgs->_meshesRendered;
+        _meshesOutOfView = renderArgs->_meshesOutOfView;
+        _meshesTooSmall = renderArgs->_meshesTooSmall;
 
-        _elementsTouched = args._elementsTouched;
-        _itemsRendered = args._itemsRendered;
-        _itemsOutOfView = args._itemsOutOfView;
-        _itemsTooSmall = args._itemsTooSmall;
+        _elementsTouched = renderArgs->_elementsTouched;
+        _itemsRendered = renderArgs->_itemsRendered;
+        _itemsOutOfView = renderArgs->_itemsOutOfView;
+        _itemsTooSmall = renderArgs->_itemsTooSmall;
 
-        _materialSwitches = args._materialSwitches;
-        _trianglesRendered = args._trianglesRendered;
-        _quadsRendered = args._quadsRendered;
+        _materialSwitches = renderArgs->_materialSwitches;
+        _trianglesRendered = renderArgs->_trianglesRendered;
+        _quadsRendered = renderArgs->_quadsRendered;
 
-        _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
-        _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+        _translucentMeshPartsRendered = renderArgs->_translucentMeshPartsRendered;
+        _opaqueMeshPartsRendered = renderArgs->_opaqueMeshPartsRendered;
     }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
-const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* entityItem) {
+const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         Model* model = modelEntityItem->getModel(this);
         if (model) {
@@ -549,23 +547,23 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(const EntityItem* en
     return result;
 }
 
-const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityItem) {
+const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
     const Model* result = NULL;
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         result = modelEntityItem->getModel(this);
     }
     return result;
 }
 
-const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(const EntityItem* entityItem) {
+const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem);
-        if (constModelEntityItem->hasCompoundShapeURL()) {
-            RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+        if (modelEntityItem->hasCompoundShapeURL()) {
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
@@ -611,7 +609,7 @@ void EntityTreeRenderer::renderElementProxy(EntityTreeElement* entityTreeElement
     }
 }
 
-void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
+void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* args) {
     bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     if (!isShadowMode && _displayModelBounds) {
         PerformanceTimer perfTimer("renderProxies");
@@ -658,7 +656,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    QList<EntityItem*>& entityItems = entityTreeElement->getEntities();
+    EntityItems& entityItems = entityTreeElement->getEntities();
     
 
     uint16_t numberOfEntities = entityItems.size();
@@ -670,7 +668,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     }
     
     for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* entityItem = entityItems[i];
+        EntityItemPointer entityItem = entityItems[i];
         
         if (entityItem->isVisible()) {
 
@@ -680,17 +678,17 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
                     if (entityVolumeEstimate < _bestZoneVolume) {
                         _bestZoneVolume = entityVolumeEstimate;
-                        _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                     } else if (entityVolumeEstimate == _bestZoneVolume) {
                         if (!_bestZone) {
                             _bestZoneVolume = entityVolumeEstimate;
-                            _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                         } else {
                             // in the case of the volume being equal, we will use the
                             // EntityItemID to deterministically pick one entity over the other
                             if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
                                 _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem);
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                             }
                         }
                     }
@@ -713,7 +711,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     
                     Glower* glower = NULL;
                     if (entityItem->getGlowLevel() > 0.0f) {
-                        glower = new Glower(entityItem->getGlowLevel());
+                        glower = new Glower(args, entityItem->getGlowLevel());
                     }
                     entityItem->render(args);
                     args->_itemsRendered++;
@@ -819,7 +817,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         EntityTree* entityTree = static_cast<EntityTree*>(_tree);
 
         OctreeElement* element;
-        EntityItem* intersectedEntity = NULL;
+        EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);
@@ -1094,7 +1092,7 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 }
 
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
-    EntityItem* entity = entityTree->findEntityByEntityItemID(id);
+    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return;
     }
@@ -1159,7 +1157,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         return;
     }
     // Don't respond to small continuous contacts.
-    const float COLLISION_MINUMUM_PENETRATION = 0.005;
+    const float COLLISION_MINUMUM_PENETRATION = 0.005f;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }

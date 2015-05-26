@@ -17,16 +17,56 @@
 namespace render {
 
 
+class SceneContext {
+public:
+    ScenePointer _scene;
+  
+    SceneContext() {}
+};
+typedef std::shared_ptr<SceneContext> SceneContextPointer;
 
+// THe base class for a task that runs on the SceneContext
+class Task {
+public:
+    Task() {}
+    ~Task() {}
+
+    virtual void run(const SceneContextPointer& sceneContext) {}
+
+protected:
+};
+
+
+typedef std::shared_ptr<Task> TaskPointer;
+typedef std::vector<TaskPointer> Tasks;
+
+// The root of the takss, the Engine, should not be known from the Tasks,
+// The SceneContext is what navigates from the engine down to the Tasks
 class Engine {
 public:
 
-    Engine() {}
+    Engine();
     ~Engine() {}
+
+    // Register the scene should be [art of the init phase before running the engine
+    void registerScene(const ScenePointer& scene);
+
+    void addTask(const TaskPointer& task);
+    const Tasks& getTasks() const { return _tasks; }
+
+
+    void run();
+
+    // standard pipeline of tasks
+    void buildStandardTaskPipeline();
 
 protected:
 
+    Tasks _tasks;
+
+    SceneContextPointer _sceneContext;
 };
+typedef std::shared_ptr<Engine> EnginePointer;
 
 }
 

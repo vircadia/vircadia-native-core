@@ -16,7 +16,7 @@
 
 class RenderableSphereEntityItem : public SphereEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableSphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         SphereEntityItem(entityItemID, properties)

@@ -116,6 +116,7 @@
 #include "devices/TV3DManager.h"
 
 #include "gpu/Batch.h"
+#include "gpu/Context.h"
 #include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
@@ -141,6 +142,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
+
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -368,7 +370,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    
+  
+  
+    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->registerScene(_main3DScene);
+      
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -687,6 +693,10 @@ Application::~Application() {
     // stop the glWidget frame timer so it doesn't call paintGL
     _glWidget->stopFrameTimer();
 
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    _physicsEngine.deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
+
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -830,6 +840,13 @@ void Application::initializeUi() {
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     _glWidget->makeCurrent();
+
+    auto lodManager = DependencyManager::get<LODManager>();
+    gpu::Context context;
+    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+                          lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                          RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+
     PerformanceTimer perfTimer("paintGL");
     //Need accurate frame timing for the oculus rift
     if (OculusManager::isConnected()) {
@@ -843,7 +860,7 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay();
+        _applicationOverlay.renderOverlay(&renderArgs);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -892,22 +909,25 @@ void Application::paintGL() {
     loadViewFrustum(_myCamera, _viewFrustum);
 
     if (getShadowsEnabled()) {
-        updateShadowMap();
+        renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        updateShadowMap(&renderArgs);
     }
+
+    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_glWidget, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_glWidget, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
     } else if (TV3DManager::isConnected()) {
        
-        TV3DManager::display(_myCamera);
+        TV3DManager::display(&renderArgs, _myCamera);
 
     } else {
-        DependencyManager::get<GlowEffect>()->prepare();
+        DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -916,16 +936,16 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(_myCamera);
+        displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
+            _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
 
-        auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -1970,7 +1990,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -2011,7 +2031,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
@@ -2150,7 +2170,7 @@ void Application::init() {
     _physicsEngine.init();
 
     EntityTree* tree = _entities.getTree();
-    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    _entitySimulation.init(tree, &_physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -2470,12 +2490,21 @@ void Application::update(float deltaTime) {
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
         _entitySimulation.unlock();
 
+        AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
+        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
+        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
+        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+
         _physicsEngine.stepSimulation();
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.unlock();
+
+            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            avatarManager->handleCollisionEvents(_physicsEngine.getCollisionEvents());
+
             _physicsEngine.dumpStatsIfNecessary();
         }
     }
@@ -2879,7 +2908,7 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-void Application::updateShadowMap() {
+void Application::updateShadowMap(RenderArgs* renderArgs) {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
@@ -3000,23 +3029,23 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(RenderArgs::SHADOW_RENDER_MODE);
+            DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs);
         }
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+            _entities.render(renderArgs);
         }
 
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(renderArgs, false);
         }
 
         {
             PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.renderWorld(renderArgs, true);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3084,15 +3113,16 @@ PickRay Application::computePickRay(float x, float y) const {
     return result;
 }
 
-QImage Application::renderAvatarBillboard() {
+QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // the "glow" here causes an alpha of one
-    Glower glower;
+    Glower glower(renderArgs);
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
+    // TODO: Pass a RenderArgs to renderAvatarBillboard
+    renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
 
@@ -3144,7 +3174,26 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+class MyFirstStuff {
+public:
+    typedef render::Payload<MyFirstStuff> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    typedef Payload::DataPointer Pointer;
+        
+};
+
+// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
+namespace render {
+    template <> const ItemKey payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched ++;
+        }
+    }
+}
+
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3183,7 +3232,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
-    if (renderSide != RenderArgs::MONO) {
+    if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
         
         viewTransform.evalFromRawMatrix(invView);
@@ -3314,7 +3363,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false);
+            _overlays.renderWorld(renderArgs, false);
         }
         
         // render models...
@@ -3336,7 +3385,9 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
-            _entities.render(renderMode, renderSide, renderDebugFlags);
+            renderArgs->_renderMode = renderMode;
+            renderArgs->_debugFlags = renderDebugFlags;
+            _entities.render(renderArgs);
             
             if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
                 // Restaure polygon mode
@@ -3357,9 +3408,29 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     
     {
         PerformanceTimer perfTimer("avatars");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
-            false, selfAvatarOnly);   
+        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
+        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
+        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
+
+    static render::ItemID myFirstRenderItem = 0;
+
+    if (myFirstRenderItem == 0) {
+        auto myVeryFirstStuff = MyFirstStuff::Pointer(new MyFirstStuff());
+        auto myVeryFirstPayload = new MyFirstStuff::Payload(myVeryFirstStuff);
+        auto myFirstPayload = MyFirstStuff::PayloadPointer(myVeryFirstPayload);
+        myFirstRenderItem = _main3DScene->allocateID();
+
+        render::Scene::PendingChanges pendingChanges;
+        pendingChanges.resetItem(myFirstRenderItem, myFirstPayload);
+
+        _main3DScene->enqueuePendingChanges(pendingChanges);
+    }
+    
+    _main3DScene->processPendingChangesQueue();
+
+    // Before the deferred pass, let's try to use the render engine
+    _renderEngine->run();
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
@@ -3375,8 +3446,9 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
     {
         PerformanceTimer perfTimer("avatarsPostLighting");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
-            true, selfAvatarOnly);   
+        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
+        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, true, selfAvatarOnly);
+        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
     
     //Render the sixense lasers
@@ -3400,7 +3472,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 "Application::displaySide() ... octree fades...");
             _octreeFadesLock.lockForWrite();
             for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
-                fade->render();
+                fade->render(renderArgs);
                 if(fade->isDone()) {
                     fade = _octreeFades.erase(fade);
                 } else {
@@ -3425,8 +3497,8 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     {
         PerformanceTimer perfTimer("3dOverlaysFront");
         glClear(GL_DEPTH_BUFFER_BIT);
-        Glower glower;  // Sets alpha to 1.0
-        _overlays.renderWorld(true);
+        Glower glower(renderArgs);  // Sets alpha to 1.0
+        _overlays.renderWorld(renderArgs, true);
     }
     activeRenderingThread = nullptr;
 }
@@ -3504,7 +3576,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     return screenPoint;
 }
 
-void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -3564,11 +3636,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(_mirrorCamera, true);
+    displaySide(renderArgs, _mirrorCamera, true);
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
+        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     // reset Viewport and projection matrix

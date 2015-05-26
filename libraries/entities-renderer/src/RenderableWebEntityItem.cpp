@@ -25,11 +25,11 @@
 
 #include "EntityTreeRenderer.h"
 
-const float DPI = 30.47;
-const float METERS_TO_INCHES = 39.3701;
+const float DPI = 30.47f;
+const float METERS_TO_INCHES = 39.3701f;
 
-EntityItem* RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableWebEntityItem(entityID, properties);
+EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableWebEntityItem(entityID, properties));
 }
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

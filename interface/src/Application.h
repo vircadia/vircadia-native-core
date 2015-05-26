@@ -77,6 +77,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "render/Engine.h"
 
 class QGLWidget;
 class QKeyEvent;
@@ -268,9 +269,9 @@ public:
     virtual void setupWorldLight();
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-    QImage renderAvatarBillboard();
+    QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -499,8 +500,8 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap();
-    void renderRearViewMirror(const QRect& region, bool billboard = false);
+    void updateShadowMap(RenderArgs* renderArgs);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -670,6 +671,9 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 
     quint64 _lastFaceTrackerUpdate;
+
+    render::ScenePointer _main3DScene{ new render::Scene() };
+    render::EnginePointer _renderEngine{ new render::Engine() };
 };
 
 #endif // hifi_Application_h

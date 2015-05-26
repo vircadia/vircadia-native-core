@@ -20,8 +20,8 @@
 #include "EntityTreeElement.h"
 
 
-EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new LineEntityItem(entityID, properties);
+EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new LineEntityItem(entityID, properties) };
     return result;
 }
 

@@ -53,10 +53,8 @@ public:
     ~Overlays();
     void init();
     void update(float deltatime);
-    void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                     RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                     RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
-    void renderHUD();
+    void renderWorld(RenderArgs* renderArgs, bool drawFront);
+    void renderHUD(RenderArgs* renderArgs);
 
 public slots:
     /// adds an overlay with the specific properties

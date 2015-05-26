@@ -11,8 +11,6 @@
 
 #include <GlowEffect.h>
 
-#include "../../Menu.h"
-
 #include "ModelOverlay.h"
 
 ModelOverlay::ModelOverlay()
@@ -68,7 +66,7 @@ void ModelOverlay::render(RenderArgs* args) {
             if (glowLevel > 0.0f) {
                 glower = new Glower(glowLevel);
             }
-            _model.render(getAlpha(), RenderArgs::DEFAULT_RENDER_MODE, args);
+            _model.render(args, getAlpha());
             if (glower) {
                 delete glower;
             }

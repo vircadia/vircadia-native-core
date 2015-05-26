@@ -38,6 +38,7 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
+#include "AvatarMotionState.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -268,7 +269,7 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
+void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     if (_referential) {
         _referential->update();
     }
@@ -339,7 +340,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
     // simple frustum check
     float boundingRadius = getBillboardSize();
     ViewFrustum* frustum = nullptr;
-    if (renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+    if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
         frustum = Application::getInstance()->getShadowViewFrustum();
     } else {
         frustum = Application::getInstance()->getDisplayViewFrustum();
@@ -365,14 +366,14 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
             GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
         }
 
-        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderMode == RenderArgs::NORMAL_RENDER_MODE
+        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
 
         // render body
-        renderBody(frustum, renderMode, postLighting, glowLevel);
+        renderBody(renderArgs, frustum, postLighting, glowLevel);
 
-        if (!postLighting && renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+        if (!postLighting && renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
             const float LIGHT_EXPONENT = 1.0f;
@@ -396,10 +397,10 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
                 _skeletonModel.renderJointCollisionShapes(0.7f);
             }
 
-            if (renderHead && shouldRenderHead(cameraPosition, renderMode)) {
+            if (renderHead && shouldRenderHead(renderArgs, cameraPosition)) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
-            if (renderBounding && shouldRenderHead(cameraPosition, renderMode)) {
+            if (renderBounding && shouldRenderHead(renderArgs, cameraPosition)) {
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
 
@@ -436,7 +437,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
 
-            if (renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+            if (renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
@@ -455,8 +456,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode rend
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
-    setShowDisplayName(renderMode == RenderArgs::NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (!postLighting || renderMode != RenderArgs::NORMAL_RENDER_MODE || (isMyAvatar() &&
+    setShowDisplayName(renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
+    if (!postLighting || renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
@@ -479,13 +480,12 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
-    Model::RenderMode modelRenderMode = renderMode;
+void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
     {
-        Glower glower(glowLevel);
+        Glower glower(renderArgs, glowLevel);
 
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-            if (postLighting || renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+            if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
                 renderBillboard();
             }
@@ -493,18 +493,16 @@ void Avatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode rende
         }
 
         if (postLighting) {
-            getHand()->render(false, modelRenderMode);
+            getHand()->render(renderArgs, false);
         } else {
-            RenderArgs args;
-            args._viewFrustum = renderFrustum;
-            _skeletonModel.render(1.0f, modelRenderMode, &args);
-            renderAttachments(renderMode, &args);
+            _skeletonModel.render(renderArgs, 1.0f);
+            renderAttachments(renderArgs);
         }
     }
-    getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
+    getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
 }
 
-bool Avatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
+bool Avatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
     return true;
 }
 
@@ -528,11 +526,11 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
+void Avatar::renderAttachments(RenderArgs* args) {
  //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
   //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, renderMode, args);
+        model->render(args, 1.0f);
     }
 }
 
@@ -972,6 +970,9 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    if (_moving && _motionState) {
+        _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
+    }
 
     return bytesRead;
 }
@@ -1087,20 +1088,15 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 }
 
+// virtual 
+void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
+    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
+    shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());
+    shapeInfo.setOffset(_skeletonModel.getBoundingShapeOffset());
+}
+
 // virtual
 void Avatar::rebuildSkeletonBody() {
-    /* TODO: implement this and remove override from MyAvatar (when we have AvatarMotionStates working)
-    if (_motionState) {
-        // compute localAABox
-        const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-        float radius = capsule.getRadius();
-        float height = 2.0f * (capsule.getHalfHeight() + radius);
-        glm::vec3 corner(-radius, -0.5f * height, -radius);
-        corner += _skeletonModel.getBoundingShapeOffset();
-        glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
-        //_characterController.setLocalBoundingBox(corner, scale);
-        _motionState->setBoundingBox(corner, scale);
-    }
-    */
+    DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(getSessionUUID());
 }
 

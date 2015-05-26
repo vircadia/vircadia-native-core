@@ -20,8 +20,8 @@
 
 #include "RenderableLightEntityItem.h"
 
-EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLightEntityItem(entityID, properties);
+EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableLightEntityItem(entityID, properties));
 }
 
 void RenderableLightEntityItem::render(RenderArgs* args) {

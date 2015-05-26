@@ -23,8 +23,9 @@
 #include "SphereEntityItem.h"
 
 
-EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new SphereEntityItem(entityID, properties);
+EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new SphereEntityItem(entityID, properties) };
+    return result;
 }
 
 // our non-pure virtual subclass for now...
