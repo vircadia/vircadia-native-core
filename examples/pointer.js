@@ -1,4 +1,14 @@
-//Dimensions property for lines is the offset of the position
+//  pointer.js
+//  examples
+//
+//  Created by Eric Levin on May 26, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Provides a pointer with option to draw on surfaces
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 var lineEntityID = null;
 var lineIsRezzed = false;
