@@ -143,7 +143,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 
         auto nodeList = DependencyManager::get<NodeList>();
 
-        nodeList->flagTimeForConnectionStep(NodeList::ConnectionStep::LookupICEHostname);
+        nodeList->flagTimeForConnectionStep(NodeList::ConnectionStep::SetICEServerHostname);
 
         if (_iceServerSockAddr.getAddress().isNull()) {
             // connect to lookup completed for ice-server socket so we can request a heartbeat once hostname is looked up
@@ -157,8 +157,6 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         _iceClientID = QUuid::createUuid();
 
         qCDebug(networking) << "ICE required to connect to domain via ice server at" << iceServerHostname;
-
-        nodeList->flagTimeForConnectionStep(NodeList::ConnectionStep::SetICEServerInfo);
     }
 }
 
@@ -200,7 +198,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 void DomainHandler::completedIceServerHostnameLookup() {
     qDebug() << "ICE server socket is at" << _iceServerSockAddr;
 
-    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::HandleICEHostname);
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::SetICEServerSocket);
 
     // emit our signal so we can send a heartbeat to ice-server immediately
     emit iceSocketAndIDReceived();

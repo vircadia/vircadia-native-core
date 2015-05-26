@@ -46,27 +46,25 @@ class NodeList : public LimitedNodeList {
 
 public:
 
-    class ConnectionStep {
-    public:
-        enum Value {
-            LookupAddress,
-            HandleAddress,
-            SetICEServerInfo,
-            LookupICEHostname,
-            HandleICEHostname,
-            SendFirstICEServerHearbeat,
-            ReceiveDSPeerInformation,
-            SendFirstPingsToDS,
-            SetDomainHostname,
-            SetDomainSocket,
-            SendFirstDSCheckIn,
-            ReceiveFirstDSList,
-            SendFirstAudioPing,
-            SetAudioMixerSocket,
-            SendFirstAudioPacket,
-            ReceiveFirstAudioPacket
-        };
+    enum ConnectionStep {
+        LookupAddress,
+        HandleAddress,
+        SetICEServerHostname,
+        SetICEServerSocket,
+        SendFirstICEServerHearbeat,
+        ReceiveDSPeerInformation,
+        SendFirstPingsToDS,
+        SetDomainHostname,
+        SetDomainSocket,
+        SendFirstDSCheckIn,
+        ReceiveFirstDSList,
+        SendFirstAudioPing,
+        SetAudioMixerSocket,
+        SendFirstAudioPacket,
+        ReceiveFirstAudioPacket
     };
+
+    Q_ENUMS(ConnectionStep);
 
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
@@ -86,7 +84,8 @@ public:
 
     int processDomainServerList(const QByteArray& packet);
 
-    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep);
+    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const;
+    void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
@@ -102,6 +101,7 @@ signals:
 private slots:
     void sendPendingDSPathQuery();
     void handleICEConnectionToDomainServer();
+    void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep, quint64 timestamp);
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -120,8 +120,6 @@ private:
 
     void sendDSPathQuery(const QString& newPath);
 
-    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, quint64 timestamp);
-
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
@@ -130,7 +128,7 @@ private:
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
 
-    QMap<ConnectionStep::Value, quint64> _lastConnectionTimes;
+    QMap<ConnectionStep, quint64> _lastConnectionTimes;
 
     friend class Application;
 };

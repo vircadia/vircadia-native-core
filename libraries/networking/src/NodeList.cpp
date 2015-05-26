@@ -12,6 +12,7 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QMetaEnum>
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
@@ -76,6 +77,8 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+
+    qRegisterMetaType<NodeList::ConnectionStep>("NodeList::ConnectionStep");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -201,8 +204,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
 
             if (sendingNode) {
                 sendingNode->setLastHeardMicrostamp(usecTimestampNow());
-
-                qDebug() << "Activating socket for node" << sendingNode->getUUID() << "at" << usecTimestampNow();
 
                 // activate the appropriate socket for this node, if not yet updated
                 activateSocketFromNodeCommunication(packet, sendingNode);
@@ -616,8 +617,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
-    qDebug() << "Sending ping punch to node" << node->getUUID() << "at" << usecTimestampNow();
-
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
     writeDatagram(localPingPacket, node, node->getLocalSocket());
@@ -667,21 +666,15 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
     }
 }
 
-void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep) {
+void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep) {
     QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
-                                  Q_ARG(NodeList::ConnectionStep::Value, connectionStep),
-                                  Q_ARG(quint64, usecTimestampNow()));
+                              Q_ARG(NodeList::ConnectionStep, connectionStep),
+                              Q_ARG(quint64, usecTimestampNow()));
 }
 
-void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, quint64 timestamp) {
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
-                                  Q_ARG(NodeList::ConnectionStep::Value, connectionStep),
-                                  Q_ARG(quint64, timestamp));
-    } else {
-        // we only add a timestamp on the first call for each NodeList::ConnectionStep
-        if (!_lastConnectionTimes.contains(connectionStep)) {
-            _lastConnectionTimes[connectionStep] = timestamp;
-        }
+void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep, quint64 timestamp) {
+    // we only add a timestamp on the first call for each NodeList::ConnectionStep
+    if (!_lastConnectionTimes.contains(connectionStep)) {
+        _lastConnectionTimes[connectionStep] = timestamp;
     }
 }
