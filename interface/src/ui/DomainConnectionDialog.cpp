@@ -11,6 +11,7 @@
 
 #include <QtCore/QMetaEnum>
 #include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QHeaderView>
 #include <QtWidgets/QTableWidget>
 
 #include <NodeList.h>
@@ -29,13 +30,14 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
 
     const QStringList TABLE_HEADERS = QStringList() << "Name" << "Timestamp (ms)" << "Delta (ms)" << "Time elapsed (ms)";
 
-    timeTable->setHorizontalHeaderLabels(TABLE_HEADERS);
     timeTable->setColumnCount(TABLE_HEADERS.size());
 
     // ask the NodeList for the current values for connection times
     QMap<NodeList::ConnectionStep, quint64> times = DependencyManager::get<NodeList>()->getLastConnectionTimes();
 
     timeTable->setRowCount(times.size());
+
+    timeTable->setHorizontalHeaderLabels(TABLE_HEADERS);
 
     // setup our data with the values from the NodeList
     quint64 firstStepTime = times[NodeList::ConnectionStep::LookupAddress] / USECS_PER_MSEC;
@@ -67,8 +69,31 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
         }
     }
 
+    timeTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    timeTable->resizeColumnsToContents();
+
+    const int TABLE_HEADER_GAP = 4;
+
+    // figure out the size of the table so we can size the dialog
+    int tableWidth = timeTable->verticalHeader()->width() + TABLE_HEADER_GAP;
+    for (int i = 0; i < timeTable->columnCount(); i++) {
+        tableWidth += timeTable->columnWidth(i);
+    }
+
+    int tableHeight = timeTable->horizontalHeader()->height() + TABLE_HEADER_GAP;
+    for (int i = 0; i < timeTable->rowCount(); i++) {
+        tableHeight += timeTable->rowHeight(i);
+    }
+
+    timeTable->setMaximumSize(QSize(tableWidth, tableHeight));
+    timeTable->setMinimumSize(timeTable->maximumSize());
+
     QHBoxLayout* hBoxLayout = new QHBoxLayout;
     hBoxLayout->addWidget(timeTable);
+    hBoxLayout->setSizeConstraint(QLayout::SetMinimumSize);
+
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     setLayout(hBoxLayout);
+    adjustSize();
 }
