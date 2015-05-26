@@ -3169,11 +3169,14 @@ public:
         
 };
 
-template <> const render::ItemKey render::payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
-template <> const render::Item::Bound render::payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
-template <> void render::payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
-    if (args) {
-        args->_elementsTouched ++;
+// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
+namespace render {
+    template <> const ItemKey payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched ++;
+        }
     }
 }
 
