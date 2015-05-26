@@ -22,8 +22,9 @@
 
 bool LightEntityItem::_lightsArePickable = false;
 
-EntityItem* LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new LightEntityItem(entityID, properties);
+EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new LightEntityItem(entityID, properties) };
+    return result;
 }
 
 // our non-pure virtual subclass for now...

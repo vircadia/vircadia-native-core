@@ -16,8 +16,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableZoneEntityItem(entityID, properties);
+EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableZoneEntityItem(entityID, properties));
 }
 
 template<typename Lambda>

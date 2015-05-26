@@ -1974,7 +1974,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -2015,7 +2015,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {

@@ -20,8 +20,8 @@
 
 #include "RenderableParticleEffectEntityItem.h"
 
-EntityItem* RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableParticleEffectEntityItem(entityID, properties);
+EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableParticleEffectEntityItem(entityID, properties));
 }
 
 RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
