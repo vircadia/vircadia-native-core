@@ -57,6 +57,9 @@ public:
 
     void run();
 
+    // standard pipeline of tasks
+    void buildStandardTaskPipeline();
+
 protected:
 
     Tasks _tasks;
@@ -64,7 +67,6 @@ protected:
     SceneContextPointer _sceneContext;
 };
 typedef std::shared_ptr<Engine> EnginePointer;
-
 
 }
 

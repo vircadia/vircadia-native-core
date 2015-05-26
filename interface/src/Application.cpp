@@ -370,7 +370,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    
+  
+  
+    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->registerScene(_main3DScene);
+      
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -3157,6 +3161,25 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
+class MyFirstStuff {
+public:
+    typedef render::Payload<MyFirstStuff> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    typedef Payload::DataPointer Pointer;
+        
+};
+
+// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
+namespace render {
+    template <> const ItemKey payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched ++;
+        }
+    }
+}
+
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -3376,6 +3399,25 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
         renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
+
+    static render::ItemID myFirstRenderItem = 0;
+
+    if (myFirstRenderItem == 0) {
+        auto myVeryFirstStuff = MyFirstStuff::Pointer(new MyFirstStuff());
+        auto myVeryFirstPayload = new MyFirstStuff::Payload(myVeryFirstStuff);
+        auto myFirstPayload = MyFirstStuff::PayloadPointer(myVeryFirstPayload);
+        myFirstRenderItem = _main3DScene->allocateID();
+
+        render::Scene::PendingChanges pendingChanges;
+        pendingChanges.resetItem(myFirstRenderItem, myFirstPayload);
+
+        _main3DScene->enqueuePendingChanges(pendingChanges);
+    }
+    
+    _main3DScene->processPendingChangesQueue();
+
+    // Before the deferred pass, let's try to use the render engine
+    _renderEngine->run();
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
