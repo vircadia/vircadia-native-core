@@ -240,6 +240,7 @@ public:
     static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+    static int uppackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

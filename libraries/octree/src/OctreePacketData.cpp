@@ -573,3 +573,12 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor
     result.blue = dataBytes[BLUE_INDEX];
     return sizeof(rgbColor);
 }
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    QByteArray value((const char*)dataBytes, length);
+    result = value;
+    return sizeof(length) + length;
+}
