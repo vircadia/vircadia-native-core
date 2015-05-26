@@ -9,16 +9,16 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include gpu/Transform.slh@>
 
-uniform mat4 Projection;
-uniform mat4 ModelView;
+<$declareStandardTransform()$>
 
-attribute vec2 Position;
-attribute vec2 TexCoord;
+uniform float Offset[2];
 
-varying vec2 vTexCoord;
 
 void main() {
-  vTexCoord = TexCoord;
-  gl_Position = Projection * ModelView * vec4(Position, 0.0, 1.0);
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, gl_Vertex + vec4(Offset[0], Offset[1], 0.0f, 0.0f), gl_Position)$>
 }

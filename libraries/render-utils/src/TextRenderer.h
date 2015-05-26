@@ -25,9 +25,6 @@
 #include <gpu/Resource.h>
 #include <gpu/Stream.h>
 
-// a special "character" that renders as a solid block
-const char SOLID_BLOCK_CHAR = 127;
-
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
 
@@ -46,6 +43,9 @@ const char SOLID_BLOCK_CHAR = 127;
 #define INCONSOLATA_FONT_WEIGHT QFont::Bold
 #endif
 
+namespace gpu {
+class Batch;
+}
 class Font;
 
 // TextRenderer is actually a fairly thin wrapper around a Font class
@@ -59,13 +59,12 @@ public:
 
     ~TextRenderer();
 
-    glm::vec2 computeExtent(const QString & str) const;
-
-    float draw(
-      float x, float y,
-      const QString & str,
-      const glm::vec4& color = glm::vec4(-1.0f),
-      const glm::vec2& bounds = glm::vec2(-1.0f));
+    glm::vec2 computeExtent(const QString& str) const;
+    
+    void draw(float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
+               const glm::vec2& bounds = glm::vec2(-1.0f));
+    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
+               const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
     TextRenderer(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
@@ -82,7 +81,7 @@ private:
     // text color
     const QColor _color;
 
-    Font * _font;
+    Font* _font;
 };
 
 

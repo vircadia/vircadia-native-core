@@ -10,11 +10,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-uniform sampler2D Font;
-uniform vec4 Color;
-uniform bool Outline;
+<@include DeferredBufferWrite.slh@>
 
-varying vec2 vTexCoord;
+uniform sampler2D Font;
+uniform float Outline;
+
+// the interpolated normal
+varying vec4 interpolatedNormal;
 
 const float gamma = 2.6;
 const float smoothing = 100.0;
@@ -22,28 +24,33 @@ const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
 
 void main() {
-  // retrieve signed distance
-  float sdf = texture2D(Font, vTexCoord).r;
-  if (Outline) {
-    if (sdf > interiorCutoff) {
-      sdf = 1.0 - sdf;
-    } else {
-      sdf += outlineExpansion;
+    // retrieve signed distance
+    float sdf = texture2D(Font, vTexCoord).r;
+    if (Outline == 1.0f) {
+        if (sdf > interiorCutoff) {
+            sdf = 1.0 - sdf;
+        } else {
+            sdf += outlineExpansion;
+        }
     }
-  }
-  // perform adaptive anti-aliasing of the edges
-  // The larger we're rendering, the less anti-aliasing we need
-  float s = smoothing * length(fwidth(vTexCoord));
-  float w = clamp( s, 0.0, 0.5);
-  float a = smoothstep(0.5 - w, 0.5 + w, sdf);
-
-  // gamma correction for linear attenuation
-  a = pow(a, 1.0 / gamma);
-
-  if (a < 0.01) {
-    discard;
-  }
-
-  // final color
-  gl_FragColor = vec4(Color.rgb, a);
+    // perform adaptive anti-aliasing of the edges
+    // The larger we're rendering, the less anti-aliasing we need
+    float s = smoothing * length(fwidth(vTexCoord));
+    float w = clamp( s, 0.0, 0.5);
+    float a = smoothstep(0.5 - w, 0.5 + w, sdf);
+    
+    // gamma correction for linear attenuation
+    a = pow(a, 1.0 / gamma);
+    
+    if (a < 0.01) {
+        discard;
+    }
+    
+    // final color
+    packDeferredFragment(
+        normalize(interpolatedNormal.xyz),
+        a,
+        gl_Color.rgb,
+        gl_FrontMaterial.specular.rgb,
+        gl_FrontMaterial.shininess);
 }

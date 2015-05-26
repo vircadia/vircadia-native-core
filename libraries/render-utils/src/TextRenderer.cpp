@@ -11,6 +11,9 @@
 
 
 #include <gpu/GPUConfig.h>
+#include <gpu/GLBackend.h>
+#include <gpu/Stream.h>
+
 #include <QApplication>
 #include <QtDebug>
 #include <QString>
@@ -18,17 +21,8 @@
 #include <QBuffer>
 #include <QFile>
 
-// FIXME, decouple from the GL headers
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "gpu/GLBackend.h"
-#include "gpu/Stream.h"
 
 #include "GLMHelpers.h"
 #include "MatrixStack.h"
@@ -38,21 +32,46 @@
 #include "sdf_text_vert.h"
 #include "sdf_text_frag.h"
 
+const float DEFAULT_POINT_SIZE = 12;
+
 // Helper functions for reading binary data from an IO device
 template<class T>
-void readStream(QIODevice & in, T & t) {
+void readStream(QIODevice& in, T& t) {
     in.read((char*) &t, sizeof(t));
 }
 
 template<typename T, size_t N>
-void readStream(QIODevice & in, T (&t)[N]) {
+void readStream(QIODevice& in, T (&t)[N]) {
     in.read((char*) t, N);
 }
 
 template<class T, size_t N>
-void fillBuffer(QBuffer & buffer, T (&t)[N]) {
+void fillBuffer(QBuffer& buffer, T (&t)[N]) {
     buffer.setData((const char*) t, N);
 }
+
+struct TextureVertex {
+    glm::vec2 pos;
+    glm::vec2 tex;
+    TextureVertex() {
+    }
+    TextureVertex(const glm::vec2& pos, const glm::vec2& tex) :
+    pos(pos), tex(tex) {
+    }
+    TextureVertex(const QPointF& pos, const QPointF& tex) :
+    pos(pos.x(), pos.y()), tex(tex.x(), tex.y()) {
+    }
+};
+
+struct QuadBuilder {
+    TextureVertex vertices[4];
+    QuadBuilder(const QRectF& r, const QRectF& tr) {
+        vertices[0] = TextureVertex(r.bottomLeft(), tr.topLeft());
+        vertices[1] = TextureVertex(r.bottomRight(), tr.topRight());
+        vertices[2] = TextureVertex(r.topLeft(), tr.bottomLeft());
+        vertices[3] = TextureVertex(r.topRight(), tr.bottomRight());
+    }
+};
 
 // FIXME support the shadow effect, or remove it from the API
 // FIXME figure out how to improve the anti-aliasing on the 
@@ -68,13 +87,13 @@ struct Glyph {
     float d;  // xadvance - adjusts character positioning
     size_t indexOffset;
 
-    QRectF bounds() const;
-    QRectF textureBounds(const glm::vec2 & textureSize) const;
+    QRectF bounds() const { return glmToRect(offset, size); }
+    QRectF textureBounds() const { return glmToRect(texOffset, texSize); }
 
-    void read(QIODevice & in);
+    void read(QIODevice& in);
 };
 
-void Glyph::read(QIODevice & in) {
+void Glyph::read(QIODevice& in) {
     uint16_t charcode;
     readStream(in, charcode);
     c = charcode;
@@ -85,64 +104,52 @@ void Glyph::read(QIODevice & in) {
     texSize = size;
 }
 
-const float DEFAULT_POINT_SIZE = 12;
-
 class Font {
 public:
-    
     Font();
     
-    using TexturePtr = QSharedPointer < QOpenGLTexture >;
-    using VertexArrayPtr = QSharedPointer< QOpenGLVertexArrayObject >;
-    using ProgramPtr = QSharedPointer < QOpenGLShaderProgram >;
-    using BufferPtr = QSharedPointer < QOpenGLBuffer >;
-
-    // maps characters to cached glyph info
-    // HACK... the operator[] const for QHash returns a 
-    // copy of the value, not a const value reference, so
-    // we declare the hash as mutable in order to avoid such 
-    // copies
-    mutable QHash<QChar, Glyph> _glyphs;
-
-    // the id of the glyph texture to which we're currently writing
-    GLuint _currentTextureID;
-
-    int _pointSize;
-
-    // the height of the current row of characters
-    int _rowHeight;
-
-    QString _family;
-    float _fontSize { 0 };
-    float _leading { 0 };
-    float _ascent { 0 };
-    float _descent { 0 };
-    float _spaceWidth { 0 };
-
-    BufferPtr _vertices;
-    BufferPtr _indices;
-    TexturePtr _texture;
-    VertexArrayPtr _vao;
-    QImage _image;
-    ProgramPtr _program;
-
-    const Glyph & getGlyph(const QChar & c) const;
     void read(QIODevice& path);
-    // Initialize the OpenGL structures
-    void setupGL();
 
-    glm::vec2 computeExtent(const QString & str) const;
-
-    glm::vec2 computeTokenExtent(const QString & str) const;
-
-    glm::vec2 drawString(float x, float y, const QString & str,
+    glm::vec2 computeExtent(const QString& str) const;
+    
+    // Render string to batch
+    void drawString(gpu::Batch& batch, float x, float y, const QString& str,
             const glm::vec4& color, TextRenderer::EffectType effectType,
             const glm::vec2& bound);
 
 private:
-    QStringList tokenizeForWrapping(const QString & str) const;
-
-    bool _initialized;
+    QStringList tokenizeForWrapping(const QString& str) const;
+    QStringList splitLines(const QString& str) const;
+    glm::vec2 computeTokenExtent(const QString& str) const;
+    
+    const Glyph& getGlyph(const QChar& c) const;
+    
+    // maps characters to cached glyph info
+    // HACK... the operator[] const for QHash returns a
+    // copy of the value, not a const value reference, so
+    // we declare the hash as mutable in order to avoid such
+    // copies
+    mutable QHash<QChar, Glyph> _glyphs;
+    
+    // Font characteristics
+    QString _family;
+    float _fontSize = 0.0f;
+    float _rowHeight = 0.0f;
+    float _leading = 0.0f;
+    float _ascent = 0.0f;
+    float _descent = 0.0f;
+    float _spaceWidth = 0.0f;
+    
+    // gpu structures
+    gpu::PipelinePointer _pipeline;
+    gpu::TexturePointer _texture;
+    gpu::Stream::FormatPointer _format;
+    gpu::BufferView _vertices;
+    gpu::BufferView _texCoords;
+    
+    // last string render characteristics
+    QString _lastStringRendered;
+    glm::vec2 _lastBounds;
 };
 
 static QHash<QString, Font*> LOADED_FONTS;
@@ -189,7 +196,7 @@ Font* loadFont(const QString& family) {
     return LOADED_FONTS[family];
 }
 
-Font::Font() : _initialized(false) {
+Font::Font() {
     static bool fontResourceInitComplete = false;
     if (!fontResourceInitComplete) {
         Q_INIT_RESOURCE(fonts);
@@ -198,11 +205,48 @@ Font::Font() : _initialized(false) {
 }
 
 // NERD RAGE: why doesn't QHash have a 'const T & operator[] const' member
-const Glyph & Font::getGlyph(const QChar & c) const {
+const Glyph& Font::getGlyph(const QChar& c) const {
     if (!_glyphs.contains(c)) {
         return _glyphs[QChar('?')];
     }
     return _glyphs[c];
+}
+
+QStringList Font::splitLines(const QString& str) const {
+    return str.split('\n');
+}
+
+QStringList Font::tokenizeForWrapping(const QString& str) const {
+    QStringList tokens;
+    for(auto line : splitLines(str)) {
+        if (!tokens.empty()) {
+            tokens << QString('\n');
+        }
+        tokens << line.split(' ');
+    }
+    return tokens;
+}
+
+glm::vec2 Font::computeTokenExtent(const QString& token) const {
+    glm::vec2 advance(0, _fontSize);
+    foreach(QChar c, token) {
+        Q_ASSERT(c != '\n');
+        advance.x += (c == ' ') ? _spaceWidth : getGlyph(c).d;
+    }
+    return advance;
+}
+
+glm::vec2 Font::computeExtent(const QString& str) const {
+    glm::vec2 extent = glm::vec2(0.0f, 0.0f);
+    
+    QStringList tokens = splitLines(str);
+    foreach(const QString& token, tokens) {
+        glm::vec2 tokenExtent = computeTokenExtent(token);
+        extent.x = std::max(tokenExtent.x, extent.x);
+    }
+    extent.y = tokens.count() * _rowHeight;
+    
+    return extent;
 }
 
 void Font::read(QIODevice& in) {
@@ -232,7 +276,7 @@ void Font::read(QIODevice& in) {
     readStream(in, _descent);
     readStream(in, _spaceWidth);
     _fontSize = _ascent + _descent;
-    _rowHeight = _fontSize + _descent;
+    _rowHeight = _fontSize + _leading;
 
     // Read character count
     uint16_t count;
@@ -240,266 +284,127 @@ void Font::read(QIODevice& in) {
     // read metrics data for each character
     QVector<Glyph> glyphs(count);
     // std::for_each instead of Qt foreach because we need non-const references
-    std::for_each(glyphs.begin(), glyphs.end(), [&](Glyph & g) {
+    std::for_each(glyphs.begin(), glyphs.end(), [&](Glyph& g) {
         g.read(in);
     });
 
     // read image data
-    if (!_image.loadFromData(in.readAll(), "PNG")) {
+    QImage image;
+    image.loadFromData(in.readAll(), "PNG");
+    if (!image.isNull()) {
         qFatal("Failed to read SDFF image");
     }
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    if (image.hasAlphaChannel()) {
+        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
+    }
+    _texture = gpu::TexturePointer(
+        gpu::Texture::create2D(formatGPU, image.width(), image.height(),
+            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    _texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+    _texture->autoGenerateMips(-1);
 
     _glyphs.clear();
+    glm::vec2 imageSize = toGlm(image.size());
     foreach(Glyph g, glyphs) {
         // Adjust the pixel texture coordinates into UV coordinates,
-        glm::vec2 imageSize = toGlm(_image.size());
         g.texSize /= imageSize;
         g.texOffset /= imageSize;
         // store in the character to glyph hash
         _glyphs[g.c] = g;
     };
+    
+    // Setup render pipeline
+    auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(sdf_text_vert)));
+    auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(sdf_text_frag)));
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+    
+    gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding("Outline", 0));
+    slotBindings.insert(gpu::Shader::Binding("Offset", 1));
+    slotBindings.insert(gpu::Shader::Binding("Color", 2));
+    gpu::Shader::makeProgram(*program, slotBindings);
+    
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    
+    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 }
 
-struct TextureVertex {
-    glm::vec2 pos;
-    glm::vec2 tex;
-    TextureVertex() {
-    }
-    TextureVertex(const glm::vec2 & pos, const glm::vec2 & tex) :
-            pos(pos), tex(tex) {
-    }
-    TextureVertex(const QPointF & pos, const QPointF & tex) :
-            pos(pos.x(), pos.y()), tex(tex.x(), tex.y()) {
-    }
-};
-
-struct QuadBuilder {
-    TextureVertex vertices[4];
-    QuadBuilder(const QRectF & r, const QRectF & tr) {
-        vertices[0] = TextureVertex(r.bottomLeft(), tr.topLeft());
-        vertices[1] = TextureVertex(r.bottomRight(), tr.topRight());
-        vertices[2] = TextureVertex(r.topRight(), tr.bottomRight());
-        vertices[3] = TextureVertex(r.topLeft(), tr.bottomLeft());
-    }
-};
-
-QRectF Glyph::bounds() const {
-    return glmToRect(offset, size);
-}
-
-QRectF Glyph::textureBounds(const glm::vec2 & textureSize) const {
-    return glmToRect(texOffset, texSize);
-}
-
-void Font::setupGL() {
-    if (_initialized) {
-        return;
-    }
-    _initialized = true;
-
-    _texture = TexturePtr(
-            new QOpenGLTexture(_image, QOpenGLTexture::GenerateMipMaps));
-    _program = ProgramPtr(new QOpenGLShaderProgram());
-    if (!_program->create()) {
-        qFatal("Could not create text shader");
-    }
-    if (!_program->addShaderFromSourceCode(QOpenGLShader::Vertex, sdf_text_vert) || //
-        !_program->addShaderFromSourceCode(QOpenGLShader::Fragment, sdf_text_frag) || //
-        !_program->link()) {
-        qFatal("%s", _program->log().toLocal8Bit().constData());
-    }
-
-    std::vector<TextureVertex> vertexData;
-    std::vector<GLuint> indexData;
-    vertexData.reserve(_glyphs.size() * 4);
-    std::for_each(_glyphs.begin(), _glyphs.end(), [&](Glyph & m) {
-        GLuint index = (GLuint)vertexData.size();
-
-        QRectF bounds = m.bounds();
-        QRectF texBounds = m.textureBounds(toGlm(_image.size()));
-        QuadBuilder qb(bounds, texBounds);
-        for (int i = 0; i < 4; ++i) {
-            vertexData.push_back(qb.vertices[i]);
-        }
-
-        m.indexOffset = indexData.size() * sizeof(GLuint);
-        // FIXME use triangle strips + primitive restart index
-            indexData.push_back(index + 0);
-            indexData.push_back(index + 1);
-            indexData.push_back(index + 2);
-            indexData.push_back(index + 0);
-            indexData.push_back(index + 2);
-            indexData.push_back(index + 3);
-        });
-
-    _vao = VertexArrayPtr(new QOpenGLVertexArrayObject());
-    _vao->create();
-    _vao->bind();
-
-    _vertices = BufferPtr(new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer));
-    _vertices->create();
-    _vertices->bind();
-    _vertices->allocate(&vertexData[0],
-            sizeof(TextureVertex) * vertexData.size());
-    _indices = BufferPtr(new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer));
-    _indices->create();
-    _indices->bind();
-    _indices->allocate(&indexData[0], sizeof(GLuint) * indexData.size());
-
-    GLsizei stride = (GLsizei) sizeof(TextureVertex);
-    void* offset = (void*) offsetof(TextureVertex, tex);
-    int posLoc = _program->attributeLocation("Position");
-    int texLoc = _program->attributeLocation("TexCoord");
-    glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(posLoc, 2, GL_FLOAT, false, stride, nullptr);
-    glEnableVertexAttribArray(texLoc);
-    glVertexAttribPointer(texLoc, 2, GL_FLOAT, false, stride, offset);
-    _vao->release();
-}
-
-// FIXME there has to be a cleaner way of doing this
-QStringList Font::tokenizeForWrapping(const QString & str) const {
-    QStringList result;
-    foreach(const QString & token1, str.split(" ")) {
-        bool lineFeed = false;
-        if (token1.isEmpty()) {
-            result << token1;
-            continue;
-        }
-        foreach(const QString & token2, token1.split("\n")) {
-            if (lineFeed) {
-                result << "\n";
+void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
+                      TextRenderer::EffectType effectType, const glm::vec2& bounds) {
+    // Top left of text
+    glm::vec2 advance = glm::vec2(0.0f, 0.0f);
+    
+    if (str != _lastStringRendered || bounds != _lastBounds) {
+        gpu::BufferPointer vertices = gpu::BufferPointer(new gpu::Buffer());
+        foreach(const QString& token, tokenizeForWrapping(str)) {
+            bool isNewLine = token == QString('\n');
+            bool forceNewLine = false;
+            
+            // Handle wrapping
+            if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x)) {
+                // We are out of the x bound, force new line
+                forceNewLine = true;
             }
-            if (token2.size()) {
-                result << token2;
-            }
-            lineFeed = true;
-        }
-    }
-    return result;
-}
-
-
-glm::vec2 Font::computeTokenExtent(const QString & token) const {
-    glm::vec2 advance(0, _rowHeight - _descent);
-    foreach(QChar c, token) {
-        assert(c != ' ' && c != '\n');
-        const Glyph & m = getGlyph(c);
-        advance.x += m.d;
-    }
-    return advance;
-}
-
-
-glm::vec2 Font::computeExtent(const QString & str) const {
-    glm::vec2 extent(0, _rowHeight - _descent);
-    // FIXME, come up with a better method of splitting text
-    // that will allow wrapping but will preserve things like
-    // tabs or consecutive spaces
-    bool firstTokenOnLine = true;
-    float lineWidth = 0.0f;
-    QStringList tokens = tokenizeForWrapping(str);
-    foreach(const QString & token, tokens) {
-        if (token == "\n") {
-            extent.x = std::max(lineWidth, extent.x);
-            lineWidth = 0.0f;
-            extent.y += _rowHeight;
-            firstTokenOnLine = true;
-            continue;
-        }
-        if (!firstTokenOnLine) {
-            lineWidth += _spaceWidth;
-        }
-        lineWidth += computeTokenExtent(token).x;
-        firstTokenOnLine = false;
-    }
-    extent.x = std::max(lineWidth, extent.x);
-    return extent;
-}
-
-// FIXME support the maxWidth parameter and allow the text to automatically wrap
-// even without explicit line feeds.
-glm::vec2 Font::drawString(float x, float y, const QString & str,
-        const glm::vec4& color, TextRenderer::EffectType effectType,
-        const glm::vec2& bounds) {
-
-    setupGL();
-
-    // Stores how far we've moved from the start of the string, in DTP units
-    glm::vec2 advance(0, -_rowHeight - _descent);
-
-    _program->bind();
-    _program->setUniformValue("Color", color.r, color.g, color.b, color.a);
-    _program->setUniformValue("Projection",
-            fromGlm(MatrixStack::projection().top()));
-    if (effectType == TextRenderer::OUTLINE_EFFECT) {
-        _program->setUniformValue("Outline", true);
-    }
-    // Needed?
-    glEnable(GL_TEXTURE_2D);
-    _texture->bind();
-    _vao->bind();
-
-    MatrixStack & mv = MatrixStack::modelview();
-    // scale the modelview into font units
-    mv.translate(glm::vec3(0, _ascent, 0));
-    foreach(const QString & token, tokenizeForWrapping(str)) {
-        if (token == "\n") {
-            advance.x = 0.0f;
-            advance.y -= _rowHeight;
-            // If we've wrapped right out of the bounds, then we're 
-            // done with rendering the tokens
-            if (bounds.y > 0 && std::abs(advance.y) > bounds.y) {
-                break;
-            }
-            continue;
-        }
-
-        glm::vec2 tokenExtent = computeTokenExtent(token);
-        if (bounds.x > 0 && advance.x > 0) {
-            // We check if we'll be out of bounds
-            if (advance.x + tokenExtent.x >= bounds.x) {
-                // We're out of bounds, so wrap to the next line
-                advance.x = 0.0f;
-                advance.y -= _rowHeight;
-                // If we've wrapped right out of the bounds, then we're 
-                // done with rendering the tokens
-                if (bounds.y > 0 && std::abs(advance.y) > bounds.y) {
-                    break;
+            if (isNewLine || forceNewLine) {
+                // Character return, move the advance to a new line
+                advance = glm::vec2(0.0f, advance.y + _rowHeight);
+                if (isNewLine) {
+                    // No need to draw anything, go directly to next token
+                    continue;
                 }
             }
+            if ((bounds.y != -1) && (advance.y + _fontSize > bounds.y)) {
+                // We are out of the y bound, stop drawing
+                break;
+            }
+            
+            // Draw the token
+            if (!isNewLine) {
+                for (auto c : token) {
+                    auto glyph = _glyphs[c];
+                    
+                    // Build translated quad and add it to the buffer
+                    QuadBuilder qd(glyph.bounds().translated(advance.x, advance.y),
+                                   glyph.textureBounds());
+                    vertices->append(sizeof(QuadBuilder), (const gpu::Byte*)qd.vertices);
+                    
+                    // Advance by glyph size
+                    advance.x += glyph.d;
+                }
+                
+                // Add space after all non return tokens
+                advance.x += _spaceWidth;
+            }
         }
-
-        foreach(const QChar & c, token) {
-            // get metrics for this character to speed up measurements
-            const Glyph & m = getGlyph(c);
-            // We create an offset vec2 to hold the local offset of this character
-            // This includes compensating for the inverted Y axis of the font
-            // coordinates
-            glm::vec2 offset(advance);
-            offset.y -= m.size.y;
-            // Bind the new position
-            mv.withPush([&] {
-                        mv.translate(offset);
-                        // FIXME find a better (and GL ES 3.1 compatible) way of rendering the text
-                        // that doesn't involve a single GL call per character.
-                        // Most likely an 'indirect' call or an 'instanced' call.
-                        _program->setUniformValue("ModelView", fromGlm(mv.top()));
-                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(m.indexOffset));
-                    });
-            advance.x += m.d;
-        }
-        advance.x += _spaceWidth;
+        
+        // Setup rendering structures
+        static const int STRIDES = sizeof(TextureVertex);
+        static const int OFFSET = offsetof(TextureVertex, tex);
+        _format = gpu::Stream::FormatPointer(new gpu::Stream::Format());
+        _format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION,
+                              gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+        _format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD,
+                              gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+        
+        _vertices = gpu::BufferView(vertices, 0, vertices->getSize(), STRIDES,
+                                    _format->getAttributes().at(gpu::Stream::POSITION)._element);
+        _texCoords = gpu::BufferView(vertices, OFFSET, vertices->getSize(), STRIDES,
+                                     _format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+        _lastStringRendered = str;
+        _lastBounds = bounds;
     }
-
-    _vao->release();
-    _texture->release(); // TODO: Brad & Sam, let's discuss this. Without this non-textured quads get their colors borked.
-    _program->release();
-    // FIXME, needed?
-    // glDisable(GL_TEXTURE_2D);
     
-    
-    return advance;
+    batch.setInputFormat(_format);
+    batch.setInputBuffer(0, _vertices);
+    batch.setInputBuffer(1, _texCoords);
+    batch.setUniformTexture(2, _texture);
+    batch._glUniform1f(0, (effectType == TextRenderer::OUTLINE_EFFECT) ? 1.0f : 0.0f);
+    batch._glUniform2f(1, x, y);
+    batch._glUniform4fv(2, 4, (const GLfloat*)&color);
+    batch.draw(gpu::QUADS, _vertices.getNumElements());
 }
 
 TextRenderer* TextRenderer::getInstance(const char* family, float pointSize,
@@ -531,7 +436,7 @@ TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
 TextRenderer::~TextRenderer() {
 }
 
-glm::vec2 TextRenderer::computeExtent(const QString & str) const {
+glm::vec2 TextRenderer::computeExtent(const QString& str) const {
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
     if (_font) {
         return _font->computeExtent(str) * scale;
@@ -539,32 +444,25 @@ glm::vec2 TextRenderer::computeExtent(const QString & str) const {
     return glm::vec2(0.1f,0.1f);
 }
 
-float TextRenderer::draw(float x, float y, const QString & str,
-    const glm::vec4& color, const glm::vec2 & bounds) {
+void TextRenderer::draw(float x, float y, const QString& str, const glm::vec4& color, const glm::vec2& bounds) {
+    gpu::Batch batch;
+    draw(batch, x, y, str, color, bounds);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void TextRenderer::draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
+                         const glm::vec2& bounds) {
+ 
     glm::vec4 actualColor(color);
     if (actualColor.r < 0) {
         actualColor = toGlm(_color);
     }
-
+    
     float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
-    glm::vec2 result;
-
-    MatrixStack::withPushAll([&] {
-        MatrixStack & mv = MatrixStack::modelview();
-        MatrixStack & pr = MatrixStack::projection();
-        gpu::GLBackend::fetchMatrix(GL_MODELVIEW_MATRIX, mv.top());
-        gpu::GLBackend::fetchMatrix(GL_PROJECTION_MATRIX, pr.top());
-
-        // scale the modelview into font units
-        // FIXME migrate the constant scale factor into the geometry of the
-        // fonts so we don't have to flip the Y axis here and don't have to
-        // scale at all.
-        mv.translate(glm::vec2(x, y)).scale(glm::vec3(scale, -scale, scale));
-        // The font does all the OpenGL work
-        if (_font) {
-            result = _font->drawString(x, y, str, actualColor, _effectType, bounds / scale);
-        }
-    });
-    return result.x;
+    
+    // The font does all the OpenGL work
+    if (_font) {
+        _font->drawString(batch, x, y, str, actualColor, _effectType, bounds / scale);
+    }
 }
 
