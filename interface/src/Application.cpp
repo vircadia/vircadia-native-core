@@ -3400,7 +3400,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     static render::ItemID myFirstRenderItem = 0;
 
     if (myFirstRenderItem == 0) {
-        auto myFirstPayload = MyFirstStuff::PayloadPointer(new MyFirstStuff::Payload(MyFirstStuff::Pointer(new MyFirstStuff())));
+        auto myVeryFirstStuff = MyFirstStuff::Pointer(new MyFirstStuff());
+        auto myVeryFirstPayload = new MyFirstStuff::Payload(myVeryFirstStuff);
+        auto myFirstPayload = MyFirstStuff::PayloadPointer(myVeryFirstPayload);
         myFirstRenderItem = _main3DScene->allocateID();
 
         render::Scene::PendingChanges pendingChanges;

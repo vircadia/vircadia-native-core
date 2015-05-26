@@ -218,7 +218,7 @@ public:
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
     
-    Payload(DataPointer& data) : _data(data) {}
+    Payload(const DataPointer& data) : _data(data) {}
 protected:
     DataPointer _data;
 };
