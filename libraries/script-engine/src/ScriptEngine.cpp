@@ -394,7 +394,6 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
     if (!_registeredHandlers.contains(entityID)) return;
     const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
     if (!handlersOnEntity.contains(eventName)) return;
-    // FIXME: Need one more level of indirection. We need to allow multiple handlers per event, registered by different scripts.
     QScriptValueList handlersForEvent = handlersOnEntity[eventName];
     if (!handlersForEvent.isEmpty()) {
         QScriptValueList args = argGenerator();
