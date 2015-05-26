@@ -45,7 +45,7 @@ class PolyVoxEntityItem : public EntityItem {
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
+    void setXColor(const xColor& value) {
         _color[RED_INDEX] = value.red;
         _color[GREEN_INDEX] = value.green;
         _color[BLUE_INDEX] = value.blue;
@@ -62,10 +62,18 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void debugDump() const;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) { _voxelVolumeSize = voxelVolumeSize; }
+    virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
+
+    virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
+    virtual const QByteArray& getVoxelData() const { return _voxelData; }
+
+    static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
+    static const QByteArray DEFAULT_VOXEL_DATA;
 
  protected:
     rgbColor _color;
-    glm::vec3 _voxelVolumeSize = glm::vec3(64, 64, 64);
+    glm::vec3 _voxelVolumeSize; // this is always 3 bytes
+    QByteArray _voxelData;
 };
 
 #endif // hifi_PolyVoxEntityItem_h

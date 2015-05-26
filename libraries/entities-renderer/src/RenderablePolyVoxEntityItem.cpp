@@ -126,19 +126,9 @@ void RenderablePolyVoxEntityItem::getModel() {
         setVoxelVolumeSize(_voxelVolumeSize);
     }
 
-    // glm::vec3 center(_volData->getDepth() / 2.0f,
-    //                  _volData->getHeight() / 2.0f,
-    //                  _volData->getWidth() / 2.0f);
-    // createSphereInVolume(center, 15);
-    // createSphereInVolume(center + glm::vec3(8.0f, 0.0f, 0.0f), 15);
-    // eraseSphereInVolume(center + glm::vec3(4.0f, 0.0f, 4.0f), 15);
-
-
     glm::vec3 center = getCenter();
     createSphere(center, 4);
     createSphere(center + glm::vec3(6.0f, 0.0f, 0.0f), 2);
-    // eraseSphere(center + glm::vec3(0.5f, 0.0f, 4.0f), 0.8);
-
 
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
