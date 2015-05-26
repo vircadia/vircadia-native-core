@@ -390,7 +390,6 @@ void EntityTests::entityTreeTests(bool verbose) {
             } else {
                 if (extraVerbose) {
                     qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
-                          //<< "foundEntityByID=" << foundEntityByID
                           << "containingElement=" << containingElement;
                 }
             }
@@ -470,7 +469,6 @@ void EntityTests::entityTreeTests(bool verbose) {
                 } else {
                     if (extraVerbose) {
                         qDebug() << "FAILED - Test" << testsTaken <<":" << qPrintable(testName) << "iteration:" << i
-                              //<< "foundEntityByID=" << foundEntityByID
                               << "containingElement=" << containingElement;
                     }
                 }
