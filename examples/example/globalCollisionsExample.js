@@ -12,6 +12,6 @@
 //
 
 
-print("The is obsolete. Please instead use:");
+print("The global collision event is obsolete. Please instead use:");
 print("  the collisionSoundURL property on entities, or");
 print("  entityCollisionExample.js");
