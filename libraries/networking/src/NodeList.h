@@ -45,6 +45,25 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
+
+    class ConnectionStep {
+    public:
+        enum Value {
+            LookupAddress,
+            HandleAddress,
+            SetICEServerInfo,
+            LookupICEHostname,
+            HandleICEHostname,
+            SendFirstICEServerHearbeat,
+            ReceiveDSPeerInformation,
+            SendFirstPingsToDS,
+            SetDomainHostname,
+            SetDomainSocket,
+            SendFirstDSCheckIn,
+            ReceiveFirstDSList
+        };
+    };
+
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
@@ -62,6 +81,8 @@ public:
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
     int processDomainServerList(const QByteArray& packet);
+
+    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
@@ -95,6 +116,8 @@ private:
 
     void sendDSPathQuery(const QString& newPath);
 
+    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, qint64 timestamp);
+
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
@@ -102,6 +125,8 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
+
+    QMap<ConnectionStep::Value, quint64> _lastConnectionTimes;
 
     friend class Application;
 };

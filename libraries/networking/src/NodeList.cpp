@@ -13,6 +13,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QUrl>
+#include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
 #include <LogHandler.h>
@@ -163,7 +164,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             if (!_domainHandler.getSockAddr().isNull()) {
                 // only process a list from domain-server if we're talking to a domain
                 // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
-                qDebug() << "Processing domain server list at" << usecTimestampNow();
                 processDomainServerList(packet);
             }
             break;
@@ -222,8 +222,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         case PacketTypeUnverifiedPingReply: {
             qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
-            qDebug() << "Received reply from domain server at" << usecTimestampNow();
-
             // for now we're unsafely assuming this came back from the domain
             if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
                 qCDebug(networking) << "Connecting to domain using local socket";
@@ -271,6 +269,9 @@ void NodeList::reset() {
     if (_dtlsSocket) {
         disconnect(_dtlsSocket, 0, this, 0);
     }
+
+    // reset the connection times
+    _lastConnectionTimes.clear();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -390,7 +391,7 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
 
-        qDebug() << "Sending domain server check in at" << usecTimestampNow();
+        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstDSCheckIn);
 
         if (!isUsingDTLS) {
             writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
@@ -517,7 +518,7 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         _domainHandler.getICEPeer().resetConnectionAttemps();
 
-        qDebug() << "Sending heartbeat to ice server at" << usecTimestampNow();
+        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstICEServerHearbeat);
 
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
@@ -526,7 +527,7 @@ void NodeList::handleICEConnectionToDomainServer() {
         qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
 
-        qDebug() << "Sending ping packet to domain server at" << usecTimestampNow();
+        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
@@ -542,6 +543,8 @@ void NodeList::handleICEConnectionToDomainServer() {
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
+
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::ReceiveFirstDSList);
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
@@ -653,5 +656,24 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activatePublicSocket();
     } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
         sendingNode->activateSymmetricSocket();
+    }
+}
+
+void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep) {
+    QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
+                                  Q_ARG(NodeList::ConnectionStep::Value, connectionStep),
+                                  Q_ARG(quint64, usecTimestampNow()));
+}
+
+void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, quint64 timestamp) {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
+                                  Q_ARG(NodeList::ConnectionStep::Value, connectionStep),
+                                  Q_ARG(quint64, timestamp));
+    } else {
+        // we only add a timestamp on the first call for each NodeList::ConnectionStep
+        if (!_lastConnectionTimes.contains(connectionStep)) {
+            _lastConnectionTimes[connectionStep] = timestamp;
+        }
     }
 }

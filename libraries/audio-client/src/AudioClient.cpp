@@ -924,7 +924,6 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
 void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
     if (_audioOutput) {
-        // qDebug() << "Adding received audio to stream at" << usecTimestampNow();
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(audioByteArray);
     }
