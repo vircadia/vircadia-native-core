@@ -1,11 +1,11 @@
 //
-//  globalCollisionsExample.js
+//  entityCollisionExample.js
 //  examples
 //
-//  Created by Brad Hefta-Gaub on 1/29/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Howard Stearns on 5/25/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
-//  This is an example script that demonstrates use of the Controller class
+//  This is an example script that demonstrates use of the per-entity event handlers.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +20,7 @@ var properties = {
   type: "Box",
   position: position,
   collisionsWillMove: true,
-  color: { red: 200, green: 0, blue: 0 }    
+  color: { red: 200, green: 0, blue: 0 }
 };
 var collider = Entities.addEntity(properties);
 var armed = false;
