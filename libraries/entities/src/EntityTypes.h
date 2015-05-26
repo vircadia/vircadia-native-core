@@ -21,7 +21,6 @@
 
 class EntityItem;
 typedef std::shared_ptr<EntityItem> EntityItemPointer;
-//typedef EntityItem* EntityItemPointer;
 
 inline uint qHash(const EntityItemPointer& a, uint seed) {
     return qHash(a.get(), seed);

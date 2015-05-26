@@ -521,8 +521,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem.get());
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         Model* model = modelEntityItem->getModel(this);
         if (model) {
@@ -535,8 +535,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
 const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
     const Model* result = NULL;
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem.get());
-        RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         result = modelEntityItem->getModel(this);
     }
     return result;
@@ -546,9 +546,9 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        const RenderableModelEntityItem* constModelEntityItem = dynamic_cast<const RenderableModelEntityItem*>(entityItem.get());
-        if (constModelEntityItem->hasCompoundShapeURL()) {
-            RenderableModelEntityItem* modelEntityItem = const_cast<RenderableModelEntityItem*>(constModelEntityItem);
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+        if (modelEntityItem->hasCompoundShapeURL()) {
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
@@ -696,17 +696,17 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     float entityVolumeEstimate = entityItem->getVolumeEstimate();
                     if (entityVolumeEstimate < _bestZoneVolume) {
                         _bestZoneVolume = entityVolumeEstimate;
-                        _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem.get());
+                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                     } else if (entityVolumeEstimate == _bestZoneVolume) {
                         if (!_bestZone) {
                             _bestZoneVolume = entityVolumeEstimate;
-                            _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem.get());
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                         } else {
                             // in the case of the volume being equal, we will use the
                             // EntityItemID to deterministically pick one entity over the other
                             if (entityItem->getEntityItemID() < _bestZone->getEntityItemID()) {
                                 _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = dynamic_cast<const ZoneEntityItem*>(entityItem.get());
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entityItem);
                             }
                         }
                     }

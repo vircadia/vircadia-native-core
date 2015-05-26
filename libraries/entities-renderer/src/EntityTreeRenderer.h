@@ -173,7 +173,7 @@ private:
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
     bool _hasPreviousZone = false;
-    const ZoneEntityItem* _bestZone;
+    std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;

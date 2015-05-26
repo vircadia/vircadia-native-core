@@ -87,9 +87,6 @@ EntityItem::~EntityItem() {
     assert(!_simulated);
     assert(!_element);
     assert(!_physicsInfo);
-    
-    qDebug() << "EntityItem::~EntityItem()";
-    debugDump();
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
