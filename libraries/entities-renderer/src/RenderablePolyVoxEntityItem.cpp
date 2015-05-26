@@ -65,6 +65,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+    qDebug() << "%%%%%%%%%%% RenderablePolyVoxEntityItem::setVoxelData" << voxelData.size() << _voxelData.size();
     if (voxelData == _voxelData) {
         return;
     }
