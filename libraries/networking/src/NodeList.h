@@ -84,7 +84,7 @@ public:
 
     int processDomainServerList(const QByteArray& packet);
 
-    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const;
+    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const { return _lastConnectionTimes; }
     void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
