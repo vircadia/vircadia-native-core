@@ -56,6 +56,8 @@ public:
     void eraseSphereInVolume(glm::vec3 center, float radius);
 
 private:
+    void compressVolumeData();
+
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
     bool _needsModelReload = true;

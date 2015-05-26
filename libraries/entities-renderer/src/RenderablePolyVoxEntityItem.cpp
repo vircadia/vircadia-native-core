@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QByteArray>
+
+
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -89,6 +92,7 @@ void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
             }
         }
     }
+    compressVolumeData();
 }
 
 void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 centerVoxelCoords, float radiusVoxelCoords) {
@@ -291,4 +295,24 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     face = BoxFace::MIN_X_FACE; // XXX
 
     return true;
+}
+
+
+void RenderablePolyVoxEntityItem::compressVolumeData() {
+    int rawSize = _volData->getDepth() * _volData->getHeight() * _volData->getWidth();
+    QByteArray uncompressedData = QByteArray(rawSize, '\0');
+
+    for (int z = 0; z < _volData->getDepth(); z++) {
+        for (int y = 0; y < _volData->getHeight(); y++) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                uint8_t uVoxelValue = _volData->getVoxelAt(x, y, z);
+                int uncompressedIndex = z * _volData->getHeight() * _volData->getWidth() + y * _volData->getWidth() + x;
+                uncompressedData[uncompressedIndex] = uVoxelValue;
+            }
+        }
+    }
+
+    QByteArray compressedData = qCompress(uncompressedData, 9);
+    qDebug() << "-----------------------------------------------------------------------------";
+    qDebug() << "raw-size =" << rawSize << "   compressed-size =" << compressedData.size();
 }
