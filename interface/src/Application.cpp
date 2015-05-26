@@ -3164,7 +3164,7 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
 class MyFirstStuff {
 public:
     typedef render::Payload<MyFirstStuff> Payload;
-    typedef std::shared_ptr<Payload> PayloadPointer;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
     typedef std::shared_ptr<MyFirstStuff> Pointer;
         
 };
