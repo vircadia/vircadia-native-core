@@ -27,7 +27,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
     _nodePacketCounts[sendingNode->getUUID()]++;
     unlock();
     
-    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+    // Make sure to wake our actual processing thread because we now have packets for it to process.
     _hasPackets.wakeAll();
 }
 
