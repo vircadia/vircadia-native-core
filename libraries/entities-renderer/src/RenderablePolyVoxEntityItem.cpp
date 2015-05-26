@@ -65,6 +65,9 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+    if (voxelData == _voxelData) {
+        return;
+    }
     PolyVoxEntityItem::setVoxelData(voxelData);
     decompressVolumeData();
 }
@@ -316,6 +319,8 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
             }
         }
     }
+
+    _needsModelReload = true;
 
     qDebug() << "--------------- decompress -----------------------------------------------------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
