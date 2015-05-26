@@ -3165,7 +3165,7 @@ class MyFirstStuff {
 public:
     typedef render::Payload<MyFirstStuff> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-    typedef std::shared_ptr<MyFirstStuff> Pointer;
+    typedef Payload::DataPointer Pointer;
         
 };
 
@@ -3400,7 +3400,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     static render::ItemID myFirstRenderItem = 0;
 
     if (myFirstRenderItem == 0) {
-        auto myFirstPayload = MyFirstStuff::PayloadPointer(new MyFirstStuff::Payload(std::shared_ptr<MyFirstStuff>(new MyFirstStuff())));
+        auto myFirstPayload = MyFirstStuff::PayloadPointer(new MyFirstStuff::Payload(MyFirstStuff::Pointer(new MyFirstStuff())));
         myFirstRenderItem = _main3DScene->allocateID();
 
         render::Scene::PendingChanges pendingChanges;
