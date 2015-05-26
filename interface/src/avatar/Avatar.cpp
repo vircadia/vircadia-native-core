@@ -38,6 +38,7 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
+#include "AvatarMotionState.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
@@ -972,6 +973,9 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    if (_moving && _motionState) {
+        _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
+    }
 
     return bytesRead;
 }
@@ -1087,20 +1091,15 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 }
 
+// virtual 
+void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
+    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
+    shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());
+    shapeInfo.setOffset(_skeletonModel.getBoundingShapeOffset());
+}
+
 // virtual
 void Avatar::rebuildSkeletonBody() {
-    /* TODO: implement this and remove override from MyAvatar (when we have AvatarMotionStates working)
-    if (_motionState) {
-        // compute localAABox
-        const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-        float radius = capsule.getRadius();
-        float height = 2.0f * (capsule.getHalfHeight() + radius);
-        glm::vec3 corner(-radius, -0.5f * height, -radius);
-        corner += _skeletonModel.getBoundingShapeOffset();
-        glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
-        //_characterController.setLocalBoundingBox(corner, scale);
-        _motionState->setBoundingBox(corner, scale);
-    }
-    */
+    DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(getSessionUUID());
 }
 

@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntityMotionState.h"
 #include "PhysicalEntitySimulation.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
-#include "ShapeInfoUtil.h"
 #include "ShapeManager.h"
 
 PhysicalEntitySimulation::PhysicalEntitySimulation() {
@@ -25,16 +23,12 @@ PhysicalEntitySimulation::~PhysicalEntitySimulation() {
 void PhysicalEntitySimulation::init(
         EntityTree* tree,
         PhysicsEngine* physicsEngine,
-        ShapeManager* shapeManager,
         EntityEditPacketSender* packetSender) {
     assert(tree);
     setEntityTree(tree);
 
     assert(physicsEngine);
     _physicsEngine = physicsEngine;
-
-    assert(shapeManager);
-    _shapeManager = shapeManager;
 
     assert(packetSender);
     _entityPacketSender = packetSender;
@@ -60,7 +54,7 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
 void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     if (motionState) {
-        motionState->clearEntity();
+        motionState->clearObjectBackPointer();
         entity->setPhysicsInfo(nullptr);
         _pendingRemoves.insert(motionState);
         _outgoingChanges.remove(motionState);
@@ -109,7 +103,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
         if (entity) {
             entity->setPhysicsInfo(nullptr);
         }
-        motionState->clearEntity();
+        motionState->clearObjectBackPointer();
     }
 
     // then delete the objects (aka MotionStates)
@@ -135,7 +129,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
         if (entity) {
             _pendingAdds.remove(entity);
             entity->setPhysicsInfo(nullptr);
-            motionState->clearEntity();
+            motionState->clearObjectBackPointer();
         }
         _tempVector.push_back(motionState);
     }
@@ -158,16 +152,14 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = _shapeManager->getShape(shapeInfo);
+            btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
                 entity->setPhysicsInfo(static_cast<void*>(motionState));
-                motionState->setMass(entity->computeMass());
                 _physicalObjects.insert(motionState);
                 _tempVector.push_back(motionState);
                 entityItr = _pendingAdds.erase(entityItr);
             } else {
-                // TODO: Seth to look into why this case is hit.
                 //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }
@@ -192,7 +184,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
-        if (state && state->getType() == MOTION_STATE_TYPE_ENTITY) {
+        if (state && state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItem* entity = entityState->getEntity();
             if (entity) {

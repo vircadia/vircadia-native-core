@@ -13,7 +13,7 @@
 
 #include <glm/gtx/norm.hpp>
 
-#include "ShapeInfoUtil.h"
+#include "ShapeFactory.h"
 #include "ShapeManager.h"
 
 ShapeManager::ShapeManager() {
@@ -46,7 +46,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         shapeRef->refCount++;
         return shapeRef->shape;
     }
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     if (shape) {
         ShapeReference newRef;
         newRef.refCount = 1;
