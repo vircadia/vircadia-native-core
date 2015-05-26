@@ -29,7 +29,6 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::vec3 p1 = ENTITY_ITEM_ZERO_VEC3;
     glm::vec3 p2 = getDimensions();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());

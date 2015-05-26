@@ -173,7 +173,6 @@ private:
 
     bool _hasPreviousZone = false;
     std::shared_ptr<ZoneEntityItem> _bestZone;
-
     float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;

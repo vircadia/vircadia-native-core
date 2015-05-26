@@ -537,7 +537,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
     
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
-                                                            std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         Model* model = modelEntityItem->getModel(this);
         if (model) {
@@ -551,7 +551,7 @@ const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityI
     const Model* result = NULL;
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
-                                                            std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         result = modelEntityItem->getModel(this);
     }
     return result;
@@ -562,7 +562,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
-                                                            std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
+                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         if (modelEntityItem->hasCompoundShapeURL()) {
             Model* model = modelEntityItem->getModel(this);
             if (model) {

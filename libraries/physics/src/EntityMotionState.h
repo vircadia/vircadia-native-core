@@ -43,14 +43,12 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
-
     bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const;
+    virtual uint32_t getAndClearIncomingDirtyFlags();
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -62,7 +60,7 @@ public:
     virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
 
     virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
-    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
+    virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
     virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
     virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
@@ -82,8 +80,8 @@ public:
     friend class PhysicalEntitySimulation;
 
 protected:
-    void clearEntity();
-
+    virtual btCollisionShape* computeNewShape();
+    virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
     EntityItemPointer _entity;
