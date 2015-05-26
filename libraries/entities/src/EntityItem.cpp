@@ -183,9 +183,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     QByteArray encodedPropertyFlags;
     int propertyCount = 0;
 
-    successIDFits = packetData->appendValue(encodedID);
+    successIDFits = packetData->appendRawData(encodedID);
     if (successIDFits) {
-        successTypeFits = packetData->appendValue(encodedType);
+        successTypeFits = packetData->appendRawData(encodedType);
     }
     if (successTypeFits) {
         successCreatedFits = packetData->appendValue(_created);
@@ -194,17 +194,17 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         successLastEditedFits = packetData->appendValue(lastEdited);
     }
     if (successLastEditedFits) {
-        successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
+        successLastUpdatedFits = packetData->appendRawData(encodedUpdateDelta);
     }
     if (successLastUpdatedFits) {
-        successLastSimulatedFits = packetData->appendValue(encodedSimulatedDelta);
+        successLastSimulatedFits = packetData->appendRawData(encodedSimulatedDelta);
     }
     
     if (successLastSimulatedFits) {
         propertyFlagsOffset = packetData->getUncompressedByteOffset();
         encodedPropertyFlags = propertyFlags;
         oldPropertyFlagsLength = encodedPropertyFlags.length();
-        successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+        successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
     }
 
     bool headerFits = successIDFits && successTypeFits && successCreatedFits && successLastEditedFits 

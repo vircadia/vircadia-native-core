@@ -623,23 +623,23 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         quint64 lastEdited = properties.getLastEdited();
         bool successLastEditedFits = packetData->appendValue(lastEdited);
         
-        bool successIDFits = packetData->appendValue(encodedID);
+        bool successIDFits = packetData->appendRawData(encodedID);
         if (successIDFits) {
-            successIDFits = packetData->appendValue(encodedToken);
+            successIDFits = packetData->appendRawData(encodedToken);
         }
-        bool successTypeFits = packetData->appendValue(encodedType);
+        bool successTypeFits = packetData->appendRawData(encodedType);
         
         // NOTE: We intentionally do not send "created" times in edit messages. This is because:
         //   1) if the edit is to an existing entity, the created time can not be changed
         //   2) if the edit is to a new entity, the created time is the last edited time
         
         // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
-        bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
+        bool successLastUpdatedFits = packetData->appendRawData(encodedUpdateDelta);
         
         int propertyFlagsOffset = packetData->getUncompressedByteOffset();
         QByteArray encodedPropertyFlags = propertyFlags;
         int oldPropertyFlagsLength = encodedPropertyFlags.length();
-        bool successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+        bool successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
         int propertyCount = 0;
         
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits

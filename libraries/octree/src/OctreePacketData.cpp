@@ -426,7 +426,12 @@ bool OctreePacketData::appendValue(const QUuid& uuid) {
 }
 
 bool OctreePacketData::appendValue(const QByteArray& bytes) {
-    bool success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    // TODO: make this a ByteCountCoded leading byte
+    uint16_t length = bytes.size();
+    bool success = appendValue(length);
+    if (success) {
+        success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    }
     return success;
 }
 
@@ -450,6 +455,12 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
     }
     return success;
 }
+
+
+bool OctreePacketData::appendRawData(QByteArray data) {
+    return appendRawData((unsigned char *)data.data(), data.size());
+}
+
 
 quint64 OctreePacketData::_compressContentTime = 0;
 quint64 OctreePacketData::_compressContentCalls = 0;
