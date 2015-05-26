@@ -12,17 +12,17 @@
 #ifndef hifi_render_Scene_h
 #define hifi_render_Scene_h
 
-#include <bitset>
-#include <memory>
-#include <vector>
-#include <set>
-#include <map>
-#include <RenderArgs.h>
-#include <AABox.h>
-#include <RenderArgs.h>
 #include <atomic>
+#include <bitset>
+#include <map>
+#include <memory>
 #include <mutex>
 #include <queue>
+#include <set>
+#include <vector>
+
+#include <AABox.h>
+#include <RenderArgs.h>
 
 namespace render {
 
