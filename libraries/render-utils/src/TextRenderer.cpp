@@ -9,25 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TextRenderer.h"
 
 #include <gpu/GPUConfig.h>
 #include <gpu/GLBackend.h>
-#include <gpu/Stream.h>
 
-#include <QApplication>
-#include <QtDebug>
-#include <QString>
-#include <QStringList>
 #include <QBuffer>
+#include <QImage>
+#include <QStringList>
 #include <QFile>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "GLMHelpers.h"
 #include "MatrixStack.h"
 #include "RenderUtilsLogging.h"
-#include "TextRenderer.h"
 
 #include "sdf_text_vert.h"
 #include "sdf_text_frag.h"
@@ -53,14 +47,9 @@ void fillBuffer(QBuffer& buffer, T (&t)[N]) {
 struct TextureVertex {
     glm::vec2 pos;
     glm::vec2 tex;
-    TextureVertex() {
-    }
-    TextureVertex(const glm::vec2& pos, const glm::vec2& tex) :
-    pos(pos), tex(tex) {
-    }
-    TextureVertex(const QPointF& pos, const QPointF& tex) :
-    pos(pos.x(), pos.y()), tex(tex.x(), tex.y()) {
-    }
+    TextureVertex() {}
+    TextureVertex(const glm::vec2& pos, const glm::vec2& tex) : pos(pos), tex(tex) {}
+    TextureVertex(const QPointF& pos, const QPointF& tex) : pos(pos.x(), pos.y()), tex(tex.x(), tex.y()) {}
 };
 
 struct QuadBuilder {
@@ -141,11 +130,12 @@ private:
     float _spaceWidth = 0.0f;
     
     // gpu structures
+    static const unsigned int VERTEX_BUFFER_CHANNEL = 0;
     gpu::PipelinePointer _pipeline;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
-    gpu::BufferView _vertices;
-    gpu::BufferView _texCoords;
+    gpu::BufferPointer _vertices;
+    unsigned int _numVertices = 0;
     
     // last string render characteristics
     QString _lastStringRendered;
@@ -327,8 +317,18 @@ void Font::read(QIODevice& in) {
     gpu::Shader::makeProgram(*program, slotBindings);
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    
+    state->setCullMode(gpu::State::CULL_BACK);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    
+    // Setup rendering structures
+    static const int OFFSET = offsetof(TextureVertex, tex);
+    _format = gpu::Stream::FormatPointer(new gpu::Stream::Format());
+    _format->setAttribute(gpu::Stream::POSITION, VERTEX_BUFFER_CHANNEL, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 0);
+    _format->setAttribute(gpu::Stream::TEXCOORD, VERTEX_BUFFER_CHANNEL, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), OFFSET);
 }
 
 void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
@@ -337,7 +337,11 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     glm::vec2 advance = glm::vec2(0.0f, 0.0f);
     
     if (str != _lastStringRendered || bounds != _lastBounds) {
-        gpu::BufferPointer vertices = gpu::BufferPointer(new gpu::Buffer());
+        _vertices = gpu::BufferPointer(new gpu::Buffer());
+        _numVertices = 0;
+        _lastStringRendered = str;
+        _lastBounds = bounds;
+        
         foreach(const QString& token, tokenizeForWrapping(str)) {
             bool isNewLine = token == QString('\n');
             bool forceNewLine = false;
@@ -368,7 +372,8 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
                     // Build translated quad and add it to the buffer
                     QuadBuilder qd(glyph.bounds().translated(advance.x, advance.y),
                                    glyph.textureBounds());
-                    vertices->append(sizeof(QuadBuilder), (const gpu::Byte*)qd.vertices);
+                    _vertices->append(sizeof(qd.vertices), (const gpu::Byte*)qd.vertices);
+                    _numVertices += 4;
                     
                     // Advance by glyph size
                     advance.x += glyph.d;
@@ -378,32 +383,19 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
                 advance.x += _spaceWidth;
             }
         }
-        
-        // Setup rendering structures
-        static const int STRIDES = sizeof(TextureVertex);
-        static const int OFFSET = offsetof(TextureVertex, tex);
-        _format = gpu::Stream::FormatPointer(new gpu::Stream::Format());
-        _format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION,
-                              gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-        _format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD,
-                              gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-        
-        _vertices = gpu::BufferView(vertices, 0, vertices->getSize(), STRIDES,
-                                    _format->getAttributes().at(gpu::Stream::POSITION)._element);
-        _texCoords = gpu::BufferView(vertices, OFFSET, vertices->getSize(), STRIDES,
-                                     _format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
-        _lastStringRendered = str;
-        _lastBounds = bounds;
     }
     
-    batch.setInputFormat(_format);
-    batch.setInputBuffer(0, _vertices);
-    batch.setInputBuffer(1, _texCoords);
+    batch.setPipeline(_pipeline);
     batch.setUniformTexture(2, _texture);
     batch._glUniform1f(0, (effectType == TextRenderer::OUTLINE_EFFECT) ? 1.0f : 0.0f);
     batch._glUniform2f(1, x, y);
     batch._glUniform4fv(2, 4, (const GLfloat*)&color);
-    batch.draw(gpu::QUADS, _vertices.getNumElements());
+    QRectF rect(0.0f, 0.0f, 1.0f, 1.0f);
+    QuadBuilder qd(rect, rect);
+    _vertices->append(sizeof(QuadBuilder), (const gpu::Byte*)qd.vertices);
+    batch.setInputFormat(_format);
+    batch.setInputBuffer(VERTEX_BUFFER_CHANNEL, _vertices);
+    batch.draw(gpu::QUADS, _numVertices);
 }
 
 TextRenderer* TextRenderer::getInstance(const char* family, float pointSize,
@@ -416,10 +408,13 @@ TextRenderer* TextRenderer::getInstance(const char* family, float pointSize,
             effectThickness, color);
 }
 
-TextRenderer::TextRenderer(const char* family, float pointSize, int weight,
-        bool italic, EffectType effect, int effectThickness,
-        const QColor& color) :
-        _effectType(effect), _effectThickness(effectThickness), _pointSize(pointSize), _color(color), _font(loadFont(family)) {
+TextRenderer::TextRenderer(const char* family, float pointSize, int weight, bool italic,
+                           EffectType effect, int effectThickness, const QColor& color) :
+    _effectType(effect),
+    _effectThickness(effectThickness),
+    _pointSize(pointSize),
+    _color(color),
+    _font(loadFont(family)) {
     if (!_font) {
         qWarning() << "Unable to load font with family " << family;
         _font = loadFont("Courier");
@@ -436,32 +431,32 @@ TextRenderer::~TextRenderer() {
 }
 
 glm::vec2 TextRenderer::computeExtent(const QString& str) const {
-    float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
     if (_font) {
+        float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
         return _font->computeExtent(str) * scale;
     }
     return glm::vec2(0.1f,0.1f);
 }
 
 void TextRenderer::draw(float x, float y, const QString& str, const glm::vec4& color, const glm::vec2& bounds) {
-    gpu::Batch batch;
-    draw(batch, x, y, str, color, bounds);
-    gpu::GLBackend::renderBatch(batch);
+    // The font does all the OpenGL work
+    if (_font) {
+//        gpu::Batch batch;
+//        draw(batch, x, y, str, color, bounds);
+//        gpu::GLBackend::renderBatch(batch, true);
+    }
 }
 
 void TextRenderer::draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
                          const glm::vec2& bounds) {
- 
-    glm::vec4 actualColor(color);
-    if (actualColor.r < 0) {
-        actualColor = toGlm(_color);
-    }
-    
-    float scale = (_pointSize / DEFAULT_POINT_SIZE) * 0.25f;
-    
     // The font does all the OpenGL work
     if (_font) {
-        _font->drawString(batch, x, y, str, actualColor, _effectType, bounds / scale);
+        glm::vec4 actualColor(color);
+        if (actualColor.r < 0) {
+            actualColor = toGlm(_color);
+        }
+        
+        _font->drawString(batch, x, y, str, actualColor, _effectType, bounds);
     }
 }
 

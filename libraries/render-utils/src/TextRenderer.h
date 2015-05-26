@@ -12,18 +12,8 @@
 #ifndef hifi_TextRenderer_h
 #define hifi_TextRenderer_h
 
-#include <gpu/GPUConfig.h>
 #include <glm/glm.hpp>
-#include <unordered_map>
 #include <QColor>
-#include <QFont>
-#include <QFontMetrics>
-#include <QHash>
-#include <QImage>
-#include <QVector>
-
-#include <gpu/Resource.h>
-#include <gpu/Stream.h>
 
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
