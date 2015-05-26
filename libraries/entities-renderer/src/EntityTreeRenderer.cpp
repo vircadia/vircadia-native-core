@@ -113,7 +113,6 @@ void EntityTreeRenderer::init() {
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
     connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
-    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -1101,14 +1100,6 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
     }
 }
 
-
-void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
-    if (_entityScripts.contains(oldEntityID)) {
-        EntityScriptDetails details = _entityScripts[oldEntityID];
-        _entityScripts.remove(oldEntityID);
-        _entityScripts[newEntityID] = details;
-    }
-}
 
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItem* entity = entityTree->findEntityByEntityItemID(id);

@@ -143,7 +143,6 @@ signals:
 
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
-    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void clearingEntities();
 
 private:
