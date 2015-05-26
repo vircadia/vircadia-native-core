@@ -143,6 +143,11 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
+	auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
+	for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
+		(*normal) = -(*normal);
+	}
+
 
     qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------" << usecTimestampNow();
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
