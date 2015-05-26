@@ -875,7 +875,7 @@ void AudioClient::handleAudioInput() {
 
             _stats.sentPacket();
 
-            // qDebug() << "Sending audio packet at" << usecTimestampNow();
+            nodeList->flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstAudioPacket);
 
             int packetBytes = currentPacketPtr - audioDataPacket;
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
@@ -923,6 +923,8 @@ void AudioClient::sendMuteEnvironmentPacket() {
 }
 
 void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::ReceiveFirstAudioPacket);
+
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(audioByteArray);

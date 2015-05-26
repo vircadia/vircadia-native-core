@@ -106,8 +106,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
-        DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::LookupAddress,
-                                                                      usecTimestampNow());
+        DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::LookupAddress);
 
         // there are 4 possible lookup strings
 

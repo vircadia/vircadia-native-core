@@ -60,7 +60,11 @@ public:
             SetDomainHostname,
             SetDomainSocket,
             SendFirstDSCheckIn,
-            ReceiveFirstDSList
+            ReceiveFirstDSList,
+            SendFirstAudioPing,
+            SetAudioMixerSocket,
+            SendFirstAudioPacket,
+            ReceiveFirstAudioPacket
         };
     };
 
@@ -116,7 +120,7 @@ private:
 
     void sendDSPathQuery(const QString& newPath);
 
-    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, qint64 timestamp);
+    void flagTimeForConnectionStep(NodeList::ConnectionStep::Value connectionStep, quint64 timestamp);
 
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;

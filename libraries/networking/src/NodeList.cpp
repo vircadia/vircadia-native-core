@@ -636,6 +636,10 @@ void NodeList::pingInactiveNodes() {
         if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
             pingPunchForInactiveNode(node);
+
+            if (node->getType() == NodeType::AudioMixer) {
+                flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstAudioPing);
+            }
         }
     });
 }
@@ -656,6 +660,10 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activatePublicSocket();
     } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
         sendingNode->activateSymmetricSocket();
+    }
+
+    if (sendingNode->getType() == NodeType::AudioMixer) {
+       flagTimeForConnectionStep(NodeList::ConnectionStep::SetAudioMixerSocket);
     }
 }
 
