@@ -60,9 +60,9 @@ public:
     virtual void init();
     virtual void render(RenderArgs* renderArgs) override;
 
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
-    virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
-    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem);
+    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
+    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
+    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
     
     /// clears the tree
     virtual void clear();
@@ -123,13 +123,13 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
-    void applyZonePropertiesToScene(const ZoneEntityItem* zone);
+    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
-    void renderProxies(const EntityItem* entity, RenderArgs* args);
+    void renderProxies(EntityItemPointer entity, RenderArgs* args);
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
                                                                 bool precisionPicking);
 
@@ -146,7 +146,7 @@ private:
     ScriptEngine* _entitiesScriptEngine;
     ScriptEngine* _sandboxScriptEngine;
 
-    QScriptValue loadEntityScript(EntityItem* entity, bool isPreload = false);
+    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
     QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url);
@@ -172,7 +172,8 @@ private:
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
     bool _hasPreviousZone = false;
-    const ZoneEntityItem* _bestZone;
+    std::shared_ptr<ZoneEntityItem> _bestZone;
+
     float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;

@@ -18,7 +18,7 @@
 
 UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree, 
                         EntityTreeElement* containingElement, 
-                        EntityItem* existingEntity, 
+                        EntityItemPointer existingEntity, 
                         const EntityItemProperties& properties) :
     _tree(tree),
     _existingEntity(existingEntity),

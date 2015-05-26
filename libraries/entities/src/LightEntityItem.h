@@ -16,7 +16,7 @@
 
 class LightEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     LightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     

@@ -21,8 +21,8 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QSet<EntityItem*> SetOfEntities;
-typedef QVector<EntityItem*> VectorOfEntities;
+typedef QSet<EntityItemPointer> SetOfEntities;
+typedef QVector<EntityItemPointer> VectorOfEntities;
 
 // the EntitySimulation needs to know when these things change on an entity, 
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
@@ -59,16 +59,16 @@ public:
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
-    void addEntity(EntityItem* entity);
+    void addEntity(EntityItemPointer entity);
 
     /// \param entity pointer to EntityItem to be removed
     /// \brief the actual removal may happen later when appropriate data structures are locked
     /// \sideeffect nulls relevant backpointers in entity
-    void removeEntity(EntityItem* entity);
+    void removeEntity(EntityItemPointer entity);
 
     /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
-    void changeEntity(EntityItem* entity);
+    void changeEntity(EntityItemPointer entity);
 
     void clearEntities();
 
@@ -88,9 +88,9 @@ protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(const quint64& now) = 0;
-    virtual void addEntityInternal(EntityItem* entity);
-    virtual void removeEntityInternal(EntityItem* entity) = 0;
-    virtual void changeEntityInternal(EntityItem* entity);
+    virtual void addEntityInternal(EntityItemPointer entity);
+    virtual void removeEntityInternal(EntityItemPointer entity) = 0;
+    virtual void changeEntityInternal(EntityItemPointer entity);
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);

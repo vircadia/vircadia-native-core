@@ -17,7 +17,7 @@
 class ParticleEffectEntityItem : public EntityItem {
 public:
 
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~ParticleEffectEntityItem();
