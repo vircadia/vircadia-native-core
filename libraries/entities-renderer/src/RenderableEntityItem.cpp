@@ -12,19 +12,25 @@
 
 #include "RenderableEntityItem.h"
 
-/*
-
-template <> const render::ItemKey render::payloadGetKey(const std::shared_ptr<RenderableEntityItem>& payload) {
-    return payload->getKey();
+// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& entity) { 
+        return ItemKey::Builder::opaqueShape(); 
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& entity) { 
+        if (entity) {
+            return entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    
+    template <> void payloadRender(const RenderableEntityItem::Pointer& entity, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            if (entity) {
+                entity->render(args);
+            }
+        }
+    }
 }
-
-template <> const render::Item::Bound render::payloadGetBound(const std::shared_ptr<RenderableEntityItem>& payload) {
-    return payload->getBounds(); 
-}
-
-template <> void render::payloadRender(const std::shared_ptr<RenderableEntityItem>& payload, RenderArgs* args) {
-    return payload->render(args); 
-}
-
-
-*/

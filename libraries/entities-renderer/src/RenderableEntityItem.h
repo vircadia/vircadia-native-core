@@ -12,65 +12,16 @@
 #ifndef hifi_RenderableEntityItem_h
 #define hifi_RenderableEntityItem_h
 
-/*
-
 #include <render/Scene.h>
 #include <EntityItem.h>
 
-class RenderableEntityItemProxy {
-public:
-    RenderableEntityItemProxy(EntityItem* entity) {
-        _entity = entity;
-    }
-    
-    const render::ItemKey& getKey() const {
-        _myKey = render::ItemKey::Builder().withTypeShape().build();
-        return _myKey;
-    }
-    
-    const render::Item::Bound getBounds() const {
-        if (_entity) {
-            return _entity->getAABox();
-        }
-        return render::Item::Bound();
-    }
-    
-    void render(RenderArgs* args) const {
-        if (_entity) {
-            _entity->render(args);
-        }
-    }
-    
-    void clearEntity() {
-        _entity = nullptr;
-    }
-    
-private:
-    mutable render::ItemKey _myKey;
-    EntityItem* _entity = nullptr;
-};
-
-typedef render::Payload<RenderableEntityItemProxy> RenderableEntityItemProxyPayload;
-
 class RenderableEntityItem {
 public:
-    ~RenderableEntityItem() {
-        if (_proxy) {
-            _proxy->clearEntity();
-        }
-    }
-    
-    RenderableEntityItemProxy* getRenderProxy() {
-        if (!_proxy) {
-            //_proxy = new RenderableEntityItemProxy(this);
-        }
-        return _proxy;
-    }
-private:
-    RenderableEntityItemProxy* _proxy = nullptr;
+    typedef render::Payload<RenderableEntityItem> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    //typedef Payload::DataPointer Pointer;
+    typedef EntityItemPointer Pointer;
+        
 };
-
-*/
-
 
 #endif // hifi_RenderableEntityItem_h

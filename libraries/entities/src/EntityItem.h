@@ -424,7 +424,4 @@ protected:
     bool _simulated; // set by EntitySimulation
 };
 
-typedef std::shared_ptr<EntityItem> EntityItemSharedPointer;
-
-
 #endif // hifi_EntityItem_h
