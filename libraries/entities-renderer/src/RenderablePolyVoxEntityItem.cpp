@@ -266,9 +266,9 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     glm::mat4 wtvMatrix = worldToVoxelMatrix();
-    glm::vec3 far = origin + direction;
+    glm::vec3 farPoint = origin + direction;
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
-    glm::vec4 farInVoxel = wtvMatrix * glm::vec4(far, 1.0f);
+    glm::vec4 farInVoxel = wtvMatrix * glm::vec4(farPoint, 1.0f);
     glm::vec4 directionInVoxel = farInVoxel - originInVoxel;
 
     PolyVox::Vector3DFloat start(originInVoxel[0], originInVoxel[1], originInVoxel[2]);
