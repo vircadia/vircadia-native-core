@@ -18,11 +18,11 @@
 #include <QtCore/QUuid>
 
 #include <AvatarData.h>
+#include <ShapeInfo.h>
 
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
-#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -55,6 +55,7 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
+class AvatarMotionState;
 class Texture;
 
 class Avatar : public AvatarData {
@@ -68,7 +69,7 @@ public:
     void init();
     void simulate(float deltaTime);
 
-    virtual void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE,
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
         bool postLighting = false);
 
     //setters
@@ -146,9 +147,9 @@ public:
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
-    Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
-    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
-    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
+    Q_INVOKABLE const glm::vec3& getAcceleration() const { return _acceleration; }
+    Q_INVOKABLE const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    Q_INVOKABLE const glm::vec3& getAngularAcceleration() const { return _angularAcceleration; }
     
 
     /// Scales a world space position vector relative to the avatar position and scale
@@ -163,6 +164,10 @@ public:
     void applyPositionDelta(const glm::vec3& delta);
 
     virtual void rebuildSkeletonBody();
+
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+
+    friend class AvatarManager;
 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
@@ -208,11 +213,11 @@ protected:
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
     void renderDisplayName();
-    virtual void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
     
@@ -231,7 +236,7 @@ private:
 
     int _voiceSphereID;
 
-    //AvatarMotionState* _motionState = nullptr;
+    AvatarMotionState* _motionState = nullptr;
 };
 
 #endif // hifi_Avatar_h

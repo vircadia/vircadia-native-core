@@ -58,9 +58,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs) override;
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);

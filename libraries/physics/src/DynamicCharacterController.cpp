@@ -311,9 +311,11 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             // create new shape
             _shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
 
+            // HACK: use some simple mass property defaults for now
+            float mass = 100.0f;
+            btVector3 inertia(30.0f, 8.0f, 30.0f);
+
             // create new body
-            float mass = 1.0f;
-            btVector3 inertia(1.0f, 1.0f, 1.0f);
             _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);

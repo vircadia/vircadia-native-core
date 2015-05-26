@@ -765,26 +765,28 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
-bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
+bool Model::render(RenderArgs* renderArgs, float alpha) {
     PROFILE_RANGE(__FUNCTION__);
 
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode, args);
+        attachment->render(renderArgs, alpha);
     }
     if (_meshStates.isEmpty()) {
         return false;
     }
 
-    renderSetup(args);
-    return renderCore(alpha, mode, args);
+    renderSetup(renderArgs);
+    return renderCore(renderArgs, alpha);
 }
 
-bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
+bool Model::renderCore(RenderArgs* args, float alpha) {
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
         return false;
     }
+
+    auto mode = args->_renderMode;
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
@@ -1844,7 +1846,7 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     batch.setViewTransform(_transforms[0]);
 }
 
-void Model::endScene(RenderMode mode, RenderArgs* args) {
+void Model::endScene(RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
 
@@ -1852,6 +1854,8 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     // with legacy transform profile, we still to protect that transform stack...
     glPushMatrix();
 #endif 
+
+    auto mode = args->_renderMode;
 
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
     if (args) {

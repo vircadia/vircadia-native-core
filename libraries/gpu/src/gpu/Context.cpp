@@ -15,9 +15,22 @@
 
 using namespace gpu;
 
+Context::Context() {
+}
+
+Context::Context(const Context& context) {
+}
+
+Context::~Context() {
+}
+
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram()) {
         return GLBackend::makeProgram(shader, bindings);
     }
     return false;
+}
+
+void Context::enqueueBatch(Batch& batch) {
+    GLBackend::renderBatch(batch, true);
 }

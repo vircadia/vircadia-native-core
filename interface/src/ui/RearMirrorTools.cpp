@@ -46,7 +46,7 @@ RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _headZoomIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
 }
 
-void RearMirrorTools::render(bool fullScreen, const QPoint & mousePosition) {
+void RearMirrorTools::render(RenderArgs* renderArgs, bool fullScreen, const QPoint & mousePosition) {
     if (fullScreen) {
         _fullScreen = true;
         displayIcon(QRect(QPoint(), qApp->getDeviceSize()), _shrinkIconRect, _closeTexture);

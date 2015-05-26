@@ -1,5 +1,5 @@
 //
-//  ShapeInfoUtil.h
+//  ShapeFactory.h
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.12.01
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ShapeInfoUtil_h
-#define hifi_ShapeInfoUtil_h
+#ifndef hifi_ShapeFactory_h
+#define hifi_ShapeFactory_h
 
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
@@ -20,11 +20,11 @@
 // translates between ShapeInfo and btShape
 
 // TODO: rename this to ShapeFactory
-namespace ShapeInfoUtil {
+namespace ShapeFactory {
 
     btConvexHullShape* createConvexHull(const QVector<glm::vec3>& points);
 
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
 };
 
-#endif // hifi_ShapeInfoUtil_h
+#endif // hifi_ShapeFactory_h
