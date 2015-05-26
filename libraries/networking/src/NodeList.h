@@ -84,8 +84,10 @@ public:
 
     int processDomainServerList(const QByteArray& packet);
 
-    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const { return _lastConnectionTimes; }
+    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const
+        { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
     void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep);
+    void resetConnectionTimes() { QWriteLocker writeLock(&_connectionTimeLock); _lastConnectionTimes.clear(); }
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
@@ -128,6 +130,7 @@ private:
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
 
+    mutable QReadWriteLock _connectionTimeLock { };
     QMap<ConnectionStep, quint64> _lastConnectionTimes;
 
     friend class Application;

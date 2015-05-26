@@ -69,11 +69,12 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
         }
     }
 
+    // setup a horizontal box layout
     QHBoxLayout* hBoxLayout = new QHBoxLayout;
     hBoxLayout->addWidget(timeTable);
     hBoxLayout->setSizeConstraint(QLayout::SetMinimumSize);
 
-    timeTable->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    // resize the table columns
     timeTable->resizeColumnsToContents();
 
     // figure out the size of the table so we can size the dialog
@@ -87,6 +88,7 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
         tableHeight += timeTable->rowHeight(i);
     }
 
+    // set the minimum size of the table to whatever we got
     timeTable->setMinimumSize(tableWidth, tableHeight);
 
     setLayout(hBoxLayout);

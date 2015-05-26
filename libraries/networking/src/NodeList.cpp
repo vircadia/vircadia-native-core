@@ -270,9 +270,6 @@ void NodeList::reset() {
     if (_dtlsSocket) {
         disconnect(_dtlsSocket, 0, this, 0);
     }
-
-    // reset the connection times
-    _lastConnectionTimes.clear();
 }
 
 void NodeList::addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd) {
@@ -673,6 +670,13 @@ void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep
 }
 
 void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep, quint64 timestamp) {
+    QWriteLocker writeLock(&_connectionTimeLock);
+
+    if (connectionStep == NodeList::ConnectionStep::LookupAddress) {
+        // we clear the current times if the user just fired off a lookup
+        _lastConnectionTimes.clear();
+    }
+
     // we only add a timestamp on the first call for each NodeList::ConnectionStep
     if (!_lastConnectionTimes.contains(connectionStep)) {
         _lastConnectionTimes[connectionStep] = timestamp;
