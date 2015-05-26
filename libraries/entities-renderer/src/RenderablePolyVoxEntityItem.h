@@ -47,13 +47,11 @@ public:
     glm::mat4 voxelToWorldMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
 
-    void setSphere(glm::vec3 center, float radius, uint8_t toValue);
-    void createSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords);
-    void eraseSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords);
+    // coords are in voxel-volume space
+    virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
 
-    void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
-    void createSphereInVolume(glm::vec3 center, float radius);
-    void eraseSphereInVolume(glm::vec3 center, float radius);
+    // coords are in world-space
+    virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue);
 
 private:
     void compressVolumeData();

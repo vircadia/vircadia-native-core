@@ -80,27 +80,14 @@ void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
                 glm::vec3 pos(x, y, z);
                 // And compute how far the current position is from the center of the volume
                 float fDistToCenter = glm::distance(pos, center);
-                uint8_t uVoxelValue = _volData->getVoxelAt(x, y, z);
                 // If the current voxel is less than 'radius' units from the center then we make it solid.
                 if (fDistToCenter <= radius) {
-                    // Our new voxel value
-                    uVoxelValue = toValue;
+                    _volData->setVoxelAt(x, y, z, toValue);
                 }
-
-                // Wrte the voxel value into the volume	
-                _volData->setVoxelAt(x, y, z, uVoxelValue);
             }
         }
     }
     compressVolumeData();
-}
-
-void RenderablePolyVoxEntityItem::createSphereInVolume(glm::vec3 centerVoxelCoords, float radiusVoxelCoords) {
-    setSphereInVolume(centerVoxelCoords, radiusVoxelCoords, 255);
-}
-
-void RenderablePolyVoxEntityItem::eraseSphereInVolume(glm::vec3 centerVoxelCoords, float radiusVoxelCoords) {
-    setSphereInVolume(centerVoxelCoords, radiusVoxelCoords, 0);
 }
 
 void RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords, uint8_t toValue) {
@@ -112,36 +99,23 @@ void RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float r
     setSphereInVolume(glm::vec3(centerVoxelCoords), radiusVoxelCoords, toValue);
 }
 
-void RenderablePolyVoxEntityItem::createSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords) {
-    setSphere(centerWorldCoords, radiusWorldCoords, 255);
-}
-
-void RenderablePolyVoxEntityItem::eraseSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords) {
-    setSphere(centerWorldCoords, radiusWorldCoords, 0);
-}
-
 void RenderablePolyVoxEntityItem::getModel() {
     if (!_volData) {
         // this will cause the allocation of _volData
         setVoxelVolumeSize(_voxelVolumeSize);
     }
 
-    glm::vec3 center = getCenter();
-    createSphere(center, 4);
-    createSphere(center + glm::vec3(6.0f, 0.0f, 0.0f), 2);
-
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     //Create a surface extractor. Comment out one of the following two lines to decide which type gets created.
-    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-        (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-    // PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    // PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
     //     (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+        (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
 
     //Execute the surface extractor.
     surfaceExtractor.execute();
-
 
     // convert PolyVox mesh to a Sam mesh
     model::Mesh* mesh = new model::Mesh();

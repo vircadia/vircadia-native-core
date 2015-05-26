@@ -70,6 +70,12 @@ class PolyVoxEntityItem : public EntityItem {
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
     static const QByteArray DEFAULT_VOXEL_DATA;
 
+    // coords are in voxel-volume space
+    virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {}
+
+    // coords are in world-space
+    virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue) {}
+
  protected:
     rgbColor _color;
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes

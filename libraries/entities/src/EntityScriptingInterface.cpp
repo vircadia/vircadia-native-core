@@ -17,6 +17,7 @@
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
+#include "PolyVoxEntityItem.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -379,4 +380,20 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+}
+
+
+bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) const {
+    EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        return false;
+    }
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return false;
+    }
+
+    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity);
+    polyVoxEntity->setSphere(center, radius, value);
+    return true;
 }
