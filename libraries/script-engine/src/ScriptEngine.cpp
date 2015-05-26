@@ -426,12 +426,6 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
                 [=](const EntityItemID& entityID) {
                     _registeredHandlers.remove(entityID);
                 });
-        connect(entities.data(), &EntityScriptingInterface::changingEntityID, this,
-                [=](const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
-                    if (!_registeredHandlers.contains(oldEntityID)) return;
-                    _registeredHandlers[newEntityID] = _registeredHandlers[oldEntityID];
-                    _registeredHandlers.remove(oldEntityID);
-                });
         
         // Two common cases of event handler, differing only in argument signature.
         auto makeSingleEntityHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&)> {
