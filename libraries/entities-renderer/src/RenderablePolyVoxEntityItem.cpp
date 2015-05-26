@@ -144,10 +144,10 @@ void RenderablePolyVoxEntityItem::getModel() {
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
     //Create a surface extractor. Comment out one of the following two lines to decide which type gets created.
-    PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-        (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-    // PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+    // PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
     //     (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+    PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+        (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
 
     //Execute the surface extractor.
     surfaceExtractor.execute();
@@ -178,6 +178,11 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        vertexBufferPtr->getSize() - sizeof(float) * 3,
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+
+	auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
+	for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
+		(*normal) = -(*normal);
+	}
 
 
     qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------" << usecTimestampNow();
