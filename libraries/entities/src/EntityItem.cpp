@@ -613,7 +613,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
                 // we want to extrapolate the motion forward to compensate for packet travel time, but
                 // we don't want the side effect of flag setting.
-                // simulateKinematicMotion(skipTimeForward, false);
+                simulateKinematicMotion(skipTimeForward, false);
             }
             _lastSimulated = now;
         }

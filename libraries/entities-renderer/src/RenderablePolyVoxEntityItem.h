@@ -26,14 +26,30 @@ public:
 
     virtual ~RenderablePolyVoxEntityItem();
 
+    virtual void somethingChangedNotification() {
+        // This gets called from EnityItem::readEntityDataFromBuffer every time a packet describing
+        // this entity comes from the entity-server.  It gets called even if nothing has actually changed
+        // (see the comment in EntityItem.cpp).  If that gets fixed, this could be used to know if we
+        // need to redo the voxel data.
+        // _needsModelReload = true;
+    }
+
+
     void render(RenderArgs* args);
-    virtual bool hasModel() const { return true; }
+    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject, bool precisionPicking) const;
+
     void getModel();
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
+    glm::mat4 voxelToWorldMatrix() const;
+    glm::mat4 worldToVoxelMatrix() const;
 
-    glm::vec3 metersToVoxelCoordinates(glm::vec3 metersOffCenter);
-    glm::vec3 voxelCoordinatesToMeters(glm::vec3 voxelCoords);
+    void setSphere(glm::vec3 center, float radius, uint8_t toValue);
+    void createSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords);
+    void eraseSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords);
 
     void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
     void createSphereInVolume(glm::vec3 center, float radius);
