@@ -391,9 +391,13 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
 
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
 void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
-    if (!_registeredHandlers.contains(entityID)) return;
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
     const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
-    if (!handlersOnEntity.contains(eventName)) return;
+    if (!handlersOnEntity.contains(eventName)) {
+        return;
+    }
     QScriptValueList handlersForEvent = handlersOnEntity[eventName];
     if (!handlersForEvent.isEmpty()) {
         QScriptValueList args = argGenerator();
@@ -404,7 +408,9 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
 }
 // Unregister the handlers for this eventName and entityID.
 void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
-    if (!_registeredHandlers.contains(entityID)) return;
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
     RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
     QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
     // QScriptValue does not have operator==(), so we can't use QList::removeOne and friends. So iterate.
