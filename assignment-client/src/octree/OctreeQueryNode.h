@@ -77,7 +77,7 @@ public:
     bool moveShouldDump() const;
 
     quint64 getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
-    void setLastTimeBagEmpty(quint64 lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; }
+    void setLastTimeBagEmpty() { _lastTimeBagEmpty = _sceneSendStartTime; }
 
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
     bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
@@ -98,6 +98,8 @@ public:
     void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
+
+    void sceneStart(quint64 sceneSendStartTime) { _sceneSendStartTime = sceneSendStartTime; }
     
     void nodeKilled();
     void forceNodeShutdown();
@@ -158,6 +160,8 @@ private:
 
     SentPacketHistory _sentPacketHistory;
     QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
+
+    quint64 _sceneSendStartTime = 0;
 };
 
 #endif // hifi_OctreeQueryNode_h
