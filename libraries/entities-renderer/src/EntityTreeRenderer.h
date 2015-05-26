@@ -125,7 +125,7 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
-    void applyZonePropertiesToScene(const ZoneEntityItem* zone);
+    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
@@ -174,7 +174,8 @@ private:
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
     bool _hasPreviousZone = false;
-    const ZoneEntityItem* _bestZone;
+    std::shared_ptr<ZoneEntityItem> _bestZone;
+
     float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;
