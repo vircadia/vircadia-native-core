@@ -136,14 +136,14 @@ public:
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
     DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -192,6 +192,8 @@ public:
 
     QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
 
+    void setVoxelDataDirty() { _voxelDataChanged = true; }
+
 private:
     QUuid _id;
     bool _idSet;
@@ -221,7 +223,6 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value) 
                     { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

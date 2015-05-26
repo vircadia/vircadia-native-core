@@ -117,7 +117,7 @@ public slots:
     Q_INVOKABLE void setSendPhysicsUpdates(bool value);
     Q_INVOKABLE bool getSendPhysicsUpdates() const;
 
-    Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) const;
+    Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
 
     Q_INVOKABLE void dumpTree() const;
 

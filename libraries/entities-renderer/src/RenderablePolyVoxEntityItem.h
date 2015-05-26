@@ -43,6 +43,8 @@ public:
 
     void getModel();
 
+    virtual void setVoxelData(QByteArray voxelData);
+
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     glm::mat4 voxelToWorldMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
@@ -55,6 +57,7 @@ public:
 
 private:
     void compressVolumeData();
+    void decompressVolumeData();
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;

@@ -42,6 +42,13 @@ RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
 }
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
+
+    if (_volData && voxelVolumeSize == _voxelVolumeSize) {
+        return;
+    }
+
+    qDebug() << "RESETTING VOXEL SIZE";
+
     PolyVoxEntityItem::setVoxelVolumeSize(voxelVolumeSize);
 
     if (_volData) {
@@ -55,6 +62,13 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
     _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
 }
+
+
+void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+    PolyVoxEntityItem::setVoxelData(voxelData);
+    decompressVolumeData();
+}
+
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToWorldMatrix() const {
     glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
@@ -88,6 +102,7 @@ void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
         }
     }
     compressVolumeData();
+    _needsModelReload = true;
 }
 
 void RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords, uint8_t toValue) {
@@ -143,20 +158,20 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
-	auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
-	for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
-		(*normal) = -(*normal);
-	}
+    // auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
+    // for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
+    //     (*normal) = -(*normal);
+    // }
 
 
-    qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------" << usecTimestampNow();
+    // qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------" << usecTimestampNow();
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
-    qDebug() << "---- sizeof(vecIndices[0]) =" << sizeof(vecIndices[0]);
+    // qDebug() << "---- sizeof(vecIndices[0]) =" << sizeof(vecIndices[0]);
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
-    qDebug() << "---- sizeof(vecVertices[0]) =" << sizeof(vecVertices[0]);
-    qDebug() << "---- sizeof(uint32_t) =" << sizeof(uint32_t);
-    qDebug() << "---- sizeof(float) =" << sizeof(float);
-    qDebug() << "---- sizeof(PolyVox::PositionMaterialNormal) =" << sizeof(PolyVox::PositionMaterialNormal);
+    // qDebug() << "---- sizeof(vecVertices[0]) =" << sizeof(vecVertices[0]);
+    // qDebug() << "---- sizeof(uint32_t) =" << sizeof(uint32_t);
+    // qDebug() << "---- sizeof(float) =" << sizeof(float);
+    // qDebug() << "---- sizeof(PolyVox::PositionMaterialNormal) =" << sizeof(PolyVox::PositionMaterialNormal);
 
     //           -------------XXXXXXXXXXXXXXXXXXXX-------------------
     //           ---- vecIndices.size() = 25524
@@ -281,7 +296,27 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
         }
     }
 
-    QByteArray compressedData = qCompress(uncompressedData, 9);
-    qDebug() << "-----------------------------------------------------------------------------";
-    qDebug() << "raw-size =" << rawSize << "   compressed-size =" << compressedData.size();
+    _voxelData = qCompress(uncompressedData, 9);
+    qDebug() << "-------------- compresss ------------------------------------------------------------";
+    qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
+}
+
+
+void RenderablePolyVoxEntityItem::decompressVolumeData() {
+    int rawSize = _volData->getDepth() * _volData->getHeight() * _volData->getWidth();
+    QByteArray uncompressedData = QByteArray(rawSize, '\0');
+
+    uncompressedData = qUncompress(_voxelData);
+
+    for (int z = 0; z < _volData->getDepth(); z++) {
+        for (int y = 0; y < _volData->getHeight(); y++) {
+            for (int x = 0; x < _volData->getWidth(); x++) {
+                int uncompressedIndex = z * _volData->getHeight() * _volData->getWidth() + y * _volData->getWidth() + x;
+                _volData->setVoxelAt(x, y, z, uncompressedData[uncompressedIndex]);
+            }
+        }
+    }
+
+    qDebug() << "--------------- decompress -----------------------------------------------------------";
+    qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
 }

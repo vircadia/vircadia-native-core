@@ -383,17 +383,33 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 }
 
 
-bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) const {
-    EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
-    if (!entity) {
+bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
+    if (!_entityTree) {
         return false;
     }
+
+    EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
+        return false;
+    }
+
     EntityTypes::EntityType entityType = entity->getType();
     if (entityType != EntityTypes::PolyVox) {
         return false;
     }
 
     PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity);
+    _entityTree->lockForWrite();
     polyVoxEntity->setSphere(center, radius, value);
+    _entityTree->unlock();
+
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+
+    properties.setVoxelDataDirty();
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+
     return true;
 }
