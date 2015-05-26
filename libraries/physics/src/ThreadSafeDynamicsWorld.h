@@ -21,7 +21,7 @@
 #include <BulletDynamics/Dynamics/btRigidBody.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
-#include "PhysicsTypedefs.h"
+#include "ObjectMotionState.h"
 
 ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld {
 public:
