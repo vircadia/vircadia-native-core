@@ -125,7 +125,7 @@ void GLBackend::updateInput() {
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
 #if defined(SUPPORT_LEGACY_OPENGL)
-                            const bool useClientState = i < NUM_CLASSIC_ATTRIBS;
+                            const bool useClientState = slot < NUM_CLASSIC_ATTRIBS;
 #else
                             const bool useClientState = false;
 #endif
