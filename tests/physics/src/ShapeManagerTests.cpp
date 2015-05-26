@@ -10,7 +10,6 @@
 //
 
 #include <iostream>
-#include <ShapeInfoUtil.h>
 #include <ShapeManager.h>
 #include <StreamUtils.h>
 

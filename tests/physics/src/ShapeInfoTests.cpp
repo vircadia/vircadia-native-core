@@ -16,7 +16,7 @@
 
 #include <DoubleHashKey.h>
 #include <ShapeInfo.h>
-#include <ShapeInfoUtil.h>
+#include <ShapeFactory.h>
 #include <StreamUtils.h>
 
 #include "ShapeInfoTests.h"
@@ -142,7 +142,7 @@ void ShapeInfoTests::testBoxShape() {
     info.setBox(halfExtents);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     if (!shape) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: NULL Box shape" << std::endl;
     }
@@ -168,7 +168,7 @@ void ShapeInfoTests::testSphereShape() {
     info.setSphere(radius);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
@@ -192,7 +192,7 @@ void ShapeInfoTests::testCylinderShape() {
     info.setCylinder(radius, height);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
@@ -217,7 +217,7 @@ void ShapeInfoTests::testCapsuleShape() {
     info.setCapsule(radius, height);
     DoubleHashKey key = info.getHash();
 
-    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
 
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
