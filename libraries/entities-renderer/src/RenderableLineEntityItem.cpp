@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
+#include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
@@ -30,11 +31,13 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-        glm::vec3& p2 = dimensions;
+        glm::vec3 p2 = {1.0f, 1.0, 0.0f};
+       //Now we need to switch over to using gemoetryCache renderVertices method like in circleOverlay3D
         DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);
