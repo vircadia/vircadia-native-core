@@ -19,7 +19,7 @@
 
 class ZoneEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     

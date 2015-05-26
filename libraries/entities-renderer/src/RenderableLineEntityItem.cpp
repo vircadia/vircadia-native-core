@@ -19,8 +19,8 @@
 
 #include "RenderableLineEntityItem.h"
 
-EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLineEntityItem(entityID, properties);
+EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableLineEntityItem(entityID, properties));
 }
 
 void RenderableLineEntityItem::render(RenderArgs* args) {
@@ -29,7 +29,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::vec3 p1 = ENTITY_ITEM_ZERO_VEC3;
     glm::vec3 p2 = getDimensions();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-    
+
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());

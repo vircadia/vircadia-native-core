@@ -25,7 +25,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 
     SetOfEntities::iterator itemItr = _hasSimulationOwnerEntities.begin();
     while (itemItr != _hasSimulationOwnerEntities.end()) {
-        EntityItem* entity = *itemItr;
+        EntityItemPointer entity = *itemItr;
         if (entity->getSimulatorID().isNull()) {
             itemItr = _hasSimulationOwnerEntities.erase(itemItr);
         } else if (now - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
@@ -44,18 +44,18 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     }
 }
 
-void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     EntitySimulation::addEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
         _hasSimulationOwnerEntities.insert(entity);
     }
 }
 
-void SimpleEntitySimulation::removeEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     _hasSimulationOwnerEntities.remove(entity);
 }
 
-void SimpleEntitySimulation::changeEntityInternal(EntityItem* entity) {
+void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::changeEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
         _hasSimulationOwnerEntities.insert(entity);
