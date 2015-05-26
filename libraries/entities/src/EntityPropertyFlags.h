@@ -110,6 +110,9 @@ enum EntityPropertyList {
     PROP_RESTITUTION,
     PROP_FRICTION,
 
+    PROP_VOXEL_VOLUME_SIZE,
+    PROP_VOXEL_DATA,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,

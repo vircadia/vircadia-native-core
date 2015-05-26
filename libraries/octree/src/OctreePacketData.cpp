@@ -426,7 +426,12 @@ bool OctreePacketData::appendValue(const QUuid& uuid) {
 }
 
 bool OctreePacketData::appendValue(const QByteArray& bytes) {
-    bool success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    // TODO: make this a ByteCountCoded leading byte
+    uint16_t length = bytes.size();
+    bool success = appendValue(length);
+    if (success) {
+        success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    }
     return success;
 }
 
@@ -450,6 +455,12 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
     }
     return success;
 }
+
+
+bool OctreePacketData::appendRawData(QByteArray data) {
+    return appendRawData((unsigned char *)data.data(), data.size());
+}
+
 
 quint64 OctreePacketData::_compressContentTime = 0;
 quint64 OctreePacketData::_compressContentCalls = 0;
@@ -572,4 +583,13 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor
     result.green = dataBytes[GREEN_INDEX];
     result.blue = dataBytes[BLUE_INDEX];
     return sizeof(rgbColor);
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    QByteArray value((const char*)dataBytes, length);
+    result = value;
+    return sizeof(length) + length;
 }
