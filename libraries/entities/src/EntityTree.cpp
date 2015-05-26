@@ -375,9 +375,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         if (_simulation) {
             _simulation->removeEntity(theEntity);
         }
-        
-        // FIX ME!!!
-        //delete theEntity; // we can delete the entity immediately
     }
     if (_simulation) {
         _simulation->unlock();
@@ -675,11 +672,11 @@ void EntityTree::update() {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
             
-            // NOTE: TEST ME!!
             for (auto entity : pendingDeletes) {
                 assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
+            
             // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
@@ -1007,7 +1004,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    //const QList<EntityItemPointer>&  entities = entityTreeElement->getEntities();
     const EntityItems&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
         EntityItemID newID(QUuid::createUuid());
