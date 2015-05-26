@@ -343,8 +343,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
         if (!viewFrustumChanged && !nodeData->getWantDelta()) {
             // only set our last sent time if we weren't resetting due to frustum change
-            quint64 now = usecTimestampNow();
-            nodeData->setLastTimeBagEmpty(now);
+            nodeData->setLastTimeBagEmpty();
         }
 
         // track completed scenes and send out the stats packet accordingly
@@ -368,9 +367,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
         // TODO: add these to stats page
         //::startSceneSleepTime = _usleepTime;
-        
+
+        nodeData->sceneStart(usecTimestampNow() - CHANGE_FUDGE);
         // start tracking our stats
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged,
+                                     _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
         bool dontRestartSceneOnMove = false; // this is experimental
@@ -558,6 +559,13 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             quint64 endInside = usecTimestampNow();
             quint64 elapsedInsideUsecs = endInside - startInside;
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
+        }
+
+
+        if (somethingToSend) {
+            qDebug() << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                     << "  maxPacketsPerInterval = " << maxPacketsPerInterval
+                     << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
         }
 
 
