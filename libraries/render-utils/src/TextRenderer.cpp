@@ -290,8 +290,7 @@ void Font::read(QIODevice& in) {
 
     // read image data
     QImage image;
-    image.loadFromData(in.readAll(), "PNG");
-    if (!image.isNull()) {
+    if (!image.loadFromData(in.readAll(), "PNG")) {
         qFatal("Failed to read SDFF image");
     }
     gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
