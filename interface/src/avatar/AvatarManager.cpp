@@ -115,7 +115,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(RenderArgs* renderArgs, bool postLighting, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
@@ -129,14 +129,14 @@ void AvatarManager::renderAvatars(RenderArgs::RenderMode renderMode, bool postLi
                 if (!avatar->isInitialized()) {
                     continue;
                 }
-                avatar->render(cameraPosition, renderMode, postLighting);
+                avatar->render(renderArgs, cameraPosition, postLighting);
                 avatar->setDisplayingLookatVectors(renderLookAtVectors);
             }
-            renderAvatarFades(cameraPosition, renderMode);
+            renderAvatarFades(renderArgs, cameraPosition);
         }
     } else {
         // just render myAvatar
-        _myAvatar->render(cameraPosition, renderMode, postLighting);
+        _myAvatar->render(renderArgs, cameraPosition, postLighting);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -159,14 +159,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     }
 }
 
-void AvatarManager::renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) {
+void AvatarManager::renderAvatarFades(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     // render avatar fades
-    Glower glower(renderMode == RenderArgs::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
+    Glower glower(renderArgs, renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
         Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
         if (avatar != static_cast<Avatar*>(_myAvatar.data()) && avatar->isInitialized()) {
-            avatar->render(cameraPosition, renderMode);
+            avatar->render(renderArgs, cameraPosition);
         }
     }
 }

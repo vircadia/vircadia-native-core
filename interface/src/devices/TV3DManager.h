@@ -33,7 +33,7 @@ public:
     static void connect();
     static bool isConnected();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(Camera& whichCamera);
+    static void display(RenderArgs* renderArgs, Camera& whichCamera);
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
 private:    

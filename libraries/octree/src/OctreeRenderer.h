@@ -51,9 +51,7 @@ public:
     virtual void init();
 
     /// render the content of the octree
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
