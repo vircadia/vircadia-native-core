@@ -14,15 +14,21 @@
 
 #include <LineEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
+#include <GeometryCache.h>
 
 class RenderableLineEntityItem : public LineEntityItem {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        LineEntityItem(entityItemID, properties) { }
+        LineEntityItem(entityItemID, properties),
+       _lineVerticesID(GeometryCache::UNKNOWN_ID)
+    { }
 
     virtual void render(RenderArgs* args);
+
+protected:
+    int _lineVerticesID;
 };
 
 

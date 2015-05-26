@@ -32,13 +32,24 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
         auto geometryCache = DependencyManager::get<GeometryCache>();
+    
+        if(_lineVerticesID == GeometryCache::UNKNOWN_ID){
+            _lineVerticesID = geometryCache ->allocateID();
+        }
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-        glm::vec3 p2 = {1.0f, 1.0, 0.0f};
-       //Now we need to switch over to using gemoetryCache renderVertices method like in circleOverlay3D
-        DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
+
+        bool geometryChanged = true;
+        if(geometryChanged){
+            QVector<glm::vec3> points;
+            glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
+            glm::vec3 p2 = {1.0f, 1.0, 0.0f};
+            points << p1;
+            points << p2;
+            geometryCache->updateVertices(_lineVerticesID, points, lineColor);
+        }
+      geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);
 };
