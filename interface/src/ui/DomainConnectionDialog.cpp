@@ -69,30 +69,25 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
         }
     }
 
-    timeTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    timeTable->resizeColumnsToContents();
-
-    const int TABLE_HEADER_GAP = 4;
-
-    // figure out the size of the table so we can size the dialog
-    int tableWidth = timeTable->verticalHeader()->width() + TABLE_HEADER_GAP;
-    for (int i = 0; i < timeTable->columnCount(); i++) {
-        tableWidth += timeTable->columnWidth(i);
-    }
-
-    int tableHeight = timeTable->horizontalHeader()->height() + TABLE_HEADER_GAP;
-    for (int i = 0; i < timeTable->rowCount(); i++) {
-        tableHeight += timeTable->rowHeight(i);
-    }
-
-    timeTable->setMaximumSize(QSize(tableWidth, tableHeight));
-    timeTable->setMinimumSize(timeTable->maximumSize());
-
     QHBoxLayout* hBoxLayout = new QHBoxLayout;
     hBoxLayout->addWidget(timeTable);
     hBoxLayout->setSizeConstraint(QLayout::SetMinimumSize);
 
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    timeTable->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    timeTable->resizeColumnsToContents();
+
+    // figure out the size of the table so we can size the dialog
+    int tableWidth = timeTable->verticalHeader()->sizeHint().width();
+    for (int i = 0; i < timeTable->columnCount(); i++) {
+        tableWidth += timeTable->columnWidth(i);
+    }
+
+    int tableHeight = timeTable->horizontalHeader()->sizeHint().height();
+    for (int i = 0; i < timeTable->rowCount(); i++) {
+        tableHeight += timeTable->rowHeight(i);
+    }
+
+    timeTable->setMinimumSize(tableWidth, tableHeight);
 
     setLayout(hBoxLayout);
     adjustSize();
