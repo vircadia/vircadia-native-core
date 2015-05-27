@@ -19,7 +19,7 @@
 
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         PolyVoxEntityItem(entityItemID, properties) { }

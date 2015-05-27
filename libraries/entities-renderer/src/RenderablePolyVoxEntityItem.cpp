@@ -33,7 +33,7 @@
 #include "EntityTreeRenderer.h"
 #include "RenderablePolyVoxEntityItem.h"
 
-EntityItem* RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderablePolyVoxEntityItem(entityID, properties);
 }
 
