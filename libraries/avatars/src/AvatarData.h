@@ -13,6 +13,7 @@
 #define hifi_AvatarData_h
 
 #include <string>
+#include <memory>
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
