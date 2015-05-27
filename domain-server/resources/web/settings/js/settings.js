@@ -262,7 +262,6 @@ $(document).ready(function(){
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
     $(this).blur();
     prepareAccessTokenPrompt();
-    e.preventDefault();
   });
 
   var panelsSource = $('#panels-template').html()
