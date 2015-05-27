@@ -17,7 +17,7 @@ using namespace render;
 DrawSceneTask::~DrawSceneTask() {
 }
 
-void DrawSceneTask::run(const SceneContextPointer& sceneContext) {
+void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     // sanity checks
     assert(sceneContext);
     if (!sceneContext->_scene) {
@@ -27,14 +27,14 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext) {
 
     auto& itemBucketMap = scene->getMasterBucket();
     
-    RenderArgs args;
+    RenderArgs* args = renderContext->args;
     // render opaques
     auto filter = ItemFilter::Builder::opaqueShape();
     auto& opaqueShapeItems = itemBucketMap.at(filter);
     
     for (auto id : opaqueShapeItems) {
         auto item = scene->getItem(id);
-        item.render(&args);
+        item.render(args);
     }
 };
 

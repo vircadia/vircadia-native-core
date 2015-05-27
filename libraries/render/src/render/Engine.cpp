@@ -15,12 +15,17 @@ using namespace render;
 
 
 Engine::Engine() :
-    _sceneContext(new SceneContext())
+    _sceneContext(new SceneContext()),
+    _renderContext(new RenderContext())
 {
 }
 
 void Engine::registerScene(const ScenePointer& scene) {
     _sceneContext->_scene = scene;
+}
+
+void Engine::setRenderContext(const RenderContext& renderContext) {
+    (*_renderContext) = renderContext;
 }
 
 void Engine::addTask(const TaskPointer& task) {
@@ -31,7 +36,7 @@ void Engine::addTask(const TaskPointer& task) {
 
 void Engine::run() {
     for (auto task : _tasks) {
-        task->run(_sceneContext);
+        task->run(_sceneContext, _renderContext);
     }
 }
 
