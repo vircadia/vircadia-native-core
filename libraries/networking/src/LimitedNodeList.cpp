@@ -866,14 +866,18 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
 }
 
 void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
-    if (!_areConnectionTimesComplete) {
+
+    if (connectionStep == ConnectionStep::LookupAddress) {
         QWriteLocker writeLock(&_connectionTimeLock);
 
-        if (connectionStep == ConnectionStep::LookupAddress) {
-            // we clear the current times if the user just fired off a lookup
-            _lastConnectionTimes.clear();
-            _areConnectionTimesComplete = false;
-        }
+        // we clear the current times if the user just fired off a lookup
+        _lastConnectionTimes.clear();
+        _areConnectionTimesComplete = false;
+
+        _lastConnectionTimes[timestamp] = connectionStep;
+    } else if (!_areConnectionTimesComplete) {
+        QWriteLocker writeLock(&_connectionTimeLock);
+
 
         // anything > than sending the first DS check should not come before the DS check in, so we drop those
         // this handles the case where you lookup an address and get packets in the existing domain before changing domains
