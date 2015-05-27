@@ -64,10 +64,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) { _voxelVolumeSize = voxelVolumeSize; }
     virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
 
-    virtual void setVoxelData(QByteArray voxelData) {
-        qDebug() << "%%%%%%%%%%% PolyVoxEntityItem::setVoxelData" << voxelData.size() << _voxelData.size();
-        _voxelData = voxelData;
-    }
+    virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
     virtual const QByteArray& getVoxelData() const { return _voxelData; }
 
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;

@@ -432,7 +432,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // If this is from the same sever packet, then check against any local changes since we got
             // the most recent packet from this server time
             if (_lastEdited > _lastEditedFromRemote) {
-                qDebug() << "_lastEdited > _lastEditedFromRemote";
                 ignoreServerPacket = true;
             }
         } else {
@@ -440,14 +439,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // If we've changed our local tree more recently than the new data from this packet
             // then we will not be changing our values, instead we just read and skip the data
             if (_lastEdited > lastEditedFromBufferAdjusted) {
-                qDebug() << "_lastEdited > lastEditedFromBufferAdjusted";
-                qDebug() << "_lastEdited =" << _lastEdited;
-                qDebug() << "lastEditedFromBuffer - clockSkew =" << lastEditedFromBuffer - clockSkew;
-                qDebug() << "lastEditedFromBufferAdjusted =" << lastEditedFromBufferAdjusted;
-                qDebug() << "lastEditedFromBuffer =" << lastEditedFromBuffer;
-                qDebug() << "clockSkew =" << clockSkew;
-                qDebug() << "now = " << now;
-
                 ignoreServerPacket = true;
             }
         }

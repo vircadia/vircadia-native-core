@@ -47,7 +47,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
         return;
     }
 
-    qDebug() << "RESETTING VOXEL SIZE";
+    qDebug() << "resetting voxel-space size";
 
     PolyVoxEntityItem::setVoxelVolumeSize(voxelVolumeSize);
 
@@ -65,7 +65,6 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
 
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
-    qDebug() << "%%%%%%%%%%% RenderablePolyVoxEntityItem::setVoxelData" << voxelData.size() << _voxelData.size();
     if (voxelData == _voxelData) {
         return;
     }
@@ -167,24 +166,8 @@ void RenderablePolyVoxEntityItem::getModel() {
     //     (*normal) = -(*normal);
     // }
 
-
-    // qDebug() << "-------------XXXXXXXXXXXXXXXXXXXX-------------------" << usecTimestampNow();
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
-    // qDebug() << "---- sizeof(vecIndices[0]) =" << sizeof(vecIndices[0]);
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
-    // qDebug() << "---- sizeof(vecVertices[0]) =" << sizeof(vecVertices[0]);
-    // qDebug() << "---- sizeof(uint32_t) =" << sizeof(uint32_t);
-    // qDebug() << "---- sizeof(float) =" << sizeof(float);
-    // qDebug() << "---- sizeof(PolyVox::PositionMaterialNormal) =" << sizeof(PolyVox::PositionMaterialNormal);
-
-    //           -------------XXXXXXXXXXXXXXXXXXXX-------------------
-    //           ---- vecIndices.size() = 25524
-    //           ---- sizeof(vecIndices[0]) = 4
-    //           ---- vecVertices.size() = 17016
-    //           ---- sizeof(vecVertices[0]) = 28
-    //           ---- sizeof(uint32_t) = 4
-    //           ---- sizeof(float) = 4
-    //           ---- sizeof(PolyVox::PositionMaterialNormal) = 28
 
     _modelGeometry.setMesh(meshPtr);
     _needsModelReload = false;
@@ -301,7 +284,7 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     }
 
     _voxelData = qCompress(uncompressedData, 9);
-    qDebug() << "-------------- compresss ------------------------------------------------------------";
+    qDebug() << "-------------- voxel compresss ------------------------------------------------------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
 }
 
@@ -323,6 +306,6 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
 
     _needsModelReload = true;
 
-    qDebug() << "--------------- decompress -----------------------------------------------------------";
+    qDebug() << "--------------- voxel decompress -----------------------------------------------------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
 }

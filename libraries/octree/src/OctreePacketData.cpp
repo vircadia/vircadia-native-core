@@ -591,6 +591,5 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QByteA
     dataBytes += sizeof(length);
     QByteArray value((const char*)dataBytes, length);
     result = value;
-    qDebug() << "OctreePacketData::uppackDataFromBytes uppacked " << length;
     return sizeof(length) + length;
 }
