@@ -677,8 +677,21 @@ void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep
         _lastConnectionTimes.clear();
     }
 
-    // we only add a timestamp on the first call for each NodeList::ConnectionStep
     if (!_lastConnectionTimes.contains(connectionStep)) {
+        // if there is no time for existing step add a timestamp on the first call for each NodeList::ConnectionStep
         _lastConnectionTimes[connectionStep] = timestamp;
+    } else {
+        // if the existing time for this step is before the nearest sibling before then replace it
+        // this handles the case where audio comes in after an address lookup after the previous times have been cleared
+        quint64 currentTime = _lastConnectionTimes[connectionStep];
+
+        // go down the sibling steps and check if the registered time is actually before the sibling
+        for (int i = ((int) connectionStep) - 1; i >= 0; i--) {
+            NodeList::ConnectionStep thisStep = static_cast<NodeList::ConnectionStep>(i);
+            if (_lastConnectionTimes.contains(thisStep) && _lastConnectionTimes[thisStep] >= currentTime) {
+                _lastConnectionTimes[connectionStep] = timestamp;
+                break;
+            }
+        }
     }
 }
