@@ -402,6 +402,7 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity);
     _entityTree->lockForWrite();
     polyVoxEntity->setSphere(center, radius, value);
+    // entity->setLastEdited(usecTimestampNow());
     _entityTree->unlock();
 
     _entityTree->lockForRead();

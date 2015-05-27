@@ -539,7 +539,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _lastEdited = usecTimestampNow();
+    _lastEdited = usecTimestampNow(); // ???
 }
 
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {

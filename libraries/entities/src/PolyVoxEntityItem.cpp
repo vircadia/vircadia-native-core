@@ -62,8 +62,11 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelVolumeSize, setVoxelVolumeSize);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelData, setVoxelData);
 
+    qDebug() << "PolyVoxEntityItem::setProperties somethingChanged =" << somethingChanged
+             << "prop has voxel-data =" << properties.getChangedProperties().getHasProperty(PROP_VOXEL_DATA);
+
     if (somethingChanged) {
-        bool wantDebug = false;
+        bool wantDebug = true;
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
@@ -76,17 +79,22 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
 }
 
 int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
-                                                     ReadBitstreamToTreeParams& args,
-                                                     EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                        ReadBitstreamToTreeParams& args,
+                                                        EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    qDebug() << "PolyVoxEntityItem::readEntitySubclassDataFromBuffer";
+    qDebug() << "PolyVoxEntityItem::readEntitySubclassDataFromBuffer"
+             << "propertyFlags.getHasProperty(PROP_VOXEL_DATA) =" << propertyFlags.getHasProperty(PROP_VOXEL_DATA)
+             << "overwriteLocalData =" << overwriteLocalData;
+
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
     READ_ENTITY_PROPERTY(PROP_VOXEL_DATA, QByteArray, setVoxelData);
+
+
 
     return bytesRead;
 }
@@ -102,18 +110,20 @@ EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams
 }
 
 void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                        EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
-                                        EntityPropertyFlags& requestedProperties,
-                                        EntityPropertyFlags& propertyFlags,
-                                        EntityPropertyFlags& propertiesDidntFit,
-                                        int& propertyCount, 
-                                        OctreeElement::AppendState& appendState) const { 
+                                           EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+                                           EntityPropertyFlags& requestedProperties,
+                                           EntityPropertyFlags& propertyFlags,
+                                           EntityPropertyFlags& propertiesDidntFit,
+                                           int& propertyCount, 
+                                           OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, getVoxelVolumeSize());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, getVoxelData());
+
+    qDebug() << "PolyVoxEntityItem::appendSubclassData successPropertyFits =" << successPropertyFits;
 }
 
 void PolyVoxEntityItem::debugDump() const {
