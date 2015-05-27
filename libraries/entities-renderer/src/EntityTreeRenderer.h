@@ -107,11 +107,11 @@ signals:
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
+    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 public slots:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

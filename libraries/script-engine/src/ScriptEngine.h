@@ -23,6 +23,7 @@
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
+#include <EntityItemID.h>
 
 #include "AbstractControllerScriptingInterface.h"
 #include "ArrayBufferClass.h"
@@ -35,6 +36,8 @@
 const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
+
+typedef QHash<QString, QScriptValueList> RegisteredEventHandlers;
 
 class ScriptEngine : public QScriptEngine, public ScriptUser {
     Q_OBJECT
@@ -97,6 +100,9 @@ public:
 
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
     virtual void errorInLoadingScript(const QUrl& url);
+
+    Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
+    Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
 public slots:
     void loadURL(const QUrl& scriptURL);
@@ -164,6 +170,8 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
+    QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
+    void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
 
 private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
