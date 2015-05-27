@@ -21,7 +21,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <RegisteredMetaTypes.h>
 
-enum class Eye {
+enum Eye {
     Left,
     Right,
     Mono
