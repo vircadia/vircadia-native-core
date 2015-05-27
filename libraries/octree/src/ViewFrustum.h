@@ -36,11 +36,9 @@ const float DEFAULT_FAR_CLIP = (float)TREE_SCALE;
 
 class ViewFrustum {
 public:
-    ViewFrustum();
-    
     // setters for camera attributes
-    void setPosition(const glm::vec3& p) { _position = p; }
-    void setOrientation(const glm::quat& orientationAsQuaternion);
+    void setPosition(const glm::vec3& position);
+    void setOrientation(const glm::quat& orientation);
 
     // getters for camera attributes
     const glm::vec3& getPosition() const { return _position; }
@@ -54,7 +52,8 @@ public:
     void getFocalLength(float focalLength) { _focalLength = focalLength; }
 
     // getters for lens attributes
-    const glm::mat4 getProjection() const { return _projection; };
+    const glm::mat4& getProjection() const { return _projection; };
+    const glm::mat4& getView() const { return _view; };
     float getWidth() const { return _width; }
     float getHeight() const { return _height; }
     float getFieldOfView() const { return _fieldOfView; }
@@ -120,6 +119,7 @@ private:
     // camera location/orientation attributes
     glm::vec3 _position; // the position in world-frame
     glm::quat _orientation;
+    glm::mat4 _view;
 
     // Lens attributes
     glm::mat4 _projection;
