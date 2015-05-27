@@ -31,6 +31,8 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
+        
+        glLineWidth(getLineWidth());
         auto geometryCache = DependencyManager::get<GeometryCache>();
     
         if(_lineVerticesID == GeometryCache::UNKNOWN_ID){
@@ -44,7 +46,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         if(geometryChanged){
             QVector<glm::vec3> points;
             glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-            glm::vec3 p2 = {1.0f, 1.0, 0.0f};
+            glm::vec3 p2 = dimensions;
             points << p1;
             points << p2;
             geometryCache->updateVertices(_lineVerticesID, points, lineColor);
