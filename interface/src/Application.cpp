@@ -3175,17 +3175,18 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
 }
 
 // WorldBox Render Data & rendering functions
+
+class WorldBoxRenderData {
+public:
+    typedef render::Payload<WorldBoxRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID WorldBoxRenderData::_item = 0;
+
 namespace render {
-    class WorldBoxRenderData {
-    public:
-        typedef Payload<WorldBoxRenderData> Payload;
-        typedef Payload::DataPointer Pointer;
-
-        static ItemID _item; // unique WorldBoxRenderData
-    };
-
-    ItemID WorldBoxRenderData::_item = 0;
-
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
@@ -3422,13 +3423,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     render::Scene::PendingChanges pendingChanges;
 
     // Make sure the WorldBox is in the scene
-    if (render::WorldBoxRenderData::_item == 0) {
-        auto worldBoxRenderData = render::WorldBoxRenderData::Pointer(new render::WorldBoxRenderData());
-        auto worldBoxRenderPayload = render::PayloadPointer(new render::WorldBoxRenderData::Payload(worldBoxRenderData));
+    if (WorldBoxRenderData::_item == 0) {
+        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
+        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
 
-        render::WorldBoxRenderData::_item = _main3DScene->allocateID();
+        WorldBoxRenderData::_item = _main3DScene->allocateID();
 
-        pendingChanges.resetItem(render::WorldBoxRenderData::_item, worldBoxRenderPayload);
+        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     }
 
 
