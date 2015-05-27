@@ -97,14 +97,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { r
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
-    // return QScriptValue(QLatin1String(v.data())); 
-
-    // QScriptValue array = e->newArray(v.size());
-    // for (int i = 0; i < v.size(); ++i) {
-    //     array.setProperty(i, QScriptValue(e, (unsigned int) v[i]));
-    // }
-    // return array;
-
     QByteArray b64 = v.toBase64();
     return QScriptValue(QString(b64));
 }
@@ -149,17 +141,7 @@ inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    // return v.toVariant().toByteArray();
-
-    // QByteArray byteArray;
-    // uint len = v.property("length").toUInt32();
-    // byteArray.resize(len);
-    // for (uint i = 0; i < len; ++i)
-    //     byteArray[i] = v.property(i).toUInt32();
-    // return byteArray;
-
     QString b64 = v.toVariant().toString().trimmed();
-
     return QByteArray::fromBase64(b64.toUtf8());
 }
 

@@ -235,7 +235,7 @@ public:
         Iterator<T>& operator=(const Iterator<T>& iterator) = default;
         Iterator<T>& operator=(T* ptr) {
             _ptr = ptr;
-			// stride is left unchanged
+            // stride is left unchanged
             return (*this);
         }
 
@@ -257,42 +257,42 @@ public:
 		}
 
         Iterator<T>& operator+=(const Index& movement) {
-			movePtr(movement);
+            movePtr(movement);
             return (*this);
         }
         Iterator<T>& operator-=(const Index& movement) {
-			movePtr(-movement);
+            movePtr(-movement);
             return (*this);
         }
         Iterator<T>& operator++() {
-			movePtr(1);
+            movePtr(1);
             return (*this);
         }
         Iterator<T>& operator--() {
-			movePtr(-1);
-			return (*this);
+            movePtr(-1);
+            return (*this);
         }
         Iterator<T> operator++(Index) {
             auto temp(*this);
-			movePtr(1);
-			return temp;
+            movePtr(1);
+            return temp;
         }
         Iterator<T> operator--(Index) {
             auto temp(*this);
-			movePtr(-1);
-			return temp;
+            movePtr(-1);
+            return temp;
         }
         Iterator<T> operator+(const Index& movement) {
             auto oldPtr = _ptr;
-			movePtr(movement);
+            movePtr(movement);
             auto temp(*this);
             _ptr = oldPtr;
             return temp;
         }
         Iterator<T> operator-(const Index& movement) {
             auto oldPtr = _ptr;
-			movePtr(-movement);
-			auto temp(*this);
+            movePtr(-movement);
+            auto temp(*this);
             _ptr = oldPtr;
             return temp;
         }

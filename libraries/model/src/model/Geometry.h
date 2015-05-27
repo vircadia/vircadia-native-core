@@ -52,7 +52,7 @@ public:
     // Attribute Buffers
     int getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
-	const BufferView getAttributeBuffer(int attrib) const;
+    const BufferView getAttributeBuffer(int attrib) const;
 
     // Stream format
     const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
