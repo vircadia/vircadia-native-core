@@ -369,7 +369,7 @@ public:
 
 protected:
     // Thread safe elements that can be accessed from anywhere
-    std::atomic<unsigned int> _IDAllocator;
+    std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
     std::mutex _changeQueueMutex;
     PendingChangesQueue _changeQueue;
 

@@ -89,9 +89,8 @@ void Scene::PendingChanges::merge(PendingChanges& changes) {
     _movedItems.insert(_movedItems.end(), changes._movedItems.begin(), changes._movedItems.end());
 }
 
-Scene::Scene() :
-    _IDAllocator(0)
-{
+Scene::Scene() {
+    _items.push_back(Item()); // add the itemID #0 to nothing
     _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
 }
 

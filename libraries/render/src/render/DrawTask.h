@@ -23,7 +23,7 @@ public:
     DrawSceneTask() : Task() {}
     ~DrawSceneTask();
 
-    virtual void run(const SceneContextPointer& sceneContext);
+    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 };
 
 
