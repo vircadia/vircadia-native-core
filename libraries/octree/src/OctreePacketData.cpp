@@ -358,6 +358,7 @@ bool OctreePacketData::appendValue(quint64 value) {
 }
 
 bool OctreePacketData::appendValue(float value) {
+    
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
@@ -377,6 +378,10 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
         _totalBytesOfValues += length;
     }
     return success;
+}
+
+bool OctreePacketData::appendValue(const QVector<glm::vec3>& value){
+    
 }
 
 bool OctreePacketData::appendValue(const glm::quat& value) {

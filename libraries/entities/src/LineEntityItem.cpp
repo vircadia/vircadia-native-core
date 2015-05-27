@@ -56,7 +56,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
-    SET_ENTITY_PROPERTY_FROM_PwaROPERTIES(lineWidth, setLineWidth);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
 
     if (somethingChanged) {
         bool wantDebug = false;
