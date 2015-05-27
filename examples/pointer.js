@@ -23,8 +23,8 @@ var drawDistance = 0;
 
 var LINE_WIDTH = 20;
 
-var userCanDraw = true;
-var userCanPoint = true;
+var userCanPoint = false;
+var userCanDraw = false;
 
 var BUTTON_SIZE = 32;
 var PADDING = 3;
@@ -49,7 +49,7 @@ var drawButton = Overlays.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/pencil.png?v2",
-  color: buttonOnColor,
+  color: buttonOffColor,
   alpha: 1
 });
 
@@ -59,7 +59,7 @@ var pointerButton = Overlays.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/laser.png",
-  color: buttonOnColor,
+  color: buttonOffColor,
   alpha: 1
 })
 
