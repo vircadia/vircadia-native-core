@@ -3169,24 +3169,35 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-class MyFirstStuff {
+// WorldBox Render Data & rendering functions
+
+class WorldBoxRenderData {
 public:
-    typedef render::Payload<MyFirstStuff> Payload;
-    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    typedef render::Payload<WorldBoxRenderData> Payload;
     typedef Payload::DataPointer Pointer;
-        
+
+    static render::ItemID _item; // unique WorldBoxRenderData
 };
 
-// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
+render::ItemID WorldBoxRenderData::_item = 0;
+
 namespace render {
-    template <> const ItemKey payloadGetKey(const MyFirstStuff::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
-    template <> const Item::Bound payloadGetBound(const MyFirstStuff::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const MyFirstStuff::Pointer& stuff, RenderArgs* args) {
-        if (args) {
-            args->_elementsTouched ++;
+    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
+        if (args->_renderMode != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            PerformanceTimer perfTimer("worldBox");
+            renderWorldBox();
         }
+
+        // never the less
+        float originSphereRadius = 0.05f;
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
     }
 }
+
+
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
@@ -3350,11 +3361,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
-        // draw a red sphere
-        float originSphereRadius = 0.05f;
-        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        
-        
+
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
@@ -3398,22 +3405,28 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
-    
-    static render::ItemID myFirstRenderItem = 0;
 
-    if (myFirstRenderItem == 0) {
-        auto myVeryFirstStuff = MyFirstStuff::Pointer(new MyFirstStuff());
-        auto myVeryFirstPayload = new MyFirstStuff::Payload(myVeryFirstStuff);
-        auto myFirstPayload = MyFirstStuff::PayloadPointer(myVeryFirstPayload);
-        myFirstRenderItem = _main3DScene->allocateID();
+    render::Scene::PendingChanges pendingChanges;
 
-        render::Scene::PendingChanges pendingChanges;
-        pendingChanges.resetItem(myFirstRenderItem, myFirstPayload);
+    // Make sure the WorldBox is in the scene
+    if (WorldBoxRenderData::_item == 0) {
+        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
+        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
 
-        _main3DScene->enqueuePendingChanges(pendingChanges);
+        WorldBoxRenderData::_item = _main3DScene->allocateID();
+
+        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     }
-    
+
+
+    _main3DScene->enqueuePendingChanges(pendingChanges);
+
     _main3DScene->processPendingChangesQueue();
+
+    // FOr now every frame pass the renderCOntext
+    render::RenderContext renderContext;
+    renderContext.args = renderArgs;
+    _renderEngine->setRenderContext(renderContext);
 
     // Before the deferred pass, let's try to use the render engine
     _renderEngine->run();
@@ -3437,12 +3450,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     if (!selfAvatarOnly) {
         _nodeBoundsDisplay.draw();
-    
-        //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            PerformanceTimer perfTimer("worldBox");
-            renderWorldBox();
-        }
 
         // render octree fades if they exist
         if (_octreeFades.size() > 0) {

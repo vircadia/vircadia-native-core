@@ -25,18 +25,25 @@ public:
 };
 typedef std::shared_ptr<SceneContext> SceneContextPointer;
 
+
+class RenderContext {
+public:
+    RenderArgs* args;
+
+    RenderContext() {}
+};
+typedef std::shared_ptr<RenderContext> RenderContextPointer;
+
 // THe base class for a task that runs on the SceneContext
 class Task {
 public:
     Task() {}
     ~Task() {}
 
-    virtual void run(const SceneContextPointer& sceneContext) {}
+    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {}
 
 protected:
 };
-
-
 typedef std::shared_ptr<Task> TaskPointer;
 typedef std::vector<TaskPointer> Tasks;
 
@@ -50,6 +57,9 @@ public:
 
     // Register the scene should be [art of the init phase before running the engine
     void registerScene(const ScenePointer& scene);
+
+    // Push a RenderContext
+    void setRenderContext(const RenderContext& renderContext);
 
     void addTask(const TaskPointer& task);
     const Tasks& getTasks() const { return _tasks; }
@@ -65,6 +75,7 @@ protected:
     Tasks _tasks;
 
     SceneContextPointer _sceneContext;
+    RenderContextPointer _renderContext;
 };
 typedef std::shared_ptr<Engine> EnginePointer;
 
