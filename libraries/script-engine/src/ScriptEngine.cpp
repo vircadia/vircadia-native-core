@@ -389,6 +389,94 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     }
 }
 
+// Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
+void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
+    const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
+    if (!handlersOnEntity.contains(eventName)) {
+        return;
+    }
+    QScriptValueList handlersForEvent = handlersOnEntity[eventName];
+    if (!handlersForEvent.isEmpty()) {
+        QScriptValueList args = argGenerator();
+        for (int i = 0; i < handlersForEvent.count(); ++i) {
+            handlersForEvent[i].call(QScriptValue(), args);
+        }
+    }
+}
+// Unregister the handlers for this eventName and entityID.
+void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
+    RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
+    QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
+    // QScriptValue does not have operator==(), so we can't use QList::removeOne and friends. So iterate.
+    for (int i = 0; i < handlersForEvent.count(); ++i) {
+        if (handlersForEvent[i].equals(handler)) {
+            handlersForEvent.removeAt(i);
+            return; // Design choice: since comparison is relatively expensive, just remove the first matching handler.
+        }
+    }
+}
+// Register the handler.
+void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    if (_registeredHandlers.count() == 0) { // First time any per-entity handler has been added in this script...
+        // Connect up ALL the handlers to the global entities object's signals.
+        // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
+        auto entities = DependencyManager::get<EntityScriptingInterface>();
+        connect(entities.data(), &EntityScriptingInterface::deletingEntity, this,
+                [=](const EntityItemID& entityID) {
+                    _registeredHandlers.remove(entityID);
+                });
+        
+        // Two common cases of event handler, differing only in argument signature.
+        auto makeSingleEntityHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&)> {
+            return [=](const EntityItemID& entityItemID) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
+                    return QScriptValueList() << entityItemID.toScriptValue(this);
+                });
+            };
+        };
+        auto makeMouseHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&, const MouseEvent&)>  {
+            return [=](const EntityItemID& entityItemID, const MouseEvent& event) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
+                    return QScriptValueList() << entityItemID.toScriptValue(this) << event.toScriptValue(this);
+                });
+            };
+        };
+        connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
+            
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makeMouseHandler("mousePressOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makeMouseHandler("mouseMoveOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makeMouseHandler("mouseReleaseOnEntity"));
+            
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makeMouseHandler("clickDownOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makeMouseHandler("holdingClickOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makeMouseHandler("clickReleaseOnEntity"));
+            
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makeMouseHandler("hoverEnterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
+            
+        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this,
+                [=](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+                    generalHandler(idA, "collisionWithEntity", [=]() {
+                        return QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
+                    });
+                });
+    }
+    if (!_registeredHandlers.contains(entityID)) {
+        _registeredHandlers[entityID] = RegisteredEventHandlers();
+    }
+    QScriptValueList& handlersForEvent = _registeredHandlers[entityID][eventName];
+    handlersForEvent << handler; // Note that the same handler can be added many times. See removeEntityEventHandler().
+}
+
+
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {
         return; // bail early
