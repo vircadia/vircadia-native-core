@@ -319,7 +319,7 @@ public:
 
     // the number of elements of the specified type fitting in the view size
     template <typename T> Index getNum() const {
-		return Index(_size / _stride);
+        return Index(_size / _stride);
     }
 
     template <typename T> const T& get() const {
@@ -371,7 +371,7 @@ public:
     }
 
     template <typename T> T& edit(const Index index) const {
-		Resource::Size elementOffset = index * _stride + _offset;
+        Resource::Size elementOffset = index * _stride + _offset;
  #if _DEBUG
         if (!_buffer) {
             qDebug() << "Accessing null gpu::buffer!";

@@ -43,13 +43,6 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
 
 EntityItemProperties PolyVoxEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-
-    // properties._color = getXColor();
-    // properties._colorChanged = false;
-    // properties._glowLevel = getGlowLevel();
-    // properties._glowLevelChanged = false;
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelVolumeSize, getVoxelVolumeSize);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelData, getVoxelData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelSurfaceStyle, getVoxelSurfaceStyle);
@@ -60,8 +53,6 @@ EntityItemProperties PolyVoxEntityItem::getProperties() const {
 bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setXColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelVolumeSize, setVoxelVolumeSize);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelData, setVoxelData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelSurfaceStyle, setVoxelSurfaceStyle);
@@ -86,7 +77,6 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
     READ_ENTITY_PROPERTY(PROP_VOXEL_DATA, QByteArray, setVoxelData);
     READ_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
@@ -98,7 +88,6 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_VOXEL_VOLUME_SIZE;
     requestedProperties += PROP_VOXEL_DATA;
     requestedProperties += PROP_VOXEL_SURFACE_STYLE;
@@ -114,7 +103,6 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
                                            OctreeElement::AppendState& appendState) const { 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, getVoxelVolumeSize());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, getVoxelData());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, (uint16_t) getVoxelSurfaceStyle());
@@ -123,7 +111,6 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
 void PolyVoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   POLYVOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "            position:" << debugTreeVector(_position);
     qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
