@@ -68,8 +68,12 @@ namespace render {
         return static_cast<Avatar*>(avatar.get())->getBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
-        if (static_cast<Avatar*>(avatar.get())->isInitialized() && args) {
-            static_cast<Avatar*>(avatar.get())->render(args, Application::getInstance()->getCamera()->getPosition());
+        Avatar* avatar = static_cast<Avatar*>(avatar.get());
+        bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
+        avatar->setDisplayingLookatVectors(renderLookAtVectors);
+
+        if (avatar->isInitialized() && args) {
+            avatar->render(args, Application::getInstance()->getCamera()->getPosition());
             args->_elementsTouched++;
         }
     }
