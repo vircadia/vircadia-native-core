@@ -191,13 +191,13 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
     MeshMassProperties mesh(shiftedPoints, triangles);
 
     // verify
-    btScalar error = (mesh.m_volume - expectedVolume) / expectedVolume;
+    btScalar error = (mesh._volume - expectedVolume) / expectedVolume;
     if (fabsf(error) > acceptableRelativeError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : volume of tetrahedron off by = "
             << error << std::endl;
     }
 
-    error = (mesh.m_centerOfMass - expectedCenterOfMass).length();
+    error = (mesh._centerOfMass - expectedCenterOfMass).length();
     if (fabsf(error) > acceptableAbsoluteError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
             << error << std::endl;
@@ -205,7 +205,7 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            error = (mesh.m_inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
+            error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
             if (fabsf(error) > acceptableRelativeError) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
                     << error << std::endl;
@@ -215,9 +215,9 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 
 #ifdef VERBOSE_UNIT_TESTS
     std::cout << "expected volume = " << expectedVolume << std::endl;
-    std::cout << "measured volume = " << mesh.m_volume << std::endl;
+    std::cout << "measured volume = " << mesh._volume << std::endl;
     printMatrix("expected inertia", expectedInertia);
-    printMatrix("computed inertia", mesh.m_inertia);
+    printMatrix("computed inertia", mesh._inertia);
 #endif // VERBOSE_UNIT_TESTS
 }
 
@@ -261,13 +261,13 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     // verify
     btScalar error;
-    error = (mesh.m_volume - expectedVolume) / expectedVolume;
+    error = (mesh._volume - expectedVolume) / expectedVolume;
     if (fabsf(error) > acceptableRelativeError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : volume of tetrahedron off by = "
             << error << std::endl;
     }
 
-    error = (mesh.m_centerOfMass - expectedCenterOfMass).length();
+    error = (mesh._centerOfMass - expectedCenterOfMass).length();
     if (fabsf(error) > acceptableAbsoluteError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
             << error << std::endl;
@@ -275,7 +275,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            error = (mesh.m_inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
+            error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
             if (fabsf(error) > acceptableRelativeError) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
                     << error << std::endl;
@@ -286,9 +286,9 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 #ifdef VERBOSE_UNIT_TESTS
     std::cout << "(a) tetrahedron as mesh" << std::endl;
     std::cout << "expected volume = " << expectedVolume << std::endl;
-    std::cout << "measured volume = " << mesh.m_volume << std::endl;
+    std::cout << "measured volume = " << mesh._volume << std::endl;
     printMatrix("expected inertia", expectedInertia);
-    printMatrix("computed inertia", mesh.m_inertia);
+    printMatrix("computed inertia", mesh._inertia);
 #endif // VERBOSE_UNIT_TESTS
 
     // test again, but this time shift the points so that the origin is definitely OUTSIDE the mesh
@@ -302,13 +302,13 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
     mesh.computeMassProperties(points, triangles);
 
     // verify
-    error = (mesh.m_volume - expectedVolume) / expectedVolume;
+    error = (mesh._volume - expectedVolume) / expectedVolume;
     if (fabsf(error) > acceptableRelativeError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : volume of tetrahedron off by = "
             << error << std::endl;
     }
 
-    error = (mesh.m_centerOfMass - expectedCenterOfMass).length();
+    error = (mesh._centerOfMass - expectedCenterOfMass).length();
     if (fabsf(error) > acceptableAbsoluteError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
             << error << std::endl;
@@ -316,7 +316,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            error = (mesh.m_inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
+            error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
             if (fabsf(error) > acceptableRelativeError) {
                 std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
                     << error << std::endl;
@@ -327,9 +327,9 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 #ifdef VERBOSE_UNIT_TESTS
     std::cout << "(b) shifted tetrahedron as mesh" << std::endl;
     std::cout << "expected volume = " << expectedVolume << std::endl;
-    std::cout << "measured volume = " << mesh.m_volume << std::endl;
+    std::cout << "measured volume = " << mesh._volume << std::endl;
     printMatrix("expected inertia", expectedInertia);
-    printMatrix("computed inertia", mesh.m_inertia);
+    printMatrix("computed inertia", mesh._inertia);
 #endif // VERBOSE_UNIT_TESTS
 }
 
@@ -396,13 +396,13 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 
     // verify
     btScalar error;
-    error = (mesh.m_volume - expectedVolume) / expectedVolume;
+    error = (mesh._volume - expectedVolume) / expectedVolume;
     if (fabsf(error) > acceptableRelativeError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : volume of tetrahedron off by = "
             << error << std::endl;
     }
 
-    error = (mesh.m_centerOfMass - expectedCenterOfMass).length();
+    error = (mesh._centerOfMass - expectedCenterOfMass).length();
     if (fabsf(error) > acceptableAbsoluteError) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
             << error << std::endl;
@@ -411,13 +411,13 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             if (expectedInertia [i][j] == btScalar(0.0f)) {
-                error = mesh.m_inertia[i][j] - expectedInertia[i][j];
+                error = mesh._inertia[i][j] - expectedInertia[i][j];
                 if (fabsf(error) > acceptableAbsoluteError) {
                     std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
                         << error << " absolute"<< std::endl;
                 }
             } else {
-                error = (mesh.m_inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
+                error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
                 if (fabsf(error) > acceptableRelativeError) {
                     std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
                         << error << std::endl;
@@ -428,17 +428,17 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 
 #ifdef VERBOSE_UNIT_TESTS
     std::cout << "expected volume = " << expectedVolume << std::endl;
-    std::cout << "measured volume = " << mesh.m_volume << std::endl;
+    std::cout << "measured volume = " << mesh._volume << std::endl;
     std::cout << "expected center of mass = < "
         << expectedCenterOfMass[0] << ", "
         << expectedCenterOfMass[1] << ", "
         << expectedCenterOfMass[2] << "> " << std::endl;
     std::cout << "computed center of mass = < "
-        << mesh.m_centerOfMass[0] << ", "
-        << mesh.m_centerOfMass[1] << ", "
-        << mesh.m_centerOfMass[2] << "> " << std::endl;
+        << mesh._centerOfMass[0] << ", "
+        << mesh._centerOfMass[1] << ", "
+        << mesh._centerOfMass[2] << "> " << std::endl;
     printMatrix("expected inertia", expectedInertia);
-    printMatrix("computed inertia", mesh.m_inertia);
+    printMatrix("computed inertia", mesh._inertia);
 #endif // VERBOSE_UNIT_TESTS
 }
 

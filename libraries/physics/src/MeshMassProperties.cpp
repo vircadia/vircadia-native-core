@@ -262,11 +262,11 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
     // 
 
     // initialize the totals
-    m_volume = btScalar(0.0f);
+    _volume = btScalar(0.0f);
     btVector3 weightedCenter;
     weightedCenter.setZero();
     for (uint32_t i = 0; i < 3; ++i) {
-        m_inertia[i].setZero();
+        _inertia[i].setZero();
     }
 
     // create some variables to hold temporary results
@@ -310,12 +310,12 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
 
         // tally results
         weightedCenter += volume * center;
-        m_volume += volume;
-        m_inertia += tetraInertia;
+        _volume += volume;
+        _inertia += tetraInertia;
     }
 
-    m_centerOfMass = weightedCenter / m_volume;
+    _centerOfMass = weightedCenter / _volume;
     
-    applyInverseParallelAxisTheorem(m_inertia, m_centerOfMass, m_volume);
+    applyInverseParallelAxisTheorem(_inertia, _centerOfMass, _volume);
 }
 

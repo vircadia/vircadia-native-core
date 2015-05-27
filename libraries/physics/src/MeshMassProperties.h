@@ -52,9 +52,9 @@ public:
     void computeMassProperties(const VectorOfPoints& points, const VectorOfIndices& triangleIndices);
 
     // harveste the mass properties from these public data members
-    btScalar m_volume = 1.0f;
-    btVector3 m_centerOfMass = btVector3(0.0f, 0.0f, 0.0f);
-    btMatrix3x3 m_inertia = btMatrix3x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    btScalar _volume = 1.0f;
+    btVector3 _centerOfMass = btVector3(0.0f, 0.0f, 0.0f);
+    btMatrix3x3 _inertia = btMatrix3x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 };
 
 #endif // _hifi_MeshMassProperties_h
