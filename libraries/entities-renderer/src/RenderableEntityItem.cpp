@@ -24,15 +24,10 @@ namespace render {
         return render::Item::Bound();
     }
     template <> void payloadRender(const RenderableEntityItem::Pointer& payload, RenderArgs* args) {
-        qDebug() << "payloadRender()... for payload:" << payload.get();
         if (args) {
-            qDebug() << "rendering payload!! for payload:" << payload.get();
-            qDebug() << "rendering payload!! for entity:" << payload->entity.get();
             args->_elementsTouched++;
             if (payload && payload->entity) {
-                qDebug() << "rendering payload!! for entity:" << payload->entity->getEntityItemID();
-                if (payload->entity->getType() == EntityTypes::Box) {
-                    qDebug() << "rendering BOX type for entity:" << payload->entity->getEntityItemID();
+                if (payload->entity->getType() != EntityTypes::Model) {
                     payload->entity->render(args);
                 }
             }
