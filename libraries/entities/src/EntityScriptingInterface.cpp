@@ -399,10 +399,13 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
         return false;
     }
 
+    auto now = usecTimestampNow();
+
     PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity);
     _entityTree->lockForWrite();
     polyVoxEntity->setSphere(center, radius, value);
-    // entity->setLastEdited(usecTimestampNow());
+    entity->setLastEdited(now);
+    entity->setLastBroadcast(now);
     _entityTree->unlock();
 
     _entityTree->lockForRead();
@@ -410,10 +413,7 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     _entityTree->unlock();
 
     properties.setVoxelDataDirty();
-
-    entity->setLastBroadcast(usecTimestampNow());
-    // modifiedProperties.setType(entity->getType());
-    // bidForSimulationOwnership(modifiedProperties);
+    properties.setLastEdited(now);
 
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return true;
