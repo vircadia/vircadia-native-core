@@ -543,7 +543,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _lastEdited = usecTimestampNow(); // ???
+    _lastEdited = usecTimestampNow();
 }
 
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties) {
@@ -758,7 +758,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
-                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
@@ -999,7 +998,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
