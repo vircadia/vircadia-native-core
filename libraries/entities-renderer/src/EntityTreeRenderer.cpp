@@ -1107,6 +1107,17 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
     QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull()) {
+        // Can be null if it has never moved since being created or coming out of persistence.
+        // However, for there to be a collission, one of the two objects must be moving.
+        const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
+        EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
+        if (!otherEntity) {
+            return;
+        }
+        simulatorID = otherEntity->getSimulatorID();
+    }
+
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
     }

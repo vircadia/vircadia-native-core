@@ -83,6 +83,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             bidForSimulationOwnership(propertiesWithSimID);
+            entity->setSimulatorID(propertiesWithSimID.getSimulatorID()); // and make note of it now, so we can act on it right away.
         } else {
             qCDebug(entities) << "script failed to add new Entity to local Octree";
             success = false;
