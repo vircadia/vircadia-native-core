@@ -15,7 +15,6 @@
 #include <render/Scene.h>
 #include <EntityItem.h>
 
-
 class RenderableEntityItem {
 public:
     RenderableEntityItem(EntityItemPointer entity) : entity(entity) { }
@@ -24,5 +23,11 @@ public:
     
     EntityItemPointer entity;
 };
+
+namespace render {
+   template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& payload); 
+   template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& payload);
+   template <> void payloadRender(const RenderableEntityItem::Pointer& payload, RenderArgs* args);
+}
 
 #endif // hifi_RenderableEntityItem_h

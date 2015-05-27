@@ -14,14 +14,10 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& payload) { 
-        qDebug() << "payloadGetKey()... for payload:" << payload.get();
-        ItemKey key = ItemKey::Builder::opaqueShape(); 
-        qDebug() << "    key.isOpaque():" << key.isOpaque();
-        return key;
+        return ItemKey::Builder::opaqueShape();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& payload) { 
-        qDebug() << "payloadGetBound()... for payload:" << payload.get();
         if (payload && payload->entity) {
             return payload->entity->getAABox();
         }
@@ -35,8 +31,13 @@ namespace render {
             args->_elementsTouched++;
             if (payload && payload->entity) {
                 qDebug() << "rendering payload!! for entity:" << payload->entity->getEntityItemID();
-                payload->entity->render(args);
+                if (payload->entity->getType() == EntityTypes::Box) {
+                    qDebug() << "rendering BOX type for entity:" << payload->entity->getEntityItemID();
+                    payload->entity->render(args);
+                }
             }
         }
     }
 }
+
+
