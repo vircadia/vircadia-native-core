@@ -348,6 +348,9 @@ public:
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
+    
+    render::ScenePointer getMain3DScene() { return _main3DScene; }
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
 
 signals:
 

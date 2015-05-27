@@ -19,9 +19,7 @@ class RenderableEntityItem {
 public:
     typedef render::Payload<RenderableEntityItem> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-    //typedef Payload::DataPointer Pointer;
     typedef EntityItemPointer Pointer;
-        
 };
 
 #endif // hifi_RenderableEntityItem_h
