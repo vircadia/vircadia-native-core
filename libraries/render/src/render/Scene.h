@@ -94,6 +94,13 @@ public:
     bool isPickable() const { return _flags[PICKABLE]; }
 };
 
+inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
+    debug << "[ItemKey: isOpaque:" << itemKey.isOpaque()
+                 << ", isStatic:" << itemKey.isStatic() 
+                 << ", isWorldSpace:" << itemKey.isWorldSpace() 
+                 << "]";
+    return debug;
+}
  
 class ItemFilter {
 public:
@@ -154,6 +161,12 @@ public:
     };
 };
 
+inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
+    debug << "[ItemFilter: opaqueShape:" << me.test(ItemKey::Builder::opaqueShape())
+                 << "]";
+    return debug;
+}
+
 class Item {
 public:
     typedef std::vector<Item> Vector;
@@ -202,6 +215,12 @@ protected:
 
     friend class Scene;
 };
+
+inline QDebug operator<<(QDebug debug, const Item& item) {
+    debug << "[Item: _key:" << item.getKey() << ", bounds:" << item.getBound() << "]";
+    return debug;
+}
+
 
 // THe Payload class is the real Payload to be used
 // THis allow anything to be turned into a Payload as long as the required interface functions are available
