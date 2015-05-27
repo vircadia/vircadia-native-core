@@ -32,7 +32,7 @@
 #define READ_ENTITY_PROPERTY(P,T,S)                                                \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             bytesRead += bytes;                                                    \
             if (overwriteLocalData) {                                              \
@@ -49,7 +49,7 @@
 #define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)                                  \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             processedBytes += bytes;                                               \
             properties.O(fromBuffer);                                              \

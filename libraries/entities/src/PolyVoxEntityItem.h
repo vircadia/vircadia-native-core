@@ -67,8 +67,12 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
     virtual const QByteArray& getVoxelData() const { return _voxelData; }
 
+    virtual void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
+    virtual uint16_t getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
+
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
     static const QByteArray DEFAULT_VOXEL_DATA;
+    static const int DEFAULT_VOXEL_SURFACE_STYLE;
 
     // coords are in voxel-volume space
     virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {}
@@ -80,6 +84,7 @@ class PolyVoxEntityItem : public EntityItem {
     rgbColor _color;
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
+    uint16_t _voxelSurfaceStyle;
 };
 
 #endif // hifi_PolyVoxEntityItem_h

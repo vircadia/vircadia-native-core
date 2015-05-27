@@ -1,5 +1,5 @@
 
-var altHeld = false;
+var controlHeld = false;
 
 
 function mousePressEvent(event) {
@@ -14,10 +14,10 @@ function mousePressEvent(event) {
         var ids = Entities.findEntities(intersection.intersection, 10);
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
-            if (altHeld) {
-                Entities.setVoxelSphere(id, intersection.intersection, 2.0, 0);
+            if (controlHeld) {
+                Entities.setVoxelSphere(id, intersection.intersection, 1.2, 0);
             } else {
-                Entities.setVoxelSphere(id, intersection.intersection, 2.0, 255);
+                Entities.setVoxelSphere(id, intersection.intersection, 1.2, 255);
             }
         }
     }
@@ -25,15 +25,15 @@ function mousePressEvent(event) {
 
 
 function keyPressEvent(event) {
-    if (event.text == "ALT") {
-        altHeld = true;
+    if (event.text == "CONTROL") {
+        controlHeld = true;
     }
 }
 
 
 function keyReleaseEvent(event) {
-    if (event.text == "ALT") {
-        altHeld = false;
+    if (event.text == "CONTROL") {
+        controlHeld = false;
     }
 }
 

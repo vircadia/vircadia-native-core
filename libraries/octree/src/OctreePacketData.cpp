@@ -556,7 +556,7 @@ void OctreePacketData::debugContent() {
     printf("\n");
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
@@ -565,7 +565,7 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QStrin
     return sizeof(length) + length;
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
@@ -578,14 +578,14 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid&
     return sizeof(length) + length;
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
     result.red = dataBytes[RED_INDEX];
     result.green = dataBytes[GREEN_INDEX];
     result.blue = dataBytes[BLUE_INDEX];
     return sizeof(rgbColor);
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);

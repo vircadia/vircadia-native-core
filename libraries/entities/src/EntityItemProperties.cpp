@@ -90,6 +90,7 @@ CONSTRUCT_PROPERTY(keyLightAmbientIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_AM
 CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
 CONSTRUCT_PROPERTY(voxelVolumeSize, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
 CONSTRUCT_PROPERTY(voxelData, PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
+CONSTRUCT_PROPERTY(voxelSurfaceStyle, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
 CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
 CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
@@ -342,6 +343,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
+    CHECK_PROPERTY_CHANGE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
     
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -427,6 +429,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelVolumeSize);
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelSurfaceStyle);
     
     // Sitting properties support
     if (!skipDefaults) {
@@ -535,6 +538,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
@@ -757,6 +761,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
+                APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
@@ -997,6 +1002,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
     }
     
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1106,6 +1112,7 @@ void EntityItemProperties::markAllChanged() {
 
     _voxelVolumeSizeChanged = true;
     _voxelDataChanged = true;
+    _voxelSurfaceStyleChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

@@ -112,6 +112,7 @@ enum EntityPropertyList {
 
     PROP_VOXEL_VOLUME_SIZE,
     PROP_VOXEL_DATA,
+    PROP_VOXEL_SURFACE_STYLE,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
