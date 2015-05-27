@@ -60,6 +60,21 @@ const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 0.95f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 
+namespace render {
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
+        return ItemKey::Builder::opaqueShape();
+    }
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
+        return static_cast<Avatar*>(avatar.get())->getBounds();
+    }
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
+        if (static_cast<Avatar*>(avatar.get())->isInitialized() && args) {
+            static_cast<Avatar*>(avatar.get())->render(args, Application::getInstance()->getCamera()->getPosition());
+            args->_elementsTouched++;
+        }
+    }
+}
+
 Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
@@ -114,6 +129,10 @@ glm::vec3 Avatar::getNeckPosition() const {
 
 glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
+}
+
+AABox Avatar::getBounds() const {
+    return AABox();
 }
 
 float Avatar::getLODDistance() const {

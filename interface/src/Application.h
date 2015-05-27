@@ -349,6 +349,8 @@ public:
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
 
+    render::ScenePointer getMain3DScene() const { return _main3DScene; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.

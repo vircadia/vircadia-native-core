@@ -3028,11 +3028,6 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
-            PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs);
-        }
-
-        {
             PerformanceTimer perfTimer("entities");
             _entities.render(renderArgs);
         }
@@ -3404,15 +3399,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
     
-    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
-    
-    {
-        PerformanceTimer perfTimer("avatars");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
-    }
-
     static render::ItemID myFirstRenderItem = 0;
 
     if (myFirstRenderItem == 0) {
@@ -3442,13 +3428,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
-    }
-
-    {
-        PerformanceTimer perfTimer("avatarsPostLighting");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, true, selfAvatarOnly);
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
     
     //Render the sixense lasers

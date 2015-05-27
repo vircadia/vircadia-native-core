@@ -20,6 +20,8 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 
+#include <render/Scene.h>
+
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -66,6 +68,10 @@ public:
     Avatar();
     ~Avatar();
 
+    typedef render::Payload<AvatarData> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    typedef Payload::DataPointer Pointer;
+
     void init();
     void simulate(float deltaTime);
 
@@ -86,6 +92,8 @@ public:
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
+
+    AABox getBounds() const;
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
@@ -220,9 +228,10 @@ protected:
     virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
+
+    render::ItemID _renderItemID;
     
 private:
-
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;
