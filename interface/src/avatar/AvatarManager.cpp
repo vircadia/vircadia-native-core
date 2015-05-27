@@ -144,7 +144,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     const float MIN_FADE_SCALE = 0.001f;
 
     while (fadingIterator != _avatarFades.end()) {
-        Avatar* avatar = static_cast<Avatar*>(fadingIterator->data());
+        Avatar* avatar = static_cast<Avatar*>(fadingIterator->get());
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -160,9 +160,9 @@ void AvatarManager::renderAvatarFades(RenderArgs* renderArgs, const glm::vec3& c
     Glower glower(renderArgs, renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE ? 1.0f : 0.0f);
     
     foreach(const AvatarSharedPointer& fadingAvatar, _avatarFades) {
-        Avatar* avatar = static_cast<Avatar*>(fadingAvatar.data());
-        if (avatar != static_cast<Avatar*>(_myAvatar.data()) && avatar->isInitialized()) {
             avatar->render(renderArgs, cameraPosition);
+        Avatar* avatar = static_cast<Avatar*>(fadingAvatar.get());
+        if (avatar != static_cast<Avatar*>(_myAvatar.get()) && avatar->isInitialized()) {
         }
     }
 }
@@ -194,8 +194,8 @@ void AvatarManager::removeAvatarMotionState(Avatar* avatar) {
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
     if (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar != _myAvatar && avatar->isInitialized()) {
+        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
+        if (avatar != _myAvatar.get() && avatar->isInitialized()) {
             removeAvatarMotionState(avatar);
 
             _avatarFades.push_back(avatarIterator.value());
@@ -208,8 +208,8 @@ void AvatarManager::clearOtherAvatars() {
     // clear any avatars that came from an avatar-mixer
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().data());
-        if (avatar == _myAvatar || !avatar->isInitialized()) {
+        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
+        if (avatar == _myAvatar.get() || !avatar->isInitialized()) {
             // don't remove myAvatar or uninitialized avatars from the list
             ++avatarIterator;
         } else {
@@ -276,7 +276,7 @@ void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
 void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
     AvatarHash::iterator avatarItr = _avatarHash.find(id);
     if (avatarItr != _avatarHash.end()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarItr.value().data());
+        Avatar* avatar = static_cast<Avatar*>(avatarItr.value().get());
         AvatarMotionState* motionState = avatar->_motionState;
         if (motionState) {
             motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);

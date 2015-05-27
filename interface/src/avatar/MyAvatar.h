@@ -108,7 +108,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
     
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
-    QWeakPointer<AvatarData> getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
+    AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
@@ -226,7 +226,7 @@ private:
 
     DynamicCharacterController _characterController;
 
-    QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
     bool _billboardValid;

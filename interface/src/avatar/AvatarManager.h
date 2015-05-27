@@ -35,7 +35,7 @@ public:
 
     void init();
 
-    MyAvatar* getMyAvatar() { return _myAvatar.data(); }
+    MyAvatar* getMyAvatar() { return _myAvatar.get(); }
     
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
@@ -79,7 +79,7 @@ private:
     virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;
-    QSharedPointer<MyAvatar> _myAvatar;
+    std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;

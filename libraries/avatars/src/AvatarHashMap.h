@@ -16,14 +16,16 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <memory>
+
 #include <DependencyManager.h>
 #include <Node.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-typedef QSharedPointer<AvatarData> AvatarSharedPointer;
-typedef QWeakPointer<AvatarData> AvatarWeakPointer;
+typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
+typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
 typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
 class AvatarHashMap : public QObject, public Dependency {

@@ -105,7 +105,7 @@ MyAvatar::MyAvatar() :
 }
 
 MyAvatar::~MyAvatar() {
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
 }
 
 QByteArray MyAvatar::toByteArray() {
@@ -335,7 +335,7 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, b
     }
 
     Avatar::render(renderArgs, cameraPosition, postLighting);
-    
+
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
         _skeletonModel.renderIKConstraints();
@@ -856,7 +856,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
     //
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
     
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
@@ -868,7 +868,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -896,13 +896,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
             }
         }
     }
-    if (_lookAtTargetAvatar) {
-        static_cast<Avatar*>(_lookAtTargetAvatar.data())->setIsLookAtTarget(true);
+    auto avatarPointer = _lookAtTargetAvatar.lock();
+    if (avatarPointer) {
+        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
     }
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
 }
 
 bool MyAvatar::isLookingAtLeftEye() {
