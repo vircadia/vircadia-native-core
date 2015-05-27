@@ -309,7 +309,7 @@ public:
     protected:
 
         T* _ptr;
-		int _stride = sizeof(T);
+        int _stride;
     };
 
     template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
