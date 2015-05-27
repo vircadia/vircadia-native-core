@@ -39,3 +39,5 @@ function keyReleaseEvent(event) {
 
 
 Controller.mousePressEvent.connect(mousePressEvent);
+Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);

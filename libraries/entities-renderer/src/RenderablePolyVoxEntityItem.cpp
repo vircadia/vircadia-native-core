@@ -289,8 +289,12 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
         }
     }
 
-    _voxelData = qCompress(uncompressedData, 9);
-    qDebug() << "-------------- voxel compresss ------------------------------------------------------------";
+    QByteArray newVoxelData = qCompress(uncompressedData, 9);
+    // HACK -- until we have a way to allow for properties larger than MTU, don't update.
+    if (newVoxelData.length() < 1300) {
+        _voxelData = newVoxelData;
+    }
+    qDebug() << "-------------- voxel compresss --------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
 }
 
@@ -312,6 +316,6 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
 
     _needsModelReload = true;
 
-    qDebug() << "--------------- voxel decompress -----------------------------------------------------------";
+    qDebug() << "--------------- voxel decompress ---------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
 }
