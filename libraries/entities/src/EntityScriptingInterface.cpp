@@ -79,7 +79,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     bool success = true;
     if (_entityTree) {
         _entityTree->lockForWrite();
-        EntityItem* entity = _entityTree->addEntity(id, propertiesWithSimID);
+        EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
         if (entity) {
             entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
@@ -103,7 +103,8 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     EntityItemProperties results;
     if (_entityTree) {
         _entityTree->lockForRead();
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(EntityItemID(identity)));
+
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
         
         if (entity) {
             results = entity->getProperties();
@@ -138,7 +139,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     // make sure the properties has a type, so that the encode can know which properties to include
     if (properties.getType() == EntityTypes::Unknown) {
-        EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
             // we need to change the outgoing properties, so we make a copy, modify, and send.
             EntityItemProperties modifiedProperties = properties;
@@ -162,7 +163,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     if (_entityTree) {
         _entityTree->lockForWrite();
 
-        EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
         if (entity) {
             if (entity->getLocked()) {
                 shouldDelete = false;
@@ -184,7 +185,7 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
     EntityItemID result; 
     if (_entityTree) {
         _entityTree->lockForRead();
-        const EntityItem* closestEntity = _entityTree->findClosestEntity(center, radius);
+        EntityItemPointer closestEntity = _entityTree->findClosestEntity(center, radius);
         _entityTree->unlock();
         if (closestEntity) {
             result = closestEntity->getEntityItemID();
@@ -206,11 +207,11 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
     QVector<QUuid> result;
     if (_entityTree) {
         _entityTree->lockForRead();
-        QVector<const EntityItem*> entities;
+        QVector<EntityItemPointer> entities;
         _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
         
-        foreach (const EntityItem* entity, entities) {
+        foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
         }
     }
@@ -222,11 +223,11 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     if (_entityTree) {
         _entityTree->lockForRead();
         AABox box(corner, dimensions);
-        QVector<EntityItem*> entities;
+        QVector<EntityItemPointer> entities;
         _entityTree->findEntities(box, entities);
         _entityTree->unlock();
         
-        foreach (const EntityItem* entity, entities) {
+        foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
         }
     }
@@ -249,7 +250,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElement* element;
-        EntityItem* intersectedEntity = NULL;
+        EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
                                                                 (void**)&intersectedEntity, lockType, &result.accurate, 
                                                                 precisionPicking);

@@ -16,7 +16,7 @@
 #include "AddEntityOperator.h"
 
 AddEntityOperator::AddEntityOperator(EntityTree* tree, 
-                        EntityItem* newEntity) :
+                        EntityItemPointer newEntity) :
     _tree(tree),
     _newEntity(newEntity),
     _foundNew(false),

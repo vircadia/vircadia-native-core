@@ -22,7 +22,7 @@ static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 
-EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity) :
+EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
     _entity(entity),
     _sentActive(false),

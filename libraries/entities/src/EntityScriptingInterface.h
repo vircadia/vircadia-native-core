@@ -39,7 +39,7 @@ public:
     float distance;
     BoxFace face;
     glm::vec3 intersection;
-    EntityItem* entity;
+    EntityItemPointer entity;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)

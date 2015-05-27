@@ -23,7 +23,7 @@ class EntityTreeRenderer;
 
 class RenderableModelEntityItem : public ModelEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         ModelEntityItem(entityItemID, properties),
