@@ -22,6 +22,7 @@
 
 const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 
+
 EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new LineEntityItem(entityID, properties);
     return result;
@@ -29,11 +30,16 @@ EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityIt
 
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) ,
-    _lineWidth(DEFAULT_LINE_WIDTH)
+    _lineWidth(DEFAULT_LINE_WIDTH),
+    _points(QVector<glm::vec3>(100))
 {
     _type = EntityTypes::Line;
     _created = properties.getCreated();
     setProperties(properties);
+    glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
+    glm::vec3 p2 = {1.0f, 1.0f, 0.0f};
+    _points << p1;
+    _points << p2;
 }
 
 EntityItemProperties LineEntityItem::getProperties() const {

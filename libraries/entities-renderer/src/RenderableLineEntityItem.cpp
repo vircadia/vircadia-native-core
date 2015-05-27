@@ -41,16 +41,8 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        bool geometryChanged = true;
-        if(geometryChanged){
-            QVector<glm::vec3> points;
-            glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-            glm::vec3 p2 = dimensions;
-            points << p1;
-            points << p2;
-            geometryCache->updateVertices(_lineVerticesID, points, lineColor);
-        }
+        geometryCache->updateVertices(_lineVerticesID, getPoints(), lineColor);
+    
       geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);

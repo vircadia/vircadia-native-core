@@ -60,6 +60,10 @@ class LineEntityItem : public EntityItem {
         return _lineWidth;
     }
     
+    QVector<glm::vec3> getPoints() const{
+        return _points;
+    }
+    
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
     // never have a ray intersection pick a LineEntityItem.
@@ -74,6 +78,7 @@ class LineEntityItem : public EntityItem {
  protected:
     rgbColor _color;
     float _lineWidth;
+    QVector<glm::vec3> _points;
 };
 
 #endif // hifi_LineEntityItem_h
