@@ -24,10 +24,6 @@
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
-typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
-
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY

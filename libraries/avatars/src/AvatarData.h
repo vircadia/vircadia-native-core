@@ -57,6 +57,10 @@ typedef unsigned long long quint64;
 #include "Recorder.h"
 #include "Referential.h"
 
+typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
+typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
+typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
+
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
