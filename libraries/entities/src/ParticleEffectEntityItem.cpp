@@ -55,8 +55,8 @@ const float ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS = 0.025f;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
-EntityItem* ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new ParticleEffectEntityItem(entityID, properties);
+EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new ParticleEffectEntityItem(entityID, properties));
 }
 
 // our non-pure virtual subclass for now...
