@@ -62,7 +62,6 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void requestCurrentPublicSocketViaSTUN();
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
     void performICEUpdates();
     void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }

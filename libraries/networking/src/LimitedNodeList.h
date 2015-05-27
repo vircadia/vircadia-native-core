@@ -21,13 +21,14 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <qelapsedtimer.h>
-#include <qreadwritelock.h>
-#include <qset.h>
-#include <qsharedpointer.h>
-#include <QtNetwork/qudpsocket.h>
-#include <QtNetwork/qhostaddress.h>
-#include <QSharedMemory>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QPointer>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QSet>
+#include <QtCore/QSharedMemory>
+#include <QtCore/QSharedPointer>
+#include <QtNetwork/QUdpSocket>
+#include <QtNetwork/QHostAddress>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -130,6 +131,8 @@ public:
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                       bool canAdjustLocks, bool canRez);
 
+    bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
+
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
@@ -149,7 +152,6 @@ public:
                                    const QUuid& packetHeaderID = QUuid());
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID = QUuid());
 
-    virtual void sendSTUNRequest();
     virtual bool processSTUNResponse(const QByteArray& packet);
 
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
@@ -210,6 +212,9 @@ public slots:
 
     void updateLocalSockAddr();
 
+    void startSTUNPublicSocketUpdate();
+    virtual void sendSTUNRequest();
+
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
@@ -240,6 +245,8 @@ protected:
 
     void handleNodeKill(const SharedNodePointer& node);
 
+    void stopInitialSTUNUpdate(bool success);
+
     QUuid _sessionUUID;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
@@ -259,6 +266,10 @@ protected:
 
     std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
 
+    QPointer<QTimer> _initialSTUNTimer;
+    int _numInitialSTUNRequests = 0;
+    bool _hasCompletedInitialSTUN = false;
+
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {
         QWriteLocker writeLock(&_nodeMutex);
@@ -268,7 +279,6 @@ protected:
             functor(it);
         }
     }
-
 };
 
 #endif // hifi_LimitedNodeList_h

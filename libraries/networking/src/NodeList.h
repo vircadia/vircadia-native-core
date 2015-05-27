@@ -56,6 +56,7 @@ public:
         SendFirstPingsToDS,
         SetDomainHostname,
         SetDomainSocket,
+        ForcedSTUNRequest,
         SendFirstDSCheckIn,
         ReceiveFirstDSList,
         SendFirstAudioPing,
@@ -110,9 +111,6 @@ private:
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
 
-    void sendSTUNRequest();
-    bool processSTUNResponse(const QByteArray& packet);
-
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
@@ -127,8 +125,6 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
-    bool _hasCompletedInitialSTUNFailure;
-    unsigned int _stunRequestsSinceSuccess;
 
     mutable QReadWriteLock _connectionTimeLock { };
     QMap<ConnectionStep, quint64> _lastConnectionTimes;

@@ -596,6 +596,22 @@ const int NUM_BYTES_STUN_HEADER = 20;
 
 void LimitedNodeList::sendSTUNRequest() {
 
+    static quint64 lastTimeStamp = usecTimestampNow();
+    lastTimeStamp = usecTimestampNow();
+
+    const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
+
+    if (!_hasCompletedInitialSTUN) {
+        qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
+
+        if (_numInitialSTUNRequests > NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL) {
+            // we're still trying to do our initial STUN we're over the fail threshold
+            stopInitialSTUNUpdate(false);
+        }
+
+        ++_numInitialSTUNRequests;
+    }
+
     unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
 
     int packetIndex = 0;
@@ -652,8 +668,6 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
                 const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
 
-
-
                 int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
 
                 uint8_t addressFamily = 0;
@@ -679,6 +693,11 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                     QHostAddress newPublicAddress = QHostAddress(stunAddress);
 
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
+                        if (!_hasCompletedInitialSTUN) {
+                            // if we're here we have definitely completed our initial STUN sequence
+                            stopInitialSTUNUpdate(true);
+                        }
+
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
                         qCDebug(networking, "New public socket received from STUN server is %s:%hu",
@@ -705,6 +724,60 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     }
 
     return false;
+}
+
+void LimitedNodeList::startSTUNPublicSocketUpdate() {
+    assert(!_initialSTUNTimer);
+
+    if (!_initialSTUNTimer) {
+        // if we don't know the STUN IP yet we need to have ourselves be called once it is known
+        if (_stunSockAddr.getAddress().isNull()) {
+            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
+        } else {
+            // setup our initial STUN timer here so we can quickly find out our public IP address
+            _initialSTUNTimer = new QTimer(this);
+
+            connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
+
+            const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
+           _initialSTUNTimer->start(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+        }
+    }
+}
+
+void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
+    _hasCompletedInitialSTUN = true;
+
+    if (!success) {
+        // if we're here this was the last failed STUN request
+        // use our DS as our stun server
+        qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu.",
+                STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+        qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
+
+        // reset the public address and port to a null address
+        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
+
+        // we have changed the publicSockAddr, so emit our signal
+        emit publicSockAddrChanged(_publicSockAddr);
+    }
+
+    assert(_initialSTUNTimer);
+
+    // stop our initial fast timer
+    if (_initialSTUNTimer) {
+        _initialSTUNTimer->stop();
+        _initialSTUNTimer->deleteLater();
+    }
+
+    // We now setup a timer here to fire every so often to check that our IP address has not changed.
+    // Or, if we failed - if will check if we can eventually get a public socket
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+
+    QTimer* stunOccasionalTimer = new QTimer(this);
+    connect(stunOccasionalTimer, &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
+
+    stunOccasionalTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
 }
 
 void LimitedNodeList::updateLocalSockAddr() {

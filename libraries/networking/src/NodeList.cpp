@@ -36,9 +36,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket(),
-    _hasCompletedInitialSTUNFailure(false),
-    _stunRequestsSinceSuccess(0)
+    _assignmentServerSocket()
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -63,6 +61,12 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // fire off any pending DS path query when we get socket information
     connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
 
+    // send a domain server check in immediately once the DS socket is known
+    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendDomainServerCheckIn);
+
+    // send a domain server check in immediately if there is a public socket change
+    connect(this, &LimitedNodeList::publicSockAddrChanged, this, &NodeList::sendDomainServerCheckIn);
+
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
 
@@ -79,6 +83,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 
     qRegisterMetaType<NodeList::ConnectionStep>("NodeList::ConnectionStep");
+
+    // we definitely want STUN to update our public socket, so call the LNL to kick that off
+    startSTUNPublicSocketUpdate();
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -233,9 +240,6 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             } else {
                 qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
             }
-
-            // immediately send a domain-server check in now that we have channel to talk to domain-server on
-            sendDomainServerCheckIn();
         }
         case PacketTypeStunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
@@ -280,57 +284,13 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
     _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
-
-const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
-
-void NodeList::sendSTUNRequest() {
-
-    if (!_hasCompletedInitialSTUNFailure) {
-        qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
-    }
-
-    LimitedNodeList::sendSTUNRequest();
-
-    _stunRequestsSinceSuccess++;
-
-    if (_stunRequestsSinceSuccess >= NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
-        if (!_hasCompletedInitialSTUNFailure) {
-            // if we're here this was the last failed STUN request
-            // use our DS as our stun server
-            qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.",
-                   STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
-
-            _hasCompletedInitialSTUNFailure = true;
-        }
-
-        // reset the public address and port
-        // use 0 so the DS knows to act as out STUN server
-        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
-    }
-}
-
-bool NodeList::processSTUNResponse(const QByteArray& packet) {
-    if (LimitedNodeList::processSTUNResponse(packet)) {
-        // reset the number of failed STUN requests since last success
-        _stunRequestsSinceSuccess = 0;
-
-        _hasCompletedInitialSTUNFailure = true;
-
-        return true;
-    } else {
-        return false;
-    }
-}
-
 void NodeList::sendDomainServerCheckIn() {
-    if (_publicSockAddr.isNull() && !_hasCompletedInitialSTUNFailure) {
+    if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        // send a STUN request to figure it out
-        sendSTUNRequest();
+        qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
     } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-
         bool isUsingDTLS = false;
 
         PacketType domainPacketType = !_domainHandler.isConnected()
@@ -375,7 +335,6 @@ void NodeList::sendDomainServerCheckIn() {
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
 
-
         // if this is a connect request, and we can present a username signature, send it along
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
@@ -393,14 +352,6 @@ void NodeList::sendDomainServerCheckIn() {
 
         if (!isUsingDTLS) {
             writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
-        }
-
-        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-        static unsigned int numDomainCheckins = 0;
-
-        // send a STUN request every Nth domain server check in so we update our public socket, if required
-        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-            sendSTUNRequest();
         }
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
