@@ -28,6 +28,12 @@
 #include "SkeletonModel.h"
 #include "world.h"
 
+namespace render {
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+}
+
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
