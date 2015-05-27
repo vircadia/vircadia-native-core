@@ -741,6 +741,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
             
+            if(properties.getType() == EntityTypes::Line){
+                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
+            }
+            
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
@@ -973,6 +977,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+    }
+    
+    if(properties.getType() == EntityTypes::Line) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
     }
     
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
