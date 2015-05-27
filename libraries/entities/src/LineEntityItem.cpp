@@ -20,13 +20,16 @@
 #include "EntityTreeElement.h"
 
 
+const float DEFAULT_LINE_WIDTH = 2.0f;
+
 EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new LineEntityItem(entityID, properties);
     return result;
 }
 
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID) 
+    EntityItem(entityItemID) ,
+    _lineWidth(DEFAULT_LINE_WIDTH)
 {
     _type = EntityTypes::Line;
     _created = properties.getCreated();
@@ -36,8 +39,11 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
 EntityItemProperties LineEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
+    
     properties._color = getXColor();
     properties._colorChanged = false;
+
 
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
@@ -50,6 +56,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+//    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -72,6 +79,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
 
     return bytesRead;
 }
@@ -95,6 +103,7 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
 }
 
 void LineEntityItem::debugDump() const {

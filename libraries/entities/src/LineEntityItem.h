@@ -51,6 +51,15 @@ class LineEntityItem : public EntityItem {
         _color[BLUE_INDEX] = value.blue;
     }
     
+    void setLineWidth(float lineWidth){
+        
+        _lineWidth = lineWidth;
+    }
+    float getLineWidth() const{
+        
+        return _lineWidth;
+    }
+    
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
     // never have a ray intersection pick a LineEntityItem.
@@ -60,9 +69,11 @@ class LineEntityItem : public EntityItem {
                          void** intersectedObject, bool precisionPicking) const { return false; }
 
     virtual void debugDump() const;
+    static const float DEFAULT_LINE_WIDTH;
 
  protected:
     rgbColor _color;
+    float _lineWidth;
 };
 
 #endif // hifi_LineEntityItem_h
