@@ -115,7 +115,6 @@ void consolidateChangeQueue(Scene::PendingChangesQueue& queue, Scene::PendingCha
 }
  
 void Scene::processPendingChangesQueue() {
-    qDebug() << "Scene::processPendingChangesQueue()...";
     _changeQueueMutex.lock();
     PendingChanges consolidatedPendingChanges;
     consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);
@@ -139,12 +138,9 @@ void Scene::processPendingChangesQueue() {
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    qDebug() << "Scene::resetItems()...";
     auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
     for (;resetID != ids.end(); resetID++, resetPayload++) {
-        qDebug() << "    resetID:" << *resetID;
-
         auto& item = _items[(*resetID)];
         auto oldKey = item.getKey();
         item.resetPayload(*resetPayload);

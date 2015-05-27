@@ -34,9 +34,6 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
     auto& itemBucketMap = scene->getMasterBucket();
     
     RenderArgs* args = renderContext->args;
-
-    PerformanceTimer perfTimer("DrawSceneTask::run");
-
     gpu::Batch theBatch;
 
     args->_batch = &theBatch;
@@ -45,12 +42,8 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
     auto filter = ItemFilter::Builder::opaqueShape();
     auto& opaqueShapeItems = itemBucketMap.at(filter);
 
-    qDebug() << "DrawSceneTask::run()";
-    
     for (auto id : opaqueShapeItems) {
         auto item = scene->getItem(id);
-        qDebug() << "   id:" << id;
-        qDebug() << "   item:" << item;
         item.render(args);
     }
 
