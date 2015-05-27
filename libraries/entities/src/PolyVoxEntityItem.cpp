@@ -25,7 +25,7 @@ const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32,
 const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(qCompress(QByteArray(0), 9));
 const int PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE = 0;
 
-EntityItem* PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new PolyVoxEntityItem(entityID, properties);
     return result;
 }
