@@ -120,7 +120,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        qApp->displaySide(eyeCamera, false, RenderArgs::MONO);
+        qApp->displaySide(eyeCamera, false);
 #if 0
         qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
 #endif

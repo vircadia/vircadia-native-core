@@ -18,6 +18,7 @@
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AmbientOcclusionEffect.h"
@@ -112,7 +113,8 @@ void AmbientOcclusionEffect::render() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    auto viewFrustum = _viewState->getCurrentViewFrustum();
+    viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);

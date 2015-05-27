@@ -43,28 +43,31 @@ public:
 
     void update( float deltaTime );
 
-    void setRotation(const glm::quat& rotation);
-    void setProjection(const glm::mat4 & projection);
-    void setHmdPosition(const glm::vec3& hmdPosition);
-    void setHmdRotation(const glm::quat& hmdRotation);
+    CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);
     
-    glm::quat getRotation() const { return _rotation * _hmdRotation; }
     const glm::mat4& getProjection() const { return _projection; }
-    const glm::vec3& getHmdPosition() const { return _hmdPosition; }
-    const glm::quat& getHmdRotation() const { return _hmdRotation; }
-    CameraMode getMode() const { return _mode; }
+    void setProjection(const glm::mat4& projection);
+
+    void loadViewFrustum(ViewFrustum& frustum) const;
+    ViewFrustum toViewFrustum() const;
 
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
-    glm::vec3 getPosition() const { return _position + _hmdPosition; }
+    const glm::quat getRotation() const { return _rotation; }
+    void setRotation(const glm::quat& rotation);
+
+    const glm::vec3 getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
 
+    const glm::quat getOrientation() const { return getRotation(); }
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
-    glm::quat getOrientation() const { return getRotation(); }
-    
+
+    const glm::mat4 getTransform() const { return _transform; }
+    void setTransform(const glm::mat4& transform);
+
     PickRay computePickRay(float x, float y);
 
     // These only work on independent cameras
@@ -82,13 +85,17 @@ signals:
     void modeUpdated(const QString& newMode);
 
 private:
-    CameraMode _mode;
+    void recompose();
+    void decompose();
+
+    CameraMode _mode{ CAMERA_MODE_THIRD_PERSON };
+    glm::mat4 _transform;
+    glm::mat4 _projection;
+
+    // derived
     glm::vec3 _position;
     glm::quat _rotation;
-    glm::mat4 _projection;
-    glm::vec3 _hmdPosition;
-    glm::quat _hmdRotation;
-    bool _isKeepLookingAt;
+    bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
 };
 

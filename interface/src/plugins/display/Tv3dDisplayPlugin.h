@@ -20,6 +20,7 @@ public:
     virtual const QString & getName();
     Tv3dDisplayPlugin();
     virtual bool isStereo() const final { return true; }
+    virtual bool isSupported() const final;
     void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
         GLuint overlayTexture, const glm::uvec2& overlaySize);
     virtual void activate();

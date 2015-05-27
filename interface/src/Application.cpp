@@ -316,7 +316,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -878,7 +877,7 @@ void Application::paintGL() {
 
     // Sync up the View Furstum with the camera
     // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
-    loadViewFrustum(_myCamera, _viewFrustum);
+    _myCamera.loadViewFrustum(_viewFrustum);
 
     if (getShadowsEnabled()) {
         updateShadowMap();
@@ -891,43 +890,40 @@ void Application::paintGL() {
     auto finalFbo = primaryFbo;
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
     {
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         if (displayPlugin->isStereo()) {
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
-            for (int i = 0; i < 2; ++i) {
+            for_each_eye([&](Eye eye){
+                // FIXME we need to let the display plugin decide how the geometry works for stereo rendering
+                // for instance, an interleaved display should have half the vertical resolution, while a side 
+                // by side display for a temporal interleave should have full resolution
                 glViewport(r.x(), r.y(), r.width(), r.height());
                 glScissor(r.x(), r.y(), r.width(), r.height());
 
-                glMatrixMode(GL_PROJECTION);
-                // FIXME Fetch the projection matrix from the plugin
-
-                glMatrixMode(GL_MODELVIEW);
-                glPushMatrix();
-                glLoadIdentity();
+                // Load the view frustum, used by meshes
                 Camera eyeCamera;
-                eyeCamera.setRotation(_myCamera.getRotation());
-                eyeCamera.setPosition(_myCamera.getPosition());
+                eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
+                eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
+
                 displaySide(eyeCamera);
-                glPopMatrix();
+
                 if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                     glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
                     _rearMirrorTools->render(true, QPoint(mpos.x, mpos.y));
                 } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
                     renderRearViewMirror(_mirrorViewRect);
                 }
+            }, [&] {
                 r.moveLeft(r.width());
-            }
+            });
             glDisable(GL_SCISSOR_TEST);
         } else {
             glViewport(0, 0, size.width(), size.height());
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-            glLoadIdentity();
             displaySide(_myCamera);
-            glPopMatrix();
             if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                 glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
                 _rearMirrorTools->render(true, QPoint(mpos.x, mpos.y));
@@ -937,6 +933,8 @@ void Application::paintGL() {
         }
         finalFbo = DependencyManager::get<GlowEffect>()->render();
     }
+
+    glPopMatrix();
 
     // This might not be needed *right now*.  We want to ensure that the FBO rendering
     // has completed before we start trying to read from it in another context.  However
@@ -984,19 +982,6 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
-#if 0
-    if (OculusManager::isConnected()) {
-        OculusManager::configureCamera(camera);
-    } else if (TV3DManager::isConnected()) {
-        TV3DManager::configureCamera(camera, size.x, size.y);
-    } else {
-#endif
-        camera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), (float)size.x / size.y, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-#if 0
-    }
-#endif
-}
 
 void Application::resizeEvent(QResizeEvent * event) {
     resizeGL();
@@ -1014,12 +999,9 @@ void Application::resizeGL() {
 
     _renderResolution = toGlm(renderSize);
     DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-    resetCamerasOnResizeGL(_myCamera, _renderResolution);
 
-    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
-
-    updateProjectionMatrix();
-    glLoadIdentity();
+    _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
+            aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->resize(fromGlm(getCanvasSize()));
@@ -1029,24 +1011,6 @@ void Application::resizeGL() {
     // let's set horizontal offset to give stats some margin to mirror
     int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
     Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
-}
-
-void Application::updateProjectionMatrix() {
-    updateProjectionMatrix(_myCamera);
-}
-
-void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(glm::value_ptr(_projectionMatrix));
-
-    // Tell our viewFrustum about this change, using the application camera
-    if (updateViewFrustum) {
-        loadViewFrustum(camera, _viewFrustum);
-    } 
-
-    glMatrixMode(GL_MODELVIEW);
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
@@ -2205,7 +2169,7 @@ void Application::updateMouseRay() {
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
     // make sure the frustum is up-to-date
-    loadViewFrustum(_myCamera, _viewFrustum);
+    _myCamera.loadViewFrustum(_viewFrustum);
 
     PickRay pickRay = computePickRay(getTrueMouseX(), getTrueMouseY());
     _mouseRayOrigin = pickRay.origin;
@@ -2491,7 +2455,7 @@ void Application::update(float deltaTime) {
     // to the server.
     {
         PerformanceTimer perfTimer("loadViewFrustum");
-        loadViewFrustum(_myCamera, _viewFrustum);
+        _myCamera.loadViewFrustum(_viewFrustum);
     }
 
     quint64 now = usecTimestampNow();
@@ -2826,24 +2790,6 @@ QRect Application::getDesirableApplicationGeometry() {
     return applicationGeometry;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-// loadViewFrustum()
-//
-// Description: this will load the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    // We will use these below, from either the camera or head vectors calculated above
-    viewFrustum.setProjection(camera.getProjection());
-
-    // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getRotation());
-
-    // Ask the ViewFrustum class to calculate our corners
-    viewFrustum.calculate();
-}
-
 glm::vec3 Application::getSunDirection() {
     // Sun direction is in fact just the location of the sun relative to the origin
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
@@ -2872,7 +2818,7 @@ void Application::updateShadowMap() {
         glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
     
     float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
-    loadViewFrustum(_myCamera, _viewFrustum);
+    _myCamera.loadViewFrustum(_viewFrustum);
     
     int matrixCount = 1;
     //int targetSize = fbo->width();
@@ -2944,28 +2890,18 @@ void Application::updateShadowMap() {
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
-        glLoadIdentity();
-        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
-
-        glm::mat4 projAgain;
-        glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&projAgain);
-
+        glm::mat4 proj = glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
+        glLoadMatrixf(glm::value_ptr(proj));
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
-        glLoadIdentity();
-        glm::vec3 axis = glm::axis(inverseRotation);
-        glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
+        glLoadMatrixf(glm::value_ptr(glm::mat4_cast(inverseRotation)));
 
-        // store view matrix without translation, which we'll use for precision-sensitive objects
-        updateUntranslatedViewMatrix();
- 
         // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
         // the viewTransofmr object is updatded with the correct values and saved,
         // this is what is used for rendering the Entities and avatars
         Transform viewTransform;
         viewTransform.setRotation(rotation);
-    //    viewTransform.postTranslate(shadowFrustumCenter);
         setViewTransform(viewTransform);
 
 
@@ -3003,7 +2939,6 @@ void Application::updateShadowMap() {
         glMatrixMode(GL_MODELVIEW);
     }
     
-//    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
 }
 
@@ -3118,16 +3053,23 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+void Application::displaySide(const Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
-    // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(theCamera, _displayViewFrustum);
+    theCamera.loadViewFrustum(_displayViewFrustum);
 
+    // Load the legacy GL stacks, used by entities (for now)
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(glm::value_ptr(glm::inverse(theCamera.getTransform())));
+
+    // FIXME just flip the texture coordinates
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
@@ -3137,17 +3079,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         glFrontFace(GL_CCW);
     }
 
-    // transform view according to theCamera
-    // could be myCamera (if in normal mode)
-    // or could be viewFrustumOffsetCamera if in offset mode
-
     glm::quat rotation = theCamera.getRotation();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-    // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix(-theCamera.getPosition());
-
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
     // the viewTransofmr object is updatded with the correct values and saved,
     // this is what is used for rendering the Entities and avatars
@@ -3157,16 +3089,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
-    if (renderSide != RenderArgs::MONO) {
-        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
-        
-        viewTransform.evalFromRawMatrix(invView);
-        viewTransform.preTranslate(_viewMatrixTranslation);
-    }
-    
     setViewTransform(viewTransform);
-
-    glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     {
@@ -3208,7 +3131,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
                 // TODO: handle this correctly for zones
-                const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+                const EnvironmentData& closestData = _environment.getClosestData(_displayViewFrustum.getPosition());
 
                 if (closestData.getHasStars()) {
                     const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
@@ -3216,7 +3139,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
 
                     glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
                                                     / closestData.getAtmosphereOuterRadius();
-                    float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
+                    float height = glm::distance(_displayViewFrustum.getPosition(), closestData.getAtmosphereCenter());
                     if (height < closestData.getAtmosphereInnerRadius()) {
                         // If we're inside the atmosphere, then determine if our keyLight is below the horizon
                         alpha = 0.0f;
@@ -3255,7 +3178,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
                 PerformanceTimer perfTimer("atmosphere");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::displaySide() ... atmosphere...");
-                _environment.renderAtmospheres(theCamera);
+                _environment.renderAtmospheres(_displayViewFrustum.getPosition());
             }
 
         }
@@ -3303,7 +3226,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
-            _entities.render(renderMode, renderSide, renderDebugFlags);
+            _entities.render(renderMode, RenderArgs::MONO, renderDebugFlags);
             
             if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
                 // Restaure polygon mode
@@ -3327,7 +3250,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     }
     
     bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
-    
+
     {
         PerformanceTimer perfTimer("avatars");
         DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
@@ -3362,7 +3285,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
         _nodeBoundsDisplay.draw();
     
         //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        if (!mirrorMode && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
         }
@@ -3405,33 +3328,32 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
     activeRenderingThread = nullptr;
 }
 
-void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = viewMatrixTranslation;
-}
-
 void Application::setViewTransform(const Transform& view) {
     _viewTransform = view;
 }
 
-void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
-    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
-        translation.z + _viewMatrixTranslation.z);
-}
+//void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
+//    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+//    _viewMatrixTranslation = viewMatrixTranslation;
+//}
+//
+//void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
+//    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
+//    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
+//        translation.z + _viewMatrixTranslation.z);
+//}
+//
+//void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
+//    (*modelViewMatrix) =_untranslatedViewMatrix;
+//    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
+//}
 
 void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
-    (*modelViewMatrix) =_untranslatedViewMatrix;
-    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
+    (*modelViewMatrix) = glm::inverse(_displayViewFrustum.getView());
 }
 
 void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
-    *projectionMatrix = _projectionMatrix;
-}
-
-void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
-    float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
-    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    *projectionMatrix = _displayViewFrustum.getProjection();
 }
 
 bool Application::getShadowsEnabled() {
@@ -3497,8 +3419,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
     }
-    bool updateViewFrustum = false;
-    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -3511,11 +3431,9 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
         _rearMirrorTools->render(false, QPoint(mpos.x, mpos.y));
     }
-
     // reset Viewport and projection matrix
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
-    updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 
 void Application::resetSensors() {
@@ -4598,11 +4516,11 @@ void Application::shutdownPlugins() {
 }
 
 glm::vec3 Application::getHeadPosition() const {
-    return getActiveDisplayPlugin()->headTranslation();
+    return glm::vec3(getActiveDisplayPlugin()->getHeadPose()[3]);
 }
 
 glm::quat Application::getHeadOrientation() const {
-    return getActiveDisplayPlugin()->headOrientation();
+    return glm::quat_cast(getActiveDisplayPlugin()->getHeadPose());
 }
 
 glm::uvec2 Application::getCanvasSize() const {

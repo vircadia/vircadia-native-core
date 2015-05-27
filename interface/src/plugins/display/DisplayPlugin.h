@@ -21,14 +21,34 @@
 #include <glm/gtc/quaternion.hpp>
 #include <RegisteredMetaTypes.h>
 
+enum class Eye {
+    Left,
+    Right,
+    Mono
+};
+
+/*
+ * Helper method to iterate over each eye
+ */
+template <typename F>
+void for_each_eye(F f) {
+    f(Left);
+    f(Right);
+}
+
+/*
+ * Helper method to iterate over each eye, with an additional lambda to take action between the eyes
+ */
+template <typename F, typename FF>
+void for_each_eye(F f, FF ff) {
+    f(Eye::Left);
+    ff();
+    f(Eye::Right);
+}
+
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
-    enum class Eye {
-        Left,
-        Right,
-        Mono
-    };
     virtual bool isHmd() const { return false; }
     virtual bool isStereo() const { return false; }
     virtual bool isThrottled() const { return false; }
@@ -76,23 +96,24 @@ public:
     };
     virtual bool isMouseOnScreen() const;
 
+
     // Stereo specific methods
-    virtual glm::mat4 getProjection(Eye eye) const {
-        return glm::mat4();
+    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
+    virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const {
+        return glm::inverse(getEyePose(eye)) * baseModelview;
     }
 
     // HMD specific methods
     // TODO move these into another class
-    virtual glm::mat4 headPose() const {
+    virtual glm::mat4 getEyePose(Eye eye) const {
         static const glm::mat4 pose; return pose;
     }
 
-    virtual glm::quat headOrientation() const {
-        static const glm::quat orientation; return orientation;
-    }
-
-    virtual glm::vec3 headTranslation() const {
-        static const glm::vec3 tranlsation; return tranlsation;
+    virtual glm::mat4 getHeadPose() const {
+        static const glm::mat4 pose; return pose;
     }
 
     virtual void abandonCalibration() {}
@@ -108,3 +129,4 @@ protected:
     virtual void doneCurrent() {}
     virtual void swapBuffers() {}
 };
+

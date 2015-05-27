@@ -394,7 +394,6 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     } glPopMatrix();
 }
-#endif
 
 // Draws the FBO texture for 3DTV.
 void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov) {
@@ -489,6 +488,7 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
 }
+#endif
 
 
 void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
@@ -501,13 +501,13 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
     glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
 
 
-    const glm::vec3& hmdPosition = qApp->getCamera()->getHmdPosition();
-    const glm::quat& hmdOrientation = qApp->getCamera()->getHmdRotation();
+    glm::vec3 hmdPosition; // = qApp->getCamera()->getHmdPosition();
+    glm::quat hmdOrientation; // = qApp->getCamera()->getHmdRotation();
 
-    // We need the RAW camera orientation and position, because this is what the overlay is
+    // We need the camera orientation and position, because this is what the overlay is
     // rendered relative to
-    const glm::vec3 overlayPosition = qApp->getCamera()->getPosition() - hmdPosition;
-    const glm::quat overlayOrientation = qApp->getCamera()->getRotation() * glm::inverse(hmdOrientation);
+    const glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
+    const glm::quat overlayOrientation = qApp->getCamera()->getRotation();
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;

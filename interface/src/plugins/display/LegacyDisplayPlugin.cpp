@@ -45,6 +45,8 @@ void LegacyDisplayPlugin::activate() {
 
     _window->installEventFilter(qApp);
     _window->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+
+    DependencyManager::get<OffscreenUi>()->setProxyWindow(_window->windowHandle());
     SimpleDisplayPlugin::activate();
 }
 

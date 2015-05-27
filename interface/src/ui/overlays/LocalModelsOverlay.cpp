@@ -38,23 +38,18 @@ void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
 
         float glowLevel = getGlowLevel();
-        Glower* glower = NULL;
+        QSharedPointer<Glower> glower;
         if (glowLevel > 0.0f) {
-            glower = new Glower(glowLevel);
+            glower = QSharedPointer<Glower>(new Glower(glowLevel));
         }
 
         glPushMatrix(); {
             Application* app = Application::getInstance();
-            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
-            app->setViewMatrixTranslation(oldTranslation + _position);
+            Transform originalTransform = qApp->getViewTransform();
+            qApp->getViewTransform().postTranslate(_position);
             _entityTreeRenderer->render();
-            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
+            qApp->setViewTransform(originalTransform);
         } glPopMatrix();
-
-        if (glower) {
-            delete glower;
-        }
-
     }
 }
 

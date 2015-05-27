@@ -249,10 +249,11 @@ public:
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
-    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
+    //const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
+    //void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
+    virtual Transform& getViewTransform() { return _viewTransform; }
     void setViewTransform(const Transform& view);
     
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -278,8 +279,9 @@ public:
 
     QImage renderAvatarBillboard();
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+    void displaySide(const Camera& camera, bool selfAvatarOnly = false);
 
+/*
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
     void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
@@ -289,16 +291,11 @@ public:
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
-
+*/
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
-
-    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
-        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
-
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual bool getShadowsEnabled();
     virtual bool getCascadeShadowsEnabled();
@@ -476,10 +473,6 @@ private slots:
     void setCursorVisible(bool visible);
 
 private:
-    void resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size);
-    void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
-
     void updateCursorVisibility();
 
     void sendPingPackets();
@@ -505,7 +498,6 @@ private:
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
-    void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
 
@@ -579,9 +571,11 @@ private:
     Setting::Handle<float> _fieldOfView;
 
     Transform _viewTransform;
+    glm::mat4 _projectionMatrix;
+/*
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
-    glm::mat4 _projectionMatrix;
+*/
 
     float _scaleMirror;
     float _rotateMirror;

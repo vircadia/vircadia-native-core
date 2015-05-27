@@ -68,17 +68,17 @@ void Environment::resetToDefault() {
     _data[HifiSockAddr()][0];
 }
 
-void Environment::renderAtmospheres(Camera& camera) {    
+void Environment::renderAtmospheres(const glm::vec3& position) {
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
 
     if (_environmentIsOverridden) {
-        renderAtmosphere(camera, _overrideData);
+        renderAtmosphere(position, _overrideData);
     } else {
         foreach (const ServerData& serverData, _data) {
             // TODO: do something about EnvironmentData
             foreach (const EnvironmentData& environmentData, serverData) {
-                renderAtmosphere(camera, environmentData);
+                renderAtmosphere(position, environmentData);
             }
         }
     }
@@ -228,13 +228,13 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     return program;
 }
 
-void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) {
+void Environment::renderAtmosphere(const glm::vec3& position, const EnvironmentData& data) {
     glm::vec3 center = data.getAtmosphereCenter();
     
     glPushMatrix();
     glTranslatef(center.x, center.y, center.z);
     
-    glm::vec3 relativeCameraPos = camera.getPosition() - center;
+    glm::vec3 relativeCameraPos = position - center;
     float height = glm::length(relativeCameraPos);
 
     // use the appropriate shader depending on whether we're inside or outside

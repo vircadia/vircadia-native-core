@@ -29,7 +29,7 @@ public:
 
     void init();
     void resetToDefault();
-    void renderAtmospheres(Camera& camera);
+    void renderAtmospheres(const glm::vec3& camera);
 
     void override(const EnvironmentData& overrideData) { _overrideData = overrideData; _environmentIsOverridden = true; }
     void endOverride() { _environmentIsOverridden = false; }
@@ -46,7 +46,7 @@ private:
 
     ProgramObject* createSkyProgram(const char* from, int* locations);
 
-    void renderAtmosphere(Camera& camera, const EnvironmentData& data);
+    void renderAtmosphere(const glm::vec3& position, const EnvironmentData& data);
 
     bool _initialized;
     ProgramObject* _skyFromAtmosphereProgram;
