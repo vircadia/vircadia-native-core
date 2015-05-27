@@ -20,7 +20,7 @@
 #include "EntityTreeElement.h"
 
 
-const float DEFAULT_LINE_WIDTH = 2.0f;
+const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 
 EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = new LineEntityItem(entityID, properties);

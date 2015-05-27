@@ -109,6 +109,8 @@ enum EntityPropertyList {
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
     PROP_FRICTION,
+    
+    PROP_LINE_WIDTH, //for lines
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
