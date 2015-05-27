@@ -37,10 +37,10 @@ public:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
 
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false);
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const override;
-    virtual void renderDebugBodyPoints();
+    void renderDebugBodyPoints();
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
