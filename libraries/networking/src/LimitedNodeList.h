@@ -80,8 +80,30 @@ namespace PingType {
 class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-
 public:
+
+    enum ConnectionStep {
+        LookupAddress = 1,
+        HandleAddress,
+        SendSTUNRequest,
+        SetPublicSocketFromSTUN,
+        SetICEServerHostname,
+        SetICEServerSocket,
+        SendICEServerHearbeat,
+        ReceiveDSPeerInformation,
+        SendPingsToDS,
+        SetDomainHostname,
+        SetDomainSocket,
+        SendDSCheckIn,
+        ReceiveDSList,
+        SendAudioPing,
+        SetAudioMixerSocket,
+        SendAudioPacket,
+        ReceiveFirstAudioPacket
+    };
+
+    Q_ENUMS(ConnectionStep);
+
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
@@ -204,6 +226,11 @@ public:
     void putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort);
     bool getLocalServerPortFromSharedMemory(const QString key, quint16& localPort);
 
+    const QMap<quint64, ConnectionStep> getLastConnectionTimes() const
+        { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
+    void flagTimeForConnectionStep(ConnectionStep connectionStep);
+
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -269,6 +296,12 @@ protected:
     QPointer<QTimer> _initialSTUNTimer;
     int _numInitialSTUNRequests = 0;
     bool _hasCompletedInitialSTUN = false;
+    quint64 _firstSTUNTime = 0;
+    quint64 _publicSocketUpdateTime = 0;
+
+    mutable QReadWriteLock _connectionTimeLock { };
+    QMap<quint64, ConnectionStep> _lastConnectionTimes;
+    bool _areConnectionTimesComplete = false;
 
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {
@@ -279,6 +312,8 @@ protected:
             functor(it);
         }
     }
+private slots:
+    void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
 };
 
 #endif // hifi_LimitedNodeList_h

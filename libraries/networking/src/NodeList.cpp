@@ -82,8 +82,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 
-    qRegisterMetaType<NodeList::ConnectionStep>("NodeList::ConnectionStep");
-
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
 }
@@ -230,15 +228,18 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         case PacketTypeUnverifiedPingReply: {
             qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
-            // for now we're unsafely assuming this came back from the domain
-            if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
-                qCDebug(networking) << "Connecting to domain using local socket";
-                _domainHandler.activateICELocalSocket();
-            } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
-                qCDebug(networking) << "Conecting to domain using public socket";
-                _domainHandler.activateICEPublicSocket();
-            } else {
-                qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+            if (_domainHandler.getIP().isNull()) {
+                // for now we're unsafely assuming this came back from the domain
+                if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
+                    qCDebug(networking) << "Connecting to domain using local socket";
+                    _domainHandler.activateICELocalSocket();
+                } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
+                    qCDebug(networking) << "Conecting to domain using public socket";
+                    _domainHandler.activateICEPublicSocket();
+                } else {
+                    qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+                }
+
             }
         }
         case PacketTypeStunResponse: {
@@ -348,7 +349,7 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
 
-        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstDSCheckIn);
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         if (!isUsingDTLS) {
             writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
@@ -467,7 +468,7 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         _domainHandler.getICEPeer().resetConnectionAttemps();
 
-        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstICEServerHearbeat);
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendICEServerHearbeat);
 
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
@@ -476,7 +477,7 @@ void NodeList::handleICEConnectionToDomainServer() {
         qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
 
-        flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstPingsToDS);
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
@@ -493,7 +494,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
-    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(NodeList::ConnectionStep::ReceiveFirstDSList);
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
@@ -585,7 +586,7 @@ void NodeList::pingInactiveNodes() {
             pingPunchForInactiveNode(node);
 
             if (node->getType() == NodeType::AudioMixer) {
-                flagTimeForConnectionStep(NodeList::ConnectionStep::SendFirstAudioPing);
+                flagTimeForConnectionStep(NodeList::ConnectionStep::SendAudioPing);
             }
         }
     });
@@ -611,38 +612,5 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
 
     if (sendingNode->getType() == NodeType::AudioMixer) {
        flagTimeForConnectionStep(NodeList::ConnectionStep::SetAudioMixerSocket);
-    }
-}
-
-void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep) {
-    QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
-                              Q_ARG(NodeList::ConnectionStep, connectionStep),
-                              Q_ARG(quint64, usecTimestampNow()));
-}
-
-void NodeList::flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep, quint64 timestamp) {
-    QWriteLocker writeLock(&_connectionTimeLock);
-
-    if (connectionStep == NodeList::ConnectionStep::LookupAddress) {
-        // we clear the current times if the user just fired off a lookup
-        _lastConnectionTimes.clear();
-    }
-
-    if (!_lastConnectionTimes.contains(connectionStep)) {
-        // if there is no time for existing step add a timestamp on the first call for each NodeList::ConnectionStep
-        _lastConnectionTimes[connectionStep] = timestamp;
-    } else {
-        // if the existing time for this step is before the nearest sibling before then replace it
-        // this handles the case where audio comes in after an address lookup after the previous times have been cleared
-        quint64 currentTime = _lastConnectionTimes[connectionStep];
-
-        // go down the sibling steps and check if the registered time is actually before the sibling
-        for (int i = ((int) connectionStep) - 1; i >= 0; i--) {
-            NodeList::ConnectionStep thisStep = static_cast<NodeList::ConnectionStep>(i);
-            if (_lastConnectionTimes.contains(thisStep) && _lastConnectionTimes[thisStep] >= currentTime) {
-                _lastConnectionTimes[connectionStep] = timestamp;
-                break;
-            }
-        }
     }
 }

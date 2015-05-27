@@ -28,19 +28,21 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
     // setup a QTableWidget so we can populate it with our values
     QTableWidget* timeTable = new QTableWidget;
 
+    timeTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
     const QStringList TABLE_HEADERS = QStringList() << "Name" << "Timestamp (ms)" << "Delta (ms)" << "Time elapsed (ms)";
 
     timeTable->setColumnCount(TABLE_HEADERS.size());
 
     // ask the NodeList for the current values for connection times
-    QMap<NodeList::ConnectionStep, quint64> times = DependencyManager::get<NodeList>()->getLastConnectionTimes();
+    QMap<quint64, LimitedNodeList::ConnectionStep> times = DependencyManager::get<NodeList>()->getLastConnectionTimes();
 
     timeTable->setRowCount(times.size());
 
     timeTable->setHorizontalHeaderLabels(TABLE_HEADERS);
 
     // setup our data with the values from the NodeList
-    quint64 firstStepTime = times[NodeList::ConnectionStep::LookupAddress] / USECS_PER_MSEC;
+    quint64 firstStepTime = times.firstKey() / USECS_PER_MSEC;
     quint64 lastStepTime = firstStepTime;
 
     int thisRow = 0;
@@ -48,25 +50,23 @@ DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
     const QMetaObject &nodeListMeta = NodeList::staticMetaObject;
     QMetaEnum stepEnum = nodeListMeta.enumerator(nodeListMeta.indexOfEnumerator("ConnectionStep"));
 
-    for (int i = 0; i < stepEnum.keyCount(); i++) {
-        NodeList::ConnectionStep step = static_cast<NodeList::ConnectionStep>(i);
+    foreach(quint64 timestamp, times.keys()) {
+        // When did this step occur, how long since the last step, how long since the start?
+        quint64 stepTime = timestamp / USECS_PER_MSEC;
+        quint64 delta = (stepTime - lastStepTime);
+        quint64 elapsed = stepTime - firstStepTime;
 
-        if (times.contains(step)) {
-            // When did this step occur, how long since the last step, how long since the start?
-            quint64 stepTime = times[step] / USECS_PER_MSEC;
-            quint64 delta = (stepTime - lastStepTime);
-            quint64 elapsed = stepTime - firstStepTime;
+        lastStepTime = stepTime;
 
-            lastStepTime = stepTime;
+        // setup the columns for this row in the table
+        int stepIndex = (int) times.value(timestamp);
 
-            // setup the columns for this row in the table
-            timeTable->setItem(thisRow, 0, new QTableWidgetItem(stepEnum.valueToKey(i)));
-            timeTable->setItem(thisRow, 1, new QTableWidgetItem(QString::number(stepTime)));
-            timeTable->setItem(thisRow, 2, new QTableWidgetItem(QString::number(delta)));
-            timeTable->setItem(thisRow, 3, new QTableWidgetItem(QString::number(elapsed)));
+        timeTable->setItem(thisRow, 0, new QTableWidgetItem(stepEnum.valueToKey(stepIndex)));
+        timeTable->setItem(thisRow, 1, new QTableWidgetItem(QString::number(stepTime)));
+        timeTable->setItem(thisRow, 2, new QTableWidgetItem(QString::number(delta)));
+        timeTable->setItem(thisRow, 3, new QTableWidgetItem(QString::number(elapsed)));
 
-            ++thisRow;
-        }
+        ++thisRow;
     }
 
     // setup a horizontal box layout

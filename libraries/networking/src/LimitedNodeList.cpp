@@ -61,6 +61,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         firstCall = false;
     }
 
+    qRegisterMetaType<ConnectionStep>("ConnectionStep");
+
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
     qCDebug(networking) << "NodeList socket is listening on" << _nodeSocket.localPort();
 
@@ -636,6 +638,8 @@ void LimitedNodeList::sendSTUNRequest() {
     QUuid randomUUID = QUuid::createUuid();
     memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
 
+    flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
+
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
                               _stunSockAddr.getAddress(), _stunSockAddr.getPort());
 }
@@ -693,18 +697,20 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                     QHostAddress newPublicAddress = QHostAddress(stunAddress);
 
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-                        if (!_hasCompletedInitialSTUN) {
-                            // if we're here we have definitely completed our initial STUN sequence
-                            stopInitialSTUNUpdate(true);
-                        }
-
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
                         qCDebug(networking, "New public socket received from STUN server is %s:%hu",
                                _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                                _publicSockAddr.getPort());
 
+                        if (!_hasCompletedInitialSTUN) {
+                            // if we're here we have definitely completed our initial STUN sequence
+                            stopInitialSTUNUpdate(true);
+                        }
+
                         emit publicSockAddrChanged(_publicSockAddr);
+
+                        flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
                     }
 
                     return true;
@@ -741,6 +747,9 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 
             const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
            _initialSTUNTimer->start(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+
+           // send an initial STUN request right away
+           sendSTUNRequest();
         }
     }
 }
@@ -760,6 +769,8 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
 
         // we have changed the publicSockAddr, so emit our signal
         emit publicSockAddrChanged(_publicSockAddr);
+
+        flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
     }
 
     assert(_initialSTUNTimer);
@@ -845,5 +856,39 @@ bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, quin
         memcpy(&localPort, sharedMem.data(), sizeof(localPort));
         sharedMem.unlock();
         return true;
+    }
+}
+
+void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
+    QMetaObject::invokeMethod(this, "flagTimeForConnectionStep",
+                              Q_ARG(ConnectionStep, connectionStep),
+                              Q_ARG(quint64, usecTimestampNow()));
+}
+
+void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
+    if (!_areConnectionTimesComplete) {
+        QWriteLocker writeLock(&_connectionTimeLock);
+
+        if (connectionStep == ConnectionStep::LookupAddress) {
+            // we clear the current times if the user just fired off a lookup
+            _lastConnectionTimes.clear();
+            _areConnectionTimesComplete = false;
+        }
+
+        // anything > than sending the first DS check should not come before the DS check in, so we drop those
+        // this handles the case where you lookup an address and get packets in the existing domain before changing domains
+        if (connectionStep > LimitedNodeList::ConnectionStep::SendDSCheckIn
+            && (_lastConnectionTimes.key(ConnectionStep::SendDSCheckIn) == 0
+                || timestamp <= _lastConnectionTimes.key(ConnectionStep::SendDSCheckIn))) {
+            return;
+        }
+
+        // if there is no time for existing step add a timestamp on the first call for each ConnectionStep
+        _lastConnectionTimes[timestamp] = connectionStep;
+
+        // if this is a received audio packet we consider our connection times complete
+        if (connectionStep == ConnectionStep::ReceiveFirstAudioPacket) {
+            _areConnectionTimesComplete = true;
+        }
     }
 }

@@ -45,28 +45,6 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
-
-    enum ConnectionStep {
-        LookupAddress,
-        HandleAddress,
-        SetICEServerHostname,
-        SetICEServerSocket,
-        SendFirstICEServerHearbeat,
-        ReceiveDSPeerInformation,
-        SendFirstPingsToDS,
-        SetDomainHostname,
-        SetDomainSocket,
-        ForcedSTUNRequest,
-        SendFirstDSCheckIn,
-        ReceiveFirstDSList,
-        SendFirstAudioPing,
-        SetAudioMixerSocket,
-        SendFirstAudioPacket,
-        ReceiveFirstAudioPacket
-    };
-
-    Q_ENUMS(ConnectionStep);
-
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
@@ -85,11 +63,6 @@ public:
 
     int processDomainServerList(const QByteArray& packet);
 
-    const QMap<ConnectionStep, quint64> getLastConnectionTimes() const
-        { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
-    void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep);
-    void resetConnectionTimes() { QWriteLocker writeLock(&_connectionTimeLock); _lastConnectionTimes.clear(); }
-
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
@@ -104,7 +77,6 @@ signals:
 private slots:
     void sendPendingDSPathQuery();
     void handleICEConnectionToDomainServer();
-    void flagTimeForConnectionStep(NodeList::ConnectionStep connectionStep, quint64 timestamp);
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -125,9 +97,6 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
-
-    mutable QReadWriteLock _connectionTimeLock { };
-    QMap<ConnectionStep, quint64> _lastConnectionTimes;
 
     friend class Application;
 };
