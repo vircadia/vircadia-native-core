@@ -13,6 +13,7 @@
 #define hifi_MeshMassProperties_h
 
 #include <vector>
+#include <stdint.h>
 
 #include <btBulletDynamicsCommon.h>
 

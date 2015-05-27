@@ -10,6 +10,7 @@
 //
 
 #include <iostream>
+#include <string>
 #include <MeshMassProperties.h>
 
 #include "MeshMassPropertiesTests.h"
@@ -28,6 +29,12 @@ void printMatrix(const std::string& name, const btMatrix3x3& matrix) {
         std::cout << std::endl;
     }
     std::cout << "]" << std::endl;
+}
+
+void pushTriangle(VectorOfIndices& indices, uint32_t a, uint32_t b, uint32_t c) {
+    indices.push_back(a);
+    indices.push_back(b);
+    indices.push_back(c);
 }
 
 void MeshMassPropertiesTests::testParallelAxisTheorem() {
@@ -184,7 +191,8 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
     shiftedPoints.push_back(points[1] - points[0]);
     shiftedPoints.push_back(points[2] - points[0]);
     shiftedPoints.push_back(points[3] - points[0]);
-    VectorOfIndices triangles = { 1, 2, 3 };
+    VectorOfIndices triangles;
+    pushTriangle(triangles, 1, 2, 3);
     btVector3 expectedCenterOfMass = 0.25f * (shiftedPoints[0] + shiftedPoints[1] + shiftedPoints[2] + shiftedPoints[3]);
 
     // compute mass properties
@@ -250,11 +258,11 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     btVector3 expectedCenterOfMass = 0.25f * (points[0] + points[1] + points[2] + points[3]);
 
-    VectorOfIndices triangles = { 
-        0, 2, 1, 
-        0, 3, 2, 
-        0, 1, 3, 
-        1, 2, 3 };
+    VectorOfIndices triangles;
+    pushTriangle(triangles, 0, 2, 1);
+    pushTriangle(triangles, 0, 3, 2);
+    pushTriangle(triangles, 0, 1, 3);
+    pushTriangle(triangles, 1, 2, 3);
 
     // compute mass properties
     MeshMassProperties mesh(points, triangles);
@@ -370,20 +378,19 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
     points.push_back(btVector3(0.0f, y, z));
     points.push_back(btVector3(x, y, z));
 
-    VectorOfIndices triangles = {
-        0, 1, 4,
-        1, 5, 4,
-        1, 3, 5,
-        3, 7, 5,
-        2, 0, 6,
-        0, 4, 6,
-        3, 2, 7,
-        2, 6, 7,
-        4, 5, 6,
-        5, 7, 6,
-        0, 2, 1,
-        2, 3, 1
-    };
+    VectorOfIndices triangles;
+    pushTriangle(triangles, 0, 1, 4);
+    pushTriangle(triangles, 1, 5, 4);
+    pushTriangle(triangles, 1, 3, 5);
+    pushTriangle(triangles, 3, 7, 5);
+    pushTriangle(triangles, 2, 0, 6);
+    pushTriangle(triangles, 0, 4, 6);
+    pushTriangle(triangles, 3, 2, 7);
+    pushTriangle(triangles, 2, 6, 7);
+    pushTriangle(triangles, 4, 5, 6);
+    pushTriangle(triangles, 5, 7, 6);
+    pushTriangle(triangles, 0, 2, 1);
+    pushTriangle(triangles, 2, 3, 1);
 
     // compute expected mass properties analytically
     btVector3 expectedCenterOfMass = 0.5f * btVector3(x, y, z);
