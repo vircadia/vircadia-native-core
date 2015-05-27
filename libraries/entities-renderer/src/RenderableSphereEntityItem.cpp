@@ -19,8 +19,8 @@
 
 #include "RenderableSphereEntityItem.h"
 
-EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableSphereEntityItem(entityID, properties);
+EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableSphereEntityItem(entityID, properties));
 }
 
 void RenderableSphereEntityItem::render(RenderArgs* args) {

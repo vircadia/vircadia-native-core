@@ -682,6 +682,10 @@ Application::~Application() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    _physicsEngine.deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
+
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -1908,7 +1912,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -1949,7 +1953,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
@@ -2091,7 +2095,7 @@ void Application::init() {
     _physicsEngine.init();
 
     EntityTree* tree = _entities.getTree();
-    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    _entitySimulation.init(tree, &_physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -2411,12 +2415,21 @@ void Application::update(float deltaTime) {
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
         _entitySimulation.unlock();
 
+        AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
+        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
+        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
+        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+
         _physicsEngine.stepSimulation();
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.unlock();
+
+            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            avatarManager->handleCollisionEvents(_physicsEngine.getCollisionEvents());
+
             _physicsEngine.dumpStatsIfNecessary();
         }
     }

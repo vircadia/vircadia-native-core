@@ -22,12 +22,10 @@
 #include "BulletUtil.h"
 #include "ContactInfo.h"
 #include "DynamicCharacterController.h"
-#include "PhysicsTypedefs.h"
+#include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
-
-class ObjectMotionState;
 
 // simple class for keeping track of contacts
 class ContactKey {
