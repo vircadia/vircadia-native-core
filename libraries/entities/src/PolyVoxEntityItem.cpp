@@ -82,6 +82,8 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
+    qDebug() << "PolyVoxEntityItem::readEntitySubclassDataFromBuffer";
+
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
     READ_ENTITY_PROPERTY(PROP_VOXEL_DATA, QByteArray, setVoxelData);

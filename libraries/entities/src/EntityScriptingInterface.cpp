@@ -409,7 +409,11 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     _entityTree->unlock();
 
     properties.setVoxelDataDirty();
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
 
+    entity->setLastBroadcast(usecTimestampNow());
+    // modifiedProperties.setType(entity->getType());
+    // bidForSimulationOwnership(modifiedProperties);
+
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return true;
 }
