@@ -34,7 +34,7 @@
 #include "RenderablePolyVoxEntityItem.h"
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderablePolyVoxEntityItem(entityID, properties);
+    return EntityItemPointer(new RenderablePolyVoxEntityItem(entityID, properties));
 }
 
 RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
