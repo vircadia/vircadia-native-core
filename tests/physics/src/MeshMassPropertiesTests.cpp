@@ -446,7 +446,7 @@ void MeshMassPropertiesTests::runAllTests() {
     testParallelAxisTheorem();
     testTetrahedron();
     testOpenTetrahedonMesh();
-	testClosedTetrahedronMesh();
+    testClosedTetrahedronMesh();
     testBoxAsMesh();
     //testWithCube();
 }

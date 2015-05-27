@@ -86,18 +86,18 @@ void computeTetrahedronInertia(btScalar mass, btVector3* points, btMatrix3x3& in
 
 // helper function
 void computePointInertia(const btVector3& point, btScalar mass, btMatrix3x3& inertia) {
-	btScalar distanceSquared = point.length2();
-	if (distanceSquared > 0.0f) {
-		for (uint32_t i = 0; i < 3; ++i) {
+    btScalar distanceSquared = point.length2();
+    if (distanceSquared > 0.0f) {
+        for (uint32_t i = 0; i < 3; ++i) {
             btScalar pointi = point[i];
-			inertia[i][i] = mass * (distanceSquared - (pointi * pointi));
-			for (uint32_t j = i + 1; j < 3; ++j) {
+            inertia[i][i] = mass * (distanceSquared - (pointi * pointi));
+            for (uint32_t j = i + 1; j < 3; ++j) {
                 btScalar offDiagonal = - mass * pointi * point[j];
-				inertia[i][j] = offDiagonal;
-				inertia[j][i] = offDiagonal;
-			}
-		}
-	}
+                inertia[i][j] = offDiagonal;
+                inertia[j][i] = offDiagonal;
+            }
+        }
+    }
 }
 
 // this method is included for unit test verification
@@ -204,48 +204,48 @@ btScalar computeTetrahedronVolume(btVector3* points) {
 void applyParallelAxisTheorem(btMatrix3x3& inertia, const btVector3& shift, btScalar mass) {
     // Parallel Axis Theorem says:
     //
-	// Ishifted = Icm + M * [ (R*R)E - R(x)R ]
-	// 
-	// where R*R   = inside product
-	//       R(x)R = outside product
-	//       E     = identity matrix
+    // Ishifted = Icm + M * [ (R*R)E - R(x)R ]
+    // 
+    // where R*R   = inside product
+    //       R(x)R = outside product
+    //       E     = identity matrix
 
-	btScalar distanceSquared = shift.length2();
-	if (distanceSquared > btScalar(0.0f)) {
-		for (uint32_t i = 0; i < 3; ++i) {
+    btScalar distanceSquared = shift.length2();
+    if (distanceSquared > btScalar(0.0f)) {
+        for (uint32_t i = 0; i < 3; ++i) {
             btScalar shifti = shift[i];
-			inertia[i][i] += mass * (distanceSquared - (shifti * shifti));
-			for (uint32_t j = i + 1; j < 3; ++j) {
+            inertia[i][i] += mass * (distanceSquared - (shifti * shifti));
+            for (uint32_t j = i + 1; j < 3; ++j) {
                 btScalar offDiagonal = mass * shifti * shift[j];
-				inertia[i][j] -= offDiagonal;
-				inertia[j][i] -= offDiagonal;
-			}
-		}
-	}
+                inertia[i][j] -= offDiagonal;
+                inertia[j][i] -= offDiagonal;
+            }
+        }
+    }
 }
 
 // helper function
 void applyInverseParallelAxisTheorem(btMatrix3x3& inertia, const btVector3& shift, btScalar mass) {
     // Parallel Axis Theorem says:
     //
-	// Ishifted = Icm + M * [ (R*R)E - R(x)R ]
-	// 
+    // Ishifted = Icm + M * [ (R*R)E - R(x)R ]
+    // 
     // So the inverse would be:
     //
-	// Icm = Ishifted - M * [ (R*R)E - R(x)R ]
+    // Icm = Ishifted - M * [ (R*R)E - R(x)R ]
 
-	btScalar distanceSquared = shift.length2();
-	if (distanceSquared > btScalar(0.0f)) {
-		for (uint32_t i = 0; i < 3; ++i) {
+    btScalar distanceSquared = shift.length2();
+    if (distanceSquared > btScalar(0.0f)) {
+        for (uint32_t i = 0; i < 3; ++i) {
             btScalar shifti = shift[i];
-			inertia[i][i] -= mass * (distanceSquared - (shifti * shifti));
-			for (uint32_t j = i + 1; j < 3; ++j) {
+            inertia[i][i] -= mass * (distanceSquared - (shifti * shifti));
+            for (uint32_t j = i + 1; j < 3; ++j) {
                 btScalar offDiagonal = mass * shifti * shift[j];
-				inertia[i][j] += offDiagonal;
-				inertia[j][i] += offDiagonal;
-			}
-		}
-	}
+                inertia[i][j] += offDiagonal;
+                inertia[j][i] += offDiagonal;
+            }
+        }
+    }
 }
 
 MeshMassProperties::MeshMassProperties(const VectorOfPoints& points, const VectorOfIndices& triangleIndices) {
