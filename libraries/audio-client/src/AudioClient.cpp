@@ -875,7 +875,7 @@ void AudioClient::handleAudioInput() {
 
             _stats.sentPacket();
 
-            nodeList->flagTimeForConnectionStep(NodeList::ConnectionStep::SendAudioPacket);
+            nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
             int packetBytes = currentPacketPtr - audioDataPacket;
             nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);

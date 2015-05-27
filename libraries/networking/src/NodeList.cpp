@@ -586,7 +586,7 @@ void NodeList::pingInactiveNodes() {
             pingPunchForInactiveNode(node);
 
             if (node->getType() == NodeType::AudioMixer) {
-                flagTimeForConnectionStep(NodeList::ConnectionStep::SendAudioPing);
+                flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
             }
         }
     });
@@ -611,6 +611,6 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
     }
 
     if (sendingNode->getType() == NodeType::AudioMixer) {
-       flagTimeForConnectionStep(NodeList::ConnectionStep::SetAudioMixerSocket);
+       flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetAudioMixerSocket);
     }
 }
