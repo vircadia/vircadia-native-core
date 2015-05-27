@@ -33,6 +33,7 @@
 #include "EntityTreeRenderer.h"
 #include "RenderablePolyVoxEntityItem.h"
 
+
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderablePolyVoxEntityItem(entityID, properties));
 }
@@ -255,8 +256,13 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     PolyVox::Vector3DFloat start(originInVoxel[0], originInVoxel[1], originInVoxel[2]);
     PolyVox::Vector3DFloat pvDirection(directionInVoxel[0], directionInVoxel[1], directionInVoxel[2]);
     pvDirection.normalise();
-    // pvDirection *= 1000.0f; // Casts ray of length 1000
-    pvDirection *= 64.0f; // Casts ray of length 1000
+
+    // the PolyVox ray intersection code requires a near and far point.
+    glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
+    float distanceToEntity = glm::distance(origin, _position);
+    float largestDimension = glm::max(_dimensions[0], _dimensions[1], _dimensions[2]);
+    // set ray cast length to long enough to cover all of the voxel space
+    pvDirection *= (distanceToEntity + largestDimension) / glm::min(scale[0], scale[1], scale[2]);
 
     PolyVox::RaycastResult raycastResult;
     RaycastFunctor callback;
@@ -275,6 +281,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 }
 
 
+// compress the data in _volData and save the results.  The compressed form is used during
+// saves to disk and for transmission over the wire
 void RenderablePolyVoxEntityItem::compressVolumeData() {
     int rawSize = _volData->getDepth() * _volData->getHeight() * _volData->getWidth();
     QByteArray uncompressedData = QByteArray(rawSize, '\0');
@@ -303,6 +311,7 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
 }
 
 
+// take compressed data and decompreess it into _volData.
 void RenderablePolyVoxEntityItem::decompressVolumeData() {
     int rawSize = _volData->getDepth() * _volData->getHeight() * _volData->getWidth();
     QByteArray uncompressedData = QByteArray(rawSize, '\0');

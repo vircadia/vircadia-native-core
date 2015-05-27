@@ -57,8 +57,6 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-message("HERE in tbb")
-
 if (APPLE) 
   set(_TBB_LIB_DIR "${SOURCE_DIR}/lib")
   set(_LIB_PREFIX "lib")
