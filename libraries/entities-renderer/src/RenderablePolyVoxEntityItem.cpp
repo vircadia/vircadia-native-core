@@ -126,14 +126,19 @@ void RenderablePolyVoxEntityItem::getModel() {
     // A mesh object to hold the result of surface extraction
     PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
 
-    if (_voxelSurfaceStyle == 0) {
-        PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-            (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-        surfaceExtractor.execute();
-    } else {
-        PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
-            (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
-        surfaceExtractor.execute();
+    switch (_voxelSurfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES: {
+            PolyVox::MarchingCubesSurfaceExtractor<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+            surfaceExtractor.execute();
+            break;
+        }
+        case PolyVoxEntityItem::SURFACE_CUBIC: {
+            PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
+                (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);
+            surfaceExtractor.execute();
+            break;
+        }
     }
 
     // convert PolyVox mesh to a Sam mesh

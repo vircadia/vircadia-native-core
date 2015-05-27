@@ -23,7 +23,8 @@
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
 const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(qCompress(QByteArray(0), 9));
-const int PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE = 0;
+const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
+    PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new PolyVoxEntityItem(entityID, properties));
@@ -116,7 +117,7 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, getVoxelVolumeSize());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, getVoxelData());
-    APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, getVoxelSurfaceStyle());
+    APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, (uint16_t) getVoxelSurfaceStyle());
 }
 
 void PolyVoxEntityItem::debugDump() const {
