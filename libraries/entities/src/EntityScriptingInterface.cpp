@@ -389,7 +389,7 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
         return false;
     }
 
-    EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
         return false;
@@ -402,7 +402,7 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
 
     auto now = usecTimestampNow();
 
-    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity);
+    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity.get());
     _entityTree->lockForWrite();
     polyVoxEntity->setSphere(center, radius, value);
     entity->setLastEdited(now);
