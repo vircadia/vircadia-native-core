@@ -147,9 +147,9 @@ public:
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
-    Q_INVOKABLE glm::vec3 getAcceleration()  { return _acceleration; }
-    Q_INVOKABLE glm::vec3 getAngularVelocity() { return _angularVelocity; }
-    Q_INVOKABLE glm::vec3 getAngularAcceleration() { return _angularAcceleration; }
+    Q_INVOKABLE const glm::vec3& getAcceleration() const { return _acceleration; }
+    Q_INVOKABLE const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    Q_INVOKABLE const glm::vec3& getAngularAcceleration() const { return _angularAcceleration; }
     
 
     /// Scales a world space position vector relative to the avatar position and scale
