@@ -18,22 +18,33 @@ var position, positionOffset, prevPosition;
 var nearLinePosition;
 var strokes = [];
 var STROKE_ADJUST = 0.005;
-var DISTANCE_DRAW_THRESHOLD = .03;
+var DISTANCE_DRAW_THRESHOLD = .02;
 var drawDistance = 0;
 
+var LINE_WIDTH = 20;
+
 var userCanDraw = true;
+var userCanPoint = true;
 
 var BUTTON_SIZE = 32;
 var PADDING = 3;
 
-var buttonOffColor = {red: 250, green: 10, blue: 10};
-var buttonOnColor = {red: 10, green: 200, blue: 100};
+var buttonOffColor = {
+  red: 250,
+  green: 10,
+  blue: 10
+};
+var buttonOnColor = {
+  red: 10,
+  green: 200,
+  blue: 100
+};
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var screenSize = Controller.getViewportDimensions();
 
 var drawButton = Overlays.addOverlay("image", {
-  x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
+  x: screenSize.x / 2 - BUTTON_SIZE + PADDING * 2,
   y: screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
@@ -42,6 +53,15 @@ var drawButton = Overlays.addOverlay("image", {
   alpha: 1
 });
 
+var pointerButton = Overlays.addOverlay("image", {
+  x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
+  y: screenSize.y - (BUTTON_SIZE + PADDING),
+  width: BUTTON_SIZE,
+  height: BUTTON_SIZE,
+  imageURL: HIFI_PUBLIC_BUCKET + "images/laser.png",
+  color: buttonOnColor,
+  alpha: 1
+})
 
 
 
@@ -50,8 +70,16 @@ center.y += 0.5;
 var whiteBoard = Entities.addEntity({
   type: "Box",
   position: center,
-  dimensions: {x: 1, y: 1, z: .001},
-  color: {red: 255, green: 255, blue: 255}
+  dimensions: {
+    x: 1,
+    y: 1,
+    z: .001
+  },
+  color: {
+    red: 255,
+    green: 255,
+    blue: 255
+  }
 });
 
 function calculateNearLinePosition(targetPosition) {
@@ -73,6 +101,9 @@ function removeLine() {
 
 
 function createOrUpdateLine(event) {
+  if (!userCanPoint) {
+    return;
+  }
   var pickRay = Camera.computePickRay(event.x, event.y);
   var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
   var props = Entities.getEntityProperties(intersection.entityID);
@@ -82,14 +113,13 @@ function createOrUpdateLine(event) {
     var subtractVec = Vec3.multiply(Vec3.normalize(pickRay.direction), STROKE_ADJUST);
     startPosition = Vec3.subtract(startPosition, subtractVec);
     nearLinePosition = calculateNearLinePosition(intersection.intersection);
-    positionOffset= Vec3.subtract(startPosition, nearLinePosition);
+    positionOffset = Vec3.subtract(startPosition, nearLinePosition);
     if (lineIsRezzed) {
       Entities.editEntity(lineEntityID, {
         position: nearLinePosition,
         dimensions: positionOffset,
-        lifetime: 15 + props.lifespan // renew lifetime
       });
-      if(userCanDraw){
+      if (userCanDraw) {
         draw();
       }
     } else {
@@ -104,7 +134,6 @@ function createOrUpdateLine(event) {
           green: 255,
           blue: 255
         },
-        lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
       });
     }
   } else {
@@ -112,11 +141,11 @@ function createOrUpdateLine(event) {
   }
 }
 
-function draw(){
+function draw() {
 
   //We only want to draw line if distance between starting and previous point is large enough
   drawDistance = Vec3.distance(startPosition, prevPosition);
-  if( drawDistance < DISTANCE_DRAW_THRESHOLD){
+  if (drawDistance < DISTANCE_DRAW_THRESHOLD) {
     return;
   }
 
@@ -125,8 +154,12 @@ function draw(){
     type: "Line",
     position: prevPosition,
     dimensions: offset,
-    color: {red: 200, green: 40, blue: 200},
-    // lifetime: 20
+    color: {
+      red: 200,
+      green: 40,
+      blue: 200
+    },
+    lineWidth: LINE_WIDTH
   }));
   prevPosition = startPosition;
 }
@@ -138,12 +171,38 @@ function mousePressEvent(event) {
   });
   if (clickedOverlay == drawButton) {
     userCanDraw = !userCanDraw;
-    if(userCanDraw === true){
-      Overlays.editOverlay(drawButton, {color: buttonOnColor});
+    if (userCanDraw === true) {
+      Overlays.editOverlay(drawButton, {
+        color: buttonOnColor
+      });
     } else {
-      Overlays.editOverlay(drawButton, {color: buttonOffColor});
+      Overlays.editOverlay(drawButton, {
+        color: buttonOffColor
+      });
     }
-  } 
+  }
+
+  if (clickedOverlay == pointerButton) {
+    userCanPoint = !userCanPoint;
+    if (userCanPoint === true) {
+      Overlays.editOverlay(pointerButton, {
+        color: buttonOnColor
+      });
+      if (userCanDraw === true) {
+
+        Overlays.editOverlay(drawButton, {
+          color: buttonOnColor
+        });
+      }
+    } else {
+      Overlays.editOverlay(pointerButton, {
+        color: buttonOffColor
+      });
+      Overlays.editOverlay(drawButton, {
+        color: buttonOffColor
+      });
+    }
+  }
 
   if (!event.isLeftButton || altHeld) {
     return;
@@ -152,6 +211,7 @@ function mousePressEvent(event) {
   createOrUpdateLine(event);
   lineCreated = true;
 }
+
 
 
 function mouseMoveEvent(event) {
@@ -182,13 +242,14 @@ function keyReleaseEvent(event) {
 
 }
 
-function cleanup(){
+function cleanup() {
   Entities.deleteEntity(whiteBoard);
-  for(var i =0; i < strokes.length; i++){
+  for (var i = 0; i < strokes.length; i++) {
     Entities.deleteEntity(strokes[i]);
   }
 
   Overlays.deleteOverlay(drawButton);
+  Overlays.deleteOverlay(pointerButton);
 }
 
 
