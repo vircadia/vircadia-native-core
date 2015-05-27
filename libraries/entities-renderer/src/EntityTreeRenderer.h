@@ -187,6 +187,7 @@ private:
     float _previousStageHour;
     int _previousStageDay;
     
+    QHash<EntityItemID, render::ItemID> _entityToSceneItems;
 };
 
 

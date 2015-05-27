@@ -31,9 +31,12 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
     // render opaques
     auto filter = ItemFilter::Builder::opaqueShape();
     auto& opaqueShapeItems = itemBucketMap.at(filter);
+
+    qDebug() << "DrawSceneTask::run()";
     
     for (auto id : opaqueShapeItems) {
         auto item = scene->getItem(id);
+        qDebug() << "   id:" << id;
         item.render(args);
     }
 };

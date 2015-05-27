@@ -15,11 +15,14 @@
 #include <render/Scene.h>
 #include <EntityItem.h>
 
+
 class RenderableEntityItem {
 public:
+    RenderableEntityItem(EntityItemPointer entity) : entity(entity) { }
     typedef render::Payload<RenderableEntityItem> Payload;
-    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-    typedef EntityItemPointer Pointer;
+    typedef Payload::DataPointer Pointer;
+    
+    EntityItemPointer entity;
 };
 
 #endif // hifi_RenderableEntityItem_h

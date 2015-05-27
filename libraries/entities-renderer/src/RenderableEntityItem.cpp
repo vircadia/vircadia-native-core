@@ -12,24 +12,30 @@
 
 #include "RenderableEntityItem.h"
 
-// For Ubuntu, the compiler want's the Payload's functions to be specialized in the "render" namespace explicitely...
 namespace render {
-    template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& entity) { 
-        return ItemKey::Builder::opaqueShape(); 
+    template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& payload) { 
+        qDebug() << "payloadGetKey()... for payload:" << payload.get();
+        ItemKey key = ItemKey::Builder::opaqueShape(); 
+        qDebug() << "    key.isOpaque():" << key.isOpaque();
+        return key;
     }
     
-    template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& entity) { 
-        if (entity) {
-            return entity->getAABox();
+    template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& payload) { 
+        qDebug() << "payloadGetBound()... for payload:" << payload.get();
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
         }
         return render::Item::Bound();
     }
-    
-    template <> void payloadRender(const RenderableEntityItem::Pointer& entity, RenderArgs* args) {
+    template <> void payloadRender(const RenderableEntityItem::Pointer& payload, RenderArgs* args) {
+        qDebug() << "payloadRender()... for payload:" << payload.get();
         if (args) {
+            qDebug() << "rendering payload!! for payload:" << payload.get();
+            qDebug() << "rendering payload!! for entity:" << payload->entity.get();
             args->_elementsTouched++;
-            if (entity) {
-                entity->render(args);
+            if (payload && payload->entity) {
+                qDebug() << "rendering payload!! for entity:" << payload->entity->getEntityItemID();
+                payload->entity->render(args);
             }
         }
     }

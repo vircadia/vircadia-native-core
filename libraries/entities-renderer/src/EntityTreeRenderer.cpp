@@ -29,7 +29,10 @@
 #include <TextureCache.h>
 #include <SoundCache.h>
 
+
 #include "EntityTreeRenderer.h"
+
+#include "RenderableEntityItem.h"
 
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
@@ -92,6 +95,9 @@ void EntityTreeRenderer::clear() {
     }
     OctreeRenderer::clear();
     _entityScripts.clear();
+    
+    qDebug() << "EntityTreeRenderer::clear() need to clear the scene... _viewState->getMain3DScene():" << _viewState->getMain3DScene().get();
+    
 }
 
 void EntityTreeRenderer::init() {
@@ -1048,10 +1054,39 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
+    
+    // here's where we remove the entity payload from the scene
+    qDebug() << "deletingEntity() entityID:" << entityID << "_viewState->getMain3DScene():" << _viewState->getMain3DScene().get();
+
+    render::Scene::PendingChanges pendingChanges;
+    if (_entityToSceneItems.contains(entityID)) {
+        render::ItemID renderItem = _entityToSceneItems[entityID];
+        pendingChanges.removeItem(renderItem);
+        _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    }
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
+
+    // here's where we add the entity payload to the scene
+    qDebug() << "addingEntity() entityID:" << entityID << "_viewState->getMain3DScene():" << _viewState->getMain3DScene().get();
+
+    render::Scene::PendingChanges pendingChanges;
+    render::ItemID renderItem = _viewState->getMain3DScene()->allocateID();
+    _entityToSceneItems[entityID] = renderItem;
+    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+
+    auto renderData = RenderableEntityItem::Pointer(new RenderableEntityItem(entity));
+    auto renderPayload = render::PayloadPointer(new RenderableEntityItem::Payload(renderData));
+
+    qDebug() << "    renderItem:" << renderItem;
+    qDebug() << "    renderPayload:" << renderPayload.get();
+
+    pendingChanges.resetItem(renderItem, renderPayload);
+
+    _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    _viewState->getMain3DScene()->processPendingChangesQueue();
 }
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
