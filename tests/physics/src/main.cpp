@@ -12,13 +12,13 @@
 #include "ShapeInfoTests.h"
 #include "ShapeManagerTests.h"
 #include "BulletUtilTests.h"
-#include "MeshInfoTests.h"
+#include "MeshMassPropertiesTests.h"
 
 int main(int argc, char** argv) {
     ShapeColliderTests::runAllTests();
     ShapeInfoTests::runAllTests();
     ShapeManagerTests::runAllTests();
     BulletUtilTests::runAllTests();
-    MeshInfoTests::runAllTests();
+    MeshMassPropertiesTests::runAllTests();
     return 0;
 }
