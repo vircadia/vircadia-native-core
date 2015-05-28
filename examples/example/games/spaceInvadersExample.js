@@ -21,6 +21,16 @@ var gameOver = false;
 var invaderStepsPerCycle = 120; // the number of update steps it takes then invaders to move one column to the right
 var invaderStepOfCycle = 0; // current iteration in the cycle
 var invaderMoveDirection = 1; // 1 for moving to right, -1 for moving to left
+var LEFT = ",";
+var RIGHT = ".";
+var FIRE = "SPACE";
+var QUIT = "q";
+
+print("Use:");
+print(LEFT + " to move left");
+print(RIGHT + " to move right");
+print(FIRE + " to fire");
+print(QUIT + " to quit");
 
 // game length...
 var itemLifetimes = 60; // 1 minute
@@ -65,8 +75,8 @@ var myShipProperties;
 
 // create the rows of space invaders
 var invaders = new Array();
-var numberOfRows = 5;
-var invadersPerRow = 8;
+var numberOfRows = 3 // FIXME 5;
+var invadersPerRow = 3 // FIXME 8;
 var emptyColumns = 2; // number of invader width columns not filled with invaders
 var invadersBottomCorner = { x: gameAt.x, y: middleY , z: gameAt.z };
 var rowHeight = ((gameAt.y + gameSize.y) - invadersBottomCorner.y) / numberOfRows;
@@ -80,7 +90,6 @@ var stepsToGround = (middleY - gameAt.y) / yPerStep;
 var maxInvaderRowOffset=stepsToGround;
 
 // missile related items
-var missileFired = false;
 var myMissile;
 
 // sounds
@@ -174,6 +183,7 @@ function initializeInvaders() {
             invaderPosition = getInvaderPosition(row, column);
             invaders[row][column] = Entities.addEntity({
                         type: "Model",
+                        shapeType: "box",
                         position: invaderPosition,
                         velocity: { x: 0, y: 0, z: 0 },
                         gravity: { x: 0, y: 0, z: 0 },
@@ -181,6 +191,7 @@ function initializeInvaders() {
                         dimensions: { x: invaderSize * 2, y: invaderSize * 2, z: invaderSize * 2 },
                         color: { red: 255, green: 0, blue: 0 },
                         modelURL: invaderModels[row].modelURL,
+                        collisionsWillMove: true,
                         lifetime: itemLifetimes
                     });
         }
@@ -264,17 +275,17 @@ Script.update.connect(update);
 function cleanupGame() {
     print("cleaning up game...");
     Entities.deleteEntity(myShip);
-    print("cleanupGame() ... Entities.deleteEntity(myShip)... myShip.id="+myShip.id);
+    print("cleanupGame() ... Entities.deleteEntity(myShip)... myShip="+myShip);
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
             Entities.deleteEntity(invaders[row][column]);
-            print("cleanupGame() ... Entities.deleteEntity(invaders[row][column])... invaders[row][column].id="
-                    +invaders[row][column].id);
+            print("cleanupGame() ... Entities.deleteEntity(invaders[row][column])... invaders[row][column]="
+                    +invaders[row][column]);
         }
     }
     
     // clean up our missile
-    if (missileFired) {
+    if (myMissile) {
         Entities.deleteEntity(myMissile);
     }
     
@@ -293,15 +304,23 @@ function moveShipTo(position) {
     Entities.editEntity(myShip, { position: position });
 }
 
+function entityCollisionWithEntity(entityA, entityB, collision) {
+    print("entityCollisionWithEntity() a="+entityA + " b=" + entityB);
+    Vec3.print('entityCollisionWithEntity() penetration=', collision.penetration);
+    Vec3.print('entityCollisionWithEntity() contactPoint=', collision.contactPoint);
+
+    deleteIfInvader(entityB);
+}
+
 function fireMissile() {
     // we only allow one missile at a time...
     var canFire = false;
 
     // If we've fired a missile, then check to see if it's still alive
-    if (missileFired) {
+    if (myMissile) {
         var missileProperties = Entities.getEntityProperties(myMissile);
     
-        if (!missileProperties) {
+        if (!missileProperties || (missileProperties.type === 'Unknown')) {
             print("canFire = true");
             canFire = true;
         }    
@@ -322,11 +341,12 @@ function fireMissile() {
                             velocity: { x: 0, y: 5, z: 0},
                             gravity: { x: 0, y: 0, z: 0 },
                             damping: 0,
-                            dimensions: { x: missileSize * 2, y: missileSize * 2, z: missileSize * 2 },
+                            collisionsWillMove: true,
+                            dimensions: { x: missileSize, y: missileSize, z: missileSize },
                             color: { red: 0, green: 0, blue: 255 },
                             lifetime: 5
                         });
-
+	Script.addEventHandler(myMissile, "collisionWithEntity", entityCollisionWithEntity);
         var options = {}
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 
@@ -335,30 +355,30 @@ function fireMissile() {
         } else {
             options.position = missilePosition;
         }
-        
+
         Audio.playSound(shootSound, options);
 
-        missileFired = true;
     }
 }
 
 function keyPressEvent(key) {
     //print("keyPressEvent key.text="+key.text);
-    if (key.text == ",") {
+
+    if (key.text == LEFT) {
         myShipProperties.position.x -= 0.1;
         if (myShipProperties.position.x < gameAt.x) {
             myShipProperties.position.x = gameAt.x;
         }
         moveShipTo(myShipProperties.position);
-    } else if (key.text == ".") {
+    } else if (key.text == RIGHT) {
         myShipProperties.position.x += 0.1;
         if (myShipProperties.position.x > gameAt.x + gameSize.x) {
             myShipProperties.position.x = gameAt.x + gameSize.x;
         }
         moveShipTo(myShipProperties.position);
-    } else if (key.text == "f") {
+    } else if (key.text == FIRE) {
         fireMissile();
-    } else if (key.text == "q") {
+    } else if (key.text == QUIT) {
         endGame();
     }
 }
@@ -370,7 +390,7 @@ Controller.captureKeyEvents({text: " "});
 function deleteIfInvader(possibleInvaderEntity) {
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
-            if (invaders[row][column].id && invaders[row][column].id == possibleInvaderEntity.id) {
+            if (invaders[row][column] == possibleInvaderEntity) {
                 Entities.deleteEntity(possibleInvaderEntity);
                 Entities.deleteEntity(myMissile);
 
@@ -389,20 +409,6 @@ function deleteIfInvader(possibleInvaderEntity) {
         }
     }
 }
-
-function entityCollisionWithEntity(entityA, entityB, collision) {
-    print("entityCollisionWithEntity() a.id="+entityA.id + " b.id=" + entityB.id);
-    Vec3.print('entityCollisionWithEntity() penetration=', collision.penetration);
-    Vec3.print('entityCollisionWithEntity() contactPoint=', collision.contactPoint);
-    if (missileFired) {
-        if (myMissile.id == entityA.id) {
-            deleteIfInvader(entityB);
-        } else if (myMissile.id == entityB.id) {
-            deleteIfInvader(entityA);
-        }
-    }
-}
-Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 
 
 // initialize the game...
