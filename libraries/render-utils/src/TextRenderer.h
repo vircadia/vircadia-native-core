@@ -50,10 +50,11 @@ public:
     ~TextRenderer();
 
     glm::vec2 computeExtent(const QString& str) const;
+    float getRowHeight() const;
     
     void draw(float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
                const glm::vec2& bounds = glm::vec2(-1.0f));
-    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
+    void draw3D(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
                const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
@@ -69,7 +70,7 @@ private:
     const float _pointSize;
 
     // text color
-    const QColor _color;
+    const glm::vec4 _color;
 
     Font* _font;
 };

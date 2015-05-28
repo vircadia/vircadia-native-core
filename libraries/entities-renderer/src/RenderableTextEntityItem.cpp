@@ -20,52 +20,39 @@
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
-
 EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new RenderableTextEntityItem(entityID, properties);
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
-    assert(getType() == EntityTypes::Text);
-    glm::vec3 position = getPosition();
+    Q_ASSERT(getType() == EntityTypes::Text);
+    
+    static const float SLIGHTLY_BEHIND = -0.005f;
+    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
+    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
-    glm::vec3 halfDimensions = dimensions / 2.0f;
-    glm::quat rotation = getRotation();
-    float leftMargin = 0.1f;
-    float topMargin = 0.1f;
-
-    //qCDebug(entitytree) << "RenderableTextEntityItem::render() id:" << getEntityItemID() << "text:" << getText();
-
-    glPushMatrix(); 
-    {
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        float alpha = 1.0f; //getBackgroundAlpha();
-        static const float SLIGHTLY_BEHIND =  -0.005f;
-
-        glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
-        glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        
-        // TODO: Determine if we want these entities to have the deferred lighting effect? I think we do, so that the color
-        // used for a sphere, or box have the same look as those used on a text entity.
-        //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram();
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, glm::vec4(toGlm(getBackgroundColorX()), alpha));
-        //DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram();
-
-        glTranslatef(-(halfDimensions.x - leftMargin), halfDimensions.y - topMargin, 0.0f);
-        glm::vec4 textColor(toGlm(getTextColorX()), alpha);
-        // this is a ratio determined through experimentation
-        const float scaleFactor = 0.08f * _lineHeight;
-        glScalef(scaleFactor, -scaleFactor, scaleFactor);
-        glm::vec2 bounds(dimensions.x / scaleFactor, dimensions.y / scaleFactor);
-        _textRenderer->draw(0, 0, _text, textColor, bounds);
-    } 
-    glPopMatrix();
+    glm::vec2 bounds = glm::vec2(dimensions.x, dimensions.y);
+    
+    Transform transformToTopLeft = getTransformToCenter();
+    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
+    transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
+    
+    // Batch render calls
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(transformToTopLeft);
+    
+    // Render background
+    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
+    DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    
+    float scale = _lineHeight / _textRenderer->getRowHeight();
+    transformToTopLeft.setScale(scale);
+    batch.setModelTransform(transformToTopLeft);
+    _textRenderer->draw3D(batch, 0.0f, 0.0f, _text, textColor, bounds / scale);
 }
-
 
 
 

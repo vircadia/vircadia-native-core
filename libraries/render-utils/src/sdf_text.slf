@@ -21,7 +21,7 @@ const float outlineExpansion = 0.2;
 
 void main() {
     // retrieve signed distance
-    float sdf = texture2D(Font, gl_TexCoord[0].xy).r;
+    float sdf = texture2D(Font, gl_TexCoord[0].xy).g;
     if (Outline == 1.0f) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
@@ -41,7 +41,7 @@ void main() {
     if (a < 0.01) {
         discard;
     }
-    
+
     // final color
     gl_FragColor = vec4(Color.rgb, a);
 }

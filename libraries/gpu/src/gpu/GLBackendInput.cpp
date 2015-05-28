@@ -131,23 +131,23 @@ void GLBackend::updateInput() {
 #endif
                             if (useClientState) {
                                 switch (slot) {
-                                case Stream::POSITION:
-                                    glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::NORMAL:
-                                    glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::COLOR:
-                                    glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::TEXCOORD:
-                                    glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer)); 
-                                    break;
+                                    case Stream::POSITION:
+                                        glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::NORMAL:
+                                        glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::COLOR:
+                                        glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::TEXCOORD:
+                                        glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
                                 };
                             } else {
                                 GLboolean isNormalized = attrib._element.isNormalized();
                                 glVertexAttribPointer(slot, count, type, isNormalized, stride,
-                                    reinterpret_cast<GLvoid*>(pointer));
+                                                      reinterpret_cast<GLvoid*>(pointer));
                             }
                             (void) CHECK_GL_ERROR();
                         }

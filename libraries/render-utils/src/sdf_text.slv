@@ -13,8 +13,6 @@
 
 <$declareStandardTransform()$>
 
-uniform float Offset[2];
-
 void main() {
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
@@ -22,7 +20,4 @@ void main() {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    
-    gl_Position.x += Offset[0];
-    gl_Position.y += Offset[1];
 }
