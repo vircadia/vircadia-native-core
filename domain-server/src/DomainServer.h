@@ -79,7 +79,7 @@ private:
     void setupAutomaticNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
     void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    void processICEHeartbeatResponse(const QByteArray& packet);
+    void processICEPeerInformation(const QByteArray& packet);
 
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 

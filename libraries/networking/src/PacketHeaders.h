@@ -25,6 +25,7 @@
 
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
+
 enum PacketType {
     PacketTypeUnknown, // 0
     PacketTypeStunResponse,
@@ -50,8 +51,8 @@ enum PacketType {
     PacketTypeDomainServerPathQuery,
     PacketTypeDomainServerPathResponse,
     PacketTypeDomainServerAddedNode,
-    UNUSED_4,
-    UNUSED_5, // 25
+    PacketTypeIceServerPeerInformation,
+    PacketTypeIceServerQuery, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
@@ -77,7 +78,6 @@ enum PacketType {
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
     PacketTypeIceServerHeartbeat, // 50
-    PacketTypeIceServerHeartbeatResponse,
     PacketTypeUnverifiedPing,
     PacketTypeUnverifiedPingReply,
     PacketTypeParticleEntitiesFix
@@ -96,8 +96,9 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
     << PacketTypeNodeJsonStats << PacketTypeEntityQuery
     << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
-    << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+    << PacketTypeIceServerHeartbeat << PacketTypeIceServerPeerInformation
+    << PacketTypeIceServerQuery << PacketTypeUnverifiedPing
+    << PacketTypeUnverifiedPingReply << PacketTypeStopNode
     << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse
     << PacketTypeDomainServerAddedNode;
 

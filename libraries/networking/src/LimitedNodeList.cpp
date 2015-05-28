@@ -814,23 +814,30 @@ void LimitedNodeList::updateLocalSockAddr() {
     }
 }
 
-void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
-                                               QUuid headerID, const QUuid& connectionRequestID) {
+void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr) {
+    sendPacketToIceServer(PacketTypeIceServerHeartbeat, iceServerSockAddr, _sessionUUID);
+}
 
-    if (headerID.isNull()) {
-        headerID = _sessionUUID;
-    }
+void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
+                                               const QUuid& peerID) {
+    sendPacketToIceServer(PacketTypeIceServerQuery, iceServerSockAddr, clientID, peerID);
+}
 
-    QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
+void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
+                                            const QUuid& headerID, const QUuid& peerID) {
+
+    QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(packetType, headerID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
 
     iceDataStream << _publicSockAddr << _localSockAddr;
 
-    if (!connectionRequestID.isNull()) {
-        iceDataStream << connectionRequestID;
+    if (packetType == PacketTypeIceServerQuery) {
+        assert(!peerID.isNull());
+
+        iceDataStream << peerID;
 
         qCDebug(networking) << "Sending packet to ICE server to request connection info for peer with ID"
-            << uuidStringWithoutCurlyBraces(connectionRequestID);
+            << uuidStringWithoutCurlyBraces(peerID);
     }
 
     writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);

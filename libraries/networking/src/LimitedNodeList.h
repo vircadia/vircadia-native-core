@@ -89,7 +89,7 @@ public:
         SetPublicSocketFromSTUN,
         SetICEServerHostname,
         SetICEServerSocket,
-        SendICEServerHearbeat,
+        SendICEServerQuery,
         ReceiveDSPeerInformation,
         SendPingsToDS,
         SetDomainHostname,
@@ -178,8 +178,8 @@ public:
 
     virtual bool processSTUNResponse(const QByteArray& packet);
 
-    void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
-                                  QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
+    void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
+    void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
@@ -275,6 +275,9 @@ protected:
     void handleNodeKill(const SharedNodePointer& node);
 
     void stopInitialSTUNUpdate(bool success);
+
+    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
+                               const QUuid& peerRequestID = QUuid());
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;

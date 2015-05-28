@@ -1357,24 +1357,21 @@ void DomainServer::sendICEPingPackets() {
     }
 }
 
-void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
+void DomainServer::processICEPeerInformation(const QByteArray& packet) {
     // loop through the packet and pull out network peers
     // any peer we don't have we add to the hash, otherwise we update
     QDataStream iceResponseStream(packet);
     iceResponseStream.skipRawData(numBytesForPacketHeader(packet));
 
     NetworkPeer receivedPeer;
+    iceResponseStream >> receivedPeer;
 
-    while (!iceResponseStream.atEnd()) {
-        iceResponseStream >> receivedPeer;
-
-        if (!_connectedICEPeers.contains(receivedPeer.getUUID())) {
-            if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
-                qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
-            }
-
-            _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
+    if (!_connectedICEPeers.contains(receivedPeer.getUUID())) {
+        if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
+            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
         }
+
+        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
     }
 }
 
@@ -1458,8 +1455,8 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 processICEPingReply(receivedPacket, senderSockAddr);
                 break;
             }
-            case PacketTypeIceServerHeartbeatResponse:
-                processICEHeartbeatResponse(receivedPacket);
+            case PacketTypeIceServerPeerInformation:
+                processICEPeerInformation(receivedPacket);
                 break;
             default:
                 break;

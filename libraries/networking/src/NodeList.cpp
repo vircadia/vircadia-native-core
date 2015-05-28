@@ -192,7 +192,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
-        case PacketTypeIceServerHeartbeatResponse: {
+        case PacketTypeIceServerPeerInformation: {
             _domainHandler.processICEResponsePacket(packet);
             break;
         }
@@ -482,9 +482,9 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         _domainHandler.getICEPeer().resetConnectionAttempts();
 
-        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendICEServerHearbeat);
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendICEServerQuery);
 
-        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
+        LimitedNodeList::sendPeerQueryToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getICEDomainID());
     }

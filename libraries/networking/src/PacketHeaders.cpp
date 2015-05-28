@@ -78,6 +78,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 2;
         case PacketTypeAudioStreamStats:
             return 1;
+        case PacketTypeIceServerHeartbeat:
+        case PacketTypeIceServerQuery:
+            return 1;
         default:
             return 0;
     }
@@ -125,7 +128,9 @@ QString nameForPacketType(PacketType packetType) {
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeat);
-            PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainServerAddedNode);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerQuery);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerPeerInformation);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAdd);
@@ -149,33 +154,33 @@ int populatePacketHeaderWithUUID(QByteArray& packet, PacketType packetType, cons
     if (packet.size() < numBytesForPacketHeaderGivenPacketType(packetType)) {
         packet.resize(numBytesForPacketHeaderGivenPacketType(packetType));
     }
-    
+
     return populatePacketHeaderWithUUID(packet.data(), packetType, connectionUUID);
 }
 
 int populatePacketHeaderWithUUID(char* packet, PacketType packetType, const QUuid& connectionUUID) {
     int numTypeBytes = packArithmeticallyCodedValue(packetType, packet);
     packet[numTypeBytes] = versionForPacketType(packetType);
-    
+
     char* position = packet + numTypeBytes + sizeof(PacketVersion);
-    
+
     QByteArray rfcUUID = connectionUUID.toRfc4122();
     memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
     position += NUM_BYTES_RFC4122_UUID;
-    
+
     if (!NON_VERIFIED_PACKETS.contains(packetType)) {
         // pack 16 bytes of zeros where the md5 hash will be placed once data is packed
         memset(position, 0, NUM_BYTES_MD5_HASH);
         position += NUM_BYTES_MD5_HASH;
     }
-    
+
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
         // Pack zeros for the number of bytes that the sequence number requires.
         // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
         memset(position, 0, sizeof(PacketSequenceNumber));
         position += sizeof(PacketSequenceNumber);
     }
-    
+
     // return the number of bytes written for pointer pushing
     return position - packet;
 }
@@ -235,13 +240,13 @@ PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketTy
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-    
+
     PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
-    
+
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
         memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
     }
-    
+
     return result;
 }
 
@@ -249,7 +254,7 @@ void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, Packet
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-    
+
     packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH,
                    hashForPacketAndConnectionUUID(packet, connectionUUID));
 }
@@ -258,7 +263,7 @@ void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequ
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-    
+
     packet.replace(sequenceNumberOffsetForPacketType(packetType),
                    sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber), sizeof(PacketSequenceNumber));
 }
@@ -268,7 +273,7 @@ void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& conne
     if (packetType == PacketTypeUnknown) {
         packetType = packetTypeForPacket(packet);
     }
-    
+
     replaceHashInPacket(packet, connectionUUID, packetType);
     replaceSequenceNumberInPacket(packet, sequenceNumber, packetType);
 }
