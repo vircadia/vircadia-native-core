@@ -19,6 +19,7 @@
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
+#include <render/Scene.h>
 #include <ScriptCache.h>
 #include <AbstractAudioInterface.h>
 
@@ -186,6 +187,8 @@ private:
     float _previousStageHour;
     int _previousStageDay;
     
+    QHash<EntityItemID, render::ItemID> _entityToSceneItems;
 };
+
 
 #endif // hifi_EntityTreeRenderer_h

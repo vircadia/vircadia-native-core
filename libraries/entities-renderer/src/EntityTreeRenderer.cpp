@@ -29,7 +29,10 @@
 #include <TextureCache.h>
 #include <SoundCache.h>
 
+
 #include "EntityTreeRenderer.h"
+
+#include "RenderableEntityItem.h"
 
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
@@ -92,6 +95,10 @@ void EntityTreeRenderer::clear() {
     }
     OctreeRenderer::clear();
     _entityScripts.clear();
+
+    // TODO/FIXME - this needs to be fixed... we need to clear all items out of the scene in this case.    
+    qDebug() << "EntityTreeRenderer::clear() need to clear the scene... ";
+    
 }
 
 void EntityTreeRenderer::init() {
@@ -474,6 +481,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 }
 
 void EntityTreeRenderer::render(RenderArgs* renderArgs) {
+
     if (_tree && !_shuttingDown) {
         Model::startScene(renderArgs->_renderSide);
 
@@ -509,7 +517,9 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
         glPushMatrix();
         renderArgs->_context->enqueueBatch(batch);
         glPopMatrix();
-        
+
+        renderArgs->_batch = nullptr;
+         
         // stats...
         _meshesConsidered = renderArgs->_meshesConsidered;
         _meshesRendered = renderArgs->_meshesRendered;
@@ -693,35 +703,38 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     }
                 }
             }
+
+            // hack for models. :(
+            if (entityItem->getType() == EntityTypes::Model) {
+                // render entityItem
+                AABox entityBox = entityItem->getAABox();
             
-            // render entityItem
-            AABox entityBox = entityItem->getAABox();
+                // TODO: some entity types (like lights) might want to be rendered even
+                // when they are outside of the view frustum...
+                float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
             
-            // TODO: some entity types (like lights) might want to be rendered even
-            // when they are outside of the view frustum...
-            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
-            
-            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-            if (!outOfView) {
-                bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
+                bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
+                if (!outOfView) {
+                    bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
                 
-                if (bigEnoughToRender) {
-                    renderProxies(entityItem, args);
+                    if (bigEnoughToRender) {
+                        renderProxies(entityItem, args);
                     
-                    Glower* glower = NULL;
-                    if (entityItem->getGlowLevel() > 0.0f) {
-                        glower = new Glower(args, entityItem->getGlowLevel());
-                    }
-                    entityItem->render(args);
-                    args->_itemsRendered++;
-                    if (glower) {
-                        delete glower;
+                        Glower* glower = NULL;
+                        if (entityItem->getGlowLevel() > 0.0f) {
+                            glower = new Glower(args, entityItem->getGlowLevel());
+                        }
+                        entityItem->render(args);
+                        args->_itemsRendered++;
+                        if (glower) {
+                            delete glower;
+                        }
+                    } else {
+                        args->_itemsTooSmall++;
                     }
                 } else {
-                    args->_itemsTooSmall++;
+                    args->_itemsOutOfView++;
                 }
-            } else {
-                args->_itemsOutOfView++;
             }
         }
     }
@@ -1048,10 +1061,34 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
+    
+    // here's where we remove the entity payload from the scene
+
+    render::Scene::PendingChanges pendingChanges;
+    if (_entityToSceneItems.contains(entityID)) {
+        render::ItemID renderItem = _entityToSceneItems[entityID];
+        pendingChanges.removeItem(renderItem);
+        _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    }
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
+
+    // here's where we add the entity payload to the scene
+
+    render::Scene::PendingChanges pendingChanges;
+    render::ItemID renderItem = _viewState->getMain3DScene()->allocateID();
+    _entityToSceneItems[entityID] = renderItem;
+    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+
+    auto renderData = RenderableEntityItem::Pointer(new RenderableEntityItem(entity));
+    auto renderPayload = render::PayloadPointer(new RenderableEntityItem::Payload(renderData));
+
+    pendingChanges.resetItem(renderItem, renderPayload);
+
+    _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    _viewState->getMain3DScene()->processPendingChangesQueue();
 }
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
@@ -1181,4 +1218,3 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
     }
 }
-
