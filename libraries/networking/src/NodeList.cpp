@@ -73,8 +73,11 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // send an ICE heartbeat as soon as we get ice server information
     connect(&_domainHandler, &DomainHandler::iceSocketAndIDReceived, this, &NodeList::handleICEConnectionToDomainServer);
 
-    // handle ICE signal from DS so connection is attempted immediately
-    connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
+    // handle ping timeout from DomainHandler to establish a connection with auto networked domain-server
+    connect(&_domainHandler.getICEPeer(), &NetworkPeer::pingTimerTimeout, this, &NodeList::pingPunchForDomainServer);
+
+    // send a ping punch immediately
+    connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
     // clear out NodeList when login is finished
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete , this, &NodeList::reset);
@@ -299,6 +302,7 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
     } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
+        qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
         bool isUsingDTLS = false;
@@ -472,8 +476,9 @@ void NodeList::handleDSPathQueryResponse(const QByteArray& packet) {
 }
 
 void NodeList::handleICEConnectionToDomainServer() {
-    if (_domainHandler.getICEPeer().isNull()
-        || _domainHandler.getICEPeer().getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+    // if we're still waiting to get sockets we want to ping for the domain-server
+    // then send another heartbeat now
+    if (!_domainHandler.getICEPeer().hasSockets()) {
 
         _domainHandler.getICEPeer().resetConnectionAttempts();
 
@@ -482,7 +487,24 @@ void NodeList::handleICEConnectionToDomainServer() {
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getICEDomainID());
-    } else {
+    }
+}
+
+void NodeList::pingPunchForDomainServer() {
+    // make sure if we're here that we actually still need to ping the domain-server
+    if (_domainHandler.getIP().isNull() && _domainHandler.getICEPeer().hasSockets()) {
+
+        // check if we've hit the number of pings we'll send to the DS before we consider it a fail
+        const int NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
+
+        if (_domainHandler.getICEPeer().getConnectionAttempts() > 0
+            && _domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
+            // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
+
+            _domainHandler.getICEPeer().softReset();
+            handleICEConnectionToDomainServer();
+        }
+
         qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
 
@@ -624,7 +646,7 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
 void NodeList::handleNodePingTimeout() {
     SharedNodePointer senderNode = nodeWithUUID(qobject_cast<Node*>(sender())->getUUID());
 
-    if (senderNode) {
+    if (senderNode && !senderNode->getActiveSocket()) {
         pingPunchForInactiveNode(senderNode);
     }
 }

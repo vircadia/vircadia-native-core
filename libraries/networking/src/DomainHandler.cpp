@@ -31,12 +31,13 @@ DomainHandler::DomainHandler(QObject* parent) :
     _iceDomainID(),
     _iceClientID(),
     _iceServerSockAddr(),
-    _icePeer(),
+    _icePeer(this),
     _isConnected(false),
     _settingsObject(),
     _failedSettingsRequests(0)
 {
-
+    // if we get a socket that make sure our NetworkPeer ping timer stops
+    connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
 
 void DomainHandler::clearConnectionInfo() {
@@ -309,6 +310,10 @@ void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
         qCDebug(networking) << "Received network peer object for domain -" << packetPeer;
         _icePeer = packetPeer;
 
-        emit requestICEConnectionAttempt();
+        // ask the peer object to start its ping timer
+        _icePeer.startPingTimer();
+
+        // emit our signal so the NodeList knows to send a ping immediately
+        emit icePeerSocketsReceived();
     }
 }

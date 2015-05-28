@@ -64,7 +64,6 @@ public:
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
-    void pingPunchForInactiveNode(const SharedNodePointer& node);
 public slots:
     void reset();
     void sendDomainServerCheckIn();
@@ -77,6 +76,8 @@ private slots:
 
     void startNodeHolePunch(const SharedNodePointer& node);
     void handleNodePingTimeout();
+
+    void pingPunchForDomainServer();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -96,6 +97,7 @@ private:
     void processDomainServerAddedNode(const QByteArray& packet);
     void parseNodeFromPacketStream(QDataStream& packetStream);
 
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
 
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;

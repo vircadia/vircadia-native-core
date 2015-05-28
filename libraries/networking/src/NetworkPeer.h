@@ -28,7 +28,7 @@ const int UDP_PUNCH_PING_INTERVAL_MS = 25;
 class NetworkPeer : public QObject {
     Q_OBJECT
 public:
-    NetworkPeer();
+    NetworkPeer(QObject* parent = 0);
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
 
     // privatize copy and assignment operator to disallow peer copying
@@ -36,11 +36,12 @@ public:
     NetworkPeer& operator=(const NetworkPeer& otherPeer);
 
     bool isNull() const { return _uuid.isNull(); }
+    bool hasSockets() const { return !_localSocket.isNull() && !_publicSocket.isNull(); }
 
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    void reset();
+    void softReset();
 
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     virtual void setPublicSocket(const HifiSockAddr& publicSocket) { _publicSocket = publicSocket; }
@@ -65,11 +66,11 @@ public:
     float getOutboundBandwidth(); // in kbps
     float getInboundBandwidth(); // in kbps
 
-    void startPingTimer();
-    void stopPingTimer();
-
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
+public slots:
+    void startPingTimer();
+    void stopPingTimer();
 signals:
     void pingTimerTimeout();
 protected:

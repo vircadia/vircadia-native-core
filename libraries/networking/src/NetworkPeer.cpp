@@ -17,7 +17,8 @@
 #include "NetworkPeer.h"
 #include "BandwidthRecorder.h"
 
-NetworkPeer::NetworkPeer() :
+NetworkPeer::NetworkPeer(QObject* parent) :
+    QObject(parent),
     _uuid(),
     _publicSocket(),
     _localSocket(),
@@ -65,6 +66,18 @@ void NetworkPeer::swap(NetworkPeer& otherPeer) {
     swap(_lastHeardMicrostamp, otherPeer._lastHeardMicrostamp);
     swap(_connectionAttempts, otherPeer._connectionAttempts);
 }
+
+void NetworkPeer::softReset() {
+    // a soft reset should clear the sockets and reset the number of connection attempts
+    _localSocket.clear();
+    _publicSocket.clear();
+
+    // stop our ping timer since we don't have sockets to ping anymore anyways
+    stopPingTimer();
+
+    _connectionAttempts = 0;
+}
+
 
 QByteArray NetworkPeer::toByteArray() const {
     QByteArray peerByteArray;

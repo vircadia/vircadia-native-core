@@ -99,7 +99,7 @@ signals:
     void disconnectedFromDomain();
 
     void iceSocketAndIDReceived();
-    void requestICEConnectionAttempt();
+    void icePeerSocketsReceived();
 
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
