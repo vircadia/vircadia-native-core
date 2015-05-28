@@ -82,7 +82,7 @@ void IceServer::processDatagrams() {
 
             if (matchingPeer) {
                 // we have the peer they want to connect to - send them pack the information for that peer
-                sendPeerInformationPacket(matchingPeer.data(), &sendingSockAddr);
+                sendPeerInformationPacket(*(matchingPeer.data()), &sendingSockAddr);
 
                 // we also need to send them to the active peer they are hoping to connect to
                 // create a dummy peer object we can pass to sendPeerInformationPacket
@@ -118,8 +118,6 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(const QByteArray& incom
         // we already had the peer so just potentially update their sockets
         matchingPeer->setPublicSocket(publicSocket);
         matchingPeer->setLocalSocket(localSocket);
-
-        qDebug() << "Matched hearbeat to existing network peer" << *matchingPeer;
     }
 
     // update our last heard microstamp for this network peer to now

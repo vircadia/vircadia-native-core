@@ -145,18 +145,24 @@ void NetworkPeer::setActiveSocket(HifiSockAddr* discoveredSocket) {
 }
 
 void NetworkPeer::activateLocalSocket() {
-    qCDebug(networking) << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    setActiveSocket(&_localSocket);
+    if (_activeSocket != &_localSocket) {
+        qCDebug(networking) << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_localSocket);
+    }
 }
 
 void NetworkPeer::activatePublicSocket() {
-    qCDebug(networking) << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    setActiveSocket(&_publicSocket);
+    if (_activeSocket != &_publicSocket) {
+        qCDebug(networking) << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_publicSocket);
+    }
 }
 
 void NetworkPeer::activateSymmetricSocket() {
-    qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    setActiveSocket(&_symmetricSocket);
+    if (_activeSocket != &_symmetricSocket) {
+        qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        setActiveSocket(&_symmetricSocket);
+    }
 }
 
 void NetworkPeer::activateMatchingOrNewSymmetricSocket(const HifiSockAddr& matchableSockAddr) {
@@ -181,7 +187,6 @@ void NetworkPeer::softReset() {
 
     _connectionAttempts = 0;
 }
-
 
 QByteArray NetworkPeer::toByteArray() const {
     QByteArray peerByteArray;
