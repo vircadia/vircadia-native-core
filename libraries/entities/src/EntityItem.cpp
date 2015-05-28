@@ -318,15 +318,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = getPosition();
-    glm::quat saveRotation = getRotation();
-    // glm::vec3 saveVelocity = _velocity;
-    // glm::vec3 saveAngularVelocity = _angularVelocity;
-    // glm::vec3 saveGravity = _gravity;
-    // glm::vec3 saveAcceleration = _acceleration;
-
-
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -337,299 +328,308 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const int MINIMUM_HEADER_BYTES = 27;
 
     int bytesRead = 0;
-    if (bytesLeftToRead >= MINIMUM_HEADER_BYTES) {
+    if (bytesLeftToRead < MINIMUM_HEADER_BYTES) {
+        return 0;
+    }
 
-        int originalLength = bytesLeftToRead;
-        QByteArray originalDataBuffer((const char*)data, originalLength);
+    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
+    glm::vec3 savePosition = _position;
+    glm::quat saveRotation = _rotation;
+    glm::vec3 saveVelocity = _velocity;
+    glm::vec3 saveAngularVelocity = _angularVelocity;
 
-        int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    int originalLength = bytesLeftToRead;
+    QByteArray originalDataBuffer((const char*)data, originalLength);
 
-        const unsigned char* dataAt = data;
+    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
-        // id
-        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-        _id = QUuid::fromRfc4122(encodedID);
-        dataAt += encodedID.size();
-        bytesRead += encodedID.size();
-        
-        // type
-        QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint32> typeCoder = encodedType;
-        encodedType = typeCoder; // determine true length
-        dataAt += encodedType.size();
-        bytesRead += encodedType.size();
-        quint32 type = typeCoder;
-        _type = (EntityTypes::EntityType)type;
+    const unsigned char* dataAt = data;
 
-        bool overwriteLocalData = true; // assume the new content overwrites our local data
+    // id
+    QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+    _id = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    bytesRead += encodedID.size();
+    
+    // type
+    QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
+    ByteCountCoded<quint32> typeCoder = encodedType;
+    encodedType = typeCoder; // determine true length
+    dataAt += encodedType.size();
+    bytesRead += encodedType.size();
+    quint32 type = typeCoder;
+    _type = (EntityTypes::EntityType)type;
 
-        // _created
-        quint64 createdFromBuffer = 0;
-        memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
-        dataAt += sizeof(createdFromBuffer);
-        bytesRead += sizeof(createdFromBuffer);
+    bool overwriteLocalData = true; // assume the new content overwrites our local data
 
-        quint64 now = usecTimestampNow();
-        if (_created == UNKNOWN_CREATED_TIME) {
-            // we don't yet have a _created timestamp, so we accept this one
-            createdFromBuffer -= clockSkew;
-            if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
-                createdFromBuffer = now;
-            }
-            _created = createdFromBuffer;
+    // _created
+    quint64 createdFromBuffer = 0;
+    memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
+    dataAt += sizeof(createdFromBuffer);
+    bytesRead += sizeof(createdFromBuffer);
+
+    quint64 now = usecTimestampNow();
+    if (_created == UNKNOWN_CREATED_TIME) {
+        // we don't yet have a _created timestamp, so we accept this one
+        createdFromBuffer -= clockSkew;
+        if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
+            createdFromBuffer = now;
         }
+        _created = createdFromBuffer;
+    }
 
+    #ifdef WANT_DEBUG
+        quint64 lastEdited = getLastEdited();
+        float editedAgo = getEditedAgo();
+        QString agoAsString = formatSecondsElapsed(editedAgo);
+        QString ageAsString = formatSecondsElapsed(getAge());
+        qCDebug(entities) << "------------------------------------------";
+        qCDebug(entities) << "Loading entity " << getEntityItemID() << " from buffer...";
+        qCDebug(entities) << "------------------------------------------";
+        debugDump();
+        qCDebug(entities) << "------------------------------------------";
+        qCDebug(entities) << "    _created =" << _created;
+        qCDebug(entities) << "    age=" << getAge() << "seconds - " << ageAsString;
+        qCDebug(entities) << "    lastEdited =" << lastEdited;
+        qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
+    #endif
+    
+    quint64 lastEditedFromBuffer = 0;
+    quint64 lastEditedFromBufferAdjusted = 0;
+
+    // TODO: we could make this encoded as a delta from _created
+    // _lastEdited
+    memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
+    dataAt += sizeof(lastEditedFromBuffer);
+    bytesRead += sizeof(lastEditedFromBuffer);
+    lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+    if (lastEditedFromBufferAdjusted > now) {
+        lastEditedFromBufferAdjusted = now;
+    }
+
+    bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
+
+    #ifdef WANT_DEBUG
+        qCDebug(entities) << "data from server **************** ";
+        qCDebug(entities) << "                           entityItemID:" << getEntityItemID();
+        qCDebug(entities) << "                                    now:" << now;
+        qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+        qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
+        qCDebug(entities) << "                              clockSkew:" << debugTimeOnly(clockSkew);
+        qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+        qCDebug(entities) << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
+        qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
+        qCDebug(entities) << "                     fromSameServerEdit:" << fromSameServerEdit;
+    #endif
+
+    bool ignoreServerPacket = false; // assume we'll use this server packet
+
+    // If this packet is from the same server edit as the last packet we accepted from the server
+    // we probably want to use it.
+    if (fromSameServerEdit) {
+        // If this is from the same sever packet, then check against any local changes since we got
+        // the most recent packet from this server time
+        if (_lastEdited > _lastEditedFromRemote) {
+            ignoreServerPacket = true;
+        }
+    } else {
+        // If this isn't from the same sever packet, then honor our skew adjusted times...
+        // If we've changed our local tree more recently than the new data from this packet
+        // then we will not be changing our values, instead we just read and skip the data
+        if (_lastEdited > lastEditedFromBufferAdjusted) {
+            ignoreServerPacket = true;
+        }
+    }
+    
+    if (ignoreServerPacket) {
+        overwriteLocalData = false;
         #ifdef WANT_DEBUG
-            quint64 lastEdited = getLastEdited();
-            float editedAgo = getEditedAgo();
-            QString agoAsString = formatSecondsElapsed(editedAgo);
-            QString ageAsString = formatSecondsElapsed(getAge());
-            qCDebug(entities) << "------------------------------------------";
-            qCDebug(entities) << "Loading entity " << getEntityItemID() << " from buffer...";
-            qCDebug(entities) << "------------------------------------------";
+            qCDebug(entities) << "IGNORING old data from server!!! ****************";
             debugDump();
-            qCDebug(entities) << "------------------------------------------";
-            qCDebug(entities) << "    _created =" << _created;
-            qCDebug(entities) << "    age=" << getAge() << "seconds - " << ageAsString;
-            qCDebug(entities) << "    lastEdited =" << lastEdited;
-            qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
         #endif
-        
-        quint64 lastEditedFromBuffer = 0;
-        quint64 lastEditedFromBufferAdjusted = 0;
-
-        // TODO: we could make this encoded as a delta from _created
-        // _lastEdited
-        memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
-        dataAt += sizeof(lastEditedFromBuffer);
-        bytesRead += sizeof(lastEditedFromBuffer);
-        lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
-        if (lastEditedFromBufferAdjusted > now) {
-            lastEditedFromBufferAdjusted = now;
-        }
-
-        bool fromSameServerEdit = (lastEditedFromBuffer == _lastEditedFromRemoteInRemoteTime);
-
+    } else {
         #ifdef WANT_DEBUG
-            qCDebug(entities) << "data from server **************** ";
-            qCDebug(entities) << "                           entityItemID:" << getEntityItemID();
-            qCDebug(entities) << "                                    now:" << now;
-            qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
-            qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
-            qCDebug(entities) << "                              clockSkew:" << debugTimeOnly(clockSkew);
-            qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
-            qCDebug(entities) << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
-            qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
-            qCDebug(entities) << "                     fromSameServerEdit:" << fromSameServerEdit;
+            qCDebug(entities) << "USING NEW data from server!!! ****************";
+            debugDump();
         #endif
 
-        bool ignoreServerPacket = false; // assume we'll use this server packet
-
-        // If this packet is from the same server edit as the last packet we accepted from the server
-        // we probably want to use it.
-        if (fromSameServerEdit) {
-            // If this is from the same sever packet, then check against any local changes since we got
-            // the most recent packet from this server time
-            if (_lastEdited > _lastEditedFromRemote) {
-                ignoreServerPacket = true;
-            }
-        } else {
-            // If this isn't from the same sever packet, then honor our skew adjusted times...
-            // If we've changed our local tree more recently than the new data from this packet
-            // then we will not be changing our values, instead we just read and skip the data
-            if (_lastEdited > lastEditedFromBufferAdjusted) {
-                ignoreServerPacket = true;
-            }
-        }
+        // don't allow _lastEdited to be in the future
+        _lastEdited = lastEditedFromBufferAdjusted;
+        _lastEditedFromRemote = now;
+        _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
         
-        if (ignoreServerPacket) {
-            overwriteLocalData = false;
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "IGNORING old data from server!!! ****************";
-                debugDump();
-            #endif
-        } else {
+        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed 
+        // the properties out of the bitstream (see below))
+        somethingChangedNotification(); // notify derived classes that something has changed
+    }
 
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "USING NEW data from server!!! ****************";
-                debugDump();
-            #endif
-
-            // don't allow _lastEdited to be in the future
-            _lastEdited = lastEditedFromBufferAdjusted;
-            _lastEditedFromRemote = now;
-            _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
-            
-            // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed 
-            // the properties out of the bitstream (see below))
-            somethingChangedNotification(); // notify derived classes that something has changed
-        }
-
-        // last updated is stored as ByteCountCoded delta from lastEdited
-        QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-        quint64 updateDelta = updateDeltaCoder;
+    // last updated is stored as ByteCountCoded delta from lastEdited
+    QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+    quint64 updateDelta = updateDeltaCoder;
+    if (overwriteLocalData) {
+        _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
+        #ifdef WANT_DEBUG
+            qCDebug(entities) << "                           _lastUpdated:" << debugTime(_lastUpdated, now);
+            qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
+            qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+        #endif
+    }
+    encodedUpdateDelta = updateDeltaCoder; // determine true length
+    dataAt += encodedUpdateDelta.size();
+    bytesRead += encodedUpdateDelta.size();
+    
+    // Newer bitstreams will have a last simulated and a last updated value
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
+        // last simulated is stored as ByteCountCoded delta from lastEdited
+        QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+        quint64 simulatedDelta = simulatedDeltaCoder;
         if (overwriteLocalData) {
-            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
+            _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
             #ifdef WANT_DEBUG
-                qCDebug(entities) << "                           _lastUpdated:" << debugTime(_lastUpdated, now);
+                qCDebug(entities) << "                         _lastSimulated:" << debugTime(_lastSimulated, now);
                 qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
                 qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
             #endif
         }
-        encodedUpdateDelta = updateDeltaCoder; // determine true length
-        dataAt += encodedUpdateDelta.size();
-        bytesRead += encodedUpdateDelta.size();
-        
-        // Newer bitstreams will have a last simulated and a last updated value
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
-            // last simulated is stored as ByteCountCoded delta from lastEdited
-            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
-            quint64 simulatedDelta = simulatedDeltaCoder;
+        encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+        dataAt += encodedSimulatedDelta.size();
+        bytesRead += encodedSimulatedDelta.size();
+    }
+    
+    #ifdef WANT_DEBUG
+        if (overwriteLocalData) {
+            qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
+            qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
+            qCDebug(entities) << "                       getLastSimulated:" << debugTime(getLastSimulated(), now);
+            qCDebug(entities) << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
+        }
+    #endif
+    
+
+    // Property Flags
+    QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
+    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
+    dataAt += propertyFlags.getEncodedLength();
+    bytesRead += propertyFlags.getEncodedLength();
+    bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
+    if (useMeters) {
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
+    }
+
+    // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
+    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
+        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
+            float fromBuffer;
+            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
+            dataAt += sizeof(fromBuffer);
+            bytesRead += sizeof(fromBuffer);
             if (overwriteLocalData) {
-                _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
-                #ifdef WANT_DEBUG
-                    qCDebug(entities) << "                         _lastSimulated:" << debugTime(_lastSimulated, now);
-                    qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
-                    qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
-                #endif
+                setRadius(fromBuffer);
             }
-            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
-            dataAt += encodedSimulatedDelta.size();
-            bytesRead += encodedSimulatedDelta.size();
         }
-        
-        #ifdef WANT_DEBUG
-            if (overwriteLocalData) {
-                qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
-                qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
-                qCDebug(entities) << "                       getLastSimulated:" << debugTime(getLastSimulated(), now);
-                qCDebug(entities) << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
-            }
-        #endif
-        
-
-        // Property Flags
-        QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
-        EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-        dataAt += propertyFlags.getEncodedLength();
-        bytesRead += propertyFlags.getEncodedLength();
-        bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
+    } else {
         if (useMeters) {
-            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
         } else {
-            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
-        }
-
-        // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
-        if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
-            if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-                float fromBuffer;
-                memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
-                dataAt += sizeof(fromBuffer);
-                bytesRead += sizeof(fromBuffer);
-                if (overwriteLocalData) {
-                    setRadius(fromBuffer);
-                }
-            }
-        } else {
-            if (useMeters) {
-                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-            } else {
-                READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
-            }
-        }
-
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-        if (useMeters) {
-            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-        } else {
-            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
-            READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
-        }
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
-        }
-
-        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-        if (useMeters) {
-            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-        } else {
-            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
-        }
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
-        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
-        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
-        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
-        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
-        READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
-
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
-            READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
-        }
-
-        if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
-            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-        }
-
-        READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
-        READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
-        bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
-
-        ////////////////////////////////////
-        // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
-        //
-        // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
-        // by doing this parsing here... but it's not likely going to fully recover the content.
-        //
-        // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
-        if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
-            READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-        }
-
-        if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES))) {
-            // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
-            // closely match where the entities should be if they'd stepped forward in time to "now". The server
-            // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
-            // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
-            // use our simulation helper routine to get a best estimate of where the entity should be.
-            const float MIN_TIME_SKIP = 0.0f;
-            const float MAX_TIME_SKIP = 1.0f; // in seconds
-            float skipTimeForward = glm::clamp((float)(now - _lastSimulated) / (float)(USECS_PER_SECOND), 
-                                        MIN_TIME_SKIP, MAX_TIME_SKIP);
-            if (skipTimeForward > 0.0f) {
-                #ifdef WANT_DEBUG
-                    qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
-                #endif
-
-                // we want to extrapolate the motion forward to compensate for packet travel time, but
-                // we don't want the side effect of flag setting.
-                simulateKinematicMotion(skipTimeForward, false);
-            }
-            _lastSimulated = now;
+            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
         }
     }
 
+    READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+    READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+    if (useMeters) {
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
+    }
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+    }
+
+    READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+    READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    if (useMeters) {
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+    } else {
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
+    }
+    READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
+    READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+    READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+        // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
+        // before we try to READ_ENTITY_PROPERTY it 
+        bool temp = overwriteLocalData;
+        overwriteLocalData = true;
+        READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
+        overwriteLocalData = temp;
+    }
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
+        READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    }
+
+    READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+
+    ////////////////////////////////////
+    // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
+    //
+    // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
+    // by doing this parsing here... but it's not likely going to fully recover the content.
+    //
+    // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
+    if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
+        READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    }
+
+    if (overwriteLocalData && (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES))) {
+        // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
+        // closely match where the entities should be if they'd stepped forward in time to "now". The server
+        // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
+        // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
+        // use our simulation helper routine to get a best estimate of where the entity should be.
+        const float MIN_TIME_SKIP = 0.0f;
+        const float MAX_TIME_SKIP = 1.0f; // in seconds
+        float skipTimeForward = glm::clamp((float)(now - _lastSimulated) / (float)(USECS_PER_SECOND), 
+                                    MIN_TIME_SKIP, MAX_TIME_SKIP);
+        if (skipTimeForward > 0.0f) {
+            #ifdef WANT_DEBUG
+                qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
+            #endif
+
+            // we want to extrapolate the motion forward to compensate for packet travel time, but
+            // we don't want the side effect of flag setting.
+            simulateKinematicMotion(skipTimeForward, false);
+        }
+        _lastSimulated = now;
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
-    if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
-        // the packet that produced this bitstream originally came from physics simulations performed by
-        // this node, so our version has to be newer than what the packet contained.
-        setPosition(savePosition);
-        setRotation(saveRotation);
-        // _velocity = saveVelocity;
-        // _angularVelocity = saveAngularVelocity;
-        // _gravity = saveGravity;
-        // _acceleration = saveAcceleration;
+    if (overwriteLocalData && _simulatorID == myNodeID && !_simulatorID.isNull()) {
+        // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
+        // rather than accept the values in the packet
+        _position = savePosition;
+        _rotation = saveRotation;
+        _velocity = saveVelocity;
+        _angularVelocity = saveAngularVelocity;
+        _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
     }
 
     return bytesRead;
@@ -949,38 +949,23 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
 
     if (somethingChanged) {
-        somethingChangedNotification(); // notify derived classes that something has changed
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG
             int elapsed = now - getLastEdited();
             qCDebug(entities) << "EntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         #endif
-        if (_created != UNKNOWN_CREATED_TIME) {
-            setLastEdited(now);
+        setLastEdited(now);
+        somethingChangedNotification(); // notify derived classes that something has changed
+        if (_created == UNKNOWN_CREATED_TIME) {
+            _created = now;
         }
         if (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES)) {
-            // TODO: Andrew & Brad to discuss. Is this correct? Maybe it is. Need to think through all cases.
+            // anything that sets the transform or velocity must update _lastSimulated which is used
+            // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
+            // when position and/or velocity was changed).
             _lastSimulated = now;
         }
-    }
-
-    // timestamps
-    quint64 timestamp = properties.getCreated();
-    if (_created == UNKNOWN_CREATED_TIME && timestamp != UNKNOWN_CREATED_TIME) {
-        quint64 now = usecTimestampNow();
-        if (timestamp > now) {
-            timestamp = now;
-        }
-        _created = timestamp;
-
-        timestamp = properties.getLastEdited();
-        if (timestamp > now) {
-            timestamp = now;
-        } else if (timestamp < _created) {
-            timestamp = _created;
-        }
-        _lastEdited = timestamp;
     }
 
     return somethingChanged;
