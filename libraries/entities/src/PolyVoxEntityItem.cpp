@@ -51,8 +51,7 @@ EntityItemProperties PolyVoxEntityItem::getProperties() const {
 }
 
 bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelVolumeSize, setVoxelVolumeSize);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelData, setVoxelData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelSurfaceStyle, setVoxelSurfaceStyle);
