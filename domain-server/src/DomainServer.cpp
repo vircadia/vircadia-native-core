@@ -656,16 +656,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
                                                                      canAdjustLocks, canRez);
 
         // So that we can send messages to this node at will - we need to activate the correct socket on this node now
-        if (senderSockAddr == publicSockAddr) {
-            newNode->activatePublicSocket();
-        } else if (senderSockAddr == localSockAddr) {
-            newNode->activateLocalSocket();
-        } else {
-            // set the Node's symmetric socket to the sender socket
-            newNode->setSymmetricSocket(senderSockAddr);
-            // activate that symmetric socket
-            newNode->activateSymmetricSocket();
-        }
+        newNode->activateMatchingOrNewSymmetricSocket(senderSockAddr);
 
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr

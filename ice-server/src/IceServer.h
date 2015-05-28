@@ -33,7 +33,7 @@ private slots:
 private:
 
     SharedNetworkPeer addOrUpdateHeartbeatingPeer(const QByteArray& incomingPacket);
-    void sendPeerInformationPacket(const SharedNetworkPeer& peer, const HifiSockAddr& destinationSockAddr);
+    void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
     QUuid _id;
     QUdpSocket _serverSocket;

@@ -72,22 +72,11 @@ public:
     void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    virtual void setPublicSocket(const HifiSockAddr& publicSocket);
-    virtual void setLocalSocket(const HifiSockAddr& localSocket);
-    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
-    virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
-
-    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
-
     void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
     bool getCanAdjustLocks() { return _canAdjustLocks; }
 
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
-
-    void activatePublicSocket();
-    void activateLocalSocket();
-    void activateSymmetricSocket();
 
     void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType packetType)
         { _lastSequenceNumbers[packetType] = sequenceNumber; }
@@ -101,12 +90,7 @@ private:
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
 
-    void setActiveSocket(HifiSockAddr* discoveredSocket);
-
     NodeType_t _type;
-
-    HifiSockAddr* _activeSocket;
-    HifiSockAddr _symmetricSocket;
 
     QUuid _connectionSecret;
     NodeData* _linkedData;

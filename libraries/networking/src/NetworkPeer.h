@@ -29,9 +29,8 @@ class NetworkPeer : public QObject {
     Q_OBJECT
 public:
     NetworkPeer(QObject* parent = 0);
-    NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent = 0);
 
-    // privatize copy and assignment operator to disallow peer copying
     NetworkPeer(const NetworkPeer &otherPeer);
     NetworkPeer& operator=(const NetworkPeer& otherPeer);
 
@@ -44,9 +43,20 @@ public:
     void softReset();
 
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
-    virtual void setPublicSocket(const HifiSockAddr& publicSocket) { _publicSocket = publicSocket; }
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
-    virtual void setLocalSocket(const HifiSockAddr& localSocket) { _localSocket = localSocket; }
+    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
+
+    void setPublicSocket(const HifiSockAddr& publicSocket);
+    void setLocalSocket(const HifiSockAddr& localSocket);
+    void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
+
+    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
+
+    void activatePublicSocket();
+    void activateLocalSocket();
+    void activateSymmetricSocket();
+
+    void activateMatchingOrNewSymmetricSocket(const HifiSockAddr& matchableSockAddr);
 
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
@@ -74,10 +84,14 @@ public slots:
 signals:
     void pingTimerTimeout();
 protected:
+    void setActiveSocket(HifiSockAddr* discoveredSocket);
+
     QUuid _uuid;
 
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
+    HifiSockAddr _symmetricSocket;
+    HifiSockAddr* _activeSocket;
 
     quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
