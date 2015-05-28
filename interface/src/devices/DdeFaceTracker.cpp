@@ -141,13 +141,6 @@ static const float STARTING_DDE_MESSAGE_TIME = 0.033f;
 static const float DEFAULT_DDE_EYE_CLOSING_THRESHOLD = 0.8f;
 static const int CALIBRATION_SAMPLES = 150;
 
-#ifdef WIN32
-//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeBlinks' will be default initialized 
-//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_filteredEyeBlinks' will be default initialized
-//  warning C4351: new behavior: elements of array 'DdeFaceTracker::_lastEyeCoefficients' will be default initialized
-#pragma warning(disable:4351) 
-#endif
-
 DdeFaceTracker::DdeFaceTracker() :
     DdeFaceTracker(QHostAddress::Any, DDE_SERVER_PORT, DDE_CONTROL_PORT)
 {
@@ -213,10 +206,6 @@ DdeFaceTracker::~DdeFaceTracker() {
         cancelCalibration();
     }
 }
-
-#ifdef WIN32
-#pragma warning(default:4351) 
-#endif
 
 void DdeFaceTracker::init() {
     FaceTracker::init();

@@ -113,7 +113,6 @@ void EntityTreeRenderer::init() {
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
     connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
-    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -873,6 +872,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
+    connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -1101,20 +1101,23 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
 }
 
 
-void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
-    if (_entityScripts.contains(oldEntityID)) {
-        EntityScriptDetails details = _entityScripts[oldEntityID];
-        _entityScripts.remove(oldEntityID);
-        _entityScripts[newEntityID] = details;
-    }
-}
-
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
         return;
     }
     QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull()) {
+        // Can be null if it has never moved since being created or coming out of persistence.
+        // However, for there to be a collission, one of the two objects must be moving.
+        const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
+        EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
+        if (!otherEntity) {
+            return;
+        }
+        simulatorID = otherEntity->getSimulatorID();
+    }
+
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
     }
@@ -1187,6 +1190,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
 
     // And now the entity scripts
+    emit collisionWithEntity(idA, idB, collision);
     QScriptValue entityScriptA = loadEntityScript(idA);
     if (entityScriptA.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
@@ -1196,6 +1200,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
     }
 
+    emit collisionWithEntity(idB, idA, collision);
     QScriptValue entityScriptB = loadEntityScript(idB);
     if (entityScriptB.property("collisionWithEntity").isValid()) {
         QScriptValueList args;
