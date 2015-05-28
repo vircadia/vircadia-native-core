@@ -75,15 +75,21 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3> &vector){
     QScriptValue array = engine->newArray();
     for(int i = 0; i < vector.size(); i++){
-        array.setProperty(i, vec3toScriptValue(vector.at(i)));
+        array.setProperty(i, vec3toScriptValue(engine, vector.at(i)));
     }
     return array;
 }
 
 QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue &array){
-    QVector<glm:vec3> newVector;
-    qDebug()<<"Point 2 x"<<array.property(1).property("y").toString();
-    return QVector<glm::vec3>(8);
+    QVector<glm::vec3> newVector(0);
+    int length = array.property("length").toInteger();
+    
+    for(int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        newVector << newVec3;
+    }
+    return newVector;
 }
 
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {

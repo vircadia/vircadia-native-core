@@ -32,12 +32,10 @@ EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityIt
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) ,
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _points(QVector<glm::vec3>(5))
+    _points(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Line;
     _created = properties.getCreated();
-    glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-    glm::vec3 p2 = {1.0f, 1.0f, 0.0f};
     setProperties(properties);
     
     
@@ -65,9 +63,8 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
-    qDebug()<<"LINE POINTS" << properties._linePoints.size();
-    
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
+
 
     if (somethingChanged) {
         bool wantDebug = false;
