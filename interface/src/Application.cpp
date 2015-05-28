@@ -2181,6 +2181,9 @@ void Application::init() {
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
     DependencyManager::get<GlowEffect>()->init(glow);
+
+    // Make sure any new sounds are loaded as soon as know about them.
+    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {

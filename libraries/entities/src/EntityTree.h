@@ -171,6 +171,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID);
+    void newCollisionSoundURL(const QUrl& url);
     void clearingEntities();
 
 private:
@@ -199,6 +200,7 @@ private:
     EntitySimulation* _simulation;
     
     bool _wantEditLogging = false;
+    void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 };
 
 #endif // hifi_EntityTree_h
