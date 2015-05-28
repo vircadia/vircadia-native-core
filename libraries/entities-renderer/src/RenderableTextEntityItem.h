@@ -13,7 +13,7 @@
 #define hifi_RenderableTextEntityItem_h
 
 #include <TextEntityItem.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 
 const int FIXED_FONT_POINT_SIZE = 40;
 
@@ -29,7 +29,7 @@ public:
     virtual void render(RenderArgs* args);
     
 private:
-    TextRenderer* _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
+    TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
 };
 
 

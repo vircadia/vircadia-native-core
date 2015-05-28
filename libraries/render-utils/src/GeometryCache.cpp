@@ -815,9 +815,9 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
     const int VERTEX_STRIDE = sizeof(GLfloat) * FLOATS_PER_VERTEX * 2; // vertices and normals
     const int NORMALS_OFFSET = sizeof(GLfloat) * FLOATS_PER_VERTEX;
 
-    if (!_solidCubeVerticies.contains(size)) {
+    if (!_solidCubeVertices.contains(size)) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        _solidCubeVerticies[size] = verticesBuffer;
+        _solidCubeVertices[size] = verticesBuffer;
 
         GLfloat* vertexData = new GLfloat[vertexPoints * 2]; // vertices and normals
         GLfloat* vertex = vertexData;
@@ -892,7 +892,7 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
 
         colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-    gpu::BufferPointer verticesBuffer = _solidCubeVerticies[size];
+    gpu::BufferPointer verticesBuffer = _solidCubeVertices[size];
     gpu::BufferPointer colorBuffer = _solidCubeColors[colorKey];
 
     const int VERTICES_SLOT = 0;
