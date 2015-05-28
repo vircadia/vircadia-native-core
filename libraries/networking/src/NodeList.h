@@ -61,8 +61,6 @@ public:
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
-    int processDomainServerList(const QByteArray& packet);
-
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
@@ -93,6 +91,11 @@ private:
     void handleDSPathQueryResponse(const QByteArray& packet);
 
     void sendDSPathQuery(const QString& newPath);
+
+    int processDomainServerList(const QByteArray& packet);
+    void processDomainServerAddedNode(const QByteArray& packet);
+    void parseNodeFromPacketStream(QDataStream& packetStream);
+
 
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;

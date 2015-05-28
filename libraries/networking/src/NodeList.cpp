@@ -170,12 +170,18 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 }
 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    switch (packetTypeForPacket(packet)) {
-        case PacketTypeDomainList: {
+    PacketType packetType = packetTypeForPacket(packet);
+    switch (packetType) {
+        case PacketTypeDomainList:
+        case PacketTypeDomainServerAddedNode: {
             if (!_domainHandler.getSockAddr().isNull()) {
-                // only process a list from domain-server if we're talking to a domain
+                // only process a packet from domain-server if we're talking to a domain
                 // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
-                processDomainServerList(packet);
+                if (packetType == PacketTypeDomainList) {
+                    processDomainServerList(packet);
+                } else if (packetType == PacketTypeDomainServerAddedNode) {
+                    processDomainServerAddedNode(packet);
+                }
             }
             break;
         }
@@ -525,29 +531,42 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
 
     // pull each node in the packet
     while (packetStream.device()->pos() < packet.size()) {
-        // setup variables to read into from QDataStream
-        qint8 nodeType;
-        QUuid nodeUUID, connectionUUID;
-        HifiSockAddr nodePublicSocket, nodeLocalSocket;
-        bool canAdjustLocks;
-        bool canRez;
-
-        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
-
-        // if the public socket address is 0 then it's reachable at the same IP
-        // as the domain server
-        if (nodePublicSocket.getAddress().isNull()) {
-            nodePublicSocket.setAddress(_domainHandler.getIP());
-        }
-
-        packetStream >> connectionUUID;
-
-        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                                 nodeLocalSocket, canAdjustLocks, canRez,
-                                                 connectionUUID);
+        parseNodeFromPacketStream(packetStream);
     }
 
     return readNodes;
+}
+
+void NodeList::processDomainServerAddedNode(const QByteArray& packet) {
+    // setup a QDataStream, skip the header
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+
+    // use our shared method to pull out the new node
+    parseNodeFromPacketStream(packetStream);
+}
+
+void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
+    // setup variables to read into from QDataStream
+    qint8 nodeType;
+    QUuid nodeUUID, connectionUUID;
+    HifiSockAddr nodePublicSocket, nodeLocalSocket;
+    bool canAdjustLocks;
+    bool canRez;
+
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
+
+    // if the public socket address is 0 then it's reachable at the same IP
+    // as the domain server
+    if (nodePublicSocket.getAddress().isNull()) {
+        nodePublicSocket.setAddress(_domainHandler.getIP());
+    }
+
+    packetStream >> connectionUUID;
+
+    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
+                                             nodeLocalSocket, canAdjustLocks, canRez,
+                                             connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

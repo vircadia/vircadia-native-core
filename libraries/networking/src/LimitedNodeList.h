@@ -96,6 +96,7 @@ public:
         SetDomainSocket,
         SendDSCheckIn,
         ReceiveDSList,
+        AddedAudioMixer,
         SendAudioPing,
         SetAudioMixerSocket,
         SendAudioPacket,

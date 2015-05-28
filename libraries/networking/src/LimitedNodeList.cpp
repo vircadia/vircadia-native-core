@@ -490,6 +490,10 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks, canRez, connectionSecret);
 
+        if (nodeType == NodeType::AudioMixer) {
+            LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
+        }
+
         SharedNodePointer newNodePointer(newNode);
 
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
