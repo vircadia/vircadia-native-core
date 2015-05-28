@@ -98,11 +98,13 @@ void EntityTreeRenderer::clear() {
 
     qDebug() << "EntityTreeRenderer::clear() need to clear the scene... ";
     render::Scene::PendingChanges pendingChanges;
-    QHashIterator<EntityItemID, render::ItemID> i(_entityToSceneItems);
-    while (i.hasNext()) {
-        i.next();
-        render::ItemID renderItem = i.value();
-        pendingChanges.removeItem(renderItem);
+
+    QList<EntityItemID> keys = _entityToSceneItems.uniqueKeys();
+    for (auto key : keys) {
+        QList<render::ItemID> values = _entityToSceneItems.values(key);
+        for (auto renderItem : values) {
+            pendingChanges.removeItem(renderItem);
+        }
     }
     _entityToSceneItems.clear();
     _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
@@ -1073,8 +1075,11 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
     render::Scene::PendingChanges pendingChanges;
     if (_entityToSceneItems.contains(entityID)) {
-        render::ItemID renderItem = _entityToSceneItems[entityID];
-        pendingChanges.removeItem(renderItem);
+        
+        QList<render::ItemID> values = _entityToSceneItems.values(entityID);
+        for (render::ItemID renderItem : values) {
+            pendingChanges.removeItem(renderItem);
+        }
         _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
     }
 }
@@ -1087,7 +1092,7 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     if (entity->canRenderInScene()) {
         render::Scene::PendingChanges pendingChanges;
         render::ItemID renderItem = _viewState->getMain3DScene()->allocateID();
-        _entityToSceneItems[entityID] = renderItem;
+        _entityToSceneItems.insert(entityID, renderItem);
 
         auto renderData = RenderableEntityItem::Pointer(new RenderableEntityItem(entity));
         auto renderPayload = render::PayloadPointer(new RenderableEntityItem::Payload(renderData));
