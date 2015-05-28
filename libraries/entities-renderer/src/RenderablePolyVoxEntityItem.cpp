@@ -268,8 +268,10 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     RaycastFunctor callback;
     raycastResult = PolyVox::raycastWithDirection(_volData, start, pvDirection, callback);
 
-    if (raycastResult == PolyVox::RaycastResults::Completed) // the ray completed its path -- nothing was hit.
+    if (raycastResult == PolyVox::RaycastResults::Completed) {
+        // the ray completed its path -- nothing was hit.
         return false;
+    }
 
     glm::vec4 intersectedWorldPosition = voxelToWorldMatrix() * callback._result;
 
