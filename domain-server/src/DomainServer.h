@@ -101,6 +101,9 @@ private:
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
                               const NodeSet& nodeInterestList);
 
+    QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
+    void broadcastNewNode(const SharedNodePointer& node);
+
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
     void createStaticAssignmentsForType(Assignment::Type type, const QVariantList& configList);

@@ -91,14 +91,15 @@ const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
 typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-<< PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
-<< PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
-<< PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-<< PacketTypeNodeJsonStats << PacketTypeEntityQuery
-<< PacketTypeOctreeDataNack << PacketTypeEntityEditNack
-<< PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-<< PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
-<< PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
+    << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
+    << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
+    << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
+    << PacketTypeNodeJsonStats << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
+    << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+    << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse
+    << PacketTypeDomainServerAddedNode;
 
 const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
 << PacketTypeAvatarData;

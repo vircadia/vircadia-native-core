@@ -654,6 +654,19 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeUUID, nodeType,
                                                                      publicSockAddr, localSockAddr,
                                                                      canAdjustLocks, canRez);
+
+        // So that we can send messages to this node at will - we need to activate the correct socket on this node now
+        if (senderSockAddr == publicSockAddr) {
+            newNode->activatePublicSocket();
+        } else if (senderSockAddr == localSockAddr) {
+            newNode->activateLocalSocket();
+        } else {
+            // set the Node's symmetric socket to the sender socket
+            newNode->setSymmetricSocket(senderSockAddr);
+            // activate that symmetric socket
+            newNode->activateSymmetricSocket();
+        }
+
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
@@ -683,6 +696,9 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
         // reply back to the user with a PacketTypeDomainList
         sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
+
+        // send out this node to our other connected nodes
+        broadcastNewNode(newNode);
     }
 }
 
@@ -699,9 +715,9 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 
-bool DomainServer::verifyUsersKey (const QString& username,
-                                   const QByteArray& usernameSignature,
-                                   QString& reasonReturn) {
+bool DomainServer::verifyUsersKey(const QString& username,
+                                  const QByteArray& usernameSignature,
+                                  QString& reasonReturn) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
 
     QByteArray publicKeyArray = _userPublicKeys.value(username);
@@ -954,21 +970,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     nodeDataStream << *otherNode.data();
 
                     // pack the secret that these two nodes will use to communicate with each other
-                    QUuid secretUUID = nodeData->getSessionSecretHash().value(otherNode->getUUID());
-                    if (secretUUID.isNull()) {
-                        // generate a new secret UUID these two nodes can use
-                        secretUUID = QUuid::createUuid();
-
-                        // set that on the current Node's sessionSecretHash
-                        nodeData->getSessionSecretHash().insert(otherNode->getUUID(), secretUUID);
-
-                        // set it on the other Node's sessionSecretHash
-                        reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())
-                        ->getSessionSecretHash().insert(node->getUUID(), secretUUID);
-
-                    }
-
-                    nodeDataStream << secretUUID;
+                    nodeDataStream << connectionSecretForNodes(node, otherNode);
 
                     if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
                         // we need to break here and start a new packet
@@ -990,6 +992,55 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     // always write the last broadcastPacket
     limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
+}
+
+QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
+    DomainServerNodeData* nodeAData = dynamic_cast<DomainServerNodeData*>(nodeA->getLinkedData());
+    DomainServerNodeData* nodeBData = dynamic_cast<DomainServerNodeData*>(nodeB->getLinkedData());
+
+    if (nodeAData && nodeBData) {
+        QUuid& secretUUID = nodeAData->getSessionSecretHash()[nodeB->getUUID()];
+
+        if (secretUUID.isNull()) {
+            // generate a new secret UUID these two nodes can use
+            secretUUID = QUuid::createUuid();
+
+            // set it on the other Node's sessionSecretHash
+            reinterpret_cast<DomainServerNodeData*>(nodeBData)->getSessionSecretHash().insert(nodeA->getUUID(), secretUUID);
+        }
+
+        return secretUUID;
+    }
+
+    return QUuid();
+}
+
+void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // setup the add packet for this new node
+    QByteArray addNodePacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerAddedNode);
+    QDataStream addNodeStream(&addNodePacket, QIODevice::Append);
+
+    addNodeStream << *addedNode.data();
+
+    int connectionSecretIndex = addNodePacket.size();
+
+    limitedNodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+            return (node->getLinkedData() && node->getActiveSocket() && node != addedNode);
+        },
+        [&](const SharedNodePointer& node) {
+            QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
+
+            // replace the bytes at the end of the packet for the connection secret between these nodes
+            addNodePacket.replace(connectionSecretIndex, NUM_BYTES_RFC4122_UUID, rfcConnectionSecret);
+
+            // send off this packet to the node
+            limitedNodeList->writeUnverifiedDatagram(addNodePacket, node);
+        }
+    );
 }
 
 void DomainServer::readAvailableDatagrams() {
