@@ -57,6 +57,8 @@ public slots:
     void restart();
 
 private slots:
+    void aboutToQuit();
+    
     void loginFailed();
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();

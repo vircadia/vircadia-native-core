@@ -646,10 +646,13 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
 }
 
 void NodeList::handleNodePingTimeout() {
-    SharedNodePointer senderNode = nodeWithUUID(qobject_cast<Node*>(sender())->getUUID());
+    Node* senderNode = qobject_cast<Node*>(sender());
+    if (senderNode) {
+        SharedNodePointer sharedNode = nodeWithUUID(senderNode->getUUID());
 
-    if (senderNode && !senderNode->getActiveSocket()) {
-        pingPunchForInactiveNode(senderNode);
+        if (sharedNode && !sharedNode->getActiveSocket()) {
+            pingPunchForInactiveNode(sharedNode);
+        }
     }
 }
 

@@ -68,6 +68,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     LogUtils::init();
     Setting::init();
 
+    connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
+
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
@@ -104,6 +106,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         // preload some user public keys so they can connect on first request
         preloadAllowedUserPublicKeys();
     }
+}
+
+void DomainServer::aboutToQuit() {
+    // clear the log handler so that Qt doesn't call the destructor on LogHandler
+    qInstallMessageHandler(0);
 }
 
 void DomainServer::restart() {
@@ -558,7 +565,6 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::EntityServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
-
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
 
@@ -1341,10 +1347,14 @@ void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
 }
 
 void DomainServer::handlePeerPingTimeout() {
-    SharedNetworkPeer senderPeer = _icePeers.value(qobject_cast<NetworkPeer*>(sender())->getUUID());
+    NetworkPeer* senderPeer = qobject_cast<NetworkPeer*>(sender());
 
-    if (senderPeer && !senderPeer->getActiveSocket()) {
-        pingPunchForConnectingPeer(senderPeer);
+    if (senderPeer) {
+        SharedNetworkPeer sharedPeer = _icePeers.value(senderPeer->getUUID());
+
+        if (sharedPeer && !sharedPeer->getActiveSocket()) {
+            pingPunchForConnectingPeer(sharedPeer);
+        }
     }
 }
 
