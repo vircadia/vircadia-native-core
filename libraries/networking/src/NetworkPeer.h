@@ -57,7 +57,7 @@ public:
 
     int getConnectionAttempts() const  { return _connectionAttempts; }
     void incrementConnectionAttempts() { ++_connectionAttempts; }
-    void resetConnectionAttemps() { _connectionAttempts = 0; }
+    void resetConnectionAttempts() { _connectionAttempts = 0; }
 
     void recordBytesSent(int count);
     void recordBytesReceived(int count);

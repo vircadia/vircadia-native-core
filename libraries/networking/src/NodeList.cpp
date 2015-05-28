@@ -475,7 +475,7 @@ void NodeList::handleICEConnectionToDomainServer() {
     if (_domainHandler.getICEPeer().isNull()
         || _domainHandler.getICEPeer().getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
 
-        _domainHandler.getICEPeer().resetConnectionAttemps();
+        _domainHandler.getICEPeer().resetConnectionAttempts();
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendICEServerHearbeat);
 
@@ -588,6 +588,13 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
     }
 
+    // every second we're trying to ping this node and we're not getting anywhere - debug that out
+    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 1000 / (UDP_PUNCH_PING_INTERVAL_MS);
+
+    if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
+        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
+    }
+
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
     writeDatagram(localPingPacket, node, node->getLocalSocket());
@@ -615,10 +622,10 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
 }
 
 void NodeList::handleNodePingTimeout() {
-    Node* senderNode = qobject_cast<Node*>(sender());
+    SharedNodePointer senderNode = nodeWithUUID(qobject_cast<Node*>(sender())->getUUID());
 
     if (senderNode) {
-        pingPunchForInactiveNode(nodeWithUUID(senderNode->getUUID()));
+        pingPunchForInactiveNode(senderNode);
     }
 }
 

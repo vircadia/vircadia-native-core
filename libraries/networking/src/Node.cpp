@@ -119,6 +119,9 @@ void Node::setActiveSocket(HifiSockAddr* discoveredSocket) {
 
     // we have an active socket, stop our ping timer
     stopPingTimer();
+
+    // we're now considered connected to this peer - reset the number of connection attemps
+    resetConnectionAttempts();
 }
 
 void Node::activateLocalSocket() {
