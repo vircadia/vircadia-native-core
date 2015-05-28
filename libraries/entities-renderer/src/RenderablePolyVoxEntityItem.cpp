@@ -75,11 +75,11 @@ void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
 
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToWorldMatrix() const {
-    glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
+    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
     glm::mat4 scaled = glm::scale(glm::mat4(), scale);
     glm::mat4 centerToCorner = glm::translate(scaled, _voxelVolumeSize / -2.0f);
-    glm::mat4 rotation = glm::mat4_cast(_rotation);
-    glm::mat4 translation = glm::translate(getCenter());
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 translation = glm::translate(getCenterPosition());
     return translation * rotation * centerToCorner;
 }
 
@@ -112,7 +112,7 @@ void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
 void RenderablePolyVoxEntityItem::setSphere(glm::vec3 centerWorldCoords, float radiusWorldCoords, uint8_t toValue) {
     // glm::vec3 centerVoxelCoords = worldToVoxelCoordinates(centerWorldCoords);
     glm::vec4 centerVoxelCoords = worldToVoxelMatrix() * glm::vec4(centerWorldCoords, 1.0f);
-    glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
+    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
     float scaleY = scale[0];
     float radiusVoxelCoords = radiusWorldCoords / scaleY;
     setSphereInVolume(glm::vec3(centerVoxelCoords), radiusVoxelCoords, toValue);
@@ -191,7 +191,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     glm::vec3 scale = dimensions / _voxelVolumeSize;
-    glm::vec3 center = getCenter();
+    glm::vec3 center = getCenterPosition();
     glm::quat rotation = getRotation();
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
@@ -199,7 +199,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glm::vec3 positionToCenter = center - position;
         // make the rendered voxel volume be centered on the entity's position
-        positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f);
+        positionToCenter -= getDimensions() * glm::vec3(0.5f,0.5f,0.5f);
         glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
         glScalef(scale.x, scale.y, scale.z);
 
@@ -258,9 +258,9 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     pvDirection.normalise();
 
     // the PolyVox ray intersection code requires a near and far point.
-    glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
-    float distanceToEntity = glm::distance(origin, _position);
-    float largestDimension = glm::max(_dimensions[0], _dimensions[1], _dimensions[2]);
+    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+    float distanceToEntity = glm::distance(origin, getPosition());
+    float largestDimension = glm::max(getDimensions()[0], getDimensions()[1], getDimensions()[2]);
     // set ray cast length to long enough to cover all of the voxel space
     pvDirection *= (distanceToEntity + largestDimension) / glm::min(scale[0], scale[1], scale[2]);
 
