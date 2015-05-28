@@ -1964,7 +1964,9 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() {
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+#endif
 #ifdef HAVE_FACESHIFT
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->setIsMuted(isMuted);

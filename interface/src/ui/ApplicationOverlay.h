@@ -102,7 +102,7 @@ private:
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
     
     void renderControllerPointers();
-    void renderPointersOculus(const glm::vec3& eyePos);
+    void renderPointersOculus();
     
     void renderAudioMeter();
     void renderCameraToggle();

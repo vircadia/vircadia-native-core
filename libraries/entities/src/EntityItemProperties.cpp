@@ -26,6 +26,7 @@
 #include "ParticleEffectEntityItem.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
+#include "PolyVoxEntityItem.h"
 
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
@@ -87,9 +88,13 @@ CONSTRUCT_PROPERTY(keyLightColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR),
 CONSTRUCT_PROPERTY(keyLightIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY),
 CONSTRUCT_PROPERTY(keyLightAmbientIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY),
 CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
+CONSTRUCT_PROPERTY(voxelVolumeSize, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
+CONSTRUCT_PROPERTY(voxelData, PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
+CONSTRUCT_PROPERTY(voxelSurfaceStyle, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
 CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
 CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
+
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -336,6 +341,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
+    CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
+    CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
+    CHECK_PROPERTY_CHANGE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
     
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -418,6 +426,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(sourceUrl);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelVolumeSize);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(voxelSurfaceStyle);
     
     // Sitting properties support
     if (!skipDefaults) {
@@ -523,7 +535,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
+
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
@@ -619,23 +635,23 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         quint64 lastEdited = properties.getLastEdited();
         bool successLastEditedFits = packetData->appendValue(lastEdited);
         
-        bool successIDFits = packetData->appendValue(encodedID);
+        bool successIDFits = packetData->appendRawData(encodedID);
         if (successIDFits) {
-            successIDFits = packetData->appendValue(encodedToken);
+            successIDFits = packetData->appendRawData(encodedToken);
         }
-        bool successTypeFits = packetData->appendValue(encodedType);
+        bool successTypeFits = packetData->appendRawData(encodedType);
         
         // NOTE: We intentionally do not send "created" times in edit messages. This is because:
         //   1) if the edit is to an existing entity, the created time can not be changed
         //   2) if the edit is to a new entity, the created time is the last edited time
         
         // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
-        bool successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
+        bool successLastUpdatedFits = packetData->appendRawData(encodedUpdateDelta);
         
         int propertyFlagsOffset = packetData->getUncompressedByteOffset();
         QByteArray encodedPropertyFlags = propertyFlags;
         int oldPropertyFlagsLength = encodedPropertyFlags.length();
-        bool successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+        bool successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
         int propertyCount = 0;
         
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
@@ -739,6 +755,12 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+            }
+
+            if (properties.getType() == EntityTypes::PolyVox) {
+                APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
+                APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
+                APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
@@ -974,11 +996,17 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
+
+    if (properties.getType() == EntityTypes::PolyVox) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
+    }
     
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
-    
+
     return valid;
 }
 
@@ -1079,6 +1107,10 @@ void EntityItemProperties::markAllChanged() {
     _skybox.markAllChanged();
     
     _sourceUrlChanged = true;
+
+    _voxelVolumeSizeChanged = true;
+    _voxelDataChanged = true;
+    _voxelSurfaceStyleChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
