@@ -499,16 +499,17 @@ void NodeList::pingPunchForDomainServer() {
         // check if we've hit the number of pings we'll send to the DS before we consider it a fail
         const int NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
 
-        if (_domainHandler.getICEPeer().getConnectionAttempts() > 0
-            && _domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
-            // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
+        if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
+            qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
+                << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+        } else {
+            if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
+                // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
 
-            _domainHandler.getICEPeer().softReset();
-            handleICEConnectionToDomainServer();
+                _domainHandler.getICEPeer().softReset();
+                handleICEConnectionToDomainServer();
+            }
         }
-
-        qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
-            << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 

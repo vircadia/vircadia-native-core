@@ -1331,10 +1331,6 @@ void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
     } else {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-        // send ping packets to this peer's interfaces
-        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << peer->getUUID();
-
         // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
         nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
@@ -1377,6 +1373,10 @@ void DomainServer::processICEPeerInformation(const QByteArray& packet) {
 
         // immediately ping the new peer, and start a timer to continue pinging it until we connect to it
         newPeer->startPingTimer();
+
+        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << newPeer->getUUID();
+
         pingPunchForConnectingPeer(newPeer);
     } else {
         delete receivedPeer;
