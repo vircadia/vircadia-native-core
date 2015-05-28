@@ -387,7 +387,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
             bool forceNewLine = false;
             
             // Handle wrapping
-            if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > bounds.x)) {
+            if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > x + bounds.x)) {
                 // We are out of the x bound, force new line
                 forceNewLine = true;
             }
@@ -403,7 +403,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
                     break;
                 }
             }
-            if ((bounds.y != -1) && (advance.y - _fontSize < -bounds.y)) {
+            if ((bounds.y != -1) && (advance.y - _fontSize < -y - bounds.y)) {
                 // We are out of the y bound, stop drawing
                 break;
             }
