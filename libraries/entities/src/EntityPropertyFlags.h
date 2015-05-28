@@ -110,8 +110,9 @@ enum EntityPropertyList {
     PROP_RESTITUTION,
     PROP_FRICTION,
     
-    PROP_LINE_WIDTH, //for lines
-
+    //for lines
+    PROP_LINE_WIDTH,
+    PROP_LINE_POINTS,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,

@@ -231,6 +231,7 @@ public:
     
     static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result) {memcpy(&result, dataBytes, sizeof(result)); return sizeof(result);}
     static int uppackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
@@ -243,6 +244,7 @@ public:
     static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
