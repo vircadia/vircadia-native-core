@@ -3403,7 +3403,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
-    render::Scene::PendingChanges pendingChanges;
+    render::PendingChanges pendingChanges;
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {

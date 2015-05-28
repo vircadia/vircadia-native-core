@@ -14,6 +14,7 @@
 
 #include <LineEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 
 class RenderableLineEntityItem : public LineEntityItem {
 public:
@@ -23,6 +24,8 @@ public:
         LineEntityItem(entityItemID, properties) { }
 
     virtual void render(RenderArgs* args);
+
+    SIMPLE_RENDERABLE()
 };
 
 

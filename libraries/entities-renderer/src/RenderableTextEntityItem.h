@@ -27,6 +27,7 @@ public:
     ~RenderableTextEntityItem() { delete _textRenderer; }
 
     virtual void render(RenderArgs* args);
+    virtual bool canRenderInScene() { return false; } // we don't yet play well with others
     
 private:
     TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
