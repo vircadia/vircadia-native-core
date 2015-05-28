@@ -13,6 +13,7 @@
 #define hifi_AvatarData_h
 
 #include <string>
+#include <memory>
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -56,6 +57,10 @@ typedef unsigned long long quint64;
 #include "Player.h"
 #include "Recorder.h"
 #include "Referential.h"
+
+typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
+typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
+typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;

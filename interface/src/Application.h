@@ -352,6 +352,8 @@ public:
     render::ScenePointer getMain3DScene() { return _main3DScene; }
     render::EnginePointer getRenderEngine() { return _renderEngine; }
 
+    render::ScenePointer getMain3DScene() const { return _main3DScene; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.

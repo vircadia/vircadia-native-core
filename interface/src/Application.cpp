@@ -2287,8 +2287,8 @@ void Application::updateMyAvatarLookAtPosition() {
         }
  
     } else {
-        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
-        if (lookingAt && _myAvatar != lookingAt.data()) {
+        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
+        if (lookingAt && _myAvatar != lookingAt.get()) {
             
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
@@ -2296,17 +2296,17 @@ void Application::updateMyAvatarLookAtPosition() {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 } else {
                     // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
                 if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 } else {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 }
             }
         } else {
@@ -3028,11 +3028,6 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
-            PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs);
-        }
-
-        {
             PerformanceTimer perfTimer("entities");
             _entities.render(renderArgs);
         }
@@ -3410,15 +3405,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
-    
-    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
-    
-    {
-        PerformanceTimer perfTimer("avatars");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
-    }
 
     render::Scene::PendingChanges pendingChanges;
 
@@ -3455,13 +3441,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
-    }
-
-    {
-        PerformanceTimer perfTimer("avatarsPostLighting");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, true, selfAvatarOnly);
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     }
     
     //Render the sixense lasers
