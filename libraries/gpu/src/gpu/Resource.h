@@ -250,11 +250,11 @@ public:
         bool operator==(const Iterator<T>& iterator) const { return (_ptr == iterator.getConstPtr()); }
         bool operator!=(const Iterator<T>& iterator) const { return (_ptr != iterator.getConstPtr()); }
 
-		void movePtr(const Index& movement) {
-			auto byteptr = ((Byte*)_ptr);
-			byteptr += _stride * movement;
-			_ptr = (T*)byteptr;
-		}
+        void movePtr(const Index& movement) {
+            auto byteptr = ((Byte*)_ptr);
+            byteptr += _stride * movement;
+            _ptr = (T*)byteptr;
+        }
 
         Iterator<T>& operator+=(const Index& movement) {
             movePtr(movement);
@@ -313,9 +313,9 @@ public:
     };
 
     template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
-	template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
-	template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(0), _stride); }
-	template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
+    template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
+    template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(0), _stride); }
+    template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
 
     // the number of elements of the specified type fitting in the view size
     template <typename T> Index getNum() const {
