@@ -16,7 +16,7 @@
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
 

@@ -22,7 +22,7 @@ static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 
-EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity) :
+EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
     _entity(entity),
     _sentActive(false),
@@ -132,7 +132,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->simulateKinematicMotion(dt);
-        _entity->setLastSimulated(usecTimestampNow());
 
         // bypass const-ness so we can remember the step
         const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
@@ -401,13 +400,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
 
-    // we only update lastEdited when we're sending new physics data 
-    quint64 lastSimulated = _entity->getLastSimulated();
-    _entity->setLastEdited(lastSimulated);
-    properties.setLastEdited(lastSimulated);
+    // set the LastEdited of the properties but NOT the entity itself
+    quint64 now = usecTimestampNow();
+    properties.setLastEdited(now);
 
     #ifdef WANT_DEBUG
-        quint64 now = usecTimestampNow();
+        quint64 lastSimulated = _entity->getLastSimulated();
         qCDebug(physics) << "EntityMotionState::sendUpdate()";
         qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID()
                          << "---------------------------------------------";

@@ -370,7 +370,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    
+  
+  
+    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->registerScene(_main3DScene);
+      
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -1986,7 +1990,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -2027,7 +2031,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
@@ -2171,9 +2175,6 @@ void Application::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
-
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
@@ -2283,8 +2284,8 @@ void Application::updateMyAvatarLookAtPosition() {
         }
  
     } else {
-        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
-        if (lookingAt && _myAvatar != lookingAt.data()) {
+        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
+        if (lookingAt && _myAvatar != lookingAt.get()) {
             
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
@@ -2292,17 +2293,17 @@ void Application::updateMyAvatarLookAtPosition() {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 } else {
                     // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
                 if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 } else {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 }
             }
         } else {
@@ -3024,11 +3025,6 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
-            PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs);
-        }
-
-        {
             PerformanceTimer perfTimer("entities");
             _entities.render(renderArgs);
         }
@@ -3169,6 +3165,36 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
 #endif
     return &_displayViewFrustum;
 }
+
+// WorldBox Render Data & rendering functions
+
+class WorldBoxRenderData {
+public:
+    typedef render::Payload<WorldBoxRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID WorldBoxRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
+        if (args->_renderMode != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            PerformanceTimer perfTimer("worldBox");
+            renderWorldBox();
+        }
+
+        // never the less
+        float originSphereRadius = 0.05f;
+        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
+    }
+}
+
+
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
     activeRenderingThread = QThread::currentThread();
@@ -3332,11 +3358,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
-        // draw a red sphere
-        float originSphereRadius = 0.05f;
-        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        
-        
+
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
@@ -3380,15 +3402,31 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
-    
-    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
-    
-    {
-        PerformanceTimer perfTimer("avatars");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, false, selfAvatarOnly);   
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+
+    render::Scene::PendingChanges pendingChanges;
+
+    // Make sure the WorldBox is in the scene
+    if (WorldBoxRenderData::_item == 0) {
+        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
+        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
+
+        WorldBoxRenderData::_item = _main3DScene->allocateID();
+
+        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     }
+
+
+    _main3DScene->enqueuePendingChanges(pendingChanges);
+
+    _main3DScene->processPendingChangesQueue();
+
+    // FOr now every frame pass the renderCOntext
+    render::RenderContext renderContext;
+    renderContext.args = renderArgs;
+    _renderEngine->setRenderContext(renderContext);
+
+    // Before the deferred pass, let's try to use the render engine
+    _renderEngine->run();
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
@@ -3401,13 +3439,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PerformanceTimer perfTimer("lighting");
         DependencyManager::get<DeferredLightingEffect>()->render();
     }
-
-    {
-        PerformanceTimer perfTimer("avatarsPostLighting");
-        renderArgs->_renderMode = mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE;
-        DependencyManager::get<AvatarManager>()->renderAvatars(renderArgs, true, selfAvatarOnly);
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
-    }
     
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
@@ -3416,12 +3447,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     if (!selfAvatarOnly) {
         _nodeBoundsDisplay.draw();
-    
-        //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            PerformanceTimer perfTimer("worldBox");
-            renderWorldBox();
-        }
 
         // render octree fades if they exist
         if (_octreeFades.size() > 0) {

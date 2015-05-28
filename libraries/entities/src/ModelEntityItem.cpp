@@ -28,8 +28,8 @@ const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
 const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 
 
-EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new ModelEntityItem(entityID, properties);
+EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new ModelEntityItem(entityID, properties));
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

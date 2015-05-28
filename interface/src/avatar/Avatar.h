@@ -20,11 +20,19 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 
+#include <render/Scene.h>
+
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+}
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -66,6 +74,10 @@ public:
     Avatar();
     ~Avatar();
 
+    typedef render::Payload<AvatarData> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+    typedef Payload::DataPointer Pointer;
+
     void init();
     void simulate(float deltaTime);
 
@@ -86,6 +98,8 @@ public:
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
+
+    AABox getBounds() const;
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
@@ -220,9 +234,10 @@ protected:
     virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
+
+    render::ItemID _renderItemID;
     
 private:
-
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;

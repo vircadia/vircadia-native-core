@@ -12,16 +12,17 @@
 #ifndef hifi_render_Scene_h
 #define hifi_render_Scene_h
 
-#include <bitset>
-#include <memory>
-#include <vector>
-#include <set>
-#include <map>
-#include <RenderArgs.h>
-#include <AABox.h>
 #include <atomic>
+#include <bitset>
+#include <map>
+#include <memory>
 #include <mutex>
 #include <queue>
+#include <set>
+#include <vector>
+
+#include <AABox.h>
+#include <RenderArgs.h>
 
 namespace render {
 
@@ -33,7 +34,7 @@ public:
     enum FlagBit {
         TYPE_SHAPE = 0, // Item is a Shape
         TYPE_LIGHT,     // Item is a Light
-        TRANSPARENT,    // Transparent and not opaque
+        TRANSLUCENT,    // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,     // Transformed in view space, and not in world space
         DYNAMIC,        // Dynamic and bound will change unlike static item
         DEFORMED,       // Deformed within bound, not solid 
@@ -42,7 +43,6 @@ public:
         PICKABLE,       // Item can be picked/selected
 
         NUM_FLAGS,      // Not a valid flag
-        ALL_FLAGS_MASK = 0xFFFF,
     };
     typedef std::bitset<NUM_FLAGS> Flags; 
     
@@ -57,11 +57,11 @@ public:
     public:
         Builder() {}
 
-        const ItemKey build() const { return ItemKey(_flags); }
+        ItemKey build() const { return ItemKey(_flags); }
 
         Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
         Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
-        Builder& withTransparent() { _flags.set(TRANSPARENT); return (*this); }
+        Builder& withTransparent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
@@ -70,12 +70,12 @@ public:
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static const ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
-        static const ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
+        static ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
     };
 
-    bool isOpaque() const { return !_flags[TRANSPARENT]; }
-    bool isTransparent() const { return _flags[TRANSPARENT]; }
+    bool isOpaque() const { return !_flags[TRANSLUCENT]; }
+    bool isTransparent() const { return _flags[TRANSLUCENT]; }
 
     bool isWorldSpace() const { return !_flags[VIEW_SPACE]; }
     bool isViewSpace() const { return _flags[VIEW_SPACE]; }
@@ -94,6 +94,13 @@ public:
     bool isPickable() const { return _flags[PICKABLE]; }
 };
 
+inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
+    debug << "[ItemKey: isOpaque:" << itemKey.isOpaque()
+                 << ", isStatic:" << itemKey.isStatic() 
+                 << ", isWorldSpace:" << itemKey.isWorldSpace() 
+                 << "]";
+    return debug;
+}
  
 class ItemFilter {
 public:
@@ -109,13 +116,13 @@ public:
     public:
         Builder() {}
 
-        const ItemFilter build() const { return ItemFilter(_value, _mask); }
+        ItemFilter build() const { return ItemFilter(_value, _mask); }
 
         Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
         Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
         
-        Builder& withOpaque()           { _value.reset(ItemKey::TRANSPARENT); _mask.set(ItemKey::TRANSPARENT); return (*this); }
-        Builder& withTransparent()      { _value.set(ItemKey::TRANSPARENT); _mask.set(ItemKey::TRANSPARENT); return (*this); }
+        Builder& withOpaque()           { _value.reset(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
+        Builder& withTransparent()      { _value.set(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
         
         Builder& withWorldSpace()       { _value.reset(ItemKey::VIEW_SPACE); _mask.set(ItemKey::VIEW_SPACE); return (*this); }
         Builder& withViewSpace()        { _value.set(ItemKey::VIEW_SPACE);  _mask.set(ItemKey::VIEW_SPACE); return (*this); }
@@ -135,8 +142,8 @@ public:
         Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static const ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().build(); }
-        static const ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().build(); }
+        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
     };
 
     // Item Filter operator testing if a key pass the filter
@@ -145,7 +152,7 @@ public:
     class Less {
     public:
         bool operator() (const ItemFilter& left, const ItemFilter& right) const {
-            if (left._value.to_ulong() > right._value.to_ulong()) {
+            if (left._value.to_ulong() >= right._value.to_ulong()) {
                 return left._mask.to_ulong() < right._mask.to_ulong();
             } else {
                 return true;
@@ -153,6 +160,12 @@ public:
         }
     };
 };
+
+inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
+    debug << "[ItemFilter: opaqueShape:" << me.test(ItemKey::Builder::opaqueShape())
+                 << "]";
+    return debug;
+}
 
 class Item {
 public:
@@ -183,12 +196,9 @@ public:
     typedef std::shared_ptr<PayloadInterface> PayloadPointer;
     
     Item() {}
-    Item(PayloadPointer& payload):
-        _payload(payload) {}
-
     ~Item() {}
 
-    void resetPayload(PayloadPointer& payload);
+    void resetPayload(const PayloadPointer& payload);
     void kill();
     void move();
 
@@ -206,6 +216,12 @@ protected:
     friend class Scene;
 };
 
+inline QDebug operator<<(QDebug debug, const Item& item) {
+    debug << "[Item: _key:" << item.getKey() << ", bounds:" << item.getBound() << "]";
+    return debug;
+}
+
+
 // THe Payload class is the real Payload to be used
 // THis allow anything to be turned into a Payload as long as the required interface functions are available
 // When creating a new kind of payload from a new "stuff" class then you need to create specialized version for "stuff"
@@ -222,7 +238,7 @@ public:
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
     
-    Payload(DataPointer& data) : _data(data) {}
+    Payload(const DataPointer& data) : _data(data) {}
 protected:
     DataPointer _data;
 };
@@ -327,9 +343,9 @@ public:
     class PendingChanges {
     public:
         PendingChanges() {}
-        ~PendingChanges();
+        ~PendingChanges() {}
 
-        void resetItem(ItemID id, PayloadPointer& payload);
+        void resetItem(ItemID id, const PayloadPointer& payload);
         void removeItem(ItemID id);
         void moveItem(ItemID id);
 
@@ -367,9 +383,12 @@ public:
 
     unsigned int getNumItems() const { return _items.size(); }
 
+
+    void processPendingChangesQueue();
+
 protected:
     // Thread safe elements that can be accessed from anywhere
-    std::atomic<unsigned int> _IDAllocator;
+    std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
     std::mutex _changeQueueMutex;
     PendingChangesQueue _changeQueue;
 
@@ -379,7 +398,6 @@ protected:
     Item::Vector _items;
     ItemBucketMap _masterBucketMap;
 
-    void processPendingChangesQueue();
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void moveItems(const ItemIDs& ids);

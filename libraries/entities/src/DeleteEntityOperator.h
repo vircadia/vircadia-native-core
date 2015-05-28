@@ -14,7 +14,7 @@
 
 class EntityToDeleteDetails {
 public:
-    EntityItem* entity;
+    EntityItemPointer entity;
     AACube cube;
     EntityTreeElement* containingElement;
 };

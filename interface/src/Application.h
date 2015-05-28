@@ -77,6 +77,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "render/Engine.h"
 
 class QGLWidget;
 class QKeyEvent;
@@ -347,6 +348,11 @@ public:
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
+    
+    render::ScenePointer getMain3DScene() { return _main3DScene; }
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
+
+    render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
 signals:
 
@@ -670,6 +676,9 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 
     quint64 _lastFaceTrackerUpdate;
+
+    render::ScenePointer _main3DScene{ new render::Scene() };
+    render::EnginePointer _renderEngine{ new render::Engine() };
 };
 
 #endif // hifi_Application_h

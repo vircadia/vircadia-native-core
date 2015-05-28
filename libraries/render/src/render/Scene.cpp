@@ -49,7 +49,26 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
     (*this)[ItemFilter::Builder::transparentShape()];
 }
 
-void Scene::PendingChanges::resetItem(ItemID id, PayloadPointer& payload) {
+
+void Item::resetPayload(const PayloadPointer& payload) {
+    if (!payload) {
+        kill();
+    } else {
+        _payload = payload;
+        _key = _payload->getKey();
+    }
+}
+
+void Item::kill() {
+    _payload.reset();
+    _key._flags.reset();
+}
+
+void Item::move() {
+    
+}
+
+void Scene::PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
 }
@@ -70,9 +89,8 @@ void Scene::PendingChanges::merge(PendingChanges& changes) {
     _movedItems.insert(_movedItems.end(), changes._movedItems.begin(), changes._movedItems.end());
 }
 
-Scene::Scene() :
-    _IDAllocator(0)
-{
+Scene::Scene() {
+    _items.push_back(Item()); // add the itemID #0 to nothing
     _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
 }
 
@@ -123,7 +141,7 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
     auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
     for (;resetID != ids.end(); resetID++, resetPayload++) {
-        auto item = _items[(*resetID)];
+        auto& item = _items[(*resetID)];
         auto oldKey = item.getKey();
         item.resetPayload(*resetPayload);
 

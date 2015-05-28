@@ -39,7 +39,7 @@ public:
     float distance;
     BoxFace face;
     glm::vec3 intersection;
-    EntityItem* entity;
+    EntityItemPointer entity;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
@@ -121,6 +121,7 @@ public slots:
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);

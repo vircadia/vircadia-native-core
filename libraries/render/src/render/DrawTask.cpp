@@ -11,29 +11,43 @@
 
 #include "DrawTask.h"
 
+#include <PerfStat.h>
+
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
+
+
 using namespace render;
 
 
 DrawSceneTask::~DrawSceneTask() {
 }
 
-void DrawSceneTask::run(const SceneContextPointer& sceneContext) {
+void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     // sanity checks
     assert(sceneContext);
     if (!sceneContext->_scene) {
         return;
     }
-    auto scene = sceneContext->_scene;
+    auto& scene = sceneContext->_scene;
 
-    auto itemBucketMap = scene->getMasterBucket();
+    auto& itemBucketMap = scene->getMasterBucket();
     
-    RenderArgs args;
+    RenderArgs* args = renderContext->args;
+    gpu::Batch theBatch;
+
+    args->_batch = &theBatch;
+
     // render opaques
-    auto& opaqueShapeItems = itemBucketMap[ItemFilter::Builder::opaqueShape()];
-    
+    auto filter = ItemFilter::Builder::opaqueShape();
+    auto& opaqueShapeItems = itemBucketMap.at(filter);
+
     for (auto id : opaqueShapeItems) {
         auto item = scene->getItem(id);
-            item.render(&args);
+        item.render(args);
     }
+
+    args->_context->enqueueBatch((*args->_batch));
+    args->_batch = nullptr;
 };
 

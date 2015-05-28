@@ -30,9 +30,9 @@ public:
 
 class EntityItemFBXService {
 public:
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) = 0;
-    virtual const Model* getModelForEntityItem(const EntityItem* entityItem) = 0;    
-    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem) = 0;
+    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
+    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem) = 0;    
+    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) = 0;
 };
 
 
@@ -83,24 +83,24 @@ public:
     virtual void update();
 
     // The newer API...
-    void postAddEntity(EntityItem* entityItem);
+    void postAddEntity(EntityItemPointer entityItem);
 
-    EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
-    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
+    bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
-    const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
-    EntityItem* findEntityByID(const QUuid& id);
-    EntityItem* findEntityByEntityItemID(const EntityItemID& entityID);
+    EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
+    EntityItemPointer findEntityByID(const QUuid& id);
+    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -108,21 +108,21 @@ public:
     /// finds all entities that touch a sphere
     /// \param center the center of the sphere in world-frame (meters)
     /// \param radius the radius of the sphere in world-frame (meters)
-    /// \param foundEntities[out] vector of const EntityItem*
+    /// \param foundEntities[out] vector of EntityItemPointer
     /// \remark Side effect: any initial contents in foundEntities will be lost
-    void findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities);
+    void findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities);
     
     /// finds all entities that touch a cube
     /// \param cube the query cube in world-frame (meters)
-    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \param foundEntities[out] vector of non-EntityItemPointer
     /// \remark Side effect: any initial contents in entities will be lost
-    void findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities);
+    void findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities);
     
     /// finds all entities that touch a box
     /// \param box the query box in world-frame (meters)
-    /// \param foundEntities[out] vector of non-const EntityItem*
+    /// \param foundEntities[out] vector of non-EntityItemPointer
     /// \remark Side effect: any initial contents in entities will be lost
-    void findEntities(const AABox& box, QVector<EntityItem*>& foundEntities);
+    void findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -138,10 +138,10 @@ public:
     
     EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) {
+    const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
-    const Model* getModelForEntityItem(const EntityItem* entityItem) {
+    const Model* getModelForEntityItem(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
     
@@ -153,7 +153,7 @@ public:
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void entityChanged(EntityItem* entity);
+    void entityChanged(EntityItemPointer entity);
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
@@ -171,13 +171,12 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID);
-    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void clearingEntities();
 
 private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
-    bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+    bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties, 
                                  EntityTreeElement* containingElement,
                                  const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
     static bool findNearPointOperation(OctreeElement* element, void* extraData);

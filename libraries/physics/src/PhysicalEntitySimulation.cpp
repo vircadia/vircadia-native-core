@@ -39,7 +39,7 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // TODO: add back non-physical kinematic objects and step them forward here
 }
 
-void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
+void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     assert(entity);
     if (entity->shouldBePhysical()) { 
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
@@ -51,7 +51,7 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItem* entity) {
     }
 }
 
-void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
+void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     if (motionState) {
         motionState->clearObjectBackPointer();
@@ -62,7 +62,7 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItem* entity) {
     _pendingAdds.remove(entity);
 }
 
-void PhysicalEntitySimulation::changeEntityInternal(EntityItem* entity) {
+void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
     assert(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
@@ -99,7 +99,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // first disconnect each MotionStates from its Entity
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
-        EntityItem* entity = motionState->getEntity();
+        EntityItemPointer entity = motionState->getEntity();
         if (entity) {
             entity->setPhysicsInfo(nullptr);
         }
@@ -125,7 +125,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToDelete() {
         _pendingChanges.remove(motionState);
         _physicalObjects.remove(motionState);
 
-        EntityItem* entity = motionState->getEntity();
+        EntityItemPointer entity = motionState->getEntity();
         if (entity) {
             _pendingAdds.remove(entity);
             entity->setPhysicsInfo(nullptr);
@@ -141,7 +141,7 @@ VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToAdd() {
     _tempVector.clear();
     SetOfEntities::iterator entityItr = _pendingAdds.begin();
     while (entityItr != _pendingAdds.end()) {
-        EntityItem* entity = *entityItr;
+        EntityItemPointer entity = *entityItr;
         assert(!entity->getPhysicsInfo());
         if (!entity->shouldBePhysical()) {
             // this entity should no longer be on the internal _pendingAdds
@@ -186,7 +186,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(VectorOfMotionStates& motio
         ObjectMotionState* state = &(*stateItr);
         if (state && state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-            EntityItem* entity = entityState->getEntity();
+            EntityItemPointer entity = entityState->getEntity();
             if (entity) {
                 if (entityState->isCandidateForOwnership(sessionID)) {
                     _outgoingChanges.insert(entityState);

@@ -20,8 +20,8 @@
 #include "EntityTreeElement.h"
 
 
-EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new BoxEntityItem(entityID, properties);
+EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new BoxEntityItem(entityID, properties) };
     return result;
 }
 
