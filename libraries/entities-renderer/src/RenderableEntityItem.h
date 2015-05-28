@@ -32,10 +32,9 @@ namespace render {
 }
 
 // Mixin class for implementing basic single item rendering
-class SingleRenderableEntityItem {
+class SimpleRenderableEntityItem {
 public:
-    bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) {
-        render::Scene::PendingChanges pendingChanges;
+    bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         _myItem = scene->allocateID();
         
         auto renderData = RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
@@ -43,19 +42,26 @@ public:
         
         pendingChanges.resetItem(_myItem, renderPayload);
         
-        scene->enqueuePendingChanges(pendingChanges);
         return true;
     }
 
-    void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) {
-        render::Scene::PendingChanges pendingChanges;
+    void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         pendingChanges.removeItem(_myItem);
-        scene->enqueuePendingChanges(pendingChanges);
     }
     
 private:
     render::ItemID _myItem;
 };
+
+
+#define SIMPLE_RENDERABLE() \
+public: \
+    virtual bool canRenderInScene() { return true; } \
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { return _renderHelper.addToScene(self, scene, pendingChanges); } \
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
+private: \
+    SimpleRenderableEntityItem _renderHelper;
+
 
 
 #endif // hifi_RenderableEntityItem_h

@@ -36,6 +36,7 @@ class EntityTreeElementExtraEncodeData;
 
 namespace render {
     class Scene;
+    class PendingChanges;
 }
 
 // these thesholds determine what updates will be ignored (client and server)
@@ -157,8 +158,10 @@ public:
                                                 { return 0; }
 
     virtual bool canRenderInScene() { return false; } // does your entity property render using Render Items and Payloads
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) { return false; } // by default entity items don't add to scene
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) { } // by default entity items don't add to scene
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                            render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                render::PendingChanges& pendingChanges) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
