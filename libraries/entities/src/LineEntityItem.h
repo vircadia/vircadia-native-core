@@ -66,9 +66,11 @@ class LineEntityItem : public EntityItem {
         _points = points;
 //        _points = QVector<glm::vec3>(0);
 //        glm::vec3 p1 = { 0,0,0};
-//        glm::vec3 p2 = {1, 1,0};
+//        glm::vec3 p2 = {1, -1,2};
+//        glm::vec3 p3 = {4, 0, 0};
 //        _points <<p1;
 //        _points<< p2;
+//        _points<<p3;
     }
     
     const QVector<glm::vec3>& getLinePoints() const{

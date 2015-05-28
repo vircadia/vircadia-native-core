@@ -43,7 +43,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
     
-      geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
+       geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);
 };
