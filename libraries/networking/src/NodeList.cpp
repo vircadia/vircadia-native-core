@@ -193,7 +193,9 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeIceServerPeerInformation: {
-            _domainHandler.processICEResponsePacket(packet);
+            if (!_domainHandler.getICEPeer().hasSockets()) {
+                _domainHandler.processICEResponsePacket(packet);
+            }
             break;
         }
         case PacketTypePing: {

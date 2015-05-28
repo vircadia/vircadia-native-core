@@ -49,44 +49,8 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
 
 }
 
-NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) : QObject() {
-    _uuid = otherPeer._uuid;
-    _publicSocket = otherPeer._publicSocket;
-    _localSocket = otherPeer._localSocket;
-    _symmetricSocket = otherPeer._symmetricSocket;
-
-    if (otherPeer._activeSocket) {
-        if (otherPeer._activeSocket == &otherPeer._localSocket) {
-            _activeSocket = &_localSocket;
-        } else if (otherPeer._activeSocket == &otherPeer._publicSocket) {
-            _activeSocket = &_publicSocket;
-        } else if (otherPeer._activeSocket == &otherPeer._symmetricSocket) {
-            _activeSocket = &_symmetricSocket;
-        }
-    }
-
-    _wakeTimestamp = otherPeer._wakeTimestamp;
-    _lastHeardMicrostamp = otherPeer._lastHeardMicrostamp;
-    _connectionAttempts = otherPeer._connectionAttempts;
-}
-
-NetworkPeer& NetworkPeer::operator=(const NetworkPeer& otherPeer) {
-    NetworkPeer temp(otherPeer);
-    swap(temp);
-    return *this;
-}
-
-void NetworkPeer::swap(NetworkPeer& otherPeer) {
-    using std::swap;
-
-    swap(_uuid, otherPeer._uuid);
-    swap(_publicSocket, otherPeer._publicSocket);
-    swap(_localSocket, otherPeer._localSocket);
-    swap(_symmetricSocket, otherPeer._symmetricSocket);
-    swap(_activeSocket, otherPeer._activeSocket);
-    swap(_wakeTimestamp, otherPeer._wakeTimestamp);
-    swap(_lastHeardMicrostamp, otherPeer._lastHeardMicrostamp);
-    swap(_connectionAttempts, otherPeer._connectionAttempts);
+NetworkPeer::~NetworkPeer() {
+    qDebug() << "Removing network peer with ID" << _uuid;
 }
 
 void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
@@ -181,11 +145,21 @@ void NetworkPeer::softReset() {
     // a soft reset should clear the sockets and reset the number of connection attempts
     _localSocket.clear();
     _publicSocket.clear();
+    _symmetricSocket.clear();
+    _activeSocket = NULL;
 
     // stop our ping timer since we don't have sockets to ping anymore anyways
     stopPingTimer();
 
     _connectionAttempts = 0;
+}
+
+void NetworkPeer::reset() {
+    softReset();
+
+    _uuid = QUuid();
+    _wakeTimestamp = QDateTime::currentMSecsSinceEpoch();
+    _lastHeardMicrostamp = usecTimestampNow();
 }
 
 QByteArray NetworkPeer::toByteArray() const {

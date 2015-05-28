@@ -43,7 +43,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
 
-    _icePeer = NetworkPeer();
+    _icePeer.reset();
 
     if (requiresICE()) {
         // if we connected to this domain with ICE, re-set the socket so we reconnect through the ice-server
@@ -299,16 +299,15 @@ void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
     QDataStream iceResponseStream(icePacket);
     iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
 
-    NetworkPeer packetPeer;
-    iceResponseStream >> packetPeer;
+    iceResponseStream >> _icePeer;
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
 
-    if (packetPeer.getUUID() != _iceDomainID) {
+    if (_icePeer.getUUID() != _iceDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
+        _icePeer.reset();
     } else {
-        qCDebug(networking) << "Received network peer object for domain -" << packetPeer;
-        _icePeer = packetPeer;
+        qCDebug(networking) << "Received network peer object for domain -" << _icePeer;
 
         // ask the peer object to start its ping timer
         _icePeer.startPingTimer();

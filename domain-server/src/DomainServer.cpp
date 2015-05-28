@@ -369,7 +369,7 @@ void DomainServer::setupAutomaticNetworking() {
 
         // setup a timer to heartbeat with the ice-server every so often
         QTimer* iceHeartbeatTimer = new QTimer(this);
-        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
+        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
     }
 
@@ -624,9 +624,17 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
         QUuid nodeUUID;
 
-        if (_connectingICEPeers.contains(packetUUID) || _connectedICEPeers.contains(packetUUID)) {
+        HifiSockAddr discoveredSocket = senderSockAddr;
+        SharedNetworkPeer connectedPeer = _icePeers.value(packetUUID);
+
+        if (connectedPeer) {
             //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
             nodeUUID = packetUUID;
+
+            if (connectedPeer->getActiveSocket()) {
+                // set their discovered socket to whatever the activated socket on the network peer object was
+                discoveredSocket = *connectedPeer->getActiveSocket();
+            }
         } else {
             // we got a packetUUID we didn't recognize, just add the node
             nodeUUID = QUuid::createUuid();
@@ -656,7 +664,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
                                                                      canAdjustLocks, canRez);
 
         // So that we can send messages to this node at will - we need to activate the correct socket on this node now
-        newNode->activateMatchingOrNewSymmetricSocket(senderSockAddr);
+        newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);
 
         // when the newNode is created the linked data is also created
         // if this was a static assignment set the UUID, set the sendingSockAddr
@@ -692,7 +700,6 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         broadcastNewNode(newNode);
     }
 }
-
 
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
@@ -936,13 +943,6 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
-    // if we've established a connection via ICE with this peer, use that socket
-    // otherwise just try to reply back to them on their sending socket (although that may not work)
-    HifiSockAddr destinationSockAddr = _connectedICEPeers.value(node->getUUID());
-    if (destinationSockAddr.isNull()) {
-        destinationSockAddr = senderSockAddr;
-    }
-
     if (nodeInterestList.size() > 0) {
 
 //        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
@@ -982,7 +982,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     }
 
     // always write the last broadcastPacket
-    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
+    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1306,45 +1306,45 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
                                               domainUpdateJSON.toUtf8());
 }
 
-// todo: have data-web respond with ice-server hostname to use
-
-void DomainServer::performICEUpdates() {
-    sendHeartbeatToIceServer();
-    sendICEPingPackets();
-}
+// TODO: have data-web respond with ice-server hostname to use
 
 void DomainServer::sendHeartbeatToIceServer() {
     DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
-void DomainServer::sendICEPingPackets() {
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
+const int NUM_PEER_PINGS_BEFORE_DELETE = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
 
-    QHash<QUuid, NetworkPeer>::iterator peer = _connectingICEPeers.begin();
+void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
 
-    while (peer != _connectingICEPeers.end()) {
+    if (peer->getConnectionAttempts() > 0 && peer->getConnectionAttempts() % NUM_PEER_PINGS_BEFORE_DELETE == 0) {
+        // we've reached the maximum number of ping attempts
+        qDebug() << "Maximum number of ping attempts reached for peer with ID" << peer->getUUID();
+        qDebug() << "Removing from list of connecting peers.";
 
-        if (peer->getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
-            // we've already tried to connect to this peer enough times
-            // remove it from our list - if it wants to re-connect it'll come back through ice-server
-            peer = _connectingICEPeers.erase(peer);
-        } else {
-            // send ping packets to this peer's interfaces
-            qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-                << peer->getUUID();
+        _icePeers.remove(peer->getUUID());
+    } else {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-            // send the ping packet to the local and public sockets for this node
-            QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
-            nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
+        // send ping packets to this peer's interfaces
+        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << peer->getUUID();
 
-            QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
-            nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
+        // send the ping packet to the local and public sockets for this node
+        QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
+        nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
 
-            peer->incrementConnectionAttempts();
+        QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
+        nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
 
-            // go to next peer in hash
-            ++peer;
-        }
+        peer->incrementConnectionAttempts();
+    }
+}
+
+void DomainServer::handlePeerPingTimeout() {
+    SharedNetworkPeer senderPeer = _icePeers.value(qobject_cast<NetworkPeer*>(sender())->getUUID());
+
+    if (senderPeer && !senderPeer->getActiveSocket()) {
+        pingPunchForConnectingPeer(senderPeer);
     }
 }
 
@@ -1354,31 +1354,32 @@ void DomainServer::processICEPeerInformation(const QByteArray& packet) {
     QDataStream iceResponseStream(packet);
     iceResponseStream.skipRawData(numBytesForPacketHeader(packet));
 
-    NetworkPeer receivedPeer;
-    iceResponseStream >> receivedPeer;
+    NetworkPeer* receivedPeer = new NetworkPeer;
+    iceResponseStream >> *receivedPeer;
 
-    if (!_connectedICEPeers.contains(receivedPeer.getUUID())) {
-        if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
-            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
-        }
+    if (!_icePeers.contains(receivedPeer->getUUID())) {
+        qDebug() << "New peer requesting ICE connection being added to hash -" << *receivedPeer;
+        SharedNetworkPeer newPeer = SharedNetworkPeer(receivedPeer);
+        _icePeers[receivedPeer->getUUID()] = newPeer;
 
-        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
+        // make sure we know when we should ping this peer
+        connect(newPeer.data(), &NetworkPeer::pingTimerTimeout, this, &DomainServer::handlePeerPingTimeout);
+
+        // immediately ping the new peer, and start a timer to continue pinging it until we connect to it
+        newPeer->startPingTimer();
+        pingPunchForConnectingPeer(newPeer);
+    } else {
+        delete receivedPeer;
     }
 }
 
 void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
     QUuid nodeUUID = uuidFromPacketHeader(packet);
-    NetworkPeer sendingPeer = _connectingICEPeers.take(nodeUUID);
+    SharedNetworkPeer sendingPeer = _icePeers.value(nodeUUID);
 
-    if (!sendingPeer.isNull()) {
+    if (sendingPeer) {
         // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
-        if (senderSockAddr == sendingPeer.getLocalSocket()) {
-            qDebug() << "Activating local socket for communication with network peer -" << sendingPeer;
-            _connectedICEPeers.insert(nodeUUID, sendingPeer.getLocalSocket());
-        } else if (senderSockAddr == sendingPeer.getPublicSocket()) {
-            qDebug() << "Activating public socket for communication with network peer -" << sendingPeer;
-            _connectedICEPeers.insert(nodeUUID, sendingPeer.getPublicSocket());
-        }
+        sendingPeer->activateMatchingOrNewSymmetricSocket(senderSockAddr);
     }
 }
 
@@ -2106,9 +2107,8 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
 
-    // remove this node from the connecting / connected ICE lists (if they exist)
-    _connectingICEPeers.remove(node->getUUID());
-    _connectedICEPeers.remove(node->getUUID());
+    // if this peer connected via ICE then remove them from our ICE peers hash
+    _icePeers.remove(node->getUUID());
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 

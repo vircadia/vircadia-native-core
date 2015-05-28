@@ -63,10 +63,9 @@ private slots:
     void sendPendingTransactionsToServer();
 
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void performICEUpdates();
     void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
     void sendHeartbeatToIceServer();
-    void sendICEPingPackets();
+    void handlePeerPingTimeout();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
@@ -80,6 +79,8 @@ private:
     void sendHeartbeatToDataServer(const QString& networkAddress);
     void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     void processICEPeerInformation(const QByteArray& packet);
+
+    void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
 
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
@@ -153,8 +154,7 @@ private:
 
     QHash<QString, QByteArray> _userPublicKeys;
 
-    QHash<QUuid, NetworkPeer> _connectingICEPeers;
-    QHash<QUuid, HifiSockAddr> _connectedICEPeers;
+    QHash<QUuid, SharedNetworkPeer> _icePeers;
 
     QString _automaticNetworkingSetting;
 

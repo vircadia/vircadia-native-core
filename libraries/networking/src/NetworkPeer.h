@@ -31,8 +31,7 @@ public:
     NetworkPeer(QObject* parent = 0);
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent = 0);
 
-    NetworkPeer(const NetworkPeer &otherPeer);
-    NetworkPeer& operator=(const NetworkPeer& otherPeer);
+    ~NetworkPeer();
 
     bool isNull() const { return _uuid.isNull(); }
     bool hasSockets() const { return !_localSocket.isNull() && !_publicSocket.isNull(); }
@@ -41,6 +40,7 @@ public:
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
     void softReset();
+    void reset();
 
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
@@ -99,8 +99,6 @@ protected:
     QTimer* _pingTimer = NULL;
 
     int _connectionAttempts;
-private:
-    void swap(NetworkPeer& otherPeer);
 };
 
 QDebug operator<<(QDebug debug, const NetworkPeer &peer);
