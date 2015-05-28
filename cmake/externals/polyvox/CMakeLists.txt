@@ -4,7 +4,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://hifi-public.s3.amazonaws.com/dependencies/polyvox-master-2015-5-27.zip
-  URL_MD5 b96a5bfa41ddc4895fce1e968bb59955
+  URL_MD5 10f46ac4c6a6c099a654b7863ec03659
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1
