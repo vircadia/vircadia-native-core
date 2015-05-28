@@ -96,18 +96,11 @@ void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
     _entityScripts.clear();
 
-    qDebug() << "EntityTreeRenderer::clear() need to clear the scene... ";
-    render::Scene::PendingChanges pendingChanges;
-
-    QList<EntityItemID> keys = _entityToSceneItems.uniqueKeys();
-    for (auto key : keys) {
-        QList<render::ItemID> values = _entityToSceneItems.values(key);
-        for (auto renderItem : values) {
-            pendingChanges.removeItem(renderItem);
-        }
+    auto scene = _viewState->getMain3DScene();
+    foreach(auto entity, _entitiesInScene) {
+        entity->removeFromScene(entity, scene);
     }
-    _entityToSceneItems.clear();
-    _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    _entitiesInScene.clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -1072,15 +1065,11 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
     
     // here's where we remove the entity payload from the scene
-
-    render::Scene::PendingChanges pendingChanges;
-    if (_entityToSceneItems.contains(entityID)) {
-        
-        QList<render::ItemID> values = _entityToSceneItems.values(entityID);
-        for (render::ItemID renderItem : values) {
-            pendingChanges.removeItem(renderItem);
-        }
-        _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
+    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    if (entity && _entitiesInScene.contains(entity)) {
+        auto scene = _viewState->getMain3DScene();
+        entity->removeFromScene(entity, scene);
+        _entitiesInScene.remove(entity);
     }
 }
 
@@ -1088,19 +1077,12 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
 
     // here's where we add the entity payload to the scene
-    EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
-    if (entity->canRenderInScene()) {
-        render::Scene::PendingChanges pendingChanges;
-        render::ItemID renderItem = _viewState->getMain3DScene()->allocateID();
-        _entityToSceneItems.insert(entityID, renderItem);
-
-        auto renderData = RenderableEntityItem::Pointer(new RenderableEntityItem(entity));
-        auto renderPayload = render::PayloadPointer(new RenderableEntityItem::Payload(renderData));
-
-        pendingChanges.resetItem(renderItem, renderPayload);
-
-        _viewState->getMain3DScene()->enqueuePendingChanges(pendingChanges);
-        _viewState->getMain3DScene()->processPendingChangesQueue();
+    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    if (entity && entity->canRenderInScene()) {
+        auto scene = _viewState->getMain3DScene();
+        if (entity->addToScene(entity, scene)) {
+            _entitiesInScene.insert(entity);
+        }
     }
 }
 

@@ -15,19 +15,47 @@
 #include <render/Scene.h>
 #include <EntityItem.h>
 
-class RenderableEntityItem {
+
+class RenderableEntityItemProxy {
 public:
-    RenderableEntityItem(EntityItemPointer entity) : entity(entity) { }
-    typedef render::Payload<RenderableEntityItem> Payload;
+    RenderableEntityItemProxy(EntityItemPointer entity) : entity(entity) { }
+    typedef render::Payload<RenderableEntityItemProxy> Payload;
     typedef Payload::DataPointer Pointer;
     
     EntityItemPointer entity;
 };
 
 namespace render {
-   template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& payload); 
-   template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& payload);
-   template <> void payloadRender(const RenderableEntityItem::Pointer& payload, RenderArgs* args);
+   template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload); 
+   template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload);
+   template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args);
 }
+
+// Mixin class for implementing basic single item rendering
+class SingleRenderableEntityItem {
+public:
+    bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) {
+        render::Scene::PendingChanges pendingChanges;
+        _myItem = scene->allocateID();
+        
+        auto renderData = RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
+        auto renderPayload = render::PayloadPointer(new RenderableEntityItemProxy::Payload(renderData));
+        
+        pendingChanges.resetItem(_myItem, renderPayload);
+        
+        scene->enqueuePendingChanges(pendingChanges);
+        return true;
+    }
+
+    void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) {
+        render::Scene::PendingChanges pendingChanges;
+        pendingChanges.removeItem(_myItem);
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+    
+private:
+    render::ItemID _myItem;
+};
+
 
 #endif // hifi_RenderableEntityItem_h

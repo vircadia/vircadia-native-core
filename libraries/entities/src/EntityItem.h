@@ -12,6 +12,7 @@
 #ifndef hifi_EntityItem_h
 #define hifi_EntityItem_h
 
+#include <memory>
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -32,6 +33,10 @@
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
+
+namespace render {
+    class Scene;
+}
 
 // these thesholds determine what updates will be ignored (client and server)
 const float IGNORE_POSITION_DELTA = 0.0001f;
@@ -151,7 +156,9 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) 
                                                 { return 0; }
 
-    virtual bool canRenderInScene() { return true; } // does your entity property render using Render Items and Payloads
+    virtual bool canRenderInScene() { return false; } // does your entity property render using Render Items and Payloads
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) { return false; } // by default entity items don't add to scene
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
