@@ -16,18 +16,90 @@
 
 namespace render {
 
+template <class T> void jobRun(const T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { }
 
-class DrawSceneTask : public Task {
+class Job {
 public:
 
-    DrawSceneTask() : Task() {}
-    ~DrawSceneTask();
+    template <class T> 
+    Job(T data) : _concept(new Model<T>(data)) {}
+    Job(const Job& other) : _concept(other._concept) {}
+    ~Job();
 
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        if (_concept) {
+            _concept->run(sceneContext, renderContext);
+        }
+    }
+
+protected:
+    class Concept {
+    public:
+        virtual ~Concept() = default;
+        virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
+    };
+
+    template <class T> class Model : public Concept {
+    public:
+        typedef T Data;
+    
+        Data _data;
+        Model(Data data): _data(data) {}
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRun(_data, sceneContext, renderContext); }
+    };
+
+    std::shared_ptr<Concept> _concept;
 };
 
 
 
+
+typedef std::vector<Job> Jobs;
+
+
+
+class DrawOpaque {
+public:
+    Jobs _jobs;
+};
+template <> void jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+
+class DrawTransparent {
+public:
+};
+template <> void jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+class DrawLight {
+public:
+};
+template <> void jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+
+class FilterItems {
+public:
+    ItemIDs _items;
+};
+template <> void jobRun(const FilterItems& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+class RenderItems {
+public:
+    ItemIDs _items;
+};
+template <> void jobRun(const RenderItems& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+
+class DrawSceneTask : public Task {
+public:
+
+    DrawSceneTask();
+    ~DrawSceneTask();
+
+    Jobs _jobs;
+
+    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+};
 
 }
 
