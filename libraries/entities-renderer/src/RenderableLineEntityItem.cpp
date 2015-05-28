@@ -24,7 +24,6 @@ EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, cons
 }
 
 void RenderableLineEntityItem::render(RenderArgs* args) {
-    qDebug()<<"RENDER";
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     assert(getType() == EntityTypes::Line);
     glm::vec3 position = getPosition();
