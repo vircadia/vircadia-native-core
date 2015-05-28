@@ -128,14 +128,21 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
         const float MICROSACCADE_MAGNITUDE = 0.002f;
         const float SACCADE_MAGNITUDE = 0.04f;
-        
+        const float MAXIMUM_SACCADE_SPEED = 0.8f;
+
         if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
             _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
         } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
             _saccadeTarget = SACCADE_MAGNITUDE * randVector();
         }
-        _saccade += (_saccadeTarget - _saccade) * 0.50f;
-        
+
+        glm::vec3 saccadeDelta = (_saccadeTarget - _saccade) * 0.5f;
+        float speed = glm::length(saccadeDelta) / deltaTime;
+        if (speed > MAXIMUM_SACCADE_SPEED) {
+            saccadeDelta = saccadeDelta * MAXIMUM_SACCADE_SPEED / speed;
+        }
+        _saccade += saccadeDelta;
+
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
