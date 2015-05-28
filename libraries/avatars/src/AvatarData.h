@@ -306,7 +306,7 @@ public:
     int getReceiveRate() const;
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-    Q_INVOKABLE const glm::vec3& getVelocity() const { return _velocity; }
+    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }

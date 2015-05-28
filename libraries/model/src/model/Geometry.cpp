@@ -42,6 +42,15 @@ void Mesh::addAttribute(Slot slot, const BufferView& buffer) {
     evalVertexFormat();
 }
 
+const BufferView Mesh::getAttributeBuffer(int attrib) const {
+	auto attribBuffer = _attributeBuffers.find(attrib);
+	if (attribBuffer != _attributeBuffers.end()) {
+		return attribBuffer->second;
+	} else {
+		return BufferView();
+	}
+}
+
 void Mesh::evalVertexFormat() {
     auto vf = new VertexFormat();
     int channelNum = 0;
