@@ -34,11 +34,10 @@ RearMirrorTools::RearMirrorTools(QRect& bounds) :
     _windowed(false),
     _fullScreen(false)
 {
-    auto textureCache = DependencyManager::get<TextureCache>();
-    _closeTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/close.svg");
+    _closeTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/close.svg");
 
-    _zoomHeadTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/plus.svg");
-    _zoomBodyTexture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/minus.svg");
+    _zoomHeadTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/plus.svg");
+    _zoomBodyTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/minus.svg");
 
     _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);

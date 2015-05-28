@@ -2175,9 +2175,6 @@ void Application::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
-
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);

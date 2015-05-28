@@ -296,7 +296,7 @@ GLuint TextureCache::getShadowDepthTextureID() {
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString & path) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
     QImage image = QImage(path).mirrored(false, true);
     gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
     gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
@@ -383,9 +383,9 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type
     _content(content) {
 }
 
-std::once_flag onceListSuppoertedFormatsflag;
+std::once_flag onceListSupportedFormatsflag;
 void listSupportedImageFormats() {
-    std::call_once(onceListSuppoertedFormatsflag, [](){
+    std::call_once(onceListSupportedFormatsflag, [](){
         auto supportedFormats = QImageReader::supportedImageFormats();
         QString formats;
         foreach(const QByteArray& f, supportedFormats) {
