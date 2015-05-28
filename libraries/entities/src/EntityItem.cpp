@@ -333,8 +333,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = _position;
-    glm::quat saveRotation = _rotation;
+    glm::vec3 savePosition = getPosition();
+    glm::quat saveRotation = getRotation();
     glm::vec3 saveVelocity = _velocity;
     glm::vec3 saveAngularVelocity = _angularVelocity;
 
@@ -625,8 +625,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     if (overwriteLocalData && _simulatorID == myNodeID && !_simulatorID.isNull()) {
         // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
         // rather than accept the values in the packet
-        _position = savePosition;
-        _rotation = saveRotation;
+        setPosition(savePosition);
+        setRotation(saveRotation);
         _velocity = saveVelocity;
         _angularVelocity = saveAngularVelocity;
         _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
