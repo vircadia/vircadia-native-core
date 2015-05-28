@@ -32,7 +32,8 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
     glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
-    glm::vec2 bounds = glm::vec2(dimensions.x, dimensions.y);
+    float leftMargin = 0.1f, topMargin = 0.1f;
+    glm::vec2 bounds = glm::vec2(dimensions.x - 2 * leftMargin, dimensions.y - 2 * topMargin);
     
     Transform transformToTopLeft = getTransformToCenter();
     transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
@@ -51,7 +52,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     float scale = _lineHeight / _textRenderer->getRowHeight();
     transformToTopLeft.setScale(scale);
     batch.setModelTransform(transformToTopLeft);
-    _textRenderer->draw3D(batch, 0.0f, 0.0f, _text, textColor, bounds / scale);
+    _textRenderer->draw(batch, leftMargin, topMargin, _text, textColor, bounds / scale);
 }
 
 
