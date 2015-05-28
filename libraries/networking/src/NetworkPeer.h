@@ -31,8 +31,6 @@ public:
     NetworkPeer(QObject* parent = 0);
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent = 0);
 
-    ~NetworkPeer();
-
     bool isNull() const { return _uuid.isNull(); }
     bool hasSockets() const { return !_localSocket.isNull() && !_publicSocket.isNull(); }
 

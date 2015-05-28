@@ -49,10 +49,6 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
 
 }
 
-NetworkPeer::~NetworkPeer() {
-    qDebug() << "Removing network peer with ID" << _uuid;
-}
-
 void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
     if (publicSocket != _publicSocket) {
         if (_activeSocket == &_publicSocket) {

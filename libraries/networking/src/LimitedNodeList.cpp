@@ -840,7 +840,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSoc
             << uuidStringWithoutCurlyBraces(peerID);
     }
 
-    writeUnverifiedDatagram(iceRequestByteArray, HifiSockAddr("127.0.0.1", ICE_SERVER_DEFAULT_PORT));
+    writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }
 
 void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort) {
