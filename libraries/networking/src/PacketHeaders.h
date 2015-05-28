@@ -49,7 +49,7 @@ enum PacketType {
     PacketTypeDataServerConfirm, // 20
     PacketTypeDomainServerPathQuery,
     PacketTypeDomainServerPathResponse,
-    UNUSED_3,
+    PacketTypeDomainServerAddedNode,
     UNUSED_4,
     UNUSED_5, // 25
     PacketTypeOctreeStats,
