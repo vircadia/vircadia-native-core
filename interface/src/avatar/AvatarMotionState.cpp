@@ -123,17 +123,17 @@ glm::quat AvatarMotionState::getObjectRotation() const {
 }
 
 // virtual
-const glm::vec3& AvatarMotionState::getObjectLinearVelocity() const {
+glm::vec3 AvatarMotionState::getObjectLinearVelocity() const {
     return _avatar->getVelocity();
 }
 
 // virtual
-const glm::vec3& AvatarMotionState::getObjectAngularVelocity() const {
+glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
     return _avatar->getAngularVelocity();
 }
 
 // virtual
-const glm::vec3& AvatarMotionState::getObjectGravity() const {
+glm::vec3 AvatarMotionState::getObjectGravity() const {
     return _avatar->getAcceleration();
 }
 
