@@ -82,6 +82,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 
+    // anytime we get a new node we will want to attempt to punch to it
+    connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
 }
@@ -521,7 +524,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     setThisNodeCanRez(thisNodeCanRez);
 
     // pull each node in the packet
-    while(packetStream.device()->pos() < packet.size()) {
+    while (packetStream.device()->pos() < packet.size()) {
         // setup variables to read into from QDataStream
         qint8 nodeType;
         QUuid nodeUUID, connectionUUID;
@@ -537,16 +540,12 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
             nodePublicSocket.setAddress(_domainHandler.getIP());
         }
 
-        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                                 nodeLocalSocket, canAdjustLocks, canRez);
-
         packetStream >> connectionUUID;
-        node->setConnectionSecret(connectionUUID);
-    }
 
-    // ping inactive nodes in conjunction with receipt of list from domain-server
-    // this makes it happen every second and also pings any newly added nodes
-    pingInactiveNodes();
+        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
+                                                 nodeLocalSocket, canAdjustLocks, canRez,
+                                                 connectionUUID);
+    }
 
     return readNodes;
 }
@@ -566,6 +565,10 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
+    if (node->getType() == NodeType::AudioMixer) {
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
+    }
+
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
     writeDatagram(localPingPacket, node, node->getLocalSocket());
@@ -577,19 +580,27 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
         writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
     }
+
+    node->incrementConnectionAttempts();
 }
 
-void NodeList::pingInactiveNodes() {
-    eachNode([this](const SharedNodePointer& node){
-        if (!node->getActiveSocket()) {
-            // we don't have an active link to this node, ping it to set that up
-            pingPunchForInactiveNode(node);
+void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
+    // connect to the correct signal on this node so we know when to ping it
+    connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 
-            if (node->getType() == NodeType::AudioMixer) {
-                flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
-            }
-        }
-    });
+    // start the ping timer for this node
+    node->startPingTimer();
+
+    // ping this node immediately
+    pingPunchForInactiveNode(node);
+}
+
+void NodeList::handleNodePingTimeout() {
+    Node* senderNode = qobject_cast<Node*>(sender());
+
+    if (senderNode) {
+        pingPunchForInactiveNode(nodeWithUUID(senderNode->getUUID()));
+    }
 }
 
 void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode) {

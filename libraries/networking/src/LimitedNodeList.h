@@ -151,7 +151,8 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool canAdjustLocks, bool canRez);
+                                      bool canAdjustLocks, bool canRez,
+                                      const QUuid& connectionSecret = QUuid());
 
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
 

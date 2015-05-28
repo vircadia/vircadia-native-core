@@ -37,16 +37,17 @@ namespace NodeType {
     const NodeType_t AudioMixer = 'M';
     const NodeType_t AvatarMixer = 'W';
     const NodeType_t Unassigned = 1;
-    
+
     void init();
     const QString& getNodeTypeName(NodeType_t nodeType);
 }
 
 class Node : public NetworkPeer {
     Q_OBJECT
-public: 
+public:
     Node(const QUuid& uuid, NodeType_t type,
-         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez);
+         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+         bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid());
     ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -54,7 +55,7 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-    
+
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
@@ -70,12 +71,12 @@ public:
     int getClockSkewUsec() const { return _clockSkewUsec; }
     void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
-    
+
     virtual void setPublicSocket(const HifiSockAddr& publicSocket);
     virtual void setLocalSocket(const HifiSockAddr& localSocket);
     const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
     virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
-    
+
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
 
     void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
@@ -83,7 +84,7 @@ public:
 
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
-    
+
     void activatePublicSocket();
     void activateLocalSocket();
     void activateSymmetricSocket();
@@ -91,7 +92,7 @@ public:
     void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType packetType)
         { _lastSequenceNumbers[packetType] = sequenceNumber; }
     PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType packetType) const;
-    
+
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -100,11 +101,13 @@ private:
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
 
+    void setActiveSocket(HifiSockAddr* discoveredSocket);
+
     NodeType_t _type;
-    
+
     HifiSockAddr* _activeSocket;
     HifiSockAddr _symmetricSocket;
-    
+
     QUuid _connectionSecret;
     NodeData* _linkedData;
     bool _isAlive;

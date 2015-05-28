@@ -25,7 +25,7 @@ NetworkPeer::NetworkPeer() :
     _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-    
+
 }
 
 NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
@@ -36,14 +36,14 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-    
+
 }
 
 NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) : QObject() {
     _uuid = otherPeer._uuid;
     _publicSocket = otherPeer._publicSocket;
     _localSocket = otherPeer._localSocket;
-    
+
     _wakeTimestamp = otherPeer._wakeTimestamp;
     _lastHeardMicrostamp = otherPeer._lastHeardMicrostamp;
     _connectionAttempts = otherPeer._connectionAttempts;
@@ -57,7 +57,7 @@ NetworkPeer& NetworkPeer::operator=(const NetworkPeer& otherPeer) {
 
 void NetworkPeer::swap(NetworkPeer& otherPeer) {
     using std::swap;
-    
+
     swap(_uuid, otherPeer._uuid);
     swap(_publicSocket, otherPeer._publicSocket);
     swap(_localSocket, otherPeer._localSocket);
@@ -71,15 +71,33 @@ QByteArray NetworkPeer::toByteArray() const {
 
     QDataStream peerStream(&peerByteArray, QIODevice::Append);
     peerStream << *this;
-    
+
     return peerByteArray;
+}
+
+void NetworkPeer::startPingTimer() {
+    if (!_pingTimer) {
+        _pingTimer = new QTimer(this);
+
+        connect(_pingTimer, &QTimer::timeout, this, &NetworkPeer::pingTimerTimeout);
+
+        _pingTimer->start(UDP_PUNCH_PING_INTERVAL_MS);
+    }
+}
+
+void NetworkPeer::stopPingTimer() {
+    if (_pingTimer) {
+        _pingTimer->stop();
+        _pingTimer->deleteLater();
+        _pingTimer = NULL;
+    }
 }
 
 QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer) {
     out << peer._uuid;
     out << peer._publicSocket;
     out << peer._localSocket;
-    
+
     return out;
 }
 
@@ -87,7 +105,7 @@ QDataStream& operator>>(QDataStream& in, NetworkPeer& peer) {
     in >> peer._uuid;
     in >> peer._publicSocket;
     in >> peer._localSocket;
-    
+
     return in;
 }
 

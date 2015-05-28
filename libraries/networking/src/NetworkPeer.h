@@ -12,8 +12,9 @@
 #ifndef hifi_NetworkPeer_h
 #define hifi_NetworkPeer_h
 
-#include <qobject.h>
-#include <quuid.h>
+#include <QtCore/QObject>
+#include <QtCore/QTimer>
+#include <QtCore/QUuid>
 
 #include "HifiSockAddr.h"
 
@@ -22,35 +23,38 @@ const int ICE_SERVER_DEFAULT_PORT = 7337;
 const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
 const int MAX_ICE_CONNECTION_ATTEMPTS = 5;
 
+const int UDP_PUNCH_PING_INTERVAL_MS = 25;
+
 class NetworkPeer : public QObject {
+    Q_OBJECT
 public:
     NetworkPeer();
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
-    
+
     // privatize copy and assignment operator to disallow peer copying
     NetworkPeer(const NetworkPeer &otherPeer);
     NetworkPeer& operator=(const NetworkPeer& otherPeer);
-    
+
     bool isNull() const { return _uuid.isNull(); }
-    
+
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
-    
+
     void reset();
-    
+
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     virtual void setPublicSocket(const HifiSockAddr& publicSocket) { _publicSocket = publicSocket; }
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
     virtual void setLocalSocket(const HifiSockAddr& localSocket) { _localSocket = localSocket; }
-    
+
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
-    
+
     quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
     void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
-    
+
     QByteArray toByteArray() const;
-    
+
     int getConnectionAttempts() const  { return _connectionAttempts; }
     void incrementConnectionAttempts() { ++_connectionAttempts; }
     void resetConnectionAttemps() { _connectionAttempts = 0; }
@@ -60,18 +64,25 @@ public:
 
     float getOutboundBandwidth(); // in kbps
     float getInboundBandwidth(); // in kbps
-    
+
+    void startPingTimer();
+    void stopPingTimer();
+
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
+signals:
+    void pingTimerTimeout();
 protected:
     QUuid _uuid;
-    
+
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
-    
+
     quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
-    
+
+    QTimer* _pingTimer = NULL;
+
     int _connectionAttempts;
 private:
     void swap(NetworkPeer& otherPeer);
