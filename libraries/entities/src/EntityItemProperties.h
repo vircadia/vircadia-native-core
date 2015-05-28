@@ -96,6 +96,7 @@ public:
     DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
     DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
+    DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
@@ -153,8 +154,6 @@ public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    quint64 getCreated() const { return _created; }
-    void setCreated(quint64 usecTime);
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
 
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
@@ -199,7 +198,6 @@ private:
     QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
-    quint64 _created;
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 

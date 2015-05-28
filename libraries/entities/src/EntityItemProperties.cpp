@@ -48,6 +48,7 @@ CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
 CONSTRUCT_PROPERTY(restitution, ENTITY_ITEM_DEFAULT_RESTITUTION),
 CONSTRUCT_PROPERTY(friction, ENTITY_ITEM_DEFAULT_FRICTION),
 CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
+CONSTRUCT_PROPERTY(created, UNKNOWN_CREATED_TIME),
 CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
@@ -99,7 +100,6 @@ CONSTRUCT_PROPERTY(sourceUrl, ""),
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
 _lastEdited(0),
-_created(UNKNOWN_CREATED_TIME),
 _type(EntityTypes::Unknown),
 
 _glowLevel(0.0f),
@@ -192,13 +192,6 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
-}
-
-void EntityItemProperties::setCreated(quint64 usecTime) {
-    _created = usecTime;
-    if (_lastEdited < _created) {
-        _lastEdited = _created;
-    }
 }
 
 void EntityItemProperties::setLastEdited(quint64 usecTime) {
@@ -375,10 +368,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(friction);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
-    if (!skipDefaults) {
+
+    if (!skipDefaults || _lifetime != defaultEntityProperties._lifetime) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, getCreated());
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
     COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularVelocity);
@@ -488,6 +484,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(created, float, setCreated);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);

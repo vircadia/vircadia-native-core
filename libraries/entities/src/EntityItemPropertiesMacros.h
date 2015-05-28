@@ -96,6 +96,11 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { retu
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 
+// QScriptValue doesn't support "long long" ints, so use strings
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) {
+    return QString::number(v);
+}
+
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
     return QScriptValue(QString(b64));
@@ -138,14 +143,16 @@ inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
+// QScriptValue doesn't support "long long" ints, so use strings
+inline uint64_t uint64_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    return (uint64_t) v.toVariant().toString().trimmed().toLongLong();
+}
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     QString b64 = v.toVariant().toString().trimmed();
     return QByteArray::fromBase64(b64.toUtf8());
 }
-
-
 
 inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
     isValid = false; /// assume it can't be converted
