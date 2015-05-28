@@ -93,16 +93,16 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
- //   DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
     _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
-  //  glDisable(GL_BLEND);
+    glDisable(GL_BLEND);
 }
 
 void DeferredLightingEffect::releaseSimpleProgram() {
- //   glEnable(GL_BLEND);
+    glEnable(GL_BLEND);
     _simpleProgram.release();
- //   DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
+    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color) {
