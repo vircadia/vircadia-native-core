@@ -47,7 +47,8 @@ class Node : public NetworkPeer {
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid());
+         bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid(),
+         QObject* parent = 0);
     ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }

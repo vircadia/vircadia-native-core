@@ -41,8 +41,9 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez, const QUuid& connectionSecret) :
-    NetworkPeer(uuid, publicSocket, localSocket),
+           const HifiSockAddr& localSocket, bool canAdjustLocks, bool canRez, const QUuid& connectionSecret,
+           QObject* parent) :
+    NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
     _linkedData(NULL),
