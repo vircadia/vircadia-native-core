@@ -106,29 +106,6 @@ struct QuadBuilder {
     
 };
 
-QDebug operator<<(QDebug debug, glm::vec2& value) {
-    debug << value.x << value.y;
-    return debug;
-}
-
-QDebug operator<<(QDebug debug, glm::vec3& value) {
-    debug << value.x << value.y << value.z;
-    return debug;
-}
-
-QDebug operator<<(QDebug debug, TextureVertex& value) {
-    debug << "Pos:" << value.pos << ", Tex:" << value.tex;
-    return debug;
-}
-
-QDebug operator<<(QDebug debug, QuadBuilder& value) {
-    debug << '\n' << value.vertices[0]
-    << '\n' << value.vertices[1]
-    << '\n' << value.vertices[2]
-    << '\n' << value.vertices[3];
-    return debug;
-}
-
 class Font3D {
 public:
     Font3D();
@@ -339,11 +316,7 @@ void Font3D::read(QIODevice& in) {
         _glyphs[g.c] = g;
     };
     
-    qDebug() << _family << "size" << image.size();
-    qDebug() << _family << "format" << image.format();
     image = image.convertToFormat(QImage::Format_RGBA8888);
-    qDebug() << _family << "size" << image.size();
-    qDebug() << _family << "format" << image.format();
     
     gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
     gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
@@ -352,7 +325,7 @@ void Font3D::read(QIODevice& in) {
         formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
     }
     _texture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(),
-                                   gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+                                   gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR)));
     _texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
     _texture->autoGenerateMips(-1);
 }
@@ -373,25 +346,6 @@ void Font3D::setupGPU() {
         _outlineLoc = program->getUniforms().findLocation("Outline");
         _colorLoc = program->getUniforms().findLocation("Color");
         
-        
-        auto f = [&] (QString str, const gpu::Shader::SlotSet& set) {
-            if (set.size() == 0) {
-                return;
-            }
-            qDebug() << str << set.size();
-            for (auto slot : set) {
-                qDebug() << "    " << QString::fromStdString(slot._name) << slot._location;
-            }
-        };
-        f("getUniforms:", program->getUniforms());
-        f("getBuffers:", program->getBuffers());
-        f("getTextures:", program->getTextures());
-        f("getSamplers:", program->getSamplers());
-        f("getInputs:", program->getInputs());
-        f("getOutputs:", program->getOutputs());
-        
-        qDebug() << "Texture:" << _texture.get();
-        
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -404,8 +358,7 @@ void Font3D::setupGPU() {
         static const int OFFSET = offsetof(TextureVertex, tex);
         assert(OFFSET == sizeof(glm::vec2));
         assert(sizeof(glm::vec2) == 2 * sizeof(float));
-        assert(sizeof(glm::vec3) == 3 * sizeof(float));
-        assert(sizeof(TextureVertex) == sizeof(glm::vec2) + sizeof(glm::vec2));
+        assert(sizeof(TextureVertex) == 2 * sizeof(glm::vec2));
         assert(sizeof(QuadBuilder) == 4 * sizeof(TextureVertex));
         
         // Setup rendering structures
@@ -440,7 +393,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
             }
             if (isNewLine || forceNewLine) {
                 // Character return, move the advance to a new line
-                advance = glm::vec2(0.0f, advance.y - _rowHeight);
+                advance = glm::vec2(x, advance.y - _rowHeight);
 
                 if (isNewLine) {
                     // No need to draw anything, go directly to next token

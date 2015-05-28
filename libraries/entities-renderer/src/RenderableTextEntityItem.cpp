@@ -32,8 +32,6 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
     glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
-    float leftMargin = 0.1f, topMargin = 0.1f;
-    glm::vec2 bounds = glm::vec2(dimensions.x - 2 * leftMargin, dimensions.y - 2 * topMargin);
     
     Transform transformToTopLeft = getTransformToCenter();
     transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
@@ -50,9 +48,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getRowHeight();
-    transformToTopLeft.setScale(scale);
+    transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
-    _textRenderer->draw(batch, leftMargin, topMargin, _text, textColor, bounds / scale);
+    
+    float leftMargin = 0.5f * _lineHeight, topMargin = 0.5f * _lineHeight;
+    glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin, dimensions.y - 2.0f * topMargin);
+    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
 }
 
 
