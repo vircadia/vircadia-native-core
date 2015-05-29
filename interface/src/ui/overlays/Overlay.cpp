@@ -16,6 +16,7 @@
 #include <NumericalConstants.h>
 
 Overlay::Overlay() :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
     _glowLevel(0.0f),
@@ -35,6 +36,7 @@ Overlay::Overlay() :
 }
 
 Overlay::Overlay(const Overlay* overlay) :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(overlay->_isLoaded),
     _alpha(overlay->_alpha),
     _glowLevel(overlay->_glowLevel),
@@ -225,3 +227,4 @@ float Overlay::updatePulse() {
     
     return _pulse;
 }
+

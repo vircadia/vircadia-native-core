@@ -76,7 +76,6 @@ public:
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-    typedef Payload::DataPointer Pointer;
 
     void init();
     void simulate(float deltaTime);
