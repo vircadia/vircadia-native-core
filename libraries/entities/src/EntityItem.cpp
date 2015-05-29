@@ -183,9 +183,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     QByteArray encodedPropertyFlags;
     int propertyCount = 0;
 
-    successIDFits = packetData->appendValue(encodedID);
+    successIDFits = packetData->appendRawData(encodedID);
     if (successIDFits) {
-        successTypeFits = packetData->appendValue(encodedType);
+        successTypeFits = packetData->appendRawData(encodedType);
     }
     if (successTypeFits) {
         successCreatedFits = packetData->appendValue(_created);
@@ -194,17 +194,17 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         successLastEditedFits = packetData->appendValue(lastEdited);
     }
     if (successLastEditedFits) {
-        successLastUpdatedFits = packetData->appendValue(encodedUpdateDelta);
+        successLastUpdatedFits = packetData->appendRawData(encodedUpdateDelta);
     }
     if (successLastUpdatedFits) {
-        successLastSimulatedFits = packetData->appendValue(encodedSimulatedDelta);
+        successLastSimulatedFits = packetData->appendRawData(encodedSimulatedDelta);
     }
     
     if (successLastSimulatedFits) {
         propertyFlagsOffset = packetData->getUncompressedByteOffset();
         encodedPropertyFlags = propertyFlags;
         oldPropertyFlagsLength = encodedPropertyFlags.length();
-        successPropertyFlagsFits = packetData->appendValue(encodedPropertyFlags);
+        successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
     }
 
     bool headerFits = successIDFits && successTypeFits && successCreatedFits && successLastEditedFits 
@@ -652,6 +652,7 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     // lastEdited
     quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
+    assert(lastEditedInLocalTime > 0);
     quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     #ifdef WANT_DEBUG
@@ -956,15 +957,22 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         #endif
         setLastEdited(now);
         somethingChangedNotification(); // notify derived classes that something has changed
-        if (_created == UNKNOWN_CREATED_TIME) {
-            _created = now;
-        }
         if (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES)) {
             // anything that sets the transform or velocity must update _lastSimulated which is used
             // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
             // when position and/or velocity was changed).
             _lastSimulated = now;
         }
+    }
+
+    // timestamps
+    quint64 timestamp = properties.getCreated();
+    if (_created == UNKNOWN_CREATED_TIME && timestamp != UNKNOWN_CREATED_TIME) {
+        quint64 now = usecTimestampNow();
+        if (timestamp > now) {
+            timestamp = now;
+        }
+        _created = timestamp;
     }
 
     return somethingChanged;
