@@ -505,11 +505,18 @@ void NodeList::pingPunchForDomainServer() {
         } else {
             if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
                 // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
+                qCDebug(networking) << "No ping replies received from domain-server with ID"
+                    << uuidStringWithoutCurlyBraces(_domainHandler.getICEClientID()) << "-" << "re-sending ICE query.";
 
                 _domainHandler.getICEPeer().softReset();
                 handleICEConnectionToDomainServer();
+
+                return;
             }
         }
+
+        qDebug() << "Sending domain server ping to"
+            << _domainHandler.getICEPeer().getLocalSocket() << _domainHandler.getICEPeer().getPublicSocket();
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
