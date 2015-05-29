@@ -181,6 +181,7 @@ void DialogsManager::showDomainConnectionDialog() {
     // if the dialog already exists we delete it so the connection data is refreshed
     if (_domainConnectionDialog) {
         _domainConnectionDialog->close();
+        _domainConnectionDialog->deleteLater();
         _domainConnectionDialog = NULL;
     }
 
