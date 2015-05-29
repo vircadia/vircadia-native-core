@@ -146,7 +146,17 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             EntityItemProperties modifiedProperties = properties;
             entity->setLastBroadcast(usecTimestampNow());
             modifiedProperties.setType(entity->getType());
-            bidForSimulationOwnership(modifiedProperties);
+            if (modifiedProperties.hasTerseUpdateChanges()) {
+                // we make a bid for (or assert) our simulation ownership
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                modifiedProperties.setSimulatorID(myNodeID);
+
+                if (entity->getSimulatorID() == myNodeID) {
+                    // we think we already own simulation, so make sure we send ALL TerseUpdate properties
+                    entity->getAllTerseUpdateProperties(modifiedProperties);
+                }
+            }
             queueEntityMessage(PacketTypeEntityEdit, entityID, modifiedProperties);
             return id;
         }
