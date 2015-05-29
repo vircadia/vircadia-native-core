@@ -58,7 +58,7 @@ public slots:
 
 private slots:
     void aboutToQuit();
-    
+
     void loginFailed();
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
@@ -100,9 +100,8 @@ private:
                                    HifiSockAddr& publicSockAddr,
                                    HifiSockAddr& localSockAddr,
                                    const HifiSockAddr& senderSockAddr);
-    NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
-                              const NodeSet& nodeInterestList);
+                              const NodeSet& nodeInterestSet);
 
     QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
     void broadcastNewNode(const SharedNodePointer& node);

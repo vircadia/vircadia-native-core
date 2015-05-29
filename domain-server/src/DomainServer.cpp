@@ -918,26 +918,8 @@ int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType
     return packetStream.device()->pos();
 }
 
-NodeSet DomainServer::nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numPreceedingBytes);
-
-    quint8 numInterestTypes = 0;
-    packetStream >> numInterestTypes;
-
-    quint8 nodeType;
-    NodeSet nodeInterestSet;
-
-    for (int i = 0; i < numInterestTypes; i++) {
-        packetStream >> nodeType;
-        nodeInterestSet.insert((NodeType_t) nodeType);
-    }
-
-    return nodeInterestSet;
-}
-
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
-                                        const NodeSet& nodeInterestList) {
+                                        const NodeSet& nodeInterestSet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     QByteArray broadcastPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainList);
 
@@ -951,7 +933,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
-    if (nodeInterestList.size() > 0) {
+    // store the nodeInterestSet on this DomainServerNodeData, in case it has changed
+    nodeData->setNodeInterestSet(nodeInterestSet);
+
+    if (nodeInterestSet.size() > 0) {
 
 //        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         int dataMTU = MAX_PACKET_SIZE;
@@ -963,7 +948,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 QByteArray nodeByteArray;
                 QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
 
-                if (otherNode->getUUID() != node->getUUID() && nodeInterestList.contains(otherNode->getType())) {
+                if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
 
                     // don't send avatar nodes to other avatars, that will come from avatar mixer
                     nodeDataStream << *otherNode.data();
@@ -1028,7 +1013,13 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     limitedNodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
-            return (node->getLinkedData() && node->getActiveSocket() && node != addedNode);
+            if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
+                // is the added Node in this node's interest list?
+                DomainServerNodeData* nodeData = dynamic_cast<DomainServerNodeData*>(node->getLinkedData());
+                return nodeData->getNodeInterestSet().contains(addedNode->getType());
+            } else {
+                return false;
+            }
         },
         [&](const SharedNodePointer& node) {
             QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
