@@ -1014,7 +1014,7 @@ void EntityItem::setTranformToCenter(const Transform& transform) {
 }
 
 void EntityItem::setDimensions(const glm::vec3& value) {
-    if (value.x == 0.0f || value.y == 0.0f || value.z == 0.0f) {
+    if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
     _transform.setScale(value);

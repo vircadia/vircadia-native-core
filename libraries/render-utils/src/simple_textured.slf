@@ -5,7 +5,7 @@
 //  simple.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/15/14.
+//  Created by Clément Brisset on 5/29/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,14 +14,19 @@
 
 <@include DeferredBufferWrite.slh@>
 
+// the diffuse texture
+uniform sampler2D originalTexture;
+
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
 void main(void) {
+    vec4 texel = texture2D(originalTexture, gl_TexCoord[0].st);
+    
     packDeferredFragment(
-        normalize(interpolatedNormal.xyz), 
-        glowIntensity,
-        gl_Color.rgb,
-        gl_FrontMaterial.specular.rgb,
-        gl_FrontMaterial.shininess);
+         normalize(interpolatedNormal.xyz),
+         glowIntensity * texel.a,
+         gl_Color.rgb * texel.rgb,
+         gl_FrontMaterial.specular.rgb,
+         gl_FrontMaterial.shininess);
 }
