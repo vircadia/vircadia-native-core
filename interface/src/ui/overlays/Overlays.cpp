@@ -16,6 +16,7 @@
 #include <Application.h>
 #include <avatar/AvatarManager.h>
 #include <LODManager.h>
+#include <render/Scene.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -45,7 +46,12 @@ namespace render {
         }
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
-        return static_cast<Overlay*>(overlay.get())->getBounds();
+        if (overlay->is3D()) {
+            return static_cast<Base3DOverlay*>(overlay.get())->getBounds();
+        } else {
+            QRect bounds = static_cast<Overlay2D*>(overlay.get())->getBounds();
+            return AABox(glm::vec3(bounds.x(), bounds.y(), 0.0f), glm::vec3(bounds.width(), bounds.height(), 0.1f));
+        }
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
         if (args) {

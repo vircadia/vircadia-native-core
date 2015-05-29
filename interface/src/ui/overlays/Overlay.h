@@ -57,9 +57,6 @@ public:
     float getGlowLevel();
     Anchor getAnchor() const { return _anchor; }
 
-    virtual AABox getBounds() const = 0;
-
-
     float getPulseMax() const { return _pulseMax; }
     float getPulseMin() const { return _pulseMin; }
     float getPulsePeriod() const { return _pulsePeriod; }
