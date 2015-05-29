@@ -1964,7 +1964,9 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() {
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+#endif
 #ifdef HAVE_FACESHIFT
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->setIsMuted(isMuted);
@@ -3403,7 +3405,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
-    render::Scene::PendingChanges pendingChanges;
+    render::PendingChanges pendingChanges;
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {

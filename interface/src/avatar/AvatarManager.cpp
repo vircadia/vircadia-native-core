@@ -67,7 +67,7 @@ void AvatarManager::init() {
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     static_cast<Avatar*>(_myAvatar.get())->_renderItemID = scene->allocateID();
 
-    render::Scene::PendingChanges pendingChanges;
+    render::PendingChanges pendingChanges;
     pendingChanges.resetItem(static_cast<Avatar*>(_myAvatar.get())->_renderItemID, avatarPayloadPointer);
 
     scene->enqueuePendingChanges(pendingChanges);
@@ -152,7 +152,7 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
     static_cast<Avatar*>(avatar.get())->_renderItemID = scene->allocateID();
 
-    render::Scene::PendingChanges pendingChanges;
+    render::PendingChanges pendingChanges;
     pendingChanges.resetItem(static_cast<Avatar*>(avatar.get())->_renderItemID, avatarPayloadPointer);
 
     scene->enqueuePendingChanges(pendingChanges);
@@ -186,7 +186,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
         }
 
         render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-        render::Scene::PendingChanges pendingChanges;
+        render::PendingChanges pendingChanges;
         pendingChanges.removeItem(avatar->_renderItemID);
         scene->enqueuePendingChanges(pendingChanges);
     }

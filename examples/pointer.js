@@ -67,20 +67,6 @@ var pointerButton = Overlays.addOverlay("image", {
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2.0, Quat.getFront(Camera.getOrientation())));
 center.y += 0.5;
-var whiteBoard = Entities.addEntity({
-  type: "Box",
-  position: center,
-  dimensions: {
-    x: 1,
-    y: 1,
-    z: .001
-  },
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  }
-});
 
 function calculateNearLinePosition(targetPosition) {
   var handPosition = MyAvatar.getRightPalmPosition();
@@ -243,7 +229,6 @@ function keyReleaseEvent(event) {
 }
 
 function cleanup() {
-  Entities.deleteEntity(whiteBoard);
   for (var i = 0; i < strokes.length; i++) {
     Entities.deleteEntity(strokes[i]);
   }

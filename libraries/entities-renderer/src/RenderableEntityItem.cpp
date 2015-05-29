@@ -13,17 +13,17 @@
 #include "RenderableEntityItem.h"
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const RenderableEntityItem::Pointer& payload) { 
+    template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload) { 
         return ItemKey::Builder::opaqueShape();
     }
     
-    template <> const Item::Bound payloadGetBound(const RenderableEntityItem::Pointer& payload) { 
+    template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) { 
         if (payload && payload->entity) {
             return payload->entity->getAABox();
         }
         return render::Item::Bound();
     }
-    template <> void payloadRender(const RenderableEntityItem::Pointer& payload, RenderArgs* args) {
+    template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
         if (args) {
             args->_elementsTouched++;
             if (payload && payload->entity) {
