@@ -31,13 +31,13 @@ private slots:
     void processDatagrams();
     void clearInactivePeers();
 private:
-    
-    void sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, QSet<QUuid>& connections);
-    
+
+    SharedNetworkPeer addOrUpdateHeartbeatingPeer(const QByteArray& incomingPacket);
+    void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
+
     QUuid _id;
     QUdpSocket _serverSocket;
     NetworkPeerHash _activePeers;
-    QHash<QUuid, QSet<QUuid> > _currentConnections;
     HTTPManager _httpManager;
 };
 

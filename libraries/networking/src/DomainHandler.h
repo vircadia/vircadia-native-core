@@ -85,7 +85,9 @@ public slots:
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
+    void completedIceServerHostnameLookup();
     void settingsRequestFinished();
+
 signals:
     void hostnameChanged(const QString& hostname);
 
@@ -96,7 +98,8 @@ signals:
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
-    void requestICEConnectionAttempt();
+    void iceSocketAndIDReceived();
+    void icePeerSocketsReceived();
 
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
