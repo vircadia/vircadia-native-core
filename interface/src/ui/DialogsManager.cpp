@@ -178,11 +178,14 @@ void DialogsManager::showIRCLink() {
 }
 
 void DialogsManager::showDomainConnectionDialog() {
-    if (!_domainConnectionDialog) {
-        // if the dialog already exists we delete it so the connection data is refreshed
-        maybeCreateDialog(_domainConnectionDialog);
-
-        _domainConnectionDialog->show();
-        _domainConnectionDialog->raise();
+    // if the dialog already exists we delete it so the connection data is refreshed
+    if (_domainConnectionDialog) {
+        _domainConnectionDialog->close();
+        _domainConnectionDialog = NULL;
     }
+
+    maybeCreateDialog(_domainConnectionDialog);
+
+    _domainConnectionDialog->show();
+    _domainConnectionDialog->raise();
 }
