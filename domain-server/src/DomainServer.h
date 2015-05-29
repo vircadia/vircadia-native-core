@@ -57,17 +57,17 @@ public slots:
     void restart();
 
 private slots:
+    void aboutToQuit();
+
     void loginFailed();
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void requestCurrentPublicSocketViaSTUN();
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void performICEUpdates();
     void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
     void sendHeartbeatToIceServer();
-    void sendICEPingPackets();
+    void handlePeerPingTimeout();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
@@ -80,7 +80,9 @@ private:
     void setupAutomaticNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
     void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    void processICEHeartbeatResponse(const QByteArray& packet);
+    void processICEPeerInformation(const QByteArray& packet);
+
+    void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
 
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
@@ -98,9 +100,11 @@ private:
                                    HifiSockAddr& publicSockAddr,
                                    HifiSockAddr& localSockAddr,
                                    const HifiSockAddr& senderSockAddr);
-    NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
-                              const NodeSet& nodeInterestList);
+                              const NodeSet& nodeInterestSet);
+
+    QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
+    void broadcastNewNode(const SharedNodePointer& node);
 
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
@@ -151,8 +155,7 @@ private:
 
     QHash<QString, QByteArray> _userPublicKeys;
 
-    QHash<QUuid, NetworkPeer> _connectingICEPeers;
-    QHash<QUuid, HifiSockAddr> _connectedICEPeers;
+    QHash<QUuid, SharedNetworkPeer> _icePeers;
 
     QString _automaticNetworkingSetting;
 
