@@ -653,15 +653,15 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     // lastEdited
     quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    assert(lastEditedInLocalTime > 0);
     quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
-    #ifdef WANT_DEBUG
+    #if 1 //def WANT_DEBUG
         qCDebug(entities, "EntityItem::adjustEditPacketForClockSkew()...");
         qCDebug(entities) << "     lastEditedInLocalTime: " << lastEditedInLocalTime;
         qCDebug(entities) << "                 clockSkew: " << clockSkew;
         qCDebug(entities) << "    lastEditedInServerTime: " << lastEditedInServerTime;
     #endif
+    //assert(lastEditedInLocalTime > (quint64)0);
 }
 
 float EntityItem::computeMass() const {

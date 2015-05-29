@@ -48,6 +48,7 @@ class ViewFrustum;
 namespace render {
     class Scene;
     class PendingChanges;
+    typedef unsigned int ItemID;
 }
 class OpaqueMeshPart;
 class TransparentMeshPart;
@@ -114,6 +115,7 @@ public:
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
     bool render(RenderArgs* renderArgs, float alpha = 1.0f);
+    void renderSetup(RenderArgs* args);
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
@@ -121,6 +123,7 @@ public:
     static void endScene(RenderArgs* args);
 
     // new Scene/Engine rendering support
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
@@ -392,7 +395,6 @@ private:
     static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     // helper functions used by render() or renderInScene()
-    void renderSetup(RenderArgs* args);
     bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
@@ -537,6 +539,7 @@ private:
     
     QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
+    QSet<render::ItemID> _renderItems;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

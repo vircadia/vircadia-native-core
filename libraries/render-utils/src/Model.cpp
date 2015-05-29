@@ -765,6 +765,68 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
+
+class TransparentMeshPart {
+public:
+    TransparentMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<TransparentMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+        return ItemKey::Builder::transparentShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
+        if (payload) {
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
+        }
+    }
+}
+
+class OpaqueMeshPart {
+public:
+    OpaqueMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<OpaqueMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
+        if (payload) {
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
+        }
+    }
+}
+
+
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     bool somethingAdded = false;
     // allow the attachments to add to scene
@@ -773,7 +835,24 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         somethingAdded = somethingAdded || attachementSomethingAdded;
     }
     
-    // TODO --- need to do something here
+    foreach (auto renderItem, _transparentRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = TransparentMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems << item;
+        qDebug() << "Model::addToScene() added transparent item:" << item;
+        somethingAdded = true;
+    }
+    foreach (auto renderItem, _opaqueRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = OpaqueMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems << item;
+        qDebug() << "Model::addToScene() added opaque item:" << item;
+        somethingAdded = true;
+    }
 
     return somethingAdded;
 }
@@ -784,8 +863,10 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         attachment->removeFromScene(scene, pendingChanges);
     }
 
-    // TODO --- need to do something here
-
+    foreach (auto item, _renderItems) {
+        pendingChanges.removeItem(item);
+    }
+    _renderItems.clear();
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
@@ -2091,70 +2172,13 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
     return true;
 }
 
-class TransparentMeshPart {
-public:
-    TransparentMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
-    typedef render::Payload<TransparentMeshPart> Payload;
-    typedef Payload::DataPointer Pointer;
-   
-    Model* model;   
-    int meshIndex;
-    int partIndex;
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
-        return ItemKey::Builder::transparentShape();
-    }
-    
-    template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
-        if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            args->_elementsTouched++;
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
-        }
-    }
-}
-
-class OpaqueMeshPart {
-public:
-    OpaqueMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
-    typedef render::Payload<OpaqueMeshPart> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    Model* model;   
-    int meshIndex;
-    int partIndex;
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
-        return ItemKey::Builder::opaqueShape();
-    }
-    
-    template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
-        if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            args->_elementsTouched++;
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
-        }
-    }
-}
-
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     AABox partBox = mesh._mesh.evalPartBound(partIndex);
+    
+    // FIX ME! 
+    // TODO: needs to translate to world space, these values are in model space
     return partBox;
 }
 
@@ -2351,17 +2375,17 @@ void Model::segregateMeshGroups() {
         }
 
         // Debug...
-        //qDebug() << "Mesh parts..." << mesh._mesh.getNumParts();
+        qDebug() << "Mesh parts... for " << _url << " count:" << mesh._mesh.getNumParts();
         int totalParts = mesh._mesh.getNumParts();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             AABox boxPart = mesh._mesh.evalPartBound(partIndex);
 
             // this is a good place to create our renderPayloads
             if (translucentMesh) {
-                //qDebug() << "Transparent Mesh parts[" << partIndex << "].box=" << boxPart;
+                qDebug() << "Transparent Mesh parts[" << partIndex << "].box=" << boxPart;
                 _transparentRenderItems << std::shared_ptr<TransparentMeshPart>(new TransparentMeshPart(this, i, partIndex));
             } else {
-                //qDebug() << "Opaque Mesh parts[" << partIndex << "].box=" << boxPart;
+                qDebug() << "Opaque Mesh parts[" << partIndex << "].box=" << boxPart;
                 _opaqueRenderItems << std::shared_ptr<OpaqueMeshPart>(new OpaqueMeshPart(this, i, partIndex));
             }
         }

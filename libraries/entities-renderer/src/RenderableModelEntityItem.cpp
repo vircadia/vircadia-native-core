@@ -116,7 +116,22 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         qDebug() << "RenderableModelEntityItem::readyToAddToScene().... renderer:" << renderer; 
         getModel(renderer);
     }
-    bool ready = (bool)_model;
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive()) {
+        qDebug() << "RenderableModelEntityItem::readyToAddToScene().... doing initial simulation";
+        _model->renderSetup(renderArgs);
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+        _needsInitialSimulation = false;
+    }
+    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
     qDebug() << "RenderableModelEntityItem::readyToAddToScene().... id:" << getEntityItemID() 
                     << "ready:" << ready << "renderArgs:" << renderArgs;
     return ready; 
@@ -125,14 +140,18 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
     qDebug() << "RenderableModelEntityItem::addToScene().... id:" << getEntityItemID();
+    if (_model) {
+        return _model->addToScene(scene, pendingChanges);
+    }
     return false; 
 }
     
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                                 render::PendingChanges& pendingChanges) {
     qDebug() << "RenderableModelEntityItem::removeFromScene().... id:" << getEntityItemID();
-                                                
-                                                
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
 }
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
