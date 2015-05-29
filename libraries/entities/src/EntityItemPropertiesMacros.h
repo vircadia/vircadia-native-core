@@ -98,20 +98,10 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { retu
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, QDateTime v) {
-    auto utcV = v;
-    utcV.setTimeSpec(Qt::OffsetFromUTC);
-    auto result = QScriptValue(utcV.toString(Qt::ISODate));
-    return result;
-}
-
-
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
     return QScriptValue(QString(b64));
 }
-
-
 
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \

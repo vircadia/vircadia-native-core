@@ -179,7 +179,6 @@ QString EntityItemProperties::getAnimationSettings() const {
 
 void EntityItemProperties::setCreated(QDateTime v) {
     QDateTime utcV = v;
-    // utcV.setTimeSpec(Qt::OffsetFromUTC);
     _created = utcV.toMSecsSinceEpoch() * 1000; // usec per msec
     qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
 }
@@ -384,7 +383,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
     created.setTimeSpec(Qt::OffsetFromUTC);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created.toString(Qt::ISODate));
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
     COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
