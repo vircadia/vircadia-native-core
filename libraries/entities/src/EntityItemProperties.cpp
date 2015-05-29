@@ -753,8 +753,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
             
             if(properties.getType() == EntityTypes::Line){
+                qDebug()<<"****** LINE WIDTH!!!!!!!!!!!!!!! **********" << properties.getLineWidth();
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
+//                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
@@ -992,8 +993,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
     
     if(properties.getType() == EntityTypes::Line) {
+        qDebug()<<"READING LINE ENTITY";
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+        qDebug()<<"width: "<< properties._lineWidth;
+//        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     }
     
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1100,6 +1103,8 @@ void EntityItemProperties::markAllChanged() {
     _skybox.markAllChanged();
     
     _sourceUrlChanged = true;
+    
+    _lineWidthChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

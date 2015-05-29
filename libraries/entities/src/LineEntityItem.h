@@ -52,7 +52,6 @@ class LineEntityItem : public EntityItem {
     }
     
     void setLineWidth(float lineWidth){
-        
         _lineWidth = lineWidth;
     }
     float getLineWidth() const{

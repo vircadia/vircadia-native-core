@@ -42,13 +42,16 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
 }
 
 EntityItemProperties LineEntityItem::getProperties() const {
+    
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     
     properties._color = getXColor();
     properties._colorChanged = false;
+    
+    properties._lineWidth = getLineWidth();
+    properties._lineWidthChanged = false;
 
 
     properties._glowLevel = getGlowLevel();
@@ -60,7 +63,7 @@ EntityItemProperties LineEntityItem::getProperties() const {
 bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-
+    
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
@@ -88,7 +91,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+//    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     
 
     return bytesRead;
@@ -99,6 +102,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags LineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_LINE_WIDTH;
     return requestedProperties;
 }
 

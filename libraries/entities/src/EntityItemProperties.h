@@ -141,7 +141,7 @@ public:
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
-    DEFINE_PROPERTY(LINE_WIDTH, LineWidth, lineWidth, float);
+    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
 
     static QString getBackgroundModeString(BackgroundMode mode);
