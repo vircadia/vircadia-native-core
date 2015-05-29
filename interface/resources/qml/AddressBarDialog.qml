@@ -1,91 +1,124 @@
 import Hifi 1.0
 import QtQuick 2.3
+import QtQuick.Controls 1.2
 import "controls"
 import "styles"
 
-Dialog {
+Item {
     id: root
     HifiConstants { id: hifi }
-    
-    title: "Go to..."
+
     objectName: "AddressBarDialog"
-    contentImplicitWidth: addressBarDialog.implicitWidth
-    contentImplicitHeight: addressBarDialog.implicitHeight
-    destroyOnCloseButton: false
 
+    property int animationDuration: hifi.effects.fadeInDuration
+    property bool destroyOnInvisible: false
+    property bool destroyOnCloseButton: true
 
-    onVisibleChanged: {
-        if (!visible) {
-            reset();
-        } 
-    }
+    implicitWidth: addressBarDialog.implicitWidth
+    implicitHeight: addressBarDialog.implicitHeight
+
+    x: parent ? parent.width / 2 - width / 2 : 0
+    y: parent ? parent.height / 2 - height / 2 : 0
+
+    AddressBarDialog {
+        id: addressBarDialog
+
+		implicitWidth: box.width
+		implicitHeight: addressLine.height + hifi.layout.spacing * 2
+
+        Border {
+			id: box
+
+            width: 512
+            height: parent.height
+            border.width: 0
+            radius: 6
+            color: "#ededee"
+
+			MouseArea {
+				id: boxDrag
+
+                anchors.fill: parent
+
+                drag {
+					target: root
+					minimumX: 0
+					minimumY: 0
+                    maximumX: root.parent ? root.parent.width - root.width : 0
+                    maximumY: root.parent ? root.parent.height - root.height : 0
+				}
+			}
+
+            TextInput {
+				id: addressLine
+
+                anchors.fill: parent
+                anchors.leftMargin: hifi.layout.spacing * 2
+                anchors.rightMargin: hifi.layout.spacing * 2
+                anchors.topMargin: hifi.layout.spacing
+                anchors.bottomMargin: hifi.layout.spacing
+
+                font.pointSize: 15
+                helperText: "Go to: place, @user, /path, network address"
+
+                onAccepted: {
+					event.accepted
+					addressBarDialog.loadAddress(addressLine.text)
+				}
+			}
+		}
+	}
+
+    // The UI enables an object, rather than manipulating its visibility, so that we can do animations in both directions. 
+	// Because visibility and enabled are booleans, they cannot be animated. So when enabled is changed, we modify a property 
+	// that can be animated, like scale or opacity, and then when the target animation value is reached, we can modify the 
+	// visibility.
+    enabled: false
+    opacity: 1.0
 
     onEnabledChanged: {
+        opacity = enabled ? 1.0 : 0.0
         if (enabled) {
             addressLine.forceActiveFocus();
         }
     }
-    onParentChanged: {
-        if (enabled && visible) {
-            addressLine.forceActiveFocus();
+
+    Behavior on opacity {
+        // Animate opacity.
+        NumberAnimation {
+            duration: animationDuration
+            easing.type: Easing.OutCubic
         }
+    }
+
+    onOpacityChanged: {
+	    // Once we're transparent, disable the dialog's visibility.
+        visible = (opacity != 0.0)
+    }
+
+    onVisibleChanged: {
+        if (!visible) {
+            reset()
+
+			// Some dialogs should be destroyed when they become invisible.
+			if (destroyOnInvisible) {
+				destroy()
+			}
+        }
+
+    }
+
+    function close() {
+	    // The close function performs the same way as the OffscreenUI class: don't do anything but manipulate the enabled flag 
+		// and let the other mechanisms decide if the window should be destroyed after the close animation completes.
+        if (destroyOnCloseButton) {
+            destroyOnInvisible = true
+        }
+        enabled = false
     }
 
     function reset() {
         addressLine.text = ""
-        goButton.source = "../images/address-bar-submit.svg"
-    }
-
-    AddressBarDialog {
-        id: addressBarDialog
-        // The client area
-        x: root.clientX
-        y: root.clientY
-        implicitWidth: 512
-        implicitHeight: border.height + hifi.layout.spacing * 4
-
-
-        Border {
-            id: border
-            height: 64
-            anchors.left: parent.left
-            anchors.leftMargin: hifi.layout.spacing * 2
-            anchors.right: goButton.left
-            anchors.rightMargin: hifi.layout.spacing
-            anchors.verticalCenter: parent.verticalCenter
-            TextInput {
-                id: addressLine
-                anchors.fill: parent
-                helperText: "domain, location, @user, /x,y,z"
-                anchors.margins: hifi.layout.spacing
-                onAccepted: {
-                    event.accepted
-                    addressBarDialog.loadAddress(addressLine.text)
-                }
-            }
-        }
-
-        Image {
-            id: goButton
-            width: 32
-            height: 32
-            anchors.right: parent.right
-            anchors.rightMargin: hifi.layout.spacing * 2
-            source: "../images/address-bar-submit.svg"
-            anchors.verticalCenter: parent.verticalCenter
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    parent.source = "../images/address-bar-submit-active.svg"
-                    addressBarDialog.loadAddress(addressLine.text)
-                }
-            }
-        }
-    }
-    
-    Keys.onEscapePressed: {
-        enabled = false;
     }
 
     function toggleOrGo() {
@@ -95,8 +128,22 @@ Dialog {
             addressBarDialog.loadAddress(addressLine.text)
         }
     }
-    
+
+    Keys.onEscapePressed: {
+        enabled = false
+    }
+
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_W:
+                if (event.modifiers == Qt.ControlModifier) {
+                    event.accepted = true
+                    enabled = false
+                }
+                break
+        }
+    }
+
     Keys.onReturnPressed: toggleOrGo()
     Keys.onEnterPressed: toggleOrGo()
 }
-
