@@ -7,11 +7,16 @@
 //
 #include "OculusWin32DisplayPlugin.h"
 
+#include <memory>
+#include <GLMHelpers.h>
 
 #include <OVR_CAPI_GL.h>
 
+#include "../OglplusHelpers.h"
+
+#if 0
 bool OculusWin32DisplayPlugin::isSupported() {
-    ovr_Initialize();
+    ovr_Initialize(nullptr);
     bool result = false;
     if (ovrHmd_Detect() != 0) {
         result = true;
@@ -29,7 +34,7 @@ bool OculusWin32DisplayPlugin::isSupported() {
 // the screen.
 template <typename C = GLuint, typename D = GLuint>
 struct FramebufferWrapper {
-    glm::uvec2  size;
+    uvec2  size;
     oglplus::Framebuffer fbo;
     C           color{ 0 };
     GLuint      depth{ 0 };
@@ -198,3 +203,4 @@ private:
 };
 
 using MirrorFboPtr = std::shared_ptr<MirrorFramebufferWrapper>;
+#endif

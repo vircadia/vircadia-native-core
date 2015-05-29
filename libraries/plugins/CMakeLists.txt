@@ -1,7 +1,7 @@
 set(TARGET_NAME plugins)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-setup_hifi_library(OpenGL Network Qml Quick Script XmlPatterns)
+setup_hifi_library(OpenGL)
 
 link_hifi_libraries(shared)
 

@@ -1,7 +1,5 @@
 //
-//  DisplayPlugin.h
-//
-//  Created by Bradley Austin Davis on 2014/04/13.
+//  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -46,28 +44,43 @@ void for_each_eye(F f, FF ff) {
     f(Eye::Right);
 }
 
+class QWindow;
+
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
     virtual bool isHmd() const { return false; }
-    virtual bool isStereo() const { return false; }
+    /// By default, all HMDs are stereo
+    virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
 
     // Rendering support
-    virtual void preRender() {};
 
-    virtual void preDisplay() {
-        makeCurrent();
-    };
-
+    /**
+     *  Called by the application before the frame rendering.  Can be used for
+     *  render timing related calls (for instance, the Oculus begin frame timing
+     *  call)
+     */
+    virtual void preRender() = 0;
+    /**
+     *  Called by the application immediately before calling the display function.
+     *  For OpenGL based plugins, this is the best place to put activate the output
+     *  OpenGL context
+     */
+    virtual void preDisplay() = 0;
+    /**
+     *  Sends the scene texture and the overlay texture to the display plugin.
+     *  The plugin is responsible for compositing these and adding rendering of
+     *  additional elements like mouse and hydra pointers as required
+     */
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
                          GLuint overlayTexture, const glm::uvec2& overlaySize) = 0;
+    /**
+     *  Called by the application immeidately after display.  For OpenGL based
+     *  displays, this is the best place to put the buffer swap
+     */
+    virtual void finishFrame() = 0;
 
-    virtual void finishFrame() {
-        swapBuffers();
-        doneCurrent();
-    };
-    
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
     // The size of the rendering surface
@@ -76,13 +89,15 @@ public:
     virtual QSize getRecommendedFramebufferSize() const { return getDeviceSize(); };
     // The size of the window (differs from the framebuffers size in instances like Retina macs)
     virtual glm::ivec2 getCanvasSize() const = 0;
+    // The window for the surface, used for event interception.  May be null.
+    virtual QWindow* getWindow() const = 0;
 
     // The mouse position relative to the window (or proxy window) surface
     virtual glm::ivec2 getTrueMousePosition() const = 0;
 
     // The mouse position relative to the UI elements
     virtual glm::ivec2 getUiMousePosition() const {
-        return trueMouseToUiMouse(getTrueMousePosition()); 
+        return trueMouseToUiMouse(getTrueMousePosition());
     }
 
     virtual std::function<QPointF(const QPointF&)> getMouseTranslator() { return [](const QPointF& p) { return p; }; };
@@ -123,10 +138,5 @@ public:
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     void requestRender();
-
-protected:
-    virtual void makeCurrent() {}
-    virtual void doneCurrent() {}
-    virtual void swapBuffers() {}
 };
 

@@ -19,38 +19,46 @@ const QString & LegacyDisplayPlugin::getName() {
     return NAME;
 }
 
+LegacyDisplayPlugin::LegacyDisplayPlugin() {
+    connect(&_timer, &QTimer::timeout, this, [&] {
+        emit requestRender();
+    });
+}
+
 static QWidget * oldWidget = nullptr;
 
-void LegacyDisplayPlugin::activate() {
+void LegacyDisplayPlugin::activate(PluginContainer * container) {
     _window = new GLCanvas();
 
     QOpenGLContext * sourceContext = QOpenGLContext::currentContext();
-    QSurfaceFormat format;
-    format.setOption(QSurfaceFormat::DebugContext);
 
 
     QOpenGLContext * newContext = new QOpenGLContext();
-    newContext->setFormat(format);
+
+    {
+        QSurfaceFormat format;
+        format.setOption(QSurfaceFormat::DebugContext);
+        newContext->setFormat(format);
+    }
+
     _window->setContext(
         QGLContext::fromOpenGLContext(newContext),
         QGLContext::fromOpenGLContext(sourceContext));
-    _window->makeCurrent();
-
     oldWidget = qApp->getWindow()->centralWidget();
+
+    // FIXME necessary?
+    makeCurrent();
     qApp->getWindow()->setCentralWidget(_window);
-    _window->doneCurrent();
+    doneCurrent();
     _window->setFocusPolicy(Qt::StrongFocus);
     _window->setFocus();
     _window->setMouseTracking(true);
-
-    _window->installEventFilter(qApp);
-    _window->installEventFilter(DependencyManager::get<OffscreenUi>().data());
-
-    DependencyManager::get<OffscreenUi>()->setProxyWindow(_window->windowHandle());
-    SimpleDisplayPlugin::activate();
+    _timer.start(8);
 }
 
+
 void LegacyDisplayPlugin::deactivate() {
+    _timer.stop();
     _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
     _window->removeEventFilter(qApp);
     // FIXME, during shutdown, this causes an NPE.  Need to deactivate the plugin before the main window is destroyed.
@@ -84,16 +92,32 @@ PickRay LegacyDisplayPlugin::computePickRay(const glm::vec2 & pos) const {
     return PickRay();
 }
 
-bool isMouseOnScreen() {
-    return false;
-}
-
 void LegacyDisplayPlugin::preDisplay() {
-    SimpleDisplayPlugin::preDisplay();
+    OpenGlDisplayPlugin::preDisplay();
     auto size = toGlm(_window->size());
     glViewport(0, 0, size.x, size.y);
 }
 
 bool LegacyDisplayPlugin::isThrottled() const {
     return _window->isThrottleRendering();
+}
+
+void LegacyDisplayPlugin::makeCurrent() {
+    _window->makeCurrent();
+}
+
+void LegacyDisplayPlugin::doneCurrent() {
+    _window->doneCurrent();
+}
+
+void LegacyDisplayPlugin::swapBuffers() {
+    _window->swapBuffers();
+}
+
+ivec2 LegacyDisplayPlugin::getTrueMousePosition() const {
+    return toGlm(_window->mapFromGlobal(QCursor::pos()));
+}
+
+QWindow* LegacyDisplayPlugin::getWindow() const {
+    return _window->windowHandle();
 }

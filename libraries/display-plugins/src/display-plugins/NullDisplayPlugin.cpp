@@ -42,3 +42,16 @@ PickRay NullDisplayPlugin::computePickRay(const glm::vec2 & pos) const {
 bool NullDisplayPlugin::isMouseOnScreen() const {
     return false;
 }
+
+QWindow* NullDisplayPlugin::getWindow() const {
+    return nullptr;
+}
+
+void NullDisplayPlugin::preRender() {}
+void NullDisplayPlugin::preDisplay() {}
+void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize,
+    GLuint overlayTexture, const glm::uvec2& overlaySize) {}
+void NullDisplayPlugin::finishFrame() {}
+
+void NullDisplayPlugin::activate(PluginContainer * container) {}
+void NullDisplayPlugin::deactivate() {}

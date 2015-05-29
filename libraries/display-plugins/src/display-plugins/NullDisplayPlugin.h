@@ -1,7 +1,5 @@
 //
-//  NullDisplayPlugin.h
-//
-//  Created by Bradley Austin Davis on 2014/04/13.
+//  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -18,6 +16,9 @@ public:
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName();
 
+    void activate(PluginContainer * container);
+    void deactivate();
+
     virtual QSize getDeviceSize() const;
     virtual glm::ivec2 getCanvasSize() const;
     virtual bool hasFocus() const;
@@ -25,8 +26,11 @@ public:
     virtual glm::ivec2 getTrueMousePosition() const;
     virtual PickRay computePickRay(const glm::vec2 & pos) const;
     virtual bool isMouseOnScreen() const;
-
+    virtual QWindow* getWindow() const;
+    virtual void preRender();
+    virtual void preDisplay();
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-                         GLuint overlayTexture, const glm::uvec2& overlaySize) {};
+        GLuint overlayTexture, const glm::uvec2& overlaySize);
+    virtual void finishFrame();
 
 };

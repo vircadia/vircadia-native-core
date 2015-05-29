@@ -128,25 +128,6 @@ add_dependency_external_projects(glm bullet)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
-add_dependency_external_projects(boostconfig)
-find_package(BOOSTCONFIG REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
-
-add_dependency_external_projects(oglplus)
-find_package(OGLPLUS REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
-
-
-add_dependency_external_projects(LibOVR)
-find_package(LibOVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
-
-add_dependency_external_projects(OpenVR)
-find_package(OpenVR REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
-
 find_package(Bullet REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
@@ -154,7 +135,7 @@ target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
-                    render-utils entities-renderer ui)
+                    render-utils entities-renderer ui plugins display-plugins)
 
 add_dependency_external_projects(sdl2)
 

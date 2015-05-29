@@ -1,7 +1,5 @@
 //
-//  WindowDisplayPlugin.h
-//
-//  Created by Bradley Austin Davis on 2014/04/13.
+//  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -9,10 +7,7 @@
 //
 #pragma once
 
-#include "SimpleDisplayPlugin.h"
-
-#include <GlWindow.h>
-#include <QTimer>
+#include "GlWindowDisplayPlugin.h"
 
 class WindowDisplayPlugin : public GlWindowDisplayPlugin {
     Q_OBJECT
@@ -22,9 +17,5 @@ public:
     WindowDisplayPlugin();
 
     virtual const QString & getName();
-
-    virtual void activate();
-    virtual void deactivate();
 private:
-    QTimer _timer;
 };

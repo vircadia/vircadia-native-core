@@ -116,7 +116,7 @@
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
 
-#include "plugins/display/DisplayPlugin.h"
+#include <display-plugins/DisplayPlugin.h>
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -4582,12 +4582,11 @@ qreal Application::getDevicePixelRatio() {
 
 using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
 
-#include "plugins/display/NullDisplayPlugin.h"
-#include "plugins/display/WindowDisplayPlugin.h"
-#include "plugins/display/LegacyDisplayPlugin.h"
-#include "plugins/display/OculusDisplayPlugin.h"
-#include "plugins/display/Tv3dDisplayPlugin.h"
-#include "plugins/display/WindowDisplayPlugin.h"
+#include <display-plugins/NullDisplayPlugin.h>
+#include "LegacyDisplayPlugin.h"
+//#include <display-plugins/Oculus.h>
+#include <display-plugins/Tv3dDisplayPlugin.h>
+//#include <display-plugins/WindowDisplayPlugin.h>
 
 static DisplayPluginPointer _displayPlugin{ nullptr };
 
@@ -4631,7 +4630,7 @@ static DisplayPlugin* PLUGIN_POOL[] = {
     new NullDisplayPlugin(),
 #endif
     new Tv3dDisplayPlugin(),
-    new WindowDisplayPlugin(),
+//    new WindowDisplayPlugin(),
     nullptr
 };
 
@@ -4674,9 +4673,17 @@ void Application::updateDisplayMode() {
     if (_displayPlugin != newDisplayPlugin) {
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
-            newDisplayPlugin->activate();
+            newDisplayPlugin->activate(this);
+            QWindow* pluginWindow = newDisplayPlugin->getWindow();
+            if (pluginWindow) {
+                //  Event filter queue is 'last in, first used'
+                pluginWindow->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+                pluginWindow->installEventFilter(qApp);
+                DependencyManager::get<OffscreenUi>()->setProxyWindow(pluginWindow);
+            }
             _offscreenContext->makeCurrent();
         }
+
         std::swap(newDisplayPlugin, _displayPlugin);
         if (newDisplayPlugin) {
             newDisplayPlugin->deactivate();
@@ -4694,3 +4701,6 @@ glm::ivec2 Application::getMouse() const {
     return getActiveDisplayPlugin()->getUiMousePosition();
 }
 
+void Application::addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
+
+}

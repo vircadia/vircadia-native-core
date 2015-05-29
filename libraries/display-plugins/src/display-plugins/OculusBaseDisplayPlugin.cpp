@@ -1,7 +1,5 @@
 //
-//  OculusBaseDisplayPlugin.cpp
-//
-//  Created by Bradley Austin Davis on 2014/04/13.
+//  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -11,10 +9,9 @@
 
 #include <ViewFrustum.h>
 
-#include "OculusHelpers.h"
+#include "../OculusHelpers.h"
 
-
-void OculusBaseDisplayPlugin::activate() {
+void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
     ovr_for_each_eye([&](ovrEyeType eye) {
         ovrEyeRenderDesc erd = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
         ovrMatrix4f ovrPerspectiveProjection =

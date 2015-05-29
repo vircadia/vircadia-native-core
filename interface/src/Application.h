@@ -40,6 +40,7 @@
 #include <StDev.h>
 #include <TextureCache.h>
 #include <ViewFrustum.h>
+#include <plugins/PluginContainer.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -136,7 +137,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
+class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface, PluginContainer {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -280,6 +281,8 @@ public:
     QImage renderAvatarBillboard();
 
     void displaySide(const Camera& camera, bool selfAvatarOnly = false);
+    
+    virtual void addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
 
 /*
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as

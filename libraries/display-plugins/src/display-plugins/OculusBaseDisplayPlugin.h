@@ -1,7 +1,5 @@
 //
-//  OculusBaseDisplayPlugin.h
-//
-//  Created by Bradley Austin Davis on 2014/04/13.
+//  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -9,16 +7,17 @@
 //
 #pragma once
 
-#include "HmdDisplayPlugin.h"
+#include "DisplayPlugin.h"
 
 #include <OVR_CAPI.h>
 
-class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
+class OculusBaseDisplayPlugin : public DisplayPlugin {
 public:
     // Stereo specific methods
+    virtual bool isHmd() const { return true; }
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const;
     virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const;
-    virtual void activate();
+    virtual void activate(PluginContainer * container);
     virtual void deactivate();
     virtual void preRender();
     virtual void configureRendering() = 0;

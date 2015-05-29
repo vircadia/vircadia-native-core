@@ -34,7 +34,6 @@
 #include <UserActivityLogger.h>
 
 #include "Application.h"
-#include "plugins/display/DisplayPlugin.h"
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
