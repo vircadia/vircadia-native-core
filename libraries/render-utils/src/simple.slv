@@ -20,6 +20,8 @@
 varying vec4 interpolatedNormal;
 
 void main(void) {
+    gl_TexCoord[0] = gl_MultiTexCoord0;
+    
     // pass along the diffuse color
     gl_FrontColor = gl_Color;
     

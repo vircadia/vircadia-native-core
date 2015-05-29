@@ -358,6 +358,7 @@ protected:
 
     void do_glBindTexture(Batch& batch, uint32 paramOffset);
     void do_glActiveTexture(Batch& batch, uint32 paramOffset);
+    void do_glTexParameteri(Batch& batch, uint32 paramOffset);
 
     void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
 
