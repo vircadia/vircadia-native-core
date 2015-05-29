@@ -14,6 +14,8 @@
 
 <@include DeferredBufferWrite.slh@>
 
+uniform float glowIntensity;
+
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
