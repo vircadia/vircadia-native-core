@@ -129,55 +129,9 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 
             glDisable(GL_LIGHTING);
             glDisable(GL_DEPTH_TEST);
-        } else{
+        } else {
             thisOverlay->render(renderArgs);
         }
-    }
-}
-
-void Overlays::renderWorld(RenderArgs* renderArgs, bool drawFront) {
-    return;
-    QReadLocker lock(&_lock);
-    if (_overlaysWorld.size() == 0) {
-        return;
-    }
-    bool myAvatarComputed = false;
-    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    glm::quat myAvatarRotation;
-    glm::vec3 myAvatarPosition(0.0f);
-    float angle = 0.0f;
-    glm::vec3 axis(0.0f, 1.0f, 0.0f);
-    float myAvatarScale = 1.0f;
-    
-    auto lodManager = DependencyManager::get<LODManager>();
-
-    foreach(Overlay::Pointer thisOverlay, _overlaysWorld) {
-        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay.get());
-        if (overlay3D->getDrawInFront() != drawFront) {
-            continue;
-        }
-        glPushMatrix();
-        switch (thisOverlay->getAnchor()) {
-            case Overlay::MY_AVATAR:
-                if (!myAvatarComputed) {
-                    myAvatarRotation = avatar->getOrientation();
-                    myAvatarPosition = avatar->getPosition();
-                    angle = glm::degrees(glm::angle(myAvatarRotation));
-                    axis = glm::axis(myAvatarRotation);
-                    myAvatarScale = avatar->getScale();
-                    
-                    myAvatarComputed = true;
-                }
-                
-                glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
-                break;
-            default:
-                break;
-        }
-        thisOverlay->render(renderArgs);
-        glPopMatrix();
     }
 }
 
