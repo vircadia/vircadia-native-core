@@ -958,15 +958,22 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         #endif
         setLastEdited(now);
         somethingChangedNotification(); // notify derived classes that something has changed
-        if (_created == UNKNOWN_CREATED_TIME) {
-            _created = now;
-        }
         if (getDirtyFlags() & (EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES)) {
             // anything that sets the transform or velocity must update _lastSimulated which is used
             // for kinematic extrapolation (e.g. we want to extrapolate forward from this moment
             // when position and/or velocity was changed).
             _lastSimulated = now;
         }
+    }
+
+    // timestamps
+    quint64 timestamp = properties.getCreated();
+    if (_created == UNKNOWN_CREATED_TIME && timestamp != UNKNOWN_CREATED_TIME) {
+        quint64 now = usecTimestampNow();
+        if (timestamp > now) {
+            timestamp = now;
+        }
+        _created = timestamp;
     }
 
     return somethingChanged;

@@ -15,7 +15,7 @@ namespace MeshMassPropertiesTests{
     void testParallelAxisTheorem();
     void testTetrahedron();
     void testOpenTetrahedonMesh();
-	void testClosedTetrahedronMesh();
+    void testClosedTetrahedronMesh();
     void testBoxAsMesh();
     void runAllTests();
 }
