@@ -24,13 +24,13 @@
 
 inline bool isValidScale(glm::vec3 scale) {
     bool result = scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f;
-    // assert(result);
+    assert(result);
     return result;
 }
 
 inline bool isValidScale(float scale) {
     bool result = scale != 0.0f;
-    // assert(result);
+    assert(result);
     return result;
 }
 
