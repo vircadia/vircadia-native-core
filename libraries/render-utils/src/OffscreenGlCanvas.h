@@ -31,7 +31,7 @@ protected:
     QOpenGLContext _context;
     QOffscreenSurface _offscreenSurface;
 #ifdef DEBUG
-    QOpenGLDebugLogger * _logger{ nullptr };
+    QOpenGLDebugLogger* _logger{ nullptr };
 #endif
 
 };

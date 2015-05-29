@@ -11,23 +11,22 @@
 #define hifi_GlWindow_h
 
 #include <QWindow>
-#include <QSurfaceFormat>
 
 class QOpenGLContext;
 class QOpenGLDebugLogger;
 
 class GlWindow : public QWindow {
 public:
-    GlWindow(QOpenGLContext * shareContext = nullptr);
-    GlWindow(const QSurfaceFormat& format, QOpenGLContext * shareContext = nullptr);
+    GlWindow(QOpenGLContext* shareContext = nullptr);
+    GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext = nullptr);
     virtual ~GlWindow();
     void makeCurrent();
     void doneCurrent();
     void swapBuffers();
 private:
-    QOpenGLContext * _context{ nullptr };
+    QOpenGLContext* _context{ nullptr };
 #ifdef DEBUG
-    QOpenGLDebugLogger * _logger{ nullptr };
+    QOpenGLDebugLogger* _logger{ nullptr };
 #endif
 };
 
