@@ -194,6 +194,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     auto mesh = _modelGeometry.getMesh();
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
     batch.setModelTransform(transformToCenter);
     batch.setInputFormat(mesh->getVertexFormat());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
