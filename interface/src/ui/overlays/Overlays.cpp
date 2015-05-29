@@ -83,6 +83,13 @@ Overlays::~Overlays() {
     
     {
         QWriteLocker lock(&_lock);
+        QWriteLocker deleteLock(&_deleteLock);
+        foreach(Overlay::Pointer overlay, _overlaysHUD) {
+            _overlaysToDelete.push_back(overlay);
+        }
+        foreach(Overlay::Pointer overlay, _overlaysWorld) {
+            _overlaysToDelete.push_back(overlay);
+        }
         _overlaysHUD.clear();
         _overlaysWorld.clear();
     }
@@ -111,17 +118,20 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
         render::PendingChanges pendingChanges;
 
-        do {
-            Overlay::Pointer overlay = _overlaysToDelete.takeLast();
+        {
+            QWriteLocker lock(&_deleteLock);
 
-            auto itemID = overlay->getRenderItemID();
-            if (itemID != render::Item::INVALID_ITEM_ID) {
-                pendingChanges.removeItem(itemID);
-            }
-        } while (!_overlaysToDelete.isEmpty());
+            do {
+                Overlay::Pointer overlay = _overlaysToDelete.takeLast();
+
+                auto itemID = overlay->getRenderItemID();
+                if (itemID != render::Item::INVALID_ITEM_ID) {
+                    pendingChanges.removeItem(itemID);
+                }
+            } while (!_overlaysToDelete.isEmpty());
+        }
 
         if (pendingChanges._removedItems.size() > 0) {
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
