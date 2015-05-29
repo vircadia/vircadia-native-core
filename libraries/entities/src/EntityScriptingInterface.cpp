@@ -360,7 +360,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     quuidFromScriptValue(entityIDValue, value.entityID);
     QScriptValue entityPropertiesValue = object.property("properties");
     if (entityPropertiesValue.isValid()) {
-        EntityItemPropertiesFromScriptValue(entityPropertiesValue, value.properties);
+        EntityItemPropertiesFromScriptValueHonorReadOnly(entityPropertiesValue, value.properties);
     }
     value.distance = object.property("distance").toVariant().toFloat();
 

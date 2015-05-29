@@ -63,7 +63,7 @@ public:
     void setType(EntityTypes::EntityType type) { _type = type; }
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
-    virtual void copyFromScriptValue(const QScriptValue& object);
+    virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -218,7 +218,8 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
 
 
 // define these inline here so the macros work

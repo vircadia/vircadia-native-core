@@ -477,7 +477,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     return properties;
 }
 
-void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
+void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool honorReadOnly) {
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
         setType(typeScriptValue.toVariant().toString());
@@ -494,11 +494,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
-            auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
-            // result.setTimeSpec(Qt::OffsetFromUTC);
-            return result;
-        });
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
+                auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
+                return result;
+            });
+    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
@@ -523,7 +524,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);  DO NOT accept this info from QScriptValue
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
@@ -565,9 +568,14 @@ QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, 
     return properties.copyToScriptValue(engine, true);
 }
 
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
-    properties.copyFromScriptValue(object);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
+    properties.copyFromScriptValue(object, false);
 }
+
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
+    properties.copyFromScriptValue(object, true);
+}
+
 
 // TODO: Implement support for edit packets that can span an MTU sized buffer. We need to implement a mechanism for the
 //       encodeEntityEditPacket() method to communicate the the caller which properties couldn't fit in the buffer. Similar
