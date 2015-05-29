@@ -515,9 +515,6 @@ void NodeList::pingPunchForDomainServer() {
             }
         }
 
-        qDebug() << "Sending domain server ping to"
-            << _domainHandler.getICEPeer().getLocalSocket() << _domainHandler.getICEPeer().getPublicSocket();
-
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
