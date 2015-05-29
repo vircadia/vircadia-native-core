@@ -183,6 +183,7 @@ public:
 
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool appendRawData(const unsigned char* data, int length);
+    bool appendRawData(QByteArray data);
 
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
@@ -226,20 +227,21 @@ public:
     static quint64 getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
     
-    static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, BackgroundMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
-    static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
-    static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, BackgroundMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

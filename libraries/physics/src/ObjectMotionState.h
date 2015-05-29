@@ -112,9 +112,9 @@ public:
     
     virtual glm::vec3 getObjectPosition() const = 0;
     virtual glm::quat getObjectRotation() const = 0;
-    virtual const glm::vec3& getObjectLinearVelocity() const = 0;
-    virtual const glm::vec3& getObjectAngularVelocity() const = 0;
-    virtual const glm::vec3& getObjectGravity() const = 0;
+    virtual glm::vec3 getObjectLinearVelocity() const = 0;
+    virtual glm::vec3 getObjectAngularVelocity() const = 0;
+    virtual glm::vec3 getObjectGravity() const = 0;
 
     virtual const QUuid& getObjectID() const = 0;
 

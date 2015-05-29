@@ -43,6 +43,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
+#include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -69,6 +70,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(ParticleEffect, RenderableParticleEffectEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Zone, RenderableZoneEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
     
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
@@ -1127,6 +1129,17 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
     QUuid simulatorID = entity->getSimulatorID();
+    if (simulatorID.isNull()) {
+        // Can be null if it has never moved since being created or coming out of persistence.
+        // However, for there to be a collission, one of the two objects must be moving.
+        const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
+        EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
+        if (!otherEntity) {
+            return;
+        }
+        simulatorID = otherEntity->getSimulatorID();
+    }
+
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
         return; // Only one injector per simulation, please.
     }

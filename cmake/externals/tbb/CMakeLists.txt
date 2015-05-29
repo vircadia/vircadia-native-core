@@ -66,7 +66,7 @@ if (APPLE)
     ${EXTERNAL_NAME}
     change-install-name
     COMMENT "Calling install_name_tool on TBB libraries to fix install name for dylib linking"
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/OSXTBBInstallNameChange.cmake
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_TBB_LIB_DIR} -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
     DEPENDEES install
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1

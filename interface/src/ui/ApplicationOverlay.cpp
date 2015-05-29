@@ -356,7 +356,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
         });
 
         if (!Application::getInstance()->isMouseHidden()) {
-            renderPointersOculus(myAvatar->getDefaultEyePosition());
+            renderPointersOculus();
         }
         glDepthMask(GL_TRUE);
         glDisable(GL_TEXTURE_2D);
@@ -486,49 +486,40 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
     direction = glm::normalize(intersectionWithUi - origin);
 }
 
+glm::vec2 getPolarCoordinates(const PalmData& palm) {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto avatarOrientation = myAvatar->getOrientation();
+    auto eyePos = myAvatar->getDefaultEyePosition();
+    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
+    // Direction of the tip relative to the eye
+    glm::vec3 tipDirection = tip - eyePos;
+    // orient into avatar space
+    tipDirection = glm::inverse(avatarOrientation) * tipDirection;
+    // Normalize for trig functions
+    tipDirection = glm::normalize(tipDirection);
+    // Convert to polar coordinates
+    glm::vec2 polar(glm::atan(tipDirection.x, -tipDirection.z), glm::asin(tipDirection.y));
+    return polar;
+}
+
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
-    glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
-    glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
-    //direction of ray goes towards camera
-    glm::vec3 dir = invOrientation * glm::normalize(qApp->getCamera()->getPosition() - tip);
-    glm::vec3 tipPos = invOrientation * (tip - eyePos);
-
     QPoint rv;
     auto canvasSize = qApp->getCanvasSize();
     if (qApp->isHMDMode()) {
         float t;
-
-        //We back the ray up by dir to ensure that it will not start inside the UI.
-        glm::vec3 adjustedPos = tipPos - dir;
-        //Find intersection of crosshair ray. 
-        if (raySphereIntersect(dir, adjustedPos, _oculusUIRadius * myAvatar->getScale(), &t)){
-            glm::vec3 collisionPos = adjustedPos + dir * t;
-            //Normalize it in case its not a radius of 1
-            collisionPos = glm::normalize(collisionPos);
-            //If we hit the back hemisphere, mark it as not a collision
-            if (collisionPos.z > 0) {
-                rv.setX(INT_MAX);
-                rv.setY(INT_MAX);
-            } else {
-
-                float u = asin(collisionPos.x) / (_textureFov)+0.5f;
-                float v = 1.0 - (asin(collisionPos.y) / (_textureFov)+0.5f);
-
-                rv.setX(u * canvasSize.x);
-                rv.setY(v * canvasSize.y);
-            }
-        } else {
-            //if they did not click on the overlay, just set the coords to INT_MAX
-            rv.setX(INT_MAX);
-            rv.setY(INT_MAX);
-        }
+        glm::vec2 polar = getPolarCoordinates(*palm);
+        glm::vec2 point = sphericalToScreen(-polar);
+        rv.rx() = point.x;
+        rv.ry() = point.y;
     } else {
+        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         glm::dmat4 projection;
         qApp->getProjectionMatrix(&projection);
+        glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
+        glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
+        glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
+        glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
         glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
         glm::vec3 ndcSpacePos;
@@ -728,7 +719,7 @@ void ApplicationOverlay::renderControllerPointers() {
     }
 }
 
-void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
+void ApplicationOverlay::renderPointersOculus() {
     glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
     glDisable(GL_DEPTH_TEST);
     glMatrixMode(GL_MODELVIEW);
@@ -736,16 +727,12 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     //Controller Pointers
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
-            glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-            glm::vec3 tipDirection = glm::normalize(glm::inverse(myAvatar->getOrientation()) * (tip - eyePos));
-            float pitch = -glm::asin(tipDirection.y);
-            float yawSign = glm::sign(-tipDirection.x);
-            float yaw = glm::acos(-tipDirection.z) *
-                        ((yawSign == 0.0f) ? 1.0f : yawSign);
-            glm::quat orientation = glm::quat(glm::vec3(pitch, yaw, 0.0f));
+            glm::vec2 polar = getPolarCoordinates(palm);
+            // Convert to quaternion
+            glm::quat orientation = glm::quat(glm::vec3(polar.y, -polar.x, 0.0f));
+            // Render reticle at location
             renderReticle(orientation, _alpha);
         } 
     }
