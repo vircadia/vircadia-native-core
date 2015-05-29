@@ -53,7 +53,7 @@ public:
     ItemKey(const Flags& flags) : _flags(flags) {}
 
     class Builder {
-        Flags _flags;
+        Flags _flags{ 0 };
     public:
         Builder() {}
 
@@ -72,6 +72,7 @@ public:
         // Convenient standard keys that we will keep on using all over the place
         static ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
         static ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemKey light() { return Builder().withTypeLight().build(); }
     };
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
@@ -111,8 +112,8 @@ public:
     ItemFilter(const ItemKey::Flags& value = ItemKey::Flags(0), const ItemKey::Flags& mask = ItemKey::Flags(0)) : _value(value), _mask(mask) {}
 
     class Builder {
-        ItemKey::Flags _value;
-        ItemKey::Flags _mask;
+        ItemKey::Flags _value{ 0 };
+        ItemKey::Flags _mask{ 0 };
     public:
         Builder() {}
 
@@ -142,8 +143,9 @@ public:
         Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().build(); }
-        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace().build(); }
+        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace().build(); }
+        static ItemFilter light() { return Builder().withTypeLight().build(); }
     };
 
     // Item Filter operator testing if a key pass the filter
@@ -152,10 +154,10 @@ public:
     class Less {
     public:
         bool operator() (const ItemFilter& left, const ItemFilter& right) const {
-            if (left._value.to_ulong() >= right._value.to_ulong()) {
+            if (left._value.to_ulong() == right._value.to_ulong()) {
                 return left._mask.to_ulong() < right._mask.to_ulong();
             } else {
-                return true;
+                return left._value.to_ulong() < right._value.to_ulong();
             }
         }
     };
