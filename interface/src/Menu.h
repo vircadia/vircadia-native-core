@@ -58,15 +58,15 @@ class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
-    
+
     void loadSettings();
     void saveSettings();
-    
+
     MenuWrapper* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-    
+
     QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
@@ -80,9 +80,9 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     void removeAction(MenuWrapper* menu, const QString& actionName);
-    
+
 public slots:
     MenuWrapper* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
@@ -94,21 +94,21 @@ public slots:
     bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
-    
+
 private:
     static Menu* _instance;
     Menu();
-    
+
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
     static void saveAction(Settings& settings, QAction& action);
     void scanMenuBar(settingsAction modifySetting);
     void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
-    
+
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
@@ -116,15 +116,15 @@ private:
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
-    
+
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
-    
+
     QHash<QString, QAction*> _actionHash;
 };
 
@@ -262,6 +262,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
+    const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
