@@ -10,24 +10,12 @@
 
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
+#include <GLHelpers.h>
 
-static QSurfaceFormat getDefaultFormat() {
-    QSurfaceFormat format;
-    // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
-    format.setDepthBufferSize(16);
-    format.setStencilBufferSize(8);
-    format.setVersion(4, 1);
-#ifdef DEBUG
-    format.setOption(QSurfaceFormat::DebugContext);
-#endif
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-    return format;
+GlWindow::GlWindow(QOpenGLContext* shareContext) : GlWindow(getDefaultOpenGlSurfaceFormat(), shareContext) {
 }
 
-GlWindow::GlWindow(QOpenGLContext * shareContext) : GlWindow(getDefaultFormat(), shareContext) {
-}
-
-GlWindow::GlWindow(const QSurfaceFormat& format, QOpenGLContext * shareContext) {
+GlWindow::GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
     setSurfaceType(QSurface::OpenGLSurface);
     setFormat(format);
     _context = new QOpenGLContext;

@@ -52,8 +52,8 @@ public:
     void getFocalLength(float focalLength) { _focalLength = focalLength; }
 
     // getters for lens attributes
-    const glm::mat4& getProjection() const { return _projection; };
-    const glm::mat4& getView() const { return _view; };
+    const glm::mat4& getProjection() const { return _projection; }
+    const glm::mat4& getView() const { return _view; }
     float getWidth() const { return _width; }
     float getHeight() const { return _height; }
     float getFieldOfView() const { return _fieldOfView; }
