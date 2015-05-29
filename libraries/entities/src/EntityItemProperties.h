@@ -194,6 +194,8 @@ public:
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
 
+    void setCreated(QDateTime v);
+
 private:
     QUuid _id;
     bool _idSet;

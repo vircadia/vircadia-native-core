@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDateTime>
+
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
@@ -96,10 +98,13 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { retu
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 
-// QScriptValue doesn't support "long long" ints, so use strings
-inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) {
-    return QString::number(v);
+inline QScriptValue convertScriptValue(QScriptEngine* e, QDateTime v) {
+    auto utcV = v;
+    utcV.setTimeSpec(Qt::OffsetFromUTC);
+    auto result = QScriptValue(utcV.toString(Qt::ISODate));
+    return result;
 }
+
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
@@ -143,10 +148,14 @@ inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
-// QScriptValue doesn't support "long long" ints, so use strings
-inline uint64_t uint64_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    return (uint64_t) v.toVariant().toString().trimmed().toLongLong();
+inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
+    // result.setTimeSpec(Qt::OffsetFromUTC);
+    return result;
 }
+
+
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;

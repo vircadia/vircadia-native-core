@@ -176,6 +176,14 @@ QString EntityItemProperties::getAnimationSettings() const {
     return jsonByteString;
 }
 
+
+void EntityItemProperties::setCreated(QDateTime v) {
+    QDateTime utcV = v;
+    // utcV.setTimeSpec(Qt::OffsetFromUTC);
+    _created = utcV.toMSecsSinceEpoch() * 1000; // usec per msec
+    qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
+}
+
 void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "EntityItemProperties...";
     qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
@@ -373,7 +381,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, getCreated());
+
+    auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
+    created.setTimeSpec(Qt::OffsetFromUTC);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
     COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
@@ -484,7 +495,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(created, float, setCreated);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
+            auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
+            // result.setTimeSpec(Qt::OffsetFromUTC);
+            return result;
+        });
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
