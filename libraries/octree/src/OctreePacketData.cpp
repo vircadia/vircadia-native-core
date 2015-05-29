@@ -325,6 +325,7 @@ bool OctreePacketData::appendValue(uint8_t value) {
 
 bool OctreePacketData::appendValue(uint16_t value) {
     const unsigned char* data = (const unsigned char*)&value;
+    
     int length = sizeof(value);
     bool success = append(data, length);
     if (success) {
@@ -381,12 +382,19 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
 }
 
 bool OctreePacketData::appendValue(const QVector<glm::vec3>& value){
-    const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
-    bool success = append(data, length);
-    if (success){
+    const unsigned char* data = (const unsigned char*)value.data();
+    uint16_t qVecSize = (uint16_t)value.size();
+    int length = qVecSize * sizeof(glm::vec3);
+    const unsigned char* sizePointer = (const unsigned char*)&qVecSize;
+    bool success = append(sizePointer, sizeof(uint16_t));
+    if(success){
+      _bytesOfValues += qVecSize;
+      _totalBytesOfValues += qVecSize;
+      success = append(data, length);
+      if (success){
         _bytesOfValues += length;
         _totalBytesOfValues += length;
+      }
     }
     return success;
 }
@@ -461,6 +469,9 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
         _totalBytesOfRawData += length;
     }
     return success;
+}
+bool OctreePacketData::appendRawData(QByteArray data) {
+  return appendRawData((unsigned char *)data.data(), data.size());
 }
 
 quint64 OctreePacketData::_compressContentTime = 0;
@@ -584,4 +595,14 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor
     result.green = dataBytes[GREEN_INDEX];
     result.blue = dataBytes[BLUE_INDEX];
     return sizeof(rgbColor);
+}
+
+int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result){
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes+= sizeof(length);
+    qDebug()<<"size of LENGTH: "<<length;
+    QByteArray ba((const char*)dataBytes, length);
+    qDebug()<<"size of BYTE ARRAY: " << ba.size();
+    return 36;
 }

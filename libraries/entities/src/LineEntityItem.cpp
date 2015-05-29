@@ -45,13 +45,14 @@ EntityItemProperties LineEntityItem::getProperties() const {
     
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     
     properties._color = getXColor();
     properties._colorChanged = false;
     
     properties._lineWidth = getLineWidth();
     properties._lineWidthChanged = false;
+    
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
 
 
     properties._glowLevel = getGlowLevel();
@@ -91,7 +92,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-//    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     
 
     return bytesRead;
@@ -103,6 +104,7 @@ EntityPropertyFlags LineEntityItem::getEntityProperties(EncodeBitstreamParams& p
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_LINE_WIDTH;
+    requestedProperties += PROP_LINE_POINTS;
     return requestedProperties;
 }
 
@@ -118,6 +120,7 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
+    APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
 }
 
 void LineEntityItem::debugDump() const {

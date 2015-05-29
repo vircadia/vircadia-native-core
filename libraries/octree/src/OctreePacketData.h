@@ -186,8 +186,9 @@ public:
 
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool appendRawData(const unsigned char* data, int length);
+    bool appendRawData(QByteArray);
 
-    /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
+    /// returns a byte offset from beginning of the uncompressed stream based on offset from end.
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
@@ -231,7 +232,6 @@ public:
     
     static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int uppackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result) {memcpy(&result, dataBytes, sizeof(result)); return sizeof(result);}
     static int uppackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
@@ -244,7 +244,7 @@ public:
     static int uppackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int uppackDataFromBytes(const unsigned char* dataBytes, xColor& result);
-
+    static int uppackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
