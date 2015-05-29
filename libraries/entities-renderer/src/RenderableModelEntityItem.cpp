@@ -108,7 +108,35 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
+bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
+    if (!_model && renderArgs) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
+        qDebug() << "RenderableModelEntityItem::readyToAddToScene().... renderer:" << renderer; 
+        getModel(renderer);
+    }
+    bool ready = (bool)_model;
+    qDebug() << "RenderableModelEntityItem::readyToAddToScene().... id:" << getEntityItemID() 
+                    << "ready:" << ready << "renderArgs:" << renderArgs;
+    return ready; 
+}
+
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                            render::PendingChanges& pendingChanges) {
+    qDebug() << "RenderableModelEntityItem::addToScene().... id:" << getEntityItemID();
+    return false; 
+}
+    
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                                render::PendingChanges& pendingChanges) {
+    qDebug() << "RenderableModelEntityItem::removeFromScene().... id:" << getEntityItemID();
+                                                
+                                                
+}
+
 void RenderableModelEntityItem::render(RenderArgs* args) {
+    qDebug() << "RenderableModelEntityItem::render().... id:" << getEntityItemID();
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
@@ -199,6 +227,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
+    
+    if (!renderer) {
+        return result;
+    }
 
     // make sure our renderer is setup
     if (!_myRenderer) {
@@ -206,7 +238,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
     
-    if (QThread::currentThread() != _myRenderer->thread()) {
+    if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
     

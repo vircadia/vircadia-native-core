@@ -489,6 +489,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 void EntityTreeRenderer::render(RenderArgs* renderArgs) {
 
     if (_tree && !_shuttingDown) {
+        renderArgs->_renderer = this;
+
+        checkPendingAddToScene(renderArgs);
+
         Model::startScene(renderArgs->_renderSide);
 
         ViewFrustum* frustum = (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
@@ -503,7 +507,6 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         
-        renderArgs->_renderer = this;
         renderArgs->_batch = &batch;
 
         _tree->lockForRead();
@@ -1081,16 +1084,38 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
-
-    // here's where we add the entity payload to the scene
     auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
+    addEntityToScene(entity);
+}
+
+void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
+    // here's where we add the entity payload to the scene
     if (entity && entity->canRenderInScene()) {
-        render::PendingChanges pendingChanges;
-        auto scene = _viewState->getMain3DScene();
-        if (entity->addToScene(entity, scene, pendingChanges)) {
-            _entitiesInScene.insert(entity);
+        if (entity->readyToAddToScene()) {
+            render::PendingChanges pendingChanges;
+            auto scene = _viewState->getMain3DScene();
+            if (entity->addToScene(entity, scene, pendingChanges)) {
+                _entitiesInScene.insert(entity);
+            }
+            scene->enqueuePendingChanges(pendingChanges);
+        } else {
+            if (!_pendingAddToScene.contains(entity)) {
+                _pendingAddToScene << entity;
+            }
         }
-        scene->enqueuePendingChanges(pendingChanges);
+    }
+}
+
+void EntityTreeRenderer::checkPendingAddToScene(RenderArgs* renderArgs) {
+    QSet<EntityItemPointer> addedToScene;
+    foreach (auto entity, _pendingAddToScene) {
+        if (entity->readyToAddToScene(renderArgs)) {
+            addEntityToScene(entity);
+            addedToScene << entity;
+        }
+    }
+    foreach (auto addedEntity, addedToScene) {
+        _pendingAddToScene.remove(addedEntity);
     }
 }
 

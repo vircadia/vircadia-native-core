@@ -973,7 +973,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 }
 
 void EntityItem::recordCreationTime() {
-    assert(_created == UNKNOWN_CREATED_TIME);
+    //assert(_created == UNKNOWN_CREATED_TIME);
     _created = usecTimestampNow();
     _lastEdited = _created;
     _lastUpdated = _created;
