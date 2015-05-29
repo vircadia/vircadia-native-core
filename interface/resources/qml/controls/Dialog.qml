@@ -31,7 +31,7 @@ DialogBase {
      * Support for animating the dialog in and out. 
      */
     enabled: false
-	opacity: 0.0
+    opacity: 1.0
     
     // The offscreen UI will enable an object, rather than manipulating it's 
     // visibility, so that we can do animations in both directions.  Because 
@@ -46,7 +46,7 @@ DialogBase {
     // The actual animator
     Behavior on opacity {
         NumberAnimation {
-            duration: 300
+            duration: animationDuration
             easing.type: Easing.OutCubic
         }
     }
