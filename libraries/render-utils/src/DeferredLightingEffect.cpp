@@ -28,6 +28,7 @@
 
 #include "simple_vert.h"
 #include "simple_frag.h"
+#include "simple_textured_frag.h"
 
 #include "deferred_light_vert.h"
 #include "deferred_light_limited_vert.h"
@@ -50,13 +51,16 @@
 static const std::string glowIntensityShaderHandle = "glowIntensity";
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
-    auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
-    auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_frag)));
+    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
+    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_frag)));
+    auto PSTextured = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
+    
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    gpu::ShaderPointer programTextured = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSTextured));
+    
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(glowIntensityShaderHandle, 0));
-
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::Shader::makeProgram(*programTextured, slotBindings);
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     state->setCullMode(gpu::State::CULL_BACK);
@@ -65,6 +69,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _simpleProgramTextured = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, state));
 
     _viewState = viewState;
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
@@ -101,9 +106,14 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch) {
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured) {
     DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
-    batch.setPipeline(_simpleProgram);
+    
+    if (textured) {
+        batch.setPipeline(_simpleProgramTextured);
+    } else {
+        batch.setPipeline(_simpleProgram);
+    }
 }
 
 void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
