@@ -46,7 +46,6 @@ protected:
 
 private slots:
     void checkInWithDomainServerOrExit();
-
 };
 
 typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;

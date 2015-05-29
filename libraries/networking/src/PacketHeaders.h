@@ -25,6 +25,7 @@
 
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
+
 enum PacketType {
     PacketTypeUnknown, // 0
     PacketTypeStunResponse,
@@ -49,9 +50,9 @@ enum PacketType {
     PacketTypeDataServerConfirm, // 20
     PacketTypeDomainServerPathQuery,
     PacketTypeDomainServerPathResponse,
-    UNUSED_3,
-    UNUSED_4,
-    UNUSED_5, // 25
+    PacketTypeDomainServerAddedNode,
+    PacketTypeIceServerPeerInformation,
+    PacketTypeIceServerQuery, // 25
     PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
@@ -77,7 +78,6 @@ enum PacketType {
     PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
     PacketTypeIceServerHeartbeat, // 50
-    PacketTypeIceServerHeartbeatResponse,
     PacketTypeUnverifiedPing,
     PacketTypeUnverifiedPingReply,
     PacketTypeParticleEntitiesFix
@@ -91,14 +91,16 @@ const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
 typedef std::map<PacketType, PacketSequenceNumber> PacketTypeSequenceMap;
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-<< PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
-<< PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
-<< PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
-<< PacketTypeNodeJsonStats << PacketTypeEntityQuery
-<< PacketTypeOctreeDataNack << PacketTypeEntityEditNack
-<< PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
-<< PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply << PacketTypeStopNode
-<< PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse;
+    << PacketTypeDomainServerRequireDTLS << PacketTypeDomainConnectRequest
+    << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainConnectionDenied
+    << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
+    << PacketTypeNodeJsonStats << PacketTypeEntityQuery
+    << PacketTypeOctreeDataNack << PacketTypeEntityEditNack
+    << PacketTypeIceServerHeartbeat << PacketTypeIceServerPeerInformation
+    << PacketTypeIceServerQuery << PacketTypeUnverifiedPing
+    << PacketTypeUnverifiedPingReply << PacketTypeStopNode
+    << PacketTypeDomainServerPathQuery << PacketTypeDomainServerPathResponse
+    << PacketTypeDomainServerAddedNode;
 
 const QSet<PacketType> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType>()
 << PacketTypeAvatarData;
