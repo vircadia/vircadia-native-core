@@ -480,17 +480,21 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     bytesRead += encodedUpdateDelta.size();
     
     // Newer bitstreams will have a last simulated and a last updated value
+    quint64 lastSimulatedFromBufferAdjusted = now;
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
         // last simulated is stored as ByteCountCoded delta from lastEdited
         QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
         ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
         quint64 simulatedDelta = simulatedDeltaCoder;
         if (overwriteLocalData) {
-            _lastSimulated = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
+            lastSimulatedFromBufferAdjusted = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
+            if (lastSimulatedFromBufferAdjusted > now) {
+                lastSimulatedFromBufferAdjusted = now;
+            }
             #ifdef WANT_DEBUG
-                qCDebug(entities) << "                         _lastSimulated:" << debugTime(_lastSimulated, now);
                 qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
                 qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+                qCDebug(entities) << "        lastSimulatedFromBufferAdjusted:" << debugTime(lastSimulatedFromBufferAdjusted, now);
             #endif
         }
         encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
@@ -606,8 +610,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // use our simulation helper routine to get a best estimate of where the entity should be.
         const float MIN_TIME_SKIP = 0.0f;
         const float MAX_TIME_SKIP = 1.0f; // in seconds
-        float skipTimeForward = glm::clamp((float)(now - _lastSimulated) / (float)(USECS_PER_SECOND), 
-                                    MIN_TIME_SKIP, MAX_TIME_SKIP);
+        float skipTimeForward = glm::clamp((float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND),
+                MIN_TIME_SKIP, MAX_TIME_SKIP);
         if (skipTimeForward > 0.0f) {
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
@@ -617,19 +621,22 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // we don't want the side effect of flag setting.
             simulateKinematicMotion(skipTimeForward, false);
         }
-        _lastSimulated = now;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
-    if (overwriteLocalData && _simulatorID == myNodeID && !_simulatorID.isNull()) {
-        // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
-        // rather than accept the values in the packet
-        _position = savePosition;
-        _rotation = saveRotation;
-        _velocity = saveVelocity;
-        _angularVelocity = saveAngularVelocity;
-        _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
+    if (overwriteLocalData) {
+        if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
+            // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
+            // rather than accept the values in the packet
+            _position = savePosition;
+            _rotation = saveRotation;
+            _velocity = saveVelocity;
+            _angularVelocity = saveAngularVelocity;
+            _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
+        } else {
+            _lastSimulated = now;
+        }
     }
 
     return bytesRead;
@@ -916,6 +923,21 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._defaultSettings = false;
     
     return properties;
+}
+
+void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
+    // a TerseUpdate includes the transform and its derivatives
+    properties._position = _position;
+    properties._velocity = _velocity;
+    properties._rotation = _rotation;
+    properties._angularVelocity = _angularVelocity;
+    properties._acceleration = _acceleration;
+
+    properties._positionChanged = true;
+    properties._velocityChanged = true;
+    properties._rotationChanged = true;
+    properties._angularVelocityChanged = true;
+    properties._accelerationChanged = true;
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {

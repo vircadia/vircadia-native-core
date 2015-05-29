@@ -32,18 +32,19 @@ class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
 class AvatarAppearanceDialog;
+class DomainConnectionDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     QPointer<BandwidthDialog> getBandwidthDialog() const { return _bandwidthDialog; }
 //    QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
-    
+
 public slots:
     void toggleAddressBar();
     void toggleDiskCacheEditor();
@@ -60,14 +61,15 @@ public slots:
     void showScriptEditor();
     void showIRCLink();
     void changeAvatarAppearance();
+    void showDomainConnectionDialog();
 
 private slots:
     void toggleToolWindow();
     void hmdToolsClosed();
-    
+
 private:
     DialogsManager() {}
-    
+
     template<typename T>
     void maybeCreateDialog(QPointer<T>& member) {
         if (!member) {
@@ -75,7 +77,6 @@ private:
             Q_CHECK_PTR(parent);
             member = new T(parent);
             Q_CHECK_PTR(member);
-            
 #if 0
             if (_hmdToolsDialog && member->windowHandle()) {
                 _hmdToolsDialog->watchWindow(member->windowHandle());
@@ -84,7 +85,7 @@ private:
 
         }
     }
-    
+
     QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
@@ -99,6 +100,7 @@ private:
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<AvatarAppearanceDialog> _avatarAppearanceDialog;
+    QPointer<DomainConnectionDialog> _domainConnectionDialog;
 };
 
 #endif // hifi_DialogsManager_h
