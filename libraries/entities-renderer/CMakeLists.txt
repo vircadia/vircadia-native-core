@@ -12,4 +12,9 @@ find_package(Bullet REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
+add_dependency_external_projects(polyvox)
+find_package(PolyVox REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
+
 link_hifi_libraries(shared gpu script-engine render render-utils)
