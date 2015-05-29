@@ -65,6 +65,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager(),
     _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+
     LogUtils::init();
     Setting::init();
 
