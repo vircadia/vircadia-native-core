@@ -143,7 +143,8 @@ public:
 
     void _glBindTexture(GLenum target, GLuint texture);
     void _glActiveTexture(GLenum texture);
-
+    void _glTexParameteri(GLenum target, GLenum pname, GLint param);
+    
     void _glDrawBuffers(GLsizei n, const GLenum* bufs);
 
     void _glUseProgram(GLuint program);
@@ -201,6 +202,7 @@ public:
 
         COMMAND_glBindTexture,
         COMMAND_glActiveTexture,
+        COMMAND_glTexParameteri,
 
         COMMAND_glDrawBuffers,
 

@@ -34,7 +34,7 @@ public:
     void init(AbstractViewStateInterface* viewState);
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindSimpleProgram(gpu::Batch& batch);
+    void bindSimpleProgram(gpu::Batch& batch, bool textured = false);
     
     /// Tears down the state necessary to render static untextured geometry with the simple program.
     void releaseSimpleProgram(gpu::Batch& batch);
@@ -100,6 +100,7 @@ private:
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
     
     gpu::PipelinePointer _simpleProgram;
+    gpu::PipelinePointer _simpleProgramTextured;
 
     ProgramObject _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;

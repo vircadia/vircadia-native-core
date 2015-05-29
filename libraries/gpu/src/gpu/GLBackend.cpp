@@ -54,6 +54,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glBindTexture),
     (&::gpu::GLBackend::do_glActiveTexture),
+    (&::gpu::GLBackend::do_glTexParameteri),
 
     (&::gpu::GLBackend::do_glDrawBuffers),
 
@@ -378,6 +379,22 @@ void Batch::_glActiveTexture(GLenum texture) {
 }
 void GLBackend::do_glActiveTexture(Batch& batch, uint32 paramOffset) {
     glActiveTexture(batch._params[paramOffset]._uint);
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glTexParameteri(GLenum target, GLenum pname, GLint param) {
+    ADD_COMMAND_GL(glTexParameteri);
+    
+    _params.push_back(param);
+    _params.push_back(pname);
+    _params.push_back(target);
+    
+    DO_IT_NOW(glTexParameteri, 3);
+}
+void GLBackend::do_glTexParameteri(Batch& batch, uint32 paramOffset) {
+    glTexParameteri(batch._params[paramOffset + 2]._uint,
+                    batch._params[paramOffset + 1]._uint,
+                    batch._params[paramOffset + 0]._int);
     (void) CHECK_GL_ERROR();
 }
 
