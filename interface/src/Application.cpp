@@ -3383,7 +3383,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
             false, selfAvatarOnly);   
     }
 
-    {
+    if (!billboard) {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
@@ -3586,7 +3586,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(_mirrorCamera, true);
+    displaySide(_mirrorCamera, true, billboard);
     glPopMatrix();
 
     if (!billboard) {
