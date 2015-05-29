@@ -202,7 +202,7 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
             render::ItemID itemID = scene->allocateID();
             overlay->setRenderItemID(itemID);
 
-            render::Scene::PendingChanges pendingChanges;
+            render::PendingChanges pendingChanges;
             pendingChanges.resetItem(itemID, overlayPayloadPointer);
 
             scene->enqueuePendingChanges(pendingChanges);

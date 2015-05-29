@@ -53,7 +53,6 @@ public:
     ~Overlays();
     void init();
     void update(float deltatime);
-    void renderWorld(RenderArgs* renderArgs, bool drawFront);
     void renderHUD(RenderArgs* renderArgs);
 
 public slots:
