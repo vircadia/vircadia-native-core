@@ -200,6 +200,27 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
 }
 
+struct ItemBound {
+    float _centerDepth = 0.0f;
+    float _nearDepth = 0.0f;
+    float _farDepth = 0.0f;
+    ItemID _id = 0;
+
+    ItemBound() {}
+    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id) {}
+};
+
+struct FrontToBackSort {
+    bool operator() (const ItemBound& left, const ItemBound& right) {
+        return (left._centerDepth < right._centerDepth);
+    }
+};
+
+struct BackToFrontSort {
+    bool operator() (const ItemBound& left, const ItemBound& right) {
+        return (left._centerDepth > right._centerDepth);
+    }
+};
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDs& inItems, ItemIDs& outItems) {
     assert(renderContext->args);
@@ -213,15 +234,6 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 
 
     // Make a local dataset of the center distance and closest point distance
-    struct ItemBound {
-        float _centerDepth = 0.0f;
-        float _nearDepth = 0.0f;
-        float _farDepth = 0.0f;
-        ItemID _id = 0;
-
-        ItemBound() {}
-        ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id) {}
-    };
     std::vector<ItemBound> itemBounds;
     itemBounds.reserve(outItems.size());
 
@@ -235,18 +247,10 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 
     // sort against Z
     if (frontToBack) {
-        struct FrontToBackSort {
-             bool operator() (ItemBound& left, ItemBound& right) {
-                return (left._centerDepth < right._centerDepth);
-             }
-        } frontToBackSort;
+        FrontToBackSort frontToBackSort;
         std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
     } else {
-        struct BackToFrontSort {
-             bool operator() (ItemBound& left, ItemBound& right) {
-                return (left._centerDepth > right._centerDepth);
-             }
-        } backToFrontSort;
+        BackToFrontSort  backToFrontSort;
         std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
     }
 

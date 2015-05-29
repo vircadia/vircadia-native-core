@@ -2199,6 +2199,9 @@ void Application::init() {
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
     DependencyManager::get<GlowEffect>()->init(glow);
+
+    // Make sure any new sounds are loaded as soon as know about them.
+    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {
@@ -2502,19 +2505,20 @@ void Application::update(float deltaTime) {
             _entitySimulation.unlock();
 
             avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
-            avatarManager->handleCollisionEvents(_physicsEngine.getCollisionEvents());
+            auto collisionEvents = _physicsEngine.getCollisionEvents();
+            avatarManager->handleCollisionEvents(collisionEvents);
 
             _physicsEngine.dumpStatsIfNecessary();
-        }
-    }
 
-    if (!_aboutToQuit) {
-        PerformanceTimer perfTimer("entities");
-        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
-        _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
-        // NOTE: the _entities.update() call below will wait for lock
-        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
-       _entities.update(); // update the models...
+            if (!_aboutToQuit) {
+                PerformanceTimer perfTimer("entities");
+                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+                _entitySimulation.handleCollisionEvents(collisionEvents);
+                // NOTE: the _entities.update() call below will wait for lock
+                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                _entities.update(); // update the models...
+            }
+        }
     }
 
     {

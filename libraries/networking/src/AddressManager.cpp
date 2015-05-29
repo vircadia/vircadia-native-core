@@ -106,6 +106,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
+        DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
+
         // there are 4 possible lookup strings
 
         // 1. global place name (name of domain or place) - example: sanfrancisco
@@ -201,6 +203,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
                 const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
+
+                DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
@@ -431,6 +435,8 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
     _rootPlaceID = QUuid();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
     emit possibleDomainChangeRequired(hostname, port);
 }
