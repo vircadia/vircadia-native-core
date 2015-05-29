@@ -119,6 +119,8 @@
 #include "gpu/Context.h"
 #include "gpu/GLBackend.h"
 
+#include "RenderDeferredTask.h"
+
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -372,7 +374,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
   
   
-    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
     _renderEngine->registerScene(_main3DScene);
       
     // start the nodeThread so its event loop is running
