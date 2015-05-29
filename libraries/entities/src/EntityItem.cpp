@@ -925,6 +925,21 @@ EntityItemProperties EntityItem::getProperties() const {
     return properties;
 }
 
+void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
+    // a TerseUpdate includes the transform and its derivatives
+    properties._position = _position;
+    properties._velocity = _velocity;
+    properties._rotation = _rotation;
+    properties._angularVelocity = _angularVelocity;
+    properties._acceleration = _acceleration;
+
+    properties._positionChanged = true;
+    properties._velocityChanged = true;
+    properties._rotationChanged = true;
+    properties._angularVelocityChanged = true;
+    properties._accelerationChanged = true;
+}
+
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
