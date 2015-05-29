@@ -31,18 +31,19 @@ DomainHandler::DomainHandler(QObject* parent) :
     _iceDomainID(),
     _iceClientID(),
     _iceServerSockAddr(),
-    _icePeer(),
+    _icePeer(this),
     _isConnected(false),
     _settingsObject(),
     _failedSettingsRequests(0)
 {
-
+    // if we get a socket that make sure our NetworkPeer ping timer stops
+    connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
 
-    _icePeer = NetworkPeer();
+    _icePeer.reset();
 
     if (requiresICE()) {
         // if we connected to this domain with ICE, re-set the socket so we reconnect through the ice-server
@@ -84,6 +85,10 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
         _sockAddr = sockAddr;
     }
 
+    if (!_sockAddr.isNull()) {
+        DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
+    }
+
     // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
     _hostname = hostname;
 }
@@ -111,6 +116,8 @@ void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
             qCDebug(networking, "Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
             QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
 
+            DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainHostname);
+
             UserActivityLogger::getInstance().changedDomain(_hostname);
             emit hostnameChanged(_hostname);
         }
@@ -135,6 +142,18 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         replaceableSockAddr->~HifiSockAddr();
         replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
 
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerHostname);
+
+        if (_iceServerSockAddr.getAddress().isNull()) {
+            // connect to lookup completed for ice-server socket so we can request a heartbeat once hostname is looked up
+            connect(&_iceServerSockAddr, &HifiSockAddr::lookupCompleted, this, &DomainHandler::completedIceServerHostnameLookup);
+        } else {
+            completedIceServerHostnameLookup();
+        }
+
+
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
 
@@ -143,12 +162,14 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 }
 
 void DomainHandler::activateICELocalSocket() {
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getLocalSocket();
     _hostname = _sockAddr.getAddress().toString();
     emit completedSocketDiscovery();
 }
 
 void DomainHandler::activateICEPublicSocket() {
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getPublicSocket();
     _hostname = _sockAddr.getAddress().toString();
     emit completedSocketDiscovery();
@@ -158,6 +179,8 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
             _sockAddr.setAddress(hostInfo.addresses()[i]);
+
+            DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
 
             qCDebug(networking, "DS at %s is at %s", _hostname.toLocal8Bit().constData(),
                    _sockAddr.getAddress().toString().toLocal8Bit().constData());
@@ -170,6 +193,15 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 
     // if we got here then we failed to lookup the address
     qCDebug(networking, "Failed domain server lookup");
+}
+
+void DomainHandler::completedIceServerHostnameLookup() {
+    qDebug() << "ICE server socket is at" << _iceServerSockAddr;
+
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerSocket);
+
+    // emit our signal so we can send a heartbeat to ice-server immediately
+    emit iceSocketAndIDReceived();
 }
 
 void DomainHandler::setIsConnected(bool isConnected) {
@@ -267,15 +299,20 @@ void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
     QDataStream iceResponseStream(icePacket);
     iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
 
-    NetworkPeer packetPeer;
-    iceResponseStream >> packetPeer;
+    iceResponseStream >> _icePeer;
 
-    if (packetPeer.getUUID() != _iceDomainID) {
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
+
+    if (_icePeer.getUUID() != _iceDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
+        _icePeer.reset();
     } else {
-        qCDebug(networking) << "Received network peer object for domain -" << packetPeer;
-        _icePeer = packetPeer;
+        qCDebug(networking) << "Received network peer object for domain -" << _icePeer;
 
-        emit requestICEConnectionAttempt();
+        // ask the peer object to start its ping timer
+        _icePeer.startPingTimer();
+
+        // emit our signal so the NodeList knows to send a ping immediately
+        emit icePeerSocketsReceived();
     }
 }

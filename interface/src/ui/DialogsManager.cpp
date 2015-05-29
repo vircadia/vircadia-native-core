@@ -24,6 +24,7 @@
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
+#include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
@@ -52,7 +53,7 @@ void DialogsManager::showLoginDialog() {
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());
-        
+
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
         }
@@ -65,7 +66,7 @@ void DialogsManager::octreeStatsDetails() {
 void DialogsManager::cachesSizeDialog() {
     if (!_cachesSizeDialog) {
         maybeCreateDialog(_cachesSizeDialog);
-        
+
         connect(_cachesSizeDialog, SIGNAL(closed()), _cachesSizeDialog, SLOT(deleteLater()));
         _cachesSizeDialog->show();
     }
@@ -112,11 +113,11 @@ void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
         connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
-        
+
         if (_hmdToolsDialog) {
             _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
         }
-        
+
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
@@ -125,7 +126,7 @@ void DialogsManager::bandwidthDetails() {
 void DialogsManager::lodTools() {
     if (!_lodToolsDialog) {
         maybeCreateDialog(_lodToolsDialog);
-        
+
         connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
         _lodToolsDialog->show();
     }
@@ -172,7 +173,20 @@ void DialogsManager::showIRCLink() {
         _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
         _ircInfoBox->show();
     }
-    
+
     _ircInfoBox->raise();
 }
 
+void DialogsManager::showDomainConnectionDialog() {
+    // if the dialog already exists we delete it so the connection data is refreshed
+    if (_domainConnectionDialog) {
+        _domainConnectionDialog->close();
+        _domainConnectionDialog->deleteLater();
+        _domainConnectionDialog = NULL;
+    }
+
+    maybeCreateDialog(_domainConnectionDialog);
+
+    _domainConnectionDialog->show();
+    _domainConnectionDialog->raise();
+}
