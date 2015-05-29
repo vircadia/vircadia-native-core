@@ -187,34 +187,23 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     if (_needsModelReload) {
         getModel();
     }
+    
+    Transform transformToCenter = getTransformToCenter();
+    transformToCenter.setScale(getDimensions() / _voxelVolumeSize);
 
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::vec3 scale = dimensions / _voxelVolumeSize;
-    glm::vec3 center = getCenterPosition();
-    glm::quat rotation = getRotation();
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glm::vec3 positionToCenter = center - position;
-        // make the rendered voxel volume be centered on the entity's position
-        positionToCenter -= getDimensions() * glm::vec3(0.5f,0.5f,0.5f);
-        glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-        glScalef(scale.x, scale.y, scale.z);
-
-        auto mesh = _modelGeometry.getMesh();
-        gpu::Batch batch;
-        batch.setInputFormat(mesh->getVertexFormat());
-        batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
-        batch.setInputBuffer(gpu::Stream::NORMAL,
-                             mesh->getVertexBuffer()._buffer,
-                             sizeof(float) * 3,
-                             mesh->getVertexBuffer()._stride);
-        batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
-        batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-        gpu::GLBackend::renderBatch(batch);
-    glPopMatrix();
+    auto mesh = _modelGeometry.getMesh();
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(transformToCenter);
+    batch.setInputFormat(mesh->getVertexFormat());
+    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
+    batch.setInputBuffer(gpu::Stream::NORMAL,
+                         mesh->getVertexBuffer()._buffer,
+                         sizeof(float) * 3,
+                         mesh->getVertexBuffer()._stride);
+    batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    
     RenderableDebugableEntityItem::render(this, args);
 }
 
