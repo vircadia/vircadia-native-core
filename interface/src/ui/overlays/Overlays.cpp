@@ -87,13 +87,7 @@ Overlays::~Overlays() {
         _overlaysWorld.clear();
     }
     
-    if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
-        do {
-            _overlaysToDelete.takeLast().reset();
-        } while (!_overlaysToDelete.isEmpty());
-    }
-    
+    cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
@@ -112,13 +106,28 @@ void Overlays::update(float deltatime) {
         }
     }
 
+    cleanupOverlaysToDelete();
+}
+
+void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
         QWriteLocker lock(&_deleteLock);
+        render::PendingChanges pendingChanges;
+
         do {
-            _overlaysToDelete.takeLast().reset();
+            Overlay::Pointer overlay = _overlaysToDelete.takeLast();
+
+            auto itemID = overlay->getRenderItemID();
+            if (itemID != render::Item::INVALID_ITEM_ID) {
+                pendingChanges.removeItem(itemID);
+            }
         } while (!_overlaysToDelete.isEmpty());
+
+        if (pendingChanges._removedItems.size() > 0) {
+            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            scene->enqueuePendingChanges(pendingChanges);
+        }
     }
-    
 }
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {

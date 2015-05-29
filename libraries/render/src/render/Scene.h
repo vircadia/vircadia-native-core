@@ -180,6 +180,8 @@ public:
     typedef std::vector<Item> Vector;
     typedef unsigned int ID;
 
+    static const ID INVALID_ITEM_ID = 0;
+
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     

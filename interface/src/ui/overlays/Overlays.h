@@ -89,6 +89,7 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
+    void cleanupOverlaysToDelete();
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
     QList<Overlay::Pointer> _overlaysToDelete;
