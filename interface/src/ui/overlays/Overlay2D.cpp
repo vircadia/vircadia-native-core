@@ -28,6 +28,10 @@ Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
 Overlay2D::~Overlay2D() {
 }
 
+AABox Overlay2D::getBounds() const {
+    return AABox(glm::vec3(_bounds.x, _bounds.y, 0.0f), glm::vec3(_bounds.width, _bounds.height, 0.1f));
+}
+
 void Overlay2D::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
     

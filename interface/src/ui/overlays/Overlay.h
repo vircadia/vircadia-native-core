@@ -21,6 +21,8 @@
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // for xColor
 #include <RenderArgs.h>
+#include <AABox.h>
+#include <render/Scene.h>
 
 const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float DEFAULT_ALPHA = 0.7f;
@@ -33,7 +35,12 @@ public:
         NO_ANCHOR,
         MY_AVATAR
     };
-    
+
+    typedef std::shared_ptr<Overlay> Pointer;
+
+    typedef render::Payload<Overlay> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
@@ -49,6 +56,8 @@ public:
     float getAlpha();
     float getGlowLevel();
     Anchor getAnchor() const { return _anchor; }
+
+    virtual AABox getBounds() const = 0;
 
 
     float getPulseMax() const { return _pulseMax; }
@@ -81,8 +90,13 @@ public:
     virtual Overlay* createClone() const = 0;
     virtual QScriptValue getProperty(const QString& property);
 
+    render::ItemID getRenderItemID() const { return _renderItemID; }
+    void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
+
 protected:
     float updatePulse();
+
+    render::ItemID _renderItemID;
 
     bool _isLoaded;
     float _alpha;

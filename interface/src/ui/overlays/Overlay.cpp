@@ -225,3 +225,8 @@ float Overlay::updatePulse() {
     
     return _pulse;
 }
+
+AABox Overlay::getBounds() const {
+    return AABox();
+}
+

@@ -90,9 +90,9 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
-    QMap<unsigned int, Overlay*> _overlaysHUD;
-    QMap<unsigned int, Overlay*> _overlaysWorld;
-    QList<Overlay*> _overlaysToDelete;
+    QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
+    QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;

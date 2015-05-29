@@ -38,6 +38,7 @@ public:
     int getWidth() const { return _bounds.width(); }
     int getHeight() const { return _bounds.height(); }
     const QRect& getBounds() const { return _bounds; }
+    virtual AABox getBounds() const;
 
     // setters
     void setX(int x) { _bounds.setX(x); }
