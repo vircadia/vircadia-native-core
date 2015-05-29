@@ -22,7 +22,7 @@ static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 
-EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity) :
+EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
     _entity(entity),
     _sentActive(false),
@@ -39,8 +39,9 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity
     _loopsSinceOwnershipBid(0),
     _loopsWithoutOwner(0)
 {
-    _type = MOTION_STATE_TYPE_ENTITY;
-    assert(entity != nullptr);
+    _type = MOTIONSTATE_TYPE_ENTITY;
+    assert(_entity != nullptr);
+    setMass(_entity->computeMass());
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -88,7 +89,6 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
-
 }
 
 
@@ -98,10 +98,9 @@ void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
     ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
-void EntityMotionState::clearEntity() {
+void EntityMotionState::clearObjectBackPointer() {
+    ObjectMotionState::clearObjectBackPointer();
     _entity = nullptr;
-    // set the type to INVALID so that external logic that pivots on the type won't try to access _entity
-    _type = MOTION_STATE_TYPE_INVALID;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {
@@ -133,7 +132,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->simulateKinematicMotion(dt);
-        _entity->setLastSimulated(usecTimestampNow());
 
         // bypass const-ness so we can remember the step
         const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
@@ -178,10 +176,14 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     #endif
 }
 
-void EntityMotionState::computeObjectShapeInfo(ShapeInfo& shapeInfo) {
+// virtual and protected
+btCollisionShape* EntityMotionState::computeNewShape() {
     if (_entity) {
+        ShapeInfo shapeInfo;
         _entity->computeShapeInfo(shapeInfo);
+        return getShapeManager()->getShape(shapeInfo);
     }
+    return nullptr;
 }
 
 // RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
@@ -398,13 +400,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
 
-    // we only update lastEdited when we're sending new physics data 
-    quint64 lastSimulated = _entity->getLastSimulated();
-    _entity->setLastEdited(lastSimulated);
-    properties.setLastEdited(lastSimulated);
+    // set the LastEdited of the properties but NOT the entity itself
+    quint64 now = usecTimestampNow();
+    properties.setLastEdited(now);
 
     #ifdef WANT_DEBUG
-        quint64 now = usecTimestampNow();
+        quint64 lastSimulated = _entity->getLastSimulated();
         qCDebug(physics) << "EntityMotionState::sendUpdate()";
         qCDebug(physics) << "        EntityItemId:" << _entity->getEntityItemID()
                          << "---------------------------------------------";
@@ -444,7 +445,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _lastStep = step;
 }
 
-uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() const { 
+uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() { 
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags(); 

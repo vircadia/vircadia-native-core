@@ -32,12 +32,6 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     }
 }
 
-#ifdef WIN32
-//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
-// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
-#pragma warning(disable:4351) 
-#endif
-
 Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),

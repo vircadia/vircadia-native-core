@@ -25,7 +25,7 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    EntityMotionState(btCollisionShape* shape, EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables(uint32_t flags);
@@ -43,14 +43,12 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans);
 
-    virtual void computeObjectShapeInfo(ShapeInfo& shapeInfo);
-
     bool isCandidateForOwnership(const QUuid& sessionID) const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getAndClearIncomingDirtyFlags() const;
+    virtual uint32_t getAndClearIncomingDirtyFlags();
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -62,17 +60,17 @@ public:
     virtual float getObjectAngularDamping() const { return _entity->getAngularDamping(); }
 
     virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
-    virtual const glm::quat& getObjectRotation() const { return _entity->getRotation(); }
-    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
-    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
-    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
+    virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
+    virtual glm::vec3 getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual glm::vec3 getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual glm::vec3 getObjectGravity() const { return _entity->getGravity(); }
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
     virtual QUuid getSimulatorID() const;
     virtual void bump();
 
-    EntityItem* getEntity() const { return _entity; }
+    EntityItemPointer getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
@@ -82,11 +80,11 @@ public:
     friend class PhysicalEntitySimulation;
 
 protected:
-    void clearEntity();
-
+    virtual btCollisionShape* computeNewShape();
+    virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
-    EntityItem* _entity;
+    EntityItemPointer _entity;
 
     bool _sentActive;   // true if body was active when we sent last update
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects

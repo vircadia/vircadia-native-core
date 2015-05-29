@@ -687,6 +687,10 @@ Application::~Application() {
     // stop the glWidget frame timer so it doesn't call paintGL
     _glWidget->stopFrameTimer();
 
+    // remove avatars from physics engine
+    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    _physicsEngine.deleteObjects(DependencyManager::get<AvatarManager>()->getObjectsToDelete());
+
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -1944,7 +1948,9 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() {
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+#endif
 #ifdef HAVE_FACESHIFT
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->setIsMuted(isMuted);
@@ -1970,7 +1976,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -2011,7 +2017,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
@@ -2150,13 +2156,10 @@ void Application::init() {
     _physicsEngine.init();
 
     EntityTree* tree = _entities.getTree();
-    _entitySimulation.init(tree, &_physicsEngine, &_shapeManager, &_entityEditSender);
+    _entitySimulation.init(tree, &_physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-
-    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
@@ -2180,6 +2183,9 @@ void Application::init() {
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
     DependencyManager::get<GlowEffect>()->init(glow);
+
+    // Make sure any new sounds are loaded as soon as know about them.
+    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {
@@ -2470,23 +2476,33 @@ void Application::update(float deltaTime) {
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
         _entitySimulation.unlock();
 
+        AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
+        _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
+        _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
+        _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
+
         _physicsEngine.stepSimulation();
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.unlock();
-            _physicsEngine.dumpStatsIfNecessary();
-        }
-    }
 
-    if (!_aboutToQuit) {
-        PerformanceTimer perfTimer("entities");
-        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
-        _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
-        // NOTE: the _entities.update() call below will wait for lock
-        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
-       _entities.update(); // update the models...
+            avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            auto collisionEvents = _physicsEngine.getCollisionEvents();
+            avatarManager->handleCollisionEvents(collisionEvents);
+
+            _physicsEngine.dumpStatsIfNecessary();
+
+            if (!_aboutToQuit) {
+                PerformanceTimer perfTimer("entities");
+                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+                _entitySimulation.handleCollisionEvents(collisionEvents);
+                // NOTE: the _entities.update() call below will wait for lock
+                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                _entities.update(); // update the models...
+            }
+        }
     }
 
     {

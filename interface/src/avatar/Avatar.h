@@ -18,11 +18,11 @@
 #include <QtCore/QUuid>
 
 #include <AvatarData.h>
+#include <ShapeInfo.h>
 
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
-#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -55,6 +55,7 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
+class AvatarMotionState;
 class Texture;
 
 class Avatar : public AvatarData {
@@ -164,6 +165,10 @@ public:
 
     virtual void rebuildSkeletonBody();
 
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+
+    friend class AvatarManager;
+
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
@@ -231,7 +236,7 @@ private:
 
     int _voiceSphereID;
 
-    //AvatarMotionState* _motionState = nullptr;
+    AvatarMotionState* _motionState = nullptr;
 };
 
 #endif // hifi_Avatar_h
