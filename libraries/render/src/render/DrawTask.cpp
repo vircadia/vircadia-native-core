@@ -211,13 +211,13 @@ struct ItemBound {
 };
 
 struct FrontToBackSort {
-    bool operator() (ItemBound& left, ItemBound& right) {
+    bool operator() (const ItemBound& left, const ItemBound& right) {
         return (left._centerDepth < right._centerDepth);
     }
 };
 
 struct BackToFrontSort {
-    bool operator() (ItemBound& left, ItemBound& right) {
+    bool operator() (const ItemBound& left, const ItemBound& right) {
         return (left._centerDepth > right._centerDepth);
     }
 };
