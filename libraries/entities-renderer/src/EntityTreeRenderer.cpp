@@ -1184,7 +1184,6 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
-    qCDebug(entitiesrenderer) << "*" << collision.type << glm::length(collision.penetration);
 
     // See if we should play sounds
     EntityTree* entityTree = static_cast<EntityTree*>(_tree);
