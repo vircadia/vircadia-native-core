@@ -3403,7 +3403,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
-    render::Scene::PendingChanges pendingChanges;
+    render::PendingChanges pendingChanges;
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {
@@ -3415,18 +3415,23 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     }
 
+    {
+        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        _main3DScene->enqueuePendingChanges(pendingChanges);
 
-    _main3DScene->enqueuePendingChanges(pendingChanges);
-
-    _main3DScene->processPendingChangesQueue();
+        _main3DScene->processPendingChangesQueue();
+    }
 
     // FOr now every frame pass the renderCOntext
-    render::RenderContext renderContext;
-    renderContext.args = renderArgs;
-    _renderEngine->setRenderContext(renderContext);
+    {
+        PerformanceTimer perfTimer("EngineRun");
+        render::RenderContext renderContext;
+        renderContext.args = renderArgs;
+        _renderEngine->setRenderContext(renderContext);
 
-    // Before the deferred pass, let's try to use the render engine
-    _renderEngine->run();
+        // Before the deferred pass, let's try to use the render engine
+        _renderEngine->run();
+    }
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());

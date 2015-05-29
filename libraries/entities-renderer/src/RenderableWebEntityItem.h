@@ -24,6 +24,7 @@ public:
 
     virtual void render(RenderArgs* args);
     virtual void setSourceUrl(const QString& value);
+    virtual bool canRenderInScene() { return false; } // we don't yet play well with others
 
 private:
     OffscreenQmlSurface* _webSurface{ nullptr };

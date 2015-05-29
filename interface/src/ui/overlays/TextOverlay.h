@@ -60,7 +60,7 @@ public:
 
 private:
     
-    TextRenderer* _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+    TextRenderer* _textRenderer = nullptr;
     
     QString _text;
     xColor _backgroundColor;

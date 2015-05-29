@@ -24,6 +24,7 @@ TextOverlay::TextOverlay() :
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
 {
+    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
 }
 
 TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
@@ -35,6 +36,7 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
     _topMargin(textOverlay->_topMargin),
     _fontSize(textOverlay->_fontSize)
 {
+    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
 }
 
 TextOverlay::~TextOverlay() {

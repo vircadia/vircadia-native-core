@@ -14,6 +14,7 @@
 
 #include <BoxEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 
 class RenderableBoxEntityItem : public BoxEntityItem {
 public:
@@ -24,6 +25,8 @@ public:
         { }
 
     virtual void render(RenderArgs* args);
+
+    SIMPLE_RENDERABLE()
 };
 
 

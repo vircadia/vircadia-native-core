@@ -62,8 +62,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     state->setCullMode(gpu::State::CULL_BACK);
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
     state->setBlendFunction(false,
-    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 
     _viewState = viewState;

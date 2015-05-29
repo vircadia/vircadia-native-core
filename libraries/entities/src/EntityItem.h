@@ -12,6 +12,7 @@
 #ifndef hifi_EntityItem_h
 #define hifi_EntityItem_h
 
+#include <memory>
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -32,6 +33,11 @@
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
+
+namespace render {
+    class Scene;
+    class PendingChanges;
+}
 
 // these thesholds determine what updates will be ignored (client and server)
 const float IGNORE_POSITION_DELTA = 0.0001f;
@@ -151,6 +157,11 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) 
                                                 { return 0; }
 
+    virtual bool canRenderInScene() { return false; } // does your entity property render using Render Items and Payloads
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                            render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                render::PendingChanges& pendingChanges) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
@@ -195,7 +206,7 @@ public:
     
     /// Dimensions in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
-    inline virtual void setDimensions(const glm::vec3& value) { _transform.setScale(glm::abs(value)); }
+    virtual void setDimensions(const glm::vec3& value);
 
 
     float getGlowLevel() const { return _glowLevel; }

@@ -70,21 +70,21 @@ void Item::move() {
     
 }
 
-void Scene::PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
+void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
 }
 
-void Scene::PendingChanges::removeItem(ItemID id) {
+void PendingChanges::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
 
-void Scene::PendingChanges::moveItem(ItemID id) {
+void PendingChanges::moveItem(ItemID id) {
     _movedItems.push_back(id);
 }
 
         
-void Scene::PendingChanges::merge(PendingChanges& changes) {
+void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
@@ -108,7 +108,7 @@ void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
     _changeQueueMutex.unlock();
 }
 
-void consolidateChangeQueue(Scene::PendingChangesQueue& queue, Scene::PendingChanges& singleBatch) {
+void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBatch) {
     while (!queue.empty()) {
         auto pendingChanges = queue.front();
         singleBatch.merge(pendingChanges);

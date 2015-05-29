@@ -57,11 +57,13 @@ protected:
 
 typedef std::vector<Job> Jobs;
 
+void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemIDs& outITems);
+void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDs& inItems, ItemIDs& outITems);
+void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems);
 
 
 class DrawOpaque {
 public:
-    Jobs _jobs;
 };
 template <> void jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
@@ -77,19 +79,6 @@ public:
 template <> void jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
 
-class FilterItems {
-public:
-    ItemIDs _items;
-};
-template <> void jobRun(const FilterItems& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-class RenderItems {
-public:
-    ItemIDs _items;
-};
-template <> void jobRun(const RenderItems& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-
 class DrawSceneTask : public Task {
 public:
 
@@ -99,6 +88,7 @@ public:
     Jobs _jobs;
 
     virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
 };
 
 }

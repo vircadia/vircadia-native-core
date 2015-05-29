@@ -305,6 +305,27 @@ public:
 class Engine;
 class Observer;
 
+class PendingChanges {
+public:
+    PendingChanges() {}
+    ~PendingChanges() {}
+
+    void resetItem(ItemID id, const PayloadPointer& payload);
+    void removeItem(ItemID id);
+    void moveItem(ItemID id);
+
+    void merge(PendingChanges& changes);
+
+    Payloads _resetPayloads;
+    ItemIDs _resetItems; 
+    ItemIDs _removedItems;
+    ItemIDs _movedItems;
+
+protected:
+};
+typedef std::queue<PendingChanges> PendingChangesQueue;
+
+
 // Scene is a container for Items
 // Items are introduced, modified or erased in the scene through PendingChanges
 // Once per Frame, the PendingChanges are all flushed
@@ -341,26 +362,6 @@ public:
     };
     typedef std::shared_ptr< Observer > ObserverPointer;
     typedef std::vector< ObserverPointer > Observers;
-
-    class PendingChanges {
-    public:
-        PendingChanges() {}
-        ~PendingChanges() {}
-
-        void resetItem(ItemID id, const PayloadPointer& payload);
-        void removeItem(ItemID id);
-        void moveItem(ItemID id);
-
-        void merge(PendingChanges& changes);
-
-        Payloads _resetPayloads;
-        ItemIDs _resetItems; 
-        ItemIDs _removedItems;
-        ItemIDs _movedItems;
-
-    protected:
-    };
-    typedef std::queue<PendingChanges> PendingChangesQueue;
 
     Scene();
     ~Scene() {}
