@@ -3404,6 +3404,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+    } else {
+
+        pendingChanges.updateItem(WorldBoxRenderData::_item,
+            render::UpdateFunctor(
+                [](WorldBoxRenderData& payload) { 
+                     qCDebug(interfaceapp, "MyFirst update message!!!!!");
+                }));
     }
 
     {

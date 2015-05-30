@@ -194,6 +194,11 @@ public:
         int _firstFrame;
     };
 
+    // Update Functor
+    struct UpdateFunctor {
+        void* _something;
+    };
+    
     // Payload is whatever is in this Item and implement the Payload Interface
     class PayloadInterface {
     public:
@@ -201,18 +206,21 @@ public:
         virtual const Bound getBound() const = 0;
         virtual void render(RenderArgs* args) = 0;
 
+        virtual void update(const UpdateFunctor& functor) = 0;
+
         ~PayloadInterface() {}
     protected:
     };
     
     typedef std::shared_ptr<PayloadInterface> PayloadPointer;
-    
+
+
     Item() {}
     ~Item() {}
 
     void resetPayload(const PayloadPointer& payload);
     void kill();
-    void move();
+    void update(const UpdateFunctor& updateFunctor);
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
@@ -227,6 +235,10 @@ protected:
 
     friend class Scene;
 };
+
+typedef Item::UpdateFunctor UpdateFunctor;
+typedef std::vector<UpdateFunctor> UpdateFunctors;
+
 
 inline QDebug operator<<(QDebug debug, const Item& item) {
     debug << "[Item: _key:" << item.getKey() << ", bounds:" << item.getBound() << "]";
@@ -245,11 +257,14 @@ template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, Ren
 template <class T> class Payload : public Item::PayloadInterface {
 public:
     typedef std::shared_ptr<T> DataPointer;
+    typedef std::function<void(T&)> Updator;
 
     virtual const ItemKey getKey() const { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
-    
+ 
+    virtual void update(const UpdateFunctor& functor) { functor._f((*_data)); }
+
     Payload(const DataPointer& data) : _data(data) {}
 protected:
     DataPointer _data;
@@ -315,6 +330,7 @@ public:
 class Engine;
 class Observer;
 
+
 class PendingChanges {
 public:
     PendingChanges() {}
@@ -322,14 +338,17 @@ public:
 
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
-    void moveItem(ItemID id);
+
+    template <class T> void updateItem(ItemID id, std::function<void(T&)>) { updateItem_(id, std::weak_ptr<std::function<void(T&)>
+    void updateItem_(ItemID id, const UpdateFunctor& functor);
 
     void merge(PendingChanges& changes);
 
     Payloads _resetPayloads;
     ItemIDs _resetItems; 
     ItemIDs _removedItems;
-    ItemIDs _movedItems;
+    ItemIDs _updatedItems;
+    UpdateFunctors _updateFunctors;
 
 protected:
 };
@@ -413,7 +432,7 @@ protected:
 
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
-    void moveItems(const ItemIDs& ids);
+    void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
 
 
     // The scene context listening for any change to the database
