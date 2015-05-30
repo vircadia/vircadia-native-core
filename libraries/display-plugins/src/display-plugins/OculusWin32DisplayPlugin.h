@@ -9,7 +9,11 @@
 
 #include "OculusBaseDisplayPlugin.h"
 
+class OffscreenGlCanvas;
 class OculusWin32DisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual bool isSupported();
+
+private:
+    OffscreenGlCanvas* _canvas;
 };

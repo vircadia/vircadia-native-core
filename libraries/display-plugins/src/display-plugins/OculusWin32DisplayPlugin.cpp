@@ -14,7 +14,6 @@
 
 #include "../OglplusHelpers.h"
 
-#if 0
 bool OculusWin32DisplayPlugin::isSupported() {
     ovr_Initialize(nullptr);
     bool result = false;
@@ -25,6 +24,7 @@ bool OculusWin32DisplayPlugin::isSupported() {
     return result;
 }
 
+#if 0
 // A basic wrapper for constructing a framebuffer with a renderbuffer
 // for the depth attachment and an undefined type for the color attachement
 // This allows us to reuse the basic framebuffer code for both the Mirror

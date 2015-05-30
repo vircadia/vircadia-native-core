@@ -5,7 +5,7 @@ setup_hifi_library(OpenGL)
 
 setup_hifi_opengl()
 
-link_hifi_libraries(shared plugins )
+link_hifi_libraries(shared plugins gpu render-utils)
 
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)

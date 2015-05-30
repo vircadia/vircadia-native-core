@@ -47,51 +47,6 @@ QWindow* GlWindowDisplayPlugin::getWindow() const {
     return _window;
 }
 
-bool GlWindowDisplayPlugin::eventFilter(QObject* object, QEvent* event) {
-    if (qApp->eventFilter(object, event)) {
-        return true;
-    }
-
-    // FIXME
-    /*
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    if (offscreenUi->eventFilter(object, event)) {
-        return true;
-    }
-    */
-
-    // distinct calls for easier debugging with breakpoints
-    switch (event->type()) {
-        case QEvent::KeyPress:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::KeyRelease:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::MouseButtonPress:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::MouseButtonRelease:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::FocusIn:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::FocusOut:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::Resize:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        case QEvent::MouseMove:
-            QCoreApplication::sendEvent(QCoreApplication::instance(), event);
-            break;
-        default:
-            break;
-    }
-    return false;
-}
-
 void GlWindowDisplayPlugin::activate(PluginContainer * container) {
     Q_ASSERT(nullptr == _window);
     _window = new GlWindow(QOpenGLContext::currentContext());
@@ -101,8 +56,6 @@ void GlWindowDisplayPlugin::activate(PluginContainer * container) {
     _timer->start(8);
     makeCurrent();
     customizeContext();
-    // FIXME
-    //DependencyManager::get<OffscreenUi>()->setProxyWindow(_window);
 }
 
 void GlWindowDisplayPlugin::deactivate() {
@@ -124,4 +77,37 @@ glm::ivec2 GlWindowDisplayPlugin::getCanvasSize() const {
 
 bool GlWindowDisplayPlugin::hasFocus() const {
     return _window->isActive();
+}
+
+void GlWindowDisplayPlugin::installEventFilter(QObject* filter) {
+    _window->installEventFilter(filter);
+}
+
+void GlWindowDisplayPlugin::removeEventFilter(QObject* filter) {
+    _window->removeEventFilter(filter);
+}
+
+bool GlWindowDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+    switch (event->type()) {
+        case QEvent::MouseMove:
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::FocusIn:
+        case QEvent::FocusOut:
+        case QEvent::Resize:
+        case QEvent::TouchBegin:
+        case QEvent::TouchEnd:
+        case QEvent::TouchUpdate:
+        case QEvent::Wheel:
+        case QEvent::DragEnter:
+        case QEvent::Drop:
+            if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
+                return true;
+            }
+            break;
+    }
+    return false;
 }

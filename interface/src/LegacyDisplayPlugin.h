@@ -31,7 +31,10 @@ public:
     virtual void preDisplay();
     virtual void idle();
     virtual ivec2 getTrueMousePosition() const;
+
     virtual QWindow* getWindow() const;
+    virtual void installEventFilter(QObject* filter);
+    virtual void removeEventFilter(QObject* filter);
 
 protected:
     virtual void makeCurrent() final;

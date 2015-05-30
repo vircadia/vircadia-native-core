@@ -21,16 +21,23 @@ public:
     virtual QSize getDeviceSize() const final;
     virtual glm::ivec2 getCanvasSize() const final;
     virtual bool hasFocus() const;
-    virtual bool eventFilter(QObject* object, QEvent* event);
 
     virtual glm::ivec2 getTrueMousePosition() const;
     virtual QWindow* getWindow() const;
+    virtual bool eventFilter(QObject* receiver, QEvent* event);
+    virtual void installEventFilter(QObject* filter);
+    virtual void removeEventFilter(QObject* filter);
 
 protected:
     virtual void makeCurrent() final;
     virtual void doneCurrent() final;
     virtual void swapBuffers() final;
+
+    // Called by the activate method to specify the initial window geometry
+    // flags, etc
     virtual void customizeWindow() = 0;
+    // Called by the activate method after the GL context has been created to 
+    // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext() = 0;
 
 private:

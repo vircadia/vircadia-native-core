@@ -1102,9 +1102,9 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
-
     if (event->type() == QEvent::ShortcutOverride) {
-        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        if (offscreenUi->shouldSwallowShortcut(event)) {
             event->accept();
             return true;
         }
@@ -1115,7 +1115,6 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
             return true;
         }
     }
-
     return false;
 }
 
@@ -1459,7 +1458,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
 
-    if (activeWindow() == _window) {
+    if (hasFocus()) {
         _keyboardMouseDevice.mousePressEvent(event);
 
         if (event->button() == Qt::LeftButton) {
@@ -1500,7 +1499,7 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
         return;
     }
 
-    if (activeWindow() == _window) {
+    if (hasFocus()) {
         if (event->button() == Qt::LeftButton) {
             if (mouseOnScreen()) {
                 if (DependencyManager::get<CameraToolBox>()->mouseDoublePressEvent(getMouseX(), getMouseY())) {
@@ -1525,7 +1524,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    if (activeWindow() == _window) {
+    if (hasFocus()) {
         _keyboardMouseDevice.mouseReleaseEvent(event);
 
         if (event->button() == Qt::LeftButton) {
@@ -1563,7 +1562,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     _keyboardMouseDevice.touchUpdateEvent(event);
 
     bool validTouch = false;
-    if (activeWindow() == _window) {
+    if (hasFocus()) {
         const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
         _touchAvg = glm::vec2(0);
         int numTouches = tPoints.count();
@@ -4675,21 +4674,23 @@ void Application::updateDisplayMode() {
         }
     }
     if (_displayPlugin != newDisplayPlugin) {
+        DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
+
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
             newDisplayPlugin->activate(this);
+            newDisplayPlugin->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+            newDisplayPlugin->installEventFilter(qApp);
             QWindow* pluginWindow = newDisplayPlugin->getWindow();
             if (pluginWindow) {
-                //  Event filter queue is 'last in, first used'
-                pluginWindow->installEventFilter(DependencyManager::get<OffscreenUi>().data());
-                pluginWindow->installEventFilter(qApp);
                 DependencyManager::get<OffscreenUi>()->setProxyWindow(pluginWindow);
-            }
+            } 
             _offscreenContext->makeCurrent();
-        }
+        } 
 
         std::swap(newDisplayPlugin, _displayPlugin);
         if (newDisplayPlugin) {
+            newDisplayPlugin->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
             newDisplayPlugin->deactivate();
             _offscreenContext->makeCurrent();
         }

@@ -9,13 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QMimeData>
-#include <QUrl>
-#include <QWindow>
 
 #include "Application.h"
 #include "GLCanvas.h"
-#include "MainWindow.h"
+
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
 
@@ -35,7 +32,7 @@ void GLCanvas::stopFrameTimer() {
 }
 
 bool GLCanvas::isThrottleRendering() const {
-    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
+    return _throttleRendering || parentWidget()->isMinimized();
 }
 
 int GLCanvas::getDeviceWidth() const {
@@ -57,7 +54,7 @@ void GLCanvas::initializeGL() {
 }
 
 void GLCanvas::paintGL() {
-    if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
+    if (!isThrottleRendering()) {
         Application::getInstance()->paintGL();
     }
 }
@@ -93,7 +90,7 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
-    if (!Application::getInstance()->getWindow()->isMinimized()) {
+    if (!parentWidget()->isMinimized()) {
         Application::getInstance()->paintGL();
     }
 }

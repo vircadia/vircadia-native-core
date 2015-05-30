@@ -92,6 +92,9 @@ public:
     // The window for the surface, used for event interception.  May be null.
     virtual QWindow* getWindow() const = 0;
 
+    virtual void installEventFilter(QObject* filter) {}
+    virtual void removeEventFilter(QObject* filter) {}
+
     // The mouse position relative to the window (or proxy window) surface
     virtual glm::ivec2 getTrueMousePosition() const = 0;
 

@@ -16,6 +16,8 @@
 #include <MatrixStack.h>
 #include <PathUtils.h>
 
+#include <TextureCache.h>
+#include <gpu/GLBackend.h>
 
 #include "../OglplusHelpers.h"
 
@@ -35,6 +37,7 @@ bool Tv3dDisplayPlugin::isSupported() const {
 
 static ProgramPtr program;
 static ShapeWrapperPtr plane;
+static gpu::TexturePointer crosshairTexture;
 
 void Tv3dDisplayPlugin::customizeWindow() {
     _window->setFlags(Qt::FramelessWindowHint);
@@ -64,15 +67,19 @@ void Tv3dDisplayPlugin::customizeContext() {
     program = loadDefaultShader();
     plane = loadPlane(program);
     Context::ClearColor(0, 0, 0, 1);
-    //        _crosshairTexture = DependencyManager::get<TextureCache>()->
-    //            getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
+    crosshairTexture = DependencyManager::get<TextureCache>()->
+         getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
 }
 
 
+// FIXME make this into a setting that can be adjusted
 const float DEFAULT_IPD = 0.064f;
 const float HALF_DEFAULT_IPD = DEFAULT_IPD / 2.0f;
 
 glm::mat4 Tv3dDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    // Refer to http://www.nvidia.com/content/gtc-2010/pdfs/2010_gtc2010.pdf on creating 
+    // stereo projection matrices.  Do NOT use "toe-in", use translation.
+
     float nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     float screenZ = 0.25f; // screen projection plane
     // FIXME verify this is the right calculation
@@ -91,15 +98,24 @@ glm::mat4 Tv3dDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelvie
     return baseModelview * glm::translate(mat4(), vec3(modelviewShift, 0, 0));
 }
 
-
+template <typename F>
+void sbs_for_each_eye(const uvec2& size, F f) {
+    QRect r(QPoint(0, 0), QSize(size.x / 2, size.y));
+    for_each_eye([&](Eye eye) {
+        oglplus::Context::Viewport(r.x(), r.y(), r.width(), r.height());
+        f(eye);
+    }, [&] {
+        r.moveLeft(r.width());
+    });
+}
 
 void Tv3dDisplayPlugin::display(
     GLuint sceneTexture, const glm::uvec2& sceneSize,
     GLuint overlayTexture, const glm::uvec2& overlaySize) {
 
-    QSize size = getDeviceSize();
+    uvec2 size = toGlm(getDeviceSize());
     using namespace oglplus;
-    Context::Viewport(size.width(), size.height());
+    Context::Viewport(size.x, size.y);
     Context::Clear().ColorBuffer().DepthBuffer();
 
     Mat4Uniform(*program, "ModelView").Set(mat4());
@@ -109,10 +125,11 @@ void Tv3dDisplayPlugin::display(
 
     plane->Draw();
 
-    const float overlayAspect = aspect(toGlm(size));
+    // FIXME the 
+    const float screenAspect = aspect(size);
     const GLfloat distance = 1.0f;
     const GLfloat halfQuadHeight = distance * tan(DEFAULT_FIELD_OF_VIEW_DEGREES);
-    const GLfloat halfQuadWidth = halfQuadHeight * (float)size.width() / (float)size.height();
+    const GLfloat halfQuadWidth = halfQuadHeight * screenAspect;
     const GLfloat quadWidth = halfQuadWidth * 2.0f;
     const GLfloat quadHeight = halfQuadHeight * 2.0f;
 
@@ -123,38 +140,39 @@ void Tv3dDisplayPlugin::display(
     Context::Enable(Capability::Blend);
     glBindTexture(GL_TEXTURE_2D, overlayTexture);
     
-    mat4 pr = glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), aspect(toGlm(size)), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP);
+    mat4 pr = glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), screenAspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP);
     Mat4Uniform(*program, "Projection").Set(pr);
 
+    // Position the camera relative to the overlay texture
     MatrixStack mv;
-    mv.translate(vec3(0, 0, -distance)).scale(vec3(0.7f, 0.7f / overlayAspect, 1.0f)); // .scale(vec3(quadWidth, quadHeight, 1.0));
+    mv.translate(vec3(0, 0, -distance)).scale(vec3(0.7f, 0.7f / screenAspect, 1.0f)); // .scale(vec3(quadWidth, quadHeight, 1.0));
+    sbs_for_each_eye(size, [&](Eye eye) {
+        mv.withPush([&] {
+            // translate 
+            mv.top() = getModelview(eye, mv.top());
+            Mat4Uniform(*program, "ModelView").Set(mv.top());
+            plane->Draw();
+        });
+    });
 
-    QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-    for (int i = 0; i < 2; ++i) {
-        Context::Viewport(r.x(), r.y(), r.width(), r.height());
-        Mat4Uniform(*program, "ModelView").Set(mv.top());
-        plane->Draw();
-        r.moveLeft(r.width());
-    }
-
-#if 0
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
-    glm::vec2 canvasSize = qApp->getCanvasSize();
-    glm::vec2 mouse = qApp->getMouse();
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(crosshairTexture));
+    glm::vec2 canvasSize = getCanvasSize();
+    glm::vec2 mouse = toGlm(_window->mapFromGlobal(QCursor::pos()));
     mouse /= canvasSize;
     mouse *= 2.0f;
     mouse -= 1.0f;
     mouse.y *= -1.0f;
-    mv.translate(mouse);
-    mv.scale(0.1f);
-    Mat4Uniform(*program, "ModelView").Set(mv.top());
-    r = QRect(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-    for (int i = 0; i < 2; ++i) {
-        Context::Viewport(r.x(), r.y(), r.width(), r.height());
-        plane->Draw();
-        r.moveLeft(r.width());
-    }
-#endif
+    sbs_for_each_eye(size, [&](Eye eye) {
+        mv.withPush([&] {
+            // translate 
+            mv.top() = getModelview(eye, mv.top());
+            mv.translate(mouse);
+            //mv.scale(0.05f);
+            mv.scale(vec3(0.025f, 0.05f, 1.0f));
+            Mat4Uniform(*program, "ModelView").Set(mv.top());
+            plane->Draw();
+        });
+    });
     Context::Disable(Capability::Blend);
 }
 
@@ -166,11 +184,9 @@ void Tv3dDisplayPlugin::activate(PluginContainer * container) {
 
 void Tv3dDisplayPlugin::deactivate() {
     makeCurrent();
-    if (plane) {
-        plane.reset();
-        program.reset();
-//        _crosshairTexture.reset();
-    }
+    plane.reset();
+    program.reset();
+    crosshairTexture.reset();
     doneCurrent();
     GlWindowDisplayPlugin::deactivate();
 }

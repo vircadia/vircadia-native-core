@@ -29,12 +29,8 @@ static QWidget * oldWidget = nullptr;
 
 void LegacyDisplayPlugin::activate(PluginContainer * container) {
     _window = new GLCanvas();
-
     QOpenGLContext * sourceContext = QOpenGLContext::currentContext();
-
-
     QOpenGLContext * newContext = new QOpenGLContext();
-
     {
         QSurfaceFormat format;
         format.setOption(QSurfaceFormat::DebugContext);
@@ -56,11 +52,8 @@ void LegacyDisplayPlugin::activate(PluginContainer * container) {
     _timer.start(8);
 }
 
-
 void LegacyDisplayPlugin::deactivate() {
     _timer.stop();
-    _window->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
-    _window->removeEventFilter(qApp);
     // FIXME, during shutdown, this causes an NPE.  Need to deactivate the plugin before the main window is destroyed.
 //    if (qApp->getWindow()) {
 //        qApp->getWindow()->setCentralWidget(oldWidget);
@@ -120,4 +113,12 @@ ivec2 LegacyDisplayPlugin::getTrueMousePosition() const {
 
 QWindow* LegacyDisplayPlugin::getWindow() const {
     return _window->windowHandle();
+}
+
+void LegacyDisplayPlugin::installEventFilter(QObject* filter) {
+    _window->installEventFilter(filter);
+}
+
+void LegacyDisplayPlugin::removeEventFilter(QObject* filter) {
+    _window->removeEventFilter(filter);
 }
