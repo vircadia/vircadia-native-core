@@ -23,8 +23,12 @@ Item {
     AddressBarDialog {
         id: addressBarDialog
 
-		implicitWidth: box.width
-		implicitHeight: addressLine.height + hifi.layout.spacing * 2
+        property int iconOverlap: 15  // Let the circle overlap window edges and rectangular part of dialog
+        property int maximumX: root.parent.width - root.width
+        property int maximumY: root.parent.height - root.height
+
+        implicitWidth: box.width + icon.width - iconOverlap * 2
+        implicitHeight: addressLine.height + hifi.layout.spacing * 2
 
         Border {
 			id: box
@@ -35,6 +39,8 @@ Item {
             radius: 6
             color: "#ededee"
 
+            x: icon.width - addressBarDialog.iconOverlap * 2  // W.r.t. addressBarDialog
+
 			MouseArea {
 				id: boxDrag
 
@@ -42,18 +48,18 @@ Item {
 
                 drag {
 					target: root
-					minimumX: 0
-					minimumY: 0
-                    maximumX: root.parent ? root.parent.width - root.width : 0
-                    maximumY: root.parent ? root.parent.height - root.height : 0
-				}
+                    minimumX: 0
+                    minimumY: 0
+                    maximumX: root.parent ? addressBarDialog.maximumX : 0
+                    maximumY: root.parent ? addressBarDialog.maximumY : 0
+                }
 			}
 
             TextInput {
 				id: addressLine
 
                 anchors.fill: parent
-                anchors.leftMargin: hifi.layout.spacing * 2
+                anchors.leftMargin: addressBarDialog.iconOverlap + hifi.layout.spacing * 2
                 anchors.rightMargin: hifi.layout.spacing * 2
                 anchors.topMargin: hifi.layout.spacing
                 anchors.bottomMargin: hifi.layout.spacing
@@ -67,7 +73,31 @@ Item {
 				}
 			}
 		}
-	}
+
+        Image {
+            id: icon
+            source: "../images/address-bar-icon.svg"
+            width: 80
+            height: 80
+            anchors.right: box.left
+            anchors.rightMargin: -addressBarDialog.iconOverlap
+            anchors.verticalCenter: parent.verticalCenter
+
+            MouseArea {
+                id: iconDrag
+
+                anchors.fill: parent
+
+                drag {
+                    target: root
+                    minimumX: 0
+                    minimumY: 0
+                    maximumX: root.parent ? addressBarDialog.maximumX : 0
+                    maximumY: root.parent ? addressBarDialog.maximumY : 0
+                }
+            }
+        }
+    }
 
     // The UI enables an object, rather than manipulating its visibility, so that we can do animations in both directions. 
 	// Because visibility and enabled are booleans, they cannot be animated. So when enabled is changed, we modify a property 
