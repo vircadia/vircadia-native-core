@@ -27,6 +27,7 @@ static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 
 
+
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
