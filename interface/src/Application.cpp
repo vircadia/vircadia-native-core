@@ -3035,17 +3035,6 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
             _entities.render(renderArgs);
         }
 
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(renderArgs, false);
-        }
-
-        {
-            PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.renderWorld(renderArgs, true);
-        }
-
         glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
@@ -3364,12 +3353,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(renderArgs, false);
-        }
         
         // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
@@ -3421,18 +3404,23 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     }
 
+    {
+        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        _main3DScene->enqueuePendingChanges(pendingChanges);
 
-    _main3DScene->enqueuePendingChanges(pendingChanges);
-
-    _main3DScene->processPendingChangesQueue();
+        _main3DScene->processPendingChangesQueue();
+    }
 
     // FOr now every frame pass the renderCOntext
-    render::RenderContext renderContext;
-    renderContext.args = renderArgs;
-    _renderEngine->setRenderContext(renderContext);
+    {
+        PerformanceTimer perfTimer("EngineRun");
+        render::RenderContext renderContext;
+        renderContext.args = renderArgs;
+        _renderEngine->setRenderContext(renderContext);
 
-    // Before the deferred pass, let's try to use the render engine
-    _renderEngine->run();
+        // Before the deferred pass, let's try to use the render engine
+        _renderEngine->run();
+    }
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
@@ -3482,13 +3470,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    // Render 3D overlays that should be drawn in front
-    {
-        PerformanceTimer perfTimer("3dOverlaysFront");
-        glClear(GL_DEPTH_BUFFER_BIT);
-        Glower glower(renderArgs);  // Sets alpha to 1.0
-        _overlays.renderWorld(renderArgs, true);
-    }
     activeRenderingThread = nullptr;
 }
 

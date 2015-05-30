@@ -32,15 +32,16 @@ class Context;
 class ItemKey {
 public:
     enum FlagBit {
-        TYPE_SHAPE = 0, // Item is a Shape
-        TYPE_LIGHT,     // Item is a Light
-        TRANSLUCENT,    // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
-        VIEW_SPACE,     // Transformed in view space, and not in world space
-        DYNAMIC,        // Dynamic and bound will change unlike static item
-        DEFORMED,       // Deformed within bound, not solid 
-        INVISIBLE,      // Visible or not? could be just here to cast shadow
-        SHADOW_CASTER,  // Item cast shadows
-        PICKABLE,       // Item can be picked/selected
+        TYPE_SHAPE = 0,   // Item is a Shape
+        TYPE_LIGHT,       // Item is a Light
+        TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
+        VIEW_SPACE,       // Transformed in view space, and not in world space
+        DYNAMIC,          // Dynamic and bound will change unlike static item
+        DEFORMED,         // Deformed within bound, not solid
+        INVISIBLE,        // Visible or not? could be just here to cast shadow
+        SHADOW_CASTER,    // Item cast shadows
+        PICKABLE,         // Item can be picked/selected
+        NO_DEPTH_SORT,    // Item should not be depth sorted
 
         NUM_FLAGS,      // Not a valid flag
     };
@@ -53,7 +54,7 @@ public:
     ItemKey(const Flags& flags) : _flags(flags) {}
 
     class Builder {
-        Flags _flags;
+        Flags _flags{ 0 };
     public:
         Builder() {}
 
@@ -68,10 +69,12 @@ public:
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
+        Builder& withNoDepthSort() { _flags.set(NO_DEPTH_SORT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
         static ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemKey light() { return Builder().withTypeLight().build(); }
     };
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
@@ -79,7 +82,7 @@ public:
 
     bool isWorldSpace() const { return !_flags[VIEW_SPACE]; }
     bool isViewSpace() const { return _flags[VIEW_SPACE]; }
- 
+
     bool isStatic() const { return !_flags[DYNAMIC]; }
     bool isDynamic() const { return _flags[DYNAMIC]; }
 
@@ -87,11 +90,14 @@ public:
     bool isDeformed() const { return _flags[DEFORMED]; }
  
     bool isVisible() const { return !_flags[INVISIBLE]; }
-    bool isUnvisible() const { return _flags[INVISIBLE]; }
+    bool isInvisible() const { return _flags[INVISIBLE]; }
 
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
 
     bool isPickable() const { return _flags[PICKABLE]; }
+
+    bool isDepthSort() const { return !_flags[NO_DEPTH_SORT]; }
+    bool isNoDepthSort() const { return _flags[NO_DEPTH_SORT]; }
 };
 
 inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
@@ -111,8 +117,8 @@ public:
     ItemFilter(const ItemKey::Flags& value = ItemKey::Flags(0), const ItemKey::Flags& mask = ItemKey::Flags(0)) : _value(value), _mask(mask) {}
 
     class Builder {
-        ItemKey::Flags _value;
-        ItemKey::Flags _mask;
+        ItemKey::Flags _value{ 0 };
+        ItemKey::Flags _mask{ 0 };
     public:
         Builder() {}
 
@@ -141,9 +147,13 @@ public:
 
         Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
 
+        Builder& withDepthSort()      { _value.reset(ItemKey::NO_DEPTH_SORT); _mask.set(ItemKey::NO_DEPTH_SORT); return (*this); }
+        Builder& withNotDepthSort()   { _value.set(ItemKey::NO_DEPTH_SORT);  _mask.set(ItemKey::NO_DEPTH_SORT); return (*this); }
+
         // Convenient standard keys that we will keep on using all over the place
-        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().build(); }
-        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
+        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace().build(); }
+        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace().build(); }
+        static ItemFilter light() { return Builder().withTypeLight().build(); }
     };
 
     // Item Filter operator testing if a key pass the filter
@@ -152,10 +162,10 @@ public:
     class Less {
     public:
         bool operator() (const ItemFilter& left, const ItemFilter& right) const {
-            if (left._value.to_ulong() >= right._value.to_ulong()) {
+            if (left._value.to_ulong() == right._value.to_ulong()) {
                 return left._mask.to_ulong() < right._mask.to_ulong();
             } else {
-                return true;
+                return left._value.to_ulong() < right._value.to_ulong();
             }
         }
     };
@@ -171,6 +181,8 @@ class Item {
 public:
     typedef std::vector<Item> Vector;
     typedef unsigned int ID;
+
+    static const ID INVALID_ITEM_ID = 0;
 
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;

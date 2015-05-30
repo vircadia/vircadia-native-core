@@ -14,6 +14,11 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload) { 
+        if (payload && payload->entity) {
+            if (payload->entity->getType() == EntityTypes::Light) {
+                return ItemKey::Builder::light();
+            }
+        }
         return ItemKey::Builder::opaqueShape();
     }
     
