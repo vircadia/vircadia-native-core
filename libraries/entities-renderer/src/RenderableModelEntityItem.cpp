@@ -108,6 +108,8 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
+// TODO: we need a solution for changes to the postion/rotation/etc of a model...
+// this current code path only addresses that in this setup case... not the changing/moving case
 bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
     if (!_model && renderArgs) {
         // TODO: this getModel() appears to be about 3% of model render time. We should optimize
@@ -116,9 +118,9 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         qDebug() << "RenderableModelEntityItem::readyToAddToScene().... renderer:" << renderer; 
         getModel(renderer);
     }
-    if (renderArgs && _model && _needsInitialSimulation && _model->isActive()) {
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
         qDebug() << "RenderableModelEntityItem::readyToAddToScene().... doing initial simulation";
-        _model->renderSetup(renderArgs);
+
         _model->setScaleToFit(true, getDimensions());
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
@@ -130,10 +132,16 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
             _model->simulate(0.0f);
         }
         _needsInitialSimulation = false;
+
+        _model->renderSetup(renderArgs);
     }
     bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
+    
+    /*
     qDebug() << "RenderableModelEntityItem::readyToAddToScene().... id:" << getEntityItemID() 
-                    << "ready:" << ready << "renderArgs:" << renderArgs;
+                    << "ready:" << ready << "renderArgs:" << renderArgs
+                    << "areMeshGroupsKnown():" << (_model ? _model->areMeshGroupsKnown() : false);
+     */
     return ready; 
 }
 
