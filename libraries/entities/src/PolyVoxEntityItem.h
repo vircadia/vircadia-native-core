@@ -51,7 +51,7 @@ class PolyVoxEntityItem : public EntityItem {
         _color[BLUE_INDEX] = value.blue;
     }
     
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_POLYVOX; }
+    virtual ShapeType getShapeType() const;
 
     // never have a ray intersection pick a PolyVoxEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
@@ -87,6 +87,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     // coords are in world-space
     virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue) {}
+
+    virtual void setAll(uint8_t toValue) {}
 
  protected:
     rgbColor _color;

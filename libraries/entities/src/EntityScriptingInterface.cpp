@@ -420,3 +420,40 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return true;
 }
+
+
+bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
+    if (!_entityTree) {
+        return false;
+    }
+
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
+        return false;
+    }
+
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::PolyVox) {
+        return false;
+    }
+
+    auto now = usecTimestampNow();
+
+    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity.get());
+    _entityTree->lockForWrite();
+    polyVoxEntity->setAll(value);
+    entity->setLastEdited(now);
+    entity->setLastBroadcast(now);
+    _entityTree->unlock();
+
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+
+    properties.setVoxelDataDirty();
+    properties.setLastEdited(now);
+
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    return true;
+}

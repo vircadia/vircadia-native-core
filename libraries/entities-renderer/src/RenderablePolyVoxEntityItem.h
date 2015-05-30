@@ -21,8 +21,7 @@ class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        PolyVoxEntityItem(entityItemID, properties) { }
+    RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
     virtual ~RenderablePolyVoxEntityItem();
 
@@ -47,13 +46,21 @@ public:
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     glm::mat4 voxelToWorldMatrix() const;
+    glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
+
+
+    virtual bool isReadyToComputeShape();
+    virtual void computeShapeInfo(ShapeInfo& info);
+
 
     // coords are in voxel-volume space
     virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
 
     // coords are in world-space
     virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue);
+
+    virtual void setAll(uint8_t toValue);
 
 private:
     void compressVolumeData();
@@ -62,6 +69,8 @@ private:
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
     bool _needsModelReload = true;
+
+    QVector<QVector<glm::vec3>> _points; // XXX
 };
 
 

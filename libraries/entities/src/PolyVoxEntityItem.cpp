@@ -115,3 +115,8 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
+
+// virtual
+ShapeType PolyVoxEntityItem::getShapeType() const {
+    return SHAPE_TYPE_COMPOUND;
+}
