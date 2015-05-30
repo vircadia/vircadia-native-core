@@ -72,6 +72,16 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
                                       _voxelVolumeSize[2] - 1);
 
     _volData = new PolyVox::SimpleVolume<uint8_t>(PolyVox::Region(lowCorner, highCorner));
+    compressVolumeData();
+}
+
+
+void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
+    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
+	return;
+    }
+    PolyVoxEntityItem::setVoxelSurfaceStyle(voxelSurfaceStyle);
+    _needsModelReload = true;
 }
 
 
@@ -368,7 +378,7 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
     qDebug() << "RenderablePolyVoxEntityItem::isReadyToComputeShape" << (!_needsModelReload);
 
     if (_needsModelReload) {
-        return false;
+	getModel();
     }
 
     for (int z = 0; z < _volData->getDepth(); z++) {

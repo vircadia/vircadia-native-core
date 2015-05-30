@@ -351,6 +351,8 @@ public:
 
     quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
 
+    void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
+
 protected:
 
     static bool _sendPhysicsUpdates;

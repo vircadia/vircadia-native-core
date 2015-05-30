@@ -40,16 +40,6 @@ class PolyVoxEntityItem : public EntityItem {
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
-
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setXColor(const xColor& value) {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
-    }
     
     virtual ShapeType getShapeType() const;
 
@@ -74,7 +64,7 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
     virtual void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) {
-        _voxelSurfaceStyle = (PolyVoxSurfaceStyle) voxelSurfaceStyle;
+	setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle);
     }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
 
@@ -91,7 +81,6 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setAll(uint8_t toValue) {}
 
  protected:
-    rgbColor _color;
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
