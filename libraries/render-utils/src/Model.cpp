@@ -2364,25 +2364,31 @@ qDebug() << "Model::renderPart()... meshIndex:" << meshIndex << "partIndex:" << 
                     }
                     static bool showDiffuse = true;
                     if (showDiffuse && diffuseMap) {
+                        qCDebug(renderutils) << "    batch.setUniformTexture(0, diffuseMap->getGPUTexture());";
                         batch.setUniformTexture(0, diffuseMap->getGPUTexture());
                         
                     } else {
+                        qCDebug(renderutils) << "    batch.setUniformTexture(0, textureCache->getWhiteTexture());";
                         batch.setUniformTexture(0, textureCache->getWhiteTexture());
                     }
 
                     if (locations->texcoordMatrices >= 0) {
                         glm::mat4 texcoordTransform[2];
                         if (!part.diffuseTexture.transform.isIdentity()) {
+                            qCDebug(renderutils) << "    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);";
                             part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
                         }
                         if (!part.emissiveTexture.transform.isIdentity()) {
+                            qCDebug(renderutils) << "    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);";
                             part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
                         }
+                        qCDebug(renderutils) << "    GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);";
                         GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
                     }
 
                     if (!mesh.tangents.isEmpty()) {                 
                         Texture* normalMap = networkPart.normalTexture.data();
+                        qCDebug(renderutils) << "    batch.setUniformTexture(1, !normalMap ? textureCache->getBlueTexture() : normalMap->getGPUTexture());";
                         batch.setUniformTexture(1, !normalMap ?
                             textureCache->getBlueTexture() : normalMap->getGPUTexture());
 
@@ -2390,6 +2396,7 @@ qDebug() << "Model::renderPart()... meshIndex:" << meshIndex << "partIndex:" << 
                 
                     if (locations->specularTextureUnit >= 0) {
                         Texture* specularMap = networkPart.specularTexture.data();
+                        qCDebug(renderutils) << "    batch.setUniformTexture(locations->specularTextureUnit, !specularMap ? textureCache->getWhiteTexture() : specularMap->getGPUTexture());";
                         batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
                                                     textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
@@ -2409,7 +2416,8 @@ qDebug() << "Model::renderPart()... meshIndex:" << meshIndex << "partIndex:" << 
                     GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
 
                     Texture* emissiveMap = networkPart.emissiveTexture.data();
-                        batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                    qCDebug(renderutils) << "    batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ? textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());";
+                    batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
                                                     textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
                 }
 
