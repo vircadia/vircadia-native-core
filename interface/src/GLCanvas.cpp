@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
+#if 0
 #include "Application.h"
 #include "GLCanvas.h"
 
@@ -162,3 +162,4 @@ bool GLCanvas::eventFilter(QObject*, QEvent* event) {
     }
     return false;
 }
+#endif

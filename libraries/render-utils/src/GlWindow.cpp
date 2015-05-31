@@ -47,6 +47,9 @@ void GlWindow::makeCurrent() {
       _logger = new QOpenGLDebugLogger(this);
       if (_logger->initialize()) {
           connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
+              if (message.type() == QOpenGLDebugMessage::Type::ErrorType) {
+                  qDebug() << "Error";
+              }
               qDebug() << message;
           });
           _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);

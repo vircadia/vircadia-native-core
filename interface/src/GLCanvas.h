@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#if 0
 #ifndef hifi_GLCanvas_h
 #define hifi_GLCanvas_h
 
@@ -51,3 +52,4 @@ private slots:
 
 
 #endif // hifi_GLCanvas_h
+#endif

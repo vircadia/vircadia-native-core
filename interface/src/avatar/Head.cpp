@@ -311,7 +311,6 @@ glm::quat Head::getCameraOrientation() const {
     if (qApp->isHMDMode()) {
         return getOrientation();
     }
-
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }

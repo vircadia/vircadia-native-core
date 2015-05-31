@@ -4581,18 +4581,6 @@ qreal Application::getDevicePixelRatio() {
     return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
-
-
-using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
-
-#include <display-plugins/NullDisplayPlugin.h>
-#include "LegacyDisplayPlugin.h"
-//#include <display-plugins/Oculus.h>
-#include <display-plugins/Tv3dDisplayPlugin.h>
-//#include <display-plugins/WindowDisplayPlugin.h>
-
-static DisplayPluginPointer _displayPlugin{ nullptr };
-
 DisplayPlugin * Application::getActiveDisplayPlugin() {
     if (nullptr == _displayPlugin) {
         updateDisplayMode();
@@ -4603,63 +4591,6 @@ DisplayPlugin * Application::getActiveDisplayPlugin() {
 
 const DisplayPlugin * Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
-}
-
-static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
-    auto menu = Menu::getInstance();
-    QString name = displayPlugin->getName();
-    Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
-
-    static QActionGroup* displayPluginGroup = nullptr;
-    if (!displayPluginGroup) {
-        displayPluginGroup = new QActionGroup(menu);
-        displayPluginGroup->setExclusive(true);
-    }
-    auto parent = menu->getMenu(MenuOption::OutputMenu);
-    auto action = menu->addActionToQMenuAndActionHash(parent,
-        name, 0, qApp,
-        SLOT(updateDisplayMode()));
-    action->setCheckable(true);
-    action->setChecked(active);
-    displayPluginGroup->addAction(action);
-    Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
-}
-
-using DisplayPluginList = QVector<DisplayPluginPointer>;
-
-static DisplayPlugin* PLUGIN_POOL[] = {
-    new LegacyDisplayPlugin(),
-#ifdef DEBUG
-    new NullDisplayPlugin(),
-#endif
-    new Tv3dDisplayPlugin(),
-//    new WindowDisplayPlugin(),
-    nullptr
-};
-
-// FIXME move to a plugin manager class
-static const DisplayPluginList & getDisplayPlugins() {
-    static DisplayPluginList RENDER_PLUGINS;
-    static bool init = false;
-    if (!init) {
-        init = true;
-        for (int i = 0; PLUGIN_POOL[i]; ++i) {
-            DisplayPlugin * plugin = PLUGIN_POOL[i];
-            if (plugin->isSupported()) {
-                plugin->init();
-                QObject::connect(plugin, &DisplayPlugin::requestRender, [] {
-                    qApp->paintGL();
-                });
-                QObject::connect(plugin, &DisplayPlugin::recommendedFramebufferSizeChanged, [](const QSize & size) {
-                    qApp->resizeGL();
-                });
-                DisplayPluginPointer pluginPointer(plugin);
-                addDisplayPluginToMenu(pluginPointer, plugin == *PLUGIN_POOL);
-                RENDER_PLUGINS.push_back(pluginPointer);
-            }
-        }
-    }
-    return RENDER_PLUGINS;
 }
 
 void Application::updateDisplayMode() {
@@ -4708,4 +4639,8 @@ glm::ivec2 Application::getMouse() const {
 
 void Application::addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
 
+}
+
+QMainWindow* Application::getAppMainWindow() {
+    return _window;
 }

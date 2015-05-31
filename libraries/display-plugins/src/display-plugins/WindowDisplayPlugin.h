@@ -7,9 +7,9 @@
 //
 #pragma once
 
-#include "GlWindowDisplayPlugin.h"
+#include "OpenGlDisplayPlugin.h"
 
-class WindowDisplayPlugin : public GlWindowDisplayPlugin {
+class WindowDisplayPlugin : public OpenGlDisplayPlugin {
     Q_OBJECT
 public:
     static const QString NAME;
@@ -17,5 +17,12 @@ public:
     WindowDisplayPlugin();
 
     virtual const QString & getName();
-private:
+
+    void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
+        GLuint overlayTexture, const glm::uvec2& overlaySize);
+
+protected:
+    // Called by the activate method to specify the initial 
+    // window geometry flags, etc
+    virtual void customizeWindow(PluginContainer * container);
 };

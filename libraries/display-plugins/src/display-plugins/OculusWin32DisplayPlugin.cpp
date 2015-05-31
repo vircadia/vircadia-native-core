@@ -8,20 +8,67 @@
 #include "OculusWin32DisplayPlugin.h"
 
 #include <memory>
+
+#include <QMainWindow>
+
 #include <GLMHelpers.h>
+#include <GlWindow.h>
 
 #include <OVR_CAPI_GL.h>
 
+#include "plugins/PluginContainer.h"
+
 #include "../OglplusHelpers.h"
 
+const QString OculusWin32DisplayPlugin::NAME("Oculus Rift");
+
+const QString & OculusWin32DisplayPlugin::getName() {
+    return NAME;
+}
+
 bool OculusWin32DisplayPlugin::isSupported() {
-    ovr_Initialize(nullptr);
+    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+        return false;
+    }
     bool result = false;
-    if (ovrHmd_Detect() != 0) {
+    if (ovrHmd_Detect() > 0) {
         result = true;
     }
     ovr_Shutdown();
     return result;
+}
+
+void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
+    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+        Q_ASSERT(false);
+        qFatal("Failed to Initialize SDK");
+    }
+    if (!OVR_SUCCESS(ovrHmd_Create(0, &_hmd))) {
+        Q_ASSERT(false);
+        qFatal("Failed to acquire HMD");
+    }
+    // Parent class relies on our _hmd intialization, so it must come after that.
+    OculusBaseDisplayPlugin::activate(container);
+}
+
+void OculusWin32DisplayPlugin::customizeWindow(PluginContainer * container) {
+    container->getAppMainWindow()->setCentralWidget(QWidget::createWindowContainer(_window));
+}
+
+void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
+}
+
+void OculusWin32DisplayPlugin::deactivate() {
+    ovrHmd_Destroy(_hmd);
+    _hmd = nullptr;
+    ovr_Shutdown();
+}
+
+void OculusWin32DisplayPlugin::display(
+    GLuint sceneTexture, const glm::uvec2& sceneSize,
+    GLuint overlayTexture, const glm::uvec2& overlaySize) {
+    glClearColor(0, 1, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 #if 0

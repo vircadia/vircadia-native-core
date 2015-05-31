@@ -76,8 +76,8 @@
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
+#include "DisplayPlugins.h"
 
-class DisplayPlugin;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
@@ -282,19 +282,6 @@ public:
 
     void displaySide(const Camera& camera, bool selfAvatarOnly = false);
     
-    virtual void addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
-
-/*
-    /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
-    /// the view matrix translation.
-    void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
-
-    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
-
-    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
-    /// result from matrix multiplication at high translation magnitudes.
-    void loadTranslatedViewMatrix(const glm::vec3& translation);
-*/
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
@@ -310,6 +297,10 @@ public:
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
+
+    // Plugin container support
+    virtual void addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
+    virtual QMainWindow* getAppMainWindow();
 
     private:
     DisplayPlugin * getActiveDisplayPlugin();
@@ -516,6 +507,7 @@ private:
     bool _dependencyManagerIsSetup;
 
     OffscreenGlCanvas* _offscreenContext;
+    DisplayPluginPointer _displayPlugin;
 
     MainWindow* _window;
 

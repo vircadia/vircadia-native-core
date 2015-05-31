@@ -12,16 +12,23 @@
 #include "../OculusHelpers.h"
 
 void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
+    OpenGlDisplayPlugin::activate(container);
+    glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
         ovrEyeRenderDesc erd = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
         _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
+    _desiredFramebufferSize = QSize(
+        eyeSizes[0].x + eyeSizes[1].x, 
+        std::max(eyeSizes[0].y, eyeSizes[1].y));
 }
 
-void OculusBaseDisplayPlugin::deactivate() {
+QSize OculusBaseDisplayPlugin::getRecommendedFramebufferSize() const {
+    return _desiredFramebufferSize;
 }
 
 void OculusBaseDisplayPlugin::preRender() {
@@ -35,4 +42,3 @@ glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseP
 glm::mat4 OculusBaseDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelview) const {
     return toGlm(_eyePoses[eye]);
 }
-

@@ -14,12 +14,8 @@
 #include <GlWindow.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
-#include <PathUtils.h>
 
-#include <TextureCache.h>
 #include <gpu/GLBackend.h>
-
-#include "../OglplusHelpers.h"
 
 const QString Tv3dDisplayPlugin::NAME("Tv3dDisplayPlugin");
 
@@ -35,11 +31,7 @@ bool Tv3dDisplayPlugin::isSupported() const {
     return true;
 }
 
-static ProgramPtr program;
-static ShapeWrapperPtr plane;
-static gpu::TexturePointer crosshairTexture;
-
-void Tv3dDisplayPlugin::customizeWindow() {
+void Tv3dDisplayPlugin::customizeWindow(PluginContainer * container) {
     _window->setFlags(Qt::FramelessWindowHint);
     auto desktop = QApplication::desktop();
     QRect primaryGeometry = desktop->screenGeometry();
@@ -56,21 +48,8 @@ void Tv3dDisplayPlugin::customizeWindow() {
         break;
     }
     _window->setCursor(Qt::BlankCursor);
+    _window->show();
 }
-
-void Tv3dDisplayPlugin::customizeContext() {
-    using namespace oglplus;
-    Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
-    Context::Disable(Capability::Blend);
-    Context::Disable(Capability::DepthTest);
-    Context::Disable(Capability::CullFace);
-    program = loadDefaultShader();
-    plane = loadPlane(program);
-    Context::ClearColor(0, 0, 0, 1);
-    crosshairTexture = DependencyManager::get<TextureCache>()->
-         getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
-}
-
 
 // FIXME make this into a setting that can be adjusted
 const float DEFAULT_IPD = 0.064f;
@@ -112,10 +91,14 @@ void sbs_for_each_eye(const uvec2& size, F f) {
 void Tv3dDisplayPlugin::display(
     GLuint sceneTexture, const glm::uvec2& sceneSize,
     GLuint overlayTexture, const glm::uvec2& overlaySize) {
-
+    makeCurrent();
+    GLenum err = glGetError();
     uvec2 size = toGlm(getDeviceSize());
+    err = glGetError();
     using namespace oglplus;
+    err = glGetError();
     Context::Viewport(size.x, size.y);
+    err = glGetError();
     Context::Clear().ColorBuffer().DepthBuffer();
 
     Mat4Uniform(*program, "ModelView").Set(mat4());
@@ -178,15 +161,6 @@ void Tv3dDisplayPlugin::display(
 
 
 void Tv3dDisplayPlugin::activate(PluginContainer * container) {
-    GlWindowDisplayPlugin::activate(container);
-    _window->show();
-}
-
-void Tv3dDisplayPlugin::deactivate() {
-    makeCurrent();
-    plane.reset();
-    program.reset();
-    crosshairTexture.reset();
-    doneCurrent();
-    GlWindowDisplayPlugin::deactivate();
+    OpenGlDisplayPlugin::activate(container);
+    // FIXME Add menu items
 }
