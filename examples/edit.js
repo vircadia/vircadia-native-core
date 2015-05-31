@@ -139,6 +139,7 @@ var toolBar = (function () {
         newTextButton,
         newWebButton,
         newZoneButton,
+	newPolyVoxButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -224,6 +225,15 @@ var toolBar = (function () {
             visible: false
         });
 
+	newPolyVoxButton = toolBar.addTool({
+            imageURL: toolIconUrl + "upload.svg", // XXX need a new icon
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -266,6 +276,7 @@ var toolBar = (function () {
         toolBar.showTool(newTextButton, doShow);
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
+	toolBar.showTool(newPolyVoxButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -464,6 +475,24 @@ var toolBar = (function () {
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                    type: "PolyVox",
+                    position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS),
+						 DEFAULT_DIMENSIONS),
+                    dimensions: { x: 10, y: 10, z: 10 },
+		    voxelVolumeSize: {x:16, y:16, z:16},
+		    voxelSurfaceStyle: 1
+                });
+            } else {
+                print("Can't create PolyVox: would be out of bounds.");
             }
             return true;
         }
