@@ -49,7 +49,6 @@ RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& ent
     setVoxelVolumeSize(_voxelVolumeSize);
 }
 
-
 RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
     delete _volData;
 }
@@ -86,7 +85,6 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     decompressVolumeData();
 }
 
-
 void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
     if (voxelSurfaceStyle == _voxelSurfaceStyle) {
         return;
@@ -107,7 +105,6 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
     _needsModelReload = true;
 }
 
-
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     if (voxelData == _voxelData) {
         return;
@@ -116,36 +113,35 @@ void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     decompressVolumeData();
 }
 
-
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
     switch (_voxelSurfaceStyle) {
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
             return scale / 2.0f;
-            // return glm::vec3(0.5f, 0.5f, 0.5f);
         case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
             return scale / -2.0f;
-            // return glm::vec3(-0.5f, -0.5f, -0.5f);
         case PolyVoxEntityItem::SURFACE_CUBIC:
             return scale / 2.0f;
-            // return glm::vec3(0.5f, 0.5f, 0.5f);
     }
     return glm::vec3(0, 0, 0);
 }
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = _dimensions / _voxelVolumeSize; // meters / voxel-units
-    glm::mat4 scaled = glm::scale(glm::mat4(), scale);
-    glm::mat4 centerToCorner = glm::translate(scaled, (_voxelVolumeSize / -2.0f) + getSurfacePositionAdjustment());
-    return centerToCorner;
+    glm::vec3 center = getCenter();
+    glm::vec3 position = getPosition();
+    glm::vec3 positionToCenter = center - position;
+    positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f) - getSurfacePositionAdjustment();
+    glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
+    glm::mat4 scaled = glm::scale(centerToCorner, scale);
+    return scaled;
 }
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToWorldMatrix() const {
     glm::mat4 rotation = glm::mat4_cast(_rotation);
-    glm::mat4 translation = glm::translate(getCenter());
+    glm::mat4 translation = glm::translate(getPosition());
     return translation * rotation * voxelToLocalMatrix();
 }
-
 
 glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
     glm::mat4 worldToModelMatrix = glm::inverse(voxelToWorldMatrix());
@@ -331,21 +327,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         getModel();
     }
 
-    // glm::vec3 position = getPosition();
-    // glm::vec3 dimensions = getDimensions();
-    // glm::vec3 scale = dimensions / _voxelVolumeSize;
-    // glm::vec3 center = getCenter();
-    // glm::quat rotation = getRotation();
     glPushMatrix();
-        // glTranslatef(position.x, position.y, position.z);
-        // glm::vec3 axis = glm::axis(rotation);
-        // glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        // glm::vec3 positionToCenter = center - position;
-        // // make the rendered voxel volume be centered on the entity's position
-        // positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f) - getSurfacePositionAdjustment();
-        // glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-        // glScalef(scale.x, scale.y, scale.z);
-
         glm::mat4 m = voxelToWorldMatrix();
         glMultMatrixf(&m[0][0]);
 
