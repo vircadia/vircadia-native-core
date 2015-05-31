@@ -107,7 +107,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 }
 
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured) {
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
+  // DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
     
     if (textured) {
         batch.setPipeline(_simpleProgramTextured);
@@ -117,7 +117,7 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured)
 }
 
 void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
+  //  DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
 }
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {

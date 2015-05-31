@@ -842,7 +842,7 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    gpu::Context context;
+    gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);

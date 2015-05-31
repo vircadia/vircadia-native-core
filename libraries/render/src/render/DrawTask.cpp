@@ -55,73 +55,6 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 Job::~Job() {
 }
 
-template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    
-    // render opaques
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
-
-    ItemIDs inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.push_back(id);
-    }
-
-    ItemIDs culledItems;
-    cullItems(sceneContext, renderContext, inItems, culledItems);
-    
-    ItemIDs sortedItems;
-    depthSortItems(sceneContext, renderContext, true, culledItems, sortedItems); // Sort Front to back opaque items!
-    
-    renderItems(sceneContext, renderContext, sortedItems);
-}
-
-
-template <> void render::jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    // render transparents
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
-
-    ItemIDs inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.push_back(id);
-    }
-
-    ItemIDs culledItems;
-    cullItems(sceneContext, renderContext, inItems, culledItems);
-
-    ItemIDs sortedItems;
-    depthSortItems(sceneContext, renderContext, false, culledItems, sortedItems); // Sort Back to front transparent items!
-    
-    renderItems(sceneContext, renderContext, sortedItems);
-}
-
-template <> void render::jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    // render lights
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
-
-
-     ItemIDs inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.push_back(id);
-    }
-
-    ItemIDs culledItems;
-    cullItems(sceneContext, renderContext, inItems, culledItems);
-    renderItems(sceneContext, renderContext, culledItems);
-}
-
 /*
 bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
@@ -263,16 +196,155 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
-    gpu::Batch theBatch;
-    args->_batch = &theBatch;
-
     // render
     for (auto id : inItems) {
         auto item = scene->getItem(id);
         item.render(args);
     }
+}
 
 
-    args->_context->enqueueBatch((*args->_batch));
+void addClearStateCommands(gpu::Batch& batch) {
+    batch._glDepthMask(true);
+    batch._glDepthFunc(GL_LESS);
+    batch._glDisable(GL_CULL_FACE);
+
+    batch._glActiveTexture(GL_TEXTURE0 + 1);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
+    batch._glActiveTexture(GL_TEXTURE0 + 2);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
+    batch._glActiveTexture(GL_TEXTURE0 + 3);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
+    batch._glActiveTexture(GL_TEXTURE0);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
+
+
+    // deactivate vertex arrays after drawing
+    batch._glDisableClientState(GL_NORMAL_ARRAY);
+    batch._glDisableClientState(GL_VERTEX_ARRAY);
+    batch._glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    batch._glDisableClientState(GL_COLOR_ARRAY);
+    batch._glDisableVertexAttribArray(gpu::Stream::TANGENT);
+    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_INDEX);
+    batch._glDisableVertexAttribArray(gpu::Stream::SKIN_CLUSTER_WEIGHT);
+    
+    // bind with 0 to switch back to normal operation
+    batch._glBindBuffer(GL_ARRAY_BUFFER, 0);
+    batch._glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Back to no program
+    batch._glUseProgram(0);
+}
+
+
+template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    
+    // render opaques
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
+
+    ItemIDs inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.push_back(id);
+    }
+
+    ItemIDs culledItems;
+    cullItems(sceneContext, renderContext, inItems, culledItems);
+    
+    ItemIDs sortedItems;
+    depthSortItems(sceneContext, renderContext, true, culledItems, sortedItems); // Sort Front to back opaque items!
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch theBatch;
+    args->_batch = &theBatch;
+
+    glm::mat4 proj;
+    args->_viewFrustum->evalProjectionMatrix(proj); 
+    theBatch.setProjectionTransform(proj);
+
+    renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        theBatch._glDrawBuffers(bufferCount, buffers);
+    }
+
+    renderItems(sceneContext, renderContext, sortedItems);
+
+    addClearStateCommands((*args->_batch));
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+}
+
+
+template <> void render::jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render transparents
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
+
+    ItemIDs inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.push_back(id);
+    }
+
+    ItemIDs culledItems;
+    cullItems(sceneContext, renderContext, inItems, culledItems);
+
+    ItemIDs sortedItems;
+    depthSortItems(sceneContext, renderContext, false, culledItems, sortedItems); // Sort Back to front transparent items!
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch theBatch;
+    args->_batch = &theBatch;
+
+    renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        theBatch._glDrawBuffers(bufferCount, buffers);
+    }
+
+    renderItems(sceneContext, renderContext, sortedItems);
+
+    addClearStateCommands((*args->_batch));
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+}
+
+template <> void render::jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render lights
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
+
+
+     ItemIDs inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.push_back(id);
+    }
+
+    ItemIDs culledItems;
+    cullItems(sceneContext, renderContext, inItems, culledItems);
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch theBatch;
+    args->_batch = &theBatch;
+    renderItems(sceneContext, renderContext, culledItems);
+    args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }

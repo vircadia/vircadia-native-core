@@ -15,7 +15,8 @@
 
 using namespace gpu;
 
-Context::Context() {
+Context::Context(Backend* backend) :
+    _backend(backend) {
 }
 
 Context::Context(const Context& context) {
@@ -31,6 +32,7 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     return false;
 }
 
-void Context::enqueueBatch(Batch& batch) {
-    GLBackend::renderBatch(batch, true);
+void Context::render(Batch& batch) {
+    _backend->render(batch);
+ //   GLBackend::renderBatch(batch, true);
 }
