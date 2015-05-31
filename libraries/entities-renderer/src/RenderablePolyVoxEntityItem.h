@@ -33,6 +33,9 @@ public:
         // _needsModelReload = true;
     }
 
+    virtual uint8_t getVoxel(int x, int y, int z);
+    virtual void setVoxel(int x, int y, int z, uint8_t toValue);
+    
     void updateOnCount(int x, int y, int z, uint8_t new_value);
 
     void render(RenderArgs* args);
@@ -48,6 +51,7 @@ public:
     virtual void setVoxelData(QByteArray voxelData);
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
+    glm::vec3 getSurfacePositionAdjustment() const;
     glm::mat4 voxelToWorldMatrix() const;
     glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
