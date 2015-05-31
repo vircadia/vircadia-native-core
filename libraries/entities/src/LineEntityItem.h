@@ -60,7 +60,6 @@ class LineEntityItem : public EntityItem {
     }
     
     void setLinePoints(const QVector<glm::vec3>& points){
-        qDebug()<<"points " << points;
         _points = points;
     }
     
