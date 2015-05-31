@@ -188,6 +188,7 @@ void RenderablePolyVoxEntityItem::getModel() {
             surfaceExtractor.execute();
             break;
         }
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
         case PolyVoxEntityItem::SURFACE_CUBIC: {
             PolyVox::CubicSurfaceExtractorWithNormals<PolyVox::SimpleVolume<uint8_t>> surfaceExtractor
                 (_volData, _volData->getEnclosingRegion(), &polyVoxMesh);

@@ -99,9 +99,6 @@ EntityPropertyDialogBox = (function () {
         }
 
 	if (properties.type == "PolyVox") {
-            array.push({ label: "Shape Type:", value: properties.shapeType });
-            index++;
-
 	    array.push({ label: "Voxel Space Size:", type: "header" });
             index++;
 
@@ -111,6 +108,9 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Z:", value: properties.voxelVolumeSize.z.toFixed(decimals) });
             index++;
+
+	    array.push({ label: "Surface Extractor", value: properties.voxelSurfaceStyle });
+	    index++;
 	}
 
         array.push({ label: "Position:", type: "header" });
@@ -355,6 +355,7 @@ EntityPropertyDialogBox = (function () {
 		properties.voxelVolumeSize.x = array[index++].value;
 		properties.voxelVolumeSize.y = array[index++].value;
 		properties.voxelVolumeSize.z = array[index++].value;
+		properties.voxelSurfaceStyle = array[index++].value;
             }
 
             index++; // skip header
