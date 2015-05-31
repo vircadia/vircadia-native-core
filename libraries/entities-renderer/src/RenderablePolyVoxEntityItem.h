@@ -33,6 +33,7 @@ public:
         // _needsModelReload = true;
     }
 
+    void updateOnCount(int x, int y, int z, uint8_t new_value);
 
     void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
@@ -51,7 +52,7 @@ public:
     glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
 
-
+    virtual ShapeType getShapeType() const;
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
 
@@ -73,6 +74,8 @@ private:
     bool _needsModelReload = true;
 
     QVector<QVector<glm::vec3>> _points; // XXX
+
+    int _onCount = 0; // how many non-zero voxels are in _volData
 };
 
 
