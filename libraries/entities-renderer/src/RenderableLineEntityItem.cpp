@@ -36,7 +36,8 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         if(_lineVerticesID == GeometryCache::UNKNOWN_ID){
             _lineVerticesID = geometryCache ->allocateID();
         }
-        glTranslatef(position.x, position.y, position.z);
+         //TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
+        //glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         QVector<glm::vec3> points;
