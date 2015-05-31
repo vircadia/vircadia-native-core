@@ -31,10 +31,8 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
-        
         glLineWidth(getLineWidth());
         auto geometryCache = DependencyManager::get<GeometryCache>();
-    
         if(_lineVerticesID == GeometryCache::UNKNOWN_ID){
             _lineVerticesID = geometryCache ->allocateID();
         }
@@ -42,13 +40,8 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         QVector<glm::vec3> points;
-        glm::vec3 p1 = {0, 0, 0};
-        glm::vec3 p2 = {1, 1, 0};
-        points<<p1<<p2;
         geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
-//         geometryCache->updateVertices(_lineVerticesID, points, lineColor);
-    
-       geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+        geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);
 };

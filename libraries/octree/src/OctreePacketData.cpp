@@ -362,7 +362,6 @@ bool OctreePacketData::appendValue(float value) {
     
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
-    qDebug()<<"Line Width Value!**"<<value;
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -383,70 +382,22 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
 }
 
 bool OctreePacketData::appendValue(const QVector<glm::vec3>& value){
-    
-//    const unsigned char* data = (const unsigned char*)value.data();
-//    uint16_t qVecSize = (uint16_t)value.size();
-//    
-//    int length = qVecSize * sizeof(glm::vec3);
-//    const unsigned char* sizePointer = (const unsigned char*)&qVecSize;
-//    bool success = append(sizePointer, sizeof(uint16_t));
-//    if(success){
-//      _bytesOfValues += qVecSize;
-//      _totalBytesOfValues += qVecSize;
-//      success = append(data, length);
-//      if (success){
-//        _bytesOfValues += length;
-//        _totalBytesOfValues += length;
-//      }
-//    }
-//    return success;
-
-//    const unsigned char* data = (const unsigned char*)value.data();
-//    int qVecSize = value.size();
-//
-//    int length = qVecSize * sizeof(glm::vec3);
-//
-//    bool success = append(data, length);
-//    if (success){
-//      _bytesOfValues += length;
-//      _totalBytesOfValues += length;
-//     }
-//     return success;
-
     uint16_t qVecSize = value.size() * sizeof(glm::vec3);
-    
     QByteArray myArray;
-    
     const char* data = (const char*)value.data();
-    
-
     char* sizePointer = (char*)&qVecSize;
     QByteArray vecSize(sizePointer, sizeof(uint16_t));
     myArray.append(vecSize);
     uint16_t arrayLength;
     memcpy(&arrayLength, myArray.data(), sizeof(uint16_t));
-    qDebug()<<"array length.. shnur"<<arrayLength;
-    
-    
-    qDebug()<<"vec data size is**"<<value.size() * sizeof(glm::vec3);
-    qDebug()<<"uint data size is **"<<qVecSize;
     for(int i = 0; i < qVecSize; i++){
         myArray.append(data[i]);
-        qDebug()<<"arr size at index"<<i<<" "<<myArray.size();
     }
-    
-    for(int i = 0 ; i < myArray.size(); i++){
-        
-    }
-    
-    qDebug()<<"final array size!"<<myArray.size();
-    qDebug()<<"qVevtor size is..."<<qVecSize;
     int length = qVecSize + sizeof(uint16_t);
     bool success = append((const unsigned char*)myArray.constData(), myArray.size());
     if(success){
         _bytesOfValues += length;
         _totalBytesOfValues += length;
-        qDebug()<<"SUCCESS";
     }
     return success;
 }
@@ -653,7 +604,6 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-    qDebug()<<"LENGTH AT UNPACKING:****"<<length;
     glm::vec3 myVec;
     for(int i = 0 ; i < length; i+= sizeof(float) * 3) {
         //Go through and create three floats
@@ -672,7 +622,5 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVecto
         dataBytes += sizeof(float);
         result.append(point);
     }
-    qDebug()<<"LENGTH OF ARRAY ON UNPACKING**"<<length;
-    qDebug()<<"qVector AFTER UNPACKING**"<<result;
     return length + sizeof(length);
 }
