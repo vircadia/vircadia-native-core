@@ -658,15 +658,19 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVecto
     for(int i = 0 ; i < length; i+= sizeof(float) * 3) {
         //Go through and create three floats
         glm::vec3 point;
-        float num;
-        memcpy(&num, dataBytes, sizeof(float));
-        point.x = num;
-        memcpy(&num, dataBytes, sizeof(float));
-        point.y = num;
-        memcpy(&num, dataBytes, sizeof(float));
-        point.z = num;
+        float x;
+        memcpy(&x, dataBytes, sizeof(float));
+        point.x = x;
+        dataBytes += sizeof(float);
+        float y;
+        memcpy(&y, dataBytes, sizeof(float));
+        point.y = y;
+        dataBytes += sizeof(float);
+        float z;
+        memcpy(&z, dataBytes, sizeof(float));
+        point.z = z;
+        dataBytes += sizeof(float);
         result.append(point);
-        dataBytes += sizeof(float) * 3;
     }
     qDebug()<<"LENGTH OF ARRAY ON UNPACKING**"<<length;
     qDebug()<<"qVector AFTER UNPACKING**"<<result;
