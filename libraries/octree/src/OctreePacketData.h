@@ -230,7 +230,10 @@ public:
     static quint64 getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
     
-    static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int uppackDataFromBytes(const unsigned char* dataBytes, float& result) {
+        memcpy(&result, dataBytes, sizeof(result)); return sizeof(result);
+        qDebug()<<"Line Width Value!** after unpacking"<<result;
+    }
     static int uppackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int uppackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
