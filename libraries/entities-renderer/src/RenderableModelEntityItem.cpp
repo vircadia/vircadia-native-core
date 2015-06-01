@@ -155,8 +155,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
-    bool drawAsModel = hasModel();
-
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
 
@@ -168,8 +166,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
     }
 
-    bool didDraw = false;
-    if (drawAsModel && !highlightSimulationOwnership) {
+    if (hasModel()) {
         remapTextures();
         {
             float alpha = getLocalRenderAlpha();
@@ -221,18 +218,19 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
                         if (movingOrAnimating) {
                             _model->renderInScene(alpha, args);
-                            didDraw = true;
                         }
                     } else {
                         _model->renderInScene(alpha, args);
-                        didDraw = true;
                     }
                 }
             }
         }
-    }
 
-    if (!didDraw) {
+        if (highlightSimulationOwnership) {
+            glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+            RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        }
+    } else {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }
