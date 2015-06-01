@@ -33,7 +33,6 @@
 #include "EntityTreeRenderer.h"
 #include "RenderablePolyVoxEntityItem.h"
 
-
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderablePolyVoxEntityItem(entityID, properties));
 }
@@ -92,7 +91,9 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
         return;
     }
 
+    #ifdef WANT_DEBUG
     qDebug() << "resetting voxel-space size" << voxelVolumeSize.x << voxelVolumeSize.y << voxelVolumeSize.z;
+    #endif
 
     PolyVoxEntityItem::setVoxelVolumeSize(voxelVolumeSize);
 
@@ -123,7 +124,9 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     // having the "outside of voxel-space" value be 255 has helped me notice some problems.
     _volData->setBorderValue(255);
 
+    #ifdef WANT_DEBUG
     qDebug() << " new size is" << _volData->getWidth() << _volData->getHeight() << _volData->getDepth();
+    #endif
 
     // I'm not sure this is needed... the docs say that each element is initialized with its default
     // constructor.  I'll leave it here for now.
@@ -348,43 +351,30 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
+    
+    
     // auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
     // for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
     //     (*normal) = -(*normal);
     // }
 
+
+    // mesh->addAttribute(gpu::Stream::TEXCOORD,
+    //                    gpu::BufferView(vertexBufferPtr,
+    //                                    sizeof(float) * 2,
+    //                                    vertexBufferPtr->getSize() - sizeof(float) * 2,
+    //                                    sizeof(PolyVox::PositionMaterialNormal),
+    //                                    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
+
+
+    
+    #ifdef WANT_DEBUG
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
+    #endif
 
     _needsModelReload = false;
 }
-
-
-// QString GLMatrixToString(GLfloat* m) {
-//     QString mString = "\n";
-//     for (int x = 0; x < 4; x++) {
-//         for (int y = 0; y < 4; y++) {
-//             mString += QString::number((double)m[y*4+x], 'f', 2) + " ";
-//         }
-//         mString += "\n";
-//     }
-//     return mString;
-// }
-
-
-// void printModelViewMatrix() {
-//     GLfloat glMatrix[16];
-//     glGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
-//     qDebug() << GLMatrixToString(glMatrix);
-// }
-
-// void printProjectionMatrix() {
-//     GLfloat glMatrix[16];
-//     glGetFloatv(GL_PROJECTION_MATRIX, glMatrix);
-//     qDebug() << GLMatrixToString(glMatrix);
-// }
-
-
 
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
@@ -535,11 +525,15 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
     // make sure the compressed data can be sent over the wire-protocol
     if (newVoxelData.size() < 1150) {
         _voxelData = newVoxelData;
+        #ifdef WANT_DEBUG
         qDebug() << "-------------- voxel compresss --------------";
         qDebug() << "raw-size =" << rawSize << "   compressed-size =" << newVoxelData.size();
+        #endif
     } else {
         // HACK -- until we have a way to allow for properties larger than MTU, don't update.
+        #ifdef WANT_DEBUG
         qDebug() << "voxel data too large, reverting change.";
+        #endif
         // revert the active voxel-space to the last version that fit.
         decompressVolumeData();
     }
@@ -560,7 +554,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
     if (voxelXSize == 0 || voxelXSize > MAX_VOXEL_DIMENSION ||
         voxelYSize == 0 || voxelYSize > MAX_VOXEL_DIMENSION ||
         voxelZSize == 0 || voxelZSize > MAX_VOXEL_DIMENSION) {
-        qDebug() << "vixelSize is not reasonable, skipping decompressions."
+        qDebug() << "voxelSize is not reasonable, skipping decompressions."
                  << voxelXSize << voxelYSize << voxelZSize;
         return;
     }
@@ -587,8 +581,10 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
         }
     }
 
+    #ifdef WANT_DEBUG
     qDebug() << "--------------- voxel decompress ---------------";
     qDebug() << "raw-size =" << rawSize << "   compressed-size =" << _voxelData.size();
+    #endif
 
     _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     _needsModelReload = true;
@@ -609,12 +605,16 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
         return false;
     }
 
+    #ifdef WANT_DEBUG
     qDebug() << "RenderablePolyVoxEntityItem::isReadyToComputeShape" << (!_needsModelReload);
+    #endif
     return true;
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
+    #ifdef WANT_DEBUG
     qDebug() << "RenderablePolyVoxEntityItem::computeShapeInfo";
+    #endif
     ShapeType type = getShapeType();
     if (type != SHAPE_TYPE_COMPOUND) {
         EntityItem::computeShapeInfo(info);
