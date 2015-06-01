@@ -244,7 +244,7 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
-    static int uppackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
 
 

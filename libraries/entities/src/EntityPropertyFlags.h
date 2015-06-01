@@ -109,18 +109,15 @@ enum EntityPropertyList {
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
     PROP_FRICTION,
-<<<<<<< HEAD
-    
-    //for lines
-    PROP_LINE_WIDTH,
-    PROP_LINE_POINTS,
-=======
 
     PROP_VOXEL_VOLUME_SIZE,
     PROP_VOXEL_DATA,
     PROP_VOXEL_SURFACE_STYLE,
 
->>>>>>> master
+    //for lines
+    PROP_LINE_WIDTH,
+    PROP_LINE_POINTS,
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,
