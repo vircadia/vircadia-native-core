@@ -36,12 +36,10 @@ void AddressBarDialog::loadAddress(const QString& address) {
 }
 
 void AddressBarDialog::displayAddressOfflineMessage() {
-    OffscreenUi::information("Address offline",
-        "That user or place is currently offline.");
+    OffscreenUi::error("That user or place is currently offline");
 }
 
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    OffscreenUi::information("Address not found",
-        "There is no address information for that user or place.");
+    OffscreenUi::error("There is no address information for that user or place");
 }
 

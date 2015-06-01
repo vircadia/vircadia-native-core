@@ -31,7 +31,7 @@ DialogBase {
      * Support for animating the dialog in and out. 
      */
     enabled: false
-    scale: 0.0
+    opacity: 1.0
     
     // The offscreen UI will enable an object, rather than manipulating it's 
     // visibility, so that we can do animations in both directions.  Because 
@@ -40,20 +40,20 @@ DialogBase {
     // opacity, and then when the target animation value is reached, we can
     // modify the visibility
     onEnabledChanged: {
-        scale = enabled ? 1.0 : 0.0
+        opacity = enabled ? 1.0 : 0.0
     }
 
     // The actual animator
-    Behavior on scale {
+    Behavior on opacity {
         NumberAnimation {
-            duration: root.animationDuration
-            easing.type: Easing.InOutBounce
+            duration: animationDuration
+            easing.type: Easing.OutCubic
         }
     }
 
-    // Once we're scaled to 0, disable the dialog's visibility
-    onScaleChanged: {
-        visible = (scale != 0.0);
+    // Once we're transparent, disable the dialog's visibility
+    onOpacityChanged: {
+        visible = (opacity != 0.0);
     }
 
     // Some dialogs should be destroyed when they become invisible,

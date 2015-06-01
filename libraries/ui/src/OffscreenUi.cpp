@@ -13,6 +13,7 @@
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
 #include <QtQml>
+#include "ErrorDialog.h"
 #include "MessageDialog.h"
 
 
@@ -128,6 +129,15 @@ void OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons) {
     messageBox(title, text, callback,
             static_cast<QMessageBox::Icon>(MessageDialog::Critical), buttons);
+}
+
+void OffscreenUi::error(const QString& text) {
+    ErrorDialog* pDialog{ nullptr };
+    ErrorDialog::show([&](QQmlContext* ctx, QObject* item) {
+        pDialog = item->findChild<ErrorDialog*>();
+        pDialog->setText(text);
+    });
+    pDialog->setEnabled(true);
 }
 
 
