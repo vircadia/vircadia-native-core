@@ -53,8 +53,9 @@ RenderablePolyVoxEntityItem::~RenderablePolyVoxEntityItem() {
     delete _volData;
 }
 
-bool inBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
+bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
               int x, int y, int z) {
+    // x, y, z are in user voxel-coords, not adjusted-for-edge voxel-coords.
     switch (surfaceStyle) {
         case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
         case PolyVoxEntityItem::SURFACE_CUBIC:
@@ -65,8 +66,8 @@ bool inBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::Poly
             return true;
 
         case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
-            if (x < 1 || y < 1 || z < 1 ||
-                x >= vol->getWidth() - 1 || y >= vol->getHeight() - 1 || z >= vol->getDepth() - 1) {
+            if (x < 0 || y < 0 || z < 0 ||
+                x >= vol->getWidth() - 2 || y >= vol->getHeight() - 2 || z >= vol->getDepth() - 2) {
                 return false;
             }
             return true;
@@ -74,6 +75,17 @@ bool inBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::Poly
 
     return false;
 }
+
+
+bool inBounds(const PolyVox::SimpleVolume<uint8_t>* vol, int x, int y, int z) {
+    // x, y, z are in polyvox volume coords
+    if (x < 0 || y < 0 || z < 0 ||
+        x >= vol->getWidth() || y >= vol->getHeight() || z >= vol->getDepth()) {
+        return false;
+    }
+    return true;
+}
+
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
     if (_volData && voxelVolumeSize == _voxelVolumeSize) {
@@ -195,7 +207,7 @@ glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
 
 uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
     assert(_volData);
-    if (!inBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
+    if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return 0;
     }
 
@@ -211,7 +223,7 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
 
 void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
     assert(_volData);
-    if (!inBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
+    if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return;
     }
 
@@ -225,7 +237,7 @@ void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
 
 void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toValue) {
     // keep _onCount up to date
-    if (!inBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
+    if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return;
     }
     
@@ -243,7 +255,6 @@ void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
     }
 }
 
-
 void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
@@ -254,6 +265,11 @@ void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
         }
     }
     compressVolumeData();
+}
+
+void RenderablePolyVoxEntityItem::setVoxelInVolume(glm::vec3 position, uint8_t toValue) {
+    updateOnCount(position.x, position.y, position.z, toValue);
+    setVoxel(position.x, position.y, position.z, toValue);
 }
 
 void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {
@@ -400,17 +416,17 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 class RaycastFunctor
 {
 public:
-    RaycastFunctor(PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle voxelSurfaceStyle) :
+    RaycastFunctor(PolyVox::SimpleVolume<uint8_t>* vol) :
         _result(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)),
-        _vol(vol),
-        _voxelSurfaceStyle(voxelSurfaceStyle) {
+        _vol(vol) {
     }
     bool operator()(PolyVox::SimpleVolume<unsigned char>::Sampler& sampler)
     {
         int x = sampler.getPosition().getX();
         int y = sampler.getPosition().getY();
         int z = sampler.getPosition().getZ();
-        if (!inBounds(_vol, _voxelSurfaceStyle, x, y, z)) {
+
+        if (!inBounds(_vol, x, y, z)) {
             return true;
         }
 
@@ -423,7 +439,6 @@ public:
     }
     glm::vec4 _result;
     const PolyVox::SimpleVolume<uint8_t>* _vol = nullptr;
-    PolyVoxEntityItem::PolyVoxSurfaceStyle _voxelSurfaceStyle;
 };
 
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin,
@@ -452,13 +467,13 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
     glm::vec4 farInVoxel = wtvMatrix * glm::vec4(farPoint, 1.0f);
     
-    PolyVox::Vector3DFloat start(originInVoxel.x, originInVoxel.y, originInVoxel.z);
+    PolyVox::Vector3DFloat startPoint(originInVoxel.x, originInVoxel.y, originInVoxel.z);
     // PolyVox::Vector3DFloat pvDirection(directionInVoxel.x, directionInVoxel.y, directionInVoxel.z);
-    PolyVox::Vector3DFloat far(farInVoxel.x, farInVoxel.y, farInVoxel.z);
+    PolyVox::Vector3DFloat endPoint(farInVoxel.x, farInVoxel.y, farInVoxel.z);
 
     PolyVox::RaycastResult raycastResult;
-    RaycastFunctor callback(_volData, _voxelSurfaceStyle);
-    raycastResult = PolyVox::raycastWithEndpoints(_volData, start, far, callback);
+    RaycastFunctor callback(_volData);
+    raycastResult = PolyVox::raycastWithEndpoints(_volData, startPoint, endPoint, callback);
 
     if (raycastResult == PolyVox::RaycastResults::Completed) {
         // the ray completed its path -- nothing was hit.

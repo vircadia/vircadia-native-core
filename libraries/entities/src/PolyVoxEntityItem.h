@@ -81,6 +81,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void setAll(uint8_t toValue) {}
 
+    virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue) {}
+    
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
     virtual void setVoxel(int x, int y, int z, uint8_t toValue) {}
 
