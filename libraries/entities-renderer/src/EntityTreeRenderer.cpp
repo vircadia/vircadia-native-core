@@ -1133,7 +1133,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
     const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
-    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float COLLISION_MINIMUM_VOLUME = 0.005f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
@@ -1149,7 +1149,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     }
 
     // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
-    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
     float volume = energyFactorOfFull;
     volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
     
@@ -1180,7 +1180,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         return;
     }
     // Don't respond to small continuous contacts.
-    const float COLLISION_MINUMUM_PENETRATION = 0.005f;
+    const float COLLISION_MINUMUM_PENETRATION = 0.002f;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
