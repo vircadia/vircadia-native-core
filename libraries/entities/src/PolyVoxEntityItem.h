@@ -49,7 +49,7 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const;
 
-    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) { _voxelVolumeSize = voxelVolumeSize; }
+    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
 
     virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
@@ -68,6 +68,8 @@ class PolyVoxEntityItem : public EntityItem {
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
 
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
+    static const float MAX_VOXEL_DIMENSION;
+
     static const QByteArray DEFAULT_VOXEL_DATA;
     static const PolyVoxSurfaceStyle DEFAULT_VOXEL_SURFACE_STYLE;
 
@@ -81,7 +83,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
     virtual void setVoxel(int x, int y, int z, uint8_t toValue) {}
-    
+
+
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;

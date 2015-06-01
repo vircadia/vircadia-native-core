@@ -70,9 +70,11 @@ public:
     virtual void setAll(uint8_t toValue);
 
 private:
+    // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
+    // may not match _voxelVolumeSize.
+
     void compressVolumeData();
     void decompressVolumeData();
-    void decompressVolumeData(glm::vec3 volumeSize);
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
