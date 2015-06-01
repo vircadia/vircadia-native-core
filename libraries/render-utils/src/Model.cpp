@@ -784,7 +784,7 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
         if (payload) {
-            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -815,7 +815,7 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
         if (payload) {
-            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -2176,16 +2176,10 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
-    AABox partBox = mesh._mesh.evalPartBound(partIndex);
-    
-    // FIX ME! 
-    // 1) needs to translate to world space, these values are in model space
-    // 2) mesh._mesh.parts doesn't always have the correct values in it... so we 
-    //    need to just use mesh.parts or find/fix whatever is causing mesh._mesh 
-    //    to not contain data
-    return partBox;
+    if (_calculatedMeshBoxesValid) {
+        return _calculatedMeshBoxes[meshIndex];
+    }
+    return AABox();
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
