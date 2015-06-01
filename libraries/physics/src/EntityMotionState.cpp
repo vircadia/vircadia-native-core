@@ -49,24 +49,17 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
-void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
-    if (flags & EntityItem::DIRTY_POSITION) {
-        _serverPosition = _entity->getPosition();
-    }
-    if (flags & EntityItem::DIRTY_ROTATION) {
-        _serverRotation = _entity->getRotation();
-    }
-    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
-        _serverVelocity = _entity->getVelocity();
-    }
-    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
-        _serverAngularVelocity = _entity->getAngularVelocity();
-    }
+void EntityMotionState::updateServerPhysicsVariables() {
+    _serverPosition = _entity->getPosition();
+    _serverRotation = _entity->getRotation();
+    _serverVelocity = _entity->getVelocity();
+    _serverAngularVelocity = _entity->getAngularVelocity();
+    _serverAcceleration = _entity->getAcceleration();
 }
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t flags) {
-    updateServerPhysicsVariables(flags);
+    updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
@@ -94,7 +87,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
 
 // virtual
 void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables(flags);
+    updateServerPhysicsVariables();
     ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 

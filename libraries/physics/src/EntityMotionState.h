@@ -28,7 +28,7 @@ public:
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables(uint32_t flags);
+    void updateServerPhysicsVariables();
     virtual void handleEasyChanges(uint32_t flags);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
