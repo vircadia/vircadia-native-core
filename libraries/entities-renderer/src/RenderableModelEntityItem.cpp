@@ -115,12 +115,9 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         // TODO: this getModel() appears to be about 3% of model render time. We should optimize
         PerformanceTimer perfTimer("getModel");
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
-        qDebug() << "RenderableModelEntityItem::readyToAddToScene().... renderer:" << renderer; 
         getModel(renderer);
     }
     if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
-        qDebug() << "RenderableModelEntityItem::readyToAddToScene().... doing initial simulation";
-
         _model->setScaleToFit(true, getDimensions());
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
@@ -136,18 +133,11 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         _model->renderSetup(renderArgs);
     }
     bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
-    
-    /*
-    qDebug() << "RenderableModelEntityItem::readyToAddToScene().... id:" << getEntityItemID() 
-                    << "ready:" << ready << "renderArgs:" << renderArgs
-                    << "areMeshGroupsKnown():" << (_model ? _model->areMeshGroupsKnown() : false);
-     */
     return ready; 
 }
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
-    qDebug() << "RenderableModelEntityItem::addToScene().... id:" << getEntityItemID();
     if (_model) {
         return _model->addToScene(scene, pendingChanges);
     }
@@ -156,14 +146,12 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                                 render::PendingChanges& pendingChanges) {
-    qDebug() << "RenderableModelEntityItem::removeFromScene().... id:" << getEntityItemID();
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
 }
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
-    qDebug() << "RenderableModelEntityItem::render().... id:" << getEntityItemID();
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
