@@ -3431,6 +3431,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
+        
+        /*
+        qDebug() << "renderArgs._materialSwitches:" << renderArgs->_materialSwitches;
+        qDebug() << "renderArgs._trianglesRendered:" << renderArgs->_trianglesRendered;
+        qDebug() << "renderArgs._quadsRendered:" << renderArgs->_quadsRendered;
+        */
+
     }
 
     {

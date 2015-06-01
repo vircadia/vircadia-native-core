@@ -81,6 +81,7 @@ Model::Model(QObject* parent) :
     _url("http://invalid.com"),
     _blendNumber(0),
     _appliedBlendNumber(0),
+    _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
@@ -666,12 +667,13 @@ bool Model::convexHullContains(glm::vec3 point) {
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
-    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
+    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
+        _calculatedMeshPartBoxes.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -682,6 +684,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
+                    
+                    bool atLeastOnePointInBounds = false;
+                    AABox thisPartBounds;
 
                     const int INDICES_PER_TRIANGLE = 3;
                     const int INDICES_PER_QUAD = 4;
@@ -710,6 +715,15 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
+                            
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(v0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            }
+                            thisPartBounds += v0;
+                            thisPartBounds += v1;
+                            thisPartBounds += v2;
+                            thisPartBounds += v3;
                         }
                     }
 
@@ -728,10 +742,20 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
+
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(v0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            }
+                            thisPartBounds += v0;
+                            thisPartBounds += v1;
+                            thisPartBounds += v2;
                         }
                     }
+                    _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
+                _calculatedMeshPartBoxesValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -784,7 +808,7 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
         if (payload) {
-            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -815,7 +839,7 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
         if (payload) {
-            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -2176,16 +2200,16 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
-    AABox partBox = mesh._mesh.evalPartBound(partIndex);
-    
-    // FIX ME! 
-    // 1) needs to translate to world space, these values are in model space
-    // 2) mesh._mesh.parts doesn't always have the correct values in it... so we 
-    //    need to just use mesh.parts or find/fix whatever is causing mesh._mesh 
-    //    to not contain data
-    return partBox;
+    if (!_calculatedMeshPartBoxesValid) {
+        recalculateMeshBoxes(true);
+    }
+    if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
+        return _calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)];
+    }
+    if (!_calculatedMeshBoxesValid) {
+        return _calculatedMeshBoxes[meshIndex];
+    }
+    return AABox();
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
