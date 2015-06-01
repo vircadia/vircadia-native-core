@@ -10,6 +10,8 @@
 //
 #include "RenderDeferredTask.h"
 
+#include "gpu/Context.h"
+
 using namespace render;
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
@@ -33,6 +35,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (!(renderContext->args && renderContext->args->_viewFrustum)) {
         return;
     }
+
+    renderContext->args->_context->syncCache();
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);

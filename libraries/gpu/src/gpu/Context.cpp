@@ -34,5 +34,8 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
 
 void Context::render(Batch& batch) {
     _backend->render(batch);
- //   GLBackend::renderBatch(batch, true);
+}
+
+void Context::syncCache() {
+    _backend->syncCache();
 }
