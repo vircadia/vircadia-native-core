@@ -608,7 +608,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-    qDebug()<<"unpacking length"<<length;
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
