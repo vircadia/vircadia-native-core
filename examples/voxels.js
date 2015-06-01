@@ -16,11 +16,11 @@ function mousePressEvent(event) {
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             if (controlHeld) {
-                Entities.setVoxelSphere(id, intersection.intersection, 4.0, 0);
+                Entities.setVoxelSphere(id, intersection.intersection, 1.0, 0);
 	    } else if (shiftHeld) {
 		Entities.setAllVoxels(id, 255);
             } else {
-                Entities.setVoxelSphere(id, intersection.intersection, 4.0, 255);
+                Entities.setVoxelSphere(id, intersection.intersection, 1.0, 255);
             }
         }
     }

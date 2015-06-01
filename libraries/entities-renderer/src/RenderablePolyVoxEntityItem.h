@@ -72,6 +72,7 @@ public:
 private:
     void compressVolumeData();
     void decompressVolumeData();
+    void decompressVolumeData(glm::vec3 volumeSize);
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
