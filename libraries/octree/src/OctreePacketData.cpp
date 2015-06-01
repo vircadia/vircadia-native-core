@@ -444,7 +444,12 @@ bool OctreePacketData::appendValue(const QUuid& uuid) {
 }
 
 bool OctreePacketData::appendValue(const QByteArray& bytes) {
-    bool success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    // TODO: make this a ByteCountCoded leading byte
+    uint16_t length = bytes.size();
+    bool success = appendValue(length);
+    if (success) {
+        success = appendRawData((const unsigned char*)bytes.constData(), bytes.size());
+    }
     return success;
 }
 
@@ -468,6 +473,12 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
     }
     return success;
 }
+
+
+bool OctreePacketData::appendRawData(QByteArray data) {
+    return appendRawData((unsigned char *)data.data(), data.size());
+}
+
 
 quint64 OctreePacketData::_compressContentTime = 0;
 quint64 OctreePacketData::_compressContentCalls = 0;
@@ -563,7 +574,7 @@ void OctreePacketData::debugContent() {
     printf("\n");
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
@@ -572,7 +583,7 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QStrin
     return sizeof(length) + length;
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
@@ -585,14 +596,15 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, QUuid&
     return sizeof(length) + length;
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
     result.red = dataBytes[RED_INDEX];
     result.green = dataBytes[GREEN_INDEX];
     result.blue = dataBytes[BLUE_INDEX];
     return sizeof(rgbColor);
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
@@ -600,4 +612,12 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVecto
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
+}
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(length));
+    dataBytes += sizeof(length);
+    QByteArray value((const char*)dataBytes, length);
+    result = value;
+    return sizeof(length) + length;
 }

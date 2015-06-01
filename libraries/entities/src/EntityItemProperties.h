@@ -54,6 +54,7 @@ class EntityItemProperties {
     friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -135,6 +136,9 @@ public:
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
     DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
@@ -191,6 +195,10 @@ public:
 
     QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
 
+    void setVoxelDataDirty() { _voxelDataChanged = true; }
+
+    bool hasTerseUpdateChanges() const;
+
 private:
     QUuid _id;
     bool _idSet;
@@ -211,6 +219,7 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
 };
+
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
@@ -220,7 +229,6 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value) 
                     { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
@@ -283,6 +291,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();

@@ -18,7 +18,7 @@
 
 class RenderableLineEntityItem : public LineEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         LineEntityItem(entityItemID, properties),

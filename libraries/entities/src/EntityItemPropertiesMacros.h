@@ -32,7 +32,7 @@
 #define READ_ENTITY_PROPERTY(P,T,S)                                                \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             bytesRead += bytes;                                                    \
             if (overwriteLocalData) {                                              \
@@ -49,7 +49,7 @@
 #define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)                                  \
         if (propertyFlags.getHasProperty(P)) {                                     \
             T fromBuffer;                                                          \
-            int bytes = OctreePacketData::uppackDataFromBytes(dataAt, fromBuffer); \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
             dataAt += bytes;                                                       \
             processedBytes += bytes;                                               \
             properties.O(fromBuffer);                                              \
@@ -91,10 +91,18 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScri
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
+
 inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 inline QScriptValue convertScriptValue(QScriptEngine* e,  const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
+    QByteArray b64 = v.toBase64();
+    return QScriptValue(QString(b64));
+}
+
+
 
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
@@ -131,6 +139,16 @@ inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { re
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
+
+
+inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QString b64 = v.toVariant().toString().trimmed();
+    return QByteArray::fromBase64(b64.toUtf8());
+}
+
+
+
 inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
     isValid = false; /// assume it can't be converted
     QScriptValue x = v.property("x");

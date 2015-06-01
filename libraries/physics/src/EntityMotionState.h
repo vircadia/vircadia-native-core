@@ -25,7 +25,7 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    EntityMotionState(btCollisionShape* shape, EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables(uint32_t flags);
@@ -61,16 +61,16 @@ public:
 
     virtual glm::vec3 getObjectPosition() const { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
     virtual glm::quat getObjectRotation() const { return _entity->getRotation(); }
-    virtual const glm::vec3& getObjectLinearVelocity() const { return _entity->getVelocity(); }
-    virtual const glm::vec3& getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
-    virtual const glm::vec3& getObjectGravity() const { return _entity->getGravity(); }
+    virtual glm::vec3 getObjectLinearVelocity() const { return _entity->getVelocity(); }
+    virtual glm::vec3 getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
+    virtual glm::vec3 getObjectGravity() const { return _entity->getGravity(); }
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
     virtual QUuid getSimulatorID() const;
     virtual void bump();
 
-    EntityItem* getEntity() const { return _entity; }
+    EntityItemPointer getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
@@ -84,7 +84,7 @@ protected:
     virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
-    EntityItem* _entity;
+    EntityItemPointer _entity;
 
     bool _sentActive;   // true if body was active when we sent last update
     int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects

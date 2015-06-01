@@ -23,8 +23,8 @@
 
 const int FIXED_FONT_POINT_SIZE = 40;
 
-EntityItem* RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableTextEntityItem(entityID, properties);
+EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableTextEntityItem(entityID, properties));
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {

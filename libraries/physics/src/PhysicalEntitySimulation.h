@@ -35,9 +35,9 @@ public:
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     virtual void updateEntitiesInternal(const quint64& now);
-    virtual void addEntityInternal(EntityItem* entity);
-    virtual void removeEntityInternal(EntityItem* entity);
-    virtual void changeEntityInternal(EntityItem* entity);
+    virtual void addEntityInternal(EntityItemPointer entity);
+    virtual void removeEntityInternal(EntityItemPointer entity);
+    virtual void changeEntityInternal(EntityItemPointer entity);
     virtual void clearEntitiesInternal();
 
 public:

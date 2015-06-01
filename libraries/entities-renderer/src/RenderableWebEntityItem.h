@@ -17,7 +17,7 @@ class OffscreenQmlSurface;
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     ~RenderableWebEntityItem();

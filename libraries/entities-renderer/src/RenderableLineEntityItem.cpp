@@ -19,8 +19,8 @@
 
 #include "RenderableLineEntityItem.h"
 
-EntityItem* RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLineEntityItem(entityID, properties);
+EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableLineEntityItem(entityID, properties));
 }
 
 void RenderableLineEntityItem::render(RenderArgs* args) {
@@ -47,5 +47,6 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         }
         geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     glPopMatrix();
+    
     RenderableDebugableEntityItem::render(this, args);
 };

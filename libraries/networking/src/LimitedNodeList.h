@@ -21,13 +21,14 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <qelapsedtimer.h>
-#include <qreadwritelock.h>
-#include <qset.h>
-#include <qsharedpointer.h>
-#include <QtNetwork/qudpsocket.h>
-#include <QtNetwork/qhostaddress.h>
-#include <QSharedMemory>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QPointer>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QSet>
+#include <QtCore/QSharedMemory>
+#include <QtCore/QSharedPointer>
+#include <QtNetwork/QUdpSocket>
+#include <QtNetwork/QHostAddress>
 
 #include <tbb/concurrent_unordered_map.h>
 
@@ -59,8 +60,6 @@ const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 class HifiSockAddr;
 
-typedef QSet<NodeType_t> NodeSet;
-
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
@@ -79,8 +78,31 @@ namespace PingType {
 class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-
 public:
+
+    enum ConnectionStep {
+        LookupAddress = 1,
+        HandleAddress,
+        SendSTUNRequest,
+        SetPublicSocketFromSTUN,
+        SetICEServerHostname,
+        SetICEServerSocket,
+        SendICEServerQuery,
+        ReceiveDSPeerInformation,
+        SendPingsToDS,
+        SetDomainHostname,
+        SetDomainSocket,
+        SendDSCheckIn,
+        ReceiveDSList,
+        AddedAudioMixer,
+        SendAudioPing,
+        SetAudioMixerSocket,
+        SendAudioPacket,
+        ReceiveFirstAudioPacket
+    };
+
+    Q_ENUMS(ConnectionStep);
+
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
@@ -128,7 +150,10 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool canAdjustLocks, bool canRez);
+                                      bool canAdjustLocks, bool canRez,
+                                      const QUuid& connectionSecret = QUuid());
+
+    bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
 
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
@@ -149,11 +174,10 @@ public:
                                    const QUuid& packetHeaderID = QUuid());
     QByteArray constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID = QUuid());
 
-    virtual void sendSTUNRequest();
     virtual bool processSTUNResponse(const QByteArray& packet);
 
-    void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
-                                  QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
+    void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
+    void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
     template<typename NodeLambda>
     void eachNode(NodeLambda functor) {
@@ -202,6 +226,11 @@ public:
     void putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort);
     bool getLocalServerPortFromSharedMemory(const QString key, quint16& localPort);
 
+    const QMap<quint64, ConnectionStep> getLastConnectionTimes() const
+        { QReadLocker readLock(&_connectionTimeLock); return _lastConnectionTimes; }
+    void flagTimeForConnectionStep(ConnectionStep connectionStep);
+
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -209,6 +238,9 @@ public slots:
     void removeSilentNodes();
 
     void updateLocalSockAddr();
+
+    void startSTUNPublicSocketUpdate();
+    virtual void sendSTUNRequest();
 
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
@@ -240,6 +272,11 @@ protected:
 
     void handleNodeKill(const SharedNodePointer& node);
 
+    void stopInitialSTUNUpdate(bool success);
+
+    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
+                               const QUuid& peerRequestID = QUuid());
+
     QUuid _sessionUUID;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
@@ -259,6 +296,16 @@ protected:
 
     std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
 
+    QPointer<QTimer> _initialSTUNTimer;
+    int _numInitialSTUNRequests = 0;
+    bool _hasCompletedInitialSTUN = false;
+    quint64 _firstSTUNTime = 0;
+    quint64 _publicSocketUpdateTime = 0;
+
+    mutable QReadWriteLock _connectionTimeLock { };
+    QMap<quint64, ConnectionStep> _lastConnectionTimes;
+    bool _areConnectionTimesComplete = false;
+
     template<typename IteratorLambda>
     void eachNodeHashIterator(IteratorLambda functor) {
         QWriteLocker writeLock(&_nodeMutex);
@@ -268,7 +315,8 @@ protected:
             functor(it);
         }
     }
-
+private slots:
+    void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
 };
 
 #endif // hifi_LimitedNodeList_h

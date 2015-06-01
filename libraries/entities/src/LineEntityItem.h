@@ -16,7 +16,7 @@
 
 class LineEntityItem : public EntityItem {
  public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     

@@ -12,7 +12,9 @@
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QMetaEnum>
 #include <QtCore/QUrl>
+#include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
 #include <LogHandler.h>
@@ -34,9 +36,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket(),
-    _hasCompletedInitialSTUNFailure(false),
-    _stunRequestsSinceSuccess(0)
+    _assignmentServerSocket()
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -61,17 +61,35 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // fire off any pending DS path query when we get socket information
     connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
 
+    // send a domain server check in immediately once the DS socket is known
+    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendDomainServerCheckIn);
+
+    // send a domain server check in immediately if there is a public socket change
+    connect(this, &LimitedNodeList::publicSockAddrChanged, this, &NodeList::sendDomainServerCheckIn);
+
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
 
-    // handle ICE signal from DS so connection is attempted immediately
-    connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
+    // send an ICE heartbeat as soon as we get ice server information
+    connect(&_domainHandler, &DomainHandler::iceSocketAndIDReceived, this, &NodeList::handleICEConnectionToDomainServer);
+
+    // handle ping timeout from DomainHandler to establish a connection with auto networked domain-server
+    connect(&_domainHandler.getICEPeer(), &NetworkPeer::pingTimerTimeout, this, &NodeList::pingPunchForDomainServer);
+
+    // send a ping punch immediately
+    connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
     // clear out NodeList when login is finished
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete , this, &NodeList::reset);
 
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+
+    // anytime we get a new node we will want to attempt to punch to it
+    connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+
+    // we definitely want STUN to update our public socket, so call the LNL to kick that off
+    startSTUNPublicSocketUpdate();
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -155,12 +173,18 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 }
 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    switch (packetTypeForPacket(packet)) {
-        case PacketTypeDomainList: {
+    PacketType packetType = packetTypeForPacket(packet);
+    switch (packetType) {
+        case PacketTypeDomainList:
+        case PacketTypeDomainServerAddedNode: {
             if (!_domainHandler.getSockAddr().isNull()) {
-                // only process a list from domain-server if we're talking to a domain
+                // only process a packet from domain-server if we're talking to a domain
                 // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
-                processDomainServerList(packet);
+                if (packetType == PacketTypeDomainList) {
+                    processDomainServerList(packet);
+                } else if (packetType == PacketTypeDomainServerAddedNode) {
+                    processDomainServerAddedNode(packet);
+                }
             }
             break;
         }
@@ -168,8 +192,10 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
-        case PacketTypeIceServerHeartbeatResponse: {
-            _domainHandler.processICEResponsePacket(packet);
+        case PacketTypeIceServerPeerInformation: {
+            if (!_domainHandler.getICEPeer().hasSockets()) {
+                _domainHandler.processICEResponsePacket(packet);
+            }
             break;
         }
         case PacketTypePing: {
@@ -216,15 +242,18 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         case PacketTypeUnverifiedPingReply: {
             qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
-            // for now we're unsafely assuming this came back from the domain
-            if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
-                qCDebug(networking) << "Connecting to domain using local socket";
-                _domainHandler.activateICELocalSocket();
-            } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
-                qCDebug(networking) << "Conecting to domain using public socket";
-                _domainHandler.activateICEPublicSocket();
-            } else {
-                qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+            if (_domainHandler.getIP().isNull()) {
+                // for now we're unsafely assuming this came back from the domain
+                if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
+                    qCDebug(networking) << "Connecting to domain using local socket";
+                    _domainHandler.activateICELocalSocket();
+                } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
+                    qCDebug(networking) << "Conecting to domain using public socket";
+                    _domainHandler.activateICEPublicSocket();
+                } else {
+                    qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+                }
+
             }
         }
         case PacketTypeStunResponse: {
@@ -270,57 +299,14 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
     _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
-
-const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
-
-void NodeList::sendSTUNRequest() {
-
-    if (!_hasCompletedInitialSTUNFailure) {
-        qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
-    }
-
-    LimitedNodeList::sendSTUNRequest();
-
-    _stunRequestsSinceSuccess++;
-
-    if (_stunRequestsSinceSuccess >= NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
-        if (!_hasCompletedInitialSTUNFailure) {
-            // if we're here this was the last failed STUN request
-            // use our DS as our stun server
-            qCDebug(networking, "Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.",
-                   STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
-
-            _hasCompletedInitialSTUNFailure = true;
-        }
-
-        // reset the public address and port
-        // use 0 so the DS knows to act as out STUN server
-        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
-    }
-}
-
-bool NodeList::processSTUNResponse(const QByteArray& packet) {
-    if (LimitedNodeList::processSTUNResponse(packet)) {
-        // reset the number of failed STUN requests since last success
-        _stunRequestsSinceSuccess = 0;
-
-        _hasCompletedInitialSTUNFailure = true;
-
-        return true;
-    } else {
-        return false;
-    }
-}
-
 void NodeList::sendDomainServerCheckIn() {
-    if (_publicSockAddr.isNull() && !_hasCompletedInitialSTUNFailure) {
+    if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        // send a STUN request to figure it out
-        sendSTUNRequest();
+        qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
     } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
+        qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-
         bool isUsingDTLS = false;
 
         PacketType domainPacketType = !_domainHandler.isConnected()
@@ -365,7 +351,6 @@ void NodeList::sendDomainServerCheckIn() {
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
 
-
         // if this is a connect request, and we can present a username signature, send it along
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
@@ -379,16 +364,10 @@ void NodeList::sendDomainServerCheckIn() {
             }
         }
 
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
+
         if (!isUsingDTLS) {
             writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
-        }
-
-        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
-        static unsigned int numDomainCheckins = 0;
-
-        // send a STUN request every Nth domain server check in so we update our public socket, if required
-        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
-            sendSTUNRequest();
         }
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
@@ -499,17 +478,44 @@ void NodeList::handleDSPathQueryResponse(const QByteArray& packet) {
 }
 
 void NodeList::handleICEConnectionToDomainServer() {
-    if (_domainHandler.getICEPeer().isNull()
-        || _domainHandler.getICEPeer().getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+    // if we're still waiting to get sockets we want to ping for the domain-server
+    // then send another heartbeat now
+    if (!_domainHandler.getICEPeer().hasSockets()) {
 
-        _domainHandler.getICEPeer().resetConnectionAttemps();
+        _domainHandler.getICEPeer().resetConnectionAttempts();
 
-        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendICEServerQuery);
+
+        LimitedNodeList::sendPeerQueryToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getICEDomainID());
-    } else {
-        qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
-            << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+    }
+}
+
+void NodeList::pingPunchForDomainServer() {
+    // make sure if we're here that we actually still need to ping the domain-server
+    if (_domainHandler.getIP().isNull() && _domainHandler.getICEPeer().hasSockets()) {
+
+        // check if we've hit the number of pings we'll send to the DS before we consider it a fail
+        const int NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
+
+        if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
+            qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
+                << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+        } else {
+            if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
+                // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
+                qCDebug(networking) << "No ping replies received from domain-server with ID"
+                    << uuidStringWithoutCurlyBraces(_domainHandler.getICEClientID()) << "-" << "re-sending ICE query.";
+
+                _domainHandler.getICEPeer().softReset();
+                handleICEConnectionToDomainServer();
+
+                return;
+            }
+        }
+
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
@@ -525,6 +531,8 @@ void NodeList::handleICEConnectionToDomainServer() {
 int NodeList::processDomainServerList(const QByteArray& packet) {
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
+
+    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
@@ -551,34 +559,43 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     setThisNodeCanRez(thisNodeCanRez);
 
     // pull each node in the packet
-    while(packetStream.device()->pos() < packet.size()) {
-        // setup variables to read into from QDataStream
-        qint8 nodeType;
-        QUuid nodeUUID, connectionUUID;
-        HifiSockAddr nodePublicSocket, nodeLocalSocket;
-        bool canAdjustLocks;
-        bool canRez;
-
-        packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
-
-        // if the public socket address is 0 then it's reachable at the same IP
-        // as the domain server
-        if (nodePublicSocket.getAddress().isNull()) {
-            nodePublicSocket.setAddress(_domainHandler.getIP());
-        }
-
-        SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                                 nodeLocalSocket, canAdjustLocks, canRez);
-
-        packetStream >> connectionUUID;
-        node->setConnectionSecret(connectionUUID);
+    while (packetStream.device()->pos() < packet.size()) {
+        parseNodeFromPacketStream(packetStream);
     }
 
-    // ping inactive nodes in conjunction with receipt of list from domain-server
-    // this makes it happen every second and also pings any newly added nodes
-    pingInactiveNodes();
-
     return readNodes;
+}
+
+void NodeList::processDomainServerAddedNode(const QByteArray& packet) {
+    // setup a QDataStream, skip the header
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
+
+    // use our shared method to pull out the new node
+    parseNodeFromPacketStream(packetStream);
+}
+
+void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
+    // setup variables to read into from QDataStream
+    qint8 nodeType;
+    QUuid nodeUUID, connectionUUID;
+    HifiSockAddr nodePublicSocket, nodeLocalSocket;
+    bool canAdjustLocks;
+    bool canRez;
+
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
+
+    // if the public socket address is 0 then it's reachable at the same IP
+    // as the domain server
+    if (nodePublicSocket.getAddress().isNull()) {
+        nodePublicSocket.setAddress(_domainHandler.getIP());
+    }
+
+    packetStream >> connectionUUID;
+
+    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
+                                             nodeLocalSocket, canAdjustLocks, canRez,
+                                             connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -596,6 +613,16 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
+    if (node->getType() == NodeType::AudioMixer) {
+        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
+    }
+
+    // every second we're trying to ping this node and we're not getting anywhere - debug that out
+    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 1000 / (UDP_PUNCH_PING_INTERVAL_MS);
+
+    if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
+        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
+    }
 
     // send the ping packet to the local and public sockets for this node
     QByteArray localPingPacket = constructPingPacket(PingType::Local);
@@ -608,15 +635,30 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
         writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
     }
+
+    node->incrementConnectionAttempts();
 }
 
-void NodeList::pingInactiveNodes() {
-    eachNode([this](const SharedNodePointer& node){
-        if (!node->getActiveSocket()) {
-            // we don't have an active link to this node, ping it to set that up
-            pingPunchForInactiveNode(node);
+void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
+    // connect to the correct signal on this node so we know when to ping it
+    connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
+
+    // start the ping timer for this node
+    node->startPingTimer();
+
+    // ping this node immediately
+    pingPunchForInactiveNode(node);
+}
+
+void NodeList::handleNodePingTimeout() {
+    Node* senderNode = qobject_cast<Node*>(sender());
+    if (senderNode) {
+        SharedNodePointer sharedNode = nodeWithUUID(senderNode->getUUID());
+
+        if (sharedNode && !sharedNode->getActiveSocket()) {
+            pingPunchForInactiveNode(sharedNode);
         }
-    });
+    }
 }
 
 void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode) {
@@ -635,5 +677,9 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activatePublicSocket();
     } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
         sendingNode->activateSymmetricSocket();
+    }
+
+    if (sendingNode->getType() == NodeType::AudioMixer) {
+       flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetAudioMixerSocket);
     }
 }

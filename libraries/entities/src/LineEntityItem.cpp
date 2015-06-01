@@ -20,20 +20,20 @@
 #include "EntityTreeElement.h"
 
 
+
 const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 
 
-
-EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new LineEntityItem(entityID, properties);
+EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new LineEntityItem(entityID, properties) };
     return result;
 }
 
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) ,
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _points(QVector<glm::vec3>(0)),
-    _pointsChanged(true)
+    _pointsChanged(true),
+    _points(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Line;
     _created = properties.getCreated();

@@ -1948,7 +1948,9 @@ FaceTracker* Application::getSelectedFaceTracker() {
 }
 
 void Application::setActiveFaceTracker() {
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     bool isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
+#endif
 #ifdef HAVE_FACESHIFT
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
     faceshiftTracker->setIsMuted(isMuted);
@@ -1974,7 +1976,7 @@ void Application::toggleFaceTrackerMute() {
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 
     auto entityTree = _entities.getTree();
     EntityTree exportTree;
@@ -2015,7 +2017,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
-    QVector<EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
     _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
@@ -2159,9 +2161,6 @@ void Application::init() {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            entityScriptingInterface.data(), &EntityScriptingInterface::entityCollisionWithEntity);
-
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
             &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
@@ -2184,6 +2183,9 @@ void Application::init() {
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
     DependencyManager::get<GlowEffect>()->init(glow);
+
+    // Make sure any new sounds are loaded as soon as know about them.
+    connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {
@@ -2487,19 +2489,20 @@ void Application::update(float deltaTime) {
             _entitySimulation.unlock();
 
             avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
-            avatarManager->handleCollisionEvents(_physicsEngine.getCollisionEvents());
+            auto collisionEvents = _physicsEngine.getCollisionEvents();
+            avatarManager->handleCollisionEvents(collisionEvents);
 
             _physicsEngine.dumpStatsIfNecessary();
-        }
-    }
 
-    if (!_aboutToQuit) {
-        PerformanceTimer perfTimer("entities");
-        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
-        _entitySimulation.handleCollisionEvents(_physicsEngine.getCollisionEvents());
-        // NOTE: the _entities.update() call below will wait for lock
-        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
-       _entities.update(); // update the models...
+            if (!_aboutToQuit) {
+                PerformanceTimer perfTimer("entities");
+                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+                _entitySimulation.handleCollisionEvents(collisionEvents);
+                // NOTE: the _entities.update() call below will wait for lock
+                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                _entities.update(); // update the models...
+            }
+        }
     }
 
     {
@@ -3100,20 +3103,27 @@ PickRay Application::computePickRay(float x, float y) const {
 QImage Application::renderAvatarBillboard() {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
-
+    
+    // clear the alpha channel so the background is transparent
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    
     // the "glow" here causes an alpha of one
     Glower glower;
-
+    
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
-
+    
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    
     return image;
 }
 
@@ -3157,7 +3167,7 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billboard, RenderArgs::RenderSide renderSide) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3373,7 +3383,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             false, selfAvatarOnly);   
     }
 
-    {
+    if (!billboard) {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
@@ -3576,7 +3586,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(_mirrorCamera, true);
+    displaySide(_mirrorCamera, true, billboard);
     glPopMatrix();
 
     if (!billboard) {
