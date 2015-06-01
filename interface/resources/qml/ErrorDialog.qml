@@ -104,7 +104,7 @@ Item {
     // that can be animated, like scale or opacity, and then when the target animation value is reached, we can modify the
     // visibility.
     enabled: false
-    opacity: 1.0
+    opacity: 0.0
 
     onEnabledChanged: {
         opacity = enabled ? 1.0 : 0.0
