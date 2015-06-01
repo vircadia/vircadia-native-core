@@ -3410,7 +3410,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
                 [](WorldBoxRenderData& payload) { 
                     payload._val++;
-                     qCDebug(interfaceapp, "MyFirst update message!!!!! %u", payload._val);
+                    // A test Update to proof the concept is woking
+                    // qCDebug(interfaceapp, "MyFirst update message!!!!! %u", payload._val);
                 });
     }
 
