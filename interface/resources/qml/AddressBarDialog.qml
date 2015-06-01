@@ -100,9 +100,9 @@ Item {
     }
 
     // The UI enables an object, rather than manipulating its visibility, so that we can do animations in both directions. 
-	// Because visibility and enabled are booleans, they cannot be animated. So when enabled is changed, we modify a property 
-	// that can be animated, like scale or opacity, and then when the target animation value is reached, we can modify the 
-	// visibility.
+    // Because visibility and enabled are booleans, they cannot be animated. So when enabled is changed, we modify a property 
+    // that can be animated, like scale or opacity, and then when the target animation value is reached, we can modify the 
+    // visibility.
     enabled: false
     opacity: 0.0
 
@@ -122,7 +122,7 @@ Item {
     }
 
     onOpacityChanged: {
-	    // Once we're transparent, disable the dialog's visibility.
+        // Once we're transparent, disable the dialog's visibility.
         visible = (opacity != 0.0)
     }
 
@@ -130,10 +130,10 @@ Item {
         if (!visible) {
             reset()
 
-			// Some dialogs should be destroyed when they become invisible.
-			if (destroyOnInvisible) {
-				destroy()
-			}
+            // Some dialogs should be destroyed when they become invisible.
+            if (destroyOnInvisible) {
+                destroy()
+            }
         }
 
     }
