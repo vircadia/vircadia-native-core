@@ -3103,20 +3103,27 @@ PickRay Application::computePickRay(float x, float y) const {
 QImage Application::renderAvatarBillboard() {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
-
+    
+    // clear the alpha channel so the background is transparent
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    
     // the "glow" here causes an alpha of one
     Glower glower;
-
+    
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
-
+    
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    
     return image;
 }
 
@@ -3160,7 +3167,7 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
+void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billboard, RenderArgs::RenderSide renderSide) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3376,7 +3383,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, RenderArgs
             false, selfAvatarOnly);   
     }
 
-    {
+    if (!billboard) {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
@@ -3579,7 +3586,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(_mirrorCamera, true);
+    displaySide(_mirrorCamera, true, billboard);
     glPopMatrix();
 
     if (!billboard) {
