@@ -119,6 +119,8 @@
 #include "gpu/Context.h"
 #include "gpu/GLBackend.h"
 
+#include "RenderDeferredTask.h"
+
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -372,7 +374,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
   
   
-    _renderEngine->buildStandardTaskPipeline();
+    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
     _renderEngine->registerScene(_main3DScene);
       
     // start the nodeThread so its event loop is running
@@ -842,7 +844,7 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    gpu::Context context;
+    gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
@@ -3035,17 +3037,6 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
             _entities.render(renderArgs);
         }
 
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(renderArgs, false);
-        }
-
-        {
-            PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.renderWorld(renderArgs, true);
-        }
-
         glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
@@ -3179,6 +3170,7 @@ public:
     typedef render::Payload<WorldBoxRenderData> Payload;
     typedef Payload::DataPointer Pointer;
 
+    int _val = 0;
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
@@ -3191,12 +3183,12 @@ namespace render {
         if (args->_renderMode != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
             renderWorldBox();
+
+            // FIXME: there's currently a bug in the new render engine, if this origin dot is rendered out of view it will
+            // screw up the state of textures on models so they all end up rendering in the incorrect tint/color/texture
+            float originSphereRadius = 0.05f;
+            DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
         }
-
-        // never the less
-        float originSphereRadius = 0.05f;
-        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
     }
 }
 
@@ -3364,12 +3356,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(renderArgs, false);
-        }
         
         // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
@@ -3419,20 +3405,40 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+    } else {
+
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
+                [](WorldBoxRenderData& payload) { 
+                    payload._val++;
+                    // A test Update to proof the concept is woking
+                    // qCDebug(interfaceapp, "MyFirst update message!!!!! %u", payload._val);
+                });
     }
 
+    {
+        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        _main3DScene->enqueuePendingChanges(pendingChanges);
 
-    _main3DScene->enqueuePendingChanges(pendingChanges);
-
-    _main3DScene->processPendingChangesQueue();
+        _main3DScene->processPendingChangesQueue();
+    }
 
     // FOr now every frame pass the renderCOntext
-    render::RenderContext renderContext;
-    renderContext.args = renderArgs;
-    _renderEngine->setRenderContext(renderContext);
+    {
+        PerformanceTimer perfTimer("EngineRun");
+        render::RenderContext renderContext;
+        renderContext.args = renderArgs;
+        _renderEngine->setRenderContext(renderContext);
 
-    // Before the deferred pass, let's try to use the render engine
-    _renderEngine->run();
+        // Before the deferred pass, let's try to use the render engine
+        _renderEngine->run();
+        
+        /*
+        qDebug() << "renderArgs._materialSwitches:" << renderArgs->_materialSwitches;
+        qDebug() << "renderArgs._trianglesRendered:" << renderArgs->_trianglesRendered;
+        qDebug() << "renderArgs._quadsRendered:" << renderArgs->_quadsRendered;
+        */
+
+    }
 
     {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
@@ -3482,13 +3488,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    // Render 3D overlays that should be drawn in front
-    {
-        PerformanceTimer perfTimer("3dOverlaysFront");
-        glClear(GL_DEPTH_BUFFER_BIT);
-        Glower glower(renderArgs);  // Sets alpha to 1.0
-        _overlays.renderWorld(renderArgs, true);
-    }
     activeRenderingThread = nullptr;
 }
 

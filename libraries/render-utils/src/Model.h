@@ -45,6 +45,22 @@ class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
+namespace render {
+    class Scene;
+    class PendingChanges;
+    typedef unsigned int ItemID;
+}
+class OpaqueMeshPart;
+class TransparentMeshPart;
+
+inline uint qHash(const std::shared_ptr<TransparentMeshPart>& a, uint seed) {
+    return qHash(a.get(), seed);
+}
+inline uint qHash(const std::shared_ptr<OpaqueMeshPart>& a, uint seed) {
+    return qHash(a.get(), seed);
+}
+
+
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -99,11 +115,17 @@ public:
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
     bool render(RenderArgs* renderArgs, float alpha = 1.0f);
+    void renderSetup(RenderArgs* args);
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
     bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
     static void endScene(RenderArgs* args);
+
+    // new Scene/Engine rendering support
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -218,6 +240,9 @@ public:
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                 BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
     bool convexHullContains(glm::vec3 point);
+
+    AABox getPartBounds(int meshIndex, int partIndex);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -343,6 +368,8 @@ private:
         int clusterWeights;
     };
 
+    QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
+    bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
     
@@ -370,7 +397,6 @@ private:
     static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     // helper functions used by render() or renderInScene()
-    void renderSetup(RenderArgs* args);
     bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
@@ -511,6 +537,11 @@ private:
     RenderBucketMap _renderBuckets;
 
     bool _renderCollisionHull;
+    
+    
+    QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
+    QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
+    QSet<render::ItemID> _renderItems;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

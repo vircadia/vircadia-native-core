@@ -108,6 +108,49 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
+// TODO: we need a solution for changes to the postion/rotation/etc of a model...
+// this current code path only addresses that in this setup case... not the changing/moving case
+bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
+    if (!_model && renderArgs) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
+        getModel(renderer);
+    }
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+        _needsInitialSimulation = false;
+
+        _model->renderSetup(renderArgs);
+    }
+    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
+    return ready; 
+}
+
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                            render::PendingChanges& pendingChanges) {
+    if (_model) {
+        return _model->addToScene(scene, pendingChanges);
+    }
+    return false; 
+}
+    
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                                render::PendingChanges& pendingChanges) {
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
+}
+
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
@@ -199,6 +242,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
+    
+    if (!renderer) {
+        return result;
+    }
 
     // make sure our renderer is setup
     if (!_myRenderer) {
@@ -206,7 +253,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
     
-    if (QThread::currentThread() != _myRenderer->thread()) {
+    if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
     

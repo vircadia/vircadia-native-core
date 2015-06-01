@@ -637,9 +637,6 @@ private:
 
     TouchEvent _lastTouchEvent;
 
-    Overlays _overlays;
-    ApplicationOverlay _applicationOverlay;
-
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
@@ -679,6 +676,9 @@ private:
 
     render::ScenePointer _main3DScene{ new render::Scene() };
     render::EnginePointer _renderEngine{ new render::Engine() };
+
+    Overlays _overlays;
+    ApplicationOverlay _applicationOverlay;
 };
 
 #endif // hifi_Application_h

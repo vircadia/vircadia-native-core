@@ -26,9 +26,9 @@ public:
 
     explicit GLBackend(bool syncCache);
     GLBackend();
-    ~GLBackend();
+    virtual ~GLBackend();
 
-    void render(Batch& batch);
+    virtual void render(Batch& batch);
 
     // Render Batch create a local Context and execute the batch with it
     // WARNING:
