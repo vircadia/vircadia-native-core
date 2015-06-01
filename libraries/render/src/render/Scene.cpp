@@ -66,10 +66,6 @@ void Item::kill() {
     _key._flags.reset();
 }
 
-void Item::update(const UpdateFunctor& functor) {
-    _payload->update(functor);
-}
-
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
@@ -79,7 +75,7 @@ void PendingChanges::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
 
-void PendingChanges::updateItem(ItemID id, const UpdateFunctor& functor) {
+void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
     _updatedItems.push_back(id);
     _updateFunctors.push_back(functor);
 }

@@ -3170,6 +3170,7 @@ public:
     typedef render::Payload<WorldBoxRenderData> Payload;
     typedef Payload::DataPointer Pointer;
 
+    int _val = 0;
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
@@ -3406,11 +3407,11 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
 
-        pendingChanges.updateItem(WorldBoxRenderData::_item,
-            render::UpdateFunctor(
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
                 [](WorldBoxRenderData& payload) { 
-                     qCDebug(interfaceapp, "MyFirst update message!!!!!");
-                }));
+                    payload._val++;
+                     qCDebug(interfaceapp, "MyFirst update message!!!!! %u", payload._val);
+                });
     }
 
     {

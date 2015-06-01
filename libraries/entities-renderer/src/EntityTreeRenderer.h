@@ -19,7 +19,7 @@
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
-#include <render/Scene.h>
+//#include <render/Scene.h>
 #include <ScriptCache.h>
 #include <AbstractAudioInterface.h>
 
