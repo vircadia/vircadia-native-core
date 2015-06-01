@@ -55,40 +55,41 @@
 #include <QMessageBox>
 #include <QJsonDocument>
 
-#include <AddressManager.h>
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
+#include <ErrorDialog.h>
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <VrMenu.h>
+#include <InfoView.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <MessageDialog.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <ObjectMotionState.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <MessageDialog.h>
-#include <InfoView.h>
-#include <SceneScriptingInterface.h>
+#include <VrMenu.h>
 
 #include "Application.h"
 #include "AudioClient.h"
@@ -799,6 +800,7 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
+    ErrorDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
     VrMenu::registerType();
