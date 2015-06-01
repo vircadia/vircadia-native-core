@@ -73,7 +73,7 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.z = object.property("z").toVariant().toFloat();
 }
 
-QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3> &vector){
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector){
     QScriptValue array = engine->newArray();
     for(int i = 0; i < vector.size(); i++){
         array.setProperty(i, vec3toScriptValue(engine, vector.at(i)));
@@ -81,7 +81,7 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
     return array;
 }
 
-QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue &array){
+QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
     QVector<glm::vec3> newVector(0);
     int length = array.property("length").toInteger();
     

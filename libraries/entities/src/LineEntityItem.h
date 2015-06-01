@@ -51,19 +51,12 @@ class LineEntityItem : public EntityItem {
         _color[BLUE_INDEX] = value.blue;
     }
     
-    void setLineWidth(float lineWidth){
-        _lineWidth = lineWidth;
-    }
-    float getLineWidth() const{
-        
-        return _lineWidth;
-    }
+    void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
+    float getLineWidth() const{ return _lineWidth; }
     
     void setLinePoints(const QVector<glm::vec3>& points);
     
-    const QVector<glm::vec3>& getLinePoints() const{
-        return _points;
-    }
+    const QVector<glm::vec3>& getLinePoints() const{ return _points; }
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
