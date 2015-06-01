@@ -791,6 +791,7 @@ namespace render {
     template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
             args->_elementsTouched++;
+            //qDebug() << "would be TransparentMeshPart: " << payload->meshIndex << "," << payload->partIndex;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
         }
     }
@@ -2189,6 +2190,13 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
     renderSetup(args);
+
+    /*    
+    if (translucent) {
+        renderCore(args, 1.0f);
+        return;
+    }
+    */
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -2207,8 +2215,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     batch.setViewTransform(_transforms[0]);
 
 
-    const float DEFAULT_ALPHA_THRESHOLD = 0.5f; // 
-    auto alphaThreshold = DEFAULT_ALPHA_THRESHOLD; // FIX ME
+    const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+    auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2216,7 +2225,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
-    bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = mesh.hasSpecularTexture();
     bool hasLightmap = mesh.hasEmissiveTexture();
