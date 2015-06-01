@@ -4,7 +4,7 @@ include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://hifi-public.s3.amazonaws.com/dependencies/polyvox.zip
-  URL_MD5  URL_MD5 904b840328278c9b36fa7a14be730c34
+  URL_MD5 904b840328278c9b36fa7a14be730c34
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1
@@ -45,7 +45,7 @@ else ()
 endif ()
 
 
-if (WIN32) 
+if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY ${INSTALL_DIR}/PolyVoxCore/lib/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/PolyVoxUtil/lib/PolyVoxUtil.lib CACHE FILEPATH "polyvox util library")
 elseif (APPLE)

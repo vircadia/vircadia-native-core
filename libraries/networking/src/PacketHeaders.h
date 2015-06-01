@@ -80,7 +80,8 @@ enum PacketType {
     PacketTypeIceServerHeartbeat, // 50
     PacketTypeUnverifiedPing,
     PacketTypeUnverifiedPingReply,
-    PacketTypeParticleEntitiesFix
+    PacketTypeParticleEntitiesFix,
+    PacketTypeLinePoints
 };
 
 typedef char PacketVersion;

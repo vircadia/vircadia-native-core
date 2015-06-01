@@ -136,6 +136,7 @@ QString nameForPacketType(PacketType packetType) {
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAdd);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEdit);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleEntitiesFix);
+            PACKET_TYPE_NAME_LOOKUP(PacketTypeLinePoints);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }

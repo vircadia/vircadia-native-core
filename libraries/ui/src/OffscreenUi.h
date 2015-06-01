@@ -115,6 +115,8 @@ public:
     static void critical(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
+
+    static void error(const QString& text);  // Interim dialog in new style
 };
 
 #endif
