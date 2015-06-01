@@ -765,6 +765,109 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
+
+class TransparentMeshPart {
+public:
+    TransparentMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<TransparentMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+        return ItemKey::Builder::transparentShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
+        if (payload) {
+            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            //qDebug() << "would be TransparentMeshPart: " << payload->meshIndex << "," << payload->partIndex;
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
+        }
+    }
+}
+
+class OpaqueMeshPart {
+public:
+    OpaqueMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<OpaqueMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
+        if (payload) {
+            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
+        }
+    }
+}
+
+
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    bool somethingAdded = false;
+    // allow the attachments to add to scene
+    foreach (Model* attachment, _attachments) {
+        bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
+        somethingAdded = somethingAdded || attachementSomethingAdded;
+    }
+    
+    foreach (auto renderItem, _transparentRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = TransparentMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems << item;
+        somethingAdded = true;
+    }
+    foreach (auto renderItem, _opaqueRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = OpaqueMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems << item;
+        somethingAdded = true;
+    }
+
+    return somethingAdded;
+}
+
+void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    // allow the attachments to remove to scene
+    foreach (Model* attachment, _attachments) {
+        attachment->removeFromScene(scene, pendingChanges);
+    }
+
+    foreach (auto item, _renderItems) {
+        pendingChanges.removeItem(item);
+    }
+    _renderItems.clear();
+}
+
 bool Model::render(RenderArgs* renderArgs, float alpha) {
     PROFILE_RANGE(__FUNCTION__);
 
@@ -1847,7 +1950,10 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 }
 
 void Model::endScene(RenderArgs* args) {
+    // Now that we migrated everything to the new RENDER/SCENE no more work to do!
+    return;
     PROFILE_RANGE(__FUNCTION__);
+
 
 
 #if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
@@ -1861,6 +1967,7 @@ void Model::endScene(RenderArgs* args) {
     if (args) {
         renderSide = args->_renderSide;
     }
+
 
     gpu::GLBackend backend;
     backend.syncCache(); // force sync with gl state here
@@ -2068,6 +2175,212 @@ bool Model::renderInScene(float alpha, RenderArgs* args) {
     return true;
 }
 
+AABox Model::getPartBounds(int meshIndex, int partIndex) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+    AABox partBox = mesh._mesh.evalPartBound(partIndex);
+    
+    // FIX ME! 
+    // 1) needs to translate to world space, these values are in model space
+    // 2) mesh._mesh.parts doesn't always have the correct values in it... so we 
+    //    need to just use mesh.parts or find/fix whatever is causing mesh._mesh 
+    //    to not contain data
+    return partBox;
+}
+
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+    renderSetup(args);
+
+    /*    
+    if (translucent) {
+        renderCore(args, 1.0f);
+        return;
+    }
+    */
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    gpu::Batch& batch = *(args->_batch);
+    auto mode = args->_renderMode;
+
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
+
+    _transforms[0] = _viewState->getViewTransform();
+
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+    _transforms[0].preTranslate(-_translation);
+
+    batch.setViewTransform(_transforms[0]);
+
+
+    const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+    auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    const NetworkMesh& networkMesh = networkMeshes.at(meshIndex);
+    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+    const MeshState& state = _meshStates.at(meshIndex);
+
+    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    bool hasTangents = !mesh.tangents.isEmpty();
+    bool hasSpecular = mesh.hasSpecularTexture();
+    bool hasLightmap = mesh.hasEmissiveTexture();
+    bool isSkinned = state.clusterMatrices.size() > 1;
+    bool wireframe = isWireframe();
+    
+    if (wireframe) {
+        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    }
+
+    Locations* locations = nullptr;
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                                args, locations);
+
+
+    int meshPartsRendered = 0;
+    updateVisibleJointStates();
+
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    
+    if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
+        _meshGroupsKnown = false; // regenerate these lists next time around.
+        return; // FIXME!
+    }
+    
+    batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+    int vertexCount = mesh.vertices.size();
+    if (vertexCount == 0) {
+        // sanity check
+        return; // FIXME!
+    }
+    
+    if (state.clusterMatrices.size() > 1) {
+        GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
+            (const float*)state.clusterMatrices.constData());
+        batch.setModelTransform(Transform());
+    } else {
+        batch.setModelTransform(Transform(state.clusterMatrices[0]));
+    }
+
+    if (mesh.blendshapes.isEmpty()) {
+        batch.setInputFormat(networkMesh._vertexFormat);
+        batch.setInputStream(0, *networkMesh._vertexStream);
+    } else {
+        batch.setInputFormat(networkMesh._vertexFormat);
+        batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
+        batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
+        batch.setInputStream(2, *networkMesh._vertexStream);
+    }
+
+    if (mesh.colors.isEmpty()) {
+        GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    qint64 offset = 0;
+
+    const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
+    const FBXMeshPart& part = mesh.parts.at(partIndex);
+    model::MaterialPointer material = part._material;
+
+    if (material == nullptr) {
+        qCDebug(renderutils) << "WARNING: material == nullptr!!!";
+    }
+    
+    if (material != nullptr) {
+
+        // apply material properties
+        if (mode != RenderArgs::SHADOW_RENDER_MODE) {
+            #ifdef WANT_DEBUG
+            qCDebug(renderutils) << "Material Changed ---------------------------------------------";
+            qCDebug(renderutils) << "part INDEX:" << partIndex;
+            qCDebug(renderutils) << "NEW part.materialID:" << part.materialID;
+            #endif //def WANT_DEBUG
+
+            if (locations->materialBufferUnit >= 0) {
+                batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
+            }
+
+            Texture* diffuseMap = networkPart.diffuseTexture.data();
+            if (mesh.isEye && diffuseMap) {
+                diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
+                    static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+            }
+            static bool showDiffuse = true;
+            if (showDiffuse && diffuseMap) {
+                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+            
+            } else {
+                batch.setUniformTexture(0, textureCache->getWhiteTexture());
+            }
+
+            if (locations->texcoordMatrices >= 0) {
+                glm::mat4 texcoordTransform[2];
+                if (!part.diffuseTexture.transform.isIdentity()) {
+                    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
+                }
+                if (!part.emissiveTexture.transform.isIdentity()) {
+                    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
+                }
+                GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+            }
+
+            if (!mesh.tangents.isEmpty()) {                 
+                Texture* normalMap = networkPart.normalTexture.data();
+                batch.setUniformTexture(1, !normalMap ?
+                    textureCache->getBlueTexture() : normalMap->getGPUTexture());
+
+            }
+    
+            if (locations->specularTextureUnit >= 0) {
+                Texture* specularMap = networkPart.specularTexture.data();
+                batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                                            textureCache->getWhiteTexture() : specularMap->getGPUTexture());
+            }
+
+            if (args) {
+                args->_materialSwitches++;
+            }
+
+            // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
+            // drawcall with an emissive, so let's do it for now.
+            if (locations->emissiveTextureUnit >= 0) {
+                //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
+                float emissiveOffset = part.emissiveParams.x;
+                float emissiveScale = part.emissiveParams.y;
+                GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+
+                Texture* emissiveMap = networkPart.emissiveTexture.data();
+                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                                                textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+            }
+        }
+    }
+    
+    meshPartsRendered++;
+    
+    if (part.quadIndices.size() > 0) {
+        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        offset += part.quadIndices.size() * sizeof(int);
+    }
+
+    if (part.triangleIndices.size() > 0) {
+        batch.drawIndexed(gpu::TRIANGLES, part.triangleIndices.size(), offset);
+        offset += part.triangleIndices.size() * sizeof(int);
+    }
+
+    if (args) {
+        const int INDICES_PER_TRIANGLE = 3;
+        const int INDICES_PER_QUAD = 4;
+        args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+        args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+    }
+}
+
 void Model::segregateMeshGroups() {
     _renderBuckets.clear();
 
@@ -2086,6 +2399,7 @@ void Model::segregateMeshGroups() {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
+        
 
         bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
@@ -2097,6 +2411,18 @@ void Model::segregateMeshGroups() {
         if (wireframe) {
             translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
         }
+
+        // Debug...
+        int totalParts = mesh.parts.size();
+        for (int partIndex = 0; partIndex < totalParts; partIndex++) {
+            // this is a good place to create our renderPayloads
+            if (translucentMesh) {
+                _transparentRenderItems << std::shared_ptr<TransparentMeshPart>(new TransparentMeshPart(this, i, partIndex));
+            } else {
+                _opaqueRenderItems << std::shared_ptr<OpaqueMeshPart>(new OpaqueMeshPart(this, i, partIndex));
+            }
+        }
+
         
         QString materialID;
 

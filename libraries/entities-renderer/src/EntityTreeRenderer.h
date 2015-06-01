@@ -123,6 +123,10 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
+    void checkPendingAddToScene(RenderArgs* renderArgs);
+    void addEntityToScene(EntityItemPointer entity);
+    QSet<EntityItemPointer> _pendingAddToScene;
+
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);

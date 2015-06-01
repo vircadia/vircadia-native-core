@@ -43,7 +43,12 @@ public:
                                                 
     virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
-    virtual bool canRenderInScene() { return false; } // we don't yet play well with others
+    virtual bool canRenderInScene() { return true; }
+    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
+
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
