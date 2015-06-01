@@ -28,48 +28,34 @@ Item {
 
     x: parent ? parent.width / 2 - width / 2 : 0
     y: parent ? parent.height / 2 - height / 2 : 0
+    property int maximumX: parent ? parent.width - width : 0
+    property int maximumY: parent ? parent.height - height : 0
 
     AddressBarDialog {
         id: addressBarDialog
 
-        property int iconOverlap: 15  // Let the circle overlap window edges and rectangular part of dialog
-        property int maximumX: root.parent ? root.parent.width - root.width : 0
-        property int maximumY: root.parent ? root.parent.height - root.height : 0
+        implicitWidth: backgroundImage.width
+        implicitHeight: backgroundImage.height
 
-        implicitWidth: box.width + icon.width - iconOverlap * 2
-        implicitHeight: addressLine.height + hifi.layout.spacing * 2
+        Image {
+            id: backgroundImage
 
-        Border {
-			id: box
-
-            width: 512
-            height: parent.height
-            border.width: 0
-            radius: 6
-            color: "#ededee"
-
-            x: icon.width - addressBarDialog.iconOverlap * 2  // Relative to addressBarDialog
-
-			MouseArea {
-                anchors.fill: parent
-                drag {
-					target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? addressBarDialog.maximumX : 0
-                    maximumY: root.parent ? addressBarDialog.maximumY : 0
-                }
-			}
+            source: "../images/address-bar.svg"
+            width: 576
+            height: 80
+            property int inputAreaHeight: 56  // Height of the background's input area
+            property int inputAreaStep: (height - inputAreaHeight) / 2
 
             TextInput {
-				id: addressLine
+                id: addressLine
 
                 anchors {
                     fill: parent
-                    leftMargin: addressBarDialog.iconOverlap + hifi.layout.spacing * 2
+                    leftMargin: parent.height + hifi.layout.spacing * 2
                     rightMargin: hifi.layout.spacing * 2
-                    topMargin: hifi.layout.spacing
-                    bottomMargin: hifi.layout.spacing
+                    topMargin: parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+
                 }
 
                 font.pointSize: 15
@@ -78,29 +64,36 @@ Item {
                 onAccepted: {
                     event.accepted = true  // Generates erroneous error in program log, "ReferenceError: event is not defined".
                     addressBarDialog.loadAddress(addressLine.text)
-				}
-			}
-		}
-
-        Image {
-            id: icon
-            source: "../images/address-bar-icon.svg"
-            width: 80
-            height: 80
-            anchors {
-                right: box.left
-                rightMargin: -addressBarDialog.iconOverlap
-                verticalCenter: parent.verticalCenter
+                }
             }
 
             MouseArea {
-                anchors.fill: parent
+                // Drag the icon
+                width: parent.height
+                height: parent.height
+                x: 0
+                y: 0
                 drag {
                     target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? addressBarDialog.maximumX : 0
-                    maximumY: root.parent ? addressBarDialog.maximumY : 0
+                    minimumX: -parent.inputAreaStep
+                    minimumY: -parent.inputAreaStep
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
+                }
+            }
+
+            MouseArea {
+                // Drag the input rectangle
+                width: parent.width - parent.height
+                height: parent.inputAreaHeight
+                x: parent.height
+                y: parent.inputAreaStep
+                drag {
+                    target: root
+                    minimumX: -parent.inputAreaStep
+                    minimumY: -parent.inputAreaStep
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
                 }
             }
         }

@@ -8,14 +8,14 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.1"
-   width="200"
+   width="1440"
    height="200"
    data-icon="map-marker"
    data-container-transform="translate(24)"
-   viewBox="0 0 200 200"
+   viewBox="0 0 1440 200"
    id="svg4136"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="address-icon.svg">
+   sodipodi:docname="address-bar.svg">
   <metadata
      id="metadata4144">
     <rdf:RDF>
@@ -24,7 +24,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -43,13 +43,22 @@
      inkscape:window-height="1057"
      id="namedview4140"
      showgrid="false"
-     inkscape:zoom="0.43359375"
-     inkscape:cx="64"
-     inkscape:cy="144.72072"
+     inkscape:zoom="0.8671875"
+     inkscape:cx="707.02439"
+     inkscape:cy="52.468468"
      inkscape:window-x="72"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg4136" />
+  <rect
+     style="fill:#ededed;fill-opacity:1;stroke:none;stroke-linejoin:round;stroke-opacity:1"
+     id="rect4141"
+     width="1280"
+     height="140"
+     x="160"
+     y="30"
+     rx="16.025024"
+     ry="17.019567" />
   <circle
      style="fill:#b8b8b8;fill-opacity:1;stroke:none;stroke-opacity:1"
      id="path4146"
