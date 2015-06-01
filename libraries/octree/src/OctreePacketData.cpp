@@ -385,7 +385,6 @@ bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
     uint16_t qVecSize = value.size();
     uint16_t sizeLength = sizeof(qVecSize);
     bool success = append((const unsigned char*)&qVecSize, sizeLength);
-    qDebug()<<"appendlength"<<qVecSize;
     if(success){
         _bytesOfValues += sizeLength;
         _totalBytesOfValues += sizeLength;
@@ -468,9 +467,6 @@ bool OctreePacketData::appendRawData(const unsigned char* data, int length) {
         _totalBytesOfRawData += length;
     }
     return success;
-}
-bool OctreePacketData::appendRawData(QByteArray data) {
-  return appendRawData((unsigned char *)data.data(), data.size());
 }
 
 quint64 OctreePacketData::_compressContentTime = 0;
@@ -603,6 +599,5 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVecto
     qDebug()<<"unpacking length"<<length;
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
-    
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
 }

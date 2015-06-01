@@ -186,7 +186,6 @@ public:
 
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool appendRawData(const unsigned char* data, int length);
-    bool appendRawData(QByteArray);
 
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end.
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
