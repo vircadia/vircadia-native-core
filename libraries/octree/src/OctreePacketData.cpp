@@ -381,23 +381,19 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
     return success;
 }
 
-bool OctreePacketData::appendValue(const QVector<glm::vec3>& value){
-    uint16_t qVecSize = value.size() * sizeof(glm::vec3);
-    QByteArray myArray;
-    const char* data = (const char*)value.data();
-    char* sizePointer = (char*)&qVecSize;
-    QByteArray vecSize(sizePointer, sizeof(uint16_t));
-    myArray.append(vecSize);
-    uint16_t arrayLength;
-    memcpy(&arrayLength, myArray.data(), sizeof(uint16_t));
-    for(int i = 0; i < qVecSize; i++){
-        myArray.append(data[i]);
-    }
-    int length = qVecSize + sizeof(uint16_t);
-    bool success = append((const unsigned char*)myArray.constData(), myArray.size());
+bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
+    uint16_t qVecSize = value.size();
+    uint16_t sizeLength = sizeof(qVecSize);
+    bool success = append((const unsigned char*)&qVecSize, sizeLength);
+    qDebug()<<"appendlength"<<qVecSize;
     if(success){
-        _bytesOfValues += length;
-        _totalBytesOfValues += length;
+        _bytesOfValues += sizeLength;
+        _totalBytesOfValues += sizeLength;
+    }
+    success = append((const unsigned char*)value.constData(), qVecSize * sizeof(glm::vec3));
+    if(success){
+        _bytesOfValues += qVecSize * sizeof(glm::vec3);
+        _totalBytesOfValues += qVecSize * sizeof(glm::vec3);
     }
     return success;
 }
@@ -600,27 +596,13 @@ int OctreePacketData::uppackDataFromBytes(const unsigned char* dataBytes, xColor
     return sizeof(rgbColor);
 }
 
-int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result){
+int OctreePacketData::uppackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-    glm::vec3 myVec;
-    for(int i = 0 ; i < length; i+= sizeof(float) * 3) {
-        //Go through and create three floats
-        glm::vec3 point;
-        float x;
-        memcpy(&x, dataBytes, sizeof(float));
-        point.x = x;
-        dataBytes += sizeof(float);
-        float y;
-        memcpy(&y, dataBytes, sizeof(float));
-        point.y = y;
-        dataBytes += sizeof(float);
-        float z;
-        memcpy(&z, dataBytes, sizeof(float));
-        point.z = z;
-        dataBytes += sizeof(float);
-        result.append(point);
-    }
-    return length + sizeof(length);
+    qDebug()<<"unpacking length"<<length;
+    result.resize(length);
+    memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
+    
+    return sizeof(uint16_t) + length * sizeof(glm::vec3);
 }
