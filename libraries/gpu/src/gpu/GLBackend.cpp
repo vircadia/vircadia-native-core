@@ -442,6 +442,8 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
 }
 void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
     if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
     glUniform1f(
@@ -460,6 +462,11 @@ void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
     DO_IT_NOW(_glUniform2f, 1);
 }
 void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniform2f(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
@@ -478,6 +485,11 @@ void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
     DO_IT_NOW(_glUniform4fv, 3);
 }
 void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniform4fv(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
@@ -498,6 +510,11 @@ void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpo
     DO_IT_NOW(_glUniformMatrix4fv, 4);
 }
 void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniformMatrix4fv(
         batch._params[paramOffset + 3]._int,
         batch._params[paramOffset + 2]._uint,
