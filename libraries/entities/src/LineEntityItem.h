@@ -59,9 +59,7 @@ class LineEntityItem : public EntityItem {
         return _lineWidth;
     }
     
-    void setLinePoints(const QVector<glm::vec3>& points){
-        _points = points;
-    }
+    void setLinePoints(const QVector<glm::vec3>& points);
     
     const QVector<glm::vec3>& getLinePoints() const{
         return _points;
@@ -81,6 +79,7 @@ class LineEntityItem : public EntityItem {
  protected:
     rgbColor _color;
     float _lineWidth;
+    bool _pointsChanged;
     QVector<glm::vec3> _points;
 };
 

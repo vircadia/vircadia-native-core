@@ -41,7 +41,10 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         QVector<glm::vec3> points;
-        geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+        if(_pointsChanged){
+          geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+            _pointsChanged = false;
+        }
         geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     glPopMatrix();
     RenderableDebugableEntityItem::render(this, args);

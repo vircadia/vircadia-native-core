@@ -32,7 +32,8 @@ EntityItem* LineEntityItem::factory(const EntityItemID& entityID, const EntityIt
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID) ,
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _points(QVector<glm::vec3>(0))
+    _points(QVector<glm::vec3>(0)),
+    _pointsChanged(true)
 {
     _type = EntityTypes::Line;
     _created = properties.getCreated();
@@ -83,7 +84,12 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
+    _points = points;
+    _pointsChanged = true;
+}
+
+int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
                                                      EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
 
