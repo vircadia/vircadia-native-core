@@ -1,3 +1,13 @@
+//
+//  AddressBarDialog.qml
+//
+//  Created by Austin Davis on 2015/04/14
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import Hifi 1.0
 import QtQuick 2.3
 import QtQuick.Controls 1.2
@@ -12,7 +22,6 @@ Item {
 
     property int animationDuration: hifi.effects.fadeInDuration
     property bool destroyOnInvisible: false
-    property bool destroyOnCloseButton: true
 
     implicitWidth: addressBarDialog.implicitWidth
     implicitHeight: addressBarDialog.implicitHeight
@@ -24,8 +33,8 @@ Item {
         id: addressBarDialog
 
         property int iconOverlap: 15  // Let the circle overlap window edges and rectangular part of dialog
-        property int maximumX: root.parent.width - root.width
-        property int maximumY: root.parent.height - root.height
+        property int maximumX: root.parent ? root.parent.width - root.width : 0
+        property int maximumY: root.parent ? root.parent.height - root.height : 0
 
         implicitWidth: box.width + icon.width - iconOverlap * 2
         implicitHeight: addressLine.height + hifi.layout.spacing * 2
@@ -39,13 +48,10 @@ Item {
             radius: 6
             color: "#ededee"
 
-            x: icon.width - addressBarDialog.iconOverlap * 2  // W.r.t. addressBarDialog
+            x: icon.width - addressBarDialog.iconOverlap * 2  // Relative to addressBarDialog
 
 			MouseArea {
-				id: boxDrag
-
                 anchors.fill: parent
-
                 drag {
 					target: root
                     minimumX: 0
@@ -58,18 +64,20 @@ Item {
             TextInput {
 				id: addressLine
 
-                anchors.fill: parent
-                anchors.leftMargin: addressBarDialog.iconOverlap + hifi.layout.spacing * 2
-                anchors.rightMargin: hifi.layout.spacing * 2
-                anchors.topMargin: hifi.layout.spacing
-                anchors.bottomMargin: hifi.layout.spacing
+                anchors {
+                    fill: parent
+                    leftMargin: addressBarDialog.iconOverlap + hifi.layout.spacing * 2
+                    rightMargin: hifi.layout.spacing * 2
+                    topMargin: hifi.layout.spacing
+                    bottomMargin: hifi.layout.spacing
+                }
 
                 font.pointSize: 15
                 helperText: "Go to: place, @user, /path, network address"
 
                 onAccepted: {
-					event.accepted
-					addressBarDialog.loadAddress(addressLine.text)
+                    event.accepted = true  // Generates erroneous error in program log, "ReferenceError: event is not defined".
+                    addressBarDialog.loadAddress(addressLine.text)
 				}
 			}
 		}
@@ -79,15 +87,14 @@ Item {
             source: "../images/address-bar-icon.svg"
             width: 80
             height: 80
-            anchors.right: box.left
-            anchors.rightMargin: -addressBarDialog.iconOverlap
-            anchors.verticalCenter: parent.verticalCenter
+            anchors {
+                right: box.left
+                rightMargin: -addressBarDialog.iconOverlap
+                verticalCenter: parent.verticalCenter
+            }
 
             MouseArea {
-                id: iconDrag
-
                 anchors.fill: parent
-
                 drag {
                     target: root
                     minimumX: 0
@@ -136,15 +143,6 @@ Item {
 			}
         }
 
-    }
-
-    function close() {
-	    // The close function performs the same way as the OffscreenUI class: don't do anything but manipulate the enabled flag 
-		// and let the other mechanisms decide if the window should be destroyed after the close animation completes.
-        if (destroyOnCloseButton) {
-            destroyOnInvisible = true
-        }
-        enabled = false
     }
 
     function reset() {
