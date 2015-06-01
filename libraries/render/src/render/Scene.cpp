@@ -66,10 +66,6 @@ void Item::kill() {
     _key._flags.reset();
 }
 
-void Item::move() {
-    
-}
-
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
@@ -79,8 +75,9 @@ void PendingChanges::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
 
-void PendingChanges::moveItem(ItemID id) {
-    _movedItems.push_back(id);
+void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
+    _updatedItems.push_back(id);
+    _updateFunctors.push_back(functor);
 }
 
         
@@ -88,7 +85,8 @@ void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
-    _movedItems.insert(_movedItems.end(), changes._movedItems.begin(), changes._movedItems.end());
+    _updatedItems.insert(_updatedItems.end(), changes._updatedItems.begin(), changes._updatedItems.end());
+    _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
 }
 
 Scene::Scene() {
@@ -133,7 +131,7 @@ void Scene::processPendingChangesQueue() {
         // capture anything coming from the pendingChanges
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
         removeItems(consolidatedPendingChanges._removedItems);
-        moveItems(consolidatedPendingChanges._movedItems);
+        updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
 
      // ready to go back to rendering activities
     _itemsMutex.unlock();
@@ -159,9 +157,11 @@ void Scene::removeItems(const ItemIDs& ids) {
     }
 }
 
-void Scene::moveItems(const ItemIDs& ids) {
-    for (auto movedID :ids) {
-        _items[movedID].move();
+void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
+    auto updateID = ids.begin();
+    auto updateFunctor = functors.begin();
+    for (;updateID != ids.end(); updateID++, updateFunctor++) {
+        _items[(*updateID)].update((*updateFunctor));
     }
 }
 
