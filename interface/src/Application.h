@@ -271,7 +271,7 @@ public:
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.

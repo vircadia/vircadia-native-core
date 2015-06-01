@@ -7,8 +7,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://github.com/ValveSoftware/openvr/archive/0.9.0.zip
-  URL_MD5 4fbde7759f604aaa68b9c40d628cc34a
+  URL https://github.com/ValveSoftware/openvr/archive/0.9.1.zip
+  URL_MD5 f986f5a6815e9454c53c5bf58ce02fdc
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""

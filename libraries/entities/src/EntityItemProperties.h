@@ -195,6 +195,8 @@ public:
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
 
+    bool hasTerseUpdateChanges() const;
+
 private:
     QUuid _id;
     bool _idSet;
@@ -215,6 +217,7 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
 };
+
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
