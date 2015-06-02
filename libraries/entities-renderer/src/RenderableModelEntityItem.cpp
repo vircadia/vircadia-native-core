@@ -18,6 +18,7 @@
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
+#include <render/Scene.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -136,27 +137,67 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
     return ready; 
 }
 
+class RenderableModelEntityItemMeta {
+public:
+    RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    typedef render::Payload<RenderableModelEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    EntityItemPointer entity;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            args->_elementsTouched++;
+            if (payload && payload->entity) {
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
+    _myMetaItem = scene->allocateID();
+    
+    auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
+    auto renderPayload = render::PayloadPointer(new RenderableModelEntityItemMeta::Payload(renderData));
+    
+    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    
     if (_model) {
         return _model->addToScene(scene, pendingChanges);
     }
-    return false; 
+
+    return true;
 }
     
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                                 render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
 }
 
+
+// NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
+// the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
-    bool drawAsModel = hasModel();
-
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
 
@@ -168,8 +209,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         highlightSimulationOwnership = (getSimulatorID() == myNodeID);
     }
 
-    bool didDraw = false;
-    if (drawAsModel && !highlightSimulationOwnership) {
+    if (hasModel()) {
         remapTextures();
         {
             float alpha = getLocalRenderAlpha();
@@ -212,27 +252,14 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                     _needsInitialSimulation = false;
                 }
-
-                if (_model->isActive()) {
-                    // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
-                    // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
-                    PerformanceTimer perfTimer("model->render");
-                    // filter out if not needed to render
-                    if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
-                        if (movingOrAnimating) {
-                            _model->renderInScene(alpha, args);
-                            didDraw = true;
-                        }
-                    } else {
-                        _model->renderInScene(alpha, args);
-                        didDraw = true;
-                    }
-                }
             }
         }
-    }
 
-    if (!didDraw) {
+        if (highlightSimulationOwnership) {
+            glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+            RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        }
+    } else {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
     }

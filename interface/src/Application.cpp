@@ -55,40 +55,41 @@
 #include <QMessageBox>
 #include <QJsonDocument>
 
-#include <AddressManager.h>
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
+#include <ErrorDialog.h>
 #include <GlowEffect.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <VrMenu.h>
+#include <InfoView.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
+#include <MessageDialog.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <ObjectMotionState.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
 #include <ResourceCache.h>
+#include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-#include <MessageDialog.h>
-#include <InfoView.h>
-#include <SceneScriptingInterface.h>
+#include <VrMenu.h>
 
 #include "Application.h"
 #include "AudioClient.h"
@@ -807,6 +808,7 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
+    ErrorDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
     VrMenu::registerType();
@@ -3105,21 +3107,27 @@ PickRay Application::computePickRay(float x, float y) const {
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
-
+    
+    // clear the alpha channel so the background is transparent
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    
     // the "glow" here causes an alpha of one
     Glower glower(renderArgs);
-
     const int BILLBOARD_SIZE = 64;
     // TODO: Pass a RenderArgs to renderAvatarBillboard
     renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
-
+    
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    
     return image;
 }
 
@@ -3301,7 +3309,7 @@ namespace render {
 }
 
 
-void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3481,7 +3489,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     }
 
-    {
+    if (!billboard) {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
@@ -3673,7 +3681,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(renderArgs, _mirrorCamera, true);
+    displaySide(renderArgs, _mirrorCamera, true, billboard);
     glPopMatrix();
 
     if (!billboard) {

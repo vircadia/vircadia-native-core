@@ -77,6 +77,8 @@ private:
     QStringList _originalTextures;
     bool _originalTexturesRead;
     QVector<QVector<glm::vec3>> _points;
+    
+    render::ItemID _myMetaItem;
 };
 
 #endif // hifi_RenderableModelEntityItem_h
