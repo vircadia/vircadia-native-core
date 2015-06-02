@@ -28,6 +28,7 @@
 #include <TextureCache.h>
 #include <SoundCache.h>
 #include <soxr.h>
+#include <AudioConstants.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -1167,18 +1168,18 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
     const int channelCount = sound->isStereo() ? 2 : 1;
     const float factor = log(1.0f + (entity->getMaximumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    const int HIFI_SAMPLE_RATE = 24000; //AudioConstants::SAMPLE_RATE
-    const int resampledRate = HIFI_SAMPLE_RATE * factor;
+    const int standardRate = AudioConstants::SAMPLE_RATE;
+    const int resampledRate = standardRate * factor;
     const int nInputSamples = samples.size() / sizeof(int16_t);
     const int nOutputSamples = nInputSamples * factor;
     QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
     const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
-    soxr_error_t soxError = soxr_oneshot(HIFI_SAMPLE_RATE, resampledRate, channelCount,
+    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
                                          receivedSamples, nInputSamples, NULL,
                                          reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
                                          &spec, &qualitySpec, 0);
     if (soxError) {
-        qCDebug(entitiesrenderer) << "Unable to resample" << collisionSoundURL << "from" << nInputSamples << "@" << HIFI_SAMPLE_RATE << "to" << nOutputSamples << "@" << resampledRate;
+        qCDebug(entitiesrenderer) << "Unable to resample" << collisionSoundURL << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
         resampled = samples;
     }
 
