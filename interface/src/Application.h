@@ -281,7 +281,6 @@ public:
     QImage renderAvatarBillboard();
 
     void displaySide(const Camera& camera, bool selfAvatarOnly = false);
-    
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 

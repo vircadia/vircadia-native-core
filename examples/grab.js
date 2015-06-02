@@ -36,8 +36,6 @@ var angularVelocity = {
   z: 0
 };
 
-var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
-var releaseSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/ReleaseClamp.wav");
 
 var DROP_DISTANCE = 5.0;
 var DROP_COLOR = {
@@ -90,10 +88,6 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
-    Audio.playSound(grabSound, {
-      position: props.position,
-      volume: 0.4
-    });
   }
 }
 
@@ -134,11 +128,6 @@ function mouseReleaseEvent() {
       visible: false
     });
     targetPosition = null;
-
-    Audio.playSound(grabSound, {
-      position: entityProps.position,
-      volume: 0.25
-    });
 
   }
 }
