@@ -40,7 +40,6 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         //glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        QVector<glm::vec3> points;
         if (_pointsChanged) {
           geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
             _pointsChanged = false;
