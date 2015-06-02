@@ -158,7 +158,8 @@ public:
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);
-    
+    EntitySimulation* getSimulation() const { return _simulation; }
+
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 

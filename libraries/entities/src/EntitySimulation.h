@@ -56,6 +56,10 @@ public:
 
     friend class EntityTree;
 
+    virtual void addAction(EntityActionInterface* action) {}
+    virtual void removeAction(const QUuid actionID) {}
+    virtual void removeActions(QList<QUuid> actionIDsToRemove) {}
+
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked

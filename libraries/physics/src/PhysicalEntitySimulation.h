@@ -32,6 +32,10 @@ public:
 
     void init(EntityTree* tree, PhysicsEngine* engine, EntityEditPacketSender* packetSender);
 
+    virtual void addAction(EntityActionInterface* action);
+    virtual void removeAction(const QUuid actionID);
+    virtual void removeActions(QList<QUuid> actionIDsToRemove);
+
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     virtual void updateEntitiesInternal(const quint64& now);

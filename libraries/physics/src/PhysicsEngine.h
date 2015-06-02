@@ -95,8 +95,9 @@ public:
     static bool physicsInfoIsActive(void* physicsInfo);
     static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
 
-    QUuid addAction(ObjectAction* action); // PhysicsEngine takes ownership of the pointer
-    void deleteAction(QUuid actionID);
+    void addAction(EntityActionInterface* action);
+    void removeAction(const QUuid actionID);
+    void removeActions(QList<QUuid> actionIDsToRemove);
 
 private:
     void removeContacts(ObjectMotionState* motionState);

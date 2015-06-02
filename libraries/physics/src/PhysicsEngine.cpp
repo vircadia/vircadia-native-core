@@ -449,22 +449,28 @@ bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn
     return true;
 }
 
-
-QUuid PhysicsEngine::addAction(ObjectAction* action) {
+void PhysicsEngine::addAction(EntityActionInterface* action) {
+    assert(action);
     const QUuid& actionID = action->getID();
     if (_objectActions.contains(actionID)) {
         assert(_objectActions[actionID] == action);
-        return actionID;
+        return;
     }
-    _objectActions[actionID] = action;
-    // XXX add to bullet
-    return actionID;
+    ObjectAction* objectAction = static_cast<ObjectAction*>(action);
+    _objectActions[actionID] = objectAction;
+    _dynamicsWorld->addAction(objectAction);
 }
 
-
-void PhysicsEngine::deleteAction(const QUuid actionID) {
+void PhysicsEngine::removeAction(const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
-        // XXX remove from bullet
+        ObjectAction* action = _objectActions[actionID];
+        _dynamicsWorld->removeAction(action);
         _objectActions.remove(actionID);
+    }
+}
+
+void PhysicsEngine::removeActions(QList<QUuid> actionIDsToRemove) {
+    foreach(QUuid actionID, actionIDsToRemove) {
+        removeAction(actionID);
     }
 }

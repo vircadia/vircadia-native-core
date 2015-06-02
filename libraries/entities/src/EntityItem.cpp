@@ -25,6 +25,7 @@
 #include "EntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
+#include "EntitySimulation.h"
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
@@ -84,6 +85,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 EntityItem::~EntityItem() {
     // these pointers MUST be NULL at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
+    clearActions();
     assert(!_simulated);
     assert(!_element);
     assert(!_physicsInfo);
@@ -1323,5 +1325,47 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
         _simulatorID = value;
         _simulatorIDChangedTime = usecTimestampNow();
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+    }
+}
+
+void EntityItem::addAction(EntityActionInterface* action) {
+    assert(action);
+    const QUuid& actionID = action->getID();
+    assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
+    _objectActions[actionID] = action;
+
+    assert (action->getOwnerEntity() == nullptr);
+    action->setOwnerEntity(EntityItemPointer(this));
+
+    const EntityTree* tree = _element->getTree();
+    if (tree) {
+        EntitySimulation* simulation = tree->getSimulation();
+        if (simulation) {
+            simulation->addAction(action);
+        }
+    }
+}
+
+void EntityItem::removeAction(const QUuid actionID) {
+    if (_objectActions.contains(actionID)) {
+        const EntityActionInterface* action = _objectActions[actionID];
+        _objectActions.remove(actionID);
+
+        const EntityTree* tree = _element->getTree();
+        if (tree) {
+            EntitySimulation* simulation = tree->getSimulation();
+            if (simulation) {
+                simulation->removeAction(action->getID());
+            }
+        }
+
+        delete action;
+    }
+}
+
+void EntityItem::clearActions() {
+    QHash<QUuid, const EntityActionInterface*>::iterator i;
+    for (i = _objectActions.begin(); i != _objectActions.end(); ++i) {
+        removeAction(i.key());
     }
 }

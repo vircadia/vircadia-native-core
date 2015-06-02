@@ -232,3 +232,20 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
     }
 }
 
+void PhysicalEntitySimulation::addAction(EntityActionInterface* action) {
+    if (_physicsEngine) {
+        _physicsEngine->addAction(action);
+    }
+}
+
+void PhysicalEntitySimulation::removeAction(const QUuid actionID) {
+    if (_physicsEngine) {
+        _physicsEngine->removeAction(actionID);
+    }
+}
+
+void PhysicalEntitySimulation::removeActions(QList<QUuid> actionIDsToRemove) {
+    if (_physicsEngine) {
+        _physicsEngine->removeActions(actionIDsToRemove);
+    }
+}

@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include <QSet>
+
 #include <glm/glm.hpp>
 
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
@@ -23,9 +25,10 @@
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
 
-#include "EntityItemID.h" 
-#include "EntityItemProperties.h" 
-#include "EntityItemPropertiesDefaults.h" 
+#include "EntityItemID.h"
+#include "EntityItemProperties.h"
+#include "EntityItemPropertiesDefaults.h"
+#include "EntityActionInterface.h"
 #include "EntityTypes.h"
 
 class EntitySimulation;
@@ -88,7 +91,7 @@ public:
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
-    
+
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~EntityItem();
@@ -100,7 +103,7 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
-    
+
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties);
 
@@ -114,7 +117,7 @@ public:
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
-    void setLastEdited(quint64 lastEdited) 
+    void setLastEdited(quint64 lastEdited)
         { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
@@ -128,26 +131,26 @@ public:
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
-        
+
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                                 EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const;
 
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const { /* do nothing*/ };
 
-    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                     ReadBitstreamToTreeParams& args);
 
     virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) 
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData)
                                                 { return 0; }
 
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
@@ -159,7 +162,7 @@ public:
     // perform update
     virtual void update(const quint64& now) { _lastUpdated = now; }
     quint64 getLastUpdated() const { return _lastUpdated; }
-    
+
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
     void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
@@ -167,18 +170,18 @@ public:
     virtual bool needsToCallUpdate() const { return false; }
 
     virtual void debugDump() const;
-    
+
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in meters
-    
-    void setPosition(const glm::vec3& value) { 
-        _position = value; 
+
+    void setPosition(const glm::vec3& value) {
+        _position = value;
     }
 
     glm::vec3 getCenter() const;
@@ -214,7 +217,7 @@ public:
     const glm::vec3& getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
     void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
-    
+
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; }
 
@@ -233,7 +236,7 @@ public:
 
     /// is this entity mortal, in that it has a lifetime set, and will automatically be deleted when that lifetime expires
     bool isMortal() const { return _lifetime != ENTITY_ITEM_IMMORTAL_LIFETIME; }
-    
+
     /// age of this entity in seconds
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool lifetimeHasExpired() const;
@@ -252,7 +255,7 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value) 
+    void setRegistrationPoint(const glm::vec3& value)
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); }
 
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
@@ -280,7 +283,7 @@ public:
 
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
-    
+
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
 
@@ -288,13 +291,13 @@ public:
     void setSimulatorID(const QUuid& value);
     void updateSimulatorID(const QUuid& value);
     quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
-    
+
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
-    
-    // TODO: get rid of users of getRadius()... 
+
+    // TODO: get rid of users of getRadius()...
     float getRadius() const;
-    
+
     virtual bool contains(const glm::vec3& point) const;
 
     virtual bool isReadyToComputeShape() { return true; }
@@ -329,11 +332,11 @@ public:
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
-    
+
     bool isMoving() const;
 
     void* getPhysicsInfo() const { return _physicsInfo; }
-    
+
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElement* getElement() const { return _element; }
 
@@ -349,12 +352,18 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
+    void addAction(EntityActionInterface* actionID);
+    void removeAction(const QUuid actionID);
+    void clearActions();
+    const QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
+
 protected:
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
     QUuid _id;
-    quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity, and physics changes
+    quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
+                            // and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
     quint64 _lastEdited; // last official local or remote edit time
     quint64 _lastBroadcast; // the last time we sent an edit packet about this entity
@@ -405,12 +414,12 @@ protected:
     //
     // damping = 1 - exp(-1 / timescale)
     //
-    
-    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
+
+    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to
     //       parse old data streams
-    
+
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
-    void setRadius(float value); 
+    void setRadius(float value);
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
@@ -419,6 +428,8 @@ protected:
     EntityTreeElement* _element = nullptr; // set by EntityTreeElement
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
+
+    QHash<QUuid, const EntityActionInterface*> _objectActions;
 };
 
 #endif // hifi_EntityItem_h
