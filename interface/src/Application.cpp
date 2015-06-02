@@ -3434,6 +3434,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
         render::RenderContext renderContext;
+        renderArgs->_shouldRender = LODManager::shouldRender;
         renderContext.args = renderArgs;
         _renderEngine->setRenderContext(renderContext);
 
