@@ -3192,6 +3192,113 @@ namespace render {
     }
 }
 
+// Background Render Data & rendering functions
+class BackgroundRenderData {
+public:
+    typedef render::Payload<BackgroundRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    Stars _stars;
+    Environment* _environment;
+
+    BackgroundRenderData(Environment* environment) : _environment(environment) {
+    }
+
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID BackgroundRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) { return ItemKey::Builder::background(); }
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+
+        // Background rendering decision
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
+           if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+                PerformanceTimer perfTimer("stars");
+                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                    "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                if (!background->_stars.isStarsLoaded()) {
+                    background->_stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
+                }
+                // should be the first rendering pass - w/o depth buffer / lighting
+
+                // compute starfield alpha based on distance from atmosphere
+                float alpha = 1.0f;
+                bool hasStars = true;
+
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                    // TODO: handle this correctly for zones
+                    const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
+
+                    if (closestData.getHasStars()) {
+                        const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                        const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                                                        / closestData.getAtmosphereOuterRadius();
+                        float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
+                        if (height < closestData.getAtmosphereInnerRadius()) {
+                            // If we're inside the atmosphere, then determine if our keyLight is below the horizon
+                            alpha = 0.0f;
+
+                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                float directionY = glm::clamp(sunDirection.y, 
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                            }
+                        
+
+                        } else if (height < closestData.getAtmosphereOuterRadius()) {
+                            alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                                (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                float directionY = glm::clamp(sunDirection.y, 
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                            }
+                        }
+                    } else {
+                        hasStars = false;
+                    }
+                }
+
+                // finally render the starfield
+                if (hasStars) {
+                    background->_stars.render(args->_viewFrustum->getFieldOfView(), args->_viewFrustum->getAspectRatio(), args->_viewFrustum->getNearClip(), alpha);
+                }
+
+                // draw the sky dome
+                if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                    PerformanceTimer perfTimer("atmosphere");
+                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                        "Application::displaySide() ... atmosphere...");
+                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+                }
+
+            }
+        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            PerformanceTimer perfTimer("skybox");
+            
+            skybox = skyStage->getSkybox();
+            if (skybox) {
+                gpu::Batch batch;
+                model::Skybox::render(batch, *(args->_viewFrustum), *skybox);
+
+                gpu::GLBackend::renderBatch(batch, true);
+                glUseProgram(0);
+            }
+        }
+    }
+}
 
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
@@ -3264,86 +3371,19 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
     }
 
+    // THe pending changes collecting the changes here
+    render::PendingChanges pendingChanges;
+
     // Background rendering decision
-    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    auto skybox = model::SkyboxPointer();
-    if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
-    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-       if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-            PerformanceTimer perfTimer("stars");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... stars...");
-            if (!_stars.isStarsLoaded()) {
-                _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-            }
-            // should be the first rendering pass - w/o depth buffer / lighting
+    if (BackgroundRenderData::_item == 0) {
+        auto backgroundRenderData = BackgroundRenderData::Pointer(new BackgroundRenderData(&_environment));
+        auto backgroundRenderPayload = render::PayloadPointer(new BackgroundRenderData::Payload(backgroundRenderData));
 
-            // compute starfield alpha based on distance from atmosphere
-            float alpha = 1.0f;
-            bool hasStars = true;
+        BackgroundRenderData::_item = _main3DScene->allocateID();
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                // TODO: handle this correctly for zones
-                const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
+        pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
+    } else {
 
-                if (closestData.getHasStars()) {
-                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation()) 
-                                                    / closestData.getAtmosphereOuterRadius();
-                    float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
-                    if (height < closestData.getAtmosphereInnerRadius()) {
-                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                        alpha = 0.0f;
-
-                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                            float directionY = glm::clamp(sunDirection.y, 
-                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
-                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                        }
-                        
-
-                    } else if (height < closestData.getAtmosphereOuterRadius()) {
-                        alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                            (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                            float directionY = glm::clamp(sunDirection.y, 
-                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
-                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                        }
-                    }
-                } else {
-                    hasStars = false;
-                }
-            }
-
-            // finally render the starfield
-            if (hasStars) {
-                _stars.render(_displayViewFrustum.getFieldOfView(), _displayViewFrustum.getAspectRatio(), _displayViewFrustum.getNearClip(), alpha);
-            }
-
-            // draw the sky dome
-            if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                PerformanceTimer perfTimer("atmosphere");
-                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                    "Application::displaySide() ... atmosphere...");
-                _environment.renderAtmospheres(theCamera);
-            }
-
-        }
-    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        skybox = skyStage->getSkybox();
-        if (skybox) {
-            gpu::Batch batch;
-            model::Skybox::render(batch, _viewFrustum, *skybox);
-
-            gpu::GLBackend::renderBatch(batch, true);
-            glUseProgram(0);
-        }
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
@@ -3353,7 +3393,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
-    DependencyManager::get<DeferredLightingEffect>()->prepare();
+   // Assuming nothing get's rendered through that
+   // DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
         
@@ -3380,10 +3421,11 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
             
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+            // This shouldn't matter anymore
+     /*       if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
                 // Restaure polygon mode
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
+            }*/
         }
 
         // render the ambient occlusion effect if enabled
@@ -3395,7 +3437,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
-    render::PendingChanges pendingChanges;
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {
@@ -3445,11 +3486,19 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            skybox = skyStage->getSkybox();
+        }
         DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
+       // Not needed anymore here, taken care off by the Engine
+        /*
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
-        DependencyManager::get<DeferredLightingEffect>()->render();
+        DependencyManager::get<DeferredLightingEffect>()->render();*/
+
     }
     
     //Render the sixense lasers
@@ -3700,7 +3749,7 @@ void Application::updateWindowTitle(){
 void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
-    _environment.resetToDefault();
+  //  _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.lockForWrite();

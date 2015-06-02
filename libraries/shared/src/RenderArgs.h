@@ -111,6 +111,8 @@ public:
 
     int _translucentMeshPartsRendered;
     int _opaqueMeshPartsRendered;
+
+    float _alphaThreshold = 0.5f;
 };
 
 #endif // hifi_RenderArgs_h

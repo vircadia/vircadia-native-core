@@ -239,6 +239,7 @@ void addClearStateCommands(gpu::Batch& batch) {
 
 
 template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawOpaque");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     
@@ -251,12 +252,16 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     for (auto id : items) {
         inItems.push_back(id);
     }
+    ItemIDs& renderedItems = inItems;
 
     ItemIDs culledItems;
     cullItems(sceneContext, renderContext, inItems, culledItems);
-    
+    renderedItems = culledItems;
+
     ItemIDs sortedItems;
     depthSortItems(sceneContext, renderContext, true, culledItems, sortedItems); // Sort Front to back opaque items!
+    renderedItems = sortedItems;
+
 
     RenderArgs* args = renderContext->args;
     gpu::Batch theBatch;
@@ -276,15 +281,15 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
         theBatch._glDrawBuffers(bufferCount, buffers);
     }
 
-    renderItems(sceneContext, renderContext, sortedItems);
+    renderItems(sceneContext, renderContext, renderedItems);
 
-    addClearStateCommands((*args->_batch));
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
 
 
 template <> void render::jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawTransparent");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -297,26 +302,47 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     for (auto id : items) {
         inItems.push_back(id);
     }
+    ItemIDs& renderedItems = inItems;
 
     ItemIDs culledItems;
     cullItems(sceneContext, renderContext, inItems, culledItems);
+    renderedItems = culledItems;
 
     ItemIDs sortedItems;
     depthSortItems(sceneContext, renderContext, false, culledItems, sortedItems); // Sort Back to front transparent items!
+    renderedItems = sortedItems;
 
     RenderArgs* args = renderContext->args;
     gpu::Batch theBatch;
     args->_batch = &theBatch;
 
-    renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+
+    const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
+    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+
+    // render translucent meshes afterwards
+    {
+        GLenum buffers[2];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        theBatch._glDrawBuffers(bufferCount, buffers);
+        args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
+     }
+
+    renderItems(sceneContext, renderContext, renderedItems);
+
     {
         GLenum buffers[3];
         int bufferCount = 0;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
         theBatch._glDrawBuffers(bufferCount, buffers);
+        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     }
 
-    renderItems(sceneContext, renderContext, sortedItems);
+
+    renderItems(sceneContext, renderContext, renderedItems);
 
     addClearStateCommands((*args->_batch));
     args->_context->render((*args->_batch));
@@ -324,6 +350,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
 }
 
 template <> void render::jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawLight");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -345,6 +372,29 @@ template <> void render::jobRun(const DrawLight& job, const SceneContextPointer&
     gpu::Batch theBatch;
     args->_batch = &theBatch;
     renderItems(sceneContext, renderContext, culledItems);
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+}
+
+template <> void render::jobRun(const DrawBackground& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawBackground");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render backgrounds
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
+
+
+    ItemIDs inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.push_back(id);
+    }
+    RenderArgs* args = renderContext->args;
+    gpu::Batch theBatch;
+    args->_batch = &theBatch;
+    renderItems(sceneContext, renderContext, inItems);
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }

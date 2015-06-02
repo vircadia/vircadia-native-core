@@ -47,8 +47,8 @@ void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey
 void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
     (*this)[ItemFilter::Builder::opaqueShape()];
     (*this)[ItemFilter::Builder::transparentShape()];
-    auto lightFilter = ItemFilter::Builder().withTypeLight().build();
-    (*this)[lightFilter];
+    (*this)[ItemFilter::Builder::light()];
+    (*this)[ItemFilter::Builder::background()];
 }
 
 

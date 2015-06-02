@@ -210,7 +210,7 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
-    Environment* getEnvironment() { return &_environment; }
+ //   Environment* getEnvironment() { return &_environment; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
@@ -535,7 +535,7 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
-    Stars _stars;
+  //  Stars _stars;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

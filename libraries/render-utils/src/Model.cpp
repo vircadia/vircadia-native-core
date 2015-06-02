@@ -2239,9 +2239,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     batch.setViewTransform(_transforms[0]);
 
 
-    const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-    auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+  //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+  //  const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+  //  auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 

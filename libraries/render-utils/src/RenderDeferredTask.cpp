@@ -12,12 +12,30 @@
 
 #include "gpu/Context.h"
 
+#include <PerfStat.h>
+
 using namespace render;
 
+
+template <> void render::jobRun(const PrepareDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("PrepareDeferred");
+    DependencyManager::get<DeferredLightingEffect>()->prepare();
+}
+
+template <> void render::jobRun(const ResolveDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("ResolveDeferred");
+    DependencyManager::get<DeferredLightingEffect>()->render();
+}
+
+
 RenderDeferredTask::RenderDeferredTask() : Task() {
+   _jobs.push_back(Job(PrepareDeferred()));
+   _jobs.push_back(Job(DrawBackground()));
    _jobs.push_back(Job(DrawOpaque()));
    _jobs.push_back(Job(DrawLight()));
    _jobs.push_back(Job(DrawTransparent()));
+   _jobs.push_back(Job(ResolveDeferred()));
+
 }
 
 RenderDeferredTask::~RenderDeferredTask() {

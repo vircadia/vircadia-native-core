@@ -78,6 +78,11 @@ public:
 };
 template <> void jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
+class DrawBackground {
+public:
+};
+template <> void jobRun(const DrawBackground& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
 
 class DrawSceneTask : public Task {
 public:
