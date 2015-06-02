@@ -113,13 +113,10 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-
-        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
-
         bool outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
         if (!outOfView) {
-            bool bigEnoughToRender = true; //_viewState->shouldRenderMesh(bound.getLargestDimension(), distance);
-                
+            bool bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
+            
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
                 args->_itemsRendered++;
@@ -129,8 +126,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         } else {
             args->_itemsOutOfView++;
         }
-   }
-
+    }
 }
 
 struct ItemBound {

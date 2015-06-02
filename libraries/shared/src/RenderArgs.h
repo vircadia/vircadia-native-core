@@ -12,8 +12,11 @@
 #ifndef hifi_RenderArgs_h
 #define hifi_RenderArgs_h
 
-class ViewFrustum;
+#include <functional>
+
+class AABox;
 class OctreeRenderer;
+class ViewFrustum;
 namespace gpu {
 class Batch;
 class Context;
@@ -21,6 +24,8 @@ class Context;
 
 class RenderArgs {
 public:
+    typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
+    
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
 
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
@@ -40,6 +45,7 @@ public:
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
                gpu::Batch* batch = nullptr,
+               ShoudRenderFunctor shouldRender = nullptr,
                
                int elementsTouched = 0,
                int itemsRendered = 0,
@@ -66,6 +72,7 @@ public:
     _renderSide(renderSide),
     _debugFlags(debugFlags),
     _batch(batch),
+    _shouldRender(shouldRender),
     
     _elementsTouched(elementsTouched),
     _itemsRendered(itemsRendered),
@@ -94,6 +101,7 @@ public:
     RenderSide _renderSide;
     DebugFlags _debugFlags;
     gpu::Batch* _batch;
+    ShoudRenderFunctor _shouldRender;
 
     int _elementsTouched;
     int _itemsRendered;
