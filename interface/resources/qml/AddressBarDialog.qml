@@ -22,6 +22,7 @@ Item {
 
     property int animationDuration: hifi.effects.fadeInDuration
     property bool destroyOnInvisible: false
+    property real scale: 1.25  // Make this dialog a little larger than normal
 
     implicitWidth: addressBarDialog.implicitWidth
     implicitHeight: addressBarDialog.implicitHeight
@@ -41,9 +42,9 @@ Item {
             id: backgroundImage
 
             source: "../images/address-bar.svg"
-            width: 576
-            height: 80
-            property int inputAreaHeight: 56  // Height of the background's input area
+            width: 576 * root.scale
+            height: 80 * root.scale
+            property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             TextInput {
@@ -57,6 +58,8 @@ Item {
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
 
                 }
+
+                font.pixelSize: hifi.fonts.pixelSize * root.scale
 
                 helperText: "Go to: place, @user, /path, network address"
 
