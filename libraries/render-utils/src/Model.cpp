@@ -2232,7 +2232,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
   //  _transforms[0] = _viewState->getViewTransform();
-    _transforms[0].evalFromRawMatrix(args->_viewFrustum->getView()); //_viewState->getViewTransform();
+    args->_viewFrustum->evalViewTransform(_transforms[0]);
 
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);

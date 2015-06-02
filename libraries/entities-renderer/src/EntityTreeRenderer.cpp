@@ -523,9 +523,9 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
         Model::endScene(renderArgs);
         _tree->unlock();
         
-        glPushMatrix();
-        renderArgs->_context->render(batch);
-        glPopMatrix();
+     //   glPushMatrix();
+     //   renderArgs->_context->render(batch);
+     //   glPopMatrix();
 
         renderArgs->_batch = nullptr;
          

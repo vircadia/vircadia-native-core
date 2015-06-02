@@ -267,12 +267,15 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
 
     RenderArgs* args = renderContext->args;
-    gpu::Batch theBatch;
-    args->_batch = &theBatch;
+    gpu::Batch batch;
+    args->_batch = &batch;
 
-    glm::mat4 proj;
-    args->_viewFrustum->evalProjectionMatrix(proj); 
-    theBatch.setProjectionTransform(proj);
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
 
     renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
     {
@@ -281,7 +284,7 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        theBatch._glDrawBuffers(bufferCount, buffers);
+        batch._glDrawBuffers(bufferCount, buffers);
     }
 
     renderItems(sceneContext, renderContext, renderedItems);
@@ -316,8 +319,15 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     renderedItems = sortedItems;
 
     RenderArgs* args = renderContext->args;
-    gpu::Batch theBatch;
-    args->_batch = &theBatch;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
 
     args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
@@ -330,7 +340,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
         int bufferCount = 0;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        theBatch._glDrawBuffers(bufferCount, buffers);
+        batch._glDrawBuffers(bufferCount, buffers);
         args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
      }
 
@@ -340,7 +350,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
         GLenum buffers[3];
         int bufferCount = 0;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        theBatch._glDrawBuffers(bufferCount, buffers);
+        batch._glDrawBuffers(bufferCount, buffers);
         args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     }
 
@@ -395,8 +405,16 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
         inItems.push_back(id);
     }
     RenderArgs* args = renderContext->args;
-    gpu::Batch theBatch;
-    args->_batch = &theBatch;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+
     renderItems(sceneContext, renderContext, inItems);
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
