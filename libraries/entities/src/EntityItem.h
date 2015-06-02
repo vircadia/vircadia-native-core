@@ -231,6 +231,9 @@ public:
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
 
+    quint64 getCreated() const { return _created; } /// get the created-time in useconds for the entity
+    void setCreated(quint64 value) { _created = value; } /// set the created-time in useconds for the entity
+
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
     bool isImmortal() const { return _lifetime == ENTITY_ITEM_IMMORTAL_LIFETIME; }
 
@@ -328,6 +331,7 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
+    void updateCreated(uint64_t value);
     virtual void updateShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
