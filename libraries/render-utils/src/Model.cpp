@@ -2313,7 +2313,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     model::MaterialPointer material = part._material;
 
     if (material == nullptr) {
-        qCDebug(renderutils) << "WARNING: material == nullptr!!!";
+    //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";
     }
     
     if (material != nullptr) {

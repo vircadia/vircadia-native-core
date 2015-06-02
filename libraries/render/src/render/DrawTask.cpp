@@ -94,6 +94,7 @@ bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera
 }*/
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemIDs& outItems) {
+    PerformanceTimer perfTimer("cullItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -156,6 +157,7 @@ struct BackToFrontSort {
 };
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDs& inItems, ItemIDs& outItems) {
+    PerformanceTimer perfTimer("depthSortItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     
@@ -194,6 +196,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 }
 
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems) {
+    PerformanceTimer perfTimer("renderItems");
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     // render
@@ -300,7 +303,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     ItemIDs inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+  //      inItems.push_back(id);
     }
     ItemIDs& renderedItems = inItems;
 
@@ -397,4 +400,7 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     renderItems(sceneContext, renderContext, inItems);
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
+
+    // Force the context sync
+    args->_context->syncCache();
 }

@@ -3464,6 +3464,26 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 });
     }
 
+    if (!billboard) {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
+
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            skybox = skyStage->getSkybox();
+        }
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
+
+       // Not needed anymore here, taken care off by the Engine
+        /*
+        PROFILE_RANGE("DeferredLighting"); 
+        PerformanceTimer perfTimer("lighting");
+        DependencyManager::get<DeferredLightingEffect>()->render();*/
+
+    }
+
     {
         PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
         _main3DScene->enqueuePendingChanges(pendingChanges);
@@ -3489,25 +3509,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     }
 
-    if (!billboard) {
-        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
-
-        auto skybox = model::SkyboxPointer();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            skybox = skyStage->getSkybox();
-        }
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
-
-       // Not needed anymore here, taken care off by the Engine
-        /*
-        PROFILE_RANGE("DeferredLighting"); 
-        PerformanceTimer perfTimer("lighting");
-        DependencyManager::get<DeferredLightingEffect>()->render();*/
-
-    }
     
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
