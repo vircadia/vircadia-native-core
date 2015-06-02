@@ -27,6 +27,8 @@
 #include <ScriptEngine.h>
 #include <TextureCache.h>
 #include <SoundCache.h>
+#include <soxr.h>
+#include <AudioConstants.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -1133,7 +1135,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
     const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
-    const float COLLISION_MINIMUM_VOLUME = 0.001f;
+    const float COLLISION_MINIMUM_VOLUME = 0.005f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
@@ -1149,7 +1151,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     }
 
     // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
-    const float COLLISION_SOUND_COMPRESSION_RANGE = 0.7f;
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
     float volume = energyFactorOfFull;
     volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
     
@@ -1158,7 +1160,30 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     options.stereo = sound->isStereo();
     options.position = position;
     options.volume = volume;
-    AudioInjector* injector = new AudioInjector(sound.data(), options);
+
+    // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
+    const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
+    QByteArray samples = sound->getByteArray();
+    soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
+    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
+    const int channelCount = sound->isStereo() ? 2 : 1;
+    const float factor = log(1.0f + (entity->getMaximumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    const int standardRate = AudioConstants::SAMPLE_RATE;
+    const int resampledRate = standardRate * factor;
+    const int nInputSamples = samples.size() / sizeof(int16_t);
+    const int nOutputSamples = nInputSamples * factor;
+    QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
+    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
+    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
+                                         receivedSamples, nInputSamples, NULL,
+                                         reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
+                                         &spec, &qualitySpec, 0);
+    if (soxError) {
+        qCDebug(entitiesrenderer) << "Unable to resample" << collisionSoundURL << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
+        resampled = samples;
+    }
+
+    AudioInjector* injector = new AudioInjector(resampled, options);
     injector->setLocalAudioInterface(_localAudioInterface);
     injector->triggerDeleteAfterFinish();
     QThread* injectorThread = new QThread();
@@ -1180,7 +1205,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         return;
     }
     // Don't respond to small continuous contacts.
-    const float COLLISION_MINUMUM_PENETRATION = 0.005f;
+    const float COLLISION_MINUMUM_PENETRATION = 0.002f;
     if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }

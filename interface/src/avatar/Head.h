@@ -155,6 +155,7 @@ private:
     // private methods
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateMouthShapes();
+    void applyEyelidOffset(glm::quat headOrientation);
 
     friend class FaceModel;
 };

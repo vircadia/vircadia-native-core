@@ -46,7 +46,7 @@ namespace Setting {
         QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
         
-        // Let's set up the settings Private instance on it's own thread
+        // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
         thread->setObjectName("Settings Thread");

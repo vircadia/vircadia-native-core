@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
+#include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
@@ -30,12 +31,20 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
+        glLineWidth(getLineWidth());
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+            _lineVerticesID = geometryCache ->allocateID();
+        }
+         //TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
+        //glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glm::vec3 p1 = {0.0f, 0.0f, 0.0f};
-        glm::vec3& p2 = dimensions;
-        DependencyManager::get<DeferredLightingEffect>()->renderLine(p1, p2, lineColor, lineColor);
+        if (_pointsChanged) {
+          geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+            _pointsChanged = false;
+        }
+        geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     glPopMatrix();
     
     RenderableDebugableEntityItem::render(this, args);

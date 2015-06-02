@@ -903,6 +903,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(restitution, getRestitution);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(friction, getFriction);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(created, getCreated);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
@@ -963,6 +964,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, updateFriction);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
 
@@ -1008,11 +1010,13 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 }
 
 void EntityItem::recordCreationTime() {
-    assert(_created == UNKNOWN_CREATED_TIME);
-    _created = usecTimestampNow();
+    if (_created == UNKNOWN_CREATED_TIME) {
+        _created = usecTimestampNow();
+    }
+    auto now = usecTimestampNow();
     _lastEdited = _created;
-    _lastUpdated = _created;
-    _lastSimulated = _created;
+    _lastUpdated = now;
+    _lastSimulated = now;
 }
 
 
@@ -1316,6 +1320,13 @@ void EntityItem::setFriction(float value) {
 void EntityItem::updateLifetime(float value) {
     if (_lifetime != value) {
         _lifetime = value;
+        _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
+    }
+}
+
+void EntityItem::updateCreated(uint64_t value) {
+    if (_created != value) {
+        _created = value;
         _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
     }
 }

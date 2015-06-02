@@ -17,7 +17,6 @@
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
-#include "PolyVoxEntityItem.h"
 
 
 EntityScriptingInterface::EntityScriptingInterface() :
@@ -371,7 +370,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     quuidFromScriptValue(entityIDValue, value.entityID);
     QScriptValue entityPropertiesValue = object.property("properties");
     if (entityPropertiesValue.isValid()) {
-        EntityItemPropertiesFromScriptValue(entityPropertiesValue, value.properties);
+        EntityItemPropertiesFromScriptValueHonorReadOnly(entityPropertiesValue, value.properties);
     }
     value.distance = object.property("distance").toVariant().toFloat();
 
@@ -396,7 +395,8 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 }
 
 
-bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
+bool EntityScriptingInterface::setVoxels(QUuid entityID,
+                                         std::function<void(PolyVoxEntityItem&)> actor) {
     if (!_entityTree) {
         return false;
     }
@@ -416,7 +416,7 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
 
     PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity.get());
     _entityTree->lockForWrite();
-    polyVoxEntity->setSphere(center, radius, value);
+    actor(*polyVoxEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
@@ -430,4 +430,25 @@ bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& c
 
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return true;
+}
+
+
+bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
+    return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
+            polyVoxEntity.setSphere(center, radius, value);
+        });
+}
+
+
+bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
+    return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
+            polyVoxEntity.setVoxelInVolume(position, value);
+        });
+}
+
+
+bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
+    return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
+            polyVoxEntity.setAll(value);
+        });
 }

@@ -56,6 +56,6 @@ Item {
 
     QtObject {
         id: effects
-        readonly property int fadeInDuration: 400
+        readonly property int fadeInDuration: 300
     }
 }
