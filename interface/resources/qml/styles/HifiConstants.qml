@@ -18,7 +18,7 @@ Item {
         readonly property color background: sysPalette.dark
         readonly property color text: sysPalette.text
         readonly property color disabledText: "gray"
-        readonly property color hintText: sysPalette.dark
+        readonly property color hintText: "gray"  // A bit darker than sysPalette.dark so that it is visible on the DK2
         readonly property color light: sysPalette.light
         readonly property alias activeWindow: activeWindow
         readonly property alias inactiveWindow: inactiveWindow
