@@ -1,4 +1,3 @@
-
 var controlHeld = false;
 var shiftHeld = false;
 
@@ -17,8 +16,8 @@ function mousePressEvent(event) {
             var id = ids[i];
             if (controlHeld) {
                 Entities.setVoxelSphere(id, intersection.intersection, 1.0, 0);
-	    } else if (shiftHeld) {
-		Entities.setAllVoxels(id, 255);
+            } else if (shiftHeld) {
+                Entities.setAllVoxels(id, 255);
             } else {
                 Entities.setVoxelSphere(id, intersection.intersection, 1.0, 255);
             }

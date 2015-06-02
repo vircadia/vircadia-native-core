@@ -176,10 +176,8 @@ QString EntityItemProperties::getAnimationSettings() const {
     return jsonByteString;
 }
 
-
-void EntityItemProperties::setCreated(QDateTime v) {
-    QDateTime utcV = v;
-    _created = utcV.toMSecsSinceEpoch() * 1000; // usec per msec
+void EntityItemProperties::setCreated(QDateTime &v) {
+    _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
     qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
 }
 
@@ -494,12 +492,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
-    if (!honorReadOnly) {
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
-                auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
-                return result;
-            });
-    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
@@ -524,9 +516,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
-    if (!honorReadOnly) {
-        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
-    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
@@ -553,6 +542,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
+
+    if (!honorReadOnly) {
+        // this is used by the json reader to set things that we don't want javascript to able to affect.
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
+                auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
+                return result;
+            });
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+    }
 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);

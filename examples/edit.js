@@ -1,4 +1,3 @@
-
 //  newEditEntities.js
 //  examples
 //
@@ -139,7 +138,7 @@ var toolBar = (function () {
         newTextButton,
         newWebButton,
         newZoneButton,
-	newPolyVoxButton,
+        newPolyVoxButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -225,7 +224,7 @@ var toolBar = (function () {
             visible: false
         });
 
-	newPolyVoxButton = toolBar.addTool({
+        newPolyVoxButton = toolBar.addTool({
             imageURL: toolIconUrl + "upload.svg", // XXX need a new icon
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
@@ -276,7 +275,7 @@ var toolBar = (function () {
         toolBar.showTool(newTextButton, doShow);
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
-	toolBar.showTool(newPolyVoxButton, doShow);
+        toolBar.showTool(newPolyVoxButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -486,10 +485,10 @@ var toolBar = (function () {
                 placingEntityID = Entities.addEntity({
                     type: "PolyVox",
                     position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS),
-						 DEFAULT_DIMENSIONS),
+                                                 DEFAULT_DIMENSIONS),
                     dimensions: { x: 10, y: 10, z: 10 },
-		    voxelVolumeSize: {x:16, y:16, z:16},
-		    voxelSurfaceStyle: 1
+                    voxelVolumeSize: {x:16, y:16, z:16},
+                    voxelSurfaceStyle: 1
                 });
             } else {
                 print("Can't create PolyVox: would be out of bounds.");
@@ -949,7 +948,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
                                               Vec3.multiply(selectionManager.worldDimensions, 0.5));
         var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
-        
+
         if (!keepIfTouching) {
             var isValid;
             if (selectionManager.localPosition === null) {
@@ -1021,7 +1020,7 @@ function handeMenuEvent(menuItem) {
             }
         }
     } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
-    
+
         var importURL;
         if (menuItem == "Import Entities") {
             importURL = Window.browse("Select models to import", "", "*.json");

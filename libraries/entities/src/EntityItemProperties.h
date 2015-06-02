@@ -194,7 +194,7 @@ public:
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
 
-    void setCreated(QDateTime v);
+    void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
 

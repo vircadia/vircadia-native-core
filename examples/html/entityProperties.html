@@ -21,11 +21,11 @@
                 els[i].setAttribute('disabled', 'disabled');
             }
         }
-        
+
         function showElements(els, show) {
             for (var i = 0; i < els.length; i++) {
                 els[i].style.display = (show) ? 'block' : 'none';
-            } 
+            }
         }
 
         function createEmitCheckedPropertyUpdateFunction(propertyName) {
@@ -344,7 +344,7 @@
             var elZoneAtmosphereCenterY = document.getElementById("property-zone-atmosphere-center-y");
             var elZoneAtmosphereCenterZ = document.getElementById("property-zone-atmosphere-center-z");
             var elCenterAtmosphereToZone = document.getElementById("center-atmosphere-in-zone");
-            
+
             var elZoneAtmosphereInnerRadius = document.getElementById("property-zone-atmosphere-inner-radius");
             var elZoneAtmosphereOuterRadius = document.getElementById("property-zone-atmosphere-outer-radius");
             var elZoneAtmosphereMieScattering = document.getElementById("property-zone-atmosphere-mie-scattering");
@@ -354,12 +354,12 @@
             var elZoneAtmosphereScatteringWavelengthsZ = document.getElementById("property-zone-atmosphere-scattering-wavelengths-z");
             var elZoneAtmosphereHasStars = document.getElementById("property-zone-atmosphere-has-stars");
 
-	    var elPolyVoxSelections = document.querySelectorAll(".poly-vox-section");
-	    var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
+            var elPolyVoxSelections = document.querySelectorAll(".poly-vox-section");
+            var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
             var elVoxelVolumeSizeY = document.getElementById("property-voxel-volume-size-y");
             var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
-	    var elVoxelSurfaceStyle = document.getElementById("property-voxel-surface-style");
-	    
+            var elVoxelSurfaceStyle = document.getElementById("property-voxel-surface-style");
+
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -577,7 +577,7 @@
                                 elZoneAtmosphereScatteringWavelengthsY.value = properties.atmosphere.scatteringWavelengths.y;
                                 elZoneAtmosphereScatteringWavelengthsZ.value = properties.atmosphere.scatteringWavelengths.z;
                                 elZoneAtmosphereHasStars.checked = properties.atmosphere.hasStars;
-                                
+
                                 showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
                             } else if (properties.type == "ParticleEffect") {
@@ -595,11 +595,11 @@
                                 elParticleLocalGravity.value = properties.localGravity.toFixed(2);
                                 elParticleRadius.value = properties.particleRadius.toFixed(3);
                             } else if (properties.type == "PolyVox") {
-				elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
-				elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
-				elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
-				elVoxelSurfaceStyle.value = properties.voxelSurfaceStyle;
-			    }
+                                elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
+                                elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
+                                elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
+                                elVoxelSurfaceStyle.value = properties.voxelSurfaceStyle;
+                            }
 
                             if (selected) {
                                 activeElement.focus();
@@ -715,7 +715,7 @@
             elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
 
             elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
-            
+
             elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
             elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
             elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
@@ -821,7 +821,7 @@
                     emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
                 }
             });
-                
+
             elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
 
             var zoneAtmosphereCenterChangeFunction = createEmitGroupVec3PropertyUpdateFunction(
@@ -829,8 +829,8 @@
             elZoneAtmosphereCenterX.addEventListener('change', zoneAtmosphereCenterChangeFunction);
             elZoneAtmosphereCenterY.addEventListener('change', zoneAtmosphereCenterChangeFunction);
             elZoneAtmosphereCenterZ.addEventListener('change', zoneAtmosphereCenterChangeFunction);
-                
-                
+
+
             elZoneAtmosphereInnerRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','innerRadius'));
             elZoneAtmosphereOuterRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','outerRadius'));
             elZoneAtmosphereMieScattering.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','mieScattering'));
@@ -848,8 +848,8 @@
             elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelVolumeSizeY.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelVolumeSizeZ.addEventListener('change', voxelVolumeSizeChangeFunction);
-	    elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
-	    
+            elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
+
 
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
@@ -997,14 +997,14 @@
                 <div class="input-area">X <br><input class="coord" type='number' id="property-voxel-volume-size-x"></input></div>
                 <div class="input-area">Y <br><input class="coord" type='number' id="property-voxel-volume-size-y"></input></div>
                 <div class="input-area">Z <br><input class="coord" type='number' id="property-voxel-volume-size-z"></input></div>
-	    </div>
+            </div>
 
             <div class="label">Surface Extractor</div>
-	    <div class="value">
+            <div class="value">
               <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
                 <option value='0'>marching cubes</option>
-		<option value='1'>cubic</option>
-		<option value='2'>edged cubic</option>
+                <option value='1'>cubic</option>
+                <option value='2'>edged cubic</option>
               </select> 
             </div>
         </div>
@@ -1143,19 +1143,19 @@
                 <input type="text" id="property-web-source-url" class="url"></input>
             </div>
         </div>
-        
+
         <div class="particle-section property">
             <div class="label">Max Particles</div>
             <div class="value">
                 <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1"></input>
             </div>
-        </div>        
+        </div>
         <div class="particle-section property">
             <div class="label">Particle Life Span</div>
             <div class="value">
                 <input type='number' id="property-particle-lifespan" min="0" step="0.1"></input>
             </div>
-        </div>        
+        </div>
         <div class="particle-section property">
             <div class="label">Particle Emission Rate</div>
             <div class="value">
@@ -1188,7 +1188,7 @@
                 <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005"></input>
             </div>
         </div>
-        
+
         <div class="model-section property">
             <div class="label">Model URL</div>
             <div class="value">
@@ -1203,7 +1203,7 @@
                     <option value='box'>box</option>
                     <option value='sphere'>sphere</option>
                     <option value='compound'>compound</option>
-                </select> 
+                </select>
             </div>
         </div>
         <div class="model-section zone-section property">
@@ -1382,7 +1382,7 @@
                 <input type='checkbox' id="property-zone-stage-automatic-hour-day">
             </span>
         </div>
-        
+
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">

@@ -78,11 +78,7 @@ bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::
 
 bool inBounds(const PolyVox::SimpleVolume<uint8_t>* vol, int x, int y, int z) {
     // x, y, z are in polyvox volume coords
-    if (x < 0 || y < 0 || z < 0 ||
-        x >= vol->getWidth() || y >= vol->getHeight() || z >= vol->getDepth()) {
-        return false;
-    }
-    return true;
+    return !(x < 0 || y < 0 || z < 0 || x >= vol->getWidth() || y >= vol->getHeight() || z >= vol->getDepth());
 }
 
 
@@ -183,7 +179,7 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
         case PolyVoxEntityItem::SURFACE_CUBIC:
             return scale / 2.0f;
     }
-    return glm::vec3(0, 0, 0);
+    return glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
@@ -191,7 +187,7 @@ glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 center = getCenter();
     glm::vec3 position = getPosition();
     glm::vec3 positionToCenter = center - position;
-    positionToCenter -= _dimensions * glm::vec3(0.5f,0.5f,0.5f) - getSurfacePositionAdjustment();
+    positionToCenter -= _dimensions * glm::vec3(0.5f, 0.5f, 0.5f) - getSurfacePositionAdjustment();
     glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
     glm::mat4 scaled = glm::scale(centerToCorner, scale);
     return scaled;
