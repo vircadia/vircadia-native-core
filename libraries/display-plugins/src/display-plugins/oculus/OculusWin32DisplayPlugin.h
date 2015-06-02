@@ -34,6 +34,8 @@ public:
 protected:
     virtual void customizeContext(PluginContainer * container) override;
     virtual void swapBuffers() override;
+    virtual void finishFrame() override;
+
 
 private:
     static const QString NAME;

@@ -316,8 +316,7 @@ void OculusWin32DisplayPlugin::display(
     ovrLayerHeader* layers = &_layer.Header;
     ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, &layers, 1);
     _swapFbo->Increment();
-    wglSwapIntervalEXT(0);
-
+    /*
     auto mirrorSize = toGlm(getDeviceSize());
     Context::Viewport(mirrorSize.x, mirrorSize.y);
     _mirrorFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
@@ -326,6 +325,7 @@ void OculusWin32DisplayPlugin::display(
             0, 0, _mirrorFbo->size.x, _mirrorFbo->size.y,
             GL_COLOR_BUFFER_BIT, GL_NEAREST);
     });
+    */
 }
 
 
@@ -352,3 +352,7 @@ bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 
 void OculusWin32DisplayPlugin::swapBuffers() {
 }
+
+void OculusWin32DisplayPlugin::finishFrame() {
+    doneCurrent();
+};
