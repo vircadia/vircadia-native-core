@@ -79,8 +79,7 @@ enum PacketType {
     PacketTypeSignedTransactionPayment,
     PacketTypeIceServerHeartbeat, // 50
     PacketTypeUnverifiedPing,
-    PacketTypeUnverifiedPingReply,
-    PacketTypeParticleEntitiesFix
+    PacketTypeUnverifiedPingReply
 };
 
 typedef char PacketVersion;
@@ -183,5 +182,6 @@ const PacketVersion VERSION_ENTITIES_HAVE_COLLISION_SOUND_URL = 25;
 const PacketVersion VERSION_ENTITIES_HAVE_FRICTION = 26;
 const PacketVersion VERSION_NO_ENTITY_ID_SWAP = 27;
 const PacketVersion VERSION_ENTITIES_PARTICLE_FIX = 28;
+const PacketVersion VERSION_ENTITIES_LINE_POINTS = 29;
 
 #endif // hifi_PacketHeaders_h

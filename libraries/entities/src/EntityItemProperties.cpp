@@ -27,6 +27,7 @@
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "PolyVoxEntityItem.h"
+#include "LineEntityItem.h"
 
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
@@ -94,6 +95,8 @@ CONSTRUCT_PROPERTY(voxelSurfaceStyle, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_S
 CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
 CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
+CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
+CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
 
 
 _id(UNKNOWN_ENTITY_ID),
@@ -344,7 +347,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
-    
+    CHECK_PROPERTY_CHANGE(PROP_LINE_WIDTH, lineWidth);
+    CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
@@ -426,10 +430,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightDirection);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(backgroundMode, getBackgroundModeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(sourceUrl);
-
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelVolumeSize);
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelSurfaceStyle);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lineWidth);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
     
     // Sitting properties support
     if (!skipDefaults) {
@@ -535,10 +540,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
 
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
@@ -761,6 +767,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, properties.getVoxelVolumeSize());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
+            }
+            
+            if (properties.getType() == EntityTypes::Line) {
+                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
@@ -1003,6 +1014,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
     }
     
+    if (properties.getType() == EntityTypes::Line) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    }
+    
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -1107,10 +1123,13 @@ void EntityItemProperties::markAllChanged() {
     _skybox.markAllChanged();
     
     _sourceUrlChanged = true;
-
     _voxelVolumeSizeChanged = true;
     _voxelDataChanged = true;
     _voxelSurfaceStyleChanged = true;
+    
+    _lineWidthChanged = true;
+    _linePointsChanged = true;
+
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

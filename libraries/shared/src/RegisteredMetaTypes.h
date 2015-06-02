@@ -28,6 +28,7 @@ Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
+Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 void registerMetaTypes(QScriptEngine* engine);
 
@@ -54,6 +55,9 @@ void qColorFromScriptValue(const QScriptValue& object, QColor& color);
 
 QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url);
 void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
+
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
+QVector<glm::vec3> qVectorVec3FromScriptValue( const QScriptValue& array);
 
 class PickRay {
 public:
