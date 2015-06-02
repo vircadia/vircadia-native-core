@@ -12,11 +12,12 @@
 
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/NullDisplayPlugin.h>
-#include <display-plugins/Tv3dDisplayPlugin.h>
-#include <display-plugins/WindowDisplayPlugin.h>
+#include <display-plugins/stereo/SideBySideStereoDisplayPlugin.h>
+#include <display-plugins/stereo/InterleavedStereoDisplayPlugin.h>
+#include <display-plugins/WidgetOpenGLDisplayPlugin.h>
 
 #ifdef Q_OS_WIN
-#include <display-plugins/OculusWin32DisplayPlugin.h>
+#include <display-plugins/oculus/OculusWin32DisplayPlugin.h>
 #else
 #endif
 
@@ -49,11 +50,12 @@ const DisplayPluginList& getDisplayPlugins() {
         init = true;
 
         DisplayPlugin* PLUGIN_POOL[] = {
-            new WindowDisplayPlugin(),
+            new WidgetOpenGLDisplayPlugin(),
 #ifdef DEBUG
             new NullDisplayPlugin(),
 #endif
-            new Tv3dDisplayPlugin(),
+            new SideBySideStereoDisplayPlugin(),
+            new InterleavedStereoDisplayPlugin(),
             new OculusWin32DisplayPlugin(),
             nullptr
         };

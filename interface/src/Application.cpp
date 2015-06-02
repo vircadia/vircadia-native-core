@@ -821,6 +821,9 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    if (getCanvasSize() == uvec2(0)) {
+        return;
+    }
     PROFILE_RANGE(__FUNCTION__);
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();

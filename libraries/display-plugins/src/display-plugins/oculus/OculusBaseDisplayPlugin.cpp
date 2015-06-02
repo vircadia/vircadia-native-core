@@ -9,13 +9,12 @@
 
 #include <ViewFrustum.h>
 
-#include "../OculusHelpers.h"
+#include "OculusHelpers.h"
 
 void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
-    OpenGlDisplayPlugin::activate(container);
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
-        ovrEyeRenderDesc erd = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
+        ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
@@ -23,8 +22,15 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
     _desiredFramebufferSize = QSize(
-        eyeSizes[0].x + eyeSizes[1].x, 
+        eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
+
+    if (!OVR_SUCCESS(ovrHmd_ConfigureTracking(_hmd,
+        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
+        qFatal("Could not attach to sensor device");
+    }
+
+    WidgetOpenGLDisplayPlugin::activate(container);
 }
 
 QSize OculusBaseDisplayPlugin::getRecommendedFramebufferSize() const {
@@ -40,5 +46,9 @@ glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseP
 }
 
 glm::mat4 OculusBaseDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelview) const {
-    return toGlm(_eyePoses[eye]);
+    return baseModelview * toGlm(_eyePoses[eye]);
+}
+
+void OculusBaseDisplayPlugin::resetSensors() {
+    ovrHmd_RecenterPose(_hmd);
 }

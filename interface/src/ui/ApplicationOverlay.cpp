@@ -196,7 +196,7 @@ void ApplicationOverlay::renderOverlay() {
     glm::uvec2 size = qApp->getCanvasSize();
     if (size == uvec2(0)) {
         qDebug() << "Bad size from display plugin";
-        glm::uvec2 size = qApp->getCanvasSize();
+        size = qApp->getCanvasSize();
     }
 
     if (!_framebufferObject || size != toGlm(_framebufferObject->size())) {

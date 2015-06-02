@@ -10,6 +10,7 @@
 #include <OVR_CAPI.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // Convenience method for looping over each eye with a lambda
 template <typename Function>

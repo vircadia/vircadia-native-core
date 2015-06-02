@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "OpenGlDisplayPlugin.h"
+#include "OpenGLDisplayPlugin.h"
 
 #include <QOpenGLContext>
 #include <TextureCache.h>
@@ -19,114 +19,54 @@
 #include <GLMHelpers.h>
 
 
-OpenGlDisplayPlugin::OpenGlDisplayPlugin() {
+OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     connect(&_timer, &QTimer::timeout, this, [&] {
-        if (_window) {
-            emit requestRender();
-        }
+        emit requestRender();
     });
 }
 
-OpenGlDisplayPlugin::~OpenGlDisplayPlugin() {
+OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
-QWindow* OpenGlDisplayPlugin::getWindow() const {
-    return _window;
-}
-
-glm::ivec2 OpenGlDisplayPlugin::getTrueMousePosition() const {
-    return toGlm(_window->mapFromGlobal(QCursor::pos()));
-}
-
-QSize OpenGlDisplayPlugin::getDeviceSize() const {
-    return _window->geometry().size() * _window->devicePixelRatio();
-}
-
-glm::ivec2 OpenGlDisplayPlugin::getCanvasSize() const {
-    return toGlm(_window->geometry().size());
-}
-
-bool OpenGlDisplayPlugin::hasFocus() const {
-    return _window->isActive();
-}
-
-void OpenGlDisplayPlugin::makeCurrent() {
-    _window->makeCurrent();
-}
-
-void OpenGlDisplayPlugin::doneCurrent() {
-    _window->doneCurrent();
-}
-
-void OpenGlDisplayPlugin::swapBuffers() {
-    _window->swapBuffers();
-}
-
-void OpenGlDisplayPlugin::preDisplay() {
+void OpenGLDisplayPlugin::preDisplay() {
     makeCurrent();
 };
 
-void OpenGlDisplayPlugin::preRender() {
+void OpenGLDisplayPlugin::preRender() {
     // NOOP
 }
 
-void OpenGlDisplayPlugin::finishFrame() {
+void OpenGLDisplayPlugin::finishFrame() {
     swapBuffers();
     doneCurrent();
 };
 
-
-void OpenGlDisplayPlugin::activate(PluginContainer * container) {
-    Q_ASSERT(nullptr == _window);
-    _window = new GlWindow(QOpenGLContext::currentContext());
-    _window->installEventFilter(this);
-    customizeWindow(container);
-//    _window->show();
-
-    makeCurrent();
-    customizeContext(container);
-
-    _timer.start(1);
-}
-
-void OpenGlDisplayPlugin::customizeContext(PluginContainer * container) {
+void OpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
     using namespace oglplus;
     Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
     Context::Disable(Capability::Blend);
     Context::Disable(Capability::DepthTest);
     Context::Disable(Capability::CullFace);
-    program = loadDefaultShader();
-    plane = loadPlane(program);
+    _program = loadDefaultShader();
+    _plane = loadPlane(_program);
     Context::ClearColor(0, 0, 0, 1);
-    crosshairTexture = DependencyManager::get<TextureCache>()->
+    _crosshairTexture = DependencyManager::get<TextureCache>()->
         getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
 }
 
-void OpenGlDisplayPlugin::deactivate() {
+void OpenGLDisplayPlugin::activate(PluginContainer * container) {
+    _timer.start(1);
+}
+
+void OpenGLDisplayPlugin::deactivate() {
     _timer.stop();
-
     makeCurrent();
-    plane.reset();
-    program.reset();
-    crosshairTexture.reset();
+    Q_ASSERT(0 == glGetError());
+    _plane.reset();
+    _program.reset();
+    _crosshairTexture.reset();
     doneCurrent();
-
-    Q_ASSERT(nullptr != _window);
-    _window->hide();
-    _window->destroy();
-    _window->deleteLater();
-    _window = nullptr;
 }
-
-void OpenGlDisplayPlugin::installEventFilter(QObject* filter) {
-    _window->installEventFilter(filter);
-}
-
-void OpenGlDisplayPlugin::removeEventFilter(QObject* filter) {
-    _window->removeEventFilter(filter);
-}
-
-
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
 // SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
@@ -137,7 +77,7 @@ void OpenGlDisplayPlugin::removeEventFilter(QObject* filter) {
 // http://www.archivum.info/qt-interest@trolltech.com/2006-09/00053/Re-(Qt4)-Alt-key-focus-QMenuBar-(solved).html
 
 // Pass input events on to the application
-bool OpenGlDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     switch (event->type()) {
     case QEvent::MouseButtonPress:
     case QEvent::MouseButtonRelease:
@@ -168,3 +108,26 @@ bool OpenGlDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     return false;
 }
 
+void OpenGLDisplayPlugin::display(
+    GLuint sceneTexture, const glm::uvec2& sceneSize,
+    GLuint overlayTexture, const glm::uvec2& overlaySize) {
+    makeCurrent();
+    Q_ASSERT(0 == glGetError());
+    uvec2 size = toGlm(getDeviceSize());
+    using namespace oglplus;
+    Context::Viewport(size.x, size.y);
+    glClearColor(0, 1, 1, 1);
+    Context::Clear().ColorBuffer().DepthBuffer();
+    _program->Bind();
+    Mat4Uniform(*_program, "ModelView").Set(mat4());
+    Mat4Uniform(*_program, "Projection").Set(mat4());
+    glBindTexture(GL_TEXTURE_2D, sceneTexture);
+    _plane->Use();
+    _plane->Draw();
+    Context::Enable(Capability::Blend);
+    glBindTexture(GL_TEXTURE_2D, overlayTexture);
+    _plane->Draw();
+    Context::Disable(Capability::Blend);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    Q_ASSERT(0 == glGetError());
+}

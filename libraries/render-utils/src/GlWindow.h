@@ -20,11 +20,12 @@ public:
     GlWindow(QOpenGLContext* shareContext = nullptr);
     GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext = nullptr);
     virtual ~GlWindow();
-    void makeCurrent();
+    bool makeCurrent();
     void doneCurrent();
     void swapBuffers();
-private:
+
     QOpenGLContext* _context{ nullptr };
+private:
 #ifdef DEBUG
     QOpenGLDebugLogger* _logger{ nullptr };
 #endif
