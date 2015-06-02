@@ -24,6 +24,7 @@
 #include "DynamicCharacterController.h"
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "ObjectAction.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -94,6 +95,9 @@ public:
     static bool physicsInfoIsActive(void* physicsInfo);
     static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
 
+    QUuid addAction(ObjectAction* action); // PhysicsEngine takes ownership of the pointer
+    void deleteAction(QUuid actionID);
+
 private:
     void removeContacts(ObjectMotionState* motionState);
 
@@ -121,6 +125,8 @@ private:
 
     QUuid _sessionID;
     CollisionEvents _collisionEvents;
+
+    QHash<QUuid, ObjectAction*> _objectActions;
 };
 
 #endif // hifi_PhysicsEngine_h

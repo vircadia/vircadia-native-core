@@ -448,3 +448,23 @@ bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn
 
     return true;
 }
+
+
+QUuid PhysicsEngine::addAction(ObjectAction* action) {
+    const QUuid& actionID = action->getID();
+    if (_objectActions.contains(actionID)) {
+        assert(_objectActions[actionID] == action);
+        return actionID;
+    }
+    _objectActions[actionID] = action;
+    // XXX add to bullet
+    return actionID;
+}
+
+
+void PhysicsEngine::deleteAction(const QUuid actionID) {
+    if (_objectActions.contains(actionID)) {
+        // XXX remove from bullet
+        _objectActions.remove(actionID);
+    }
+}
