@@ -169,7 +169,7 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
     return glm::vec3(0);
 }
 
-inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid){
+inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     return qVectorVec3FromScriptValue(v);
 }

@@ -50,8 +50,8 @@ EntityItemProperties LineEntityItem::getProperties() const {
     properties._color = getXColor();
     properties._colorChanged = false;
     
-    properties._lineWidth = getLineWidth();
-    properties._lineWidthChanged = false;
+    
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
 

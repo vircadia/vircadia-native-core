@@ -96,7 +96,7 @@ CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
 CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
 CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
-CONSTRUCT_PROPERTY(linePoints, 0),
+CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
 
 
 _id(UNKNOWN_ENTITY_ID),
@@ -769,7 +769,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
             }
             
-            if(properties.getType() == EntityTypes::Line){
+            if (properties.getType() == EntityTypes::Line) {
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
@@ -1014,7 +1014,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
     }
     
-    if(properties.getType() == EntityTypes::Line) {
+    if (properties.getType() == EntityTypes::Line) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     }
