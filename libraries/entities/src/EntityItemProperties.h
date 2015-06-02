@@ -63,7 +63,7 @@ public:
     void setType(EntityTypes::EntityType type) { _type = type; }
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
-    virtual void copyFromScriptValue(const QScriptValue& object);
+    virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -96,6 +96,7 @@ public:
     DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
     DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
+    DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
@@ -155,8 +156,6 @@ public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    quint64 getCreated() const { return _created; }
-    void setCreated(quint64 usecTime);
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
 
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
@@ -197,13 +196,14 @@ public:
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
 
+    void setCreated(QDateTime& v);
+
     bool hasTerseUpdateChanges() const;
 
 private:
     QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
-    quint64 _created;
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
@@ -223,7 +223,8 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
 
 
 // define these inline here so the macros work

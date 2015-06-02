@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDateTime>
+
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
@@ -102,8 +104,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     return QScriptValue(QString(b64));
 }
 
-
-
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
     if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
         QScriptValue groupProperties = properties.property(#g); \
@@ -140,14 +140,20 @@ inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
+inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
+    // result.setTimeSpec(Qt::OffsetFromUTC);
+    return result;
+}
+
+
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     QString b64 = v.toVariant().toString().trimmed();
     return QByteArray::fromBase64(b64.toUtf8());
 }
-
-
 
 inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
     isValid = false; /// assume it can't be converted

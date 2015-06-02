@@ -49,6 +49,7 @@ CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
 CONSTRUCT_PROPERTY(restitution, ENTITY_ITEM_DEFAULT_RESTITUTION),
 CONSTRUCT_PROPERTY(friction, ENTITY_ITEM_DEFAULT_FRICTION),
 CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
+CONSTRUCT_PROPERTY(created, UNKNOWN_CREATED_TIME),
 CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
@@ -102,7 +103,6 @@ CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
 _lastEdited(0),
-_created(UNKNOWN_CREATED_TIME),
 _type(EntityTypes::Unknown),
 
 _glowLevel(0.0f),
@@ -179,6 +179,11 @@ QString EntityItemProperties::getAnimationSettings() const {
     return jsonByteString;
 }
 
+void EntityItemProperties::setCreated(QDateTime &v) {
+    _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
+    qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
+}
+
 void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "EntityItemProperties...";
     qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
@@ -195,13 +200,6 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
-}
-
-void EntityItemProperties::setCreated(quint64 usecTime) {
-    _created = usecTime;
-    if (_lastEdited < _created) {
-        _lastEdited = _created;
-    }
 }
 
 void EntityItemProperties::setLastEdited(quint64 usecTime) {
@@ -379,10 +377,16 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(friction);
     COPY_PROPERTY_TO_QSCRIPTVALUE(density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
-    if (!skipDefaults) {
+
+    if (!skipDefaults || _lifetime != defaultEntityProperties._lifetime) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
+
+    auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
+    created.setTimeSpec(Qt::OffsetFromUTC);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created.toString(Qt::ISODate));
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
     COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularVelocity);
@@ -476,7 +480,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     return properties;
 }
 
-void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
+void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool honorReadOnly) {
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
         setType(typeScriptValue.toVariant().toString());
@@ -517,7 +521,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
-    //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);  DO NOT accept this info from QScriptValue
     COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
@@ -546,6 +549,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
 
+    if (!honorReadOnly) {
+        // this is used by the json reader to set things that we don't want javascript to able to affect.
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
+                auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
+                return result;
+            });
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+    }
+
     _stage.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
@@ -560,9 +572,14 @@ QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, 
     return properties.copyToScriptValue(engine, true);
 }
 
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties) {
-    properties.copyFromScriptValue(object);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
+    properties.copyFromScriptValue(object, false);
 }
+
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
+    properties.copyFromScriptValue(object, true);
+}
+
 
 // TODO: Implement support for edit packets that can span an MTU sized buffer. We need to implement a mechanism for the
 //       encodeEntityEditPacket() method to communicate the the caller which properties couldn't fit in the buffer. Similar
