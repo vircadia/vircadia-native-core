@@ -67,7 +67,24 @@ public:
     
     Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities);
     Q_INVOKABLE bool shouldRenderEntities() const { return _shouldRenderEntities; }
+
+
+    // Controlling the rendering engine
+    Q_INVOKABLE void setEngineRenderOpaque(bool renderOpaque);
+    Q_INVOKABLE bool doEngineRenderOpaque() const { return _engineRenderOpaque; }
+    Q_INVOKABLE void setEngineRenderTransparent(bool renderTransparent);
+    Q_INVOKABLE bool doEngineRenderTransparent() const { return _engineRenderTransparent; }
     
+    Q_INVOKABLE void setEngineCullOpaque(bool cullOpaque);
+    Q_INVOKABLE bool doEngineCullOpaque() const { return _engineCullOpaque; }
+    Q_INVOKABLE void setEngineCullTransparent(bool cullTransparent);
+    Q_INVOKABLE bool doEngineCullTransparent() const { return _engineCullTransparent; }
+
+    Q_INVOKABLE void setEngineSortOpaque(bool sortOpaque);
+    Q_INVOKABLE bool doEngineSortOpaque() const { return _engineSortOpaque; }
+    Q_INVOKABLE void setEngineSortTransparent(bool sortTransparent);
+    Q_INVOKABLE bool doEngineSortTransparent() const { return _engineSortTransparent; }
+
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);
@@ -79,6 +96,14 @@ protected:
     
     bool _shouldRenderAvatars = true;
     bool _shouldRenderEntities = true;
+
+    bool _engineRenderOpaque = true;
+    bool _engineRenderTransparent = true;
+    bool _engineCullOpaque = true;
+    bool _engineCullTransparent = true;
+    bool _engineSortOpaque = true;
+    bool _engineSortTransparent = true;
+
 };
 
 #endif // hifi_SceneScriptingInterface_h

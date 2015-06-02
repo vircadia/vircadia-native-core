@@ -34,6 +34,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(DrawOpaque()));
    _jobs.push_back(Job(DrawLight()));
    _jobs.push_back(Job(DrawTransparent()));
+   _jobs.push_back(Job(ResetGLState()));
    _jobs.push_back(Job(ResolveDeferred()));
 
 }

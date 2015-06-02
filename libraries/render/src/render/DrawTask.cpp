@@ -29,6 +29,7 @@ DrawSceneTask::DrawSceneTask() : Task() {
     _jobs.push_back(Job(DrawOpaque()));
     _jobs.push_back(Job(DrawLight()));
     _jobs.push_back(Job(DrawTransparent()));
+    _jobs.push_back(Job(ResetGLState()));
 }
 
 DrawSceneTask::~DrawSceneTask() {
@@ -198,6 +199,13 @@ void addClearStateCommands(gpu::Batch& batch) {
     batch._glUseProgram(0);
 }
 
+template <> void render::jobRun(const ResetGLState& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+
+    gpu::Batch theBatch;
+    addClearStateCommands(theBatch);
+    assert(renderContext->args);
+    renderContext->args->_context->render(theBatch);
+}
 
 template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("DrawOpaque");
@@ -216,39 +224,44 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     ItemIDs& renderedItems = inItems;
 
     ItemIDs culledItems;
-    cullItems(sceneContext, renderContext, inItems, culledItems);
-    renderedItems = culledItems;
-
-    ItemIDs sortedItems;
-    depthSortItems(sceneContext, renderContext, true, culledItems, sortedItems); // Sort Front to back opaque items!
-    renderedItems = sortedItems;
-
-
-    RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    args->_batch = &batch;
-
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-
-    renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
-    {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        batch._glDrawBuffers(bufferCount, buffers);
+    if (renderContext->_cullOpaque) {
+        cullItems(sceneContext, renderContext, renderedItems, culledItems);
+        renderedItems = culledItems;
     }
 
-    renderItems(sceneContext, renderContext, renderedItems);
+    ItemIDs sortedItems;
+    if (renderContext->_sortOpaque) {
+        depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
+        renderedItems = sortedItems;
+    }
 
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
+    if (renderContext->_renderOpaque) {
+        RenderArgs* args = renderContext->args;
+        gpu::Batch batch;
+        args->_batch = &batch;
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        {
+            GLenum buffers[3];
+            int bufferCount = 0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+            batch._glDrawBuffers(bufferCount, buffers);
+        }
+
+        renderItems(sceneContext, renderContext, renderedItems);
+
+        args->_context->render((*args->_batch));
+        args->_batch = nullptr;
+    }
 }
 
 
@@ -269,55 +282,60 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     ItemIDs& renderedItems = inItems;
 
     ItemIDs culledItems;
-    cullItems(sceneContext, renderContext, inItems, culledItems);
-    renderedItems = culledItems;
-
-    ItemIDs sortedItems;
-    depthSortItems(sceneContext, renderContext, false, culledItems, sortedItems); // Sort Back to front transparent items!
-    renderedItems = sortedItems;
-
-    RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    args->_batch = &batch;
-
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-
-    args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
-
-    const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-
-    // render translucent meshes afterwards
-    {
-        GLenum buffers[2];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        batch._glDrawBuffers(bufferCount, buffers);
-        args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
-     }
-
-    renderItems(sceneContext, renderContext, renderedItems);
-
-    {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        batch._glDrawBuffers(bufferCount, buffers);
-        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
+    if (renderContext->_cullTransparent) {
+        cullItems(sceneContext, renderContext, inItems, culledItems);
+        renderedItems = culledItems;
     }
 
+    ItemIDs sortedItems;
+    if (renderContext->_sortTransparent) {
+        depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
+        renderedItems = sortedItems;
+    }
 
-    renderItems(sceneContext, renderContext, renderedItems);
+    if (renderContext->_renderTransparent) {
+        RenderArgs* args = renderContext->args;
+        gpu::Batch batch;
+        args->_batch = &batch;
 
-    addClearStateCommands((*args->_batch));
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+
+        const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
+        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+
+        // render translucent meshes afterwards
+        {
+            GLenum buffers[2];
+            int bufferCount = 0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+            batch._glDrawBuffers(bufferCount, buffers);
+            args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
+         }
+
+        renderItems(sceneContext, renderContext, renderedItems);
+
+        {
+            GLenum buffers[3];
+            int bufferCount = 0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+            batch._glDrawBuffers(bufferCount, buffers);
+            args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
+        }
+
+
+        renderItems(sceneContext, renderContext, renderedItems);
+
+        args->_context->render((*args->_batch));
+        args->_batch = nullptr;
+    }
 }
 
 template <> void render::jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

@@ -30,6 +30,13 @@ class RenderContext {
 public:
     RenderArgs* args;
 
+    bool _cullOpaque = true;
+    bool _sortOpaque = true;
+    bool _renderOpaque = true;
+    bool _cullTransparent = true;
+    bool _sortTransparent = true;
+    bool _renderTransparent = true;
+
     RenderContext() {}
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;

@@ -3496,6 +3496,15 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PerformanceTimer perfTimer("EngineRun");
         render::RenderContext renderContext;
 
+        auto sceneInterface = DependencyManager::get<SceneScriptingInterface>();
+
+        renderContext._cullOpaque = sceneInterface->doEngineCullOpaque();
+        renderContext._sortOpaque = sceneInterface->doEngineSortOpaque();
+        renderContext._renderOpaque = sceneInterface->doEngineRenderOpaque();
+        renderContext._cullTransparent = sceneInterface->doEngineCullTransparent();
+        renderContext._sortTransparent = sceneInterface->doEngineSortTransparent();
+        renderContext._renderTransparent = sceneInterface->doEngineRenderTransparent();
+
         renderArgs->_shouldRender = LODManager::shouldRender;
 
         renderContext.args = renderArgs;
