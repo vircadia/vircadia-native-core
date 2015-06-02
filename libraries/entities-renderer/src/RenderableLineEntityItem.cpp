@@ -33,7 +33,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glPushMatrix();
         glLineWidth(getLineWidth());
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        if(_lineVerticesID == GeometryCache::UNKNOWN_ID){
+        if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
             _lineVerticesID = geometryCache ->allocateID();
         }
          //TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
