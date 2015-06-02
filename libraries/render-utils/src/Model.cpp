@@ -310,10 +310,14 @@ void Model::init() {
             RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
             modelNormalMapVertex, modelNormalSpecularMapPixel);
 
-
+        
         _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_TRANSLUCENT),
-            modelVertex, modelTranslucentPixel);
+             RenderKey(RenderKey::IS_TRANSLUCENT),
+             modelVertex, modelTranslucentPixel);
+        // FIXME Ignore lightmap for translucents meshpart
+        _renderPipelineLib.addRenderPipeline(
+             RenderKey(RenderKey::IS_TRANSLUCENT | RenderKey::HAS_LIGHTMAP),
+             modelVertex, modelTranslucentPixel);
  
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
