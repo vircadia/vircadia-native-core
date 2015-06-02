@@ -52,3 +52,12 @@ glm::mat4 OculusBaseDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseMo
 void OculusBaseDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
+
+glm::mat4 OculusBaseDisplayPlugin::getEyePose(Eye eye) const {
+    return toGlm(_eyePoses[eye]);
+}
+
+glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
+    ovrTrackingState state = ovrHmd_GetTrackingState(_hmd, 0.0f);
+    return toGlm(state.HeadPose.ThePose);
+}

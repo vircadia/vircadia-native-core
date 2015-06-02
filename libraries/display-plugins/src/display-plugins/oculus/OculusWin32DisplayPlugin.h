@@ -12,8 +12,8 @@
 #include <QTimer>
 
 class OffscreenGlCanvas;
-class MirrorFramebufferWrapper;
-class SwapFramebufferWrapper;
+struct MirrorFramebufferWrapper;
+struct SwapFramebufferWrapper;
 
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 using MirrorFboPtr = QSharedPointer<MirrorFramebufferWrapper>;
@@ -38,8 +38,13 @@ protected:
 
 
 private:
+    ovrLayerEyeFov& getSceneLayer();
+    ovrLayerQuad& getUiLayer();
+
     static const QString NAME;
-    SwapFboPtr          _swapFbo;
+    SwapFboPtr          _sceneFbo;
+    SwapFboPtr          _uiFbo;
     MirrorFboPtr        _mirrorFbo;
-    ovrLayerEyeFov      _layer;
+    std::vector<ovrLayer_Union*> _layers;
+    //ovrLayerEyeFov      _layer;
 };

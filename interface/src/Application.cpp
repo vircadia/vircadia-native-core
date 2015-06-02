@@ -997,29 +997,33 @@ void Application::resizeEvent(QResizeEvent * event) {
 }
 
 void Application::resizeGL() {
+
+    auto displayPlugin = getActiveDisplayPlugin();
+
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     QSize framebufferSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize();
     QSize renderSize = framebufferSize * getRenderResolutionScale();
+    if (_renderResolution != toGlm(renderSize)) {
+        _renderResolution = toGlm(renderSize);
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
 
-    if (_renderResolution == toGlm(renderSize)) {
-        return;
+        // Possible change in aspect ratio
+        _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
+            aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
 
-    _renderResolution = toGlm(renderSize);
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-
-    _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
-            aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->resize(fromGlm(getCanvasSize()));
-    _offscreenContext->makeCurrent();
+    auto uiSize = displayPlugin->getCanvasSize();
+    if (offscreenUi->getWindow()->geometry().size() != fromGlm(uiSize)) {
+        offscreenUi->resize(fromGlm(uiSize));
+        _offscreenContext->makeCurrent();
+        // update Stats width
+        // let's set horizontal offset to give stats some margin to mirror
+        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+        Stats::getInstance()->resetWidth(uiSize.x, horizontalOffset);
+    }
 
-    // update Stats width
-    // let's set horizontal offset to give stats some margin to mirror
-    int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {

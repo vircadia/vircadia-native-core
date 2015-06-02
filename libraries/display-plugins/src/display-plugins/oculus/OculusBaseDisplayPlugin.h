@@ -21,6 +21,10 @@ public:
     virtual void preRender() override;
     virtual QSize getRecommendedFramebufferSize() const override;
     virtual void resetSensors() override;
+    virtual glm::ivec2 getCanvasSize() const override { return ivec2(1920, 1080); }
+    virtual glm::mat4 getEyePose(Eye eye) const override;
+    virtual glm::mat4 getHeadPose() const override;
+
 protected:
     ovrHmd _hmd;
     unsigned int _frameIndex{ 0 };

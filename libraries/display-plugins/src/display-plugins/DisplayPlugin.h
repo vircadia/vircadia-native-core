@@ -86,9 +86,11 @@ public:
     // The size of the rendering surface
     virtual QSize getDeviceSize() const = 0;
     // The size of the rendering target (may be larger than the device size due to distortion)
-    virtual QSize getRecommendedFramebufferSize() const { return getDeviceSize(); };
+    virtual QSize getRecommendedFramebufferSize() const { return getDeviceSize(); }
+
     // The size of the window (differs from the framebuffers size in instances like Retina macs)
     virtual glm::ivec2 getCanvasSize() const = 0;
+
     // The window for the surface, used for event interception.  May be null.
     virtual QWindow* getWindow() const = 0;
 

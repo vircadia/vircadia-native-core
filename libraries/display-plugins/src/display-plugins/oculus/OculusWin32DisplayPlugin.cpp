@@ -71,7 +71,7 @@ struct FramebufferWrapper {
         glViewport(0, 0, size.x, size.y);
     }
 
-private:
+protected:
     virtual void onBind(GLenum target) {}
     virtual void onUnbind(GLenum target) {}
 
@@ -97,6 +97,19 @@ template <typename C>
 struct RiftFramebufferWrapper : public FramebufferWrapper<C> {
     ovrHmd hmd;
     RiftFramebufferWrapper(const ovrHmd & hmd) : hmd(hmd) {};
+
+    void Resize(const uvec2 & size) {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        this->size = size;
+        initColor();
+        initDone();
+    }
+
+protected:
+    virtual void initDepth() override {
+    }
 };
 
 // A wrapper for constructing and using a swap texture set,
@@ -121,7 +134,7 @@ struct SwapFramebufferWrapper : public RiftFramebufferWrapper<ovrSwapTextureSet*
     }
 
 protected:
-    virtual void initColor() {
+    virtual void initColor() override {
         if (color) {
             ovrHmd_DestroySwapTextureSet(hmd, color);
             color = nullptr;
@@ -142,10 +155,7 @@ protected:
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    virtual void initDone() {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
-        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    virtual void initDone() override {
     }
 
     virtual void onBind(GLenum target) {
@@ -173,20 +183,8 @@ struct MirrorFramebufferWrapper : public RiftFramebufferWrapper<ovrGLTexture*> {
         }
     }
 
-    void Resize(const uvec2 & size) {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        this->size = size;
-        initColor();
-        initDone();
-    }
-
 private:
-    virtual void initDepth() {
-    }
-
-    void initColor() {
+    void initColor() override {
         if (color) {
             ovrHmd_DestroyMirrorTexture(hmd, (ovrTexture*)color);
             color = nullptr;
@@ -195,7 +193,7 @@ private:
         Q_ASSERT(OVR_SUCCESS(result));
     }
 
-    void initDone() {
+    void initDone() override {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color->OGL.TexId, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -221,6 +219,15 @@ bool OculusWin32DisplayPlugin::isSupported() {
     return result;
 }
 
+ovrLayerEyeFov& OculusWin32DisplayPlugin::getSceneLayer() {
+    return _layers[0]->EyeFov;
+}
+
+ovrLayerQuad& OculusWin32DisplayPlugin::getUiLayer() {
+    return _layers[1]->Quad;
+}
+
+
 void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -231,14 +238,27 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         qFatal("Failed to acquire HMD");
     }
     // Parent class relies on our _hmd intialization, so it must come after that.
-    OculusBaseDisplayPlugin::activate(container);
-    _layer.Header.Type = ovrLayerType_EyeFov;
-    _layer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
+    _layers.push_back(new ovrLayer_Union());
+    _layers.push_back(new ovrLayer_Union());
+
+    ovrLayerEyeFov& sceneLayer = getSceneLayer();
+    memset(&sceneLayer, 0, sizeof(ovrLayerEyeFov));
+    sceneLayer.Header.Type = ovrLayerType_EyeFov;
+    sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
     ovr_for_each_eye([&](ovrEyeType eye) {
-        ovrFovPort & fov = _layer.Fov[eye] = _eyeRenderDescs[eye].Fov;
-        ovrSizei & size = _layer.Viewport[eye].Size = ovrHmd_GetFovTextureSize(_hmd, eye, fov, 1.0f);
-        _layer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
+        ovrFovPort & fov = sceneLayer.Fov[eye] = _eyeRenderDescs[eye].Fov;
+        ovrSizei & size = sceneLayer.Viewport[eye].Size = ovrHmd_GetFovTextureSize(_hmd, eye, fov, 1.0f);
+        sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
+
+    ovrLayerQuad& uiLayer = getUiLayer();
+    memset(&uiLayer, 0, sizeof(ovrLayerQuad));
+    uiLayer.Header.Type = ovrLayerType_QuadInWorld;
+    uiLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HighQuality;
+    uiLayer.QuadPoseCenter.Orientation = { 0, 0, 0, 1 };
+    uiLayer.QuadPoseCenter.Position = { 0, 0, -1 };
+
+    OculusBaseDisplayPlugin::activate(container);
 }
 
 void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
@@ -247,14 +267,22 @@ void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
     uvec2 mirrorSize = toGlm(_widget->geometry().size());
     _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
     _mirrorFbo->Init(mirrorSize);
-    _swapFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
+    _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     uvec2 swapSize = toGlm(getRecommendedFramebufferSize());
-    _swapFbo->Init(swapSize);
+    _sceneFbo->Init(swapSize);
+
+    ovrLayerEyeFov& sceneLayer = getSceneLayer();
+    sceneLayer.ColorTexture[0] = _sceneFbo->color;
+    sceneLayer.ColorTexture[1] = nullptr;
+
+    _uiFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
+    _uiFbo->Init(getCanvasSize());
 }
 
 void OculusWin32DisplayPlugin::deactivate() {
     makeCurrent();
-    _swapFbo.reset();
+    _sceneFbo.reset();
+    _uiFbo.reset();
     _mirrorFbo.reset();
 //    doneCurrent();
     OculusBaseDisplayPlugin::deactivate();
@@ -278,45 +306,66 @@ void OculusWin32DisplayPlugin::display(
     //_plane->Use();
     //_plane->Draw();
 
-    _swapFbo->Bound([&] {
+    _sceneFbo->Bound([&] {
         Q_ASSERT(0 == glGetError());
         using namespace oglplus;
-        Context::Viewport(_swapFbo->size.x, _swapFbo->size.y);
+        Context::Viewport(_sceneFbo->size.x, _sceneFbo->size.y);
         glClearColor(0, 0, 1, 1);
-        Context::Clear().ColorBuffer().DepthBuffer();
+        Context::Clear().ColorBuffer();
 
         _program->Bind();
-        Mat4Uniform(*_program, "ModelView").Set(mat4());
-        Mat4Uniform(*_program, "Projection").Set(mat4());
         glBindTexture(GL_TEXTURE_2D, sceneTexture);
         _plane->Use();
         _plane->Draw();
-        /*
-        Context::Enable(Capability::Blend);
-        glBindTexture(GL_TEXTURE_2D, overlayTexture);
-        _plane->Draw();
-        Context::Disable(Capability::Blend);
-        */
-        glBindTexture(GL_TEXTURE_2D, 0);
         Q_ASSERT(0 == glGetError());
     });
-    _swapFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
-        glBlitFramebuffer(
-            0, 0, _swapFbo->size.x, _swapFbo->size.y,
-            0, 0, _mirrorFbo->size.x, _mirrorFbo->size.y,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    ovrLayerQuad& uiLayer = _layers[1]->Quad;
+    if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
+        _uiFbo->Resize(overlaySize);
+        uiLayer.ColorTexture = _uiFbo->color;
+        uiLayer.Viewport.Size.w = overlaySize.x;
+        uiLayer.Viewport.Size.h = overlaySize.y;
+        float overlayAspect = aspect(overlaySize);
+        uiLayer.QuadSize.x = 1.0f;
+        uiLayer.QuadSize.y = 1.0f / overlayAspect;
+    }
+
+    _uiFbo->Bound([&] {
+        Q_ASSERT(0 == glGetError());
+        using namespace oglplus;
+        Context::Viewport(_uiFbo->size.x, _uiFbo->size.y);
+        glClearColor(0, 0, 0, 0);
+        Context::Clear().ColorBuffer();
+
+        _program->Bind();
+        glBindTexture(GL_TEXTURE_2D, overlayTexture);
+        _plane->Use();
+        _plane->Draw();
+        Q_ASSERT(0 == glGetError());
     });
 
-    ovr_for_each_eye([&](ovrEyeType eye){
-        _layer.RenderPose[eye] = _eyePoses[eye];
+    ovrLayerEyeFov& sceneLayer = _layers[0]->EyeFov;
+    ovr_for_each_eye([&](ovrEyeType eye) {
+        sceneLayer.RenderPose[eye] = _eyePoses[eye];
     });
 
-    _layer.ColorTexture[0] = _swapFbo->color;
-    _layer.ColorTexture[1] = nullptr;
-    ovrLayerHeader* layers = &_layer.Header;
-    ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, &layers, 1);
-    _swapFbo->Increment();
+    ovrLayerHeader* layers[2];
+    layers[0] = &_layers[0]->Header;
+    layers[1] = &_layers[1]->Header;
+
+    ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, layers, 2);
+    _sceneFbo->Increment();
+    _uiFbo->Increment();
     /*
+    _swapFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
+    glBlitFramebuffer(
+    0, 0, _swapFbo->size.x, _swapFbo->size.y,
+    0, 0, _mirrorFbo->size.x, _mirrorFbo->size.y,
+    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    });
+
+
     auto mirrorSize = toGlm(getDeviceSize());
     Context::Viewport(mirrorSize.x, mirrorSize.y);
     _mirrorFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
