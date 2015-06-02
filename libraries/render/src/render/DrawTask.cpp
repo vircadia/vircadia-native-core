@@ -55,44 +55,6 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 Job::~Job() {
 }
 
-/*
-bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float octreeSizeScale = getOctreeSizeScale();
-    int boundaryLevelAdjust = getBoundaryLevelAdjust();
-    float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
-    
-    if (_shouldRenderTableNeedsRebuilding) {
-        _shouldRenderTable.clear();
-        
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
-        
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            visibleDistanceAtScale /= 2.0f;
-            _shouldRenderTable[scale] = visibleDistanceAtScale;
-        }
-        _shouldRenderTableNeedsRebuilding = false;
-    }
-    
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != _shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = lowerBound.value();
-    }
-    
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-    
-    return (distanceToCamera <= visibleDistanceAtClosestScale);
-}*/
-
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemIDs& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
