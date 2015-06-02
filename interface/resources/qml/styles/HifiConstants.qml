@@ -36,9 +36,9 @@ Item {
 
     QtObject {
         id: fonts
-        readonly property real headerPointSize: 24
-        readonly property string fontFamily: "Helvetica"
-        readonly property real fontSize: 18
+        readonly property string fontFamily: "Arial"  // Available on both Windows and OSX
+        readonly property real pixelSize: 22  // Logical pixel size; works on Windows and OSX at varying physical DPIs
+        readonly property real headerPixelSize: 32
     }
 
     QtObject {

@@ -58,7 +58,6 @@ Item {
 
                 }
 
-                font.pointSize: 15
                 helperText: "Go to: place, @user, /path, network address"
 
                 onAccepted: {
