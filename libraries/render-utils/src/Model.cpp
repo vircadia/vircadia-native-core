@@ -406,6 +406,7 @@ void Model::reset() {
     }
     
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
 }
 
 bool Model::updateGeometry() {
@@ -456,6 +457,7 @@ bool Model::updateGeometry() {
         _dilatedTextures.clear();
         _geometry = geometry;
         _meshGroupsKnown = false;
+        _readyWhenAdded = false; // in case any of our users are using scenes
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -812,7 +814,7 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
         if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
@@ -857,6 +859,10 @@ namespace render {
 
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+        segregateMeshGroups();
+    }
+
     bool somethingAdded = false;
     // allow the attachments to add to scene
     foreach (Model* attachment, _attachments) {
@@ -880,6 +886,8 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         _renderItems << item;
         somethingAdded = true;
     }
+    
+    _readyWhenAdded = readyToAddToScene();
 
     return somethingAdded;
 }
@@ -894,6 +902,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
+    _readyWhenAdded = false;
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
@@ -1921,6 +1930,7 @@ void Model::applyNextGeometry() {
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2210,21 +2220,16 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
         return _calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)];
     }
-    if (!_calculatedMeshBoxesValid) {
+    if (!_calculatedMeshBoxesValid && _calculatedMeshBoxes.size() > meshIndex) {
         return _calculatedMeshBoxes[meshIndex];
     }
     return AABox();
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
-    renderSetup(args);
-
-    /*    
-    if (translucent) {
-        renderCore(args, 1.0f);
-        return;
+    if (!_readyWhenAdded) {
+        return; // bail asap
     }
-    */
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -2236,12 +2241,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     _transforms[0] = _viewState->getViewTransform();
-
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
     _transforms[0].preTranslate(-_translation);
-
     batch.setViewTransform(_transforms[0]);
-
 
     const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
     const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
@@ -2249,10 +2251,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
+    // guard against partially loaded meshes
+    if (meshIndex >= networkMeshes.size() || meshIndex >= geometry.meshes.size() || meshIndex >= _meshStates.size() ) {
+        return; 
+    }
+
     const NetworkMesh& networkMesh = networkMeshes.at(meshIndex);
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
-
+    
     bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = mesh.hasSpecularTexture();
@@ -2277,6 +2284,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
+        _readyWhenAdded = false; // in case any of our users are using scenes
         return; // FIXME!
     }
     
@@ -2606,6 +2614,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
+            _readyWhenAdded = false; // in case any of our users are using scenes
             continue;
         }
         

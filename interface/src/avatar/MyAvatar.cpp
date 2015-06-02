@@ -1168,8 +1168,19 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
 }
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
+    }
+
+    // check to see if when we added our models to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    if (_skeletonModel.needsFixupInScene()) {
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        _skeletonModel.removeFromScene(scene, pendingChanges);
+        _skeletonModel.addToScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
     }
 
     Camera *camera = Application::getInstance()->getCamera();
@@ -1192,7 +1203,9 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     //  Render the body's voxels and head
     if (!postLighting) {
-        _skeletonModel.render(renderArgs, 1.0f);
+    
+        // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
+        //_skeletonModel.render(renderArgs, 1.0f);
         renderAttachments(renderArgs);
     }
     
