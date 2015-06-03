@@ -55,7 +55,7 @@ namespace render {
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
+            args->_details._elementsTouched++;
 
             glPushMatrix();
             if (overlay->getAnchor() == Overlay::MY_AVATAR) {

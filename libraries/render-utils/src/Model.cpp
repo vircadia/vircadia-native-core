@@ -834,7 +834,7 @@ namespace render {
     }
     template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
+            args->_details._elementsTouched++;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
         }
     }
@@ -866,7 +866,7 @@ namespace render {
     }
     template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
+            args->_details._elementsTouched++;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
         }
     }
@@ -1121,8 +1121,8 @@ bool Model::renderCore(RenderArgs* args, float alpha) {
     _viewState->setupWorldLight();
     
     if (args) {
-        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
-        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+        args->_details._translucentMeshPartsRendered = translucentMeshPartsRendered;
+        args->_details._opaqueMeshPartsRendered = opaqueMeshPartsRendered;
     }
     
     #ifdef WANT_DEBUG_MESHBOXES
@@ -2192,8 +2192,8 @@ void Model::endScene(RenderArgs* args) {
         GLBATCH(glUseProgram)(0);
 
         if (args) {
-            args->_translucentMeshPartsRendered = translucentParts;
-            args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+            args->_details._translucentMeshPartsRendered = translucentParts;
+            args->_details._opaqueMeshPartsRendered = opaqueMeshPartsRendered;
         }
 
     }
@@ -2430,7 +2430,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
 
             if (args) {
-                args->_materialSwitches++;
+                args->_details._materialSwitches++;
             }
 
             // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
@@ -2463,8 +2463,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         const int INDICES_PER_QUAD = 4;
-        args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-        args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+        args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+        args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
     }
 }
 
@@ -2683,7 +2683,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         // if we got here, then check to see if this mesh is in view
         if (args) {
             bool shouldRender = true;
-            args->_meshesConsidered++;
+            args->_details._meshesConsidered++;
 
             if (args->_viewFrustum) {
             
@@ -2695,15 +2695,15 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
                     if (!shouldRender) {
-                        args->_meshesTooSmall++;
+                        args->_details._meshesTooSmall++;
                     }
                 } else {
-                    args->_meshesOutOfView++;
+                    args->_details._meshesOutOfView++;
                 }
             }
 
             if (shouldRender) {
-                args->_meshesRendered++;
+                args->_details._meshesRendered++;
             } else {
                 continue; // skip this mesh
             }
@@ -2797,7 +2797,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     if (args) {
-                        args->_materialSwitches++;
+                        args->_details._materialSwitches++;
                     }
 
                 }
@@ -2833,8 +2833,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             if (args) {
                 const int INDICES_PER_TRIANGLE = 3;
                 const int INDICES_PER_QUAD = 4;
-                args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+                args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+                args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
             }
         }
     }

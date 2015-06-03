@@ -71,7 +71,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
         if (bound.isNull()) {
             outItems.push_back(id); // One more Item to render
-            args->_itemsRendered++;
+            args->_details._itemsRendered++;
             continue;
         }
 
@@ -83,12 +83,12 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
             
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
-                args->_itemsRendered++;
+                args->_details._itemsRendered++;
             } else {
-                args->_itemsTooSmall++;
+                args->_details._itemsTooSmall++;
             }
         } else {
-            args->_itemsOutOfView++;
+            args->_details._itemsOutOfView++;
         }
     }
 }

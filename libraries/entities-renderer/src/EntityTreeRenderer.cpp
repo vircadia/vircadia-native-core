@@ -531,24 +531,6 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
      //   glPopMatrix();
 
         renderArgs->_batch = nullptr;
-         
-        // stats...
-        _meshesConsidered = renderArgs->_meshesConsidered;
-        _meshesRendered = renderArgs->_meshesRendered;
-        _meshesOutOfView = renderArgs->_meshesOutOfView;
-        _meshesTooSmall = renderArgs->_meshesTooSmall;
-
-        _elementsTouched = renderArgs->_elementsTouched;
-        _itemsRendered = renderArgs->_itemsRendered;
-        _itemsOutOfView = renderArgs->_itemsOutOfView;
-        _itemsTooSmall = renderArgs->_itemsTooSmall;
-
-        _materialSwitches = renderArgs->_materialSwitches;
-        _trianglesRendered = renderArgs->_trianglesRendered;
-        _quadsRendered = renderArgs->_quadsRendered;
-
-        _translucentMeshPartsRendered = renderArgs->_translucentMeshPartsRendered;
-        _opaqueMeshPartsRendered = renderArgs->_opaqueMeshPartsRendered;
     }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
@@ -672,7 +654,7 @@ void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* arg
 }
 
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
-    args->_elementsTouched++;
+    args->_details._elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
@@ -737,15 +719,15 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                             glower = new Glower(args, entityItem->getGlowLevel());
                         }
                         entityItem->render(args);
-                        args->_itemsRendered++;
+                        args->_details._itemsRendered++;
                         if (glower) {
                             delete glower;
                         }
                     } else {
-                        args->_itemsTooSmall++;
+                        args->_details._itemsTooSmall++;
                     }
                 } else {
-                    args->_itemsOutOfView++;
+                    args->_details._itemsOutOfView++;
                 }
             }
         }

@@ -74,7 +74,7 @@ namespace render {
 
         if (avatarPtr->isInitialized() && args) {
             avatarPtr->render(args, Application::getInstance()->getCamera()->getPosition());
-            args->_elementsTouched++;
+            args->_details._elementsTouched++;
         }
     }
 }
