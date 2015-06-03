@@ -865,6 +865,9 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     }
 
     bool somethingAdded = false;
+
+    qDebug() << "Model::addToScene : " << this->getURL().toString();
+
     // allow the attachments to add to scene
     foreach (Model* attachment, _attachments) {
         bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
@@ -904,6 +907,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _readyWhenAdded = false;
+    qDebug() << "Model::removeFromScene : " << this->getURL().toString();
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
@@ -922,6 +926,8 @@ bool Model::render(RenderArgs* renderArgs, float alpha) {
 }
 
 bool Model::renderCore(RenderArgs* args, float alpha) {
+  return true;
+  
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
         return false;
@@ -2247,14 +2253,19 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _transforms.push_back(Transform());
     }
 
-    _transforms[0] = _viewState->getViewTransform();
-    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    _transforms[0].preTranslate(-_translation);
-    batch.setViewTransform(_transforms[0]);
+  //  _transforms[0] = _viewState->getViewTransform();
+   // args->_viewFrustum->evalViewTransform(_transforms[0]);
 
-    const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-    auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+  //  _transforms[0].setTranslation(_translation);
+
+   // batch.setViewTransform(_transforms[0]);
+
+
+  //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+  //  const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+  //  auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2305,10 +2316,17 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (state.clusterMatrices.size() > 1) {
         GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
-        batch.setModelTransform(Transform());
+ //       batch.setModelTransform(Transform());
+       _transforms[0].setTranslation(_translation);
+
     } else {
-        batch.setModelTransform(Transform(state.clusterMatrices[0]));
+       _transforms[0] = Transform(state.clusterMatrices[0]);
+       _transforms[0].preTranslate(_translation);
+
+        //batch.setModelTransform(Transform(state.clusterMatrices[0]));
     }
+    batch.setModelTransform(_transforms[0]);
+
 
     if (mesh.blendshapes.isEmpty()) {
         batch.setInputFormat(networkMesh._vertexFormat);
@@ -2331,7 +2349,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     model::MaterialPointer material = part._material;
 
     if (material == nullptr) {
-        qCDebug(renderutils) << "WARNING: material == nullptr!!!";
+    //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";
     }
     
     if (material != nullptr) {

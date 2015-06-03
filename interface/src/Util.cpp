@@ -34,6 +34,7 @@
 using namespace std;
 
 void renderWorldBox() {
+    return;
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world

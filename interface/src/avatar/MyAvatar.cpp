@@ -45,6 +45,9 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
+#include "gpu/GLBackend.h"
+
+
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
@@ -1485,7 +1488,8 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-    RenderArgs renderArgs;
+    gpu::Context context(new gpu::GLBackend());
+    RenderArgs renderArgs(&context);
     QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
