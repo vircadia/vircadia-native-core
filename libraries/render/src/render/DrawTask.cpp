@@ -159,7 +159,7 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     // render
-    if ((maxDrawnItems < 0) || (maxDrawnItems > inItems.size()) {
+    if ((maxDrawnItems < 0) || (maxDrawnItems > inItems.size())) {
         for (auto id : inItems) {
             auto item = scene->getItem(id);
             item.render(args);
