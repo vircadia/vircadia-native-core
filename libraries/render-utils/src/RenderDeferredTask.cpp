@@ -14,18 +14,19 @@
 
 #include <PerfStat.h>
 
+
 using namespace render;
 
-
-template <> void render::jobRun(const PrepareDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+template <> void render::jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("PrepareDeferred");
     DependencyManager::get<DeferredLightingEffect>()->prepare();
 }
 
-template <> void render::jobRun(const ResolveDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ResolveDeferred");
     DependencyManager::get<DeferredLightingEffect>()->render();
 }
+
 
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
