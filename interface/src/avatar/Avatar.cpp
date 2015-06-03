@@ -32,7 +32,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <TextureCache.h>
 
 #include "Application.h"
@@ -277,10 +277,10 @@ enum TextRendererType {
     DISPLAYNAME
 };
 
-static TextRenderer* textRenderer(TextRendererType type) {
-    static TextRenderer* chatRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 24, -1,
-        false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* displayNameRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 12);
+static TextRenderer3D* textRenderer(TextRendererType type) {
+    static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, 24, -1,
+        false, TextRenderer3D::SHADOW_EFFECT);
+    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, 12);
 
     switch(type) {
     case CHAT:
@@ -296,6 +296,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
     if (_referential) {
         _referential->update();
     }
+
+    auto batch = renderArgs->_batch;
 
     if (postLighting &&
         glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
@@ -322,15 +324,11 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
 
             if (havePosition && haveRotation) {
-                glPushMatrix(); {
-                    glTranslatef(position.x, position.y, position.z);
-                    float angle = glm::degrees(glm::angle(rotation));
-                    glm::vec3 axis = glm::axis(rotation);
-                    glRotatef(angle, axis.x, axis.y, axis.z);
-
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
-
-                } glPopMatrix();
+                Transform pointerTransform;
+                pointerTransform.setTranslation(position);
+                pointerTransform.setRotation(rotation);
+                batch->setModelTransform(pointerTransform);
+                geometryCache->renderLine(*batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
 
@@ -348,14 +346,11 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
 
             if (havePosition && haveRotation) {
-                glPushMatrix(); {
-                    glTranslatef(position.x, position.y, position.z);
-                    float angle = glm::degrees(glm::angle(rotation));
-                    glm::vec3 axis = glm::axis(rotation);
-                    glRotatef(angle, axis.x, axis.y, axis.z);
-                    geometryCache->renderLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
-
-                } glPopMatrix();
+                Transform pointerTransform;
+                pointerTransform.setTranslation(position);
+                pointerTransform.setRotation(rotation);
+                batch->setModelTransform(pointerTransform);
+                geometryCache->renderLine(*batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
     }
@@ -432,14 +427,16 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
                 const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
                 const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-                glPushMatrix();
+                glm::vec3 position;
                 if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                    glTranslatef(_position.x, getDisplayNamePosition().y, _position.z);
+                    position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
                 } else {
-                    glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
+                    position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                DependencyManager::get<GeometryCache>()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15, LOOK_AT_INDICATOR_COLOR);
-                glPopMatrix();
+                Transform transform;
+                transform.setTranslation(position);
+                batch->setModelTransform(transform);
+                DependencyManager::get<GeometryCache>()->renderSphere(*batch, LOOK_AT_INDICATOR_RADIUS, 15, 15, LOOK_AT_INDICATOR_COLOR);
             }
         }
 
@@ -462,29 +459,31 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
 
             if (renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                glPushMatrix();
-                glTranslatef(_position.x, _position.y, _position.z);
-                glScalef(height, height, height);
+                Transform transform;
+                transform.setTranslation(_position);
+                transform.setScale(height);
+                batch->setModelTransform(transform);
 
                 if (_voiceSphereID == GeometryCache::UNKNOWN_ID) {
                     _voiceSphereID = DependencyManager::get<GeometryCache>()->allocateID();
                 }
-                DependencyManager::get<GeometryCache>()->renderSphere(sphereRadius, 15, 15,
+
+                DependencyManager::get<GeometryCache>()->renderSphere(*batch, sphereRadius, 15, 15,
                     glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE), true,
                     _voiceSphereID);
-
-                glPopMatrix();
             }
         }
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (!postLighting || renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE || (isMyAvatar() &&
+
+    if (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
-    renderDisplayName();
+
+    renderDisplayName(renderArgs);
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -674,7 +673,8 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
     return scaleFactor;
 }
 
-void Avatar::renderDisplayName() {
+void Avatar::renderDisplayName(RenderArgs* renderArgs) {
+    auto batch = renderArgs->_batch;
 
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats();
 
@@ -685,16 +685,9 @@ void Avatar::renderDisplayName() {
     // which viewing mode?
     bool inHMD = Application::getInstance()->isHMDMode();
 
-    glDisable(GL_LIGHTING);
-
-    glPushMatrix();
     glm::vec3 textPosition = getDisplayNamePosition();
 
-    glTranslatef(textPosition.x, textPosition.y, textPosition.z);
-
     // we need "always facing camera": we must remove the camera rotation from the stack
-
-
     glm::vec3 frontAxis(0.0f, 0.0f, 1.0f);
     if (inHMD) {
         glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
@@ -706,10 +699,16 @@ void Avatar::renderDisplayName() {
 
     frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
     float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
-    glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
 
+    // TODO: Fix scaling - at some point this or the text rendering changed in scale.
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    glScalef(scaleFactor, -scaleFactor, scaleFactor);  // TextRenderer::draw paints the text upside down in y axis
+    scaleFactor /= 3.0f;
+
+    // TODO: Fix rotation.  Currently it causes horizontal stretching, possibly due to a bad view matrix.
+    Transform textTransform;
+    textTransform.setTranslation(textPosition);
+    //textTransform.setRotation(glm::quat(glm::degrees(angle), glm::vec3(0.0f, 1.0f, 0.0f)));
+    textTransform.setScale(scaleFactor);
 
     // optionally render timing stats for this avatar with the display name
     QString renderedDisplayName = _displayName;
@@ -752,22 +751,21 @@ void Avatar::renderDisplayName() {
     right += border;
 
     // We are drawing coplanar textures with depth: need the polygon offset
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.0f, 1.0f);
+    //glEnable(GL_POLYGON_OFFSET_FILL);
+    //glPolygonOffset(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(left, bottom, right - left, top - bottom, 3,
+    auto backgroundTransform = textTransform;
+    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
+    batch->setModelTransform(backgroundTransform);
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(*batch, left, bottom, right - left, top - bottom, 3,
             glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
 
     glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
 
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    textRenderer(DISPLAYNAME)->draw(text_x, text_y, nameUTF8.data(), color);
-
-    glPopMatrix();
-
-    glEnable(GL_LIGHTING);
+    batch->setModelTransform(textTransform);
+    textRenderer(DISPLAYNAME)->draw(*batch, text_x, text_y, nameUTF8.data(), color);
 }
 
 bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
