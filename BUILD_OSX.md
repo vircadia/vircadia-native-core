@@ -12,6 +12,12 @@ We have a [homebrew formulas repository](https://github.com/highfidelity/homebre
 
 *Our [qt5 homebrew formula](https://raw.github.com/highfidelity/homebrew-formulas/master/qt5.rb) is for a patched version of Qt 5.4.x stable that removes wireless network scanning that can reduce real-time audio performance. We recommended you use this formula to install Qt.*
 
+###Qt
+
+Assuming you've installed Qt 5 using the homebrew instructions above, you'll need to set QT_CMAKE_PREFIX_PATH so CMake can find your installation of Qt. For Qt 5.4.1 installed via homebrew, set QT_CMAKE_PREFIX_PATH as follows.
+
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.4.1/lib/cmake
+
 ###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
 

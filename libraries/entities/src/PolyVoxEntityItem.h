@@ -40,19 +40,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
-
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setXColor(const xColor& value) {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
-    }
     
-    virtual ShapeType getShapeType() const { return SHAPE_TYPE_POLYVOX; }
-
     // never have a ray intersection pick a PolyVoxEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -61,7 +49,7 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const;
 
-    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) { _voxelVolumeSize = voxelVolumeSize; }
+    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
     virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
 
     virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
@@ -69,16 +57,19 @@ class PolyVoxEntityItem : public EntityItem {
 
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
-        SURFACE_CUBIC
+        SURFACE_CUBIC,
+	SURFACE_EDGED_CUBIC
     };
 
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
     virtual void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) {
-        _voxelSurfaceStyle = (PolyVoxSurfaceStyle) voxelSurfaceStyle;
+	setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle);
     }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
 
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
+    static const float MAX_VOXEL_DIMENSION;
+
     static const QByteArray DEFAULT_VOXEL_DATA;
     static const PolyVoxSurfaceStyle DEFAULT_VOXEL_SURFACE_STYLE;
 
@@ -88,8 +79,15 @@ class PolyVoxEntityItem : public EntityItem {
     // coords are in world-space
     virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue) {}
 
+    virtual void setAll(uint8_t toValue) {}
+
+    virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue) {}
+    
+    virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
+    virtual void setVoxel(int x, int y, int z, uint8_t toValue) {}
+
+
  protected:
-    rgbColor _color;
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;

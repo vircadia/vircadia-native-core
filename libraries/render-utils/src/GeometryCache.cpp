@@ -660,7 +660,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
     BatchItemDetails& details = _registeredVertices[id];
-
     if (details.isCreated) {
         details.clear();
         #ifdef WANT_DEBUG
@@ -799,7 +798,7 @@ void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
         batch.setInputFormat(details.streamFormat);
         batch.setInputStream(0, *details.stream);
         batch.draw(primitiveType, details.vertices, 0);
-
+        
         gpu::GLBackend::renderBatch(batch);
 
         glDisableClientState(GL_VERTEX_ARRAY);

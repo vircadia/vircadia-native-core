@@ -21,8 +21,7 @@ class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        PolyVoxEntityItem(entityItemID, properties) { }
+    RenderablePolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
     virtual ~RenderablePolyVoxEntityItem();
 
@@ -34,6 +33,10 @@ public:
         // _needsModelReload = true;
     }
 
+    virtual uint8_t getVoxel(int x, int y, int z);
+    virtual void setVoxel(int x, int y, int z, uint8_t toValue);
+    
+    void updateOnCount(int x, int y, int z, uint8_t new_value);
 
     void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
@@ -41,13 +44,22 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
+    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+
     void getModel();
 
     virtual void setVoxelData(QByteArray voxelData);
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
+    glm::vec3 getSurfacePositionAdjustment() const;
     glm::mat4 voxelToWorldMatrix() const;
+    glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 worldToVoxelMatrix() const;
+
+    virtual ShapeType getShapeType() const;
+    virtual bool isReadyToComputeShape();
+    virtual void computeShapeInfo(ShapeInfo& info);
+
 
     // coords are in voxel-volume space
     virtual void setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue);
@@ -55,13 +67,24 @@ public:
     // coords are in world-space
     virtual void setSphere(glm::vec3 center, float radius, uint8_t toValue);
 
+    virtual void setAll(uint8_t toValue);
+
+    virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
+    
 private:
+    // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
+    // may not match _voxelVolumeSize.
+
     void compressVolumeData();
     void decompressVolumeData();
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;
     bool _needsModelReload = true;
+
+    QVector<QVector<glm::vec3>> _points; // XXX
+
+    int _onCount = 0; // how many non-zero voxels are in _volData
 };
 
 
