@@ -42,6 +42,12 @@ panel.newSlider("Num Drawn Opaques", 0, 1000,
     function(value) { return (value); }
 );
 
+panel.newSlider("Max Drawn Opaques", -1, 1000, 
+    function(value) { Scene.setEngineMaxDrawnOpaqueItems(value); },
+    function() { return Scene.getEngineMaxDrawnOpaqueItems(); },
+    function(value) { return (value); }
+);
+
 panel.newCheckbox("Enable Cull Transparent", 
     function(value) { Scene.setEngineCullTransparent((value != 0)); },
     function() { return Scene.doEngineCullTransparent(); },
@@ -69,6 +75,12 @@ panel.newSlider("Num Feed Transparents", 0, 1000,
 panel.newSlider("Num Drawn Transparents", 0, 1000, 
     function(value) { },
     function() { return Scene.getEngineNumDrawnTransparentItems(); },
+    function(value) { return (value); }
+);
+
+panel.newSlider("Max Drawn Transparents", -1, 1000, 
+    function(value) { Scene.setEngineMaxDrawnTransparentItems(value); },
+    function() { return Scene.getEngineMaxDrawnTransparentItems(); },
     function(value) { return (value); }
 );
 

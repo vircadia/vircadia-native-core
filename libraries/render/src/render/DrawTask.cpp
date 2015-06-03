@@ -154,14 +154,26 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     }
 }
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, int maxDrawnItems) {
     PerformanceTimer perfTimer("renderItems");
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     // render
-    for (auto id : inItems) {
-        auto item = scene->getItem(id);
-        item.render(args);
+    if ((maxDrawnItems < 0) || (maxDrawnItems > inItems.size()) {
+        for (auto id : inItems) {
+            auto item = scene->getItem(id);
+            item.render(args);
+        }
+    } else {
+        int numItems = 0;
+        for (auto id : inItems) {
+            auto item = scene->getItem(id);
+            item.render(args);
+            numItems++;
+            if (numItems >= maxDrawnItems) {
+                return;
+            }
+        }
     }
 }
 
@@ -262,7 +274,7 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
             batch._glDrawBuffers(bufferCount, buffers);
         }
 
-        renderItems(sceneContext, renderContext, renderedItems);
+        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnOpaqueItems);
 
         args->_context->render((*args->_batch));
         args->_batch = nullptr;
@@ -329,7 +341,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
             args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
          }
 
-        renderItems(sceneContext, renderContext, renderedItems);
+        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
 
         {
             GLenum buffers[3];
@@ -340,7 +352,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
         }
 
 
-        renderItems(sceneContext, renderContext, renderedItems);
+        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
 
         args->_context->render((*args->_batch));
         args->_batch = nullptr;
