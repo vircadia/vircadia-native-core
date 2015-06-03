@@ -1,5 +1,5 @@
-
 var controlHeld = false;
+var shiftHeld = false;
 
 
 function mousePressEvent(event) {
@@ -15,9 +15,11 @@ function mousePressEvent(event) {
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             if (controlHeld) {
-                Entities.setVoxelSphere(id, intersection.intersection, 1.2, 0);
+                Entities.setVoxelSphere(id, intersection.intersection, 1.0, 0);
+            } else if (shiftHeld) {
+                Entities.setAllVoxels(id, 255);
             } else {
-                Entities.setVoxelSphere(id, intersection.intersection, 1.2, 255);
+                Entities.setVoxelSphere(id, intersection.intersection, 1.0, 255);
             }
         }
     }
@@ -28,12 +30,18 @@ function keyPressEvent(event) {
     if (event.text == "CONTROL") {
         controlHeld = true;
     }
+    if (event.text == "SHIFT") {
+        shiftHeld = true;
+    }
 }
 
 
 function keyReleaseEvent(event) {
     if (event.text == "CONTROL") {
         controlHeld = false;
+    }
+    if (event.text == "SHIFT") {
+        shiftHeld = false;
     }
 }
 
