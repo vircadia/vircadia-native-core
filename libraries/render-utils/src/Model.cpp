@@ -2360,6 +2360,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     qint64 offset = 0;
 
+    // guard against partially loaded meshes
+    if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
+        return; 
+    }
+
     const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
