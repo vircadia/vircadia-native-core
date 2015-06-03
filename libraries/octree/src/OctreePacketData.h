@@ -162,6 +162,9 @@ public:
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
+    
+    //appends a QVector of vec3's to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QVector<glm::vec3>& value);
 
     /// appends a packed quat to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::quat& value);
@@ -185,7 +188,7 @@ public:
     bool appendRawData(const unsigned char* data, int length);
     bool appendRawData(QByteArray data);
 
-    /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
+    /// returns a byte offset from beginning of the uncompressed stream based on offset from end.
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
@@ -241,7 +244,9 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
+
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
