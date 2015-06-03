@@ -298,6 +298,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     _renderItemID = scene->allocateID();
     pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel.addToScene(scene, pendingChanges);
+    getHead()->getFaceModel().addToScene(scene, pendingChanges);
     return true;
 }
 
