@@ -706,10 +706,26 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i2 = part.quadIndices[vIndex++];
                             int i3 = part.quadIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
-                            glm::vec3 v3 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                            glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
+                            
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+                            thisPartBounds += mv3;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
+                            glm::vec3 v3 = calculateScaledOffsetPoint(mv3);
                         
                             // Sam's recommended triangle slices
                             Triangle tri1 = { v0, v1, v3 };
@@ -722,14 +738,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
                             
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(v0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            }
-                            thisPartBounds += v0;
-                            thisPartBounds += v1;
-                            thisPartBounds += v2;
-                            thisPartBounds += v3;
                         }
                     }
 
@@ -741,21 +749,27 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i1 = part.triangleIndices[vIndex++];
                             int i2 = part.triangleIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
 
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
-
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(v0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            }
-                            thisPartBounds += v0;
-                            thisPartBounds += v1;
-                            thisPartBounds += v2;
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
@@ -1225,6 +1239,11 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
     Extents translatedExtents = { rotatedExtents.minimum + _translation, 
                                   rotatedExtents.maximum + _translation };
     return translatedExtents;
+}
+
+/// Returns the world space equivalent of some box in model space.
+AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
+    return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
@@ -2231,10 +2250,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         recalculateMeshBoxes(true);
     }
     if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
-        return _calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)];
-    }
-    if (!_calculatedMeshBoxesValid && _calculatedMeshBoxes.size() > meshIndex) {
-        return _calculatedMeshBoxes[meshIndex];
+        return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
     }
     return AABox();
 }

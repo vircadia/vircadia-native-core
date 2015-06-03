@@ -158,6 +158,9 @@ public:
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
 
+    /// Returns the world space equivalent of some box in model space.
+    AABox calculateScaledOffsetAABox(const AABox& box) const;
+
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
 
