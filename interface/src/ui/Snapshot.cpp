@@ -35,56 +35,43 @@ const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2.jpg";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
 
-const QString LOCATION_X = "location-x";
-const QString LOCATION_Y = "location-y";
-const QString LOCATION_Z = "location-z";
-
-const QString ORIENTATION_X = "orientation-x";
-const QString ORIENTATION_Y = "orientation-y";
-const QString ORIENTATION_Z = "orientation-z";
-const QString ORIENTATION_W = "orientation-w";
-
-const QString PATH = "path";
-
-const QString DOMAIN_KEY = "domain";
-
-const QString URL = "url";
+const QString URL = "highfidelity_url";
 
 Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
-                                QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
-    
+
     if (!QFile(snapshotPath).exists()) {
         return NULL;
     }
-    
+
     QImage shot(snapshotPath);
-    
+
     // no location data stored
     if (shot.text(URL).isEmpty()) {
         return NULL;
     }
 
-	// parsing URL
-	QUrl url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
-    
+    // parsing URL
+    QUrl url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
+
     SnapshotMetaData* data = new SnapshotMetaData();
-	data->setURL(url);
-	                      
+    data->setURL(url);
+
     return data;
 }
 
 QString Snapshot::saveSnapshot(QImage image) {
     QFile* snapshotFile = savedFileForSnapshot(image, false);
-    
+
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
-    
+
     QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
 
     delete snapshotFile;
-    
+
     return snapshotPath;
 }
 
@@ -94,72 +81,55 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
 }
 
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
-    
-    //Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    //
-    //glm::vec3 location = avatar->getPosition();
-    //glm::quat orientation = avatar->getHead()->getOrientation();
-    //
-    //// add metadata
-    //shot.setText(LOCATION_X, QString::number(location.x));
-    //shot.setText(LOCATION_Y, QString::number(location.y));
-    //shot.setText(LOCATION_Z, QString::number(location.z));
-    //
-    //shot.setText(ORIENTATION_X, QString::number(orientation.x));
-    //shot.setText(ORIENTATION_Y, QString::number(orientation.y));
-    //shot.setText(ORIENTATION_Z, QString::number(orientation.z));
-    //shot.setText(ORIENTATION_W, QString::number(orientation.w));
-    //
-    //shot.setText(DOMAIN_KEY, DependencyManager::get<NodeList>()->getDomainHandler().getHostname());
-	//
-	//shot.setText(PATH, QString::number());
 
-	// adding URL to snapshot
-	QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
-	shot.setText(URL, currentURL.toString());
+    // adding URL to snapshot
+    QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
+    shot.setText(URL, currentURL.toString());
 
     QString formattedLocation = QString(currentURL.toString());
     // replace decimal . with '-'
     formattedLocation.replace('.', '-');
-    
+
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     // normalize username, replace all non alphanumeric with '-'
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
-    
+
     QDateTime now = QDateTime::currentDateTime();
-    
+
     QString filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
-    
+
     const int IMAGE_QUALITY = 100;
-    
+
     if (!isTemporary) {
         QString snapshotFullPath = snapshotsLocation.get();
-        
+
         if (!snapshotFullPath.endsWith(QDir::separator())) {
             snapshotFullPath.append(QDir::separator());
         }
-        
+
         snapshotFullPath.append(filename);
-        
+
         QFile* imageFile = new QFile(snapshotFullPath);
-		std::string str = snapshotFullPath.toStdString();
+        std::string str = snapshotFullPath.toStdString();
         imageFile->open(QIODevice::WriteOnly);
-        
+
         shot.save(imageFile, 0, IMAGE_QUALITY);
         imageFile->close();
-        
+
         return imageFile;
-    } else {
+
+    }
+    else {
         QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
-        
+
         if (!imageTempFile->open()) {
             qDebug() << "Unable to open QTemporaryFile for temp snapshot. Will not save.";
             return NULL;
         }
-        
+
         shot.save(imageTempFile, 0, IMAGE_QUALITY);
         imageTempFile->close();
-        
+
         return imageTempFile;
     }
 }

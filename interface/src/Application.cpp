@@ -1696,9 +1696,9 @@ bool Application::acceptSnapshot(const QString& urlString) {
     
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
-		if (!snapshotData->getURL().toString().isEmpty()) {
-			DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
-		}
+        if (!snapshotData->getURL().toString().isEmpty()) {
+	        DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
+        }
     } else {
         QMessageBox msgBox;
         msgBox.setText("No location details were found in the file "

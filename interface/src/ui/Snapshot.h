@@ -24,12 +24,12 @@ class QTemporaryFile;
 
 class SnapshotMetaData {
 public:
-    
+
     QUrl getURL() { return _URL; }
-	void setURL(QUrl URL) { _URL = URL; }
-    
+    void setURL(QUrl URL) { _URL = URL; }
+
 private:
-	QUrl _URL;
+    QUrl _URL;
 };
 
 class Snapshot {
@@ -37,7 +37,7 @@ public:
     static QString saveSnapshot(QImage image);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
-    
+
     static Setting::Handle<QString> snapshotsLocation;
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
