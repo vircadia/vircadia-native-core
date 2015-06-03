@@ -34,6 +34,7 @@ public:
     enum FlagBit {
         TYPE_SHAPE = 0,   // Item is a Shape
         TYPE_LIGHT,       // Item is a Light
+        TYPE_BACKGROUND,  // Item is a Background
         TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
@@ -62,6 +63,7 @@ public:
 
         Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
         Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
+        Builder& withTypeBackground() { _flags.set(TYPE_BACKGROUND); return (*this); }
         Builder& withTransparent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
@@ -75,6 +77,7 @@ public:
         static ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
         static ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
         static ItemKey light() { return Builder().withTypeLight().build(); }
+        static ItemKey background() { return Builder().withTypeBackground().build(); }
     };
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
@@ -126,6 +129,7 @@ public:
 
         Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
         Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
+        Builder& withTypeBackground()   { _value.set(ItemKey::TYPE_BACKGROUND); _mask.set(ItemKey::TYPE_BACKGROUND); return (*this); }
         
         Builder& withOpaque()           { _value.reset(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
         Builder& withTransparent()      { _value.set(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
@@ -154,6 +158,7 @@ public:
         static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace().build(); }
         static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace().build(); }
         static ItemFilter light() { return Builder().withTypeLight().build(); }
+        static ItemFilter background() { return Builder().withTypeBackground().build(); }
     };
 
     // Item Filter operator testing if a key pass the filter

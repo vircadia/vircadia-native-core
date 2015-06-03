@@ -30,6 +30,19 @@ class RenderContext {
 public:
     RenderArgs* args;
 
+    bool _cullOpaque = true;
+    bool _sortOpaque = true;
+    bool _renderOpaque = true;
+    bool _cullTransparent = true;
+    bool _sortTransparent = true;
+    bool _renderTransparent = true;
+
+    int _numFeedOpaqueItems = 0;
+    int _numDrawnOpaqueItems = 0;
+    
+    int _numFeedTransparentItems = 0;
+    int _numDrawnTransparentItems = 0;
+
     RenderContext() {}
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
@@ -60,6 +73,7 @@ public:
 
     // Push a RenderContext
     void setRenderContext(const RenderContext& renderContext);
+    RenderContextPointer getRenderContext() const { return _renderContext; }
 
     void addTask(const TaskPointer& task);
     const Tasks& getTasks() const { return _tasks; }
