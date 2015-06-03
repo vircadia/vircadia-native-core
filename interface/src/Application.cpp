@@ -3190,7 +3190,7 @@ namespace render {
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
         if (args->_renderMode != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
-            renderWorldBox();
+            renderWorldBox(args);
 
             // FIXME: there's currently a bug in the new render engine, if this origin dot is rendered out of view it will
             // screw up the state of textures on models so they all end up rendering in the incorrect tint/color/texture

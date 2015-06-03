@@ -16,10 +16,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <QSettings>
 
+#include "RenderArgs.h"
+
 float randFloat();
 const glm::vec3 randVector();
 
-void renderWorldBox();
+void renderWorldBox(RenderArgs* renderArgs);
 int widthText(float scale, int mono, char const* string);
 
 void drawText(int x, int y, float scale, float radians, int mono,
