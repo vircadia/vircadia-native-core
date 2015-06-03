@@ -123,6 +123,8 @@ public:
 
     virtual QString getName() { return ""; }
 
+    virtual int16_t computeCollisionGroup() = 0;
+
     friend class PhysicsEngine;
 
 protected:

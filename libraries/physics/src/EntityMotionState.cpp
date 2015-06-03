@@ -517,3 +517,8 @@ QString EntityMotionState::getName() {
     }
     return "";
 }
+
+// virtual 
+int16_t EntityMotionState::computeCollisionGroup() {
+    return COLLISION_GROUP_DEFAULT;
+}

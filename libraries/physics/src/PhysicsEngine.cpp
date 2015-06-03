@@ -23,8 +23,19 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
-    _originOffset(offset),
-    _characterController(nullptr) {
+        _originOffset(offset),
+        _characterController(nullptr) {
+    // build table of masks with their group as the key
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_KINEMATIC), COLLISION_MASK_KINEMATIC);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEBRIS), COLLISION_MASK_DEBRIS);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_TRIGGER), COLLISION_MASK_TRIGGER);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_AVATAR), COLLISION_MASK_MY_AVATAR);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_ATTACHMENT), COLLISION_MASK_MY_ATTACHMENT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_AVATAR), COLLISION_MASK_OTHER_AVATAR);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_ATTACHMENT), COLLISION_MASK_OTHER_ATTACHMENT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_COLLISIONLESS), COLLISION_MASK_COLLISIONLESS);
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -125,7 +136,8 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    _dynamicsWorld->addRigidBody(body);
+    int16_t group = motionState->computeCollisionGroup();
+    _dynamicsWorld->addRigidBody(body, group, getCollisionMask(group));
 
     motionState->getAndClearIncomingDirtyFlags();
 }
@@ -417,6 +429,7 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
     }
 }
 
+// static
 bool PhysicsEngine::physicsInfoIsActive(void* physicsInfo) {
     if (!physicsInfo) {
         return false;
@@ -431,6 +444,7 @@ bool PhysicsEngine::physicsInfoIsActive(void* physicsInfo) {
     return body->isActive();
 }
 
+// static
 bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn) {
     if (!physicsInfo) {
         return false;
@@ -447,4 +461,9 @@ bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn
     rotationReturn = bulletToGLM(worldTrans.getRotation());
 
     return true;
+}
+
+int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
+    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
+    return mask ? *mask : COLLISION_MASK_DEFAULT;
 }

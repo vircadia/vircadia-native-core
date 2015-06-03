@@ -5,6 +5,7 @@
 
 #include "BulletUtil.h"
 #include "DynamicCharacterController.h"
+#include "PhysicsEngine.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
@@ -267,7 +268,7 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         if (world && _rigidBody) {
             _dynamicsWorld = world;
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody);
+            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             //reset(_dynamicsWorld);
         }
