@@ -143,15 +143,22 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                 // make sure the properties has a type, so that the encode can know which properties to include
                 properties.setType(entity->getType());
                 if (properties.hasTerseUpdateChanges()) {
-                    // we make a bid for (or assert) our simulation ownership
                     auto nodeList = DependencyManager::get<NodeList>();
                     const QUuid myNodeID = nodeList->getSessionUUID();
-                    properties.setSimulatorID(myNodeID);
     
                     if (entity->getSimulatorID() == myNodeID) {
                         // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
                         entity->getAllTerseUpdateProperties(properties);
+                        // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
+                        // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                        // and instead let the physics simulation decide when to send a terse update.  This would remove
+                        // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
+                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible 
+                        // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
+                        // simulation.
                     }
+                    // we make a bid for (or assert existing) simulation ownership
+                    properties.setSimulatorID(myNodeID);
                 }
                 entity->setLastBroadcast(usecTimestampNow());
             }
