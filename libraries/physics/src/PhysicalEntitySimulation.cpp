@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PhysicalEntitySimulation.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 #include "ShapeManager.h"
+#include "ObjectActionPullToPoint.h"
+
+#include "PhysicalEntitySimulation.h"
 
 PhysicalEntitySimulation::PhysicalEntitySimulation() {
 }
@@ -232,25 +234,22 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
     }
 }
 
-void PhysicalEntitySimulation::addAction(EntityActionInterface* action) {
-    // if (_physicsEngine) {
-    //     _physicsEngine->addAction(action);
-    // }
-    _actionsToAdd += action;
-}
+EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType type,
+                                                               QUuid id,
+                                                               EntityItemPointer ownerEntity,
+                                                               QVariantMap arguments) {
+    switch (type) {
+        case ACTION_TYPE_NONE:
+            assert(false);
+            return nullptr;
+        case ACTION_TYPE_PULL_TO_POINT:
+            QVariantList target = arguments["target"].toList();
+            glm::vec3 glmTarget(target[0].toFloat(), target[1].toFloat(), target[2].toFloat());
+            return (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget);
+    }
 
-void PhysicalEntitySimulation::removeAction(const QUuid actionID) {
-    // if (_physicsEngine) {
-    //     _physicsEngine->removeAction(actionID);
-    // }
-    _actionsToRemove += actionID;
-}
-
-void PhysicalEntitySimulation::removeActions(QList<QUuid> actionIDsToRemove) {
-    // if (_physicsEngine) {
-    //     _physicsEngine->removeActions(actionIDsToRemove);
-    // }
-    _actionsToRemove += actionIDsToRemove;
+    assert(false);
+    return nullptr;
 }
 
 void PhysicalEntitySimulation::applyActionChanges() {
@@ -258,10 +257,9 @@ void PhysicalEntitySimulation::applyActionChanges() {
         foreach (EntityActionInterface* actionToAdd, _actionsToAdd) {
             _physicsEngine->addAction(actionToAdd);
         }
-        _actionsToAdd.clear();
         foreach (QUuid actionToRemove, _actionsToRemove) {
             _physicsEngine->removeAction(actionToRemove);
         }
-        _actionsToRemove.clear();
     }
+    EntitySimulation::applyActionChanges();
 }

@@ -11,13 +11,14 @@
 
 #include <VariantMapToScriptValue.h>
 
-#include "EntityScriptingInterface.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
+#include "EntitySimulation.h"
 
+#include "EntityScriptingInterface.h"
 
 EntityScriptingInterface::EntityScriptingInterface() :
     _entityTree(NULL)
@@ -83,7 +84,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             bidForSimulationOwnership(propertiesWithSimID);
-            entity->setSimulatorID(propertiesWithSimID.getSimulatorID()); // and make note of it now, so we can act on it right away.
+            // and make note of it now, so we can act on it right away.
+            entity->setSimulatorID(propertiesWithSimID.getSimulatorID());
         } else {
             qCDebug(entities) << "script failed to add new Entity to local Octree";
             success = false;
@@ -105,7 +107,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         _entityTree->lockForRead();
 
         EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
-        
+
         if (entity) {
             results = entity->getProperties();
 
@@ -124,7 +126,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         }
         _entityTree->unlock();
     }
-    
+
     return results;
 }
 
@@ -220,7 +222,7 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
         QVector<EntityItemPointer> entities;
         _entityTree->findEntities(center, radius, entities);
         _entityTree->unlock();
-        
+
         foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
         }
@@ -236,7 +238,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
         QVector<EntityItemPointer> entities;
         _entityTree->findEntities(box, entities);
         _entityTree->unlock();
-        
+
         foreach (EntityItemPointer entity, entities) {
             result << entity->getEntityItemID();
         }
@@ -393,7 +395,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     }
 }
 
-
 bool EntityScriptingInterface::setVoxels(QUuid entityID,
                                          std::function<void(PolyVoxEntityItem&)> actor) {
     if (!_entityTree) {
@@ -431,13 +432,11 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     return true;
 }
 
-
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
             polyVoxEntity.setSphere(center, radius, value);
         });
 }
-
 
 bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
     return setVoxels(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
@@ -445,9 +444,36 @@ bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& positio
         });
 }
 
-
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
             polyVoxEntity.setAll(value);
         });
+}
+
+QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::vec3& target) {
+    if (!_entityTree) {
+        return QUuid();
+    }
+
+    _entityTree->lockForWrite();
+
+    EntitySimulation* simulation = _entityTree->getSimulation();
+    QUuid actionID = QUuid::createUuid();
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qDebug() << "addAction -- unknown entity" << entityID;
+        _entityTree->unlock();
+        return QUuid();
+    }
+
+    QVariantMap arguments;
+    QVariantList targetList;
+    targetList << QVariant(target[0]) << QVariant(target[1]) << QVariant(target[2]);
+    arguments["target"] = targetList;
+    EntityActionInterface* action = simulation->actionFactory(ACTION_TYPE_PULL_TO_POINT, actionID, entity, arguments);
+    entity->addAction(action);
+
+    _entityTree->unlock();
+
+    return actionID;
 }

@@ -17,19 +17,11 @@ ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
     _ownerEntity(ownerEntity) {
 }
 
-ObjectAction::ObjectAction(EntityItemPointer ownerEntity) :
-    ObjectAction(QUuid::createUuid(), ownerEntity) {
-}
-
 ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    qDebug() << "updateAction called";
-}
-
-EntityActionInterface* ObjectAction::deserialize(EntityItemPointer ownerEntity, QByteArray data) {
-    return new ObjectAction(ownerEntity);
+    qDebug() << "ObjectAction::updateAction called";
 }
 
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {

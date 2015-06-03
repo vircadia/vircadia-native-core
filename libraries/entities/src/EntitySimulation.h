@@ -56,10 +56,14 @@ public:
 
     friend class EntityTree;
 
-    virtual void addAction(EntityActionInterface* action) {}
-    virtual void removeAction(const QUuid actionID) {}
-    virtual void removeActions(QList<QUuid> actionIDsToRemove) {}
-    virtual void applyActionChanges() {}
+    virtual EntityActionInterface* actionFactory(EntityActionType type,
+                                                 QUuid id,
+                                                 EntityItemPointer ownerEntity,
+                                                 QVariantMap arguments) { return nullptr; }
+    virtual void addAction(EntityActionInterface* action) { _actionsToAdd += action; }
+    virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
+    virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
+    virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }
 
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
@@ -119,6 +123,10 @@ protected:
 
  private:
     void moveSimpleKinematics();
+
+ protected:
+    QList<EntityActionInterface*> _actionsToAdd;
+    QList<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_EntitySimulation_h

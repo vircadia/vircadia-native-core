@@ -22,7 +22,6 @@
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
     ObjectAction(QUuid id, EntityItemPointer ownerEntity);
-    ObjectAction(EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
@@ -30,9 +29,6 @@ public:
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
 
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
-
-    virtual QByteArray serialize() { return QByteArray(); }
-    static EntityActionInterface* deserialize(EntityItemPointer ownerEntity, QByteArray data);
 
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 

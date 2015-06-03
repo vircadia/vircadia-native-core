@@ -12,14 +12,20 @@
 #ifndef hifi_EntityActionInterface_h
 #define hifi_EntityActionInterface_h
 
+enum EntityActionType {
+    ACTION_TYPE_NONE,
+    ACTION_TYPE_PULL_TO_POINT
+};
+
+
 class EntityActionInterface {
  public:
-    virtual ~EntityActionInterface();
+    virtual ~EntityActionInterface() {};
     virtual const QUuid& getID() const = 0;
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
-    virtual QByteArray serialize() = 0;
-    static EntityActionInterface* deserialize(EntityItemPointer ownerEntity, QByteArray data);
+    // virtual QByteArray serialize() = 0;
+    // static EntityActionInterface* deserialize(EntityItemPointer ownerEntity, QByteArray data);
 };
 
 #endif // hifi_EntityActionInterface_h
