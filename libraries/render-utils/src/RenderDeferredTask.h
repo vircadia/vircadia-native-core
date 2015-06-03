@@ -19,13 +19,16 @@
 class PrepareDeferred {
 public:
 };
-template <> void render::jobRun(const PrepareDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+namespace render {
+template <> void jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
 
 class ResolveDeferred {
 public:
 };
-template <> void render::jobRun(const ResolveDeferred& job, const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
+namespace render {
+template <> void jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
 
 class RenderDeferredTask : public render::Task {
 public:
