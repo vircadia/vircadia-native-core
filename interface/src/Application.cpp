@@ -3519,6 +3519,12 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         qDebug() << "renderArgs._trianglesRendered:" << renderArgs->_trianglesRendered;
         qDebug() << "renderArgs._quadsRendered:" << renderArgs->_quadsRendered;
         */
+        auto engineRC = _renderEngine->getRenderContext();
+        sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
+        sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
+
+        sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
+        sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
 
     }
 

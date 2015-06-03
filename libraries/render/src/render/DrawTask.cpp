@@ -223,11 +223,16 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     }
     ItemIDs& renderedItems = inItems;
 
+    renderContext->_numFeedOpaqueItems = renderedItems.size();
+
     ItemIDs culledItems;
     if (renderContext->_cullOpaque) {
         cullItems(sceneContext, renderContext, renderedItems, culledItems);
         renderedItems = culledItems;
     }
+
+    renderContext->_numDrawnOpaqueItems = renderedItems.size();
+
 
     ItemIDs sortedItems;
     if (renderContext->_sortOpaque) {
@@ -277,15 +282,19 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     ItemIDs inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-  //      inItems.push_back(id);
+        inItems.push_back(id);
     }
     ItemIDs& renderedItems = inItems;
+
+    renderContext->_numFeedTransparentItems = renderedItems.size();
 
     ItemIDs culledItems;
     if (renderContext->_cullTransparent) {
         cullItems(sceneContext, renderContext, inItems, culledItems);
         renderedItems = culledItems;
     }
+
+    renderContext->_numDrawnTransparentItems = renderedItems.size();
 
     ItemIDs sortedItems;
     if (renderContext->_sortTransparent) {

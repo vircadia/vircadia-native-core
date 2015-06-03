@@ -153,3 +153,10 @@ void SceneScriptingInterface::setEngineSortOpaque(bool sortOpaque) {
 void SceneScriptingInterface::setEngineSortTransparent(bool sortTransparent) {
     _engineSortOpaque = sortTransparent;
 }
+
+void SceneScriptingInterface::clearEngineCounters() {
+    _numFeedOpaqueItems = 0;
+    _numDrawnOpaqueItems = 0;
+    _numFeedTransparentItems = 0;
+    _numDrawnTransparentItems = 0;
+}

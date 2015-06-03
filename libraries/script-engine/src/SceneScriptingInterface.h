@@ -85,6 +85,18 @@ public:
     Q_INVOKABLE void setEngineSortTransparent(bool sortTransparent);
     Q_INVOKABLE bool doEngineSortTransparent() const { return _engineSortTransparent; }
 
+    void clearEngineCounters();
+    void setEngineDrawnOpaqueItems(int count) { _numDrawnOpaqueItems = count; }
+    Q_INVOKABLE int getEngineNumDrawnOpaqueItems() { return _numDrawnOpaqueItems; }
+    void setEngineDrawnTransparentItems(int count) { _numDrawnTransparentItems = count; }
+    Q_INVOKABLE int getEngineNumDrawnTransparentItems() { return _numDrawnTransparentItems; }
+
+    void setEngineFeedOpaqueItems(int count) { _numFeedOpaqueItems = count; }
+    Q_INVOKABLE int getEngineNumFeedOpaqueItems() { return _numFeedOpaqueItems; }
+    void setEngineFeedTransparentItems(int count) { _numFeedTransparentItems = count; }
+    Q_INVOKABLE int getEngineNumFeedTransparentItems() { return _numFeedTransparentItems; }
+
+
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);
@@ -104,6 +116,10 @@ protected:
     bool _engineSortOpaque = true;
     bool _engineSortTransparent = true;
 
+    int _numFeedOpaqueItems = 0;
+    int _numDrawnOpaqueItems = 0;
+    int _numFeedTransparentItems = 0;
+    int _numDrawnTransparentItems = 0;
 };
 
 #endif // hifi_SceneScriptingInterface_h
