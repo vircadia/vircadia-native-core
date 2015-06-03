@@ -26,9 +26,9 @@
 #include "Util.h"
 
 MainWindow::MainWindow(QWidget* parent) :
-QMainWindow(parent),
-_windowGeometry("WindowGeometry"),
-_windowState("WindowState", 0)
+    QMainWindow(parent),
+    _windowGeometry("WindowGeometry"),
+    _windowState("WindowState", 0)
 {
     setAcceptDrops(true);
 }
@@ -94,33 +94,29 @@ void MainWindow::changeEvent(QEvent* event) {
             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
             windowState() == Qt::WindowMinimized) {
             emit windowShown(false);
-        }
-        else {
+        } else {
             emit windowShown(true);
         }
 
         if (isFullScreen() != Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::Fullscreen, isFullScreen());
         }
-    }
-    else if (event->type() == QEvent::ActivationChange) {
+    } else if (event->type() == QEvent::ActivationChange) {
         if (isActiveWindow()) {
             emit windowShown(true);
-        }
-        else {
+        } else {
             emit windowShown(false);
         }
     }
     QMainWindow::changeEvent(event);
 }
 
-void MainWindow::dragEnterEvent(QDragEnterEvent* event)
-{
-    if (event->mimeData())
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+    if (event->mimeData()) {
         event->acceptProposedAction();
+    }
 }
 
-void MainWindow::dropEvent(QDropEvent* event)
-{
+void MainWindow::dropEvent(QDropEvent* event) {
     QCoreApplication::sendEvent(QCoreApplication::instance(), event);
 }
