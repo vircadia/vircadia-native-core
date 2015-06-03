@@ -521,5 +521,13 @@ QString EntityMotionState::getName() {
 
 // virtual 
 int16_t EntityMotionState::computeCollisionGroup() {
+    switch (computeObjectMotionType()){
+        case MOTION_TYPE_STATIC:
+            return COLLISION_GROUP_STATIC;
+        case MOTION_TYPE_KINEMATIC:
+            return COLLISION_GROUP_KINEMATIC;
+        default:
+            break;
+    }
     return COLLISION_GROUP_DEFAULT;
 }
