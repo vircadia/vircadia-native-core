@@ -22,7 +22,8 @@
 
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
-const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(qCompress(QByteArray(0), 9));
+const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 32.0f;
+const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(qCompress(QByteArray(0), 9)); // XXX
 const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
     PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
 
@@ -39,6 +40,40 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _type = EntityTypes::PolyVox;
     _created = properties.getCreated();
     setProperties(properties);
+}
+
+void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
+    assert((int)_voxelVolumeSize.x == _voxelVolumeSize.x);
+    assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
+    assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
+
+    _voxelVolumeSize = voxelVolumeSize;
+    if (_voxelVolumeSize.x < 1) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to 1";
+        _voxelVolumeSize.x = 1;
+    }
+    if (_voxelVolumeSize.x > MAX_VOXEL_DIMENSION) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping x of" << _voxelVolumeSize.x << "to max";
+        _voxelVolumeSize.x = MAX_VOXEL_DIMENSION;
+    }
+
+    if (_voxelVolumeSize.y < 1) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to 1";
+        _voxelVolumeSize.y = 1;
+    }
+    if (_voxelVolumeSize.y > MAX_VOXEL_DIMENSION) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping y of" << _voxelVolumeSize.y << "to max";
+        _voxelVolumeSize.y = MAX_VOXEL_DIMENSION;
+    }
+
+    if (_voxelVolumeSize.z < 1) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to 1";
+        _voxelVolumeSize.z = 1;
+    }
+    if (_voxelVolumeSize.z > MAX_VOXEL_DIMENSION) {
+        qDebug() << "PolyVoxEntityItem::setVoxelVolumeSize clamping z of" << _voxelVolumeSize.z << "to max";
+        _voxelVolumeSize.z = MAX_VOXEL_DIMENSION;
+    }
 }
 
 EntityItemProperties PolyVoxEntityItem::getProperties() const {
@@ -114,4 +149,3 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
-

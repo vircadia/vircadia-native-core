@@ -39,9 +39,11 @@ public:
 
     int _numFeedOpaqueItems = 0;
     int _numDrawnOpaqueItems = 0;
+    int _maxDrawnOpaqueItems = -1;
     
     int _numFeedTransparentItems = 0;
     int _numDrawnTransparentItems = 0;
+    int _maxDrawnTransparentItems = -1;
 
     RenderContext() {}
 };
