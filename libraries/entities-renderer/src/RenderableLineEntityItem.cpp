@@ -26,8 +26,6 @@ EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     assert(getType() == EntityTypes::Line);
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
