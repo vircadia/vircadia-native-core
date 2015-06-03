@@ -231,7 +231,7 @@ protected:
     glm::vec3 getDisplayNamePosition();
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
-    void renderDisplayName();
+    void renderDisplayName(RenderArgs* renderArgs);
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
 
