@@ -27,6 +27,8 @@
 #include <oglplus/shapes/wrapper.hpp>
 #include <oglplus/shapes/plane.hpp>
 
+#include <NumericalConstants.h>
+
 typedef std::shared_ptr<oglplus::Framebuffer> FramebufferPtr;
 typedef std::shared_ptr<oglplus::shapes::ShapeWrapper> ShapeWrapperPtr;
 typedef std::shared_ptr<oglplus::Buffer> BufferPtr;
@@ -37,4 +39,5 @@ typedef oglplus::Uniform<mat4> Mat4Uniform;
 ProgramPtr loadDefaultShader();
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs);
 ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect = 1.0f);
-
+ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 80, int stacks = 80);
+    

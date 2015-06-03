@@ -16,7 +16,7 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
     ovr_for_each_eye([&](ovrEyeType eye) {
         ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+            ovrMatrix4f_Projection(erd.Fov, 0.1f, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
         _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
@@ -29,7 +29,7 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
     }
-
+    _frameIndex = 0;
     WidgetOpenGLDisplayPlugin::activate(container);
 }
 

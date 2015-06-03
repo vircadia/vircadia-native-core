@@ -18,11 +18,19 @@
 
 #include <OVR_CAPI_GL.h>
 
+#include <PerfStat.h>
+
 #include "plugins/PluginContainer.h"
 
 #include "OculusHelpers.h"
+#include <oglplus/opt/list_init.hpp>
+#include <oglplus/shapes/vector.hpp>
+#include <oglplus/opt/list_init.hpp>
+#include <oglplus/shapes/obj_mesh.hpp>
 
 #include "../OglplusHelpers.h"
+
+#define DEFAULT_HMD_UI_ANGULAR_SIZE 72.0f
 
 using oglplus::Framebuffer;
 using oglplus::DefaultFramebuffer;
@@ -220,13 +228,10 @@ bool OculusWin32DisplayPlugin::isSupported() {
 }
 
 ovrLayerEyeFov& OculusWin32DisplayPlugin::getSceneLayer() {
-    return _layers[0]->EyeFov;
+    return _sceneLayer;
 }
 
-ovrLayerQuad& OculusWin32DisplayPlugin::getUiLayer() {
-    return _layers[1]->Quad;
-}
-
+//static gpu::TexturePointer _texture;
 
 void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
@@ -238,9 +243,6 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         qFatal("Failed to acquire HMD");
     }
     // Parent class relies on our _hmd intialization, so it must come after that.
-    _layers.push_back(new ovrLayer_Union());
-    _layers.push_back(new ovrLayer_Union());
-
     ovrLayerEyeFov& sceneLayer = getSceneLayer();
     memset(&sceneLayer, 0, sizeof(ovrLayerEyeFov));
     sceneLayer.Header.Type = ovrLayerType_EyeFov;
@@ -251,41 +253,50 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
 
-    ovrLayerQuad& uiLayer = getUiLayer();
-    memset(&uiLayer, 0, sizeof(ovrLayerQuad));
-    uiLayer.Header.Type = ovrLayerType_QuadInWorld;
-    uiLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HighQuality;
-    uiLayer.QuadPoseCenter.Orientation = { 0, 0, 0, 1 };
-    uiLayer.QuadPoseCenter.Position = { 0, 0, -1 };
+    //ovrLayerQuad& uiLayer = getUiLayer();
+    //memset(&uiLayer, 0, sizeof(ovrLayerQuad));
+    //uiLayer.Header.Type = ovrLayerType_QuadInWorld;
+    //uiLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HighQuality;
+    //uiLayer.QuadPoseCenter.Orientation = { 0, 0, 0, 1 };
+    //uiLayer.QuadPoseCenter.Position = { 0, 0, -1 };
 
     OculusBaseDisplayPlugin::activate(container);
 }
 
 void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
     OculusBaseDisplayPlugin::customizeContext(container);
-    wglSwapIntervalEXT(0);
+    
+    //_texture = DependencyManager::get<TextureCache>()->
+    //    getImageTexture(PathUtils::resourcesPath() + "/images/cube_texture.png");
+
+    _uiSurface = loadSphereSection(_program, glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE), aspect(getCanvasSize()));
+
     uvec2 mirrorSize = toGlm(_widget->geometry().size());
     _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
     _mirrorFbo->Init(mirrorSize);
-    _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
+
+
     uvec2 swapSize = toGlm(getRecommendedFramebufferSize());
+    _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(swapSize);
 
+    // We're rendering both eyes to the same texture, so only one of the 
+    // pointers is populated
     ovrLayerEyeFov& sceneLayer = getSceneLayer();
     sceneLayer.ColorTexture[0] = _sceneFbo->color;
+    // not needed since the structure was zeroed on init, but explicit
     sceneLayer.ColorTexture[1] = nullptr;
-
-    _uiFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
-    _uiFbo->Init(getCanvasSize());
 }
 
 void OculusWin32DisplayPlugin::deactivate() {
     makeCurrent();
     _sceneFbo.reset();
-    _uiFbo.reset();
     _mirrorFbo.reset();
-//    doneCurrent();
+    _uiSurface.reset();
+    doneCurrent();
+
     OculusBaseDisplayPlugin::deactivate();
+
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
@@ -295,32 +306,45 @@ void OculusWin32DisplayPlugin::display(
     GLuint sceneTexture, const glm::uvec2& sceneSize,
     GLuint overlayTexture, const glm::uvec2& overlaySize) {
     using namespace oglplus;
+    bool wasActive = PerformanceTimer::isActive();
+    PerformanceTimer::setActive(true);
+    PerformanceTimer("OculusDisplayAndSwap");
+    
+    wglSwapIntervalEXT(0);
 
-    //Context::Viewport(_mirrorFbo->size.x, _mirrorFbo->size.y);
-    //glClearColor(0, 0, 1, 1);
-    //Context::Clear().ColorBuffer().DepthBuffer();
-    //_program->Bind();
-    //Mat4Uniform(*_program, "ModelView").Set(mat4());
-    //Mat4Uniform(*_program, "Projection").Set(mat4());
-    //glBindTexture(GL_TEXTURE_2D, sceneTexture);
-    //_plane->Use();
-    //_plane->Draw();
+    {
 
+    }
     _sceneFbo->Bound([&] {
-        Q_ASSERT(0 == glGetError());
-        using namespace oglplus;
-        Context::Viewport(_sceneFbo->size.x, _sceneFbo->size.y);
-        glClearColor(0, 0, 1, 1);
+        auto size = _sceneFbo->size;
+        Context::Viewport(size.x, size.y);
+
+        glClearColor(0, 0, 0, 0);
         Context::Clear().ColorBuffer();
 
         _program->Bind();
+        Mat4Uniform(*_program, "Projection").Set(mat4());
+        Mat4Uniform(*_program, "ModelView").Set(mat4());
         glBindTexture(GL_TEXTURE_2D, sceneTexture);
         _plane->Use();
         _plane->Draw();
-        Q_ASSERT(0 == glGetError());
+
+        
+        Context::Enable(Capability::Blend);
+        glBindTexture(GL_TEXTURE_2D, overlayTexture);
+        //glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_texture));
+        for_each_eye([&](Eye eye) {
+            Context::Viewport(eye == Left ? 0 : size.x / 2, 0, size.x / 2, size.y);
+            Mat4Uniform(*_program, "Projection").Set(getProjection(eye, mat4()));
+            Mat4Uniform(*_program, "ModelView").Set(glm::scale(glm::inverse(getModelview(eye, mat4())), vec3(1)));
+            _uiSurface->Use();
+            _uiSurface->Draw();
+        });
+        Context::Disable(Capability::Blend);
     });
 
-    ovrLayerQuad& uiLayer = _layers[1]->Quad;
+    /*
+    ovrLayerQuad& uiLayer = getUiLayer();
     if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
         _uiFbo->Resize(overlaySize);
         uiLayer.ColorTexture = _uiFbo->color;
@@ -344,47 +368,61 @@ void OculusWin32DisplayPlugin::display(
         _plane->Draw();
         Q_ASSERT(0 == glGetError());
     });
+    */
 
-    ovrLayerEyeFov& sceneLayer = _layers[0]->EyeFov;
+    ovrLayerEyeFov& sceneLayer = getSceneLayer(); 
     ovr_for_each_eye([&](ovrEyeType eye) {
         sceneLayer.RenderPose[eye] = _eyePoses[eye];
     });
 
-    ovrLayerHeader* layers[2];
-    layers[0] = &_layers[0]->Header;
-    layers[1] = &_layers[1]->Header;
 
-    ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, layers, 2);
+    auto windowSize = toGlm(getDeviceSize());
+
+    /* 
+       Two alternatives for mirroring to the screen, the first is to copy our own composited
+       scene to the window framebuffer, before distortion.  Note this only works if we're doing
+       ui compositing ourselves, and not relying on the Oculus SDK compositor (or we don't want 
+       the UI visible in the output window (unlikely).  This should be done before 
+    */
+    // _sceneFbo->Increment or we're be using the wrong texture
+    //_sceneFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
+    //    glBlitFramebuffer(
+    //        0, 0, _sceneFbo->size.x, _sceneFbo->size.y,
+    //        0, 0, windowSize.x, _mirrorFbo.y,
+    //        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //});
+
+    {
+        PerformanceTimer("OculusSubmit");
+        ovrLayerHeader* layers = &sceneLayer.Header;
+        ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, &layers, 1);
+    }
     _sceneFbo->Increment();
-    _uiFbo->Increment();
-    /*
-    _swapFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
-    glBlitFramebuffer(
-    0, 0, _swapFbo->size.x, _swapFbo->size.y,
-    0, 0, _mirrorFbo->size.x, _mirrorFbo->size.y,
-    GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    });
 
-
-    auto mirrorSize = toGlm(getDeviceSize());
-    Context::Viewport(mirrorSize.x, mirrorSize.y);
+    /* 
+        The other alternative for mirroring is to use the Oculus mirror texture support, which 
+        will contain the post-distorted and fully composited scene regardless of how many layers 
+        we send.
+    */
+    auto mirrorSize = _mirrorFbo->size;
     _mirrorFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
         glBlitFramebuffer(
-            0, _mirrorFbo->size.y, _mirrorFbo->size.x, 0,
-            0, 0, _mirrorFbo->size.x, _mirrorFbo->size.y,
+            0, mirrorSize.y, mirrorSize.x, 0,
+            0, 0, windowSize.x, windowSize.y,
             GL_COLOR_BUFFER_BIT, GL_NEAREST);
     });
-    */
+
+    ++_frameIndex;
+//    swapBuffers();
+    PerformanceTimer::setActive(wasActive);
+    if (0 == (_frameIndex % (75 * 5))) {
+        auto record1 = PerformanceTimer::getTimerRecord("OculusDisplayAndSwap");
+        auto record2 = PerformanceTimer::getTimerRecord("OculusSubmit");
+        qDebug() << "Average display and submit: " << record1.getAverage();
+        qDebug() << "Average submit: " << record2.getAverage();
+        qDebug() << "Diff " << record1.getAverage() - record2.getAverage();
+    }
 }
-
-
-// Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
-// SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
-// receive keyPress events for the Alt (and Meta) key in a reliable manner.
-//
-// This filter catches events before QMenuBar can steal the keyboard focus.
-// The idea was borrowed from
-// http://www.archivum.info/qt-interest@trolltech.com/2006-09/00053/Re-(Qt4)-Alt-key-focus-QMenuBar-(solved).html
 
 // Pass input events on to the application
 bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
@@ -399,8 +437,6 @@ bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 
-void OculusWin32DisplayPlugin::swapBuffers() {
-}
 
 void OculusWin32DisplayPlugin::finishFrame() {
     doneCurrent();

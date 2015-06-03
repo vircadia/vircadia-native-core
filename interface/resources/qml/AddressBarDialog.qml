@@ -112,6 +112,13 @@ Item {
             addressLine.forceActiveFocus();
         }
     }
+    
+    onParentChanged: {
+        if (enabled && visible) {
+            addressLine.forceActiveFocus();
+        }
+    }
+
 
     Behavior on opacity {
         // Animate opacity.
@@ -134,8 +141,9 @@ Item {
             if (destroyOnInvisible) {
                 destroy()
             }
+        } else {
+            addressLine.forceActiveFocus();
         }
-
     }
 
     function reset() {
