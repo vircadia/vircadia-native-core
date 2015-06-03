@@ -63,6 +63,8 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
+    
+    int startingSize = outItems.size();
 
     // Culling / LOD
     for (auto id : inItems) {
@@ -71,7 +73,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
         if (bound.isNull()) {
             outItems.push_back(id); // One more Item to render
-            args->_details._itemsRendered++;
             continue;
         }
 
@@ -83,7 +84,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
             
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
-                args->_details._itemsRendered++;
             } else {
                 args->_details._itemsTooSmall++;
             }
@@ -91,6 +91,8 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
             args->_details._itemsOutOfView++;
         }
     }
+    
+    args->_details._itemsRendered += (outItems.size() - startingSize);
 }
 
 struct ItemBound {

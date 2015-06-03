@@ -159,7 +159,6 @@ namespace render {
     }
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_details._elementsTouched++;
             if (payload && payload->entity) {
                 payload->entity->render(args);
             }

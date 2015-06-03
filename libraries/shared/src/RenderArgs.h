@@ -89,6 +89,7 @@ public:
     ShoudRenderFunctor _shouldRender;
     
     RenderDetails _details;
+    RenderDetails _outsideEngineDetails;
 
     float _alphaThreshold = 0.5f;
 };

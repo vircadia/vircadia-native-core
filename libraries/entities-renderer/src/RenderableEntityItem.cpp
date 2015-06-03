@@ -30,7 +30,6 @@ namespace render {
     }
     template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_details._elementsTouched++;
             if (payload && payload->entity) {
                 if (payload->entity->getType() != EntityTypes::Model) {
                     payload->entity->render(args);
