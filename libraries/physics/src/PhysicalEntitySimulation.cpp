@@ -258,8 +258,10 @@ void PhysicalEntitySimulation::applyActionChanges() {
         foreach (EntityActionInterface* actionToAdd, _actionsToAdd) {
             _physicsEngine->addAction(actionToAdd);
         }
+        _actionsToAdd.clear();
         foreach (QUuid actionToRemove, _actionsToRemove) {
             _physicsEngine->removeAction(actionToRemove);
         }
+        _actionsToRemove.clear();
     }
 }
