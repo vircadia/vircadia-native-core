@@ -17,6 +17,9 @@
 #include <QShowEvent>
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 #include "MainWindow.h"
 #include "Menu.h"
@@ -27,6 +30,7 @@ MainWindow::MainWindow(QWidget* parent) :
     _windowGeometry("WindowGeometry"),
     _windowState("WindowState", 0)
 {
+	setAcceptDrops(true);
 }
 
 void MainWindow::restoreGeometry() {
@@ -105,4 +109,21 @@ void MainWindow::changeEvent(QEvent* event) {
         }
     }
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+	if (event->mimeData())
+		event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+	/*QList<QUrl> urls = event->mimeData()->urls();
+	foreach(QUrl url, urls)
+	{
+		qDebug() << "urlmessage" << url.toString();
+	}*/
+
+	QCoreApplication::sendEvent(QCoreApplication::instance(), event);
 }

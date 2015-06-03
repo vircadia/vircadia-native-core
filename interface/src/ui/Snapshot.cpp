@@ -15,8 +15,10 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QTemporaryFile>
+#include <QUrl>
 
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
 #include <FileUtils.h>
@@ -28,7 +30,7 @@
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
-const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2@%3.jpg";
+const QString FILENAME_PATH_FORMAT = "hifi-snap-by-%1-on-%2.jpg";
 
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
@@ -42,7 +44,11 @@ const QString ORIENTATION_Y = "orientation-y";
 const QString ORIENTATION_Z = "orientation-z";
 const QString ORIENTATION_W = "orientation-w";
 
+const QString PATH = "path";
+
 const QString DOMAIN_KEY = "domain";
+
+const QString URL = "url";
 
 Setting::Handle<QString> Snapshot::snapshotsLocation("snapshotsLocation",
                                 QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
@@ -56,22 +62,16 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     QImage shot(snapshotPath);
     
     // no location data stored
-    if (shot.text(LOCATION_X).isEmpty() || shot.text(LOCATION_Y).isEmpty() || shot.text(LOCATION_Z).isEmpty()) {
+    if (shot.text(URL).isEmpty()) {
         return NULL;
     }
+
+	// parsing URL
+	QUrl url = QUrl(shot.text(URL), QUrl::ParsingMode::StrictMode);
     
     SnapshotMetaData* data = new SnapshotMetaData();
-    data->setLocation(glm::vec3(shot.text(LOCATION_X).toFloat(),
-                                shot.text(LOCATION_Y).toFloat(),
-                                shot.text(LOCATION_Z).toFloat()));
-    
-    data->setOrientation(glm::quat(shot.text(ORIENTATION_W).toFloat(),
-                                   shot.text(ORIENTATION_X).toFloat(),
-                                   shot.text(ORIENTATION_Y).toFloat(),
-                                   shot.text(ORIENTATION_Z).toFloat()));
-    
-    data->setDomain(shot.text(DOMAIN_KEY));
-                                   
+	data->setURL(url);
+	                      
     return data;
 }
 
@@ -82,7 +82,7 @@ QString Snapshot::saveSnapshot(QImage image) {
     snapshotFile->close();
     
     QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
-    
+
     delete snapshotFile;
     
     return snapshotPath;
@@ -90,29 +90,35 @@ QString Snapshot::saveSnapshot(QImage image) {
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));;
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     
-    Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    
-    glm::vec3 location = avatar->getPosition();
-    glm::quat orientation = avatar->getHead()->getOrientation();
-    
-    // add metadata
-    shot.setText(LOCATION_X, QString::number(location.x));
-    shot.setText(LOCATION_Y, QString::number(location.y));
-    shot.setText(LOCATION_Z, QString::number(location.z));
-    
-    shot.setText(ORIENTATION_X, QString::number(orientation.x));
-    shot.setText(ORIENTATION_Y, QString::number(orientation.y));
-    shot.setText(ORIENTATION_Z, QString::number(orientation.z));
-    shot.setText(ORIENTATION_W, QString::number(orientation.w));
-    
-    shot.setText(DOMAIN_KEY, DependencyManager::get<NodeList>()->getDomainHandler().getHostname());
+    //Avatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //
+    //glm::vec3 location = avatar->getPosition();
+    //glm::quat orientation = avatar->getHead()->getOrientation();
+    //
+    //// add metadata
+    //shot.setText(LOCATION_X, QString::number(location.x));
+    //shot.setText(LOCATION_Y, QString::number(location.y));
+    //shot.setText(LOCATION_Z, QString::number(location.z));
+    //
+    //shot.setText(ORIENTATION_X, QString::number(orientation.x));
+    //shot.setText(ORIENTATION_Y, QString::number(orientation.y));
+    //shot.setText(ORIENTATION_Z, QString::number(orientation.z));
+    //shot.setText(ORIENTATION_W, QString::number(orientation.w));
+    //
+    //shot.setText(DOMAIN_KEY, DependencyManager::get<NodeList>()->getDomainHandler().getHostname());
+	//
+	//shot.setText(PATH, QString::number());
 
-    QString formattedLocation = QString("%1_%2_%3").arg(location.x).arg(location.y).arg(location.z);
+	// adding URL to snapshot
+	QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
+	shot.setText(URL, currentURL.toString());
+
+    QString formattedLocation = QString(currentURL.toString());
     // replace decimal . with '-'
     formattedLocation.replace('.', '-');
     
@@ -122,7 +128,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     
     QDateTime now = QDateTime::currentDateTime();
     
-    QString filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation);
+    QString filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
     
     const int IMAGE_QUALITY = 100;
     
@@ -136,6 +142,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
         snapshotFullPath.append(filename);
         
         QFile* imageFile = new QFile(snapshotFullPath);
+		std::string str = snapshotFullPath.toStdString();
         imageFile->open(QIODevice::WriteOnly);
         
         shot.save(imageFile, 0, IMAGE_QUALITY);

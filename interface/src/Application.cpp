@@ -1696,12 +1696,9 @@ bool Application::acceptSnapshot(const QString& urlString) {
     
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
-        if (!snapshotData->getDomain().isEmpty()) {
-            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
-        }
-
-        _myAvatar->setPosition(snapshotData->getLocation());
-        _myAvatar->setOrientation(snapshotData->getOrientation());
+		if (!snapshotData->getURL().toString().isEmpty()) {
+			DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
+		}
     } else {
         QMessageBox msgBox;
         msgBox.setText("No location details were found in the file "
@@ -3452,6 +3449,10 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
         Glower glower;  // Sets alpha to 1.0
         _overlays.renderWorld(true);
     }
+
+
+
+
     activeRenderingThread = nullptr;
 }
 
