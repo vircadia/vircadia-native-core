@@ -814,14 +814,13 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
         if (payload) {
-            //return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
     template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
             args->_elementsTouched++;
-            //qDebug() << "would be TransparentMeshPart: " << payload->meshIndex << "," << payload->partIndex;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
         }
     }
@@ -845,7 +844,9 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
         if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            Item::Bound result = payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            //qDebug() << "payloadGetBound(OpaqueMeshPart) " << result;
+            return result;
         }
         return render::Item::Bound();
     }
@@ -1540,6 +1541,12 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+    /*
+    qDebug() << "Model::simulate()";
+    qDebug() << "   _translation:" << _translation;
+    qDebug() << "   _rotation:" << _rotation;
+    */
+    
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
@@ -2343,8 +2350,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             Texture* diffuseMap = networkPart.diffuseTexture.data();
             if (mesh.isEye && diffuseMap) {
-                diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
-                    static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                // FIXME - guard against out of bounds here
+                if (meshIndex < _dilatedTextures.size()) {
+                    if (partIndex < _dilatedTextures[meshIndex].size()) {
+                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
+                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                    }
+                }
             }
             static bool showDiffuse = true;
             if (showDiffuse && diffuseMap) {

@@ -165,19 +165,15 @@ void AvatarManager::removeAvatarMotionState(Avatar* avatar) {
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
     if (avatarIterator != _avatarHash.end()) {
-        //Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
         std::shared_ptr<Avatar> avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
-
-        // FIX ME! Can we just say (avatar != _myAvatar)
         if (avatar != _myAvatar && avatar->isInitialized()) {
             removeAvatarMotionState(avatar.get());
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
-
         render::ScenePointer scene = Application::getInstance()->getMain3DScene();
         render::PendingChanges pendingChanges;
-        avatar->removeFromScene(avatar, scene, pendingChanges);    
+        avatar->removeFromScene(avatar, scene, pendingChanges);
         scene->enqueuePendingChanges(pendingChanges);
     }
 }

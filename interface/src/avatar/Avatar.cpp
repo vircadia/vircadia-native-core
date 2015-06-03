@@ -521,7 +521,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     if (_skeletonModel.needsFixupInScene()) {
-        qDebug() << "Avatar::renderBody() FIXING _skeletonModel";
         render::ScenePointer scene = Application::getInstance()->getMain3DScene();
         render::PendingChanges pendingChanges;
         _skeletonModel.removeFromScene(scene, pendingChanges);
