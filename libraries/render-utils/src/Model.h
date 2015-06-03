@@ -114,7 +114,6 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     void renderSetup(RenderArgs* args);
     
     // Scene rendering support
@@ -547,6 +546,14 @@ private:
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
     QSet<render::ItemID> _renderItems;
     bool _readyWhenAdded = false;
+    
+    
+private:
+    // FIX ME - We want to get rid of this interface for rendering...
+    // right now the only remaining user are Avatar attachments.
+    // that usage has been temporarily disabled... 
+    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
+    
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

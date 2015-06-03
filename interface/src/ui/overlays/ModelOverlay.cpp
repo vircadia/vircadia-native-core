@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <Application.h>
 #include <GlowEffect.h>
 
 #include "ModelOverlay.h"
@@ -54,11 +55,33 @@ void ModelOverlay::update(float deltatime) {
     _isLoaded = _model.isActive();
 }
 
+bool ModelOverlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    Base3DOverlay::addToScene(overlay, scene, pendingChanges);
+    _model.addToScene(scene, pendingChanges);
+}
+
+void ModelOverlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    Base3DOverlay::removeFromScene(overlay, scene, pendingChanges);
+    _model.removeFromScene(scene, pendingChanges);
+}
+
 void ModelOverlay::render(RenderArgs* args) {
+
+    // check to see if when we added our model to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    if (_model.needsFixupInScene()) {
+        _model.removeFromScene(scene, pendingChanges);
+        _model.addToScene(scene, pendingChanges);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
+
     if (!_visible) {
         return;
     }
-    
+
+    /*    
     if (_model.isActive()) {
         if (_model.isRenderable()) {
             float glowLevel = getGlowLevel();
@@ -72,6 +95,7 @@ void ModelOverlay::render(RenderArgs* args) {
             }
         }
     }
+    */
 }
 
 void ModelOverlay::setProperties(const QScriptValue &properties) {

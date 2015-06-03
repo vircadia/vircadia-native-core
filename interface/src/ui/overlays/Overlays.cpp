@@ -118,6 +118,7 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
         render::PendingChanges pendingChanges;
 
         {
@@ -128,13 +129,12 @@ void Overlays::cleanupOverlaysToDelete() {
 
                 auto itemID = overlay->getRenderItemID();
                 if (itemID != render::Item::INVALID_ITEM_ID) {
-                    pendingChanges.removeItem(itemID);
+                    overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
             } while (!_overlaysToDelete.isEmpty());
         }
 
         if (pendingChanges._removedItems.size() > 0) {
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             scene->enqueuePendingChanges(pendingChanges);
         }
     }
@@ -216,13 +216,9 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
             _overlaysWorld[thisID] = overlayPointer;
 
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-            auto overlayPayload = new Overlay::Payload(overlayPointer);
-            auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
-            render::ItemID itemID = scene->allocateID();
-            overlay->setRenderItemID(itemID);
-
             render::PendingChanges pendingChanges;
-            pendingChanges.resetItem(itemID, overlayPayloadPointer);
+
+            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
 
             scene->enqueuePendingChanges(pendingChanges);
         }
