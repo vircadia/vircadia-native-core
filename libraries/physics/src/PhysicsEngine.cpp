@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <PhysicsCollisionGroups.h>
+
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"

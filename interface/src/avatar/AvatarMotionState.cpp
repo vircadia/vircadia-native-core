@@ -10,7 +10,7 @@
 //
 
 #include <PhysicsHelpers.h>
-#include <PhysicsEngine.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
