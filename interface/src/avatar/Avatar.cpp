@@ -750,10 +750,6 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
     top += border;
     right += border;
 
-    // We are drawing coplanar textures with depth: need the polygon offset
-    //glEnable(GL_POLYGON_OFFSET_FILL);
-    //glPolygonOffset(1.0f, 1.0f);
-
     auto backgroundTransform = textTransform;
     backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
     batch->setModelTransform(backgroundTransform);
