@@ -27,6 +27,7 @@ static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 
 
+
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
@@ -70,6 +71,26 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.x = object.property("x").toVariant().toFloat();
     vec3.y = object.property("y").toVariant().toFloat();
     vec3.z = object.property("z").toVariant().toFloat();
+}
+
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector){
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        array.setProperty(i, vec3toScriptValue(engine, vector.at(i)));
+    }
+    return array;
+}
+
+QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
+    QVector<glm::vec3> newVector;
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        newVector << newVec3;
+    }
+    return newVector;
 }
 
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {

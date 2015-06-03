@@ -13,6 +13,7 @@
 
 #include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
+#include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
@@ -29,10 +30,26 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     glm::vec3 p1 = ENTITY_ITEM_ZERO_VEC3;
     glm::vec3 p2 = getDimensions();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
+
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
-    DependencyManager::get<DeferredLightingEffect>()->renderLine(batch, p1, p2, lineColor, lineColor);
+
+    glLineWidth(getLineWidth());
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+        _lineVerticesID = geometryCache ->allocateID();
+    }
+
+    //TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
+    //glTranslatef(position.x, position.y, position.z);
+    //glm::vec3 axis = glm::axis(rotation);
+    //glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    if (_pointsChanged) {
+      geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+        _pointsChanged = false;
+    }
+    geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
     
     RenderableDebugableEntityItem::render(this, args);
 };

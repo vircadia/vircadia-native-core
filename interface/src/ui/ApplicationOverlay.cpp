@@ -507,7 +507,6 @@ QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
     QPoint rv;
     auto canvasSize = qApp->getCanvasSize();
     if (qApp->isHMDMode()) {
-        float t;
         glm::vec2 polar = getPolarCoordinates(*palm);
         glm::vec2 point = sphericalToScreen(-polar);
         rv.rx() = point.x;
