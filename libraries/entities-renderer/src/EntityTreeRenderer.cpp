@@ -1130,13 +1130,13 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
     const float mass = entity->computeMass();
-    const float COLLISION_PENTRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
+    const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
     // We can get a more consistent initial-contact energy reading by using the changed velocity.
     const float linearVelocity = (collision.type == CONTACT_EVENT_TYPE_START) ?
         glm::length(collision.velocityChange) :
-        glm::length(collision.penetration) * COLLISION_PENTRATION_TO_VELOCITY;
+        glm::length(collision.penetration) * COLLISION_PENETRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
     const float COLLISION_ENERGY_AT_FULL_VOLUME = (collision.type == CONTACT_EVENT_TYPE_START) ? 10.0f : 0.5f;
