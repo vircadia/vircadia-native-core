@@ -25,6 +25,7 @@ AutoUpdate::AutoUpdate() {
 #ifdef Q_OS_LINUX
     _operatingSystem = "ubuntu";
 #endif
+    //connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(debugBuildData()));
 }
 
 AutoUpdate::~AutoUpdate() {
@@ -51,6 +52,14 @@ void AutoUpdate::parseLatestVersionData() {
     
     QXmlStreamReader xml(sender);
     
+    int version;
+    QString downloadUrl;
+    QString releaseTime;
+    QString releaseNotes;
+    QString commitSha;
+    QString pullRequestNumber;
+    
+    
     while (!xml.atEnd() && !xml.hasError()) {
         if (xml.name().toString() == "project" &&
             xml.attributes().hasAttribute("name") &&
@@ -67,10 +76,26 @@ void AutoUpdate::parseLatestVersionData() {
                         
                         if (xml.name().toString() == "build" && xml.tokenType() != QXmlStreamReader::EndElement) {
                             xml.readNext();
-                            QString version = xml.readElementText();
+                            version = xml.readElementText().toInt();
                             xml.readNext();
-                            QString url = xml.readElementText();
-                            qDebug() << "[LEOTEST] Release version " << version << " downloadable at: " << url;
+                            downloadUrl = xml.readElementText();
+                            xml.readNext();
+                            releaseTime = xml.readElementText();
+                            xml.readNext();
+                            if (xml.name().toString() == "notes" && xml.tokenType() != QXmlStreamReader::EndElement) {
+                                xml.readNext();
+                                while (!xml.atEnd() && !xml.hasError() && xml.name().toString() != "notes") {
+                                    if (xml.name().toString() == "note" && xml.tokenType() != QXmlStreamReader::EndElement) {
+                                        releaseNotes = releaseNotes + "\n" + xml.readElementText();
+                                    }
+                                    xml.readNext();
+                                }
+                            }
+                            xml.readNext();
+                            commitSha = xml.readElementText();
+                            xml.readNext();
+                            pullRequestNumber = xml.readElementText();
+                            appendBuildData(version, downloadUrl, releaseTime, releaseNotes, pullRequestNumber);
                         }
                         
                         xml.readNext();
@@ -84,4 +109,32 @@ void AutoUpdate::parseLatestVersionData() {
         }
     }
     sender->deleteLater();
+    emit latestVersionDataParsed();
+}
+
+void AutoUpdate::debugBuildData() {
+    qDebug() << "[LEOTEST] We finished parsing the xml build data";
+    foreach (int key, _builds.keys()) {
+        qDebug() << "[LEOTEST] Build number: " << QString::number(key);
+        foreach (QString detailsKey, _builds[key].keys()) {
+            qDebug() << "[LEOTEST] Key: " << detailsKey << " Value: " << _builds[key][detailsKey];
+        }
+    }
+}
+
+void AutoUpdate::performAutoUpdate() {
+    
+}
+
+void AutoUpdate::downloadUpdateVersion() {
+    
+}
+
+void AutoUpdate::appendBuildData(int versionNumber, QString downloadURL, QString releaseTime, QString releaseNotes, QString pullRequestNumber) {
+    QMap<QString, QString> thisBuildDetails;
+    thisBuildDetails.insert("downloadUrl", downloadURL);
+    thisBuildDetails.insert("releaseTime", releaseTime);
+    thisBuildDetails.insert("releaseNotes", releaseNotes);
+    thisBuildDetails.insert("pullRequestNumber", pullRequestNumber);
+    _builds.insert(versionNumber, thisBuildDetails);
 }

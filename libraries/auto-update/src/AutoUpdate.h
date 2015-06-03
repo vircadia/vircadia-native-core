@@ -38,11 +38,6 @@ public:
     ~AutoUpdate();
     
     void checkForUpdate();
-    QMap<int, QMap<QString, QString>> getBuildData() { return _builds; }
-    void appendBuildData(int versionNumber,
-                         QString downloadURL,
-                         int pullRequestNumber,
-                         QString releaseNotes);
     
 public slots:
     
@@ -55,9 +50,20 @@ private:
     void getLatestVersionData();
     void performAutoUpdate();
     void downloadUpdateVersion();
+    QMap<int, QMap<QString, QString>> getBuildData() { return _builds; }
+    void appendBuildData(int versionNumber,
+                         QString downloadURL,
+                         QString releaseTime,
+                         QString releaseNotes,
+                         QString pullRequestNumber);
     
 private slots:
     void parseLatestVersionData();
+    void debugBuildData();
+
+signals:
+    void latestVersionDataParsed();
+    
 };
 
 #endif /* defined(__hifi__AutoUpdate__) */
