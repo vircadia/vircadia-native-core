@@ -1178,13 +1178,17 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
     if (_skeletonModel.needsFixupInScene()) {
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
         _skeletonModel.removeFromScene(scene, pendingChanges);
         _skeletonModel.addToScene(scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
     }
+    if (getHead()->getFaceModel().needsFixupInScene()) {
+        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
+        getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
 
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
