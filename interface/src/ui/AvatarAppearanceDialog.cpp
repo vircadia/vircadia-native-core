@@ -82,7 +82,10 @@ void AvatarAppearanceDialog::setUseFullAvatar(bool useFullAvatar) {
     ui.useFullAvatar->setChecked(_useFullAvatar);
     ui.useSeparateBodyAndHead->setChecked(!_useFullAvatar);
 
-    DependencyManager::get<DialogsManager>()->getPreferencesDialog()->avatarDescriptionChanged();
+    QPointer<PreferencesDialog> prefs = DependencyManager::get<DialogsManager>()->getPreferencesDialog();
+    if (prefs) {  // Preferences dialog may have been closed
+        prefs->avatarDescriptionChanged();
+    }
 }
 
 void AvatarAppearanceDialog::headURLChanged(const QString& newValue, const QString& modelName) {
@@ -106,7 +109,10 @@ void AvatarAppearanceDialog::fullAvatarURLChanged(const QString& newValue, const
 void AvatarAppearanceDialog::accept() {
     saveAvatarAppearance();
 
-    DependencyManager::get<DialogsManager>()->getPreferencesDialog()->avatarDescriptionChanged();
+    QPointer<PreferencesDialog> prefs = DependencyManager::get<DialogsManager>()->getPreferencesDialog();
+    if (prefs) {  // Preferences dialog may have been closed
+        prefs->avatarDescriptionChanged();
+    }
 
     close();
     delete _marketplaceWindow;

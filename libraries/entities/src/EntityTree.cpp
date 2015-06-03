@@ -1055,7 +1055,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         QVariantMap entityMap = entityVariant.toMap();
         QScriptValue entityScriptValue = variantMapToScriptValue(entityMap, scriptEngine);
         EntityItemProperties properties;
-        EntityItemPropertiesFromScriptValue(entityScriptValue, properties);
+        EntityItemPropertiesFromScriptValueIgnoreReadOnly(entityScriptValue, properties);
 
         EntityItemID entityItemID;
         if (entityMap.contains("id")) {

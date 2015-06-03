@@ -114,6 +114,10 @@ enum EntityPropertyList {
     PROP_VOXEL_DATA,
     PROP_VOXEL_SURFACE_STYLE,
 
+    //for lines
+    PROP_LINE_WIDTH,
+    PROP_LINE_POINTS,
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,
