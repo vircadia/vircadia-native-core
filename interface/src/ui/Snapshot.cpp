@@ -63,6 +63,7 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 }
 
 QString Snapshot::saveSnapshot(QImage image) {
+
     QFile* snapshotFile = savedFileForSnapshot(image, false);
 
     // we don't need the snapshot file, so close it, grab its filename and delete it
@@ -86,10 +87,6 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
     shot.setText(URL, currentURL.toString());
 
-    QString formattedLocation = QString(currentURL.toString());
-    // replace decimal . with '-'
-    formattedLocation.replace('.', '-');
-
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     // normalize username, replace all non alphanumeric with '-'
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
@@ -110,7 +107,6 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
         snapshotFullPath.append(filename);
 
         QFile* imageFile = new QFile(snapshotFullPath);
-        std::string str = snapshotFullPath.toStdString();
         imageFile->open(QIODevice::WriteOnly);
 
         shot.save(imageFile, 0, IMAGE_QUALITY);
@@ -118,8 +114,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
         return imageFile;
 
-    }
-    else {
+    } else {
         QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
 
         if (!imageTempFile->open()) {

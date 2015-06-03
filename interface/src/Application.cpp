@@ -3450,9 +3450,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
         _overlays.renderWorld(true);
     }
 
-
-
-
     activeRenderingThread = nullptr;
 }
 
