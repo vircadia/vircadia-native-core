@@ -1697,7 +1697,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getURL().toString().isEmpty()) {
-	        DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
+            DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
         }
     } else {
         QMessageBox msgBox;
