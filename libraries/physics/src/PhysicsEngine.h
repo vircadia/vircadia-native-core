@@ -97,7 +97,6 @@ public:
 
     void addAction(EntityActionInterface* action);
     void removeAction(const QUuid actionID);
-    void removeActions(QList<QUuid> actionIDsToRemove);
 
 private:
     void removeContacts(ObjectMotionState* motionState);

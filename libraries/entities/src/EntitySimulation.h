@@ -59,6 +59,7 @@ public:
     virtual void addAction(EntityActionInterface* action) {}
     virtual void removeAction(const QUuid actionID) {}
     virtual void removeActions(QList<QUuid> actionIDsToRemove) {}
+    virtual void applyActionChanges() {}
 
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
@@ -116,7 +117,7 @@ protected:
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
 
-private:
+ private:
     void moveSimpleKinematics();
 };
 

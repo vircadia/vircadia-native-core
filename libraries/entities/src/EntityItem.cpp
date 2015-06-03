@@ -1369,8 +1369,6 @@ void EntityItem::removeAction(const QUuid actionID) {
                 simulation->removeAction(action->getID());
             }
         }
-
-        delete action;
     }
 }
 

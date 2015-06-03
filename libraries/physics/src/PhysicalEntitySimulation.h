@@ -35,6 +35,7 @@ public:
     virtual void addAction(EntityActionInterface* action);
     virtual void removeAction(const QUuid actionID);
     virtual void removeActions(QList<QUuid> actionIDsToRemove);
+    virtual void applyActionChanges();
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
@@ -68,6 +69,9 @@ private:
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
     uint32_t _lastStepSendPackets = 0;
+
+    QList<EntityActionInterface*> _actionsToAdd;
+    QList<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_PhysicalEntitySimulation_h

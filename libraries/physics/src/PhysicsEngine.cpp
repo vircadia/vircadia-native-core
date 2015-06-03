@@ -466,11 +466,6 @@ void PhysicsEngine::removeAction(const QUuid actionID) {
         ObjectAction* action = _objectActions[actionID];
         _dynamicsWorld->removeAction(action);
         _objectActions.remove(actionID);
-    }
-}
-
-void PhysicsEngine::removeActions(QList<QUuid> actionIDsToRemove) {
-    foreach(QUuid actionID, actionIDsToRemove) {
-        removeAction(actionID);
+        delete action;
     }
 }
