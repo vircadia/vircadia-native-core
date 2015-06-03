@@ -650,7 +650,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
     BatchItemDetails& details = _registeredVertices[id];
-
     if (details.isCreated) {
         details.clear();
         #ifdef WANT_DEBUG
