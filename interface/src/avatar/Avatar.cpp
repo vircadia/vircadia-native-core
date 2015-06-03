@@ -292,6 +292,21 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
+bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    auto avatarPayload = new render::Payload<AvatarData>(self);
+    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
+    _renderItemID = scene->allocateID();
+    pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
+    _skeletonModel.addToScene(scene, pendingChanges);
+    getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    return true;
+}
+
+void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_renderItemID);
+    _skeletonModel.removeFromScene(scene, pendingChanges);
+}
+
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     if (_referential) {
         _referential->update();
@@ -504,6 +519,20 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+    // check to see if when we added our models to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    if (_skeletonModel.needsFixupInScene()) {
+        _skeletonModel.removeFromScene(scene, pendingChanges);
+        _skeletonModel.addToScene(scene, pendingChanges);
+    }
+    if (getHead()->getFaceModel().needsFixupInScene()) {
+        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
+        getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
+
     {
         Glower glower(renderArgs, glowLevel);
 
@@ -518,7 +547,8 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         if (postLighting) {
             getHand()->render(renderArgs, false);
         } else {
-            _skeletonModel.render(renderArgs, 1.0f);
+            // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
+            //_skeletonModel.render(renderArgs, 1.0f);
             renderAttachments(renderArgs);
         }
     }

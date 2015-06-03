@@ -298,7 +298,8 @@ void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustu
             renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
         }
     } else {
-        _faceModel.render(renderArgs, alpha);
+        // NOTE: we don't need to call this here because the model has been added as payload items
+        //_faceModel.render(renderArgs, alpha);
     }
 }
 

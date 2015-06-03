@@ -501,7 +501,7 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
             _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
         
         // Setup batch transform matrices
-        gpu::Batch batch;
+        gpu::Batch batch; // FIX ME - this is very suspicious!
         glm::mat4 projMat;
         Transform viewMat;
         frustum->evalProjectionMatrix(projMat);
@@ -509,7 +509,7 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         
-        renderArgs->_batch = &batch;
+        renderArgs->_batch = &batch; // FIX ME - this is very suspicious!
 
         _tree->lockForRead();
 
@@ -525,6 +525,7 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
         Model::endScene(renderArgs);
         _tree->unlock();
         
+        // FIX ME - this is very suspicious!
      //   glPushMatrix();
      //   renderArgs->_context->render(batch);
      //   glPopMatrix();

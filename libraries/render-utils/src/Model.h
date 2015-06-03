@@ -123,6 +123,7 @@ public:
     static void endScene(RenderArgs* args);
 
     // new Scene/Engine rendering support
+    bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
@@ -156,6 +157,9 @@ public:
 
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
+
+    /// Returns the world space equivalent of some box in model space.
+    AABox calculateScaledOffsetAABox(const AABox& box) const;
 
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
@@ -542,6 +546,7 @@ private:
     QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
     QSet<render::ItemID> _renderItems;
+    bool _readyWhenAdded = false;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

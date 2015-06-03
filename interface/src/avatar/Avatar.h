@@ -83,6 +83,12 @@ public:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
         bool postLighting = false);
 
+    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+                            render::PendingChanges& pendingChanges);
+
+    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+                                render::PendingChanges& pendingChanges);
+
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }

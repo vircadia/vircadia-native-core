@@ -406,6 +406,7 @@ void Model::reset() {
     }
     
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
 }
 
 bool Model::updateGeometry() {
@@ -456,6 +457,7 @@ bool Model::updateGeometry() {
         _dilatedTextures.clear();
         _geometry = geometry;
         _meshGroupsKnown = false;
+        _readyWhenAdded = false; // in case any of our users are using scenes
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -704,10 +706,26 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i2 = part.quadIndices[vIndex++];
                             int i3 = part.quadIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
-                            glm::vec3 v3 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                            glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
+                            
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+                            thisPartBounds += mv3;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
+                            glm::vec3 v3 = calculateScaledOffsetPoint(mv3);
                         
                             // Sam's recommended triangle slices
                             Triangle tri1 = { v0, v1, v3 };
@@ -720,14 +738,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
                             
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(v0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            }
-                            thisPartBounds += v0;
-                            thisPartBounds += v1;
-                            thisPartBounds += v2;
-                            thisPartBounds += v3;
                         }
                     }
 
@@ -739,21 +749,27 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i1 = part.triangleIndices[vIndex++];
                             int i2 = part.triangleIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
 
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
-
-                            if (!atLeastOnePointInBounds) {
-                                thisPartBounds.setBox(v0, 0.0f);
-                                atLeastOnePointInBounds = true;
-                            }
-                            thisPartBounds += v0;
-                            thisPartBounds += v1;
-                            thisPartBounds += v2;
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
@@ -819,7 +835,6 @@ namespace render {
     template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
             args->_elementsTouched++;
-            //qDebug() << "would be TransparentMeshPart: " << payload->meshIndex << "," << payload->partIndex;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
         }
     }
@@ -843,7 +858,9 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
         if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            Item::Bound result = payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            //qDebug() << "payloadGetBound(OpaqueMeshPart) " << result;
+            return result;
         }
         return render::Item::Bound();
     }
@@ -857,6 +874,10 @@ namespace render {
 
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+        segregateMeshGroups();
+    }
+
     bool somethingAdded = false;
 
     qDebug() << "Model::addToScene : " << this->getURL().toString();
@@ -883,6 +904,8 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         _renderItems << item;
         somethingAdded = true;
     }
+    
+    _readyWhenAdded = readyToAddToScene();
 
     return somethingAdded;
 }
@@ -897,9 +920,8 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
-
+    _readyWhenAdded = false;
     qDebug() << "Model::removeFromScene : " << this->getURL().toString();
-
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
@@ -1217,6 +1239,11 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
     Extents translatedExtents = { rotatedExtents.minimum + _translation, 
                                   rotatedExtents.maximum + _translation };
     return translatedExtents;
+}
+
+/// Returns the world space equivalent of some box in model space.
+AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
+    return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
@@ -1539,6 +1566,12 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+    /*
+    qDebug() << "Model::simulate()";
+    qDebug() << "   _translation:" << _translation;
+    qDebug() << "   _rotation:" << _rotation;
+    */
+    
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
@@ -1929,6 +1962,7 @@ void Model::applyNextGeometry() {
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2216,23 +2250,15 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         recalculateMeshBoxes(true);
     }
     if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
-        return _calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)];
-    }
-    if (!_calculatedMeshBoxesValid) {
-        return _calculatedMeshBoxes[meshIndex];
+        return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
     }
     return AABox();
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
-    renderSetup(args);
-
-    /*    
-    if (translucent) {
-        renderCore(args, 1.0f);
-        return;
+    if (!_readyWhenAdded) {
+        return; // bail asap
     }
-    */
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -2243,13 +2269,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _transforms.push_back(Transform());
     }
 
-  //  _transforms[0] = _viewState->getViewTransform();
-   // args->_viewFrustum->evalViewTransform(_transforms[0]);
+    //  _transforms[0] = _viewState->getViewTransform();
+    // args->_viewFrustum->evalViewTransform(_transforms[0]);
 
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-  //  _transforms[0].setTranslation(_translation);
+    //  _transforms[0].setTranslation(_translation);
 
-   // batch.setViewTransform(_transforms[0]);
+    // batch.setViewTransform(_transforms[0]);
 
 
   //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
@@ -2259,10 +2285,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
+    // guard against partially loaded meshes
+    if (meshIndex >= networkMeshes.size() || meshIndex >= geometry.meshes.size() || meshIndex >= _meshStates.size() ) {
+        return; 
+    }
+
     const NetworkMesh& networkMesh = networkMeshes.at(meshIndex);
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
-
+    
     bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = mesh.hasSpecularTexture();
@@ -2287,6 +2318,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
+        _readyWhenAdded = false; // in case any of our users are using scenes
         return; // FIXME!
     }
     
@@ -2328,6 +2360,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     qint64 offset = 0;
 
+    // guard against partially loaded meshes
+    if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
+        return; 
+    }
+
     const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
@@ -2352,8 +2389,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             Texture* diffuseMap = networkPart.diffuseTexture.data();
             if (mesh.isEye && diffuseMap) {
-                diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
-                    static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                // FIXME - guard against out of bounds here
+                if (meshIndex < _dilatedTextures.size()) {
+                    if (partIndex < _dilatedTextures[meshIndex].size()) {
+                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
+                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                    }
+                }
             }
             static bool showDiffuse = true;
             if (showDiffuse && diffuseMap) {
@@ -2623,6 +2665,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
+            _readyWhenAdded = false; // in case any of our users are using scenes
             continue;
         }
         

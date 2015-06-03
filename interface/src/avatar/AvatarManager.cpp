@@ -63,13 +63,8 @@ void AvatarManager::init() {
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-    auto avatarPayload = new render::Payload<AvatarData>(_myAvatar);
-    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    static_cast<Avatar*>(_myAvatar.get())->_renderItemID = scene->allocateID();
-
     render::PendingChanges pendingChanges;
-    pendingChanges.resetItem(static_cast<Avatar*>(_myAvatar.get())->_renderItemID, avatarPayloadPointer);
-
+    _myAvatar->addToScene(_myAvatar, scene, pendingChanges);    
     scene->enqueuePendingChanges(pendingChanges);
 }
 
@@ -145,18 +140,11 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
 
 // virtual 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-
+    std::shared_ptr<Avatar> avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-    auto avatarPayload = new render::Payload<AvatarData>(avatar);
-    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-    static_cast<Avatar*>(avatar.get())->_renderItemID = scene->allocateID();
-
     render::PendingChanges pendingChanges;
-    pendingChanges.resetItem(static_cast<Avatar*>(avatar.get())->_renderItemID, avatarPayloadPointer);
-
+    avatar->addToScene(avatar, scene, pendingChanges);    
     scene->enqueuePendingChanges(pendingChanges);
-
     return avatar;
 }
 
@@ -177,17 +165,15 @@ void AvatarManager::removeAvatarMotionState(Avatar* avatar) {
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
     if (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
-        if (avatar != _myAvatar.get() && avatar->isInitialized()) {
-            removeAvatarMotionState(avatar);
-
+        std::shared_ptr<Avatar> avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
+        if (avatar != _myAvatar && avatar->isInitialized()) {
+            removeAvatarMotionState(avatar.get());
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
-
         render::ScenePointer scene = Application::getInstance()->getMain3DScene();
         render::PendingChanges pendingChanges;
-        pendingChanges.removeItem(avatar->_renderItemID);
+        avatar->removeFromScene(avatar, scene, pendingChanges);
         scene->enqueuePendingChanges(pendingChanges);
     }
 }

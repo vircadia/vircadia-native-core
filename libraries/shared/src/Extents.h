@@ -23,6 +23,10 @@ class AABox;
 
 class Extents {
 public:
+    Extents(const glm::vec3& minimum, const glm::vec3& maximum) : minimum(minimum), maximum(maximum)  { }
+    Extents() { reset(); }
+    Extents(const AABox& box) { reset(); add(box); }
+
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
     void reset();
 
@@ -58,7 +62,7 @@ public:
 
     /// \return new Extents which is original rotated around orign by rotation
     Extents getRotated(const glm::quat& rotation) const {
-        Extents temp = { minimum, maximum };
+        Extents temp(minimum, maximum);
         temp.rotate(rotation);
         return temp;
     }
