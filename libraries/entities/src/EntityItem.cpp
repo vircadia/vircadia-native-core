@@ -1345,8 +1345,9 @@ void EntityItem::addAction(EntityActionInterface* action) {
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
     _objectActions[actionID] = action;
 
-    assert (action->getOwnerEntity() == nullptr);
-    action->setOwnerEntity(EntityItemPointer(this));
+    EntityItemPointer thisEntity(this);
+    assert(action->getOwnerEntity() == nullptr || action->getOwnerEntity() == thisEntity);
+    action->setOwnerEntity(thisEntity);
 
     const EntityTree* tree = _element->getTree();
     if (tree) {
