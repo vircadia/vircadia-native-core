@@ -125,6 +125,8 @@ public:
 
     virtual int16_t computeCollisionGroup() = 0;
 
+    bool isActive() const { return _body ? _body->isActive() : false; }
+
     friend class PhysicsEngine;
 
 protected:

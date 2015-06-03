@@ -91,10 +91,6 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    // TODO: Andrew to move these to ObjectMotionState
-    static bool physicsInfoIsActive(void* physicsInfo);
-    static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
-
     int16_t getCollisionMask(int16_t group) const;
 
 private:

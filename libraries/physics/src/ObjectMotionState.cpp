@@ -200,3 +200,4 @@ void ObjectMotionState::updateBodyMassProperties() {
     _body->setMassProps(mass, inertia);
     _body->updateInertiaTensor();
 }
+
