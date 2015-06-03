@@ -4,7 +4,7 @@ import QtQuick.Controls.Styles 1.3
 import "controls"
 import "styles"
 
-Dialog {
+DialogOld {
     HifiConstants { id: hifi }
     title: "Login"
     objectName: "LoginDialog"
