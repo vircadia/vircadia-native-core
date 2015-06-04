@@ -225,8 +225,8 @@ var toolBar = (function () {
         });
 
         newPolyVoxButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload.svg", // XXX need a new icon
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            imageURL: toolIconUrl + "polyvox.svg",
+            subImage: { x: 0, y: 0, width: 256, height: 256 },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
