@@ -35,6 +35,7 @@ class ScriptEditorWindow;
 class QMessageBox;
 class AvatarAppearanceDialog;
 class DomainConnectionDialog;
+class UpdateDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -64,6 +65,9 @@ public slots:
     void showIRCLink();
     void changeAvatarAppearance();
     void showDomainConnectionDialog();
+    
+    // Application Update
+    void showUpdateDialog();
 
 private slots:
     void toggleToolWindow();

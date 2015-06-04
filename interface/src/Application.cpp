@@ -143,6 +143,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
+#include "ui/UpdateDialog.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -290,6 +291,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
+    auto autoUpdate = DependencyManager::set<AutoUpdate>();
 
     return true;
 }
@@ -612,7 +614,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
     
-    AutoUpdate* applicationUpdater = new AutoUpdate;
+    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
+    connect(applicationUpdater.data(), SIGNAL(newVersionIsAvailable()), dialogsManager.data(), SLOT(showUpdateDialog()));
     applicationUpdater->checkForUpdate();
 }
 

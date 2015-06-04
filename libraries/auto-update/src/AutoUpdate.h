@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
+#include <QtCore/QCoreApplication>
 #include <QDebug>
 #include <QString>
 #include <QUrl>
@@ -27,17 +28,22 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamAttributes>
 
+#include <DependencyManager.h>
+
 
 const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
 
-class AutoUpdate : public QObject {
+class AutoUpdate : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
+    
 public:
     // Methods
     AutoUpdate();
     ~AutoUpdate();
     
     void checkForUpdate();
+    QMap<int, QMap<QString, QString>> getBuildData() { return _builds; }
     
 public slots:
     
@@ -48,9 +54,7 @@ private:
     
     // Methods
     void getLatestVersionData();
-    void performAutoUpdate();
-    void downloadUpdateVersion();
-    QMap<int, QMap<QString, QString>> getBuildData() { return _builds; }
+    void downloadUpdateVersion(int version);
     void appendBuildData(int versionNumber,
                          QString downloadURL,
                          QString releaseTime,
@@ -60,9 +64,13 @@ private:
 private slots:
     void parseLatestVersionData();
     void debugBuildData();
+    void checkVersionAndNotify();
+    void performAutoUpdate(int version);
 
 signals:
     void latestVersionDataParsed();
+    void newVersionIsAvailable();
+    void newVersionIsDownloaded();
     
 };
 

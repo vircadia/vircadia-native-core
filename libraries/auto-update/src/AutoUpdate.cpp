@@ -25,7 +25,7 @@ AutoUpdate::AutoUpdate() {
 #ifdef Q_OS_LINUX
     _operatingSystem = "ubuntu";
 #endif
-    //connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(debugBuildData()));
+    connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(checkVersionAndNotify()));
 }
 
 AutoUpdate::~AutoUpdate() {
@@ -43,7 +43,6 @@ void AutoUpdate::getLatestVersionData() {
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
     connect(reply, SIGNAL(finished()), this, SLOT(parseLatestVersionData()));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(handleError(QNetworkReply::NetworkError)));
 }
 
 
@@ -96,6 +95,7 @@ void AutoUpdate::parseLatestVersionData() {
                             xml.readNext();
                             pullRequestNumber = xml.readElementText();
                             appendBuildData(version, downloadUrl, releaseTime, releaseNotes, pullRequestNumber);
+                            releaseNotes = "";
                         }
                         
                         xml.readNext();
@@ -122,12 +122,21 @@ void AutoUpdate::debugBuildData() {
     }
 }
 
-void AutoUpdate::performAutoUpdate() {
+void AutoUpdate::checkVersionAndNotify() {
+    qDebug() << "[LEOTEST] We are checking and notifying for updates";
+    int latestVersionAvailable = _builds.lastKey();
+    if (QCoreApplication::applicationVersion() != "dev" &&
+        QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
+        emit newVersionIsAvailable();
+    }
+}
+
+void AutoUpdate::performAutoUpdate(int version) {
     
 }
 
-void AutoUpdate::downloadUpdateVersion() {
-    
+void AutoUpdate::downloadUpdateVersion(int version) {
+    emit newVersionIsDownloaded();
 }
 
 void AutoUpdate::appendBuildData(int versionNumber, QString downloadURL, QString releaseTime, QString releaseNotes, QString pullRequestNumber) {

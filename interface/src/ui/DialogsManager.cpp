@@ -31,6 +31,7 @@
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
+#include "UpdateDialog.h"
 
 
 void DialogsManager::toggleAddressBar() {
@@ -48,6 +49,11 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
     LoginDialog::show();
+}
+
+void DialogsManager::showUpdateDialog() {
+    qDebug() << "[LEOTEST] We should be showing the update dialog";
+    UpdateDialog::show();
 }
 
 void DialogsManager::octreeStatsDetails() {
