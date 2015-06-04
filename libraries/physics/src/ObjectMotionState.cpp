@@ -83,7 +83,7 @@ glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
     return bulletToGLM(_body->getLinearVelocity());
 }
 glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
-    return glm::vec3();  // Subclasses override where meaningful.
+    return glm::vec3(0.0f);  // Subclasses override where meaningful.
 }
 
 glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
