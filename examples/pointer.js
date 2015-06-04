@@ -142,6 +142,12 @@ function mouseReleaseEvent(event) {
   removeLine();
 }
 
+function cleanup() {
+  Overlays.deleteOverlay(pointerButton);
+}
+
+Script.scriptEnding.connect(cleanup);
+
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
