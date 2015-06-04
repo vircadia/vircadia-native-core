@@ -122,7 +122,7 @@ public:
     
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
@@ -538,6 +538,7 @@ private:
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
+    bool _needsReload = true;
     
     
 private:

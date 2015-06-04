@@ -408,6 +408,7 @@ void Model::reset() {
     
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
+    _needsReload = true;
 }
 
 bool Model::updateGeometry() {
@@ -459,6 +460,7 @@ bool Model::updateGeometry() {
         _geometry = geometry;
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
+        _needsReload = true;
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -1338,6 +1340,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
+    
+    _readyWhenAdded = false; // reset out render items.
+    _needsReload = true;
+    
     _url = url;
 
     // if so instructed, keep the current geometry until the new one is loaded 
@@ -1990,6 +1996,7 @@ void Model::applyNextGeometry() {
     _geometry = _nextGeometry;
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
+    _needsReload = false; // we are loaded now!
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2068,18 +2075,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _transforms.push_back(Transform());
     }
 
-    //  _transforms[0] = _viewState->getViewTransform();
-    // args->_viewFrustum->evalViewTransform(_transforms[0]);
-
-    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    //  _transforms[0].setTranslation(_translation);
-
-    // batch.setViewTransform(_transforms[0]);
-
-
-  //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-  //  const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-  //  auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -2118,6 +2113,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
+        _needsReload = true;
         return; // FIXME!
     }
     
@@ -2433,6 +2429,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
             _readyWhenAdded = false; // in case any of our users are using scenes
+            _needsReload = true;
             continue;
         }
         
