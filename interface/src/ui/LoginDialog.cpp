@@ -1,6 +1,6 @@
 //
-//
 //  LoginDialog.cpp
+//  interface/src/ui
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,20 +8,28 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 #include "LoginDialog.h"
 
-#include "DependencyManager.h"
-#include "AccountManager.h"
-#include "Menu.h"
 #include <NetworkingConstants.h>
+
+#include "AccountManager.h"
+#include "DependencyManager.h"
+#include "Menu.h"
 
 HIFI_QML_DEF(LoginDialog)
 
-LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent), _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString()) {
+LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent),
+    _dialogFormat("rectangular"),
+    _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString())
+{
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(&AccountManager::getInstance(), &AccountManager::loginFailed,
         this, &LoginDialog::handleLoginFailed);
+
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::loginDialogFormatChanged,
+        this, &LoginDialog::updateDialogFormat);
 }
 
 void LoginDialog::toggleAction() {
@@ -49,6 +57,25 @@ void LoginDialog::handleLoginCompleted(const QUrl&) {
 
 void LoginDialog::handleLoginFailed() {
     setStatusText("<font color = \"#267077\">Invalid username or password.< / font>");
+}
+
+void LoginDialog::setDialogFormat(const QString& dialogFormat) {
+    if (dialogFormat != _dialogFormat) {
+        _dialogFormat = dialogFormat;
+        emit dialogFormatChanged();
+    }
+}
+
+QString LoginDialog::dialogFormat() const {
+    return _dialogFormat;
+}
+
+void LoginDialog::updateDialogFormat() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::LoginDialogCircular)) {
+        setDialogFormat("circular");
+    } else {
+        setDialogFormat("rectangular");
+    }
 }
 
 void LoginDialog::setStatusText(const QString& statusText) {

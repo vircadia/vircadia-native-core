@@ -571,6 +571,21 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
+    MenuWrapper* loginDialogFormatMenu = developerMenu->addMenu("Login Dialog");
+    {
+        QActionGroup* dialogMenuFormatGroup = new QActionGroup(loginDialogFormatMenu);
+
+        QAction* circularLoginDialog = addCheckableActionToQMenuAndActionHash(loginDialogFormatMenu,
+            MenuOption::LoginDialogCircular, 0, false,
+            dialogsManager.data(), SLOT(updateLoginDialogFormat()));
+        dialogMenuFormatGroup->addAction(circularLoginDialog);
+
+        QAction* rectangularLoginDialog = addCheckableActionToQMenuAndActionHash(loginDialogFormatMenu,
+            MenuOption::LoginDialogRectangular, 0, true,
+            dialogsManager.data(), SLOT(updateLoginDialogFormat()));
+        dialogMenuFormatGroup->addAction(rectangularLoginDialog);
+    }
+
     MenuWrapper* helpMenu = addMenu("Help");
     addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
 
