@@ -36,6 +36,9 @@ class EntityActionInterface {
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
+
+    static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
+    static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
 };
 
 #endif // hifi_EntityActionInterface_h

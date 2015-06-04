@@ -243,39 +243,18 @@ EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType 
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_PULL_TO_POINT:
-            if (!arguments.contains("target")) {
-                qDebug() << "PullToPoint action requires a `target' argument";
-                return nullptr;
+            bool ok = true;
+            glm::vec3 target = EntityActionInterface::extractVec3Argument("pull-to-point action", arguments, "target", ok);
+            float speed = EntityActionInterface::extractFloatArgument("pull-to-point action", arguments, "speed", ok);
+            if (ok) {
+                action = (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, target, speed);
             }
-            QVariant targetV = arguments["target"];
-            if (targetV.type() != (QVariant::Type) QMetaType::QVariantMap) {
-                qDebug() << "PullToPoint argument `target' must be a map";
-                return nullptr;
-            }
-            QVariantMap targetVM = targetV.toMap();
-            if (!targetVM.contains("x") || !targetVM.contains("y") || !targetVM.contains("z")) {
-                qDebug() << "PullToPoint argument `target' must be a map with keys of x, y, z";
-                return nullptr;
-            }
-            QVariant xV = targetVM["x"];
-            QVariant yV = targetVM["y"];
-            QVariant zV = targetVM["z"];
-            bool xOk = true;
-            bool yOk = true;
-            bool zOk = true;
-            float x = xV.toFloat(&xOk);
-            float y = yV.toFloat(&yOk);
-            float z = zV.toFloat(&zOk);
-            if (!xOk || !yOk || !zOk) {
-                qDebug() << "PullToPoint argument `target' must be a map with keys of x, y, z and values of type float.";
-            }
-            glm::vec3 glmTarget(x, y, z);
-            float speed = arguments["speed"].toFloat();
-            action = (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget, speed);
+            break;
     }
 
-    assert(action);
-    ownerEntity->addAction(this, action);
+    if (action) {
+        ownerEntity->addAction(this, action);
+    }
     return action;
 }
 
