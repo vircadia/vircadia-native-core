@@ -233,6 +233,7 @@ bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene
     auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
     _renderItemID = scene->allocateID();
     pendingChanges.resetItem(_renderItemID, overlayPayloadPointer);
+    return true;
 }
 
 void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
