@@ -4,6 +4,6 @@ import "../styles"
 Original.Text {
     HifiConstants { id: hifi }
     font.family: hifi.fonts.fontFamily
-    font.pointSize: hifi.fonts.fontSize
+    font.pixelSize: hifi.fonts.pixelSize
 }
 

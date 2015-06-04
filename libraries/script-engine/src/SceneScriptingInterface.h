@@ -96,6 +96,10 @@ public:
     void setEngineFeedTransparentItems(int count) { _numFeedTransparentItems = count; }
     Q_INVOKABLE int getEngineNumFeedTransparentItems() { return _numFeedTransparentItems; }
 
+    Q_INVOKABLE void setEngineMaxDrawnOpaqueItems(int count) { _maxDrawnOpaqueItems = count; }
+    Q_INVOKABLE int getEngineMaxDrawnOpaqueItems() { return _maxDrawnOpaqueItems; }
+    Q_INVOKABLE void setEngineMaxDrawnTransparentItems(int count) { _maxDrawnTransparentItems = count; }
+    Q_INVOKABLE int getEngineMaxDrawnTransparentItems() { return _maxDrawnTransparentItems; }
 
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
@@ -120,6 +124,10 @@ protected:
     int _numDrawnOpaqueItems = 0;
     int _numFeedTransparentItems = 0;
     int _numDrawnTransparentItems = 0;
+
+    int _maxDrawnOpaqueItems = -1;
+    int _maxDrawnTransparentItems = -1;
+
 };
 
 #endif // hifi_SceneScriptingInterface_h
