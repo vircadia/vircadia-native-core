@@ -153,11 +153,11 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
     }
 }
 
-// Same as above, but takes a Set instead of a Vector and ommits some cleanup operations.  Only called during teardown.
+// Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
 void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        _dynamicsWorld->removeRigidBody(body);
+        removeObject(object);
     
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
