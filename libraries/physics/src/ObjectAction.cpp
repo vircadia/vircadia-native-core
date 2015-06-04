@@ -17,11 +17,9 @@ ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     _id(id),
     _ownerEntity(ownerEntity) {
-    qDebug() << "ObjectAction::ObjectAction";
 }
 
 ObjectAction::~ObjectAction() {
-    qDebug() << "ObjectAction::~ObjectAction";
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {

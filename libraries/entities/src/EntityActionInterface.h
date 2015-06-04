@@ -25,8 +25,8 @@ enum EntityActionType {
 
 class EntityActionInterface {
  public:
-    EntityActionInterface() { qDebug() << "EntityActionInterface::EntityActionInterface"; }
-    virtual ~EntityActionInterface() { qDebug() << "EntityActionInterface::~EntityActionInterface"; }
+    EntityActionInterface() { }
+    virtual ~EntityActionInterface() { }
     virtual const QUuid& getID() const = 0;
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual const EntityItemPointer& getOwnerEntity() const = 0;

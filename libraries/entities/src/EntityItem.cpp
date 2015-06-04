@@ -1342,7 +1342,6 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     assert(action);
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
-    qDebug() << "SETTING" << actionID << "in EntityItem::addAction" << _name;
     _objectActions[actionID] = action;
 
     assert(action->getOwnerEntity().get() == this);
@@ -1355,7 +1354,6 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
 void EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
-        qDebug() << "REMOVING" << actionID << "in EntityItem::removeAction" << _name;
         _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
@@ -1367,7 +1365,6 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
         EntityActionPointer action = _objectActions[id];
-        qDebug() << "ERASING" << id << "in EntityItem::clearActions" << _name;
         i = _objectActions.erase(i);
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
