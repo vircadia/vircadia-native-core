@@ -381,6 +381,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         }
 
         if (_simulation) {
+            theEntity->clearActions(_simulation);
             _simulation->removeEntity(theEntity);
         }
     }
