@@ -28,7 +28,7 @@ public:
 
     virtual void render(RenderArgs* args);
 
-    SIMPLE_RENDERABLE()
+    SIMPLE_RENDERABLE();
 
 protected:
     void updateGeometry();
