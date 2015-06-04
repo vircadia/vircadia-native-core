@@ -39,7 +39,8 @@ void RenderableLineEntityItem::updateGeometry() {
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Line);
-
+    updateGeometry();
+    
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     // TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
