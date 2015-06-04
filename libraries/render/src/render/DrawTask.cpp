@@ -63,8 +63,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
-    
-    int startingSize = outItems.size();
 
     // Culling / LOD
     for (auto id : inItems) {
@@ -81,18 +79,11 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         bool outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
         if (!outOfView) {
             bool bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
-            
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
-            } else {
-                args->_details._itemsTooSmall++;
             }
-        } else {
-            args->_details._itemsOutOfView++;
         }
     }
-    
-    args->_details._itemsRendered += (outItems.size() - startingSize);
 }
 
 struct ItemBound {

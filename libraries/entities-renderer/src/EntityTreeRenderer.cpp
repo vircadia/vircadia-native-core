@@ -654,7 +654,6 @@ void EntityTreeRenderer::renderProxies(EntityItemPointer entity, RenderArgs* arg
 }
 
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
-    args->_outsideEngineDetails._elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
@@ -719,15 +718,10 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                             glower = new Glower(args, entityItem->getGlowLevel());
                         }
                         entityItem->render(args);
-                        args->_outsideEngineDetails._itemsRendered++;
                         if (glower) {
                             delete glower;
                         }
-                    } else {
-                        args->_outsideEngineDetails._itemsTooSmall++;
                     }
-                } else {
-                    args->_outsideEngineDetails._itemsOutOfView++;
                 }
             }
         }

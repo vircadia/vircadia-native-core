@@ -23,16 +23,6 @@ class Context;
 }
 
 struct RenderDetails {
-    int _elementsTouched = 0;
-    int _itemsRendered = 0;
-    int _itemsOutOfView = 0;
-    int _itemsTooSmall = 0;
-    
-    int _meshesConsidered = 0;
-    int _meshesRendered = 0;
-    int _meshesOutOfView = 0;
-    int _meshesTooSmall = 0;
-    
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
     int _quadsRendered = 0;
@@ -89,7 +79,6 @@ public:
     ShoudRenderFunctor _shouldRender;
     
     RenderDetails _details;
-    RenderDetails _outsideEngineDetails;
 
     float _alphaThreshold = 0.5f;
 };

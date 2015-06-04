@@ -1118,11 +1118,6 @@ bool Model::renderCore(RenderArgs* args, float alpha) {
     // restore all the default material settings
     _viewState->setupWorldLight();
     
-    if (args) {
-        args->_outsideEngineDetails._translucentMeshPartsRendered = translucentMeshPartsRendered;
-        args->_outsideEngineDetails._opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-    }
-    
     #ifdef WANT_DEBUG_MESHBOXES
     renderDebugMeshBoxes();
     #endif
@@ -2189,11 +2184,6 @@ void Model::endScene(RenderArgs* args) {
         // Back to no program
         GLBATCH(glUseProgram)(0);
 
-        if (args) {
-            args->_outsideEngineDetails._translucentMeshPartsRendered = translucentParts;
-            args->_outsideEngineDetails._opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-        }
-
     }
 
     // Render!
@@ -2307,8 +2297,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                                 args, locations);
 
-
-    int meshPartsRendered = 0;
     updateVisibleJointStates();
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
@@ -2438,15 +2426,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 float emissiveOffset = part.emissiveParams.x;
                 float emissiveScale = part.emissiveParams.y;
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
-
+                
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
-                                                textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
             }
         }
     }
-    
-    meshPartsRendered++;
     
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
@@ -2463,6 +2449,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         const int INDICES_PER_QUAD = 4;
         args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
         args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+        
+        if (translucent) {
+            args->_details._translucentMeshPartsRendered++;
+        } else {
+            args->_details._opaqueMeshPartsRendered++;
+        }
     }
 }
 
@@ -2681,8 +2673,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         // if we got here, then check to see if this mesh is in view
         if (args) {
             bool shouldRender = true;
-            args->_outsideEngineDetails._meshesConsidered++;
-
             if (args->_viewFrustum) {
             
                 shouldRender = forceRenderMeshes || 
@@ -2692,17 +2682,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
-                    if (!shouldRender) {
-                        args->_outsideEngineDetails._meshesTooSmall++;
-                    }
-                } else {
-                    args->_outsideEngineDetails._meshesOutOfView++;
                 }
             }
 
-            if (shouldRender) {
-                args->_outsideEngineDetails._meshesRendered++;
-            } else {
+            if (!shouldRender) {
                 continue; // skip this mesh
             }
         }
@@ -2793,11 +2776,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
                                                     textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
-
-                    if (args) {
-                        args->_outsideEngineDetails._materialSwitches++;
-                    }
-
                 }
 
                 // HACK: For unkwon reason (yet!) this code that should be assigned only if the material changes need to be called for every
@@ -2828,12 +2806,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 
-            if (args) {
-                const int INDICES_PER_TRIANGLE = 3;
-                const int INDICES_PER_QUAD = 4;
-                args->_outsideEngineDetails._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                args->_outsideEngineDetails._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
-            }
         }
     }
 

@@ -467,28 +467,13 @@ void Stats::display(
     horizontalOffset += 5;
 
     // Model/Entity render details
-    EntityTreeRenderer* entities = Application::getInstance()->getEntities();
     octreeStats.str("");
-    octreeStats << "Entity Items rendered: " << _renderDetails._itemsRendered
-                << " / Out of view:" << _renderDetails._itemsOutOfView
-                << " / Too small:" << _renderDetails._itemsTooSmall;
+    octreeStats << "Triangles: " << _renderDetails._trianglesRendered
+                << " / Quads:" << _renderDetails._quadsRendered
+                << " / Material Switches:" << _renderDetails._materialSwitches;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
     if (_expanded) {
-        octreeStats.str("");
-        octreeStats << "  Meshes rendered: " << _renderDetails._meshesRendered
-                    << " / Out of view:" << _renderDetails._meshesOutOfView
-                    << " / Too small:" << _renderDetails._meshesTooSmall;
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
-        octreeStats.str("");
-        octreeStats << "  Triangles: " << _renderDetails._trianglesRendered
-                    << " / Quads:" << _renderDetails._quadsRendered
-                    << " / Material Switches:" << _renderDetails._materialSwitches;
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
         octreeStats.str("");
         octreeStats << "  Mesh Parts Rendered Opaque: " << _renderDetails._opaqueMeshPartsRendered
                     << " / Translucent:" << _renderDetails._translucentMeshPartsRendered;
