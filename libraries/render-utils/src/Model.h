@@ -114,14 +114,8 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     void renderSetup(RenderArgs* args);
     
-    // Scene rendering support
-    static void startScene(RenderArgs::RenderSide renderSide);
-    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderArgs* args);
-
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
@@ -393,13 +387,6 @@ private:
     void renderDebugMeshBoxes();
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
-    // Scene rendering support
-    static QVector<Model*> _modelsInScene;
-    static gpu::Batch _sceneRenderBatch;
-
-    static void endSceneSimple(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-
     // helper functions used by render() or renderInScene()
     bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
@@ -416,10 +403,6 @@ private:
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
-
-    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args);
-
 
     static AbstractViewStateInterface* _viewState;
 
@@ -547,6 +530,14 @@ private:
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
     QSet<render::ItemID> _renderItems;
     bool _readyWhenAdded = false;
+    
+    
+private:
+    // FIX ME - We want to get rid of this interface for rendering...
+    // right now the only remaining user are Avatar attachments.
+    // that usage has been temporarily disabled... 
+    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
+    
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

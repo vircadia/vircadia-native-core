@@ -48,6 +48,9 @@ public:
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
+    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
     // getters
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
@@ -116,6 +119,12 @@ protected:
 
     QScriptEngine* _scriptEngine;
 };
+
+namespace render {
+   template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay); 
+   template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
+   template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
+}
 
  
 #endif // hifi_Overlay_h

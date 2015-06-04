@@ -15,6 +15,7 @@
 
 #include <QJsonDocument>
 
+#include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
@@ -209,6 +210,19 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (hasModel()) {
+        if (_model) {
+            // check to see if when we added our models to the scene they were ready, if they were not ready, then
+            // fix them up in the scene
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            if (_model->needsFixupInScene()) {
+                _model->removeFromScene(scene, pendingChanges);
+                _model->addToScene(scene, pendingChanges);
+            }
+            scene->enqueuePendingChanges(pendingChanges);
+        }
+
+
         remapTextures();
         {
             float alpha = getLocalRenderAlpha();

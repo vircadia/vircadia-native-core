@@ -13,6 +13,7 @@
 #define hifi_RenderableLightEntityItem_h
 
 #include <LightEntityItem.h>
+#include "RenderableEntityItem.h"
 
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
@@ -22,12 +23,13 @@ public:
         LightEntityItem(entityItemID, properties)
         { }
 
-    virtual bool canRenderInScene() { return false; } // we don't yet play well with others
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
+
+    SIMPLE_RENDERABLE();
 };
 
 

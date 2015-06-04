@@ -923,6 +923,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
+    return true; //
     PROFILE_RANGE(__FUNCTION__);
 
     // render the attachments
@@ -1987,15 +1988,6 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-// Scene rendering support
-QVector<Model*> Model::_modelsInScene;
-gpu::Batch Model::_sceneRenderBatch;
-void Model::startScene(RenderArgs::RenderSide renderSide) {
-    if (renderSide != RenderArgs::STEREO_RIGHT) {
-        _modelsInScene.clear();
-    }
-}
-
 void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     
     // Capture the view matrix once for the rendering of this model
@@ -2010,227 +2002,6 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     _transforms[0].preTranslate(-_translation);
 
     batch.setViewTransform(_transforms[0]);
-}
-
-void Model::endScene(RenderArgs* args) {
-    // Now that we migrated everything to the new RENDER/SCENE no more work to do!
-    return;
-    PROFILE_RANGE(__FUNCTION__);
-
-
-
-#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
-    // with legacy transform profile, we still to protect that transform stack...
-    glPushMatrix();
-#endif 
-
-    auto mode = args->_renderMode;
-
-    RenderArgs::RenderSide renderSide = RenderArgs::MONO;
-    if (args) {
-        renderSide = args->_renderSide;
-    }
-
-
-    gpu::GLBackend backend;
-    backend.syncCache(); // force sync with gl state here
-
-    if (args) {
-        glm::mat4 proj;
-        // If for easier debug depending on the pass
-        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            args->_viewFrustum->evalProjectionMatrix(proj); 
-        } else {
-            args->_viewFrustum->evalProjectionMatrix(proj); 
-        }
-        gpu::Batch batch;
-        batch.setProjectionTransform(proj);
-        backend.render(batch);
-    }
-
-    // Do the rendering batch creation for mono or left eye, not for right eye
-    if (renderSide != RenderArgs::STEREO_RIGHT) {
-        // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-        _sceneRenderBatch.clear();
-        gpu::Batch& batch = _sceneRenderBatch;
-
-        /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
-            mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE,
-            mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE,
-            mode == RenderArgs::DEFAULT_RENDER_MODE);
-            */
-
-       /*  if (mode != RenderArgs::SHADOW_RENDER_MODE) */{
-            GLenum buffers[3];
-
-            int bufferCount = 0;
-         //   if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            }
-            //if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            }
-           // if (mode == RenderArgs::DEFAULT_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            }
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-        
-           // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
-        }
-
-        const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
-
-        int opaqueMeshPartsRendered = 0;
-
-        // now, for each model in the scene, render the mesh portions
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, false, args);
-        
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, false, args);
-        
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, true, args);
-
-        // render translucent meshes afterwards
-        {
-            GLenum buffers[2];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-        }
-
-        int translucentParts = 0;
-        const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, false, args);
-
-
-        {
-            GLenum buffers[1];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-         //   batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
-        }
-    
-       // if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
-        if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-          //  batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
-
-            const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, false, args);
-        
-          // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
-        }
-
-        GLBATCH(glDepthMask)(true);
-        GLBATCH(glDepthFunc)(GL_LESS);
-        GLBATCH(glDisable)(GL_CULL_FACE);
-    
-        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            GLBATCH(glCullFace)(GL_BACK);
-        }
-
-        
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-
-
-        // deactivate vertex arrays after drawing
-        GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
-        GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
-        GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
-        GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::TANGENT);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_INDEX);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    
-        // bind with 0 to switch back to normal operation
-        GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-        GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-
-        // Back to no program
-        GLBATCH(glUseProgram)(0);
-
-    }
-
-    // Render!
-    {
-        PROFILE_RANGE("render Batch");
-        backend.render(_sceneRenderBatch);
-    }
-
-
-#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
-    // with legacy transform profile, we still to protect that transform stack...
-    glPopMatrix();
-#endif 
-
-    // restore all the default material settings
-    _viewState->setupWorldLight();
-    
-}
-
-bool Model::renderInScene(float alpha, RenderArgs* args) {
-    // render the attachments
-    foreach (Model* attachment, _attachments) {
-        attachment->renderInScene(alpha);
-    }
-    if (_meshStates.isEmpty()) {
-        return false;
-    }
-
-    if (args->_debugFlags == RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == false) {
-        // turning collision hull rendering on
-        _renderCollisionHull = true;
-        _nextGeometry = _collisionGeometry;
-        _saveNonCollisionGeometry = _geometry;
-        updateGeometry();
-        simulate(0.0, true);
-    } else if (args->_debugFlags != RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == true) {
-        // turning collision hull rendering off
-        _renderCollisionHull = false;
-        _nextGeometry = _saveNonCollisionGeometry;
-        _saveNonCollisionGeometry.clear();
-        updateGeometry();
-        simulate(0.0, true);
-    }
-    
-    renderSetup(args);
-    _modelsInScene.push_back(this);
-    return true;
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
@@ -2315,20 +2086,16 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // FIXME!
     }
     
-    if (state.clusterMatrices.size() > 1) {
+    if (isSkinned) {
         GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
- //       batch.setModelTransform(Transform());
-       _transforms[0].setTranslation(_translation);
-
+       _transforms[0] = Transform();
+       _transforms[0].preTranslate(_translation);
     } else {
        _transforms[0] = Transform(state.clusterMatrices[0]);
        _transforms[0].preTranslate(_translation);
-
-        //batch.setModelTransform(Transform(state.clusterMatrices[0]));
     }
     batch.setModelTransform(_transforms[0]);
-
 
     if (mesh.blendshapes.isEmpty()) {
         batch.setInputFormat(networkMesh._vertexFormat);
@@ -2576,34 +2343,6 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
     }
-}
-
-int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args) {
-
-    PROFILE_RANGE(__FUNCTION__);
-    int meshPartsRendered = 0;
-
-    bool pickProgramsNeeded = true;
-    Locations* locations = nullptr;
-    
-    foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
-        if (whichList) {
-            QVector<int>& list = *whichList;
-            if (list.size() > 0) {
-                if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe, args, locations);
-                    pickProgramsNeeded = false;
-                }
-
-                model->setupBatchTransform(batch, args);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations);
-            }
-        }
-    }
-
-    return meshPartsRendered;
 }
 
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
