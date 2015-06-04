@@ -1134,12 +1134,14 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
     // We can get a more consistent initial-contact energy reading by using the changed velocity.
+    // Note that velocityChange is not a good indicator for continuing collisions, because it does not distinguish
+    // between bounce and sliding along a surface.
     const float linearVelocity = (collision.type == CONTACT_EVENT_TYPE_START) ?
         glm::length(collision.velocityChange) :
         glm::length(collision.penetration) * COLLISION_PENETRATION_TO_VELOCITY;
     const float energy = mass * linearVelocity * linearVelocity / 2.0f;
     const glm::vec3 position = collision.contactPoint;
-    const float COLLISION_ENERGY_AT_FULL_VOLUME = (collision.type == CONTACT_EVENT_TYPE_START) ? 10.0f : 0.5f;
+    const float COLLISION_ENERGY_AT_FULL_VOLUME = (collision.type == CONTACT_EVENT_TYPE_START) ? 150.0f : 5.0f;
     const float COLLISION_MINIMUM_VOLUME = 0.005f;
     const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
@@ -1172,7 +1174,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
     soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
     const int channelCount = sound->isStereo() ? 2 : 1;
-    const float factor = log(1.0f + (entity->getMaximumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    const float factor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
     const int standardRate = AudioConstants::SAMPLE_RATE;
     const int resampledRate = standardRate * factor;
     const int nInputSamples = samples.size() / sizeof(int16_t);
