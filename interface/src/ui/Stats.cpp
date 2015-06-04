@@ -475,8 +475,22 @@ void Stats::display(
 
     if (_expanded) {
         octreeStats.str("");
-        octreeStats << "  Mesh Parts Rendered Opaque: " << _renderDetails._opaqueMeshPartsRendered
-                    << " / Translucent:" << _renderDetails._translucentMeshPartsRendered;
+        octreeStats << "  Mesh Parts Rendered Opaque: " << _renderDetails._opaque._rendered
+                    << " / Translucent:" << _renderDetails._translucent._rendered;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
+        
+        octreeStats.str("");
+        octreeStats << "  Opaque considered: " << _renderDetails._opaque._considered
+                    << " / Out of view:" << _renderDetails._opaque._outOfView
+                    << " / Too small:" << _renderDetails._opaque._tooSmall;
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
+        
+        octreeStats.str("");
+        octreeStats << "  Translucent considered: " << _renderDetails._translucent._considered
+                    << " / Out of view:" << _renderDetails._translucent._outOfView
+                    << " / Too small:" << _renderDetails._translucent._tooSmall;
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }

@@ -2216,12 +2216,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         const int INDICES_PER_QUAD = 4;
         args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
         args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
-        
-        if (translucent) {
-            args->_details._translucentMeshPartsRendered++;
-        } else {
-            args->_details._opaqueMeshPartsRendered++;
-        }
     }
 }
 

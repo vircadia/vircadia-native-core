@@ -22,13 +22,44 @@ class Batch;
 class Context;
 }
 
-struct RenderDetails {
+class RenderDetails {
+public:
+    enum Type {
+        OPAQUE,
+        TRANSLUCENT,
+        OTHER
+    };
+    
+    struct Items {
+        int _considered = 0;
+        int _rendered = 0;
+        int _outOfView = 0;
+        int _tooSmall = 0;
+    };
+    
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
     int _quadsRendered = 0;
     
-    int _translucentMeshPartsRendered = 0;
-    int _opaqueMeshPartsRendered = 0;
+    Items _opaque;
+    Items _translucent;
+    Items _other;
+    
+    Items* _item = &_other;
+    
+    void pointTo(Type type) {
+        switch (type) {
+            case OPAQUE:
+                _item = &_opaque;
+                break;
+            case TRANSLUCENT:
+                _item = &_translucent;
+                break;
+            case OTHER:
+                _item = &_other;
+                break;
+        }
+    }
 };
 
 class RenderArgs {
