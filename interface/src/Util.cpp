@@ -33,42 +33,44 @@
 
 using namespace std;
 
-void renderWorldBox(RenderArgs* renderArgs) {
+void renderWorldBox(gpu::Batch& batch) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    auto batch = renderArgs->_batch;
 
     //  Show edge of world
     glm::vec3 red(1.0f, 0.0f, 0.0f);
     glm::vec3 green(0.0f, 1.0f, 0.0f);
     glm::vec3 blue(0.0f, 0.0f, 1.0f);
     glm::vec3 grey(0.5f, 0.5f, 0.5f);
-
-    geometryCache->renderLine(*batch, glm::vec3(0, 0, 0), glm::vec3(TREE_SCALE, 0, 0), red);
-    geometryCache->renderLine(*batch, glm::vec3(0, 0, 0), glm::vec3(0, TREE_SCALE, 0), green);
-    geometryCache->renderLine(*batch, glm::vec3(0, 0, 0), glm::vec3(0, 0, TREE_SCALE), blue);
-    geometryCache->renderLine(*batch, glm::vec3(0, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, TREE_SCALE), grey);
-    geometryCache->renderLine(*batch, glm::vec3(TREE_SCALE, 0, TREE_SCALE), glm::vec3(TREE_SCALE, 0, 0), grey);
+    
+    auto transform = Transform{};
+    batch.setModelTransform(transform);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, TREE_SCALE, 0.0f), green);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), grey);
+    geometryCache->renderLine(batch, glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, 0.0f), grey);
     
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
+    
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
+    
+    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
 
-    Transform transform;
-    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0, 0));
-    batch->setModelTransform(transform);
-    geometryCache->renderSphere(*batch, MARKER_RADIUS, 10, 10, red);
+    transform.setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, green);
 
-    transform.setTranslation(glm::vec3(0, MARKER_DISTANCE, 0));
-    batch->setModelTransform(transform);
-    geometryCache->renderSphere(*batch, MARKER_RADIUS, 10, 10, green);
+    transform.setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, blue);
 
-    transform.setTranslation(glm::vec3(0, 0, MARKER_DISTANCE));
-    batch->setModelTransform(transform);
-    geometryCache->renderSphere(*batch, MARKER_RADIUS, 10, 10, blue);
-
-    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0, MARKER_DISTANCE));
-    batch->setModelTransform(transform);
-    geometryCache->renderSphere(*batch, MARKER_RADIUS, 10, 10, grey);
+    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, grey);
 }
 
 //  Return a random vector of average length 1
