@@ -1714,12 +1714,9 @@ bool Application::acceptSnapshot(const QString& urlString) {
     
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
-        if (!snapshotData->getDomain().isEmpty()) {
-            DependencyManager::get<NodeList>()->getDomainHandler().setHostnameAndPort(snapshotData->getDomain());
+        if (!snapshotData->getURL().toString().isEmpty()) {
+            DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
         }
-
-        _myAvatar->setPosition(snapshotData->getLocation());
-        _myAvatar->setOrientation(snapshotData->getOrientation());
     } else {
         QMessageBox msgBox;
         msgBox.setText("No location details were found in the file "
