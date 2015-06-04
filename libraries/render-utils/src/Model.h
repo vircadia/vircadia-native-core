@@ -367,6 +367,9 @@ private:
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffet;
+   
+    
     bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;

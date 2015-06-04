@@ -680,6 +680,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
+        _calculatedMeshPartOffet.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -688,9 +689,10 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
+                qint64 partOffset = 0;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
-                    
+
                     bool atLeastOnePointInBounds = false;
                     AABox thisPartBounds;
 
@@ -773,6 +775,11 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
+                    _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+
+                    partOffset += part.quadIndices.size() * sizeof(int);
+                    partOffset += part.triangleIndices.size() * sizeof(int);
+
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
@@ -2026,6 +2033,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (!_readyWhenAdded) {
         return; // bail asap
     }
+    
+    // we always need these properly calculated before we can render, this will likely already have been done
+    // since the engine will call our getPartBounds() before rendering us.
+    if (!_calculatedMeshPartBoxesValid) {
+        recalculateMeshBoxes(true);
+    }
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -2211,19 +2224,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     meshPartsRendered++;
     
-    // FIX ME This is very unefficient
-    qint64 offset = 0;
-    for (int j = 0; j < partIndex; j++) {
-        const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-        const FBXMeshPart& part = mesh.parts.at(j);
-        if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
-            offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
-            continue;
-        }
-        
-        offset += part.quadIndices.size() * sizeof(int);
-        offset += part.triangleIndices.size() * sizeof(int);
-    }
+    qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
     
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
