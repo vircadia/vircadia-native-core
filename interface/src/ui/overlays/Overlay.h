@@ -48,11 +48,8 @@ public:
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
-    //virtual bool needsFixupInScene() { return false; }
-    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return true; }
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
-
 
     // getters
     virtual bool is3D() const = 0;
