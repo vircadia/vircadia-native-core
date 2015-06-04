@@ -116,11 +116,6 @@ public:
 
     void renderSetup(RenderArgs* args);
     
-    // Scene rendering support
-    static void startScene(RenderArgs::RenderSide renderSide);
-    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderArgs* args);
-
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
@@ -392,13 +387,6 @@ private:
     void renderDebugMeshBoxes();
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
-    // Scene rendering support
-    static QVector<Model*> _modelsInScene;
-    static gpu::Batch _sceneRenderBatch;
-
-    static void endSceneSimple(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-
     // helper functions used by render() or renderInScene()
     bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
@@ -415,10 +403,6 @@ private:
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
-
-    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args);
-
 
     static AbstractViewStateInterface* _viewState;
 
