@@ -209,6 +209,8 @@ namespace MenuOption {
     const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
+    const QString LoginDialogCircular = "Circular";
+    const QString LoginDialogRectangular = "Rectangular";
     const QString Log = "Log";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString Mirror = "Mirror";

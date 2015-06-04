@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import Hifi 1.0 as Hifi
+import Hifi 1.0
 import QtQuick 2.4
 import "controls"
 import "styles"
@@ -35,7 +35,7 @@ Dialog {
     x: parent ? parent.width / 2 - width / 2 : 0
     y: parent ? parent.height / 2 - height / 2 : 0
 
-    Hifi.ErrorDialog {
+    ErrorDialog {
         id: content
 
         implicitWidth: box.width
@@ -88,6 +88,7 @@ Dialog {
                 }
                 MouseArea {
                     anchors.fill: parent
+                    cursorShape: "PointingHandCursor"
                     onClicked: {
                         content.accept();
                     }

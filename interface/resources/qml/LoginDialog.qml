@@ -1,198 +1,119 @@
+//
+//  LoginDialog.qml
+//
+//  Created by David Rowe on 3 Jun 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import Hifi 1.0
-import QtQuick 2.3
-import QtQuick.Controls.Styles 1.3
+import QtQuick 2.4
+import QtQuick.Controls 1.3  // TODO: Needed?
 import "controls"
 import "styles"
 
-DialogOld {
+Dialog {
+    id: root
     HifiConstants { id: hifi }
-    title: "Login"
+
     objectName: "LoginDialog"
-    height: 512
-    width: 384
 
-    onVisibleChanged: {
-        if (!visible) {
-            reset()
-        }
-    }
+    property bool destroyOnInvisible: false
 
-    onEnabledChanged: {
-        if (enabled) {
-            username.forceActiveFocus();
-        }
-    }
+    implicitWidth: loginDialog.implicitWidth
+    implicitHeight: loginDialog.implicitHeight
 
-    function reset() {
-        username.text = ""
-        password.text = ""
-        loginDialog.statusText = ""
+    x: parent ? parent.width / 2 - width / 2 : 0
+    y: parent ? parent.height / 2 - height / 2 : 0
+    property int maximumX: parent ? parent.width - width : 0
+    property int maximumY: parent ? parent.height - height : 0
+
+    function isCircular() {
+        return loginDialog.dialogFormat == "circular"
     }
 
     LoginDialog {
         id: loginDialog
-        anchors.fill: parent
-        anchors.margins: parent.margins
-        anchors.topMargin: parent.topMargin
-        Column {
-            anchors.topMargin: 8
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.top: parent.top
-            spacing: 8
 
-            Image {
-                height: 64
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 64
-                source: "../images/hifi-logo.svg"
+        implicitWidth: isCircular() ? circularBackground.width : rectangularBackground.width
+        implicitHeight: isCircular() ? circularBackground.height : rectangularBackground.height
+
+        Image {
+            id: circularBackground
+            visible: isCircular()
+
+            source: "../images/login-circle.svg"
+            width: 500
+            height: 500
+        }
+
+        Image {
+            id: rectangularBackground
+            visible: !isCircular()
+
+            source: "../images/login-rectangle.svg"
+            width: 400
+            height: 400
+        }
+
+        Text {
+            id: closeText
+            visible: isCircular()
+
+            text: "Close"
+            font.pixelSize: hifi.fonts.pixelSize * 0.8
+            font.weight: Font.Bold
+            color: "#175d74"
+
+            anchors {
+                horizontalCenter: circularBackground.horizontalCenter
+                bottom: circularBackground.bottom
+                bottomMargin: hifi.layout.spacing * 4
             }
 
-            Border {
-                width: 304
-                height: 64
-                anchors.horizontalCenter: parent.horizontalCenter
-                TextInput {
-                    id: username
-                    anchors.fill: parent
-                    helperText: "Username or Email"
-                    anchors.margins: 8
-                    KeyNavigation.tab: password
-                    KeyNavigation.backtab: password
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: "PointingHandCursor"
+                onClicked: {
+                    root.enabled = false
                 }
-            }
-
-            Border {
-                width: 304
-                height: 64
-                anchors.horizontalCenter: parent.horizontalCenter
-                TextInput {
-                    id: password
-                    anchors.fill: parent
-                    echoMode: TextInput.Password
-                    helperText: "Password"
-                    anchors.margins: 8
-                    KeyNavigation.tab: username
-                    KeyNavigation.backtab: username
-                    onFocusChanged: {
-                        if (password.focus) {
-                            password.selectAll()
-                        }
-                    }
-                }
-            }
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                textFormat: Text.StyledText
-                width: parent.width
-                height: 96
-                wrapMode: Text.WordWrap
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                text: loginDialog.statusText
             }
         }
 
-        Column {
-            anchors.bottomMargin: 5
-            anchors.right: parent.right
-            anchors.rightMargin: 0
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
+        Image {
+            id: closeIcon
+            visible: !isCircular()
 
-            Rectangle {
-                width: 192
-                height: 64
-                anchors.horizontalCenter: parent.horizontalCenter
-                color: hifi.colors.hifiBlue
-                border.width: 0
-                radius: 10
+            source: "../images/login-close.svg"
 
-                MouseArea {
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 0
-                    anchors.top: parent.top
-                    anchors.right: parent.right
-                    anchors.left: parent.left
-                    onClicked: {
-                        loginDialog.login(username.text, password.text)
-                    }
-                }
-
-                Row {
-                    anchors.centerIn: parent
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 8
-                    Image {
-                        id: loginIcon
-                        height: 32
-                        width: 32
-                        source: "../images/login.svg"
-                    }
-                    Text {
-                        text: "Login"
-                        color: "white"
-                        width: 64
-                        height: parent.height
-                    }
-                }
-
+            width: 20
+            height: 20
+            anchors {
+                top: rectangularBackground.top
+                right: rectangularBackground.right
+                topMargin: hifi.layout.spacing * 2
+                rightMargin: hifi.layout.spacing * 2
             }
 
-            Text {
-                width: parent.width
-                height: 24
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                text:"Create Account"
-                font.pointSize: 12
-                font.bold: true
-                color: hifi.colors.hifiBlue
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        loginDialog.openUrl(loginDialog.rootUrl + "/signup")
-                    }
-                }
-            }
-
-            Text {
-                width: parent.width
-                height: 24
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                font.pointSize: 12
-                text: "Recover Password"
-                color: hifi.colors.hifiBlue
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        loginDialog.openUrl(loginDialog.rootUrl + "/users/password/new")
-                    }
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: "PointingHandCursor"
+                onClicked: {
+                    root.enabled = false
                 }
             }
         }
     }
+
     Keys.onPressed: {
-        switch(event.key) {
-            case Qt.Key_Enter:
-            case Qt.Key_Return:
-                if (username.activeFocus) {
-                    event.accepted = true
-                    password.forceActiveFocus()
-                } else if (password.activeFocus) {
-                    event.accepted = true
-                    if (username.text == "") {
-                        username.forceActiveFocus()
-                    } else {
-                        loginDialog.login(username.text, password.text)
-                    }
-                }
-                break;
+        switch (event.key) {
+            case Qt.Key_Escape:
+            case Qt.Key_Back:
+                enabled = false;
+                event.accepted = true
+                break
         }
     }
 }
