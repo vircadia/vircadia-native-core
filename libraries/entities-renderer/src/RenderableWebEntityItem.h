@@ -29,6 +29,7 @@ private:
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
+    ivec2  _lastPress{ INT_MIN };
     QMutex _textureLock;
 };
 

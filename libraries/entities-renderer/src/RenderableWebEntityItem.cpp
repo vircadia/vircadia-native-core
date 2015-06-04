@@ -8,10 +8,13 @@
 
 #include "RenderableWebEntityItem.h"
 
+#include <QMouseEvent>
+
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
 
+#include <GlowEffect.h>
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
@@ -64,7 +67,6 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
 void RenderableWebEntityItem::render(RenderArgs* args) {
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     QSurface * currentSurface = currentContext->surface();
-
     if (!_webSurface) {
         _webSurface = new OffscreenQmlSurface();
         _webSurface->create(currentContext);
@@ -98,14 +100,33 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 return;
             }
 
+            if (event->button() == Qt::MouseButton::RightButton) {
+                if (event->type() == QEvent::MouseButtonPress) {
+                    const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
+                    _lastPress = toGlm(mouseEvent->pos());
+                }
+            }
+
             if (intersection.entityID == getID()) {
                 if (event->button() == Qt::MouseButton::RightButton) {
                     if (event->type() == QEvent::MouseButtonRelease) {
-                        AbstractViewStateInterface::instance()->postLambdaEvent([this] {
-                            QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
-                        });
+                        const QMouseEvent* mouseEvent = static_cast<const QMouseEvent*>(event);
+                        ivec2 dist = glm::abs(toGlm(mouseEvent->pos()) - _lastPress);
+                        if (!glm::any(glm::greaterThan(dist, ivec2(1)))) {
+                            AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                                QMetaObject::invokeMethod(_webSurface->getRootItem(), "goBack");
+                            });
+                        }
+                        _lastPress = ivec2(INT_MIN);
                     }
                     return;
+                }
+
+                // FIXME doesn't work... double click events not received
+                if (event->type() == QEvent::MouseButtonDblClick) {
+                    AbstractViewStateInterface::instance()->postLambdaEvent([this] {
+                        _webSurface->getRootItem()->setProperty("url", _sourceUrl);
+                    });
                 }
 
                 if (event->button() == Qt::MouseButton::MiddleButton) {
@@ -133,6 +154,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
             }
         };
+
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
         QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
         QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
@@ -147,6 +169,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(dims.x, dims.y));
     currentContext->makeCurrent(currentSurface);
 
+    Glower glow(0);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     assert(getType() == EntityTypes::Web);
     glm::vec3 position = getPosition();
@@ -181,6 +204,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
+    qDebug() << "Setting web entity source URL to " << value;
     if (_sourceUrl != value) {
         _sourceUrl = value;
         if (_webSurface) {
