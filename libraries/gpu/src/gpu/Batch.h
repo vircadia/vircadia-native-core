@@ -157,6 +157,7 @@ public:
     void _glDisableVertexAttribArray(GLint location);
 
     void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+    void _glLineWidth(GLfloat width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -216,6 +217,7 @@ public:
         COMMAND_glDisableVertexAttribArray,
 
         COMMAND_glColor4f,
+        COMMAND_glLineWidth,
 
         NUM_COMMANDS,
     };
