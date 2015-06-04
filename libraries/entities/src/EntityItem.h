@@ -14,8 +14,6 @@
 
 #include <stdint.h>
 
-#include <QSet>
-
 #include <glm/glm.hpp>
 
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
