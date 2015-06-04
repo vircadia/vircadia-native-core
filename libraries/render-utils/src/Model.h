@@ -107,6 +107,9 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
+
+    void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    bool isVisible() const { return _isVisible; }
     
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
@@ -334,6 +337,7 @@ private:
     
     QUrl _url;
     QUrl _collisionUrl;
+    bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;
@@ -528,7 +532,7 @@ private:
     
     QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
-    QSet<render::ItemID> _renderItems;
+    QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     
     
