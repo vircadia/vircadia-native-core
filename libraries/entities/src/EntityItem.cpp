@@ -83,8 +83,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
-    qDebug() << "EntityItem::~EntityItem" << _objectActions.size() << _name;
-    clearActions();
     // these pointers MUST be NULL at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
     assert(!_simulated);
@@ -1363,17 +1361,17 @@ bool EntityItem::addAction(EntityActionInterface* action) {
     return false;
 }
 
-void EntityItem::removeAction(const QUuid actionID) {
+void EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
         EntityActionInterface* action = _objectActions[actionID];
         qDebug() << "REMOVING" << actionID << "in EntityItem::removeAction" << _name;
         _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
-        action->removeFromSimulation();
+        action->removeFromSimulation(simulation);
     }
 }
 
-void EntityItem::clearActions() {
+void EntityItem::clearActions(EntitySimulation* simulation) {
     QHash<QUuid, EntityActionInterface*>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
@@ -1381,6 +1379,6 @@ void EntityItem::clearActions() {
         qDebug() << "ERASING" << id << "in EntityItem::clearActions" << _name;
         i = _objectActions.erase(i);
         action->setOwnerEntity(nullptr);
-        action->removeFromSimulation();
+        action->removeFromSimulation(simulation);
     }
 }

@@ -60,7 +60,7 @@ public:
                                                  QUuid id,
                                                  EntityItemPointer ownerEntity,
                                                  QVariantMap arguments) { return nullptr; }
-    virtual void addAction(EntityActionInterface* action) { action->setSimulation(this); _actionsToAdd += action; }
+    virtual void addAction(EntityActionInterface* action) { _actionsToAdd += action; }
     virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
     virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
     virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }

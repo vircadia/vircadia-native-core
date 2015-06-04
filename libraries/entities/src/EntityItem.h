@@ -355,8 +355,8 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     bool addAction(EntityActionInterface* actionID);
-    void removeAction(const QUuid actionID);
-    void clearActions();
+    void removeAction(EntitySimulation* simulation, const QUuid actionID);
+    void clearActions(EntitySimulation* simulation);
 
 protected:
 

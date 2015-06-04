@@ -25,8 +25,7 @@ public:
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
-    virtual void setSimulation(EntitySimulation* simulation) { _simulation = simulation; }
-    virtual void removeFromSimulation() const;
+    virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
 
@@ -39,7 +38,6 @@ private:
 
 protected:
     EntityItemPointer _ownerEntity;
-    EntitySimulation* _simulation;
 };
 
 #endif // hifi_ObjectAction_h
