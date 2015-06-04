@@ -24,20 +24,12 @@ class QTemporaryFile;
 
 class SnapshotMetaData {
 public:
-    
-    QString getDomain() { return _domain; }
-    void setDomain(QString domain) { _domain = domain; }
-    
-    glm::vec3 getLocation() { return _location; }
-    void setLocation(glm::vec3 location) { _location = location; }
-    
-    glm::quat getOrientation() { return _orientation; }
-    void setOrientation(glm::quat orientation) { _orientation = orientation; }
-    
+
+    QUrl getURL() { return _URL; }
+    void setURL(QUrl URL) { _URL = URL; }
+
 private:
-    QString _domain;
-    glm::vec3 _location;
-    glm::quat _orientation;;
+    QUrl _URL;
 };
 
 class Snapshot {
@@ -45,7 +37,7 @@ public:
     static QString saveSnapshot(QImage image);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
-    
+
     static Setting::Handle<QString> snapshotsLocation;
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
