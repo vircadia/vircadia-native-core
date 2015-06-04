@@ -239,3 +239,4 @@ bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene
 void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemID);
 }
+
