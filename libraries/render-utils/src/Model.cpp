@@ -2358,8 +2358,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    qint64 offset = 0;
-
     // guard against partially loaded meshes
     if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
         return; 
@@ -2449,6 +2447,20 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     meshPartsRendered++;
+    
+    // FIX ME This is very unefficient
+    qint64 offset = 0;
+    for (int j = 0; j < partIndex; j++) {
+        const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+        const FBXMeshPart& part = mesh.parts.at(j);
+        if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
+            offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
+            continue;
+        }
+        
+        offset += part.quadIndices.size() * sizeof(int);
+        offset += part.triangleIndices.size() * sizeof(int);
+    }
     
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
