@@ -49,6 +49,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     
     batch._glLineWidth(getLineWidth());
     DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+    batch._glLineWidth(1.0f);
     
     RenderableDebugableEntityItem::render(this, args);
 };
