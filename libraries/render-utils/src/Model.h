@@ -30,6 +30,7 @@
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
 #include "PhysicsEntity.h"
+#include <render/Scene.h>
 #include <Transform.h>
 
 #include "AnimationHandle.h"
