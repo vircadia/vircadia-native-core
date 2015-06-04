@@ -21,6 +21,7 @@
 
 class UserInputMapper : public QObject {
     Q_OBJECT
+    Q_ENUMS(Action)
 public:
     typedef unsigned short uint16;
     typedef unsigned int uint32;
@@ -64,6 +65,7 @@ public:
         explicit Input(uint16 device, uint16 channel, ChannelType type) : _device(device), _channel(channel), _type(uint16(type)) {}
         Input(const Input& src) : _id(src._id) {}
         Input& operator = (const Input& src) { _id = src._id; return (*this); }
+        bool operator ==(const Input& right) const { return _id == right._id; }
         bool operator < (const Input& src) const { return _id < src._id; }
     };
 
@@ -83,22 +85,32 @@ public:
     typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
     typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
     typedef std::function<JointValue (const Input& input, int timestamp)> JointGetter;
+    typedef QPair<Input, QString> InputPair;
+    typedef std::function<QVector<InputPair> ()> AvailableInputGetter;
+    typedef std::function<bool ()> ResetBindings;
+    
+    typedef QVector<InputPair> AvailableInput;
 
    class DeviceProxy {
     public:
-        DeviceProxy() {}
-        
-        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
-        AxisGetter getAxis = [] (const Input& input, int timestamp) -> bool { return 0.0f; };
-        JointGetter getJoint = [] (const Input& input, int timestamp) -> JointValue { return JointValue(); };
-        
-        typedef std::shared_ptr<DeviceProxy> Pointer;
+       DeviceProxy(QString name) { _name = name; }
+       
+       QString _name;
+       ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
+       AxisGetter getAxis = [] (const Input& input, int timestamp) -> bool { return 0.0f; };
+       JointGetter getJoint = [] (const Input& input, int timestamp) -> JointValue { return JointValue(); };
+       AvailableInputGetter getAvailabeInputs = [] () -> AvailableInput { return QVector<InputPair>(); };
+       ResetBindings resetDeviceBindings = [] () -> bool { return true; };
+       
+       typedef std::shared_ptr<DeviceProxy> Pointer;
     };
     // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
-
+    QString getDeviceName(uint16 deviceID) { return _registeredDevices[deviceID]->_name; }
+    QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
+    void resetAllDeviceBindings();
 
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
@@ -123,8 +135,14 @@ public:
 
         NUM_ACTIONS,
     };
+    
+    std::vector<QString> _actionNames = std::vector<QString>(NUM_ACTIONS);
+    void createActionNames();
 
+    QVector<Action> getAllActions();
+    QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
+//    QVector<InputChannel>
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
@@ -146,21 +164,27 @@ public:
             _input(input), _modifier(modifier), _action(action), _scale(scale) {}
         InputChannel(const InputChannel& src) : InputChannel(src._input, src._modifier, src._action, src._scale) {}
         InputChannel& operator = (const InputChannel& src) { _input = src._input; _modifier = src._modifier; _action = src._action; _scale = src._scale; return (*this); }
-    
+        bool operator ==(const InputChannel& right) const { return _input == right._input && _modifier == right._modifier && _action == right._action && _scale == right._scale; }
         bool hasModifier() { return _modifier.isValid(); }
     };
     typedef std::vector< InputChannel > InputChannels;
 
     // Add a bunch of input channels, return the true number of channels that successfully were added
     int addInputChannels(const InputChannels& channels);
+    // Remove the first found instance of the input channel from the input mapper, true if found
+    bool removeInputChannel(InputChannel channel);
+    void removeAllInputChannels();
+    void removeAllInputChannelsForDevice(uint16 device);
     //Grab all the input channels currently in use, return the number
     int getInputChannels(InputChannels& channels) const;
+    QVector<InputChannel> getAllInputsForDevice(uint16 device);
+    QVector<InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
+    std::multimap<Action, InputChannel> getActionToInputsMap() { return _actionToInputsMap; }
 
     // Update means go grab all the device input channels and update the output channel values
     void update(float deltaTime);
-
-    // Default contruct allocate the poutput size with the current hardcoded action channels
-    UserInputMapper() { assignDefaulActionScales(); }
+    
+    UserInputMapper();
 
 protected:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
@@ -176,5 +200,13 @@ protected:
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
 };
+
+Q_DECLARE_METATYPE(UserInputMapper::InputPair)
+Q_DECLARE_METATYPE(QVector<UserInputMapper::InputPair>)
+Q_DECLARE_METATYPE(UserInputMapper::Input)
+Q_DECLARE_METATYPE(UserInputMapper::InputChannel)
+Q_DECLARE_METATYPE(QVector<UserInputMapper::InputChannel>)
+Q_DECLARE_METATYPE(UserInputMapper::Action)
+Q_DECLARE_METATYPE(QVector<UserInputMapper::Action>)
 
 #endif // hifi_UserInputMapper_h
