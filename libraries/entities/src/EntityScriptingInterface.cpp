@@ -450,7 +450,7 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
         });
 }
 
-QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::vec3& target, float speed) {
+QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
     if (!_entityTree) {
         return QUuid();
     }
@@ -466,15 +466,24 @@ QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::
         return QUuid();
     }
 
-    QVariantMap arguments;
-    QVariantList targetList;
-    targetList << QVariant(target[0]) << QVariant(target[1]) << QVariant(target[2]);
-    arguments["target"] = targetList;
-    arguments["speed"] = QVariant(speed);
-    EntityActionInterface* action = simulation->actionFactory(ACTION_TYPE_PULL_TO_POINT, actionID, entity, arguments);
-    entity->addAction(action);
+    if (!simulation) {
+        qDebug() << "addAction -- no simulation" << entityID;
+        _entityTree->unlock();
+        return QUuid();
+    }
 
+    EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
+
+    if (actionType == ACTION_TYPE_NONE) {
+        _entityTree->unlock();
+        return QUuid();
+    }
+
+    EntityActionInterface* action = simulation->actionFactory(actionType, actionID, entity, arguments);
     _entityTree->unlock();
 
-    return actionID;
+    if (action) {
+        return actionID;
+    }
+    return QUuid();
 }

@@ -238,19 +238,45 @@ EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType 
                                                                QUuid id,
                                                                EntityItemPointer ownerEntity,
                                                                QVariantMap arguments) {
+    EntityActionInterface* action = nullptr;
     switch (type) {
         case ACTION_TYPE_NONE:
-            assert(false);
             return nullptr;
         case ACTION_TYPE_PULL_TO_POINT:
-            QVariantList target = arguments["target"].toList();
-            glm::vec3 glmTarget(target[0].toFloat(), target[1].toFloat(), target[2].toFloat());
+            if (!arguments.contains("target")) {
+                qDebug() << "PullToPoint action requires a `target' argument";
+                return nullptr;
+            }
+            QVariant targetV = arguments["target"];
+            if (targetV.type() != (QVariant::Type) QMetaType::QVariantMap) {
+                qDebug() << "PullToPoint argument `target' must be a map";
+                return nullptr;
+            }
+            QVariantMap targetVM = targetV.toMap();
+            if (!targetVM.contains("x") || !targetVM.contains("y") || !targetVM.contains("z")) {
+                qDebug() << "PullToPoint argument `target' must be a map with keys of x, y, z";
+                return nullptr;
+            }
+            QVariant xV = targetVM["x"];
+            QVariant yV = targetVM["y"];
+            QVariant zV = targetVM["z"];
+            bool xOk = true;
+            bool yOk = true;
+            bool zOk = true;
+            float x = xV.toFloat(&xOk);
+            float y = yV.toFloat(&yOk);
+            float z = zV.toFloat(&zOk);
+            if (!xOk || !yOk || !zOk) {
+                qDebug() << "PullToPoint argument `target' must be a map with keys of x, y, z and values of type float.";
+            }
+            glm::vec3 glmTarget(x, y, z);
             float speed = arguments["speed"].toFloat();
-            return (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget, speed);
+            action = (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget, speed);
     }
 
-    assert(false);
-    return nullptr;
+    assert(action);
+    ownerEntity->addAction(this, action);
+    return action;
 }
 
 void PhysicalEntitySimulation::applyActionChanges() {

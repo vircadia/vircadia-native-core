@@ -31,7 +31,7 @@ public:
 class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
-    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem) = 0;    
+    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem) = 0;
     virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) = 0;
 };
 
@@ -63,23 +63,23 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
     virtual PacketType expectedDataPacketType() const { return PacketTypeEntityData; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const 
+    virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_SUPPORT_SPLIT_MTU; }  // we support all versions with split mtu
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
     virtual bool rootElementHasData() const { return true; }
-    
+
     // the root at least needs to store the number of entities in the packet/buffer
     virtual int minimumRequiredRootDataBytes() const { return sizeof(uint16_t); }
     virtual bool suppressEmptySubtrees() const { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const;
     virtual bool mustIncludeAllChildData() const { return false; }
 
-    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const 
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
-                    
+
     virtual void update();
 
     // The newer API...
@@ -111,13 +111,13 @@ public:
     /// \param foundEntities[out] vector of EntityItemPointer
     /// \remark Side effect: any initial contents in foundEntities will be lost
     void findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities);
-    
+
     /// finds all entities that touch a cube
     /// \param cube the query cube in world-frame (meters)
     /// \param foundEntities[out] vector of non-EntityItemPointer
     /// \remark Side effect: any initial contents in entities will be lost
     void findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities);
-    
+
     /// finds all entities that touch a box
     /// \param box the query box in world-frame (meters)
     /// \param foundEntities[out] vector of non-EntityItemPointer
@@ -129,13 +129,13 @@ public:
 
     bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, 
+    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
                                     unsigned char* packetData, size_t maxLength, size_t& outputLength);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    
+
     EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
     const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
@@ -144,7 +144,7 @@ public:
     const Model* getModelForEntityItem(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
-    
+
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
@@ -165,7 +165,7 @@ public:
 
     bool writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
-    
+
     float getContentsLargestDimension();
 
 signals:
@@ -178,7 +178,7 @@ signals:
 private:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
-    bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties, 
+    bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
                                  EntityTreeElement* containingElement,
                                  const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
@@ -199,7 +199,7 @@ private:
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
     EntitySimulation* _simulation;
-    
+
     bool _wantEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 };

@@ -1338,7 +1338,7 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
     }
 }
 
-bool EntityItem::addAction(EntityActionInterface* action) {
+bool EntityItem::addAction(EntitySimulation* simulation, EntityActionInterface* action) {
     assert(action);
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
@@ -1347,16 +1347,7 @@ bool EntityItem::addAction(EntityActionInterface* action) {
 
     assert(action->getOwnerEntity().get() == this);
 
-    if (_element) {
-        const EntityTree* tree = _element->getTree();
-        if (tree) {
-            EntitySimulation* simulation = tree->getSimulation();
-            if (simulation) {
-                simulation->addAction(action);
-                return true;
-            }
-        }
-    }
+    simulation->addAction(action);
 
     return false;
 }

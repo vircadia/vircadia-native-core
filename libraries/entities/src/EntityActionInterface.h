@@ -12,9 +12,12 @@
 #ifndef hifi_EntityActionInterface_h
 #define hifi_EntityActionInterface_h
 
+#include <QUuid>
+
 class EntitySimulation;
 
 enum EntityActionType {
+    // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE,
     ACTION_TYPE_PULL_TO_POINT
 };
@@ -30,6 +33,9 @@ class EntityActionInterface {
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     // virtual QByteArray serialize() = 0;
     // static EntityActionInterface* deserialize(EntityItemPointer ownerEntity, QByteArray data);
+
+    static EntityActionType actionTypeFromString(QString actionTypeString);
+    static QString actionTypeToString(EntityActionType actionType);
 };
 
 #endif // hifi_EntityActionInterface_h
