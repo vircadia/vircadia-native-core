@@ -39,8 +39,6 @@ void RenderableLineEntityItem::updateGeometry() {
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Line);
-    glm::vec3 p1 = ENTITY_ITEM_ZERO_VEC3;
-    glm::vec3 p2 = getDimensions();
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
