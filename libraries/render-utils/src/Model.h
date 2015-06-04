@@ -256,7 +256,7 @@ protected:
 
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
-    glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
+    glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
     
@@ -308,7 +308,12 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     /// Allow sub classes to force invalidating the bboxes
-    void invalidCalculatedMeshBoxes() { _calculatedMeshBoxesValid = false; }
+    void invalidCalculatedMeshBoxes() { 
+        qDebug() << "invalidCalculatedMeshBoxes()";
+        _calculatedMeshBoxesValid = false;
+        _calculatedMeshPartBoxesValid = false;
+        _calculatedMeshTrianglesValid = false;
+    }
 
 private:
     

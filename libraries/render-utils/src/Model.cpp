@@ -92,6 +92,8 @@ Model::Model(QObject* parent) :
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
     }
+    
+    setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 }
 
 Model::~Model() {
@@ -407,7 +409,7 @@ void Model::reset() {
     
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
-    _needsReload = true;
+    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
@@ -459,7 +461,7 @@ bool Model::updateGeometry() {
         _geometry = geometry;
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
-        _needsReload = true;
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -1253,6 +1255,7 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
 
 /// Returns the world space equivalent of some box in model space.
 AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
+    
     return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
@@ -1324,6 +1327,7 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     
     _readyWhenAdded = false; // reset out render items.
     _needsReload = true;
+    invalidCalculatedMeshBoxes(); // if we have finished reload, we need to assume our mesh boxes are all invalid
     
     _url = url;
 
@@ -1590,6 +1594,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
+        // NOTE: this seems problematic... need to review
         _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
         _calculatedMeshTrianglesValid = false;
 
@@ -1978,6 +1983,7 @@ void Model::applyNextGeometry() {
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     _needsReload = false; // we are loaded now!
+    invalidCalculatedMeshBoxes();
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2051,6 +2057,22 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
+
+    // render the part bounding box
+    #ifdef DEBUG_BOUNDING_PARTS
+    {
+        glm::vec4 cubeColor(1.0f,0.0f,0.0f,1.0f);
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+
+        glm::mat4 translation = glm::translate(partBounds.calcCenter());
+        glm::mat4 scale = glm::scale(partBounds.getDimensions());
+        glm::mat4 modelToWorldMatrix = translation * scale;
+        batch.setModelTransform(modelToWorldMatrix);
+        //qDebug() << "partBounds:" << partBounds;
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif //def DEBUG_BOUNDING_PARTS
+
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
         _transforms.push_back(Transform());
@@ -2094,7 +2116,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
-        _needsReload = true;
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         return; // FIXME!
     }
     
@@ -2410,7 +2432,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
             _readyWhenAdded = false; // in case any of our users are using scenes
-            _needsReload = true;
+            invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
             continue;
         }
         
