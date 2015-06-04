@@ -35,66 +35,6 @@
 using oglplus::Framebuffer;
 using oglplus::DefaultFramebuffer;
 
-// A basic wrapper for constructing a framebuffer with a renderbuffer
-// for the depth attachment and an undefined type for the color attachement
-// This allows us to reuse the basic framebuffer code for both the Mirror
-// FBO as well as the Oculus swap textures we will use to render the scene
-// Though we don't really need depth at all for the mirror FBO, or even an
-// FBO, but using one means I can just use a glBlitFramebuffer to get it onto
-// the screen.
-template <typename C = GLuint, typename D = GLuint>
-struct FramebufferWrapper {
-    uvec2       size;
-    Framebuffer fbo;
-    C           color{ 0 };
-    D           depth{ 0 };
-
-    virtual ~FramebufferWrapper() {
-    }
-
-    FramebufferWrapper() {}
-
-    virtual void Init(const uvec2 & size) {
-        this->size = size;
-        initColor();
-        initDepth();
-        initDone();
-    }
-
-    template <typename F>
-    void Bound(F f) {
-        Bound(GL_FRAMEBUFFER, f);
-    }
-
-    template <typename F>
-    void Bound(GLenum target, F f) {
-        glBindFramebuffer(target, oglplus::GetName(fbo));
-        onBind(target);
-        f();
-        onUnbind(target);
-        glBindFramebuffer(target, 0);
-    }
-
-    void Viewport() {
-        glViewport(0, 0, size.x, size.y);
-    }
-
-protected:
-    virtual void onBind(GLenum target) {}
-    virtual void onUnbind(GLenum target) {}
-
-
-    virtual void initDepth() {
-        glGenRenderbuffers(1, &depth);
-        assert(depth);
-        glBindRenderbuffer(GL_RENDERBUFFER, depth);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, size.x, size.y);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    }
-
-    virtual void initColor() = 0;
-    virtual void initDone() = 0;
-};
 
 
 
@@ -102,7 +42,7 @@ protected:
 // API to manage textures via ovrHmd_CreateSwapTextureSetGL,
 // ovrHmd_CreateMirrorTextureGL, etc
 template <typename C>
-struct RiftFramebufferWrapper : public FramebufferWrapper<C> {
+struct RiftFramebufferWrapper : public FramebufferWrapper<C, char> {
     ovrHmd hmd;
     RiftFramebufferWrapper(const ovrHmd & hmd) : hmd(hmd) {};
 
@@ -116,7 +56,7 @@ struct RiftFramebufferWrapper : public FramebufferWrapper<C> {
     }
 
 protected:
-    virtual void initDepth() override {
+    virtual void initDepth() override final {
     }
 };
 
@@ -129,6 +69,7 @@ struct SwapFramebufferWrapper : public RiftFramebufferWrapper<ovrSwapTextureSet*
     SwapFramebufferWrapper(const ovrHmd & hmd)
         : RiftFramebufferWrapper(hmd) {
     }
+
     ~SwapFramebufferWrapper() {
         if (color) {
             ovrHmd_DestroySwapTextureSet(hmd, color);
@@ -166,13 +107,13 @@ protected:
     virtual void initDone() override {
     }
 
-    virtual void onBind(GLenum target) {
+    virtual void onBind(oglplus::Framebuffer::Target target) override {
         ovrGLTexture& tex = (ovrGLTexture&)(color->Textures[color->CurrentIndex]);
-        glFramebufferTexture2D(target, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.OGL.TexId, 0);
+        glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.OGL.TexId, 0);
     }
 
-    virtual void onUnbind(GLenum target) {
-        glFramebufferTexture2D(target, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+    virtual void onUnbind(oglplus::Framebuffer::Target target) override {
+        glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     }
 };
 
@@ -180,11 +121,10 @@ protected:
 // We use a FBO to wrap the mirror texture because it makes it easier to
 // render to the screen via glBlitFramebuffer
 struct MirrorFramebufferWrapper : public RiftFramebufferWrapper<ovrGLTexture*> {
-    float                   targetAspect;
     MirrorFramebufferWrapper(const ovrHmd & hmd)
-        : RiftFramebufferWrapper(hmd) {
-    }
-    ~MirrorFramebufferWrapper() {
+        : RiftFramebufferWrapper(hmd) { }
+
+    virtual ~MirrorFramebufferWrapper() {
         if (color) {
             ovrHmd_DestroyMirrorTexture(hmd, (ovrTexture*)color);
             color = nullptr;
@@ -206,7 +146,6 @@ private:
         glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color->OGL.TexId, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
-
 };
 
 const QString OculusWin32DisplayPlugin::NAME("Oculus Rift");
@@ -253,6 +192,8 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
 
+    PerformanceTimer::setActive(true);
+
     //ovrLayerQuad& uiLayer = getUiLayer();
     //memset(&uiLayer, 0, sizeof(ovrLayerQuad));
     //uiLayer.Header.Type = ovrLayerType_QuadInWorld;
@@ -271,7 +212,7 @@ void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
 
     _uiSurface = loadSphereSection(_program, glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE), aspect(getCanvasSize()));
 
-    uvec2 mirrorSize = toGlm(_widget->geometry().size());
+    uvec2 mirrorSize = toGlm(_window->geometry().size());
     _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
     _mirrorFbo->Init(mirrorSize);
 
@@ -294,6 +235,7 @@ void OculusWin32DisplayPlugin::deactivate() {
     _mirrorFbo.reset();
     _uiSurface.reset();
     doneCurrent();
+    PerformanceTimer::setActive(false);
 
     OculusBaseDisplayPlugin::deactivate();
 
@@ -306,15 +248,11 @@ void OculusWin32DisplayPlugin::display(
     GLuint sceneTexture, const glm::uvec2& sceneSize,
     GLuint overlayTexture, const glm::uvec2& overlaySize) {
     using namespace oglplus;
-    bool wasActive = PerformanceTimer::isActive();
-    PerformanceTimer::setActive(true);
-    PerformanceTimer("OculusDisplayAndSwap");
-    
+
+    // Need to make sure only the display plugin is responsible for 
+    // controlling vsync
     wglSwapIntervalEXT(0);
 
-    {
-
-    }
     _sceneFbo->Bound([&] {
         auto size = _sceneFbo->size;
         Context::Viewport(size.x, size.y);
@@ -332,10 +270,9 @@ void OculusWin32DisplayPlugin::display(
         
         Context::Enable(Capability::Blend);
         glBindTexture(GL_TEXTURE_2D, overlayTexture);
-        //glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_texture));
         for_each_eye([&](Eye eye) {
             Context::Viewport(eye == Left ? 0 : size.x / 2, 0, size.x / 2, size.y);
-            Mat4Uniform(*_program, "Projection").Set(getProjection(eye, mat4()));
+            Mat4Uniform(*_program, "Projection").Set(_compositeEyeProjections[eye]);
             Mat4Uniform(*_program, "ModelView").Set(glm::scale(glm::inverse(getModelview(eye, mat4())), vec3(1)));
             _uiSurface->Use();
             _uiSurface->Draw();
@@ -343,7 +280,13 @@ void OculusWin32DisplayPlugin::display(
         Context::Disable(Capability::Blend);
     });
 
+
     /*
+    An alternative way to render the UI is to pass it specifically as a composition layer to 
+    the Oculus SDK which should technically result in higher quality.  However, the SDK doesn't
+    have a mechanism to present the image as a sphere section, which is our desired look.  
+    */
+#if 0
     ovrLayerQuad& uiLayer = getUiLayer();
     if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
         _uiFbo->Resize(overlaySize);
@@ -368,7 +311,7 @@ void OculusWin32DisplayPlugin::display(
         _plane->Draw();
         Q_ASSERT(0 == glGetError());
     });
-    */
+#endif    
 
     ovrLayerEyeFov& sceneLayer = getSceneLayer(); 
     ovr_for_each_eye([&](ovrEyeType eye) {
@@ -383,8 +326,8 @@ void OculusWin32DisplayPlugin::display(
        scene to the window framebuffer, before distortion.  Note this only works if we're doing
        ui compositing ourselves, and not relying on the Oculus SDK compositor (or we don't want 
        the UI visible in the output window (unlikely).  This should be done before 
+       _sceneFbo->Increment or we're be using the wrong texture
     */
-    // _sceneFbo->Increment or we're be using the wrong texture
     //_sceneFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
     //    glBlitFramebuffer(
     //        0, 0, _sceneFbo->size.x, _sceneFbo->size.y,
@@ -405,23 +348,14 @@ void OculusWin32DisplayPlugin::display(
         we send.
     */
     auto mirrorSize = _mirrorFbo->size;
-    _mirrorFbo->Bound(GL_READ_FRAMEBUFFER, [&] {
-        glBlitFramebuffer(
+    _mirrorFbo->Bound(Framebuffer::Target::Read, [&] {
+        Context::BlitFramebuffer(
             0, mirrorSize.y, mirrorSize.x, 0,
             0, 0, windowSize.x, windowSize.y,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
     });
 
     ++_frameIndex;
-//    swapBuffers();
-    PerformanceTimer::setActive(wasActive);
-    if (0 == (_frameIndex % (75 * 5))) {
-        auto record1 = PerformanceTimer::getTimerRecord("OculusDisplayAndSwap");
-        auto record2 = PerformanceTimer::getTimerRecord("OculusSubmit");
-        qDebug() << "Average display and submit: " << record1.getAverage();
-        qDebug() << "Average submit: " << record2.getAverage();
-        qDebug() << "Diff " << record1.getAverage() - record2.getAverage();
-    }
 }
 
 // Pass input events on to the application
@@ -437,7 +371,12 @@ bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 
-
+/*
+    The swapbuffer call here is only required if we want to mirror the content to the screen.
+    However, it should only be done if we can reliably disable v-sync on the mirror surface, 
+    otherwise the swapbuffer delay will interefere with the framerate of the headset
+*/
 void OculusWin32DisplayPlugin::finishFrame() {
+    // swapBuffers();
     doneCurrent();
 };

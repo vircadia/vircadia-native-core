@@ -628,7 +628,7 @@ void ApplicationOverlay::renderPointers() {
                 // FIXME
                 //glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
             } else {
-                qDebug() << "No collision point";
+                //qDebug() << "No collision point";
             }
         }
         

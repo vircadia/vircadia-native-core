@@ -7,11 +7,11 @@
 //
 #pragma once
 
-#include "../WidgetOpenGLDisplayPlugin.h"
+#include "../MainWindowOpenGLDisplayPlugin.h"
 
 #include <OVR_CAPI.h>
 
-class OculusBaseDisplayPlugin : public WidgetOpenGLDisplayPlugin {
+class OculusBaseDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
 public:
     // Stereo specific methods
     virtual bool isHmd() const override { return true; }
@@ -32,6 +32,7 @@ protected:
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrPosef _eyePoses[2];
     ovrVector3f _eyeOffsets[2];
-    glm::mat4 _eyeProjections[2];
+    mat4 _eyeProjections[2];
+    mat4 _compositeEyeProjections[2];
     QSize _desiredFramebufferSize;
 };

@@ -21,7 +21,7 @@
 WidgetOpenGLDisplayPlugin::WidgetOpenGLDisplayPlugin() {
 }
 
-const QString WidgetOpenGLDisplayPlugin::NAME("QWindow 2D Renderer");
+const QString WidgetOpenGLDisplayPlugin::NAME("QWidget 2D Renderer");
 
 const QString & WidgetOpenGLDisplayPlugin::getName() {
     return NAME;

@@ -33,6 +33,6 @@ void InterleavedStereoDisplayPlugin::display(
 
 void InterleavedStereoDisplayPlugin::customizeContext(PluginContainer * container) {
     StereoDisplayPlugin::customizeContext(container);
-    // Set up the stencil buffers
+    // Set up the stencil buffers?  Or use a custom shader?
 
 }

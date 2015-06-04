@@ -14,7 +14,7 @@
 #include <display-plugins/NullDisplayPlugin.h>
 #include <display-plugins/stereo/SideBySideStereoDisplayPlugin.h>
 #include <display-plugins/stereo/InterleavedStereoDisplayPlugin.h>
-#include <display-plugins/WidgetOpenGLDisplayPlugin.h>
+#include <display-plugins/Basic2DWindowOpenGLDisplayPlugin.h>
 
 #ifdef Q_OS_WIN
 #include <display-plugins/oculus/OculusWin32DisplayPlugin.h>
@@ -50,7 +50,7 @@ const DisplayPluginList& getDisplayPlugins() {
         init = true;
 
         DisplayPlugin* PLUGIN_POOL[] = {
-            new WidgetOpenGLDisplayPlugin(),
+            new Basic2DWindowOpenGLDisplayPlugin(),
 #ifdef DEBUG
             new NullDisplayPlugin(),
 #endif

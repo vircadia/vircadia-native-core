@@ -63,7 +63,10 @@ void WindowOpenGLDisplayPlugin::deactivate() {
 
 
 void WindowOpenGLDisplayPlugin::makeCurrent() {
-    _window->makeCurrent();
+    bool makeCurrentResult = _window->makeCurrent();
+    if (!makeCurrentResult) {
+        qDebug() << "Failed to make current";
+    }
 }
 
 void WindowOpenGLDisplayPlugin::doneCurrent() {
