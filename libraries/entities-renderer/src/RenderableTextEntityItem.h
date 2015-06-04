@@ -15,6 +15,8 @@
 #include <TextEntityItem.h>
 #include <TextRenderer3D.h>
 
+#include "RenderableEntityItem.h"
+
 const int FIXED_FONT_POINT_SIZE = 40;
 
 class RenderableTextEntityItem : public TextEntityItem  {
@@ -27,7 +29,8 @@ public:
     ~RenderableTextEntityItem() { delete _textRenderer; }
 
     virtual void render(RenderArgs* args);
-    virtual bool canRenderInScene() { return false; } // we don't yet play well with others
+
+    SIMPLE_RENDERABLE();
     
 private:
     TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);

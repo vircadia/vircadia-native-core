@@ -925,7 +925,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
-    return; //
+    return true; //
     PROFILE_RANGE(__FUNCTION__);
 
     // render the attachments
