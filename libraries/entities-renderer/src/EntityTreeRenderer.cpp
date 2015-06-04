@@ -493,11 +493,6 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree && !_shuttingDown) {
         renderArgs->_renderer = this;
 
-        Model::startScene(renderArgs->_renderSide);
-
-        ViewFrustum* frustum = (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-            _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
-        
         _tree->lockForRead();
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
