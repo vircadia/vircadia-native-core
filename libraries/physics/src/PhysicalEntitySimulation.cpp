@@ -245,7 +245,8 @@ EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType 
         case ACTION_TYPE_PULL_TO_POINT:
             QVariantList target = arguments["target"].toList();
             glm::vec3 glmTarget(target[0].toFloat(), target[1].toFloat(), target[2].toFloat());
-            return (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget);
+            float speed = arguments["speed"].toFloat();
+            return (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, glmTarget, speed);
     }
 
     assert(false);

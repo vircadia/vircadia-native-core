@@ -24,9 +24,9 @@
 typedef QSet<EntityItemPointer> SetOfEntities;
 typedef QVector<EntityItemPointer> VectorOfEntities;
 
-// the EntitySimulation needs to know when these things change on an entity, 
+// the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
-const int DIRTY_SIMULATION_FLAGS = 
+const int DIRTY_SIMULATION_FLAGS =
         EntityItem::DIRTY_POSITION |
         EntityItem::DIRTY_ROTATION |
         EntityItem::DIRTY_LINEAR_VELOCITY |
@@ -60,7 +60,7 @@ public:
                                                  QUuid id,
                                                  EntityItemPointer ownerEntity,
                                                  QVariantMap arguments) { return nullptr; }
-    virtual void addAction(EntityActionInterface* action) { _actionsToAdd += action; }
+    virtual void addAction(EntityActionInterface* action) { action->setSimulation(this); _actionsToAdd += action; }
     virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
     virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
     virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }

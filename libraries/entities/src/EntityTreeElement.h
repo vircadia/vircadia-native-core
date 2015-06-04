@@ -33,7 +33,7 @@ public:
             _totalItems(0),
             _movingItems(0)
     { }
-    
+
     QList<EntityItemPointer> _movingEntities;
     int _totalElements;
     int _totalItems;
@@ -42,8 +42,8 @@ public:
 
 class EntityTreeElementExtraEncodeData {
 public:
-    EntityTreeElementExtraEncodeData() : 
-        elementCompleted(false), 
+    EntityTreeElementExtraEncodeData() :
+        elementCompleted(false),
         subtreeCompleted(false),
         entities() {
             memset(childCompleted, 0, sizeof(childCompleted));
@@ -140,7 +140,7 @@ public:
 
     virtual bool canRayIntersect() const { return hasEntities(); }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
@@ -148,7 +148,7 @@ public:
 
     const EntityItems& getEntities() const { return *_entityItems; }
     EntityItems& getEntities() { return *_entityItems; }
-    
+
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
 
     void setTree(EntityTree* tree) { _myTree = tree; }

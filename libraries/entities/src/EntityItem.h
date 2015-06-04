@@ -356,10 +356,9 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void addAction(EntityActionInterface* actionID);
+    bool addAction(EntityActionInterface* actionID);
     void removeAction(const QUuid actionID);
     void clearActions();
-    const QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
 
 protected:
 
@@ -433,7 +432,7 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    QHash<QUuid, const EntityActionInterface*> _objectActions;
+    QHash<QUuid, EntityActionInterface*> _objectActions;
 };
 
 #endif // hifi_EntityItem_h

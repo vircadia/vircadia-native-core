@@ -9,15 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntitySimulation.h"
+
 #include "ObjectAction.h"
 
 ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     _id(id),
     _ownerEntity(ownerEntity) {
+    qDebug() << "ObjectAction::ObjectAction";
 }
 
 ObjectAction::~ObjectAction() {
+    qDebug() << "ObjectAction::~ObjectAction";
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
@@ -25,4 +29,10 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
 }
 
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {
+}
+
+void ObjectAction::removeFromSimulation() const {
+    if (_simulation) {
+        _simulation->removeAction(_id);
+    }
 }

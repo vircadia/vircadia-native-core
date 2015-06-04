@@ -154,7 +154,7 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScala
                 velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
             }
             _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
-        } 
+        }
     }
 }
 

@@ -450,7 +450,7 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
         });
 }
 
-QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::vec3& target) {
+QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::vec3& target, float speed) {
     if (!_entityTree) {
         return QUuid();
     }
@@ -470,6 +470,7 @@ QUuid EntityScriptingInterface::addActionPullToPoint(QUuid entityID, const glm::
     QVariantList targetList;
     targetList << QVariant(target[0]) << QVariant(target[1]) << QVariant(target[2]);
     arguments["target"] = targetList;
+    arguments["speed"] = QVariant(speed);
     EntityActionInterface* action = simulation->actionFactory(ACTION_TYPE_PULL_TO_POINT, actionID, entity, arguments);
     entity->addAction(action);
 

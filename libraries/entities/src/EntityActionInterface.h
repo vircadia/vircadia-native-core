@@ -12,6 +12,8 @@
 #ifndef hifi_EntityActionInterface_h
 #define hifi_EntityActionInterface_h
 
+class EntitySimulation;
+
 enum EntityActionType {
     ACTION_TYPE_NONE,
     ACTION_TYPE_PULL_TO_POINT
@@ -20,8 +22,11 @@ enum EntityActionType {
 
 class EntityActionInterface {
  public:
-    virtual ~EntityActionInterface() {};
+    EntityActionInterface() { qDebug() << "EntityActionInterface::EntityActionInterface"; }
+    virtual ~EntityActionInterface() { qDebug() << "EntityActionInterface::~EntityActionInterface"; }
     virtual const QUuid& getID() const = 0;
+    virtual void setSimulation(EntitySimulation* simulation) = 0;
+    virtual void removeFromSimulation() const = 0;
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     // virtual QByteArray serialize() = 0;

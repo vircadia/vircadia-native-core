@@ -19,13 +19,14 @@
 
 class ObjectActionPullToPoint : public ObjectAction {
 public:
-    ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity, glm::vec3 target);
+    ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity, glm::vec3 target, float speed);
     virtual ~ObjectActionPullToPoint();
 
     void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
 
 private:
     glm::vec3 _target;
+    float _speed;
 };
 
 #endif // hifi_ObjectActionPullToPoint_h

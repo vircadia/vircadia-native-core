@@ -46,6 +46,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
             //assert(false);
             qCDebug(entities) << "that's UNEXPECTED, we got a _containingElement, but couldn't find the oldEntity!";
         } else {
+            details.entity->clearActions();
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;
             _lookingCount++;

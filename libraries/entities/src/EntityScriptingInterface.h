@@ -124,7 +124,7 @@ public slots:
 
     Q_INVOKABLE void dumpTree() const;
 
-    Q_INVOKABLE QUuid addActionPullToPoint(QUuid entityID, const glm::vec3& target);
+    Q_INVOKABLE QUuid addActionPullToPoint(QUuid entityID, const glm::vec3& target, float velocity);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

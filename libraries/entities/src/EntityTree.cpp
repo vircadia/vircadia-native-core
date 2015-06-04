@@ -279,7 +279,7 @@ void EntityTree::setSimulation(EntitySimulation* simulation) {
     if (simulation) {
         // assert that the simulation's backpointer has already been properly connected
         assert(simulation->getEntityTree() == this);
-    } 
+    }
     if (_simulation && _simulation != simulation) {
         // It's important to clearEntities() on the simulation since taht will update each
         // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
