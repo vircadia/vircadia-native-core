@@ -58,6 +58,7 @@ void ModelOverlay::update(float deltatime) {
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     Base3DOverlay::addToScene(overlay, scene, pendingChanges);
     _model.addToScene(scene, pendingChanges);
+    return true;
 }
 
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
