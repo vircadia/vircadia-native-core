@@ -20,6 +20,7 @@ class QOpenGLDebugLogger;
 class OffscreenGlCanvas : public QObject {
 public:
     OffscreenGlCanvas();
+    ~OffscreenGlCanvas();
     void create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
