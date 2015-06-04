@@ -31,6 +31,8 @@ public:
     SIMPLE_RENDERABLE()
 
 protected:
+    void updateGeometry();
+    
     int _lineVerticesID;
 };
 
