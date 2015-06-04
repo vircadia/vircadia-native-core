@@ -31,7 +31,6 @@ PhysicsEngine::~PhysicsEngine() {
     if (_characterController) {
         _characterController->setDynamicsWorld(nullptr);
     }
-    // TODO: delete engine components... if we ever plan to create more than one instance
     delete _collisionConfig;
     delete _collisionDispatcher;
     delete _broadphaseFilter;
