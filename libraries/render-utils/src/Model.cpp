@@ -2264,24 +2264,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-    // Capture the view matrix once for the rendering of this model
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    //  _transforms[0] = _viewState->getViewTransform();
-    // args->_viewFrustum->evalViewTransform(_transforms[0]);
-
-    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    //  _transforms[0].setTranslation(_translation);
-
-    // batch.setViewTransform(_transforms[0]);
-
-
-  //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-  //  const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-  //  auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
-    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+    auto alphaThreshold = args->_alphaThreshold;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2328,21 +2311,19 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         // sanity check
         return; // FIXME!
     }
+
+    // Transform stage
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
     
     if (isSkinned) {
-    //if (state.clusterMatrices.size() > 1) {
         GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
       
        _transforms[0].setIdentity();
        _transforms[0].setTranslation(_translation);
-       // batch.setModelTransform(Transform());
        batch.setModelTransform(_transforms[0]);
-
-        //_transforms[0] = _viewState->getViewTransform();
-      //  args->_viewFrustum->evalViewTransform(_transforms[0]);
-     //   _transforms[0].preTranslate(-_translation);
-      //  batch.setViewTransform(_transforms[0]);
     } else {
        _transforms[0] = Transform(state.clusterMatrices[0]);
        _transforms[0].preTranslate(_translation);
@@ -2351,7 +2332,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
        batch.setModelTransform(_transforms[0]);
     }
  
-
+    // Input stage
     if (mesh.blendshapes.isEmpty()) {
         batch.setInputFormat(networkMesh._vertexFormat);
         batch.setInputStream(0, *networkMesh._vertexStream);
