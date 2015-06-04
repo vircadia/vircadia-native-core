@@ -78,6 +78,7 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
+    _isVisible(true),
     _url("http://invalid.com"),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -830,6 +831,9 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
         return ItemKey::Builder::transparentShape();
     }
     
@@ -860,6 +864,9 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
         return ItemKey::Builder::opaqueShape();
     }
     
@@ -876,6 +883,18 @@ namespace render {
             args->_elementsTouched++;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
         }
+    }
+}
+
+void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
+    if (_isVisible != newValue) {
+        _isVisible = newValue;
+
+        render::PendingChanges pendingChanges;
+        foreach (auto item, _renderItems.keys()) {
+            pendingChanges.resetItem(item, _renderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
     }
 }
 
@@ -900,7 +919,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderData = TransparentMeshPart::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems << item;
+        _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
     foreach (auto renderItem, _opaqueRenderItems) {
@@ -908,7 +927,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderData = OpaqueMeshPart::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems << item;
+        _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
     
@@ -923,7 +942,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         attachment->removeFromScene(scene, pendingChanges);
     }
 
-    foreach (auto item, _renderItems) {
+    foreach (auto item, _renderItems.keys()) {
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
