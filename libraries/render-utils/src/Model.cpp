@@ -2330,20 +2330,16 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // FIXME!
     }
     
-    if (state.clusterMatrices.size() > 1) {
+    if (isSkinned) {
         GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
- //       batch.setModelTransform(Transform());
-       _transforms[0].setTranslation(_translation);
-
+       _transforms[0] = Transform();
+       _transforms[0].preTranslate(_translation);
     } else {
        _transforms[0] = Transform(state.clusterMatrices[0]);
        _transforms[0].preTranslate(_translation);
-
-        //batch.setModelTransform(Transform(state.clusterMatrices[0]));
     }
     batch.setModelTransform(_transforms[0]);
-
 
     if (mesh.blendshapes.isEmpty()) {
         batch.setInputFormat(networkMesh._vertexFormat);
