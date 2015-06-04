@@ -479,7 +479,7 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
         return QUuid();
     }
 
-    EntityActionInterface* action = simulation->actionFactory(actionType, actionID, entity, arguments);
+    EntityActionPointer action = simulation->actionFactory(actionType, actionID, entity, arguments);
     _entityTree->unlock();
 
     if (action) {

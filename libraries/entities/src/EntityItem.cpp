@@ -1338,7 +1338,7 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
     }
 }
 
-bool EntityItem::addAction(EntitySimulation* simulation, EntityActionInterface* action) {
+bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
@@ -1354,7 +1354,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionInterface* 
 
 void EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
-        EntityActionInterface* action = _objectActions[actionID];
+        EntityActionPointer action = _objectActions[actionID];
         qDebug() << "REMOVING" << actionID << "in EntityItem::removeAction" << _name;
         _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
@@ -1363,10 +1363,10 @@ void EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID
 }
 
 void EntityItem::clearActions(EntitySimulation* simulation) {
-    QHash<QUuid, EntityActionInterface*>::iterator i = _objectActions.begin();
+    QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
-        EntityActionInterface* action = _objectActions[id];
+        EntityActionPointer action = _objectActions[id];
         qDebug() << "ERASING" << id << "in EntityItem::clearActions" << _name;
         i = _objectActions.erase(i);
         action->setOwnerEntity(nullptr);

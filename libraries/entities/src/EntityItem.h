@@ -354,7 +354,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    bool addAction(EntitySimulation* simulation, EntityActionInterface* actionID);
+    bool addAction(EntitySimulation* simulation, EntityActionPointer actionID);
     void removeAction(EntitySimulation* simulation, const QUuid actionID);
     void clearActions(EntitySimulation* simulation);
 
@@ -430,7 +430,7 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    QHash<QUuid, EntityActionInterface*> _objectActions;
+    QHash<QUuid, EntityActionPointer> _objectActions;
 };
 
 #endif // hifi_EntityItem_h

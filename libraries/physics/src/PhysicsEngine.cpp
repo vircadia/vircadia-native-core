@@ -449,23 +449,27 @@ bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn
     return true;
 }
 
-void PhysicsEngine::addAction(EntityActionInterface* action) {
+void PhysicsEngine::addAction(EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();
     if (_objectActions.contains(actionID)) {
         assert(_objectActions[actionID] == action);
         return;
     }
-    ObjectAction* objectAction = static_cast<ObjectAction*>(action);
-    _objectActions[actionID] = objectAction;
+
+    _objectActions[actionID] = action;
+
+    // bullet needs a pointer to the action, but it doesn't use shared pointers.
+    // is there a way to bump the reference count?
+    ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
     _dynamicsWorld->addAction(objectAction);
 }
 
 void PhysicsEngine::removeAction(const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
-        ObjectAction* action = _objectActions[actionID];
-        _dynamicsWorld->removeAction(action);
+        EntityActionPointer action = _objectActions[actionID];
+        ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
+        _dynamicsWorld->removeAction(objectAction);
         _objectActions.remove(actionID);
-        delete action;
     }
 }

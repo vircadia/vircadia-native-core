@@ -56,11 +56,11 @@ public:
 
     friend class EntityTree;
 
-    virtual EntityActionInterface* actionFactory(EntityActionType type,
+    virtual EntityActionPointer actionFactory(EntityActionType type,
                                                  QUuid id,
                                                  EntityItemPointer ownerEntity,
                                                  QVariantMap arguments) { return nullptr; }
-    virtual void addAction(EntityActionInterface* action) { _actionsToAdd += action; }
+    virtual void addAction(EntityActionPointer action) { _actionsToAdd += action; }
     virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
     virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
     virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }
@@ -125,7 +125,7 @@ protected:
     void moveSimpleKinematics();
 
  protected:
-    QList<EntityActionInterface*> _actionsToAdd;
+    QList<EntityActionPointer> _actionsToAdd;
     QList<QUuid> _actionsToRemove;
 };
 

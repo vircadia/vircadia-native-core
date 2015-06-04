@@ -234,11 +234,11 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
     }
 }
 
-EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType type,
+EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType type,
                                                                QUuid id,
                                                                EntityItemPointer ownerEntity,
                                                                QVariantMap arguments) {
-    EntityActionInterface* action = nullptr;
+    EntityActionPointer action = nullptr;
     switch (type) {
         case ACTION_TYPE_NONE:
             return nullptr;
@@ -247,7 +247,7 @@ EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType 
             glm::vec3 target = EntityActionInterface::extractVec3Argument("pull-to-point action", arguments, "target", ok);
             float speed = EntityActionInterface::extractFloatArgument("pull-to-point action", arguments, "speed", ok);
             if (ok) {
-                action = (EntityActionInterface*) new ObjectActionPullToPoint(id, ownerEntity, target, speed);
+                action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity, target, speed);
             }
             break;
     }
@@ -260,7 +260,7 @@ EntityActionInterface* PhysicalEntitySimulation::actionFactory(EntityActionType 
 
 void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
-        foreach (EntityActionInterface* actionToAdd, _actionsToAdd) {
+        foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
             _physicsEngine->addAction(actionToAdd);
         }
         foreach (QUuid actionToRemove, _actionsToRemove) {

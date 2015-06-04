@@ -95,7 +95,7 @@ public:
     static bool physicsInfoIsActive(void* physicsInfo);
     static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
 
-    void addAction(EntityActionInterface* action);
+    void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
 
 private:
@@ -126,7 +126,7 @@ private:
     QUuid _sessionID;
     CollisionEvents _collisionEvents;
 
-    QHash<QUuid, ObjectAction*> _objectActions;
+    QHash<QUuid, EntityActionPointer> _objectActions;
 };
 
 #endif // hifi_PhysicsEngine_h

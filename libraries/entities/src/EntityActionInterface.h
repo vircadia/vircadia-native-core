@@ -32,7 +32,7 @@ class EntityActionInterface {
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     // virtual QByteArray serialize() = 0;
-    // static EntityActionInterface* deserialize(EntityItemPointer ownerEntity, QByteArray data);
+    // static EntityActionPointer deserialize(EntityItemPointer ownerEntity, QByteArray data);
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
@@ -40,5 +40,7 @@ class EntityActionInterface {
     static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
     static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
 };
+
+typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 
 #endif // hifi_EntityActionInterface_h
