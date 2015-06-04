@@ -21,7 +21,7 @@
 float randFloat();
 const glm::vec3 randVector();
 
-void renderWorldBox(RenderArgs* renderArgs);
+void renderWorldBox(gpu::Batch& batch);
 int widthText(float scale, int mono, char const* string);
 
 void drawText(int x, int y, float scale, float radians, int mono,

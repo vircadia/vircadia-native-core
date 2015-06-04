@@ -3188,14 +3188,11 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (args->_renderMode != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
-            renderWorldBox(args);
-
-            // FIXME: there's currently a bug in the new render engine, if this origin dot is rendered out of view it will
-            // screw up the state of textures on models so they all end up rendering in the incorrect tint/color/texture
-            float originSphereRadius = 0.05f;
-            DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+            auto& batch = *args->_batch;
+            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            renderWorldBox(batch);
         }
     }
 }
