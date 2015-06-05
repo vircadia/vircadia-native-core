@@ -1327,7 +1327,6 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     
     _readyWhenAdded = false; // reset out render items.
     _needsReload = true;
-    invalidCalculatedMeshBoxes(); // if we have finished reload, we need to assume our mesh boxes are all invalid
     
     _url = url;
 
