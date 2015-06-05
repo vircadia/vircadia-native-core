@@ -90,6 +90,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
+#include <ui/ApplicationOverlayCompositor.h>
 
 #include "Application.h"
 #include "AudioClient.h"
@@ -101,6 +102,7 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
+#include "GlWindow.h"
 #include "avatar/AvatarManager.h"
 
 #include "audio/AudioToolBox.h"
@@ -506,29 +508,39 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     ResourceCache::setRequestLimit(3);
 
-    _window->setCentralWidget(new QWidget());
+    _offscreenContext->create();
+    _offscreenContext->makeCurrent();
 
+    _glWindow = new GlWindow(_offscreenContext->getContext());
+
+    QWidget* container = QWidget::createWindowContainer(_glWindow);
+    container->setFocusPolicy(Qt::StrongFocus);
+    _window->setCentralWidget(container);
     _window->restoreGeometry();
-
     _window->setVisible(true);
+    container->setFocus();
+    _offscreenContext->makeCurrent();
+    initializeGL();
+    // initialization continues in initializeGL when OpenGL context is ready
+
+
+    _menuBarHeight = Menu::getInstance()->height();
 
 #if 0
     _fullscreenMenuWidget->setParent(_glWidget);
-#endif
-
-    _menuBarHeight = Menu::getInstance()->height();
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         setFullscreen(true);  // Initialize menu bar show/hide
     }
+#endif
+
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
 
-    _offscreenContext->create();
+
+    _compositor = CompositorPtr(new ApplicationOverlayCompositor());
     _offscreenContext->makeCurrent();
-    initializeGL();
-    // initialization continues in initializeGL when OpenGL context is ready
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -949,15 +961,16 @@ void Application::paintGL() {
     // has completed before we start trying to read from it in another context.  However
     // once we have multi-threaded rendering, this will almost certainly be critical,
     // but may be better handled with a fence object
-    glFinish();
-
-    
+    // glFinish();
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
-    displayPlugin->preDisplay();
 
-    displayPlugin->display(gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)), finalFbo->getSize(),
-                           _applicationOverlay.getOverlayTexture(), getCanvasSize());
+    GLuint finalTexture = _compositor->composite(displayPlugin,
+        gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0)), finalFbo->getSize(),
+        _applicationOverlay.getOverlayTexture(), getCanvasSize());
+
+    displayPlugin->preDisplay();
+    displayPlugin->display(finalTexture, finalFbo->getSize());
     displayPlugin->finishFrame();
     Q_ASSERT(!QOpenGLContext::currentContext());
     _offscreenContext->makeCurrent();
@@ -1427,7 +1440,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
-
+#if 0
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
         // Show/hide menu bar in fullscreen
         if (event->globalY() > _menuBarHeight) {
@@ -1438,6 +1451,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
             Menu::getInstance()->setFixedHeight(_menuBarHeight);
         }
     }
+#endif
 
     _entities.mouseMoveEvent(event, deviceID);
     
@@ -1764,6 +1778,7 @@ void Application::idle() {
     emit checkBackgroundDownloads();
 }
 
+#if 0
 void Application::setFullscreen(bool fullscreen) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
@@ -1822,7 +1837,6 @@ void Application::setFullscreen(bool fullscreen) {
     }
 }
 
-#if 0
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
     resizeGL();
 }
@@ -3006,8 +3020,11 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         getApplicationOverlay().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        auto frustum = activeRenderingThread ? getDisplayViewFrustum() : getViewFrustum();
-        frustum->computePickRay(x, y, result.origin, result.direction);
+        if (QThread::currentThread() == activeRenderingThread) {
+            getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        } else {
+            getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        }
     }
     return result;
 }
@@ -3214,7 +3231,7 @@ void Application::displaySide(const Camera& theCamera, bool selfAvatarOnly) {
         skybox = skyStage->getSkybox();
         if (skybox) {
             gpu::Batch batch;
-            model::Skybox::render(batch, _viewFrustum, *skybox);
+            model::Skybox::render(batch, _displayViewFrustum, *skybox);
 
             gpu::GLBackend::renderBatch(batch);
             glUseProgram(0);
@@ -4656,6 +4673,6 @@ void Application::addMenuItem(const QString& path, std::function<void()> onClick
 
 }
 
-QMainWindow* Application::getAppMainWindow() {
-    return _window;
+GlWindow* Application::getVisibleWindow() {
+    return _glWindow;
 }

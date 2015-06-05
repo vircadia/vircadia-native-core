@@ -49,8 +49,7 @@ QWindow* NullDisplayPlugin::getWindow() const {
 
 void NullDisplayPlugin::preRender() {}
 void NullDisplayPlugin::preDisplay() {}
-void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-    GLuint overlayTexture, const glm::uvec2& overlaySize) {}
+void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {}
 void NullDisplayPlugin::finishFrame() {}
 
 void NullDisplayPlugin::activate(PluginContainer * container) {}

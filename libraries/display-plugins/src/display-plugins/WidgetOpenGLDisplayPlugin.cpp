@@ -17,7 +17,7 @@
 #include <QGLContext>
 #include <QGLWidget>
 #include "plugins/PluginContainer.h"
-
+#if 0
 WidgetOpenGLDisplayPlugin::WidgetOpenGLDisplayPlugin() {
 }
 
@@ -106,3 +106,4 @@ void WidgetOpenGLDisplayPlugin::removeEventFilter(QObject* filter) {
 QWindow* WidgetOpenGLDisplayPlugin::getWindow() const {
     return _widget->windowHandle();
 }
+#endif

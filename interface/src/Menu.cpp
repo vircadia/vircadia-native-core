@@ -239,6 +239,7 @@ Menu::Menu() {
         displayModeGroup->setExclusive(true);
     }
 
+#if 0
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
 #ifdef Q_OS_MAC
@@ -249,6 +250,7 @@ Menu::Menu() {
                                            false,
                                            qApp,
                                            SLOT(setFullscreen(bool)));
+#endif
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson,
         0, // QML Qt::Key_P,
@@ -260,6 +262,7 @@ Menu::Menu() {
         0, // QML Qt::Key_H,
         false, qApp, SLOT(cameraMenuChanged()));
 
+#if 0
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
 #ifdef Q_OS_MAC
                                            Qt::META | Qt::Key_H,
@@ -269,6 +272,7 @@ Menu::Menu() {
                                            false,
                                            dialogsManager.data(),
                                            SLOT(hmdTools(bool)));
+#endif
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
         dialogsManager.data(), SLOT(editAttachments()));

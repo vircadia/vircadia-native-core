@@ -7,32 +7,47 @@
 //
 #include "MainWindowOpenGLDisplayPlugin.h"
 
-#include <GlWindow.h>
 #include <QOpenGLContext>
-#include <plugins/PluginContainer.h>
 #include <QWidget>
 #include <QMainWindow>
+
+#include <GlWindow.h>
+#include <plugins/PluginContainer.h>
 
 MainWindowOpenGLDisplayPlugin::MainWindowOpenGLDisplayPlugin() {
 }
 
-void MainWindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
-    WindowOpenGLDisplayPlugin::activate(container);
+GlWindow* MainWindowOpenGLDisplayPlugin::createWindow(PluginContainer * container) {
+    return container->getVisibleWindow();
 }
 
 void MainWindowOpenGLDisplayPlugin::customizeWindow(PluginContainer * container) {
-    // Can't set the central widget here, because it seems to mess up the context creation.
 }
 
-void MainWindowOpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
-    WindowOpenGLDisplayPlugin::customizeContext(container);
-    QWidget* widget = QWidget::createWindowContainer(_window);
-    auto mainWindow = container->getAppMainWindow();
-    mainWindow->setCentralWidget(widget);
-    mainWindow->resize(mainWindow->geometry().size());
-    _window->resize(_window->geometry().size());
+void MainWindowOpenGLDisplayPlugin::destroyWindow() {
+    _window = nullptr;
 }
 
-void MainWindowOpenGLDisplayPlugin::deactivate() {
-    WindowOpenGLDisplayPlugin::deactivate();
+void MainWindowOpenGLDisplayPlugin::display(
+    GLuint finalTexture, const glm::uvec2& sceneSize) {
+    OpenGLDisplayPlugin::display(finalTexture, sceneSize);
+    return;
+
+    using namespace oglplus;
+    glClearColor(0, 1, 0, 1);
+    uvec2 size = toGlm(getDeviceSize());
+    Context::Viewport(size.x, size.y);
+    Context::Clear().ColorBuffer();
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, finalTexture);
+    glBegin(GL_QUADS);
+        glTexCoord2f(0, 0);
+        glVertex2f(-1, -1);
+        glTexCoord2f(1, 0);
+        glVertex2f(1, -1);
+        glTexCoord2f(1, 1);
+        glVertex2f(1, 1);
+        glTexCoord2f(0, 1);
+        glVertex2f(-1, 1);
+    glEnd();
 }

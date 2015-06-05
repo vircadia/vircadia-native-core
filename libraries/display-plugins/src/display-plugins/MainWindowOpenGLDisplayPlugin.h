@@ -9,17 +9,16 @@
 
 #include "WindowOpenGLDisplayPlugin.h"
 
-class GlWindow;
-class QSurfaceFormat;
+class QGLWidget;
 
 class MainWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 public:
     MainWindowOpenGLDisplayPlugin();
-    virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override;
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
-    virtual void customizeWindow(PluginContainer * container) override;
-    virtual void customizeContext(PluginContainer * container) override;
+    virtual GlWindow* createWindow(PluginContainer * container) override final;
+    virtual void customizeWindow(PluginContainer * container) override final;
+    virtual void destroyWindow() override final;
 };

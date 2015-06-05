@@ -29,7 +29,6 @@ public:
     virtual QWindow* getWindow() const;
     virtual void preRender();
     virtual void preDisplay();
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-        GLuint overlayTexture, const glm::uvec2& overlaySize);
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize);
     virtual void finishFrame();
 };

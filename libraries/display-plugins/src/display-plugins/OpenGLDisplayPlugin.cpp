@@ -8,11 +8,6 @@
 #include "OpenGLDisplayPlugin.h"
 
 #include <QOpenGLContext>
-#include <TextureCache.h>
-#include <PathUtils.h>
-
-#include <QOpenGLContext>
-#include <QCursor>
 #include <QCoreApplication>
 
 #include <GLWindow.h>
@@ -50,8 +45,6 @@ void OpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
     _program = loadDefaultShader();
     _plane = loadPlane(_program);
     Context::ClearColor(0, 0, 0, 1);
-    _crosshairTexture = DependencyManager::get<TextureCache>()->
-        getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
 }
 
 void OpenGLDisplayPlugin::activate(PluginContainer * container) {
@@ -60,11 +53,11 @@ void OpenGLDisplayPlugin::activate(PluginContainer * container) {
 
 void OpenGLDisplayPlugin::deactivate() {
     _timer.stop();
+
     makeCurrent();
     Q_ASSERT(0 == glGetError());
     _plane.reset();
     _program.reset();
-    _crosshairTexture.reset();
     doneCurrent();
 }
 
@@ -109,25 +102,15 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 }
 
 void OpenGLDisplayPlugin::display(
-    GLuint sceneTexture, const glm::uvec2& sceneSize,
-    GLuint overlayTexture, const glm::uvec2& overlaySize) {
-    makeCurrent();
-    Q_ASSERT(0 == glGetError());
-    uvec2 size = toGlm(getDeviceSize());
+    GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
+
+    uvec2 size = toGlm(getDeviceSize());
     Context::Viewport(size.x, size.y);
-    glClearColor(0, 1, 1, 1);
-    Context::Clear().ColorBuffer().DepthBuffer();
+    Context::Clear().ColorBuffer();
+
     _program->Bind();
-    Mat4Uniform(*_program, "ModelView").Set(mat4());
-    Mat4Uniform(*_program, "Projection").Set(mat4());
-    glBindTexture(GL_TEXTURE_2D, sceneTexture);
+    glBindTexture(GL_TEXTURE_2D, finalTexture);
     _plane->Use();
     _plane->Draw();
-    Context::Enable(Capability::Blend);
-    glBindTexture(GL_TEXTURE_2D, overlayTexture);
-    _plane->Draw();
-    Context::Disable(Capability::Blend);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    Q_ASSERT(0 == glGetError());
 }

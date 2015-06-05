@@ -15,9 +15,6 @@ public:
     InterleavedStereoDisplayPlugin();
     virtual const QString & getName() override;
 
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-        GLuint overlayTexture, const glm::uvec2& overlaySize) override;
-
     // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext(PluginContainer * container) override;
 

@@ -42,7 +42,7 @@ void WindowOpenGLDisplayPlugin::initSurfaceFormat(QSurfaceFormat& format) {
 
 void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
     OpenGLDisplayPlugin::activate(container);
-    _window = new GlWindow(QOpenGLContext::currentContext());
+    _window = createWindow(container);
 
     QSurfaceFormat format;
     initSurfaceFormat(format);
@@ -57,6 +57,14 @@ void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
 
 void WindowOpenGLDisplayPlugin::deactivate() {
     OpenGLDisplayPlugin::deactivate();
+    destroyWindow();
+}
+
+GlWindow* WindowOpenGLDisplayPlugin::createWindow(PluginContainer * container) {
+    return new GlWindow(QOpenGLContext::currentContext());
+}
+
+void WindowOpenGLDisplayPlugin::destroyWindow() {
     _window->deleteLater();
     _window = nullptr;
 }

@@ -26,11 +26,6 @@ const QString & InterleavedStereoDisplayPlugin::getName() {
 InterleavedStereoDisplayPlugin::InterleavedStereoDisplayPlugin() {
 }
 
-void InterleavedStereoDisplayPlugin::display(
-    GLuint sceneTexture, const glm::uvec2& sceneSize,
-    GLuint overlayTexture, const glm::uvec2& overlaySize) {
-}
-
 void InterleavedStereoDisplayPlugin::customizeContext(PluginContainer * container) {
     StereoDisplayPlugin::customizeContext(container);
     // Set up the stencil buffers?  Or use a custom shader?

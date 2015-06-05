@@ -48,7 +48,6 @@
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
-#include "GLCanvas.h"
 #include "Menu.h"
 #include "PacketHeaders.h"
 #include "Physics.h"
@@ -91,6 +90,9 @@ class MainWindow;
 class Node;
 class ProgramObject;
 class ScriptEngine;
+class GlWindow;
+class ApplicationOverlayCompositor;
+using CompositorPtr = std::shared_ptr<ApplicationOverlayCompositor>;
 
 static const float NODE_ADDED_RED   = 0.0f;
 static const float NODE_ADDED_GREEN = 1.0f;
@@ -136,6 +138,7 @@ class Application;
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
+
 
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface, PluginContainer {
     Q_OBJECT
@@ -299,7 +302,7 @@ public:
 
     // Plugin container support
     virtual void addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
-    virtual QMainWindow* getAppMainWindow();
+    virtual GlWindow* getVisibleWindow();
 
     private:
     DisplayPlugin * getActiveDisplayPlugin();
@@ -446,8 +449,11 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
+#if 0
     friend class HMDToolsDialog;
     void setFullscreen(bool fullscreen);
+#endif
+
     void cameraMenuChanged();
 
     void closeMirrorView();
@@ -543,6 +549,8 @@ private:
     ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
+
+    CompositorPtr _compositor;
 
     float _trailingAudioLoudness;
 
@@ -653,6 +661,7 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
+    GlWindow* _glWindow{ nullptr };
     void checkSkeleton();
 
     QWidget* _fullscreenMenuWidget = new QWidget();

@@ -194,12 +194,10 @@ namespace MenuOption {
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
-    const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
-    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";

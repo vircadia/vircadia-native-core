@@ -26,12 +26,11 @@ public:
     virtual void activate(PluginContainer * container) override;
     virtual void deactivate() override;
 
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-        GLuint overlayTexture, const glm::uvec2& overlaySize) override;
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
 protected:
+    virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
     virtual void customizeContext(PluginContainer * container) override;
     // Do not perform swap in finish
     virtual void finishFrame() override;
@@ -45,5 +44,4 @@ private:
     SwapFboPtr          _sceneFbo;
     MirrorFboPtr        _mirrorFbo;
     ovrLayerEyeFov      _sceneLayer;
-    ShapeWrapperPtr     _uiSurface;
 };

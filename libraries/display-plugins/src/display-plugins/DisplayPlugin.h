@@ -68,13 +68,12 @@ public:
      *  OpenGL context
      */
     virtual void preDisplay() = 0;
+
     /**
-     *  Sends the scene texture and the overlay texture to the display plugin.
-     *  The plugin is responsible for compositing these and adding rendering of
-     *  additional elements like mouse and hydra pointers as required
+     *  Sends the scene texture to the display plugin.
      */
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-                         GLuint overlayTexture, const glm::uvec2& overlaySize) = 0;
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) = 0;
+
     /**
      *  Called by the application immeidately after display.  For OpenGL based
      *  displays, this is the best place to put the buffer swap

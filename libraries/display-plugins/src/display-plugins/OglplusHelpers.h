@@ -29,12 +29,12 @@
 
 #include <NumericalConstants.h>
 
-typedef std::shared_ptr<oglplus::Framebuffer> FramebufferPtr;
-typedef std::shared_ptr<oglplus::shapes::ShapeWrapper> ShapeWrapperPtr;
-typedef std::shared_ptr<oglplus::Buffer> BufferPtr;
-typedef std::shared_ptr<oglplus::VertexArray> VertexArrayPtr;
-typedef std::shared_ptr<oglplus::Program> ProgramPtr;
-typedef oglplus::Uniform<mat4> Mat4Uniform;
+using FramebufferPtr = std::shared_ptr<oglplus::Framebuffer>;
+using ShapeWrapperPtr = std::shared_ptr<oglplus::shapes::ShapeWrapper>;
+using BufferPtr = std::shared_ptr<oglplus::Buffer>;
+using VertexArrayPtr = std::shared_ptr<oglplus::VertexArray>;
+using ProgramPtr = std::shared_ptr<oglplus::Program>;
+using Mat4Uniform = oglplus::Uniform<mat4>;
 
 ProgramPtr loadDefaultShader();
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs);
@@ -56,8 +56,8 @@ template <
 struct FramebufferWrapper {
     uvec2       size;
     oglplus::Framebuffer fbo;
-    C           color{ 0 };
-    D           depth{ 0 };
+    C           color;
+    D           depth;
 
     FramebufferWrapper() {}
 
@@ -112,8 +112,7 @@ protected:
     virtual void initDone() = 0;
 };
 
-
-struct BasicFramebufferWrapper : public FramebufferWrapper < oglplus::Texture, oglplus::Renderbuffer > {
+struct BasicFramebufferWrapper : public FramebufferWrapper <oglplus::Texture, oglplus::Renderbuffer> {
 protected:
     virtual void initDepth() override {
         using namespace oglplus;
@@ -131,9 +130,9 @@ protected:
             .WrapS(TextureWrap::ClampToEdge)
             .WrapT(TextureWrap::ClampToEdge)
             .Image2D(
-            0, PixelDataInternalFormat::RGBA8,
-            size.x, size.y,
-            0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
+                0, PixelDataInternalFormat::RGBA8,
+                size.x, size.y,
+                0, PixelDataFormat::RGB, PixelDataType::UnsignedByte, nullptr
             );
     }
 
@@ -147,3 +146,5 @@ protected:
         });
     }
 };
+
+using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;

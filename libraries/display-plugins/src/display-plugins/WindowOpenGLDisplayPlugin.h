@@ -28,10 +28,14 @@ public:
     virtual void removeEventFilter(QObject* filter) override;
 
 protected:
+    virtual GlWindow* createWindow(PluginContainer * container);
+    virtual void customizeWindow(PluginContainer * container) = 0;
+
+    virtual void destroyWindow();
+
     virtual void makeCurrent() override;
     virtual void doneCurrent() override;
     virtual void swapBuffers() override;
-    virtual void customizeWindow(PluginContainer * container) = 0;
     virtual void initSurfaceFormat(QSurfaceFormat& format);
 
     GlWindow* _window{ nullptr };

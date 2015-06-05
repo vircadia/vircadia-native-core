@@ -9,13 +9,12 @@
 
 #include <QTimer>
 
-#include <gpu/Texture.h>
-
 #include "DisplayPlugin.h"
 #include "OglplusHelpers.h"
 
 class GlWindow;
 class QOpenGLContext;
+
 class OpenGLDisplayPlugin : public DisplayPlugin {
 public:
     OpenGLDisplayPlugin();
@@ -29,9 +28,7 @@ public:
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
-    void display(
-        GLuint sceneTexture, const glm::uvec2& sceneSize,
-        GLuint overlayTexture, const glm::uvec2& overlaySize) override;
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
 
@@ -43,10 +40,9 @@ protected:
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
 
-    QTimer _timer;
-    ProgramPtr _program;
+    QTimer          _timer;
+    ProgramPtr      _program;
     ShapeWrapperPtr _plane;
-    gpu::TexturePointer _crosshairTexture;
 };
 
 

@@ -14,9 +14,6 @@ class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
 public:
     SideBySideStereoDisplayPlugin();
     virtual const QString & getName() override;
-
-    void display(GLuint sceneTexture, const glm::uvec2& sceneSize,
-        GLuint overlayTexture, const glm::uvec2& overlaySize) override;
 private:
     static const QString NAME;
 };

@@ -30,13 +30,6 @@
 
 #include "../OglplusHelpers.h"
 
-#define DEFAULT_HMD_UI_ANGULAR_SIZE 72.0f
-
-using oglplus::Framebuffer;
-using oglplus::DefaultFramebuffer;
-
-
-
 
 // A base class for FBO wrappers that need to use the Oculus C
 // API to manage textures via ovrHmd_CreateSwapTextureSetGL,
@@ -44,7 +37,10 @@ using oglplus::DefaultFramebuffer;
 template <typename C>
 struct RiftFramebufferWrapper : public FramebufferWrapper<C, char> {
     ovrHmd hmd;
-    RiftFramebufferWrapper(const ovrHmd & hmd) : hmd(hmd) {};
+    RiftFramebufferWrapper(const ovrHmd & hmd) : hmd(hmd) {
+        color = 0;
+        depth = 0;
+    };
 
     void Resize(const uvec2 & size) {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
@@ -181,6 +177,7 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         Q_ASSERT(false);
         qFatal("Failed to acquire HMD");
     }
+
     // Parent class relies on our _hmd intialization, so it must come after that.
     ovrLayerEyeFov& sceneLayer = getSceneLayer();
     memset(&sceneLayer, 0, sizeof(ovrLayerEyeFov));
@@ -200,7 +197,6 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
     //uiLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HighQuality;
     //uiLayer.QuadPoseCenter.Orientation = { 0, 0, 0, 1 };
     //uiLayer.QuadPoseCenter.Position = { 0, 0, -1 };
-
     OculusBaseDisplayPlugin::activate(container);
 }
 
@@ -209,9 +205,6 @@ void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
     
     //_texture = DependencyManager::get<TextureCache>()->
     //    getImageTexture(PathUtils::resourcesPath() + "/images/cube_texture.png");
-
-    _uiSurface = loadSphereSection(_program, glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE), aspect(getCanvasSize()));
-
     uvec2 mirrorSize = toGlm(_window->geometry().size());
     _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
     _mirrorFbo->Init(mirrorSize);
@@ -233,7 +226,6 @@ void OculusWin32DisplayPlugin::deactivate() {
     makeCurrent();
     _sceneFbo.reset();
     _mirrorFbo.reset();
-    _uiSurface.reset();
     doneCurrent();
     PerformanceTimer::setActive(false);
 
@@ -244,11 +236,8 @@ void OculusWin32DisplayPlugin::deactivate() {
     ovr_Shutdown();
 }
 
-void OculusWin32DisplayPlugin::display(
-    GLuint sceneTexture, const glm::uvec2& sceneSize,
-    GLuint overlayTexture, const glm::uvec2& overlaySize) {
+void OculusWin32DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
-
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
     wglSwapIntervalEXT(0);
@@ -257,67 +246,18 @@ void OculusWin32DisplayPlugin::display(
         auto size = _sceneFbo->size;
         Context::Viewport(size.x, size.y);
 
-        glClearColor(0, 0, 0, 0);
-        Context::Clear().ColorBuffer();
-
         _program->Bind();
         Mat4Uniform(*_program, "Projection").Set(mat4());
         Mat4Uniform(*_program, "ModelView").Set(mat4());
-        glBindTexture(GL_TEXTURE_2D, sceneTexture);
+        glBindTexture(GL_TEXTURE_2D, finalTexture);
         _plane->Use();
         _plane->Draw();
-
-        
-        Context::Enable(Capability::Blend);
-        glBindTexture(GL_TEXTURE_2D, overlayTexture);
-        for_each_eye([&](Eye eye) {
-            Context::Viewport(eye == Left ? 0 : size.x / 2, 0, size.x / 2, size.y);
-            Mat4Uniform(*_program, "Projection").Set(_compositeEyeProjections[eye]);
-            Mat4Uniform(*_program, "ModelView").Set(glm::scale(glm::inverse(getModelview(eye, mat4())), vec3(1)));
-            _uiSurface->Use();
-            _uiSurface->Draw();
-        });
-        Context::Disable(Capability::Blend);
     });
-
-
-    /*
-    An alternative way to render the UI is to pass it specifically as a composition layer to 
-    the Oculus SDK which should technically result in higher quality.  However, the SDK doesn't
-    have a mechanism to present the image as a sphere section, which is our desired look.  
-    */
-#if 0
-    ovrLayerQuad& uiLayer = getUiLayer();
-    if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
-        _uiFbo->Resize(overlaySize);
-        uiLayer.ColorTexture = _uiFbo->color;
-        uiLayer.Viewport.Size.w = overlaySize.x;
-        uiLayer.Viewport.Size.h = overlaySize.y;
-        float overlayAspect = aspect(overlaySize);
-        uiLayer.QuadSize.x = 1.0f;
-        uiLayer.QuadSize.y = 1.0f / overlayAspect;
-    }
-
-    _uiFbo->Bound([&] {
-        Q_ASSERT(0 == glGetError());
-        using namespace oglplus;
-        Context::Viewport(_uiFbo->size.x, _uiFbo->size.y);
-        glClearColor(0, 0, 0, 0);
-        Context::Clear().ColorBuffer();
-
-        _program->Bind();
-        glBindTexture(GL_TEXTURE_2D, overlayTexture);
-        _plane->Use();
-        _plane->Draw();
-        Q_ASSERT(0 == glGetError());
-    });
-#endif    
 
     ovrLayerEyeFov& sceneLayer = getSceneLayer(); 
     ovr_for_each_eye([&](ovrEyeType eye) {
         sceneLayer.RenderPose[eye] = _eyePoses[eye];
     });
-
 
     auto windowSize = toGlm(getDeviceSize());
 
@@ -377,6 +317,39 @@ bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     otherwise the swapbuffer delay will interefere with the framerate of the headset
 */
 void OculusWin32DisplayPlugin::finishFrame() {
-    // swapBuffers();
+    swapBuffers();
     doneCurrent();
 };
+
+
+#if 0
+/*
+An alternative way to render the UI is to pass it specifically as a composition layer to
+the Oculus SDK which should technically result in higher quality.  However, the SDK doesn't
+have a mechanism to present the image as a sphere section, which is our desired look.
+*/
+ovrLayerQuad& uiLayer = getUiLayer();
+if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
+    _uiFbo->Resize(overlaySize);
+    uiLayer.ColorTexture = _uiFbo->color;
+    uiLayer.Viewport.Size.w = overlaySize.x;
+    uiLayer.Viewport.Size.h = overlaySize.y;
+    float overlayAspect = aspect(overlaySize);
+    uiLayer.QuadSize.x = 1.0f;
+    uiLayer.QuadSize.y = 1.0f / overlayAspect;
+}
+
+_uiFbo->Bound([&] {
+    Q_ASSERT(0 == glGetError());
+    using namespace oglplus;
+    Context::Viewport(_uiFbo->size.x, _uiFbo->size.y);
+    glClearColor(0, 0, 0, 0);
+    Context::Clear().ColorBuffer();
+
+    _program->Bind();
+    glBindTexture(GL_TEXTURE_2D, overlayTexture);
+    _plane->Use();
+    _plane->Draw();
+    Q_ASSERT(0 == glGetError());
+});
+#endif    
