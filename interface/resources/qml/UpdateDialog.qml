@@ -4,8 +4,10 @@ import QtQuick.Controls.Styles 1.3
 import "controls"
 import "styles"
 
-Item {
+UpdateDialog {
+    HifiConstants { id: hifi }
     id: updateDialog
+    objectName: "UpdateDialog"
     implicitWidth: backgroundImage.width
     implicitHeight: backgroundImage.height + releaseNotes.height
     x: parent ? parent.width / 2 - width / 2 : 0

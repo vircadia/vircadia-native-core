@@ -25,12 +25,11 @@ void UpdateDialog::displayDialog() {
 }
 
 void UpdateDialog::setUpdateAvailableDetails(const QString& updateAvailableDetails) {
-    if (updateAvailableDetails != _updateAvailableDetails) {
+    if (updateAvailableDetails == "") {
         auto applicationUpdater = DependencyManager::get<AutoUpdate>();
-        foreach (int key, applicationUpdater.data()->getBuildData().keys()) {
-            qDebug() << "[LEOTEST] Build number: " << QString::number(key);
-        }
         _updateAvailableDetails = "This is just a test " + QString::number(applicationUpdater.data()->getBuildData().lastKey());
+        qDebug() << "[LEOTEST] We are updating the text in the dialog";
+        emit updateAvailableDetailsChanged();
     }
 }
 
