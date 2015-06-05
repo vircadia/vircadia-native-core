@@ -252,15 +252,72 @@ Dialog {
                 }
             }
 
-            Text {
-                id: messageText
+            Item {
                 width: loginDialog.inputWidth
                 height: loginDialog.inputHeight / 2
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
 
-                text: loginDialog.statusText
-                color: "white"
+                Text {
+                    id: messageText
+
+                    visible: loginDialog.statusText != "" && loginDialog.statusText != "Logging in..."
+
+                    width: loginDialog.inputWidth
+                    height: loginDialog.inputHeight / 2
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+
+                    text: loginDialog.statusText
+                    color: "white"
+                }
+
+                Row {
+                    id: messageSpinner
+
+                    visible: loginDialog.statusText == "Logging in..."
+                    onVisibleChanged: visible ? messageSpinnerAnimation.restart() : messageSpinnerAnimation.stop()
+
+                    spacing: 24
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Rectangle {
+                        id: spinner1
+                        width: 10
+                        height: 10
+                        color: "#ebebeb"
+                        opacity: 0.05
+                    }
+
+                    Rectangle {
+                        id: spinner2
+                        width: 10
+                        height: 10
+                        color: "#ebebeb"
+                        opacity: 0.05
+                    }
+
+                    Rectangle {
+                        id: spinner3
+                        width: 10
+                        height: 10
+                        color: "#ebebeb"
+                        opacity: 0.05
+                    }
+
+                    SequentialAnimation {
+                        id: messageSpinnerAnimation
+                        running: messageSpinner.visible
+                        loops: Animation.Infinite
+                        NumberAnimation { target: spinner1; property: "opacity"; to: 1.0; duration: 1000 }
+                        NumberAnimation { target: spinner2; property: "opacity"; to: 1.0; duration: 1000 }
+                        NumberAnimation { target: spinner3; property: "opacity"; to: 1.0; duration: 1000 }
+                        NumberAnimation { target: spinner1; property: "opacity"; to: 0.05; duration: 0 }
+                        NumberAnimation { target: spinner2; property: "opacity"; to: 0.05; duration: 0 }
+                        NumberAnimation { target: spinner3; property: "opacity"; to: 0.05; duration: 0 }
+                    }
+                }
             }
 
             Rectangle {
