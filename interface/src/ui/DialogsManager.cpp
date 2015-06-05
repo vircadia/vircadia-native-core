@@ -50,10 +50,6 @@ void DialogsManager::showLoginDialog() {
     LoginDialog::show();
 }
 
-void DialogsManager::updateLoginDialogFormat() {
-    emit loginDialogFormatChanged();
-}
-
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());

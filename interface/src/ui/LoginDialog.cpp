@@ -12,6 +12,7 @@
 #include "LoginDialog.h"
 
 #include <NetworkingConstants.h>
+#include <QDesktopServices.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -20,16 +21,12 @@
 HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent),
-    _dialogFormat("rectangular"),
     _rootUrl(NetworkingConstants::METAVERSE_SERVER_URL.toString())
 {
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(&AccountManager::getInstance(), &AccountManager::loginFailed,
         this, &LoginDialog::handleLoginFailed);
-
-    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::loginDialogFormatChanged,
-        this, &LoginDialog::updateDialogFormat);
 }
 
 void LoginDialog::toggleAction() {
@@ -59,25 +56,6 @@ void LoginDialog::handleLoginFailed() {
     setStatusText("Invalid username or password");
 }
 
-void LoginDialog::setDialogFormat(const QString& dialogFormat) {
-    if (dialogFormat != _dialogFormat) {
-        _dialogFormat = dialogFormat;
-        emit dialogFormatChanged();
-    }
-}
-
-QString LoginDialog::dialogFormat() const {
-    return _dialogFormat;
-}
-
-void LoginDialog::updateDialogFormat() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::LoginDialogCircular)) {
-        setDialogFormat("circular");
-    } else {
-        setDialogFormat("rectangular");
-    }
-}
-
 void LoginDialog::setStatusText(const QString& statusText) {
     if (statusText != _statusText) {
         _statusText = statusText;
@@ -101,5 +79,5 @@ void LoginDialog::login(const QString& username, const QString& password) {
 
 void LoginDialog::openUrl(const QString& url) {
     qDebug() << url;
-    Application::getInstance()->openUrl(url);
+    QDesktopServices::openUrl(url);
 }

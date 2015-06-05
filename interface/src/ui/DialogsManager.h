@@ -47,15 +47,11 @@ public:
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
 
-signals:
-    void loginDialogFormatChanged();
-
 public slots:
     void toggleAddressBar();
     void toggleDiskCacheEditor();
     void toggleLoginDialog();
     void showLoginDialog();
-    void updateLoginDialogFormat();
     void octreeStatsDetails();
     void cachesSizeDialog();
     void editPreferences();
