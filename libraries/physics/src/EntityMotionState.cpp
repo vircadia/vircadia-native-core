@@ -11,6 +11,7 @@
 
 #include <EntityItem.h>
 #include <EntityEditPacketSender.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -494,6 +495,7 @@ void EntityMotionState::measureBodyAcceleration() {
         float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
         float invDt = 1.0f / dt;
         _lastMeasureStep = thisStep;
+        _measuredDeltaTime = dt;
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
@@ -501,6 +503,12 @@ void EntityMotionState::measureBodyAcceleration() {
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
     }
+}
+glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
+    // This is the dampened change in linear velocity, as calculated in measureBodyAcceleration: dv = a * dt
+    // It is generally only meaningful during the lifespan of collision. In particular, it is not meaningful
+    // when the entity first starts moving via direct user action.
+    return _measuredAcceleration * _measuredDeltaTime;
 }
 
 // virtual 
@@ -516,4 +524,17 @@ QString EntityMotionState::getName() {
         return _entity->getName();
     }
     return "";
+}
+
+// virtual 
+int16_t EntityMotionState::computeCollisionGroup() {
+    switch (computeObjectMotionType()){
+        case MOTION_TYPE_STATIC:
+            return COLLISION_GROUP_STATIC;
+        case MOTION_TYPE_KINEMATIC:
+            return COLLISION_GROUP_KINEMATIC;
+        default:
+            break;
+    }
+    return COLLISION_GROUP_DEFAULT;
 }
