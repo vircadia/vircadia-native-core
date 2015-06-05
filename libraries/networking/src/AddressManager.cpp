@@ -30,7 +30,7 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
 AddressManager::AddressManager() :
-    _rootPlaceName(),
+    _host(),
     _rootPlaceID(),
     _positionGetter(NULL),
     _orientationGetter(NULL)
@@ -45,7 +45,7 @@ const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_rootPlaceName);
+    hifiURL.setHost(_host);
     hifiURL.setPath(currentPath());
 
     return hifiURL;
@@ -217,6 +217,10 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
+                const QString DOMAIN_ID_KEY = "id";
+                QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
+                QUuid domainID(domainIDString);
+
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
 
@@ -230,10 +234,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    const QString DOMAIN_ID_KEY = "id";
-                    QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
-                    QUuid domainID(domainIDString);
-
                     qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
@@ -246,8 +246,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
-                QString newRootPlaceName = rootMap[PLACE_NAME_KEY].toString();
-                setRootPlaceName(newRootPlaceName);
+                QString placeName = rootMap[PLACE_NAME_KEY].toString();
+                if (!placeName.isEmpty()) {
+                    setHost(placeName);
+                } else {
+                    setHost(domainIDString);
+                }
 
                 // check if we had a path to override the path returned
                 QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
@@ -381,22 +385,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 
     QRegExp domainIDRegex(UUID_REGEX_STRING, Qt::CaseInsensitive);
 
-    if (domainIDRegex.indexIn(host) != -1) {
-        QString domainID = domainIDRegex.cap(1);
-
-        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
-
-        if (!domainIDRegex.cap(2).isEmpty()) {
-            domainPort = (qint16)domainIDRegex.cap(2).toInt();
-        }
-
-        emit lookupResultsFinished();
-        setDomainInfo(domainID, domainPort);
-
-        return true;
-    }
-
-    return false;
+    return (domainIDRegex.indexIn(host) != -1);
 }
 
 void AddressManager::handlePath(const QString& path) {
@@ -474,16 +463,16 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::setRootPlaceName(const QString& rootPlaceName) {
-    if (rootPlaceName != _rootPlaceName) {
-        _rootPlaceName = rootPlaceName;
-        emit rootPlaceNameChanged(_rootPlaceName);
+void AddressManager::setHost(const QString& host) {
+    if (host != _host) {
+        _host = host;
+        emit hostChanged(_host);
     }
 }
 
 
 void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
-    _rootPlaceName = hostname;
+    _host = hostname;
     _rootPlaceID = QUuid();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;

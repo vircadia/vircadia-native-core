@@ -474,7 +474,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     addressManager->setPositionGetter(getPositionForPath);
     addressManager->setOrientationGetter(getOrientationForPath);
     
-    connect(addressManager.data(), &AddressManager::rootPlaceNameChanged, this, &Application::updateWindowTitle);
+    connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     #ifdef _WIN32
@@ -3646,7 +3646,7 @@ void Application::updateWindowTitle(){
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
-    QString currentPlaceName = DependencyManager::get<AddressManager>()->getRootPlaceName();
+    QString currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
     
     if (currentPlaceName.isEmpty()) {
         currentPlaceName = nodeList->getDomainHandler().getHostname();
