@@ -451,11 +451,9 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
 }
 
 
-QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
-    QUuid actionID = QUuid::createUuid();
-
+bool EntityScriptingInterface::actionWorker(QUuid entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
     if (!_entityTree) {
-        return QUuid();
+        return false;
     }
 
     _entityTree->lockForWrite();
@@ -463,28 +461,35 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
     EntitySimulation* simulation = _entityTree->getSimulation();
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qDebug() << "addAction -- unknown entity" << entityID;
+        qDebug() << "actionWorker -- unknown entity" << entityID;
         _entityTree->unlock();
-        return QUuid();
+        return false;
     }
 
     if (!simulation) {
-        qDebug() << "addAction -- no simulation" << entityID;
+        qDebug() << "actionWorker -- no simulation" << entityID;
         _entityTree->unlock();
-        return QUuid();
+        return false;
     }
 
-    EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
-
-    if (actionType == ACTION_TYPE_NONE) {
-        _entityTree->unlock();
-        return QUuid();
-    }
-
-    EntityActionPointer action = simulation->actionFactory(actionType, actionID, entity, arguments);
+    bool success = actor(simulation, entity);
     _entityTree->unlock();
+    return success;
+}
 
-    if (action) {
+
+
+QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
+    QUuid actionID = QUuid::createUuid();
+    bool success = actionWorker(entityID, [actionID, actionTypeString, entityID, arguments](EntitySimulation* simulation,
+                                                                                            EntityItemPointer entity) {
+            EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
+            if (actionType == ACTION_TYPE_NONE) {
+                return false;
+            }
+            return simulation->actionFactory(actionType, actionID, entity, arguments);
+        });
+    if (success) {
         return actionID;
     }
     return QUuid();
@@ -492,55 +497,14 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
 
 
 bool EntityScriptingInterface::updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments) {
-    if (!_entityTree) {
-        return false;
-    }
-
-    _entityTree->lockForWrite();
-
-    EntitySimulation* simulation = _entityTree->getSimulation();
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qDebug() << "updateAction -- unknown entity" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
-
-    if (!simulation) {
-        qDebug() << "updateAction -- no simulation" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
-
-    bool result = entity->updateAction(simulation, actionID, arguments);
-    _entityTree->unlock();
-    return result;
+    return actionWorker(entityID, [entityID, actionID,arguments](EntitySimulation* simulation, EntityItemPointer entity) {
+            return entity->updateAction(simulation, actionID, arguments);
+        });
 }
 
 
 bool EntityScriptingInterface::deleteAction(QUuid entityID, QUuid actionID) {
-    if (!_entityTree) {
-        return false;
-    }
-
-    _entityTree->lockForWrite();
-
-    EntitySimulation* simulation = _entityTree->getSimulation();
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qDebug() << "updateAction -- unknown entity" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
-
-    if (!simulation) {
-        qDebug() << "updateAction -- no simulation" << entityID;
-        _entityTree->unlock();
-        return false;
-    }
-
-    bool result = entity->removeAction(simulation, actionID);
-
-    _entityTree->unlock();
-    return result;
+    return actionWorker(entityID, [entityID, actionID](EntitySimulation* simulation, EntityItemPointer entity) {
+            return entity->removeAction(simulation, actionID);
+        });
 }
