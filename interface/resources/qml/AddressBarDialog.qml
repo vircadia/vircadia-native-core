@@ -101,7 +101,7 @@ Dialog {
 
     onEnabledChanged: {
         if (enabled) {
-            addressLine.forceActiveFocus();
+            addressLine.forceActiveFocus()
         }
     }
 
@@ -123,7 +123,7 @@ Dialog {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                enabled = false;
+                enabled = false
                 event.accepted = true
                 break
             case Qt.Key_Enter:

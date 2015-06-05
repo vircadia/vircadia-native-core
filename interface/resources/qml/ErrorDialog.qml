@@ -25,7 +25,7 @@ Dialog {
 
     onParentChanged: {
         if (visible && enabled) {
-            forceActiveFocus();
+            forceActiveFocus()
         }
     }
 
@@ -90,7 +90,7 @@ Dialog {
                     anchors.fill: parent
                     cursorShape: "PointingHandCursor"
                     onClicked: {
-                        content.accept();
+                        content.accept()
                     }
                 }
             }
