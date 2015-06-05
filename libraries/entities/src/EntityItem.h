@@ -353,7 +353,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
-    bool updateAction(EntitySimulation* simulation, const QUuid& actionID, QVariantMap& arguments);
+    bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
     void clearActions(EntitySimulation* simulation);
 

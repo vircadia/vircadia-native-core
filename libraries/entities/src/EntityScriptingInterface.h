@@ -124,9 +124,9 @@ public slots:
 
     Q_INVOKABLE void dumpTree() const;
 
-    Q_INVOKABLE QUuid addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments);
-    Q_INVOKABLE bool updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments);
-    Q_INVOKABLE bool deleteAction(QUuid entityID, QUuid actionID);
+    Q_INVOKABLE QUuid addAction(const QString& actionTypeString, const QUuid& entityID, const QVariantMap& arguments);
+    Q_INVOKABLE bool updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments);
+    Q_INVOKABLE bool deleteAction(const QUuid& entityID, const QUuid& actionID);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -155,7 +155,7 @@ signals:
     void clearingEntities();
 
 private:
-    bool actionWorker(QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
+    bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 

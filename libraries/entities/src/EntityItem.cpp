@@ -1358,7 +1358,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     return false;
 }
 
-bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, QVariantMap& arguments) {
+bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
     if (!_objectActions.contains(actionID)) {
         return false;
     }

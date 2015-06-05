@@ -459,7 +459,8 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
 }
 
 
-bool EntityScriptingInterface::actionWorker(QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
+bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
+                                            std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
     if (!_entityTree) {
         return false;
     }
@@ -486,7 +487,9 @@ bool EntityScriptingInterface::actionWorker(QUuid& entityID, std::function<bool(
 }
 
 
-QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
+QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
+                                          const QUuid& entityID,
+                                          const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
     bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
@@ -505,14 +508,14 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
 }
 
 
-bool EntityScriptingInterface::updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments) {
+bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->updateAction(simulation, actionID, arguments);
         });
 }
 
 
-bool EntityScriptingInterface::deleteAction(QUuid entityID, QUuid actionID) {
+bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->removeAction(simulation, actionID);
         });
