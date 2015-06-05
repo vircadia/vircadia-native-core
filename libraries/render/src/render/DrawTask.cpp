@@ -241,9 +241,9 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
     ItemIDs culledItems;
     if (renderContext->_cullOpaque) {
-        renderDetails.pointTo(RenderDetails::OPAQUE);
+        renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
         cullItems(sceneContext, renderContext, renderedItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
         renderedItems = culledItems;
     }
 
@@ -307,9 +307,9 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
 
     ItemIDs culledItems;
     if (renderContext->_cullTransparent) {
-        renderDetails.pointTo(RenderDetails::TRANSLUCENT);
+        renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
         cullItems(sceneContext, renderContext, inItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
         renderedItems = culledItems;
     }
 

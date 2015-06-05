@@ -25,12 +25,12 @@ class Context;
 class RenderDetails {
 public:
     enum Type {
-        OPAQUE,
-        TRANSLUCENT,
-        OTHER
+        OPAQUE_ITEM,
+        TRANSLUCENT_ITEM,
+        OTHER_ITEM
     };
     
-    struct Items {
+    struct Item {
         int _considered = 0;
         int _rendered = 0;
         int _outOfView = 0;
@@ -41,21 +41,21 @@ public:
     int _trianglesRendered = 0;
     int _quadsRendered = 0;
     
-    Items _opaque;
-    Items _translucent;
-    Items _other;
+    Item _opaque;
+    Item _translucent;
+    Item _other;
     
-    Items* _item = &_other;
+    Item* _item = &_other;
     
     void pointTo(Type type) {
         switch (type) {
-            case OPAQUE:
+            case OPAQUE_ITEM:
                 _item = &_opaque;
                 break;
-            case TRANSLUCENT:
+            case TRANSLUCENT_ITEM:
                 _item = &_translucent;
                 break;
-            case OTHER:
+            case OTHER_ITEM:
                 _item = &_other;
                 break;
         }
