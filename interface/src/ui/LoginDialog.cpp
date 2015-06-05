@@ -101,4 +101,5 @@ void LoginDialog::login(const QString& username, const QString& password) {
 
 void LoginDialog::openUrl(const QString& url) {
     qDebug() << url;
+    Application::getInstance()->openUrl(url);
 }
