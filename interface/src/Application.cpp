@@ -3297,7 +3297,7 @@ namespace render {
             skybox = skyStage->getSkybox();
             if (skybox) {
                 gpu::Batch batch;
-                model::Skybox::render(batch, *(args->_viewFrustum), *skybox);
+                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
 
                 gpu::GLBackend::renderBatch(batch, true);
                 glUseProgram(0);
