@@ -83,7 +83,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
-    // these pointers MUST be NULL at delete, else we probably have a dangling backpointer 
+    // these pointers MUST be correct at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
     assert(!_simulated);
     assert(!_element);
@@ -518,12 +518,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     bytesRead += propertyFlags.getEncodedLength();
-    bool useMeters = (args.bitstreamVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS);
-    if (useMeters) {
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
-    } else {
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionInDomainUnits);
-    }
+    READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
 
     // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
@@ -537,22 +532,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         }
     } else {
-        if (useMeters) {
-            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-        } else {
-            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensionsInDomainUnits);
-        }
+        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
     }
 
     READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
     READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-    if (useMeters) {
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-    } else {
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityInDomainUnits);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravityInDomainUnits);
-    }
+    READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
     }
@@ -563,11 +549,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    if (useMeters) {
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-    } else {
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
-    }
+    READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+    //READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
@@ -1135,11 +1118,6 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
-void EntityItem::updatePositionInDomainUnits(const glm::vec3& value) { 
-    glm::vec3 position = value * (float)TREE_SCALE;
-    updatePosition(position);
-}
-
 void EntityItem::updatePosition(const glm::vec3& value) { 
     auto delta = glm::distance(_position, value);
     if (delta > IGNORE_POSITION_DELTA) {
@@ -1149,11 +1127,6 @@ void EntityItem::updatePosition(const glm::vec3& value) {
             _dirtyFlags |= EntityItem::DIRTY_PHYSICS_ACTIVATION;
         }
     }
-}
-
-void EntityItem::updateDimensionsInDomainUnits(const glm::vec3& value) { 
-    glm::vec3 dimensions = value * (float)TREE_SCALE;
-    updateDimensions(dimensions);
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) { 
@@ -1207,11 +1180,6 @@ void EntityItem::updateMass(float mass) {
     }
 }
 
-void EntityItem::updateVelocityInDomainUnits(const glm::vec3& value) {
-    glm::vec3 velocity = value * (float)TREE_SCALE;
-    updateVelocity(velocity);
-}
-
 void EntityItem::updateVelocity(const glm::vec3& value) { 
     auto delta = glm::distance(_velocity, value);
     if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
@@ -1235,11 +1203,6 @@ void EntityItem::updateDamping(float value) {
         _damping = clampedDamping;
         _dirtyFlags |= EntityItem::DIRTY_MATERIAL;
     }
-}
-
-void EntityItem::updateGravityInDomainUnits(const glm::vec3& value) { 
-    glm::vec3 gravity = value * (float) TREE_SCALE;
-    updateGravity(gravity);
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 

@@ -19,11 +19,8 @@
 
 // translates between ShapeInfo and btShape
 
-// TODO: rename this to ShapeFactory
 namespace ShapeFactory {
-
     btConvexHullShape* createConvexHull(const QVector<glm::vec3>& points);
-
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
 };
 

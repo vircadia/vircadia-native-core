@@ -38,7 +38,7 @@ void PhysicalEntitySimulation::init(
 
 // begin EntitySimulation overrides
 void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
-    // TODO: add back non-physical kinematic objects and step them forward here
+    // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
