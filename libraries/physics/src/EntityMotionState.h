@@ -78,6 +78,8 @@ public:
 
     virtual QString getName();
 
+    virtual int16_t computeCollisionGroup();
+
     friend class PhysicalEntitySimulation;
 
 protected:

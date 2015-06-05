@@ -11,6 +11,7 @@
 
 #include <EntityItem.h>
 #include <EntityEditPacketSender.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -523,4 +524,17 @@ QString EntityMotionState::getName() {
         return _entity->getName();
     }
     return "";
+}
+
+// virtual 
+int16_t EntityMotionState::computeCollisionGroup() {
+    switch (computeObjectMotionType()){
+        case MOTION_TYPE_STATIC:
+            return COLLISION_GROUP_STATIC;
+        case MOTION_TYPE_KINEMATIC:
+            return COLLISION_GROUP_KINEMATIC;
+        default:
+            break;
+    }
+    return COLLISION_GROUP_DEFAULT;
 }
