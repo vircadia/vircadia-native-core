@@ -56,7 +56,7 @@ void LoginDialog::handleLoginCompleted(const QUrl&) {
 }
 
 void LoginDialog::handleLoginFailed() {
-    setStatusText("<font color = \"#267077\">Invalid username or password.< / font>");
+    setStatusText("Invalid username or password");
 }
 
 void LoginDialog::setDialogFormat(const QString& dialogFormat) {
@@ -95,7 +95,7 @@ QString LoginDialog::rootUrl() const {
 
 void LoginDialog::login(const QString& username, const QString& password) {
     qDebug() << "Attempting to login " << username;
-    setStatusText("Authenticating...");
+    setStatusText("Logging in...");
     AccountManager::getInstance().requestAccessToken(username, password);
 }
 
