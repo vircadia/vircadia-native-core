@@ -131,21 +131,22 @@ function MousePaint() {
 
 
   function mouseMoveEvent(event) {
-    if (!isDrawing) {
-      return;
-    }
 
 
     var pickRay = Camera.computePickRay(event.x, event.y);
     var addVector = Vec3.multiply(Vec3.normalize(pickRay.direction), DRAWING_DISTANCE);
     var point = Vec3.sum(Camera.getPosition(), addVector);
-    points.push(point);
     Entities.editEntity(line, {
       linePoints: points
     });
     Entities.editEntity(brush, {
       position: point
     });
+    if (!isDrawing) {
+      return;
+    }
+
+    points.push(point);
     path.push(point);
 
     if (points.length === MAX_POINTS_PER_LINE) {
@@ -168,6 +169,10 @@ function MousePaint() {
   }
 
   function mousePressEvent(event) {
+    if(!event.isLeftButton) {
+      isDrawing = false;
+      return;
+    }
     lineRider.mousePressEvent(event);
     path = [];
     newLine();
