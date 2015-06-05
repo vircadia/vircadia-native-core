@@ -66,11 +66,13 @@ function hydraCheck() {
   return hydrasConnected; //hydrasConnected;
 }
 
+//************ Mouse Paint **************************
 
 function MousePaint() {
   var lines = [];
+  var deletedLines = [];
   var isDrawing = false;
-  var path  = [];
+  var path = [];
 
   var lineRider = new LineRider();
   lineRider.addStartHandler(function() {
@@ -152,6 +154,19 @@ function MousePaint() {
     }
   }
 
+  function undoStroke() {
+    var deletedLine = lines.pop();
+    var deletedLineProps = Entities.getEntityProperties(deletedLine);
+    deletedLines.push(deletedLineProps);
+    Entities.deleteEntity(deletedLine);
+  }
+
+  function redoStroke() {
+    var restoredLine = Entities.addEntity(deletedLines.pop());
+    Entities.addEntity(restoredLine);
+    lines.push(restoredLine);
+  }
+
   function mousePressEvent(event) {
     lineRider.mousePressEvent(event);
     path = [];
@@ -172,6 +187,12 @@ function MousePaint() {
         color: currentColor
       });
     }
+    if (event.text === "z") {
+      undoStroke();
+    }
+    if(event.text === "x") {
+      redoStroke();
+    }
   }
 
   function cleanup() {
@@ -179,6 +200,7 @@ function MousePaint() {
       Entities.deleteEntity(line);
     });
     Entities.deleteEntity(brush);
+    lineRider.cleanup();
 
   }
 
@@ -194,7 +216,6 @@ function MousePaint() {
 
 
 //*****************HYDRA PAINT *******************************************
-
 
 
 
@@ -431,7 +452,7 @@ function HydraPaint() {
     currentTime += deltaTime;
   }
 
-  function scriptEnding() {
+  function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     lineRider.cleanup();
@@ -450,20 +471,20 @@ function HydraPaint() {
   var leftController = new controller(LEFT, LEFT_BUTTON_3, LEFT_BUTTON_4, LEFT_BUTTON_1, LEFT_BUTTON_2);
 
   Script.update.connect(update);
-  Script.scriptEnding.connect(scriptEnding);
+  Script.scriptEnding.connect(cleanup);
   Controller.mousePressEvent.connect(mousePressEvent);
 
 }
 
-  function randFloat(low, high) {
-    return low + Math.random() * ( high - low );
-  }
+function randFloat(low, high) {
+  return low + Math.random() * (high - low);
+}
 
 
-  function randInt(low, high) {
-    return Math.floor(randFloat(low, high));
-  }
+function randInt(low, high) {
+  return Math.floor(randFloat(low, high));
+}
 
-    function map(value, min1, max1, min2, max2) {
-    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
-  }
+function map(value, min1, max1, min2, max2) {
+  return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+}
