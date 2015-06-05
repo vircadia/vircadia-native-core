@@ -9,6 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <algorithm>
+#include <assert.h>
+
+#include <QMap>
+
 #include "DrawTask.h"
 
 #include <PerfStat.h>
@@ -18,9 +23,6 @@
 
 #include "ViewFrustum.h"
 #include "RenderArgs.h"
-
-#include <algorithm>
-#include <assert.h>
 
 using namespace render;
 
@@ -70,7 +72,12 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     // Culling / LOD
     for (auto id : inItems) {
         auto item = scene->getItem(id);
-        auto bound = item.getBound();
+        AABox bound;
+        {
+            PerformanceTimer perfTimer("getBound");
+
+            bound = item.getBound();
+        }
 
         if (bound.isNull()) {
             outItems.push_back(id); // One more Item to render
@@ -79,9 +86,17 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-        bool outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
+        bool outOfView;
+        {
+            PerformanceTimer perfTimer("boxInFrustum");
+            outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
+        }
         if (!outOfView) {
-            bool bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
+            bool bigEnoughToRender;
+            {
+                PerformanceTimer perfTimer("shouldRender");
+                bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
+            }
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
             } else {
@@ -123,36 +138,85 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
+    
 
     // Allocate and simply copy
     outItems.reserve(inItems.size());
 
-
-    // Make a local dataset of the center distance and closest point distance
-    std::vector<ItemBound> itemBounds;
-    itemBounds.reserve(outItems.size());
-
-    for (auto id : inItems) {
-        auto item = scene->getItem(id);
-        auto bound = item.getBound();
-        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
     
-        itemBounds.emplace_back(ItemBound(distance, distance, distance, id));
-    }
+    #if 0 /// NEW WAY
+    {
+        PerformanceTimer perfTimer("newWay");
+        
+        // TODO: use a QMap<depth,item> which would give us automatic sorting.
+        QMap<float, ItemID> depths;
+        QList<ItemID> sortedItems;
+        
+        {
+            PerformanceTimer perfTimer("part1");
 
-    // sort against Z
-    if (frontToBack) {
-        FrontToBackSort frontToBackSort;
-        std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
-    } else {
-        BackToFrontSort  backToFrontSort;
-        std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
-    }
+            for (auto id : inItems) {
+                auto item = scene->getItem(id);
+                auto bound = item.getBound();
+                float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
+                float key = frontToBack ? -distance : distance;
+        
+                depths.insertMulti(key, id);
+            }
+        }
+        {
+            PerformanceTimer perfTimer("part2");
+             sortedItems = depths.values();
+        }
 
-    // FInally once sorted result to a list of itemID
-    for (auto& itemBound : itemBounds) {
-        outItems.emplace_back(itemBound._id);
+        {
+            PerformanceTimer perfTimer("part3");
+            for ( auto sortedID : sortedItems) {
+                outItems.emplace_back(sortedID);
+            }
+        }
+
     }
+    #else /// OLD WAY
+    {
+        PerformanceTimer perfTimer("oldWay");
+
+        // Make a local dataset of the center distance and closest point distance
+        std::vector<ItemBound> itemBounds;
+        {
+            PerformanceTimer perfTimer("part1");
+            itemBounds.reserve(outItems.size());
+
+            for (auto id : inItems) {
+                auto item = scene->getItem(id);
+                auto bound = item.getBound();
+                float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
+    
+                itemBounds.emplace_back(ItemBound(distance, distance, distance, id));
+            }
+        }
+
+        {
+            PerformanceTimer perfTimer("part2");
+            // sort against Z
+            if (frontToBack) {
+                FrontToBackSort frontToBackSort;
+                std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
+            } else {
+                BackToFrontSort  backToFrontSort;
+                std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
+            }
+        }
+
+        {
+            PerformanceTimer perfTimer("part3");
+            // FInally once sorted result to a list of itemID
+            for (auto& itemBound : itemBounds) {
+                outItems.emplace_back(itemBound._id);
+            }
+        }
+    }
+    #endif
 }
 
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, int maxDrawnItems) {
