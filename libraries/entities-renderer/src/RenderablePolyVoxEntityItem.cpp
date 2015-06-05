@@ -380,14 +380,16 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         getModel();
     }
     
-    Transform transformToCenter = getTransformToCenter();
-    transformToCenter.setScale(getDimensions() / _voxelVolumeSize);
+    Transform transform;
+    transform.setTranslation(getPosition() - getRegistrationPoint() * getDimensions());
+    transform.setRotation(getRotation());
+    transform.setScale(getDimensions() / _voxelVolumeSize);
 
     auto mesh = _modelGeometry.getMesh();
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-    batch.setModelTransform(transformToCenter);
+    batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
     batch.setInputBuffer(gpu::Stream::NORMAL,
