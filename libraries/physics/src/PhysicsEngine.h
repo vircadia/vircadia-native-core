@@ -91,8 +91,7 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    static bool physicsInfoIsActive(void* physicsInfo);
-    static bool getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn);
+    int16_t getCollisionMask(int16_t group) const;
 
 private:
     void removeContacts(ObjectMotionState* motionState);
@@ -121,6 +120,7 @@ private:
 
     QUuid _sessionID;
     CollisionEvents _collisionEvents;
+    btHashMap<btHashInt, int16_t> _collisionMasks;
 };
 
 #endif // hifi_PhysicsEngine_h

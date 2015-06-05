@@ -21,6 +21,7 @@
 #include <Octree.h>
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
+#include "PolyVoxEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -78,7 +79,7 @@ public slots:
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
+    Q_INVOKABLE QUuid editEntity(QUuid entityID, EntityItemProperties properties);
 
     /// deletes a model
     Q_INVOKABLE void deleteEntity(QUuid entityID);
@@ -117,7 +118,10 @@ public slots:
     Q_INVOKABLE void setSendPhysicsUpdates(bool value);
     Q_INVOKABLE bool getSendPhysicsUpdates() const;
 
+    bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
+    Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
+    Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
 
     Q_INVOKABLE void dumpTree() const;
 

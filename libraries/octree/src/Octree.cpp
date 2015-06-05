@@ -2096,7 +2096,15 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
         top = _rootElement;
     }
 
+    // include the "bitstream" version
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+    entityDescription["Version"] = (int) expectedVersion;
+
+    // store the entity data
     bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+
+    // convert the QVariantMap to JSON
     if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
         persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
     } else {

@@ -73,7 +73,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_NO_ENTITY_ID_SWAP;
+            return VERSION_ENTITIES_LINE_POINTS;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
@@ -135,7 +135,6 @@ QString nameForPacketType(PacketType packetType) {
             PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAdd);
             PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEdit);
-            PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleEntitiesFix);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }
