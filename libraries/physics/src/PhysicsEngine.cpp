@@ -317,6 +317,8 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
         if(type != CONTACT_EVENT_TYPE_CONTINUE || _numSubsteps % CONTINUE_EVENT_FILTER_FREQUENCY == 0) {
             ObjectMotionState* A = static_cast<ObjectMotionState*>(contactItr->first._a);
             ObjectMotionState* B = static_cast<ObjectMotionState*>(contactItr->first._b);
+            glm::vec3 velocityChange = (A ? A->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
+                (B ? B->getObjectLinearVelocityChange() : glm::vec3(0.0f));
 
             if (A && A->getType() == MOTIONSTATE_TYPE_ENTITY) {
                 QUuid idA = A->getObjectID();
@@ -326,14 +328,14 @@ CollisionEvents& PhysicsEngine::getCollisionEvents() {
                 }
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
-                _collisionEvents.push_back(Collision(type, idA, idB, position, penetration));
+                _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
             } else if (B && B->getType() == MOTIONSTATE_TYPE_ENTITY) {
                 QUuid idB = B->getObjectID();
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
                 // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL) 
                 // hence we must negate the penetration.
                 glm::vec3 penetration = - bulletToGLM(contact.distance * contact.normalWorldOnB);
-                _collisionEvents.push_back(Collision(type, idB, QUuid(), position, penetration));
+                _collisionEvents.push_back(Collision(type, idB, QUuid(), position, penetration, velocityChange));
             }
         }
 
