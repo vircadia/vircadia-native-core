@@ -289,7 +289,7 @@ Dialog {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Text {
-                    text: "Forgot Password?"
+                    text: "Password?"
                     font.pixelSize: hifi.fonts.pixelSize * 0.8
                     font.underline: true
                     color: "#e0e0e0"
