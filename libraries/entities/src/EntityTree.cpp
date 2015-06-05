@@ -681,7 +681,6 @@ void EntityTree::update() {
             QSet<EntityItemID> idsToDelete;
             
             for (auto entity : pendingDeletes) {
-                assert(!entity->getPhysicsInfo()); // TODO: Andrew to remove this after testing
                 idsToDelete.insert(entity->getEntityItemID());
             }
             
