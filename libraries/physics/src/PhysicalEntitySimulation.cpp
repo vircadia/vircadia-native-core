@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PhysicalEntitySimulation.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 #include "ShapeManager.h"
+#include "ObjectActionPullToPoint.h"
+
+#include "PhysicalEntitySimulation.h"
 
 PhysicalEntitySimulation::PhysicalEntitySimulation() {
 }
@@ -36,7 +38,7 @@ void PhysicalEntitySimulation::init(
 
 // begin EntitySimulation overrides
 void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
-    // TODO: add back non-physical kinematic objects and step them forward here
+    // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
@@ -232,3 +234,37 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
     }
 }
 
+EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType type,
+                                                               QUuid id,
+                                                               EntityItemPointer ownerEntity,
+                                                               QVariantMap arguments) {
+    EntityActionPointer action = nullptr;
+    switch (type) {
+        case ACTION_TYPE_NONE:
+            return nullptr;
+        case ACTION_TYPE_PULL_TO_POINT:
+            action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity);
+            break;
+    }
+
+    bool ok = action->updateArguments(arguments);
+    if (ok) {
+        ownerEntity->addAction(this, action);
+        return action;
+    }
+
+    action = nullptr;
+    return action;
+}
+
+void PhysicalEntitySimulation::applyActionChanges() {
+    if (_physicsEngine) {
+        foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
+            _physicsEngine->addAction(actionToAdd);
+        }
+        foreach (QUuid actionToRemove, _actionsToRemove) {
+            _physicsEngine->removeAction(actionToRemove);
+        }
+    }
+    EntitySimulation::applyActionChanges();
+}

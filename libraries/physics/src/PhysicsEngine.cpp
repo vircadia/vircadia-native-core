@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <PhysicsCollisionGroups.h>
+
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
@@ -23,15 +25,25 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 }
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
-    _originOffset(offset),
-    _characterController(nullptr) {
+        _originOffset(offset),
+        _characterController(nullptr) {
+    // build table of masks with their group as the key
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_KINEMATIC), COLLISION_MASK_KINEMATIC);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEBRIS), COLLISION_MASK_DEBRIS);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_TRIGGER), COLLISION_MASK_TRIGGER);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_AVATAR), COLLISION_MASK_MY_AVATAR);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_ATTACHMENT), COLLISION_MASK_MY_ATTACHMENT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_AVATAR), COLLISION_MASK_OTHER_AVATAR);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_ATTACHMENT), COLLISION_MASK_OTHER_ATTACHMENT);
+    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_COLLISIONLESS), COLLISION_MASK_COLLISIONLESS);
 }
 
 PhysicsEngine::~PhysicsEngine() {
     if (_characterController) {
         _characterController->setDynamicsWorld(nullptr);
     }
-    // TODO: delete engine components... if we ever plan to create more than one instance
     delete _collisionConfig;
     delete _collisionDispatcher;
     delete _broadphaseFilter;
@@ -125,7 +137,8 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    _dynamicsWorld->addRigidBody(body);
+    int16_t group = motionState->computeCollisionGroup();
+    _dynamicsWorld->addRigidBody(body, group, getCollisionMask(group));
 
     motionState->getAndClearIncomingDirtyFlags();
 }
@@ -154,11 +167,11 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
     }
 }
 
-// Same as above, but takes a Set instead of a Vector and ommits some cleanup operations.  Only called during teardown.
+// Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
 void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        _dynamicsWorld->removeRigidBody(body);
+        removeObject(object);
     
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
@@ -419,34 +432,32 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
     }
 }
 
-bool PhysicsEngine::physicsInfoIsActive(void* physicsInfo) {
-    if (!physicsInfo) {
-        return false;
-    }
-
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    btRigidBody* body = motionState->getRigidBody();
-    if (!body) {
-        return false;
-    }
-
-    return body->isActive();
+int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
+    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
+    return mask ? *mask : COLLISION_MASK_DEFAULT;
 }
 
-bool PhysicsEngine::getBodyLocation(void* physicsInfo, glm::vec3& positionReturn, glm::quat& rotationReturn) {
-    if (!physicsInfo) {
-        return false;
+void PhysicsEngine::addAction(EntityActionPointer action) {
+    assert(action);
+    const QUuid& actionID = action->getID();
+    if (_objectActions.contains(actionID)) {
+        assert(_objectActions[actionID] == action);
+        return;
     }
 
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    btRigidBody* body = motionState->getRigidBody();
-    if (!body) {
-        return false;
+    _objectActions[actionID] = action;
+
+    // bullet needs a pointer to the action, but it doesn't use shared pointers.
+    // is there a way to bump the reference count?
+    ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
+    _dynamicsWorld->addAction(objectAction);
+}
+
+void PhysicsEngine::removeAction(const QUuid actionID) {
+    if (_objectActions.contains(actionID)) {
+        EntityActionPointer action = _objectActions[actionID];
+        ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
+        _dynamicsWorld->removeAction(objectAction);
+        _objectActions.remove(actionID);
     }
-
-    const btTransform& worldTrans = body->getCenterOfMassTransform();
-    positionReturn = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
-    rotationReturn = bulletToGLM(worldTrans.getRotation());
-
-    return true;
 }

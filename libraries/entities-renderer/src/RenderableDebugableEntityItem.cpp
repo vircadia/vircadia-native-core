@@ -80,7 +80,8 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
             renderBoundingBox(entity, args, 0.3f, yellowColor);
         }
 
-        if (PhysicsEngine::physicsInfoIsActive(entity->getPhysicsInfo())) {
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
+        if (motionState && motionState->isActive()) {
             renderHoverDot(entity, args);
         }
     }
