@@ -13,6 +13,7 @@
 
 var isGrabbing = false;
 var grabbedEntity = null;
+var actionID = null;
 var prevMouse = {};
 var deltaMouse = {
   z: 0
@@ -88,6 +89,7 @@ function mousePressEvent(event) {
       gravity: {x: 0, y: 0, z: 0}
     });
 
+    Controller.mouseMoveEvent.connect(mouseMoveEvent);
   }
 }
 
@@ -110,7 +112,10 @@ function updateDropLine(position) {
 
 function mouseReleaseEvent() {
   if (isGrabbing) {
+    Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     isGrabbing = false;
+    Entities.deleteAction(grabbedEntity, actionID);
+    actionID = null;
 
     // only restore the original gravity if it's not zero.  This is to avoid...
     // 1. interface A grabs an entity and locally saves off its gravity
@@ -228,21 +233,25 @@ function update(deltaTime) {
     }
     if (shouldRotate) {
       angularVelocity = Vec3.subtract(angularVelocity, Vec3.multiply(angularVelocity, ANGULAR_DAMPING_RATE));
+      Entities.editEntity(grabbedEntity, {
+          rotation: currentRotation,
+          angularVelocity: angularVelocity
+      });
     } else {
       angularVelocity = entityProps.angularVelocity; 
     }
 
-    Entities.editEntity(grabbedEntity, {
-      position: currentPosition,
-      rotation: currentRotation,
-      velocity: newVelocity,
-      angularVelocity: angularVelocity
-    });
+    var newSpeed = Vec3.length(newVelocity);
+    if (!actionID) {
+        actionID = Entities.addAction("pull-to-point", grabbedEntity, {target: targetPosition, speed: newSpeed});
+    } else {
+        Entities.updateAction(grabbedEntity, actionID, {target: targetPosition, speed: newSpeed});
+    }
+
     updateDropLine(targetPosition);
   }
 }
 
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
