@@ -221,6 +221,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 _model->addToScene(scene, pendingChanges);
             }
             scene->enqueuePendingChanges(pendingChanges);
+
+            _model->setVisibleInScene(getVisible(), scene);
         }
 
 
