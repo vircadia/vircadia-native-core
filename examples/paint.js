@@ -188,15 +188,6 @@ function MousePaint() {
   Controller.mouseMoveEvent.connect(mouseMoveEvent);
   Script.scriptEnding.connect(cleanup);
 
-  function randFloat(low, high) {
-    return Math.floor(low + Math.random() * (high - low));
-  }
-
-
-  function randInt(low, high) {
-    return Math.floor(randFloat(low, high));
-  }
-
   Controller.keyPressEvent.connect(keyPressEvent);
 }
 
@@ -420,7 +411,6 @@ function HydraPaint() {
       Entities.editEntity(this.line, {
         linePoints: this.points,
         lineWidth: currentLineWidth,
-        color: this.rgbColor
       });
       if (this.points.length > MAX_POINTS_PER_LINE) {
         this.newLine(point);
@@ -463,16 +453,17 @@ function HydraPaint() {
   Script.scriptEnding.connect(scriptEnding);
   Controller.mousePressEvent.connect(mousePressEvent);
 
-  function map(value, min1, max1, min2, max2) {
-    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
-  }
+}
 
   function randFloat(low, high) {
-    return Math.floor(low + Math.random() * (high - low));
+    return low + Math.random() * ( high - low );
   }
 
 
   function randInt(low, high) {
     return Math.floor(randFloat(low, high));
   }
-}
+
+    function map(value, min1, max1, min2, max2) {
+    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+  }
