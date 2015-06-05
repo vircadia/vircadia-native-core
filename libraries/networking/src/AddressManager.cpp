@@ -123,6 +123,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
                                       + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())))) {
                 // we may have a path that defines a relative viewpoint - if so we should jump to that now
                 handlePath(lookupUrl.path());
+            } else if (handleDomainID(lookupUrl.host())){
+                // no place name - this is probably a domain ID
+                // try to look up the domain ID on the metaverse API
+                attemptDomainIDLookup(lookupUrl.host(), lookupUrl.path());
             } else {
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
@@ -165,7 +169,11 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
-    goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    if (!dataObject.isEmpty()){
+        goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    } else {
+        goToAddressFromObject(responseObject.toVariantMap(), requestReply);
+    }
 
     emit lookupResultsFinished();
 }
@@ -175,11 +183,14 @@ const char OVERRIDE_PATH_KEY[] = "override_path";
 void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply& reply) {
 
     const QString DATA_OBJECT_PLACE_KEY = "place";
+    const QString DATA_OBJECT_DOMAIN_KEY = "domain";
     const QString DATA_OBJECT_USER_LOCATION_KEY = "location";
 
     QVariantMap locationMap;
     if (dataObject.contains(DATA_OBJECT_PLACE_KEY)) {
         locationMap = dataObject[DATA_OBJECT_PLACE_KEY].toMap();
+    } else if (dataObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
+        locationMap = dataObject;
     } else {
         locationMap = dataObject[DATA_OBJECT_USER_LOCATION_KEY].toMap();
     }
@@ -304,6 +315,24 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
                                               QByteArray(), NULL, requestParams);
 }
 
+const QString GET_DOMAIN_ID = "/api/v1/domains/%1";
+
+void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QString& overridePath) {
+    // assume this is a domain ID and see if we can get any info on it
+    QString domainID = QUrl::toPercentEncoding(lookupString);
+
+    QVariantMap requestParams;
+    if (!overridePath.isEmpty()) {
+        requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
+    }
+
+    AccountManager::getInstance().sendRequest(GET_DOMAIN_ID.arg(domainID),
+                                                AccountManagerAuth::None,
+                                                QNetworkAccessManager::GetOperation,
+                                                apiCallbackParameters(),
+                                                QByteArray(), NULL, requestParams);
+}
+
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
         "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
@@ -335,11 +364,34 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
-            domainPort = (qint16) hostnameRegex.cap(2).toInt();
+            domainPort = (qint16)hostnameRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
         setDomainInfo(domainHostname, domainPort);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool AddressManager::handleDomainID(const QString& host) {
+    const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+    QRegExp domainIDRegex(UUID_REGEX_STRING, Qt::CaseInsensitive);
+
+    if (domainIDRegex.indexIn(host) != -1) {
+        QString domainID = domainIDRegex.cap(1);
+
+        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+
+        if (!domainIDRegex.cap(2).isEmpty()) {
+            domainPort = (qint16)domainIDRegex.cap(2).toInt();
+        }
+
+        emit lookupResultsFinished();
+        setDomainInfo(domainID, domainPort);
 
         return true;
     }

@@ -50,6 +50,7 @@ public:
     void setRootPlaceName(const QString& rootPlaceName);
 
     void attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath = QString());
+    void attemptDomainIDLookup(const QString& lookupString, const QString& overridePath = QString());
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -95,6 +96,7 @@ private:
     void handlePath(const QString& path);
     bool handleViewpoint(const QString& viewpointString, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
+    bool handleDomainID(const QString& host);
 
     QString _rootPlaceName;
     QUuid _rootPlaceID;
