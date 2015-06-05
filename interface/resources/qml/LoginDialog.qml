@@ -48,12 +48,15 @@ Dialog {
         property int maximumY: parent ? parent.height - height : 0
         property real tan30: 0.577  // tan(30°)
 
-        Image {
+        Rectangle {
             id: circularBackground
             visible: isCircular()
-            source: "../images/login-circle.svg"
             width: loginDialog.inputWidth * 1.2
             height: width
+            radius: width / 2
+
+            color: "#2c86b1"
+            opacity: 0.85
 
             Item {
                 // Approximage circle with 3 rectangles that together contain the circle in a hexagon.
@@ -119,12 +122,15 @@ Dialog {
             }
         }
 
-        Image {
+        Rectangle {
             id: rectangularBackground
             visible: !isCircular()
-            source: "../images/login-rectangle.svg"
             width: loginDialog.inputWidth + loginDialog.borderWidth * 2
             height: loginDialog.inputHeight * 6 + loginDialog.closeMargin * 2
+            radius: loginDialog.closeMargin * 2
+
+            color: "#2c86b1"
+            opacity: 0.85
 
             MouseArea {
                 width: parent.width
