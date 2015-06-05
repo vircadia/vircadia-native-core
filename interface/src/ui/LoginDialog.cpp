@@ -11,8 +11,9 @@
 
 #include "LoginDialog.h"
 
+#include <QDesktopServices>
+
 #include <NetworkingConstants.h>
-#include <QDesktopServices.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
