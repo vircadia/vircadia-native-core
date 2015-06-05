@@ -128,37 +128,45 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     return results;
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& properties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties properties) {
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
-        _entityTree->updateEntity(entityID, properties);
+        bool updatedEntity = _entityTree->updateEntity(entityID, properties);
         _entityTree->unlock();
-    }
 
-    // make sure the properties has a type, so that the encode can know which properties to include
-    if (properties.getType() == EntityTypes::Unknown) {
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-        if (entity) {
-            // we need to change the outgoing properties, so we make a copy, modify, and send.
-            EntityItemProperties modifiedProperties = properties;
-            entity->setLastBroadcast(usecTimestampNow());
-            modifiedProperties.setType(entity->getType());
-            if (modifiedProperties.hasTerseUpdateChanges()) {
-                // we make a bid for (or assert) our simulation ownership
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                modifiedProperties.setSimulatorID(myNodeID);
-
-                if (entity->getSimulatorID() == myNodeID) {
-                    // we think we already own simulation, so make sure we send ALL TerseUpdate properties
-                    entity->getAllTerseUpdateProperties(modifiedProperties);
+        if (updatedEntity) {
+            _entityTree->lockForRead();
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (entity) {
+                // make sure the properties has a type, so that the encode can know which properties to include
+                properties.setType(entity->getType());
+                if (properties.hasTerseUpdateChanges()) {
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    const QUuid myNodeID = nodeList->getSessionUUID();
+    
+                    if (entity->getSimulatorID() == myNodeID) {
+                        // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
+                        entity->getAllTerseUpdateProperties(properties);
+                        // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
+                        // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                        // and instead let the physics simulation decide when to send a terse update.  This would remove
+                        // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
+                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible 
+                        // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
+                        // simulation.
+                    }
+                    // we make a bid for (or assert existing) simulation ownership
+                    properties.setSimulatorID(myNodeID);
                 }
+                entity->setLastBroadcast(usecTimestampNow());
             }
-            queueEntityMessage(PacketTypeEntityEdit, entityID, modifiedProperties);
+            _entityTree->unlock();
+            queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
             return id;
         }
+        return QUuid();
     }
 
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
