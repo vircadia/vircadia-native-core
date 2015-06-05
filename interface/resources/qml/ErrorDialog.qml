@@ -17,8 +17,6 @@ Dialog {
     id: root
     HifiConstants { id: hifi }
 
-    property bool destroyOnInvisible: true
-
     Component.onCompleted: {
         enabled = true
     }
