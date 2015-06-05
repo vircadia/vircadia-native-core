@@ -33,49 +33,6 @@
 #include "Text3DOverlay.h"
 
 
-namespace render {
-    template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
-        if (overlay->is3D() && !static_cast<Base3DOverlay*>(overlay.get())->getDrawOnHUD()) {
-            if (static_cast<Base3DOverlay*>(overlay.get())->getDrawInFront()) {
-                return ItemKey::Builder().withTypeShape().withNoDepthSort().build();
-            } else {
-                return ItemKey::Builder::opaqueShape();
-            }
-        } else {
-            return ItemKey::Builder().withTypeShape().withViewSpace().build();
-        }
-    }
-    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
-        if (overlay->is3D()) {
-            return static_cast<Base3DOverlay*>(overlay.get())->getBounds();
-        } else {
-            QRect bounds = static_cast<Overlay2D*>(overlay.get())->getBounds();
-            return AABox(glm::vec3(bounds.x(), bounds.y(), 0.0f), glm::vec3(bounds.width(), bounds.height(), 0.1f));
-        }
-    }
-    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
-        if (args) {
-            args->_elementsTouched++;
-
-            glPushMatrix();
-            if (overlay->getAnchor() == Overlay::MY_AVATAR) {
-                MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-                glm::quat myAvatarRotation = avatar->getOrientation();
-                glm::vec3 myAvatarPosition = avatar->getPosition();
-                float angle = glm::degrees(glm::angle(myAvatarRotation));
-                glm::vec3 axis = glm::axis(myAvatarRotation);
-                float myAvatarScale = avatar->getScale();
-
-                glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
-            }
-            overlay->render(args);
-            glPopMatrix();
-        }
-    }
-}
-
 Overlays::Overlays() : _nextOverlayID(1) {
 }
 
@@ -118,6 +75,7 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
         render::PendingChanges pendingChanges;
 
         {
@@ -128,13 +86,12 @@ void Overlays::cleanupOverlaysToDelete() {
 
                 auto itemID = overlay->getRenderItemID();
                 if (itemID != render::Item::INVALID_ITEM_ID) {
-                    pendingChanges.removeItem(itemID);
+                    overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
             } while (!_overlaysToDelete.isEmpty());
         }
 
         if (pendingChanges._removedItems.size() > 0) {
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             scene->enqueuePendingChanges(pendingChanges);
         }
     }
@@ -216,13 +173,9 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
             _overlaysWorld[thisID] = overlayPointer;
 
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-            auto overlayPayload = new Overlay::Payload(overlayPointer);
-            auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
-            render::ItemID itemID = scene->allocateID();
-            overlay->setRenderItemID(itemID);
-
             render::PendingChanges pendingChanges;
-            pendingChanges.resetItem(itemID, overlayPayloadPointer);
+
+            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
 
             scene->enqueuePendingChanges(pendingChanges);
         }

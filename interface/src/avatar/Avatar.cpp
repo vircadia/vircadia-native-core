@@ -581,9 +581,11 @@ void Avatar::simulateAttachments(float deltaTime) {
 void Avatar::renderAttachments(RenderArgs* args) {
  //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
   //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+    /*
     foreach (Model* model, _attachmentModels) {
         model->render(args, 1.0f);
     }
+    */
 }
 
 void Avatar::updateJointMappings() {

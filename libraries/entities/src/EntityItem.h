@@ -157,8 +157,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) 
                                                 { return 0; }
 
-    virtual bool canRenderInScene() { return false; } // does your entity property render using Render Items and Payloads
-    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return true; } // we assume you're ready to add
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                             render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 

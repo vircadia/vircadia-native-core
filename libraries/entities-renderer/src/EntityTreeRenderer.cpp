@@ -493,45 +493,22 @@ void EntityTreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree && !_shuttingDown) {
         renderArgs->_renderer = this;
 
-        checkPendingAddToScene(renderArgs);
-
-        Model::startScene(renderArgs->_renderSide);
-
-        ViewFrustum* frustum = (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-            _viewState->getShadowViewFrustum() : _viewState->getCurrentViewFrustum();
-        
-        // Setup batch transform matrices
-        gpu::Batch batch; // FIX ME - this is very suspicious!
-        glm::mat4 projMat;
-        Transform viewMat;
-        frustum->evalProjectionMatrix(projMat);
-        frustum->evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-        
-        renderArgs->_batch = &batch; // FIX ME - this is very suspicious!
-
         _tree->lockForRead();
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
         _bestZone = NULL; // NOTE: Is this what we want?
         _bestZoneVolume = std::numeric_limits<float>::max();
+        
+        // FIX ME: right now the renderOperation does the following:
+        //   1) determining the best zone (not really rendering)
+        //   2) render the debug cell details
+        // we should clean this up
         _tree->recurseTreeWithOperation(renderOperation, renderArgs);
 
         applyZonePropertiesToScene(_bestZone);
 
-        // we must call endScene while we still have the tree locked so that no one deletes a model
-        // on us while rendering the scene    
-        Model::endScene(renderArgs);
         _tree->unlock();
         
-        // FIX ME - this is very suspicious!
-     //   glPushMatrix();
-     //   renderArgs->_context->render(batch);
-     //   glPopMatrix();
-
-        renderArgs->_batch = nullptr;
-         
         // stats...
         _meshesConsidered = renderArgs->_meshesConsidered;
         _meshesRendered = renderArgs->_meshesRendered;
@@ -713,39 +690,6 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                             }
                         }
                     }
-                }
-            }
-
-            // hack for models and other entities that don't yet play well with others. :(
-            if (!entityItem->canRenderInScene()) {
-                // render entityItem
-                AABox entityBox = entityItem->getAABox();
-            
-                // TODO: some entity types (like lights) might want to be rendered even
-                // when they are outside of the view frustum...
-                float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
-            
-                bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
-                if (!outOfView) {
-                    bool bigEnoughToRender = _viewState->shouldRenderMesh(entityBox.getLargestDimension(), distance);
-                
-                    if (bigEnoughToRender) {
-                        renderProxies(entityItem, args);
-                    
-                        Glower* glower = NULL;
-                        if (entityItem->getGlowLevel() > 0.0f) {
-                            glower = new Glower(args, entityItem->getGlowLevel());
-                        }
-                        entityItem->render(args);
-                        args->_itemsRendered++;
-                        if (glower) {
-                            delete glower;
-                        }
-                    } else {
-                        args->_itemsTooSmall++;
-                    }
-                } else {
-                    args->_itemsOutOfView++;
                 }
             }
         }
@@ -1093,34 +1037,14 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
     // here's where we add the entity payload to the scene
-    if (entity && entity->canRenderInScene()) {
-        if (entity->readyToAddToScene()) {
-            render::PendingChanges pendingChanges;
-            auto scene = _viewState->getMain3DScene();
-            if (entity->addToScene(entity, scene, pendingChanges)) {
-                _entitiesInScene.insert(entity);
-            }
-            scene->enqueuePendingChanges(pendingChanges);
-        } else {
-            if (!_pendingAddToScene.contains(entity)) {
-                _pendingAddToScene << entity;
-            }
-        }
+    render::PendingChanges pendingChanges;
+    auto scene = _viewState->getMain3DScene();
+    if (entity->addToScene(entity, scene, pendingChanges)) {
+        _entitiesInScene.insert(entity);
     }
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
-void EntityTreeRenderer::checkPendingAddToScene(RenderArgs* renderArgs) {
-    QSet<EntityItemPointer> addedToScene;
-    foreach (auto entity, _pendingAddToScene) {
-        if (entity->readyToAddToScene(renderArgs)) {
-            addEntityToScene(entity);
-            addedToScene << entity;
-        }
-    }
-    foreach (auto addedEntity, addedToScene) {
-        _pendingAddToScene.remove(addedEntity);
-    }
-}
 
 void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
     if (_tree && !_shuttingDown) {

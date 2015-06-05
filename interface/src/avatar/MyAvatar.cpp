@@ -1580,12 +1580,16 @@ void MyAvatar::renderAttachments(RenderArgs* args) {
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
  //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
   //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+    
+    // FIX ME - attachments need to be added to scene too...
+    /*
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
             _attachmentModels.at(i)->render(args, 1.0f);
         }
     }
+    */
 }
 
 //Renders sixense laser pointers for UI selection with controllers

@@ -23,7 +23,7 @@ public:
 
     void updateQuads(RenderArgs* args, bool textured);
 
-    SIMPLE_RENDERABLE()
+    SIMPLE_RENDERABLE();
 
 protected:
 

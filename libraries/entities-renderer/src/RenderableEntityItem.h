@@ -56,7 +56,6 @@ private:
 
 #define SIMPLE_RENDERABLE() \
 public: \
-    virtual bool canRenderInScene() { return true; } \
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { return _renderHelper.addToScene(self, scene, pendingChanges); } \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
 private: \

@@ -43,7 +43,6 @@ public:
                                                 
     virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
-    virtual bool canRenderInScene() { return true; }
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);

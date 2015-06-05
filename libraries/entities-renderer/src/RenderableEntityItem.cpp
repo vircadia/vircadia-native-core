@@ -32,9 +32,7 @@ namespace render {
         if (args) {
             args->_elementsTouched++;
             if (payload && payload->entity) {
-                if (payload->entity->getType() != EntityTypes::Model) {
-                    payload->entity->render(args);
-                }
+                payload->entity->render(args);
             }
         }
     }

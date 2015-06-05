@@ -66,8 +66,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glEnableVertexAttribArray),
     (&::gpu::GLBackend::do_glDisableVertexAttribArray),
-
+    
     (&::gpu::GLBackend::do_glColor4f),
+    (&::gpu::GLBackend::do_glLineWidth),
 };
 
 GLBackend::GLBackend() :
@@ -563,6 +564,18 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glLineWidth(GLfloat width) {
+    ADD_COMMAND_GL(glLineWidth);
+    
+    _params.push_back(width);
+    
+    DO_IT_NOW(_glLineWidth, 1);
+}
+void GLBackend::do_glLineWidth(Batch& batch, uint32 paramOffset) {
+    glLineWidth(batch._params[paramOffset]._float);
     (void) CHECK_GL_ERROR();
 }
 

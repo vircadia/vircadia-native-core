@@ -102,7 +102,8 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 updateGeometry();
                 
                 if (_model && _model->isActive()) {
-                    _model->renderInScene(getLocalRenderAlpha(), args);
+                    // FIX ME: this is no longer available... we need to switch to payloads
+                    //_model->renderInScene(getLocalRenderAlpha(), args);
                 }
                 break;
             }
