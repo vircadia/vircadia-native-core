@@ -13,7 +13,7 @@
 //
 Script.include('lineRider.js')
 var MAX_POINTS_PER_LINE = 30;
-var DRAWING_DISTANCE = 5;
+
 
 var colorPalette = [{
   red: 236,
@@ -69,6 +69,7 @@ function hydraCheck() {
 //************ Mouse Paint **************************
 
 function MousePaint() {
+  var DRAWING_DISTANCE = 2;
   var lines = [];
   var deletedLines = [];
   var isDrawing = false;
@@ -91,7 +92,7 @@ function MousePaint() {
   var points = [];
 
 
-  var BRUSH_SIZE = 0.08;
+  var BRUSH_SIZE = 0.02;
 
   var brush = Entities.addEntity({
     type: 'Sphere',
