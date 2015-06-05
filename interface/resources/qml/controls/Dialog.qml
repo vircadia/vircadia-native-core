@@ -15,7 +15,7 @@ import "../styles"
 Item {
     id: root
 
-    property int animationDuration: hifi.effects.fadeInDuration
+    property bool destroyOnInvisible: true
 
 
     // The UI enables an object, rather than manipulating its visibility, so that we can do animations in both directions.
@@ -32,7 +32,7 @@ Item {
     Behavior on opacity {
         // Animate opacity.
         NumberAnimation {
-            duration: animationDuration
+            duration: hifi.effects.fadeInDuration
             easing.type: Easing.OutCubic
         }
     }

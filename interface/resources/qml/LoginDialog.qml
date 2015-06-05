@@ -39,14 +39,14 @@ Dialog {
         implicitWidth: isCircular() ? circularBackground.width : rectangularBackground.width
         implicitHeight: isCircular() ? circularBackground.height : rectangularBackground.height
 
-        property int inputWidth: 500
-        property int inputHeight: 60
+        readonly property int inputWidth: 500
+        readonly property int inputHeight: 60
+        readonly property int borderWidth: 30
+        readonly property int closeMargin: 16
+        readonly property real tan30: 0.577  // tan(30°)
         property int inputSpacing: isCircular() ? 24 : 16
-        property int borderWidth: 30
-        property int closeMargin: 16
         property int maximumX: parent ? parent.width - width : 0
         property int maximumY: parent ? parent.height - height : 0
-        property real tan30: 0.577  // tan(30°)
 
         Rectangle {
             id: circularBackground
