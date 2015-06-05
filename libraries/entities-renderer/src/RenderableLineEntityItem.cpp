@@ -44,7 +44,10 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
           geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
             _pointsChanged = false;
         }
-        geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+        if (getLinePoints().size() > 1) {
+          geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+        }
+
     glPopMatrix();
     
     RenderableDebugableEntityItem::render(this, args);
