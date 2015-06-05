@@ -16,33 +16,40 @@
 
 ObjectActionPullToPoint::ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity) :
     ObjectAction(id, ownerEntity) {
+    #if WANT_DEBUG
     qDebug() << "ObjectActionPullToPoint::ObjectActionPullToPoint";
+    #endif
 }
 
 ObjectActionPullToPoint::~ObjectActionPullToPoint() {
+    #if WANT_DEBUG
     qDebug() << "ObjectActionPullToPoint::~ObjectActionPullToPoint";
+    #endif
 }
 
 void ObjectActionPullToPoint::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    glm::vec3 offset = _target - _ownerEntity->getPosition();
-
-    if (glm::length(offset) < IGNORE_POSITION_DELTA) {
-        offset = glm::vec3(0.0f, 0.0f, 0.0f);
+    if (!tryLockForRead()) {
+        // don't risk hanging the thread running the physics simulation
+        return;
     }
-
-    glm::vec3 newVelocity = glm::normalize(offset) * _speed;
-
     void* physicsInfo = _ownerEntity->getPhysicsInfo();
-    if (physicsInfo) {
+
+    if (_active && physicsInfo) {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (rigidBody) {
-            rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-            return;
+            glm::vec3 offset = _target - bulletToGLM(rigidBody->getCenterOfMassPosition());
+            float offsetLength = glm::length(offset);
+            if (offsetLength > IGNORE_POSITION_DELTA) {
+                glm::vec3 newVelocity = glm::normalize(offset) * _speed;
+                rigidBody->setLinearVelocity(glmToBullet(newVelocity));
+                rigidBody->activate(); // ??
+            } else {
+                rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
+            }
         }
     }
-
-    _ownerEntity->updateVelocity(newVelocity);
+    unlock();
 }
 
 
@@ -51,8 +58,11 @@ bool ObjectActionPullToPoint::updateArguments(QVariantMap arguments) {
     glm::vec3 target = EntityActionInterface::extractVec3Argument("pull-to-point action", arguments, "target", ok);
     float speed = EntityActionInterface::extractFloatArgument("pull-to-point action", arguments, "speed", ok);
     if (ok) {
+        lockForWrite();
         _target = target;
         _speed = speed;
+        _active = true;
+        unlock();
         return true;
     }
     return false;

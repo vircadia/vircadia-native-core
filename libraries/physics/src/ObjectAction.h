@@ -36,8 +36,14 @@ public:
 
 private:
     QUuid _id;
+    QReadWriteLock _lock;
 
 protected:
+    bool tryLockForRead() { return _lock.tryLockForRead(); }
+    void lockForWrite() { _lock.lockForWrite(); }
+    void unlock() { _lock.unlock(); }
+
+    bool _active;
     EntityItemPointer _ownerEntity;
 };
 

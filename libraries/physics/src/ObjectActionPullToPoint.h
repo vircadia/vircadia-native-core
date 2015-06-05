@@ -26,6 +26,7 @@ public:
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
 
 private:
+
     glm::vec3 _target;
     float _speed;
 };

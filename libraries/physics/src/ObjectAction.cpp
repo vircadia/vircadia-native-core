@@ -16,6 +16,7 @@
 ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     _id(id),
+    _active(false),
     _ownerEntity(ownerEntity) {
 }
 
