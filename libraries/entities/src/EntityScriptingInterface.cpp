@@ -487,7 +487,10 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
             }
-            return simulation->actionFactory(actionType, actionID, entity, arguments);
+            if (simulation->actionFactory(actionType, actionID, entity, arguments)) {
+                return true;
+            }
+            return false;
         });
     if (success) {
         return actionID;

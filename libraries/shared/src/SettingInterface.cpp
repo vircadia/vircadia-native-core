@@ -39,12 +39,12 @@ namespace Setting {
     void init() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
-        // set the associated application properties
-        applicationInfo.beginGroup("INFO");
-        QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
-        QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
-        QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+        // QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
+        // // set the associated application properties
+        // applicationInfo.beginGroup("INFO");
+        // QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
+        // QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
+        // QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
         
         // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
