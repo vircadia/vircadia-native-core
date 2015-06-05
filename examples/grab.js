@@ -88,8 +88,6 @@ function mousePressEvent(event) {
     Entities.editEntity(grabbedEntity, {
       gravity: {x: 0, y: 0, z: 0}
     });
-
-    Controller.mouseMoveEvent.connect(mouseMoveEvent);
   }
 }
 
@@ -112,7 +110,7 @@ function updateDropLine(position) {
 
 function mouseReleaseEvent() {
   if (isGrabbing) {
-    Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
+      // Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     isGrabbing = false;
     Entities.deleteAction(grabbedEntity, actionID);
     actionID = null;
@@ -254,6 +252,7 @@ function update(deltaTime) {
 
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.update.connect(update);
