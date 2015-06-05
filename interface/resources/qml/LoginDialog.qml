@@ -365,9 +365,10 @@ Dialog {
         }
     }
 
-    onEnabledChanged: {
-        if (enabled) {
-            username.forceActiveFocus();
+    onOpacityChanged: {
+        // Set focus once animation is completed so that focus is set at start-up when not logged in
+        if (opacity == 1.0) {
+            username.forceActiveFocus()
         }
     }
 
