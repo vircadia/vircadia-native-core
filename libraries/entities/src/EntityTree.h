@@ -64,7 +64,7 @@ public:
     virtual bool getWantSVOfileVersions() const { return true; }
     virtual PacketType expectedDataPacketType() const { return PacketTypeEntityData; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const 
-                    { return thisVersion >= VERSION_ENTITIES_SUPPORT_SPLIT_MTU; }  // we support all versions with split mtu
+                    { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
     virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
