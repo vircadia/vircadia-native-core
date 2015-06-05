@@ -171,23 +171,6 @@ void OctreeRenderer::render(RenderArgs* renderArgs) {
         _tree->recurseTreeWithOperation(renderOperation, renderArgs);
         _tree->unlock();
     }
-    _meshesConsidered = renderArgs->_meshesConsidered;
-    _meshesRendered = renderArgs->_meshesRendered;
-    _meshesOutOfView = renderArgs->_meshesOutOfView;
-    _meshesTooSmall = renderArgs->_meshesTooSmall;
-
-    _elementsTouched = renderArgs->_elementsTouched;
-    _itemsRendered = renderArgs->_itemsRendered;
-    _itemsOutOfView = renderArgs->_itemsOutOfView;
-    _itemsTooSmall = renderArgs->_itemsTooSmall;
-
-    _materialSwitches = renderArgs->_materialSwitches;
-    _trianglesRendered = renderArgs->_trianglesRendered;
-    _quadsRendered = renderArgs->_quadsRendered;
-
-    _translucentMeshPartsRendered = renderArgs->_translucentMeshPartsRendered;
-    _opaqueMeshPartsRendered = renderArgs->_opaqueMeshPartsRendered;
-
 }
 
 void OctreeRenderer::clear() { 

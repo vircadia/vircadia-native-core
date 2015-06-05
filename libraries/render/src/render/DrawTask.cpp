@@ -63,7 +63,10 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
+    auto renderDetails = renderContext->args->_details._item;
 
+    renderDetails->_considered += inItems.size();
+    
     // Culling / LOD
     for (auto id : inItems) {
         auto item = scene->getItem(id);
@@ -71,7 +74,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
         if (bound.isNull()) {
             outItems.push_back(id); // One more Item to render
-            args->_itemsRendered++;
             continue;
         }
 
@@ -80,17 +82,16 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         bool outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
         if (!outOfView) {
             bool bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
-            
             if (bigEnoughToRender) {
                 outItems.push_back(id); // One more Item to render
-                args->_itemsRendered++;
             } else {
-                args->_itemsTooSmall++;
+                renderDetails->_tooSmall++;
             }
         } else {
-            args->_itemsOutOfView++;
+            renderDetails->_outOfView++;
         }
     }
+    renderDetails->_rendered += outItems.size();
 }
 
 struct ItemBound {
@@ -227,6 +228,7 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     // render opaques
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
+    auto& renderDetails = renderContext->args->_details;
 
     ItemIDs inItems;
     inItems.reserve(items.size());
@@ -239,7 +241,9 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
     ItemIDs culledItems;
     if (renderContext->_cullOpaque) {
+        renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
         cullItems(sceneContext, renderContext, renderedItems, culledItems);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
         renderedItems = culledItems;
     }
 
@@ -290,6 +294,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     // render transparents
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
+    auto& renderDetails = renderContext->args->_details;
 
     ItemIDs inItems;
     inItems.reserve(items.size());
@@ -302,7 +307,9 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
 
     ItemIDs culledItems;
     if (renderContext->_cullTransparent) {
+        renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
         cullItems(sceneContext, renderContext, inItems, culledItems);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
         renderedItems = culledItems;
     }
 

@@ -969,6 +969,7 @@ void Application::paintGL() {
         OculusManager::endFrameTiming();
     }
     _frameCount++;
+    Stats::getInstance()->setRenderDetails(renderArgs._details);
 }
 
 void Application::runTests() {
@@ -3485,7 +3486,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _main3DScene->processPendingChangesQueue();
     }
 
-    // FOr now every frame pass the renderCOntext
+    // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
         render::RenderContext renderContext;
@@ -3522,7 +3523,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
         sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-
+        
     }
 
     
