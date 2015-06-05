@@ -61,6 +61,8 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
+    virtual int16_t computeCollisionGroup();
+
     friend class AvatarManager;
 
 protected:

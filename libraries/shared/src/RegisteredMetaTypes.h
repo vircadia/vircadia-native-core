@@ -78,15 +78,17 @@ enum ContactEventType {
 
 class Collision {
 public:
-    Collision() : type(CONTACT_EVENT_TYPE_START), idA(), idB(), contactPoint(0.0f), penetration(0.0f) { }
-    Collision(ContactEventType cType, const QUuid& cIdA, const QUuid& cIdB, const glm::vec3& cPoint, const glm::vec3& cPenetration)
-        :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration) { }
+    Collision() : type(CONTACT_EVENT_TYPE_START), idA(), idB(), contactPoint(0.0f), penetration(0.0f), velocityChange(0.0f) { }
+    Collision(ContactEventType cType, const QUuid& cIdA, const QUuid& cIdB, const glm::vec3& cPoint,
+              const glm::vec3& cPenetration, const glm::vec3& velocityChange)
+    :   type(cType), idA(cIdA), idB(cIdB), contactPoint(cPoint), penetration(cPenetration), velocityChange(velocityChange) { }
 
     ContactEventType type;
     QUuid idA;
     QUuid idB;
     glm::vec3 contactPoint;
     glm::vec3 penetration;
+    glm::vec3 velocityChange;
 };
 Q_DECLARE_METATYPE(Collision)
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision);

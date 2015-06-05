@@ -48,7 +48,9 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(Transform());
     
     batch._glLineWidth(getLineWidth());
-    DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+    if (getLinePoints().size() > 1) {
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+    }
     batch._glLineWidth(1.0f);
     
     RenderableDebugableEntityItem::render(this, args);

@@ -90,6 +90,7 @@ public:
 
     glm::vec3 getBodyLinearVelocity() const;
     glm::vec3 getBodyAngularVelocity() const;
+    virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual uint32_t getAndClearIncomingDirtyFlags() = 0;
 
@@ -122,6 +123,10 @@ public:
     virtual void bump() = 0;
 
     virtual QString getName() { return ""; }
+
+    virtual int16_t computeCollisionGroup() = 0;
+
+    bool isActive() const { return _body ? _body->isActive() : false; }
 
     friend class PhysicsEngine;
 
