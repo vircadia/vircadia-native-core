@@ -1000,13 +1000,12 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
     
     // here's where we remove the entity payload from the scene
-    auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
-    if (entity && _entitiesInScene.contains(entity)) {
+    if (_entitiesInScene.contains(entityID)) {
+        auto entity = _entitiesInScene.take(entityID);
         render::PendingChanges pendingChanges;
         auto scene = _viewState->getMain3DScene();
         entity->removeFromScene(entity, scene, pendingChanges);
         scene->enqueuePendingChanges(pendingChanges);
-        _entitiesInScene.remove(entity);
     }
 }
 
@@ -1021,7 +1020,7 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
     render::PendingChanges pendingChanges;
     auto scene = _viewState->getMain3DScene();
     if (entity->addToScene(entity, scene, pendingChanges)) {
-        _entitiesInScene.insert(entity);
+        _entitiesInScene.insert(entity->getEntityItemID(), entity);
     }
     scene->enqueuePendingChanges(pendingChanges);
 }

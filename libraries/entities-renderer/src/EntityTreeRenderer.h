@@ -188,7 +188,7 @@ private:
     float _previousStageHour;
     int _previousStageDay;
     
-    QSet<EntityItemPointer> _entitiesInScene;
+    QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
 };
 
 
