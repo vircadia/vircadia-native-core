@@ -30,7 +30,7 @@ namespace render {
     }
     template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
         if (args) {
-            if (payload && payload->entity) {
+            if (payload && payload->entity && payload->entity->getVisible()) {
                 payload->entity->render(args);
             }
         }

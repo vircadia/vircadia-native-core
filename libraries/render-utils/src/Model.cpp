@@ -78,6 +78,7 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
+    _isVisible(true),
     _url("http://invalid.com"),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -407,6 +408,7 @@ void Model::reset() {
     
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
+    _needsReload = true;
 }
 
 bool Model::updateGeometry() {
@@ -458,6 +460,7 @@ bool Model::updateGeometry() {
         _geometry = geometry;
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
+        _needsReload = true;
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -680,6 +683,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
+        _calculatedMeshPartOffet.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -688,9 +692,10 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
+                qint64 partOffset = 0;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
-                    
+
                     bool atLeastOnePointInBounds = false;
                     AABox thisPartBounds;
 
@@ -773,6 +778,11 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
+                    _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+
+                    partOffset += part.quadIndices.size() * sizeof(int);
+                    partOffset += part.triangleIndices.size() * sizeof(int);
+
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
@@ -823,6 +833,9 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
         return ItemKey::Builder::transparentShape();
     }
     
@@ -852,6 +865,9 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
         return ItemKey::Builder::opaqueShape();
     }
     
@@ -867,6 +883,18 @@ namespace render {
         if (args) {
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
         }
+    }
+}
+
+void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
+    if (_isVisible != newValue) {
+        _isVisible = newValue;
+
+        render::PendingChanges pendingChanges;
+        foreach (auto item, _renderItems.keys()) {
+            pendingChanges.resetItem(item, _renderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
     }
 }
 
@@ -891,7 +919,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderData = TransparentMeshPart::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems << item;
+        _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
     foreach (auto renderItem, _opaqueRenderItems) {
@@ -899,7 +927,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto renderData = OpaqueMeshPart::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems << item;
+        _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
     
@@ -914,7 +942,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         attachment->removeFromScene(scene, pendingChanges);
     }
 
-    foreach (auto item, _renderItems) {
+    foreach (auto item, _renderItems.keys()) {
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
@@ -1305,6 +1333,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
+    
+    _readyWhenAdded = false; // reset out render items.
+    _needsReload = true;
+    
     _url = url;
 
     // if so instructed, keep the current geometry until the new one is loaded 
@@ -1957,6 +1989,7 @@ void Model::applyNextGeometry() {
     _geometry = _nextGeometry;
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
+    _needsReload = false; // we are loaded now!
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2018,6 +2051,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (!_readyWhenAdded) {
         return; // bail asap
     }
+    
+    // we always need these properly calculated before we can render, this will likely already have been done
+    // since the engine will call our getPartBounds() before rendering us.
+    if (!_calculatedMeshPartBoxesValid) {
+        recalculateMeshBoxes(true);
+    }
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
@@ -2028,18 +2067,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         _transforms.push_back(Transform());
     }
 
-    //  _transforms[0] = _viewState->getViewTransform();
-    // args->_viewFrustum->evalViewTransform(_transforms[0]);
-
-    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    //  _transforms[0].setTranslation(_translation);
-
-    // batch.setViewTransform(_transforms[0]);
-
-
-  //  const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-  //  const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-  //  auto alphaThreshold = translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -2076,6 +2103,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
+        _needsReload = true;
         return; // FIXME!
     }
     
@@ -2199,19 +2227,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
-    // FIX ME This is very unefficient
-    qint64 offset = 0;
-    for (int j = 0; j < partIndex; j++) {
-        const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
-        const FBXMeshPart& part = mesh.parts.at(j);
-        if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
-            offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
-            continue;
-        }
-        
-        offset += part.quadIndices.size() * sizeof(int);
-        offset += part.triangleIndices.size() * sizeof(int);
-    }
+    qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
     
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
@@ -2401,6 +2417,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
             _readyWhenAdded = false; // in case any of our users are using scenes
+            _needsReload = true;
             continue;
         }
         

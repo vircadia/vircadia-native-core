@@ -30,6 +30,7 @@
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
 #include "PhysicsEntity.h"
+#include <render/Scene.h>
 #include <Transform.h>
 
 #include "AnimationHandle.h"
@@ -107,6 +108,9 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
+
+    void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    bool isVisible() const { return _isVisible; }
     
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
@@ -118,7 +122,7 @@ public:
     
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
@@ -334,6 +338,7 @@ private:
     
     QUrl _url;
     QUrl _collisionUrl;
+    bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;
@@ -367,6 +372,9 @@ private:
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffet;
+   
+    
     bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
@@ -528,8 +536,9 @@ private:
     
     QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
     QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
-    QSet<render::ItemID> _renderItems;
+    QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
+    bool _needsReload = true;
     
     
 private:
