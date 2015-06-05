@@ -90,6 +90,7 @@ public:
 
     glm::vec3 getBodyLinearVelocity() const;
     glm::vec3 getBodyAngularVelocity() const;
+    virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual uint32_t getAndClearIncomingDirtyFlags() = 0;
 
