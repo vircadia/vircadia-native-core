@@ -384,7 +384,7 @@ Dialog {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                enabled = false;
+                enabled = false
                 event.accepted = true
                 break
             case Qt.Key_Enter:
@@ -400,7 +400,7 @@ Dialog {
                         loginDialog.login(username.text, password.text)
                     }
                 }
-                break;
+                break
         }
     }
 }
