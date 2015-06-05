@@ -244,7 +244,6 @@ function HydraPaint() {
   var currentTime = 0;
 
 
-  var DISTANCE_FROM_HAND = 2;
   var minBrushSize = .02;
   var maxBrushSize = .04
 
@@ -268,8 +267,8 @@ function HydraPaint() {
 
   var STROKE_SMOOTH_FACTOR = 1;
 
-  var MIN_DRAW_DISTANCE = 1;
-  var MAX_DRAW_DISTANCE = 2;
+  var MIN_DRAW_DISTANCE = 0.2;
+  var MAX_DRAW_DISTANCE = 0.4;
 
   function controller(side, undoButton, redoButton, cycleColorButton, startRideButton) {
     this.triggerHeld = false;
