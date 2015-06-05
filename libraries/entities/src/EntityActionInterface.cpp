@@ -1,5 +1,5 @@
 //
-//  EntityItem.h
+//  EntityActionInterface.cpp
 //  libraries/entities/src
 //
 //  Created by Seth Alves on 2015-6-4

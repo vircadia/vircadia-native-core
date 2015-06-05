@@ -178,9 +178,7 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in meters
 
-    void setPosition(const glm::vec3& value) {
-        _position = value;
-    }
+    void setPosition(const glm::vec3& value) { _position = value; }
 
     glm::vec3 getCenter() const;
 
@@ -355,8 +353,8 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
-    bool updateAction(EntitySimulation* simulation, const QUuid actionID, QVariantMap arguments);
-    bool removeAction(EntitySimulation* simulation, const QUuid actionID);
+    bool updateAction(EntitySimulation* simulation, const QUuid& actionID, QVariantMap& arguments);
+    bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
     void clearActions(EntitySimulation* simulation);
 
 protected:

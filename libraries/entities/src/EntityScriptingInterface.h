@@ -155,7 +155,7 @@ signals:
     void clearingEntities();
 
 private:
-    bool actionWorker(QUuid entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
+    bool actionWorker(QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 

@@ -1,5 +1,5 @@
 //
-//  EntityItem.h
+//  EntityActionInterface.h
 //  libraries/entities/src
 //
 //  Created by Seth Alves on 2015-6-2
@@ -24,7 +24,7 @@ enum EntityActionType {
 
 
 class EntityActionInterface {
- public:
+public:
     EntityActionInterface() { }
     virtual ~EntityActionInterface() { }
     virtual const QUuid& getID() const = 0;
@@ -38,7 +38,7 @@ class EntityActionInterface {
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
 
- protected:
+protected:
 
     static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
     static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);

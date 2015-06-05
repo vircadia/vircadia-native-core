@@ -1351,7 +1351,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     return false;
 }
 
-bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid actionID, QVariantMap arguments) {
+bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, QVariantMap& arguments) {
     if (!_objectActions.contains(actionID)) {
         return false;
     }
@@ -1359,7 +1359,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid actionID
     return action->updateArguments(arguments);
 }
 
-bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
+bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         _objectActions.remove(actionID);

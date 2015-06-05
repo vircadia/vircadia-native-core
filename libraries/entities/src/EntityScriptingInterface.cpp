@@ -451,7 +451,7 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
 }
 
 
-bool EntityScriptingInterface::actionWorker(QUuid entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
+bool EntityScriptingInterface::actionWorker(QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
     if (!_entityTree) {
         return false;
     }
@@ -478,10 +478,9 @@ bool EntityScriptingInterface::actionWorker(QUuid entityID, std::function<bool(E
 }
 
 
-
 QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
     QUuid actionID = QUuid::createUuid();
-    bool success = actionWorker(entityID, [actionID, actionTypeString, entityID, arguments](EntitySimulation* simulation,
+    bool success = actionWorker(entityID, [&](EntitySimulation* simulation,
                                                                                             EntityItemPointer entity) {
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
@@ -500,14 +499,14 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
 
 
 bool EntityScriptingInterface::updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments) {
-    return actionWorker(entityID, [entityID, actionID,arguments](EntitySimulation* simulation, EntityItemPointer entity) {
+    return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->updateAction(simulation, actionID, arguments);
         });
 }
 
 
 bool EntityScriptingInterface::deleteAction(QUuid entityID, QUuid actionID) {
-    return actionWorker(entityID, [entityID, actionID](EntitySimulation* simulation, EntityItemPointer entity) {
+    return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->removeAction(simulation, actionID);
         });
 }
