@@ -44,7 +44,6 @@ PhysicsEngine::~PhysicsEngine() {
     if (_characterController) {
         _characterController->setDynamicsWorld(nullptr);
     }
-    // TODO: delete engine components... if we ever plan to create more than one instance
     delete _collisionConfig;
     delete _collisionDispatcher;
     delete _broadphaseFilter;
@@ -168,11 +167,11 @@ void PhysicsEngine::deleteObjects(VectorOfMotionStates& objects) {
     }
 }
 
-// Same as above, but takes a Set instead of a Vector and ommits some cleanup operations.  Only called during teardown.
+// Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
 void PhysicsEngine::deleteObjects(SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        _dynamicsWorld->removeRigidBody(body);
+        removeObject(object);
     
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
@@ -436,4 +435,29 @@ void PhysicsEngine::setCharacterController(DynamicCharacterController* character
 int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
     const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
     return mask ? *mask : COLLISION_MASK_DEFAULT;
+}
+
+void PhysicsEngine::addAction(EntityActionPointer action) {
+    assert(action);
+    const QUuid& actionID = action->getID();
+    if (_objectActions.contains(actionID)) {
+        assert(_objectActions[actionID] == action);
+        return;
+    }
+
+    _objectActions[actionID] = action;
+
+    // bullet needs a pointer to the action, but it doesn't use shared pointers.
+    // is there a way to bump the reference count?
+    ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
+    _dynamicsWorld->addAction(objectAction);
+}
+
+void PhysicsEngine::removeAction(const QUuid actionID) {
+    if (_objectActions.contains(actionID)) {
+        EntityActionPointer action = _objectActions[actionID];
+        ObjectAction* objectAction = static_cast<ObjectAction*>(action.get());
+        _dynamicsWorld->removeAction(objectAction);
+        _objectActions.remove(actionID);
+    }
 }

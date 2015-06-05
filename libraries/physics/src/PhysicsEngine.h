@@ -24,6 +24,7 @@
 #include "DynamicCharacterController.h"
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
+#include "ObjectAction.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
@@ -93,6 +94,9 @@ public:
 
     int16_t getCollisionMask(int16_t group) const;
 
+    void addAction(EntityActionPointer action);
+    void removeAction(const QUuid actionID);
+
 private:
     void removeContacts(ObjectMotionState* motionState);
 
@@ -120,6 +124,9 @@ private:
 
     QUuid _sessionID;
     CollisionEvents _collisionEvents;
+
+    QHash<QUuid, EntityActionPointer> _objectActions;
+
     btHashMap<btHashInt, int16_t> _collisionMasks;
 };
 

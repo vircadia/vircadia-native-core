@@ -2458,8 +2458,9 @@ void Application::update(float deltaTime) {
 
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
-    
-    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime); //loop through all the other avatars and simulate them...
+
+    //loop through all the other avatars and simulate them...
+    DependencyManager::get<AvatarManager>()->updateOtherAvatars(deltaTime);
 
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -2473,6 +2474,7 @@ void Application::update(float deltaTime) {
         _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.applyActionChanges();
         _entitySimulation.unlock();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
@@ -2495,7 +2497,8 @@ void Application::update(float deltaTime) {
 
             if (!_aboutToQuit) {
                 PerformanceTimer perfTimer("entities");
-                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk deadlock.)
+                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                // deadlock.)
                 _entitySimulation.handleCollisionEvents(collisionEvents);
                 // NOTE: the _entities.update() call below will wait for lock
                 // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
@@ -2508,11 +2511,12 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
-    
+
     {
         PerformanceTimer perfTimer("myAvatar");
         updateMyAvatarLookAtPosition();
-        DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+        // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+        DependencyManager::get<AvatarManager>()->updateMyAvatar(deltaTime);
     }
 
     {
