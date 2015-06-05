@@ -260,7 +260,7 @@ Dialog {
                 verticalAlignment: Text.AlignVCenter
 
                 text: loginDialog.statusText
-                color: "black"
+                color: "white"
             }
 
             Rectangle {
