@@ -165,13 +165,16 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     }
 }
 
+const QString DATA_OBJECT_DOMAIN_KEY = "domain";
+
+
 void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
-    if (!dataObject.isEmpty()){
+    if (!dataObject.isEmpty()) {
         goToAddressFromObject(dataObject.toVariantMap(), requestReply);
-    } else {
+    } else if (responseObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
         goToAddressFromObject(responseObject.toVariantMap(), requestReply);
     }
 
@@ -183,7 +186,6 @@ const char OVERRIDE_PATH_KEY[] = "override_path";
 void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply& reply) {
 
     const QString DATA_OBJECT_PLACE_KEY = "place";
-    const QString DATA_OBJECT_DOMAIN_KEY = "domain";
     const QString DATA_OBJECT_USER_LOCATION_KEY = "location";
 
     QVariantMap locationMap;
