@@ -308,22 +308,17 @@ public:
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    void updatePositionInDomainUnits(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
-    void updateDimensionsInDomainUnits(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
-    void updateVelocityInDomainUnits(const glm::vec3& value);
     void updateVelocity(const glm::vec3& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
-    void updateGravityInDomainUnits(const glm::vec3& value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
-    void updateAngularVelocityInDegrees(const glm::vec3& value) { updateAngularVelocity(glm::radians(value)); }
     void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
