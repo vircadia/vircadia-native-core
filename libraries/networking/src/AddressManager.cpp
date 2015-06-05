@@ -30,7 +30,7 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
 AddressManager::AddressManager() :
-    _rootPlaceName(),
+    _host(),
     _rootPlaceID(),
     _positionGetter(NULL),
     _orientationGetter(NULL)
@@ -45,7 +45,7 @@ const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_rootPlaceName);
+    hifiURL.setHost(_host);
     hifiURL.setPath(currentPath());
 
     return hifiURL;
@@ -123,6 +123,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
                                       + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())))) {
                 // we may have a path that defines a relative viewpoint - if so we should jump to that now
                 handlePath(lookupUrl.path());
+            } else if (handleDomainID(lookupUrl.host())){
+                // no place name - this is probably a domain ID
+                // try to look up the domain ID on the metaverse API
+                attemptDomainIDLookup(lookupUrl.host(), lookupUrl.path());
             } else {
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
@@ -161,11 +165,18 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     }
 }
 
+const QString DATA_OBJECT_DOMAIN_KEY = "domain";
+
+
 void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
-    goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    if (!dataObject.isEmpty()) {
+        goToAddressFromObject(dataObject.toVariantMap(), requestReply);
+    } else if (responseObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
+        goToAddressFromObject(responseObject.toVariantMap(), requestReply);
+    }
 
     emit lookupResultsFinished();
 }
@@ -180,6 +191,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
     QVariantMap locationMap;
     if (dataObject.contains(DATA_OBJECT_PLACE_KEY)) {
         locationMap = dataObject[DATA_OBJECT_PLACE_KEY].toMap();
+    } else if (dataObject.contains(DATA_OBJECT_DOMAIN_KEY)) {
+        locationMap = dataObject;
     } else {
         locationMap = dataObject[DATA_OBJECT_USER_LOCATION_KEY].toMap();
     }
@@ -206,6 +219,10 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
+                const QString DOMAIN_ID_KEY = "id";
+                QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
+                QUuid domainID(domainIDString);
+
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
 
@@ -219,10 +236,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    const QString DOMAIN_ID_KEY = "id";
-                    QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
-                    QUuid domainID(domainIDString);
-
                     qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
@@ -235,8 +248,12 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
-                QString newRootPlaceName = rootMap[PLACE_NAME_KEY].toString();
-                setRootPlaceName(newRootPlaceName);
+                QString placeName = rootMap[PLACE_NAME_KEY].toString();
+                if (!placeName.isEmpty()) {
+                    setHost(placeName);
+                } else {
+                    setHost(domainIDString);
+                }
 
                 // check if we had a path to override the path returned
                 QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
@@ -304,6 +321,24 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
                                               QByteArray(), NULL, requestParams);
 }
 
+const QString GET_DOMAIN_ID = "/api/v1/domains/%1";
+
+void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QString& overridePath) {
+    // assume this is a domain ID and see if we can get any info on it
+    QString domainID = QUrl::toPercentEncoding(lookupString);
+
+    QVariantMap requestParams;
+    if (!overridePath.isEmpty()) {
+        requestParams.insert(OVERRIDE_PATH_KEY, overridePath);
+    }
+
+    AccountManager::getInstance().sendRequest(GET_DOMAIN_ID.arg(domainID),
+                                                AccountManagerAuth::None,
+                                                QNetworkAccessManager::GetOperation,
+                                                apiCallbackParameters(),
+                                                QByteArray(), NULL, requestParams);
+}
+
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
         "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
@@ -335,7 +370,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
-            domainPort = (qint16) hostnameRegex.cap(2).toInt();
+            domainPort = (qint16)hostnameRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
@@ -345,6 +380,14 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     }
 
     return false;
+}
+
+bool AddressManager::handleDomainID(const QString& host) {
+    const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+    QRegExp domainIDRegex(UUID_REGEX_STRING, Qt::CaseInsensitive);
+
+    return (domainIDRegex.indexIn(host) != -1);
 }
 
 void AddressManager::handlePath(const QString& path) {
@@ -422,16 +465,16 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::setRootPlaceName(const QString& rootPlaceName) {
-    if (rootPlaceName != _rootPlaceName) {
-        _rootPlaceName = rootPlaceName;
-        emit rootPlaceNameChanged(_rootPlaceName);
+void AddressManager::setHost(const QString& host) {
+    if (host != _host) {
+        _host = host;
+        emit hostChanged(_host);
     }
 }
 
 
 void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
-    _rootPlaceName = hostname;
+    _host = hostname;
     _rootPlaceID = QUuid();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
