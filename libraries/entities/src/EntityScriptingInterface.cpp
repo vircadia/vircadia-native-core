@@ -450,7 +450,10 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
         });
 }
 
+
 QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
+    QUuid actionID = QUuid::createUuid();
+
     if (!_entityTree) {
         return QUuid();
     }
@@ -458,7 +461,6 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
     _entityTree->lockForWrite();
 
     EntitySimulation* simulation = _entityTree->getSimulation();
-    QUuid actionID = QUuid::createUuid();
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
         qDebug() << "addAction -- unknown entity" << entityID;
@@ -486,4 +488,59 @@ QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entity
         return actionID;
     }
     return QUuid();
+}
+
+
+bool EntityScriptingInterface::updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments) {
+    if (!_entityTree) {
+        return false;
+    }
+
+    _entityTree->lockForWrite();
+
+    EntitySimulation* simulation = _entityTree->getSimulation();
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qDebug() << "updateAction -- unknown entity" << entityID;
+        _entityTree->unlock();
+        return false;
+    }
+
+    if (!simulation) {
+        qDebug() << "updateAction -- no simulation" << entityID;
+        _entityTree->unlock();
+        return false;
+    }
+
+    bool result = entity->updateAction(simulation, actionID, arguments);
+    _entityTree->unlock();
+    return result;
+}
+
+
+bool EntityScriptingInterface::deleteAction(QUuid entityID, QUuid actionID) {
+    if (!_entityTree) {
+        return false;
+    }
+
+    _entityTree->lockForWrite();
+
+    EntitySimulation* simulation = _entityTree->getSimulation();
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        qDebug() << "updateAction -- unknown entity" << entityID;
+        _entityTree->unlock();
+        return false;
+    }
+
+    if (!simulation) {
+        qDebug() << "updateAction -- no simulation" << entityID;
+        _entityTree->unlock();
+        return false;
+    }
+
+    bool result = entity->removeAction(simulation, actionID);
+
+    _entityTree->unlock();
+    return result;
 }

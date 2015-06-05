@@ -28,9 +28,10 @@ public:
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
+    virtual bool updateArguments(QVariantMap arguments) { return false; }
 
+    // these are from btActionInterface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
-
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 
 private:

@@ -1351,13 +1351,23 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     return false;
 }
 
-void EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
+bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid actionID, QVariantMap arguments) {
+    if (!_objectActions.contains(actionID)) {
+        return false;
+    }
+    EntityActionPointer action = _objectActions[actionID];
+    return action->updateArguments(arguments);
+}
+
+bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid actionID) {
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
+        return true;
     }
+    return false;
 }
 
 void EntityItem::clearActions(EntitySimulation* simulation) {

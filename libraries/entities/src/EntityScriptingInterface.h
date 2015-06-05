@@ -125,6 +125,8 @@ public slots:
     Q_INVOKABLE void dumpTree() const;
 
     Q_INVOKABLE QUuid addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments);
+    Q_INVOKABLE bool updateAction(QUuid entityID, QUuid actionID, QVariantMap arguments);
+    Q_INVOKABLE bool deleteAction(QUuid entityID, QUuid actionID);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

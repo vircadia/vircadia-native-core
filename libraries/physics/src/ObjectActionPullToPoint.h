@@ -19,10 +19,11 @@
 
 class ObjectActionPullToPoint : public ObjectAction {
 public:
-    ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity, glm::vec3 target, float speed);
+    ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionPullToPoint();
 
-    void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
+    virtual bool updateArguments(QVariantMap arguments);
+    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
 
 private:
     glm::vec3 _target;

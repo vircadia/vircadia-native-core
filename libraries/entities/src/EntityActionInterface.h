@@ -31,11 +31,14 @@ class EntityActionInterface {
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
+    virtual bool updateArguments(QVariantMap arguments) = 0;
     // virtual QByteArray serialize() = 0;
     // static EntityActionPointer deserialize(EntityItemPointer ownerEntity, QByteArray data);
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
+
+ protected:
 
     static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
     static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);

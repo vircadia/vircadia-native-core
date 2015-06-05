@@ -354,8 +354,9 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    bool addAction(EntitySimulation* simulation, EntityActionPointer actionID);
-    void removeAction(EntitySimulation* simulation, const QUuid actionID);
+    bool addAction(EntitySimulation* simulation, EntityActionPointer action);
+    bool updateAction(EntitySimulation* simulation, const QUuid actionID, QVariantMap arguments);
+    bool removeAction(EntitySimulation* simulation, const QUuid actionID);
     void clearActions(EntitySimulation* simulation);
 
 protected:

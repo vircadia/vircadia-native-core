@@ -14,10 +14,8 @@
 
 #include "ObjectActionPullToPoint.h"
 
-ObjectActionPullToPoint::ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity, glm::vec3 target, float speed) :
-    ObjectAction(id, ownerEntity),
-    _target(target),
-    _speed(speed) {
+ObjectActionPullToPoint::ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity) :
+    ObjectAction(id, ownerEntity) {
     qDebug() << "ObjectActionPullToPoint::ObjectActionPullToPoint";
 }
 
@@ -45,4 +43,17 @@ void ObjectActionPullToPoint::updateAction(btCollisionWorld* collisionWorld, btS
     }
 
     _ownerEntity->updateVelocity(newVelocity);
+}
+
+
+bool ObjectActionPullToPoint::updateArguments(QVariantMap arguments) {
+    bool ok = true;
+    glm::vec3 target = EntityActionInterface::extractVec3Argument("pull-to-point action", arguments, "target", ok);
+    float speed = EntityActionInterface::extractFloatArgument("pull-to-point action", arguments, "speed", ok);
+    if (ok) {
+        _target = target;
+        _speed = speed;
+        return true;
+    }
+    return false;
 }

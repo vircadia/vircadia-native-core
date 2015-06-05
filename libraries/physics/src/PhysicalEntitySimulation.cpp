@@ -243,18 +243,17 @@ EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType typ
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_PULL_TO_POINT:
-            bool ok = true;
-            glm::vec3 target = EntityActionInterface::extractVec3Argument("pull-to-point action", arguments, "target", ok);
-            float speed = EntityActionInterface::extractFloatArgument("pull-to-point action", arguments, "speed", ok);
-            if (ok) {
-                action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity, target, speed);
-            }
+            action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity);
             break;
     }
 
-    if (action) {
+    bool ok = action->updateArguments(arguments);
+    if (ok) {
         ownerEntity->addAction(this, action);
+        return action;
     }
+
+    action = nullptr;
     return action;
 }
 
