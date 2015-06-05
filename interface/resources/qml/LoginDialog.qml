@@ -29,102 +29,23 @@ Dialog {
     property int maximumX: parent ? parent.width - width : 0
     property int maximumY: parent ? parent.height - height : 0
 
-    function isCircular() {
-        return loginDialog.dialogFormat == "circular"
-    }
-
     LoginDialog {
         id: loginDialog
 
-        implicitWidth: isCircular() ? circularBackground.width : rectangularBackground.width
-        implicitHeight: isCircular() ? circularBackground.height : rectangularBackground.height
+        implicitWidth: backgroundRectangle.width
+        implicitHeight: backgroundRectangle.height
 
         readonly property int inputWidth: 500
         readonly property int inputHeight: 60
         readonly property int borderWidth: 30
         readonly property int closeMargin: 16
         readonly property real tan30: 0.577  // tan(30°)
-        property int inputSpacing: isCircular() ? 24 : 16
+        readonly property int inputSpacing: 16
         property int maximumX: parent ? parent.width - width : 0
         property int maximumY: parent ? parent.height - height : 0
 
         Rectangle {
-            id: circularBackground
-            visible: isCircular()
-            width: loginDialog.inputWidth * 1.2
-            height: width
-            radius: width / 2
-
-            color: "#2c86b1"
-            opacity: 0.85
-
-            Item {
-                // Approximage circle with 3 rectangles that together contain the circle in a hexagon.
-                anchors.fill: parent
-
-                MouseArea {
-                    width: parent.width
-                    height: parent.width * loginDialog.tan30
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        verticalCenter: parent.verticalCenter
-                    }
-                    drag {
-                        target: root
-                        minimumX: -loginDialog.borderWidth
-                        minimumY: -loginDialog.borderWidth
-                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
-                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
-                    }
-                }
-
-                MouseArea {
-                    width: parent.width
-                    height: parent.width * loginDialog.tan30
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        verticalCenter: parent.verticalCenter
-                    }
-                    transform: Rotation {
-                        origin.x: width / 2
-                        origin.y: width * loginDialog.tan30 / 2
-                        angle: -60
-                    }
-                    drag {
-                        target: root
-                        minimumX: -loginDialog.borderWidth
-                        minimumY: -loginDialog.borderWidth
-                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
-                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
-                    }
-                }
-
-                MouseArea {
-                    width: parent.width
-                    height: parent.width * loginDialog.tan30
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        verticalCenter: parent.verticalCenter
-                    }
-                    transform: Rotation {
-                        origin.x: width / 2
-                        origin.y: width * loginDialog.tan30 / 2
-                        angle: 60
-                    }
-                    drag {
-                        target: root
-                        minimumX: -loginDialog.borderWidth
-                        minimumY: -loginDialog.borderWidth
-                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
-                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            id: rectangularBackground
-            visible: !isCircular()
+            id: backgroundRectangle
             width: loginDialog.inputWidth + loginDialog.borderWidth * 2
             height: loginDialog.inputHeight * 6 + loginDialog.closeMargin * 2
             radius: loginDialog.closeMargin * 2
@@ -151,13 +72,12 @@ Dialog {
 
         Image {
             id: closeIcon
-            visible: !isCircular()
             source: "../images/login-close.svg"
             width: 20
             height: 20
             anchors {
-                top: rectangularBackground.top
-                right: rectangularBackground.right
+                top: backgroundRectangle.top
+                right: backgroundRectangle.right
                 topMargin: loginDialog.closeMargin
                 rightMargin: loginDialog.closeMargin
             }
@@ -183,7 +103,7 @@ Dialog {
             Item {
                 // Offset content down a little
                 width: loginDialog.inputWidth
-                height: isCircular() ? loginDialog.inputHeight : loginDialog.closeMargin
+                height: loginDialog.closeMargin
             }
 
             Rectangle {
@@ -401,28 +321,6 @@ Dialog {
                             loginDialog.openUrl(loginDialog.rootUrl + "/signup")
                         }
                     }
-                }
-            }
-        }
-
-        Text {
-            id: closeText
-            visible: isCircular()
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                top: mainContent.bottom
-                topMargin: loginDialog.inputSpacing
-            }
-
-            text: "Close"
-            font.pixelSize: hifi.fonts.pixelSize * 0.8
-            color: "#175d74"
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: "PointingHandCursor"
-                onClicked: {
-                    root.enabled = false
                 }
             }
         }
