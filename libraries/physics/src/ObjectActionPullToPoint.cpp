@@ -43,7 +43,7 @@ void ObjectActionPullToPoint::updateAction(btCollisionWorld* collisionWorld, btS
             if (offsetLength > IGNORE_POSITION_DELTA) {
                 glm::vec3 newVelocity = glm::normalize(offset) * _speed;
                 rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-                rigidBody->activate(); // ??
+                rigidBody->activate();
             } else {
                 rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
             }

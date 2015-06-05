@@ -480,8 +480,7 @@ bool EntityScriptingInterface::actionWorker(QUuid& entityID, std::function<bool(
 
 QUuid EntityScriptingInterface::addAction(QString actionTypeString, QUuid entityID, QVariantMap arguments) {
     QUuid actionID = QUuid::createUuid();
-    bool success = actionWorker(entityID, [&](EntitySimulation* simulation,
-                                                                                            EntityItemPointer entity) {
+    bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
