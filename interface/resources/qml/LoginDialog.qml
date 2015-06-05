@@ -44,6 +44,9 @@ Dialog {
         property int inputSpacing: isCircular() ? 24 : 16
         property int borderWidth: 30
         property int closeMargin: 16
+        property int maximumX: parent ? parent.width - width : 0
+        property int maximumY: parent ? parent.height - height : 0
+        property real tan30: 0.577  // tan(30°)
 
         Image {
             id: circularBackground
@@ -51,6 +54,69 @@ Dialog {
             source: "../images/login-circle.svg"
             width: loginDialog.inputWidth * 1.2
             height: width
+
+            Item {
+                // Approximage circle with 3 rectangles that together contain the circle in a hexagon.
+                anchors.fill: parent
+
+                MouseArea {
+                    width: parent.width
+                    height: parent.width * loginDialog.tan30
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+                    drag {
+                        target: root
+                        minimumX: -loginDialog.borderWidth
+                        minimumY: -loginDialog.borderWidth
+                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
+                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
+                    }
+                }
+
+                MouseArea {
+                    width: parent.width
+                    height: parent.width * loginDialog.tan30
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+                    transform: Rotation {
+                        origin.x: width / 2
+                        origin.y: width * loginDialog.tan30 / 2
+                        angle: -60
+                    }
+                    drag {
+                        target: root
+                        minimumX: -loginDialog.borderWidth
+                        minimumY: -loginDialog.borderWidth
+                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
+                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
+                    }
+                }
+
+                MouseArea {
+                    width: parent.width
+                    height: parent.width * loginDialog.tan30
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+                    transform: Rotation {
+                        origin.x: width / 2
+                        origin.y: width * loginDialog.tan30 / 2
+                        angle: 60
+                    }
+                    drag {
+                        target: root
+                        minimumX: -loginDialog.borderWidth
+                        minimumY: -loginDialog.borderWidth
+                        maximumX: root.parent ? root.maximumX + loginDialog.borderWidth : 0
+                        maximumY: root.parent ? root.maximumY + loginDialog.borderWidth : 0
+                    }
+                }
+            }
         }
 
         Image {
@@ -59,6 +125,22 @@ Dialog {
             source: "../images/login-rectangle.svg"
             width: loginDialog.inputWidth + loginDialog.borderWidth * 2
             height: loginDialog.inputHeight * 6 + loginDialog.closeMargin * 2
+
+            MouseArea {
+                width: parent.width
+                height: parent.height
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    verticalCenter: parent.verticalCenter
+                }
+                drag {
+                    target: root
+                    minimumX: 0
+                    minimumY: 0
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY : 0
+                }
+            }
         }
 
         Image {
