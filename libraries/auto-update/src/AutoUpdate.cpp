@@ -26,6 +26,7 @@ AutoUpdate::AutoUpdate() {
     _operatingSystem = "ubuntu";
 #endif
     connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(checkVersionAndNotify()));
+    _builds = new QMap<int, QMap<QString, QString>>;
 }
 
 AutoUpdate::~AutoUpdate() {
@@ -114,17 +115,17 @@ void AutoUpdate::parseLatestVersionData() {
 
 void AutoUpdate::debugBuildData() {
     qDebug() << "[LEOTEST] We finished parsing the xml build data";
-    foreach (int key, _builds.keys()) {
+    foreach (int key, _builds->keys()) {
         qDebug() << "[LEOTEST] Build number: " << QString::number(key);
-        foreach (QString detailsKey, _builds[key].keys()) {
-            qDebug() << "[LEOTEST] Key: " << detailsKey << " Value: " << _builds[key][detailsKey];
-        }
+        //foreach (QString detailsKey, _builds[key].keys()) {
+        //    qDebug() << "[LEOTEST] Key: " << detailsKey << " Value: " << _builds[key][detailsKey];
+        //}
     }
 }
 
 void AutoUpdate::checkVersionAndNotify() {
     qDebug() << "[LEOTEST] We are checking and notifying for updates";
-    int latestVersionAvailable = _builds.lastKey();
+    int latestVersionAvailable = _builds->lastKey();
     if (QCoreApplication::applicationVersion() != "dev" &&
         QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
         emit newVersionIsAvailable();
@@ -145,5 +146,5 @@ void AutoUpdate::appendBuildData(int versionNumber, QString downloadURL, QString
     thisBuildDetails.insert("releaseTime", releaseTime);
     thisBuildDetails.insert("releaseNotes", releaseNotes);
     thisBuildDetails.insert("pullRequestNumber", pullRequestNumber);
-    _builds.insert(versionNumber, thisBuildDetails);
+    _builds->insert(versionNumber, thisBuildDetails);
 }

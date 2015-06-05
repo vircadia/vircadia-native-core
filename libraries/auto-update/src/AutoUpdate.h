@@ -43,13 +43,13 @@ public:
     ~AutoUpdate();
     
     void checkForUpdate();
-    QMap<int, QMap<QString, QString>> getBuildData() { return _builds; }
+    QMap<int, QMap<QString, QString>> &getBuildData() { return *_builds; }
     
 public slots:
     
 private:
     // Members
-    QMap<int, QMap<QString, QString>> _builds;
+    QMap<int, QMap<QString, QString>> *_builds;
     QString _operatingSystem;
     
     // Methods

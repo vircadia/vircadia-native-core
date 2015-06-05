@@ -105,6 +105,7 @@ private:
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<AvatarAppearanceDialog> _avatarAppearanceDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
+    QPointer<UpdateDialog> _updateDialog;
 };
 
 #endif // hifi_DialogsManager_h
