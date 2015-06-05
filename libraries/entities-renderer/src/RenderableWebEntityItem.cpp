@@ -169,7 +169,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(dims.x, dims.y));
     currentContext->makeCurrent(currentSurface);
 
-    Glower glow(0);
+    Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
     static const glm::vec2 texMin(0.0f);
