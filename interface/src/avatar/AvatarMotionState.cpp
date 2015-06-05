@@ -10,6 +10,7 @@
 //
 
 #include <PhysicsHelpers.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -149,6 +150,11 @@ QUuid AvatarMotionState::getSimulatorID() const {
 
 // virtual
 void AvatarMotionState::bump() {
+}
+
+// virtual 
+int16_t AvatarMotionState::computeCollisionGroup() {
+    return COLLISION_GROUP_OTHER_AVATAR;
 }
 
 // virtual 

@@ -26,8 +26,8 @@ EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     assert(getType() == EntityTypes::Line);
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
+    // glm::vec3 position = getPosition();
+    // glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
     glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
     glPushMatrix();
@@ -44,8 +44,11 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
           geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
             _pointsChanged = false;
         }
-        geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+        if (getLinePoints().size() > 1) {
+          geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+        }
+
     glPopMatrix();
-    
+
     RenderableDebugableEntityItem::render(this, args);
 };

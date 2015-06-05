@@ -24,9 +24,9 @@
 typedef QSet<EntityItemPointer> SetOfEntities;
 typedef QVector<EntityItemPointer> VectorOfEntities;
 
-// the EntitySimulation needs to know when these things change on an entity, 
+// the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
-const int DIRTY_SIMULATION_FLAGS = 
+const int DIRTY_SIMULATION_FLAGS =
         EntityItem::DIRTY_POSITION |
         EntityItem::DIRTY_ROTATION |
         EntityItem::DIRTY_LINEAR_VELOCITY |
@@ -55,6 +55,15 @@ public:
     void updateEntities();
 
     friend class EntityTree;
+
+    virtual EntityActionPointer actionFactory(EntityActionType type,
+                                                 QUuid id,
+                                                 EntityItemPointer ownerEntity,
+                                                 QVariantMap arguments) { return nullptr; }
+    virtual void addAction(EntityActionPointer action) { _actionsToAdd += action; }
+    virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
+    virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
+    virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }
 
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
@@ -112,8 +121,12 @@ protected:
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
 
-private:
+ private:
     void moveSimpleKinematics();
+
+ protected:
+    QList<EntityActionPointer> _actionsToAdd;
+    QList<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_EntitySimulation_h

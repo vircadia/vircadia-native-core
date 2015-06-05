@@ -28,7 +28,7 @@ public:
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables(uint32_t flags);
+    void updateServerPhysicsVariables();
     virtual void handleEasyChanges(uint32_t flags);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
@@ -64,6 +64,7 @@ public:
     virtual glm::vec3 getObjectLinearVelocity() const { return _entity->getVelocity(); }
     virtual glm::vec3 getObjectAngularVelocity() const { return _entity->getAngularVelocity(); }
     virtual glm::vec3 getObjectGravity() const { return _entity->getGravity(); }
+    virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
@@ -76,6 +77,8 @@ public:
     void measureBodyAcceleration();
 
     virtual QString getName();
+
+    virtual int16_t computeCollisionGroup();
 
     friend class PhysicalEntitySimulation;
 
@@ -101,6 +104,7 @@ protected:
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
+    float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
     bool _candidateForOwnership;

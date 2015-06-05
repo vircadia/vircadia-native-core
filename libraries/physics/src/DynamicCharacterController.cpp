@@ -3,6 +3,8 @@
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <LinearMath/btDefaultMotionState.h>
 
+#include <PhysicsCollisionGroups.h>
+
 #include "BulletUtil.h"
 #include "DynamicCharacterController.h"
 
@@ -154,7 +156,7 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScala
                 velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
             }
             _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
-        } 
+        }
     }
 }
 
@@ -267,7 +269,7 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         if (world && _rigidBody) {
             _dynamicsWorld = world;
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody);
+            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             //reset(_dynamicsWorld);
         }
