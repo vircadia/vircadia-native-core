@@ -13,7 +13,7 @@ import QtQuick 2.4
 import "controls"
 import "styles"
 
-Dialog {
+DialogContainer {
     id: root
     HifiConstants { id: hifi }
 
