@@ -1,5 +1,5 @@
 //
-//  Dialog.qml
+//  DialogCommon.qml
 //
 //  Created by David Rowe on 3 Jun 2015
 //  Copyright 2015 High Fidelity, Inc.
