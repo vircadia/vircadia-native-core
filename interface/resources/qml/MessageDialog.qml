@@ -5,7 +5,7 @@ import QtQuick.Dialogs 1.2
 import "controls"
 import "styles"
 
-DialogOld {
+VrDialog {
     id: root
     HifiConstants { id: hifi }
     property real spacing: hifi.layout.spacing

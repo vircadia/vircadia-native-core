@@ -4,7 +4,7 @@ import QtWebKit 3.0
 import "controls"
 import "styles"
 
-DialogOld {
+VrDialog {
     id: root
     HifiConstants { id: hifi }
     title: "Browser"

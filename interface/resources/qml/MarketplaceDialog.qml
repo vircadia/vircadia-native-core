@@ -5,7 +5,7 @@ import QtQuick.Controls.Styles 1.3
 import QtWebKit 3.0
 import "controls"
 
-DialogOld {
+VrDialog {
     title: "Test Dlg"
     id: testDialog
     objectName: "Browser"
