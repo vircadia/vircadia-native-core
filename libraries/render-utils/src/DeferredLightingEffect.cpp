@@ -219,6 +219,7 @@ void DeferredLightingEffect::render() {
 
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
+    // binding the first framebuffer
     auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFBO));
  
@@ -489,11 +490,20 @@ void DeferredLightingEffect::render() {
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+  //  glDisable(GL_FRAMEBUFFER_SRGB);
     
+    // End of the Lighting pass
+}
+
+void DeferredLightingEffect::copyBack(RenderArgs* args) {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    QSize framebufferSize = textureCache->getFrameBufferSize();
+
+    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+
     //freeFBO->release();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  //  glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     
@@ -516,6 +526,18 @@ void DeferredLightingEffect::render() {
     glPushMatrix();
     glLoadIdentity();
     
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_Y_INDEX = 1;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    const int VIEWPORT_HEIGHT_INDEX = 3;
+
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
+    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
+    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -531,12 +553,11 @@ void DeferredLightingEffect::render() {
     
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-    
-    // now render the objects we held back until after deferred lighting
-    foreach (PostLightingRenderable* renderable, _postLightingRenderables) {
-        renderable->renderPostLighting();
-    }
-    _postLightingRenderables.clear();
+}
+
+void DeferredLightingEffect::setupTransparent(RenderArgs* args) {
+    auto globalLight = _allocatedLights[_globalLights.front()];
+    args->_batch->setUniformBuffer(4, globalLight->getSchemaBuffer());
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {

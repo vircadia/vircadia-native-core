@@ -112,6 +112,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -2157,6 +2158,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
+
+    float shininess = 0;
+    if (translucent) {
+        shininess = material->getShininess();
+    }
 
     if (material == nullptr) {
     //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";

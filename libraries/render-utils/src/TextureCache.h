@@ -71,6 +71,8 @@ public:
     gpu::TexturePointer getPrimaryNormalTexture();
     gpu::TexturePointer getPrimarySpecularTexture();
 
+    gpu::FramebufferPointer getTransparentFramebuffer();
+
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     GLuint getPrimaryDepthTextureID();
     GLuint getPrimaryColorTextureID();
@@ -123,6 +125,8 @@ private:
     gpu::TexturePointer _primarySpecularTexture;
     gpu::FramebufferPointer _primaryFramebuffer;
     void createPrimaryFramebuffer();
+
+    gpu::FramebufferPointer _transparentFramebuffer;
 
     gpu::FramebufferPointer _secondaryFramebuffer;
     gpu::FramebufferPointer _tertiaryFramebuffer;

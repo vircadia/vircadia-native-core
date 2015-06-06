@@ -13,20 +13,14 @@
 
 #include <assert.h>
 
+#include "Batch.h"
+
 #include "Resource.h"
 #include "Texture.h"
 #include "Pipeline.h"
 #include "Framebuffer.h"
 
 namespace gpu {
-
-class GPUObject {
-public:
-    GPUObject() {}
-    virtual ~GPUObject() {}
-};
-
-class Batch;
 
 class Backend {
 public:
