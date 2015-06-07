@@ -24,26 +24,9 @@ class Camera;
 class PalmData;
 class Text3DOverlay;
 
-// Uncomment this to enable client side distortion.  NOT recommended since
-// the Oculus SDK will ideally provide the best practices for distortion in
-// in terms of performance and quality, and by using it we will get updated
-// best practices for free with new runtime releases.
-#define OVR_CLIENT_DISTORTION 1
-
-
-// Direct HMD mode is currently only supported on windows and some linux systems will
-// misbehave if we try to enable the Oculus SDK at all, so isolate support for Direct
-// mode only to windows for now
 #ifdef Q_OS_WIN
-// On Win32 platforms, enabling Direct HMD requires that the SDK be
-// initialized before the GL context is set up, but this breaks v-sync
-// for any application that has a Direct mode enable Rift connected
-// but is not rendering to it.  For the time being I'm setting this as
-// a macro enabled mechanism which changes where the SDK is initialized.
-// To enable Direct HMD mode, you can un-comment this, but with the
-// caveat that it will break v-sync in NON-VR mode if you have an Oculus
-// Rift connect and in Direct mode
-#define OVR_DIRECT_MODE 1
+struct SwapFramebufferWrapper;
+struct MirrorFramebufferWrapper;
 #endif
 
 
@@ -83,44 +66,7 @@ public:
 private:
     static void initSdk();
     static void shutdownSdk();
-#ifdef OVR_CLIENT_DISTORTION
-    static void generateDistortionMesh();
-    static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
-    struct DistortionVertex {
-        glm::vec2 pos;
-        glm::vec2 texR;
-        glm::vec2 texG;
-        glm::vec2 texB;
-        struct {
-            GLubyte r;
-            GLubyte g;
-            GLubyte b;
-            GLubyte a;
-        } color;
-    };
 
-    static ProgramObject _program;
-    //Uniforms
-    static int _textureLocation;
-    static int _eyeToSourceUVScaleLocation;
-    static int _eyeToSourceUVOffsetLocation;
-    static int _eyeRotationStartLocation;
-    static int _eyeRotationEndLocation;
-    //Attributes
-    static int _positionAttributeLocation;
-    static int _colorAttributeLocation;
-    static int _texCoord0AttributeLocation;
-    static int _texCoord1AttributeLocation;
-    static int _texCoord2AttributeLocation;
-    static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
-    static GLuint _vertices[ovrEye_Count];
-    static GLuint _indices[ovrEye_Count];
-    static GLsizei _meshSize[ovrEye_Count];
-    static ovrFrameTiming _hmdFrameTiming;
-    static bool _programInitialized;
-#endif
-
-    static ovrTexture _eyeTextures[ovrEye_Count];
     static bool _isConnected;
     static glm::vec3 _eyePositions[ovrEye_Count];
     static ovrHmd _ovrHmd;
@@ -128,6 +74,7 @@ private:
     static ovrVector3f _eyeOffset[ovrEye_Count];
     static glm::mat4 _eyeProjection[ovrEye_Count];
     static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
+    static ovrRecti _eyeViewports[ovrEye_Count];
     static ovrSizei _renderTargetSize;
     static unsigned int _frameIndex;
     static bool _frameTimingActive;
@@ -160,6 +107,13 @@ private:
     static float _offscreenRenderScale;
     static bool _eyePerFrameMode;
     static ovrEyeType _lastEyeRendered;
+#ifdef Q_OS_WIN
+    static SwapFramebufferWrapper* _swapFbo;
+    static MirrorFramebufferWrapper* _mirrorFbo;
+    static ovrLayerEyeFov _sceneLayer;
+#else
+    static ovrTexture _eyeTextures[ovrEye_Count];
+#endif
 };
 
 
