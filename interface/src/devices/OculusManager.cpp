@@ -270,7 +270,7 @@ void OculusManager::connect() {
         _sceneLayer.ColorTexture[1] = nullptr;
         _sceneLayer.Viewport[0].Pos = { 0, 0 };
         _sceneLayer.Viewport[0].Size = _recommendedTexSize;
-        _sceneLayer.Viewport[1].Pos = { _recommendedTexSize.x, 0 };
+        _sceneLayer.Viewport[1].Pos = { _recommendedTexSize.w, 0 };
         _sceneLayer.Viewport[1].Size = _recommendedTexSize;
         _sceneLayer.Header.Type = ovrLayerType_EyeFov;
         _sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
@@ -344,10 +344,10 @@ void OculusManager::disconnect() {
         }
 #endif
 
-    	if (_ovrHmd) {
+        if (_ovrHmd) {
             ovrHmd_Destroy(_ovrHmd);
             _ovrHmd = nullptr;
-    	}
+        }
         ovr_Shutdown();
     
         _isConnected = false;
@@ -586,9 +586,6 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     glm::vec3 trackerPosition;
     auto deviceSize = qApp->getDeviceSize();
 
-#ifndef Q_OS_WIN
-    ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
-#endif
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
     
@@ -604,7 +601,9 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     static ovrVector3f eyeOffsets[2] = { { 0, 0, 0 }, { 0, 0, 0 } };
     ovrPosef eyePoses[ovrEye_Count];
     ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyePoses, nullptr);
+#ifndef Q_OS_WIN
     ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
+#endif
     static ovrPosef eyeRenderPose[ovrEye_Count];
     //Render each eye into an fbo
     for_each_eye(_ovrHmd, [&](ovrEyeType eye){
@@ -652,7 +651,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         qApp->displaySide(*_camera, false, RenderArgs::MONO);
-        qApp->getApplicationOverlay().displayOve	rlayTextureHmd(*_camera);
+        qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
 
@@ -692,21 +691,10 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-    ovrLayerEyeFov sceneLayer;
-    sceneLayer.ColorTexture[0] = _swapFbo->color;
-    sceneLayer.ColorTexture[1] = nullptr;
-    
-    sceneLayer.Viewport[0].Pos = { 0, 0 };
-    sceneLayer.Viewport[0].Size = { _swapFbo->size.x / 2, _swapFbo->size.y };
-    sceneLayer.Viewport[1].Pos = { _swapFbo->size.x / 2, 0 };
-    sceneLayer.Viewport[1].Size = { _swapFbo->size.x / 2, _swapFbo->size.y };
-    sceneLayer.Header.Type = ovrLayerType_EyeFov;
-    sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
     for_each_eye([&](ovrEyeType eye) {
-        sceneLayer.Fov[eye] = _eyeFov[eye];
-        sceneLayer.RenderPose[eye] = eyeRenderPose[eye];
+        _sceneLayer.RenderPose[eye] = eyeRenderPose[eye];
     });
-    auto header = &sceneLayer.Header;
+    auto header = &_sceneLayer.Header;
     ovrResult res = ovrHmd_SubmitFrame(_ovrHmd, _frameIndex, nullptr, &header, 1);
     Q_ASSERT(OVR_SUCCESS(res));
     _swapFbo->Increment();
