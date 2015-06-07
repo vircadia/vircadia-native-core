@@ -1,3 +1,5 @@
+#ifdef Q_OS_WIN
+
 //
 //  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
@@ -320,3 +322,4 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
 }
+#endif

@@ -269,9 +269,9 @@ void OculusManager::connect() {
         _sceneLayer.ColorTexture[0] = _swapFbo->color;
         _sceneLayer.ColorTexture[1] = nullptr;
         _sceneLayer.Viewport[0].Pos = { 0, 0 };
-        _sceneLayer.Viewport[0].Size = { _swapFbo->size.x / 2, _swapFbo->size.y };
-        _sceneLayer.Viewport[1].Pos = { _swapFbo->size.x / 2, 0 };
-        _sceneLayer.Viewport[1].Size = { _swapFbo->size.x / 2, _swapFbo->size.y };
+        _sceneLayer.Viewport[0].Size = _recommendedTexSize;
+        _sceneLayer.Viewport[1].Pos = { _recommendedTexSize.x, 0 };
+        _sceneLayer.Viewport[1].Size = _recommendedTexSize;
         _sceneLayer.Header.Type = ovrLayerType_EyeFov;
         _sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
         for_each_eye([&](ovrEyeType eye) {
@@ -541,18 +541,6 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         timerActive = false;
     }
 #endif
-
-    ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
-    glm::vec3 trackerPosition = toGlm(ts.HeadPose.ThePose.Position);
-
-    if (_calibrationState != CALIBRATED) {
-        calibrate(trackerPosition, toGlm(ts.HeadPose.ThePose.Orientation));
-    }
-
-    trackerPosition = bodyOrientation * trackerPosition;
-    static ovrVector3f eyeOffsets[2] = { { 0, 0, 0 }, { 0, 0, 0 } };
-    ovrPosef eyePoses[ovrEye_Count];
-    ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyePoses, nullptr);
     
 #ifndef Q_OS_WIN
     // FIXME:  we need a better way of responding to the HSW.  In particular
@@ -570,6 +558,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         }
     }
 #endif
+    
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -592,12 +581,30 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
+  
+    glm::quat orientation;
+    glm::vec3 trackerPosition;
     auto deviceSize = qApp->getDeviceSize();
 
 #ifndef Q_OS_WIN
     ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
 #endif
+    ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
+    ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
+    
+    trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
 
+    if (_calibrationState != CALIBRATED) {
+        ovrQuatf ovrHeadOrientation = ts.HeadPose.ThePose.Orientation;
+        orientation = glm::quat(ovrHeadOrientation.w, ovrHeadOrientation.x, ovrHeadOrientation.y, ovrHeadOrientation.z);
+        calibrate(trackerPosition, orientation);
+    }
+
+    trackerPosition = bodyOrientation * trackerPosition;
+    static ovrVector3f eyeOffsets[2] = { { 0, 0, 0 }, { 0, 0, 0 } };
+    ovrPosef eyePoses[ovrEye_Count];
+    ovrHmd_GetEyePoses(_ovrHmd, _frameIndex, eyeOffsets, eyePoses, nullptr);
+    ovrHmd_BeginFrame(_ovrHmd, _frameIndex);
     static ovrPosef eyeRenderPose[ovrEye_Count];
     //Render each eye into an fbo
     for_each_eye(_ovrHmd, [&](ovrEyeType eye){
@@ -610,7 +617,11 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         _lastEyeRendered = _activeEye = eye;
         eyeRenderPose[eye] = eyePoses[eye];
         // Set the camera rotation for this eye
-        glm::quat orientation = toGlm(eyeRenderPose[eye].Orientation);
+        orientation.x = eyeRenderPose[eye].Orientation.x;
+        orientation.y = eyeRenderPose[eye].Orientation.y;
+        orientation.z = eyeRenderPose[eye].Orientation.z;
+        orientation.w = eyeRenderPose[eye].Orientation.w;
+
         // Update the application camera with the latest HMD position
         whichCamera.setHmdPosition(trackerPosition);
         whichCamera.setHmdRotation(orientation);
@@ -635,13 +646,17 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        const ovrRecti& vp = _eyeViewports[eye];
+        ovrRecti & vp = _eyeViewports[eye];
+        vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
+        vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         qApp->displaySide(*_camera, false, RenderArgs::MONO);
-        //qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
+        qApp->getApplicationOverlay().displayOve	rlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
+
+    glPopMatrix();
 
     gpu::FramebufferPointer finalFbo;
     //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
@@ -656,9 +671,9 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
 
+    // restore our normal viewport
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
 #ifdef Q_OS_WIN
     auto srcFboSize = finalFbo->getSize();
@@ -715,6 +730,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     glCanvas->swapBuffers();
 #endif
+    
 
     // restore our normal viewport
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
