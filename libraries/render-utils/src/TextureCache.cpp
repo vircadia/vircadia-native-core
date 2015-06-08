@@ -52,8 +52,6 @@ void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
         _primaryNormalTexture.reset();
         _primarySpecularTexture.reset();
 
-        _transparentFramebuffer.reset();
-
         _secondaryFramebuffer.reset();
 
         _tertiaryFramebuffer.reset();
@@ -264,14 +262,6 @@ void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool nor
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
     }
     batch._glDrawBuffers(bufferCount, buffers);
-}
-
-gpu::FramebufferPointer TextureCache::getTransparentFramebuffer() {
-    if (!_transparentFramebuffer) {
-        _transparentFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
-        _transparentFramebuffer->setDepthStencilBuffer(getPrimaryDepthTexture(), getPrimaryDepthTexture()->getTexelFormat());
-    }
-    return _transparentFramebuffer;
 }
 
 gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {
