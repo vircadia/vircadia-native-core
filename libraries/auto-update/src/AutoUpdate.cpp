@@ -140,11 +140,17 @@ void AutoUpdate::downloadUpdateVersion(int version) {
     emit newVersionIsDownloaded();
 }
 
-void AutoUpdate::appendBuildData(int versionNumber, QString downloadURL, QString releaseTime, QString releaseNotes, QString pullRequestNumber) {
+void AutoUpdate::appendBuildData(int versionNumber,
+                                 QString downloadURL,
+                                 QString releaseTime,
+                                 QString releaseNotes,
+                                 QString pullRequestNumber) {
+    
     QMap<QString, QString> thisBuildDetails;
     thisBuildDetails.insert("downloadUrl", downloadURL);
     thisBuildDetails.insert("releaseTime", releaseTime);
     thisBuildDetails.insert("releaseNotes", releaseNotes);
     thisBuildDetails.insert("pullRequestNumber", pullRequestNumber);
     _builds->insert(versionNumber, thisBuildDetails);
+    
 }

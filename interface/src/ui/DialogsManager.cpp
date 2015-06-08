@@ -52,13 +52,7 @@ void DialogsManager::showLoginDialog() {
 }
 
 void DialogsManager::showUpdateDialog() {
-    qDebug() << "[LEOTEST] We should be showing the update dialog";
-    if (!_updateDialog) {
-        _updateDialog = new UpdateDialog();
-        connect(_updateDialog, SIGNAL(closed()), _updateDialog, SLOT(deleteLater()));
-        _updateDialog->setUpdateAvailableDetails("");
-        _updateDialog->show();
-    }
+    UpdateDialog::show();
 }
 
 void DialogsManager::octreeStatsDetails() {

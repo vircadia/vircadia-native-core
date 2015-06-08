@@ -10,31 +10,29 @@
 #ifndef __hifi__UpdateDialog__
 #define __hifi__UpdateDialog__
 
+
+#include <QtCore/QCoreApplication>
 #include <OffscreenQmlDialog.h>
 
 class UpdateDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
     
-    Q_PROPERTY(QString updateAvailableDetails READ updateAvailableDetails WRITE setUpdateAvailableDetails NOTIFY updateAvailableDetailsChanged)
+    Q_PROPERTY(QString updateAvailableDetails READ updateAvailableDetails)
+    Q_PROPERTY(QString releaseNotes READ releaseNotes)
     
 public:
     UpdateDialog(QQuickItem* parent = nullptr);
     ~UpdateDialog();
-    
-    void displayDialog();
-    void setUpdateAvailableDetails(const QString& updateAvailableDetails);
     QString updateAvailableDetails() const;
-    
-signals:
-    void updateAvailableDetailsChanged();
+    QString releaseNotes() const;
     
 protected:
     void hide();
     
-    
 private:
     QString _updateAvailableDetails;
+    QString _releaseNotes;
 
 protected:
     Q_INVOKABLE void triggerBuildDownload(const int& buildNumber);

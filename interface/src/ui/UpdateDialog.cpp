@@ -13,28 +13,28 @@
 HIFI_QML_DEF(UpdateDialog)
 
 UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
-    
+    qDebug() << "[LEOTEST] We are creating the dialog";
+    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
+    int currentVersion = QCoreApplication::applicationVersion().toInt();
+    int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
+    int versionsBehind = latestVersion - currentVersion;
+    _updateAvailableDetails = "v." + QString::number(latestVersion) + " released on " + applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
+    _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " versions behind";
+    _releaseNotes = applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
+    qDebug() << "[LEOTEST] Release time " << applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
+    qDebug() << "[LEOTEST] Release notes: " << applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
 }
 
 UpdateDialog::~UpdateDialog() {
-}
 
-void UpdateDialog::displayDialog() {
-    setUpdateAvailableDetails("");
-    show();
-}
-
-void UpdateDialog::setUpdateAvailableDetails(const QString& updateAvailableDetails) {
-    if (updateAvailableDetails == "") {
-        auto applicationUpdater = DependencyManager::get<AutoUpdate>();
-        _updateAvailableDetails = "This is just a test " + QString::number(applicationUpdater.data()->getBuildData().lastKey());
-        qDebug() << "[LEOTEST] We are updating the text in the dialog";
-        emit updateAvailableDetailsChanged();
-    }
 }
 
 QString UpdateDialog::updateAvailableDetails() const {
     return _updateAvailableDetails;
+}
+
+QString UpdateDialog::releaseNotes() const {
+    return _releaseNotes;
 }
 
 void UpdateDialog::hide() {
