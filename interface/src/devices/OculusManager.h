@@ -20,7 +20,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+class QOpenGLContext;
 class Camera;
+class GlWindow;
 class PalmData;
 class Text3DOverlay;
 
@@ -35,7 +37,7 @@ class OculusManager {
 public:
     static void init();
     static void deinit();
-    static void connect();
+    static void connect(QOpenGLContext* shareContext);
     static void disconnect();
     static bool isConnected();
     static void recalibrate();
@@ -113,6 +115,7 @@ private:
     static ovrLayerEyeFov _sceneLayer;
 #else
     static ovrTexture _eyeTextures[ovrEye_Count];
+    static GlWindow* _outputWindow;
 #endif
 };
 

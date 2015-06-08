@@ -25,6 +25,7 @@
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
 #include <GlowEffect.h>
+#include <GlWindow.h>
 #include <gpu/GLBackend.h>
 #include <OglplusHelpers.h>
 #include <PathUtils.h>
@@ -177,6 +178,7 @@ ovrLayerEyeFov OculusManager::_sceneLayer;
 #else
 
 ovrTexture OculusManager::_eyeTextures[ovrEye_Count];
+GlWindow* OculusManager::_outputWindow{ nullptr };
 
 #endif
 
@@ -197,12 +199,12 @@ float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
-quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
+uint64_t OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
 float OculusManager::CALIBRATION_MESSAGE_DISTANCE = 2.5f;
 OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
-quint64 OculusManager::_calibrationStartTime;
+uint64_t OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = 0;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 // TODO expose this as a developer toggle
@@ -218,13 +220,15 @@ void OculusManager::init() {
 void OculusManager::deinit() {
 }
 
-void OculusManager::connect() {
+void OculusManager::connect(QOpenGLContext* shareContext) {
     qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;
 
     ovrInitParams initParams; memset(&initParams, 0, sizeof(initParams));
+
 #ifdef DEBUG
-    //initParams.Flags |= ovrInit_Debug;
+    initParams.Flags |= ovrInit_Debug;
 #endif
+
     ovr_Initialize(&initParams);
 
 #ifdef Q_OS_WIN
@@ -246,89 +250,97 @@ void OculusManager::connect() {
     }
 #endif
 
-    _isConnected = false;
-
-    // we're definitely not in "VR mode" so tell the menu that
-    Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
-
 #endif
+
+    if (!_ovrHmd) {
+        _isConnected = false;
+        // we're definitely not in "VR mode" so tell the menu that
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+        ovr_Shutdown();
+        return;
+    }
+
     _calibrationState = UNCALIBRATED;
-        if (!_isConnected) {
-            UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
-        }
-        _isConnected = true;
+    if (!_isConnected) {
+        UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
+    }
+    _isConnected = true;
 
-        for_each_eye([&](ovrEyeType eye) {
-            _eyeFov[eye] = _ovrHmd->DefaultEyeFov[eye];
-        });
+    for_each_eye([&](ovrEyeType eye) {
+        _eyeFov[eye] = _ovrHmd->DefaultEyeFov[eye];
+    });
 
-        _recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left, _eyeFov[ovrEye_Left], 1.0f);
-        _renderTargetSize = { _recommendedTexSize.w * 2, _recommendedTexSize.h };
+    _recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left, _eyeFov[ovrEye_Left], 1.0f);
+    _renderTargetSize = { _recommendedTexSize.w * 2, _recommendedTexSize.h };
 
 #ifdef Q_OS_WIN
 
-        _mirrorFbo = new MirrorFramebufferWrapper(_ovrHmd);
-        _swapFbo = new SwapFramebufferWrapper(_ovrHmd);
-        _swapFbo->Init(toGlm(_renderTargetSize));
-        _sceneLayer.ColorTexture[0] = _swapFbo->color;
-        _sceneLayer.ColorTexture[1] = nullptr;
-        _sceneLayer.Viewport[0].Pos = { 0, 0 };
-        _sceneLayer.Viewport[0].Size = _recommendedTexSize;
-        _sceneLayer.Viewport[1].Pos = { _recommendedTexSize.w, 0 };
-        _sceneLayer.Viewport[1].Size = _recommendedTexSize;
-        _sceneLayer.Header.Type = ovrLayerType_EyeFov;
-        _sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
-        for_each_eye([&](ovrEyeType eye) {
-            _eyeViewports[eye] = _sceneLayer.Viewport[eye];
-            _sceneLayer.Fov[eye] = _eyeFov[eye];
-        });
+    _mirrorFbo = new MirrorFramebufferWrapper(_ovrHmd);
+    _swapFbo = new SwapFramebufferWrapper(_ovrHmd);
+    _swapFbo->Init(toGlm(_renderTargetSize));
+    _sceneLayer.ColorTexture[0] = _swapFbo->color;
+    _sceneLayer.ColorTexture[1] = nullptr;
+    _sceneLayer.Viewport[0].Pos = { 0, 0 };
+    _sceneLayer.Viewport[0].Size = _recommendedTexSize;
+    _sceneLayer.Viewport[1].Pos = { _recommendedTexSize.w, 0 };
+    _sceneLayer.Viewport[1].Size = _recommendedTexSize;
+    _sceneLayer.Header.Type = ovrLayerType_EyeFov;
+    _sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
+    for_each_eye([&](ovrEyeType eye) {
+        _eyeViewports[eye] = _sceneLayer.Viewport[eye];
+        _sceneLayer.Fov[eye] = _eyeFov[eye];
+    });
+
+
 
 #else
-        ovrGLConfig cfg;
-        memset(&cfg, 0, sizeof(cfg));
-        cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
-        cfg.OGL.Header.BackBufferSize = _ovrHmd->Resolution;
-        cfg.OGL.Header.Multisample = 1;
+    _outputWindow = new GlWindow(shareContext);
+    _outputWindow->show();
+    _outputWindow->setFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    _outputWindow->resize(_ovrHmd->Resolution.w, _ovrHmd->Resolution.h);
+    //    _outputWindow->setPosition(_ovrHmd->Position.x, _ovrHmd->Position.y);
+    _outputWindow->makeCurrent();
 
-        int distortionCaps = 0
-            | ovrDistortionCap_Vignette
-            | ovrDistortionCap_Overdrive
-            | ovrDistortionCap_TimeWarp;
+    ovrGLConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
+    cfg.OGL.Header.BackBufferSize = _ovrHmd->Resolution;
+    cfg.OGL.Header.Multisample = 0;
 
-        int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
-            distortionCaps, _eyeFov, _eyeRenderDesc);
-        assert(configResult);
+    int distortionCaps = 0
+        | ovrDistortionCap_Vignette
+        | ovrDistortionCap_Overdrive
+        | ovrDistortionCap_TimeWarp;
+
+    int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
+        distortionCaps, _eyeFov, _eyeRenderDesc);
+    assert(configResult);
 
 
-        for_each_eye([&](ovrEyeType eye) {
-            //Get texture size
-            _eyeTextures[eye].Header.API = ovrRenderAPI_OpenGL;
-            _eyeTextures[eye].Header.TextureSize = _renderTargetSize;
-            _eyeTextures[eye].Header.RenderViewport.Pos = { 0, 0 };
-            _eyeTextures[eye].Header.RenderViewport.Size = _renderTargetSize;
-            _eyeTextures[eye].Header.RenderViewport.Size.w /= 2;
-        });
-        _eyeTextures[ovrEye_Right].Header.RenderViewport.Pos.x = _recommendedTexSize.w;
-        for_each_eye([&](ovrEyeType eye) {
-            _eyeViewports[eye] = _eyeTextures[eye].Header.RenderViewport;
-        });
+    for_each_eye([&](ovrEyeType eye) {
+        //Get texture size
+        _eyeTextures[eye].Header.API = ovrRenderAPI_OpenGL;
+        _eyeTextures[eye].Header.TextureSize = _renderTargetSize;
+        _eyeTextures[eye].Header.RenderViewport.Pos = { 0, 0 };
+        _eyeTextures[eye].Header.RenderViewport.Size = _renderTargetSize;
+        _eyeTextures[eye].Header.RenderViewport.Size.w /= 2;
+    });
+    _eyeTextures[ovrEye_Right].Header.RenderViewport.Pos.x = _recommendedTexSize.w;
+    for_each_eye([&](ovrEyeType eye) {
+        _eyeViewports[eye] = _eyeTextures[eye].Header.RenderViewport;
+    });
 #endif
 
-        ovrHmd_SetEnabledCaps(_ovrHmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+    ovrHmd_SetEnabledCaps(_ovrHmd,
+            ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
 
-        ovrHmd_ConfigureTracking(_ovrHmd, ovrTrackingCap_Orientation | ovrTrackingCap_Position |
-                                 ovrTrackingCap_MagYawCorrection,
-                                 ovrTrackingCap_Orientation);
+    ovrHmd_ConfigureTracking(_ovrHmd,
+            ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection,
+            ovrTrackingCap_Orientation);
 
-        if (!_camera) {
-            _camera = new Camera;
-            configureCamera(*_camera); // no need to use screen dimensions; they're ignored
-        }
-    } else {
-        _isConnected = false;
-        
-        // we're definitely not in "VR mode" so tell the menu that
-        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+    if (!_camera) {
+        _camera = new Camera;
+        configureCamera(*_camera); // no need to use screen dimensions; they're ignored
     }
 }
 
@@ -460,7 +472,6 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             break;
         default:
             break;
-            
     }
 }
 
@@ -713,19 +724,20 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         glEyeTexture.OGL.TexId = textureId;
     });
 
+    _outputWindow->makeCurrent();
     // restore our normal viewport
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
 
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    auto srcFboSize = finalFbo->getSize();
-//    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-//    glBlitFramebuffer(
-//                      0, 0, srcFboSize.x, srcFboSize.y,
-//                      0, 0, deviceSize.width(), deviceSize.height(),
-//                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
-//    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-//    glCanvas->swapBuffers();
+    //auto outputSize = _outputWindow->size();
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //auto srcFboSize = finalFbo->getSize();
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+    //glBlitFramebuffer(
+    //                  0, 0, srcFboSize.x, srcFboSize.y,
+    //                  0, 0, outputSize.width(), outputSize.height(),
+    //                  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    //glCanvas->swapBuffers();
 #endif
     
 

@@ -1860,8 +1860,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
             // for the sixense crash
             OculusManager::disconnect();
-            _glWidget->makeCurrent();
-            OculusManager::connect();
+            OculusManager::connect(_glWidget->context()->contextHandle());
         }
         OculusManager::recalibrate();
     } else {
