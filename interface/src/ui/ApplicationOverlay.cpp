@@ -277,9 +277,36 @@ void ApplicationOverlay::displayOverlayTexture() {
         static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
         static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
         with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+            DependencyManager::get<GeometryCache>()->renderQuad(
+                topLeft, bottomRight, 
+                texCoordTopLeft, texCoordBottomRight,
                 glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         });
+
+        if (!_crosshairTexture) {
+            _crosshairTexture = DependencyManager::get<TextureCache>()->
+                getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
+        }
+
+        //draw the mouse pointer
+        glm::vec2 canvasSize = qApp->getCanvasSize();
+        glm::vec2 mouseSize = 32.0f / canvasSize;
+        auto mouseTopLeft = topLeft * mouseSize;
+        auto mouseBottomRight = bottomRight * mouseSize;
+        vec2 mousePosition = vec2(qApp->getMouseX(), qApp->getMouseY());
+        mousePosition /= canvasSize;
+        mousePosition *= 2.0f;
+        mousePosition -= 1.0f;
+        mousePosition.y *= -1.0f;
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+        glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
+        DependencyManager::get<GeometryCache>()->renderQuad(
+            mouseTopLeft + mousePosition, mouseBottomRight + mousePosition, 
+            texCoordTopLeft, texCoordBottomRight,
+            reticleColor);
+        glDisable(GL_TEXTURE_2D);
     } glPopMatrix();
 }
 

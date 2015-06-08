@@ -515,6 +515,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
+    _glWidget->setCursor(Qt::BlankCursor);
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
@@ -1865,16 +1866,14 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
-        
+
         _mirrorCamera.setHmdPosition(glm::vec3());
         _mirrorCamera.setHmdRotation(glm::quat());
         _myCamera.setHmdPosition(glm::vec3());
         _myCamera.setHmdRotation(glm::quat());
     }
-    
+
     resizeGL();
-    
-    updateCursorVisibility();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -2384,19 +2383,8 @@ void Application::updateCursor(float deltaTime) {
     lastMousePos = QCursor::pos();
 }
 
-void Application::updateCursorVisibility() {
-    if (!_cursorVisible ||
-        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) ||
-        Menu::getInstance()->isOptionChecked(MenuOption::Enable3DTVMode)) {
-        _window->setCursor(Qt::BlankCursor);
-    } else {
-        _window->unsetCursor();
-    }
-}
-
 void Application::setCursorVisible(bool visible) {
     _cursorVisible = visible;
-    updateCursorVisibility();
 }
 
 void Application::update(float deltaTime) {
