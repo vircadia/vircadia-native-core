@@ -256,7 +256,6 @@ function mouseMoveEvent(event) {
         var axis = Vec3.cross(dragOffset, Quat.getFront(orientation));
         var axis = Vec3.normalize(axis);
         var ROTATE_STRENGTH = 8.0; // magic number tuned by hand
-        var angle = ROTATE_STRENGTH * Math.sqrt(dx * dx + dy * dy);
         gAngularVelocity = Vec3.multiply(ROTATE_STRENGTH, axis);
     } else {
         var newTargetPosition;
