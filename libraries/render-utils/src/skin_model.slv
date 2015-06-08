@@ -52,7 +52,7 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToWorldAndClipPos(cam, obj, gl_Vertex, interpolatedPosition, gl_Position)$>
+    <$transformModelToEyeAndClipPos(cam, obj, gl_Vertex, interpolatedPosition, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
 
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);

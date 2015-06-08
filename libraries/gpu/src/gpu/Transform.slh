@@ -86,7 +86,7 @@ TransformCamera getTransformCamera() {
     return camera;
 }
 
-uniform mat4 cameraTransform_viewInverse;
+uniform mat4 transformCamera_viewInverse;
 
 <@endif@>
 <@endfunc@>
@@ -146,7 +146,7 @@ uniform mat4 cameraTransform_viewInverse;
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
     }
 <@else@>
-    <$worldDir$> = vec3(cameraTransform_viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
+    <$worldDir$> = vec3(transformCamera_viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
 <@endif@>
 <@endfunc@>
 
