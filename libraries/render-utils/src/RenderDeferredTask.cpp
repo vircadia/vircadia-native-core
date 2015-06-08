@@ -86,25 +86,28 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
     // render transparents
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
-
-    ItemIDs inItems;
+    auto& renderDetails = renderContext->args->_details;
+    
+    ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         inItems.push_back(id);
     }
-    ItemIDs& renderedItems = inItems;
+    ItemIDsBounds& renderedItems = inItems;
 
     renderContext->_numFeedTransparentItems = renderedItems.size();
 
-    ItemIDs culledItems;
+    ItemIDsBounds culledItems;
     if (renderContext->_cullTransparent) {
+        renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
         cullItems(sceneContext, renderContext, inItems, culledItems);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
         renderedItems = culledItems;
     }
-
+    
     renderContext->_numDrawnTransparentItems = renderedItems.size();
 
-    ItemIDs sortedItems;
+    ItemIDsBounds sortedItems;
     if (renderContext->_sortTransparent) {
         depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
         renderedItems = sortedItems;
@@ -127,7 +130,6 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
         args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
-        const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
 
         {
