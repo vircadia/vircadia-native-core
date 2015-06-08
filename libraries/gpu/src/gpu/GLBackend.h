@@ -84,8 +84,8 @@ public:
         GLuint _shader;
         GLuint _program;
 
-        GLuint _transformCameraSlot = -1;
-        GLuint _transformObjectSlot = -1;
+        GLint _transformCameraSlot = -1;
+        GLint _transformObjectSlot = -1;
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
@@ -318,7 +318,7 @@ protected:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
-        GLuint _program_transformCamera_viewInverse = -1;
+        GLint _program_transformCamera_viewInverse = -1;
 #endif
 
         State::Data _stateCache;
