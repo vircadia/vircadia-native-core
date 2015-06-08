@@ -333,6 +333,17 @@ typedef Item::ID ItemID;
 typedef std::vector<ItemID> ItemIDs;
 typedef std::set<ItemID> ItemIDSet;
 
+class ItemIDAndBounds {
+public:
+    ItemIDAndBounds(ItemID id) : id(id) { }
+    ItemIDAndBounds(ItemID id, const AABox& bounds) : id(id), bounds(bounds) { }
+    
+    ItemID id;
+    AABox bounds;
+};
+
+typedef std::vector< ItemIDAndBounds > ItemIDsBounds;
+
 // A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly
 class ItemBucketMap : public std::map<ItemFilter, ItemIDSet, ItemFilter::Less> {
 public:

@@ -114,6 +114,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -139,7 +140,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA, // For transparent only, this keep the highlight intensity
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     // Good to go add the brand new pipeline
@@ -196,13 +197,17 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 #else
     locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
 #endif
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
     locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
+    
+
 
 }
 
@@ -2067,7 +2072,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-
     // render the part bounding box
     #ifdef DEBUG_BOUNDING_PARTS
     {
@@ -2089,6 +2093,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2133,6 +2138,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (vertexCount == 0) {
         // sanity check
         return; // FIXME!
+    }
+
+    // Transform stage
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
     }
     
     if (isSkinned) {
@@ -2244,6 +2254,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
                                         textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+            }
+            
+            if (translucent && locations->lightBufferUnit >= 0) {
+                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
         }
     }

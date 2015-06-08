@@ -84,8 +84,13 @@ public:
         GLuint _shader;
         GLuint _program;
 
-        GLuint _transformCameraSlot = -1;
-        GLuint _transformObjectSlot = -1;
+        GLint _transformCameraSlot = -1;
+        GLint _transformObjectSlot = -1;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        GLuint _transformCamera_viewInverse = -1;
+#endif
 
         GLShader();
         ~GLShader();
@@ -287,14 +292,18 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
-    // Pipeline Stage
-    void do_setPipeline(Batch& batch, uint32 paramOffset);
-
-    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
-
+    // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
- 
+    
+    struct UniformStageState {
+        
+    };
+    
+    // Pipeline Stage
+    void do_setPipeline(Batch& batch, uint32 paramOffset);
+    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
     // Force to reset all the state fields indicated by the 'toBeReset" signature
@@ -310,6 +319,11 @@ protected:
 
         GLuint _program;
         bool _invalidProgram;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        GLint _program_transformCamera_viewInverse = -1;
+#endif
 
         State::Data _stateCache;
         State::Signature _stateSignatureCache;

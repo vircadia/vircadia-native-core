@@ -374,6 +374,7 @@ private:
         int clusterMatrices;
         int clusterIndices;
         int clusterWeights;
+        int lightBufferUnit;
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes

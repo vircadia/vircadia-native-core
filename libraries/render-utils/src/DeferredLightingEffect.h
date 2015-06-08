@@ -23,7 +23,7 @@
 #include "model/Stage.h"
 
 class AbstractViewStateInterface;
-class PostLightingRenderable;
+class RenderArgs;
 
 /// Handles deferred lighting for the bits that require it (voxels...)
 class DeferredLightingEffect : public Dependency {
@@ -66,11 +66,11 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
-    /// Adds an object to render after performing the deferred lighting for the current frame (e.g., a translucent object).
-    void addPostLightingRenderable(PostLightingRenderable* renderable) { _postLightingRenderables.append(renderable); }
-    
     void prepare();
     void render();
+    void copyBack(RenderArgs* args);
+
+    void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);
@@ -153,19 +153,12 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-    QVector<PostLightingRenderable*> _postLightingRenderables;
     
     AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
-};
-
-/// Simple interface for objects that require something to be rendered after deferred lighting.
-class PostLightingRenderable {
-public:
-    virtual void renderPostLighting() = 0;
 };
 
 #endif // hifi_DeferredLightingEffect_h

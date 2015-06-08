@@ -3191,6 +3191,7 @@ namespace render {
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
         if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             PerformanceTimer perfTimer("worldBox");
+
             auto& batch = *args->_batch;
             DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
             renderWorldBox(batch);
