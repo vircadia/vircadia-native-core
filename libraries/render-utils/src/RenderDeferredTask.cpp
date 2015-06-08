@@ -35,6 +35,8 @@ template <> void render::jobRun(const RenderDeferred& job, const SceneContextPoi
 template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ResolveDeferred");
     DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
+    renderContext->args->_context->syncCache();
+
 }
 
 

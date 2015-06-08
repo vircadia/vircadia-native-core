@@ -969,6 +969,7 @@ void Application::paintGL() {
         OculusManager::endFrameTiming();
     }
     _frameCount++;
+    Stats::getInstance()->setRenderDetails(renderArgs._details);
 }
 
 void Application::runTests() {
@@ -3095,8 +3096,11 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         getApplicationOverlay().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        auto frustum = activeRenderingThread ? getDisplayViewFrustum() : getViewFrustum();
-        frustum->computePickRay(x, y, result.origin, result.direction);
+        if (QThread::currentThread() == activeRenderingThread) {
+            getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        } else {
+            getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        }
     }
     return result;
 }
@@ -3294,7 +3298,7 @@ namespace render {
             skybox = skyStage->getSkybox();
             if (skybox) {
                 gpu::Batch batch;
-                model::Skybox::render(batch, *(args->_viewFrustum), *skybox);
+                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
 
                 gpu::GLBackend::renderBatch(batch, true);
                 glUseProgram(0);
@@ -3486,7 +3490,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _main3DScene->processPendingChangesQueue();
     }
 
-    // FOr now every frame pass the renderCOntext
+    // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
         render::RenderContext renderContext;
@@ -3523,7 +3527,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
         sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-
+        
     }
 
     

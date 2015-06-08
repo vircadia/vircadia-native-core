@@ -93,6 +93,8 @@ Model::Model(QObject* parent) :
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
     }
+    
+    setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 }
 
 Model::~Model() {
@@ -409,7 +411,7 @@ void Model::reset() {
     
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
-    _needsReload = true;
+    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
@@ -461,7 +463,7 @@ bool Model::updateGeometry() {
         _geometry = geometry;
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
-        _needsReload = true;
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -848,7 +850,6 @@ namespace render {
     }
     template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
         }
     }
@@ -883,7 +884,6 @@ namespace render {
     }
     template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
         }
     }
@@ -1150,11 +1150,6 @@ bool Model::renderCore(RenderArgs* args, float alpha) {
     // restore all the default material settings
     _viewState->setupWorldLight();
     
-    if (args) {
-        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
-        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-    }
-    
     #ifdef WANT_DEBUG_MESHBOXES
     renderDebugMeshBoxes();
     #endif
@@ -1273,6 +1268,7 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
 
 /// Returns the world space equivalent of some box in model space.
 AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
+    
     return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
@@ -1610,6 +1606,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
+        // NOTE: this seems problematic... need to review
         _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
         _calculatedMeshTrianglesValid = false;
 
@@ -1998,6 +1995,7 @@ void Model::applyNextGeometry() {
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     _needsReload = false; // we are loaded now!
+    invalidCalculatedMeshBoxes();
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -2045,7 +2043,6 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     batch.setViewTransform(_transforms[0]);
 }
 
-
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
     if (!_calculatedMeshPartBoxesValid) {
         recalculateMeshBoxes(true);
@@ -2071,7 +2068,28 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-    auto alphaThreshold = args->_alphaThreshold;
+    // render the part bounding box
+    #ifdef DEBUG_BOUNDING_PARTS
+    {
+        glm::vec4 cubeColor(1.0f,0.0f,0.0f,1.0f);
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+
+        glm::mat4 translation = glm::translate(partBounds.calcCenter());
+        glm::mat4 scale = glm::scale(partBounds.getDimensions());
+        glm::mat4 modelToWorldMatrix = translation * scale;
+        batch.setModelTransform(modelToWorldMatrix);
+        //qDebug() << "partBounds:" << partBounds;
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif //def DEBUG_BOUNDING_PARTS
+
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
+
+    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2099,8 +2117,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                                 args, locations);
 
-
-    int meshPartsRendered = 0;
     updateVisibleJointStates();
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
@@ -2109,7 +2125,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
-        _needsReload = true;
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         return; // FIXME!
     }
     
@@ -2225,7 +2241,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
 
             if (args) {
-                args->_materialSwitches++;
+                args->_details._materialSwitches++;
             }
 
             // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
@@ -2235,15 +2251,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 float emissiveOffset = part.emissiveParams.x;
                 float emissiveScale = part.emissiveParams.y;
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
-
+                
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
-                                                textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
             }
         }
     }
-    
-    meshPartsRendered++;
     
     qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
     
@@ -2260,8 +2274,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         const int INDICES_PER_QUAD = 4;
-        args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-        args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+        args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+        args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
     }
 }
 
@@ -2435,7 +2449,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
             _readyWhenAdded = false; // in case any of our users are using scenes
-            _needsReload = true;
+            invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
             continue;
         }
         
@@ -2453,8 +2467,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         // if we got here, then check to see if this mesh is in view
         if (args) {
             bool shouldRender = true;
-            args->_meshesConsidered++;
-
             if (args->_viewFrustum) {
             
                 shouldRender = forceRenderMeshes || 
@@ -2464,17 +2476,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
-                    if (!shouldRender) {
-                        args->_meshesTooSmall++;
-                    }
-                } else {
-                    args->_meshesOutOfView++;
                 }
             }
 
-            if (shouldRender) {
-                args->_meshesRendered++;
-            } else {
+            if (!shouldRender) {
                 continue; // skip this mesh
             }
         }
@@ -2565,11 +2570,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
                                                     textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
-
-                    if (args) {
-                        args->_materialSwitches++;
-                    }
-
                 }
 
                 // HACK: For unkwon reason (yet!) this code that should be assigned only if the material changes need to be called for every
@@ -2600,12 +2600,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 
-            if (args) {
-                const int INDICES_PER_TRIANGLE = 3;
-                const int INDICES_PER_QUAD = 4;
-                args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
-            }
         }
     }
 

@@ -22,6 +22,46 @@ class Batch;
 class Context;
 }
 
+class RenderDetails {
+public:
+    enum Type {
+        OPAQUE_ITEM,
+        TRANSLUCENT_ITEM,
+        OTHER_ITEM
+    };
+    
+    struct Item {
+        int _considered = 0;
+        int _rendered = 0;
+        int _outOfView = 0;
+        int _tooSmall = 0;
+    };
+    
+    int _materialSwitches = 0;
+    int _trianglesRendered = 0;
+    int _quadsRendered = 0;
+    
+    Item _opaque;
+    Item _translucent;
+    Item _other;
+    
+    Item* _item = &_other;
+    
+    void pointTo(Type type) {
+        switch (type) {
+            case OPAQUE_ITEM:
+                _item = &_opaque;
+                break;
+            case TRANSLUCENT_ITEM:
+                _item = &_translucent;
+                break;
+            case OTHER_ITEM:
+                _item = &_other;
+                break;
+        }
+    }
+};
+
 class RenderArgs {
 public:
     typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
@@ -45,24 +85,7 @@ public:
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
                gpu::Batch* batch = nullptr,
-               ShoudRenderFunctor shouldRender = nullptr,
-               
-               int elementsTouched = 0,
-               int itemsRendered = 0,
-               int itemsOutOfView = 0,
-               int itemsTooSmall = 0,
-               
-               int meshesConsidered = 0,
-               int meshesRendered = 0,
-               int meshesOutOfView = 0,
-               int meshesTooSmall = 0,
-               
-               int materialSwitches = 0,
-               int trianglesRendered = 0,
-               int quadsRendered = 0,
-               
-               int translucentMeshPartsRendered = 0,
-               int opaqueMeshPartsRendered = 0) :
+               ShoudRenderFunctor shouldRender = nullptr) :
     _context(context),
     _renderer(renderer),
     _viewFrustum(viewFrustum),
@@ -72,53 +95,21 @@ public:
     _renderSide(renderSide),
     _debugFlags(debugFlags),
     _batch(batch),
-    _shouldRender(shouldRender),
-    
-    _elementsTouched(elementsTouched),
-    _itemsRendered(itemsRendered),
-    _itemsOutOfView(itemsOutOfView),
-    _itemsTooSmall(itemsTooSmall),
-    
-    _meshesConsidered(meshesConsidered),
-    _meshesRendered(meshesRendered),
-    _meshesOutOfView(meshesOutOfView),
-    _meshesTooSmall(meshesTooSmall),
-    
-    _materialSwitches(materialSwitches),
-    _trianglesRendered(trianglesRendered),
-    _quadsRendered(quadsRendered),
-    
-    _translucentMeshPartsRendered(translucentMeshPartsRendered),
-    _opaqueMeshPartsRendered(opaqueMeshPartsRendered) {
+    _shouldRender(shouldRender) {
     }
 
-    gpu::Context* _context;
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-    float _sizeScale;
-    int _boundaryLevelAdjust;
-    RenderMode _renderMode;
-    RenderSide _renderSide;
-    DebugFlags _debugFlags;
-    gpu::Batch* _batch;
+    gpu::Context* _context = nullptr;
+    OctreeRenderer* _renderer = nullptr;
+    ViewFrustum* _viewFrustum = nullptr;
+    float _sizeScale = 1.0f;
+    int _boundaryLevelAdjust = 0;
+    RenderMode _renderMode = DEFAULT_RENDER_MODE;
+    RenderSide _renderSide = MONO;
+    DebugFlags _debugFlags = RENDER_DEBUG_NONE;
+    gpu::Batch* _batch = nullptr;
     ShoudRenderFunctor _shouldRender;
-
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-    int _itemsTooSmall;
-
-    int _meshesConsidered;
-    int _meshesRendered;
-    int _meshesOutOfView;
-    int _meshesTooSmall;
-
-    int _materialSwitches;
-    int _trianglesRendered;
-    int _quadsRendered;
-
-    int _translucentMeshPartsRendered;
-    int _opaqueMeshPartsRendered;
+    
+    RenderDetails _details;
 
     float _alphaThreshold = 0.5f;
 };

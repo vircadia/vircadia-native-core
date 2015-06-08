@@ -11,6 +11,7 @@
 
 #include <EntityItem.h>
 #include <EntityEditPacketSender.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -49,24 +50,17 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
-void EntityMotionState::updateServerPhysicsVariables(uint32_t flags) {
-    if (flags & EntityItem::DIRTY_POSITION) {
-        _serverPosition = _entity->getPosition();
-    }
-    if (flags & EntityItem::DIRTY_ROTATION) {
-        _serverRotation = _entity->getRotation();
-    }
-    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
-        _serverVelocity = _entity->getVelocity();
-    }
-    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
-        _serverAngularVelocity = _entity->getAngularVelocity();
-    }
+void EntityMotionState::updateServerPhysicsVariables() {
+    _serverPosition = _entity->getPosition();
+    _serverRotation = _entity->getRotation();
+    _serverVelocity = _entity->getVelocity();
+    _serverAngularVelocity = _entity->getAngularVelocity();
+    _serverAcceleration = _entity->getAcceleration();
 }
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t flags) {
-    updateServerPhysicsVariables(flags);
+    updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
@@ -94,7 +88,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
 
 // virtual
 void EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables(flags);
+    updateServerPhysicsVariables();
     ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
@@ -494,6 +488,7 @@ void EntityMotionState::measureBodyAcceleration() {
         float dt = ((float)numSubsteps * PHYSICS_ENGINE_FIXED_SUBSTEP);
         float invDt = 1.0f / dt;
         _lastMeasureStep = thisStep;
+        _measuredDeltaTime = dt;
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
@@ -501,6 +496,12 @@ void EntityMotionState::measureBodyAcceleration() {
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
     }
+}
+glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
+    // This is the dampened change in linear velocity, as calculated in measureBodyAcceleration: dv = a * dt
+    // It is generally only meaningful during the lifespan of collision. In particular, it is not meaningful
+    // when the entity first starts moving via direct user action.
+    return _measuredAcceleration * _measuredDeltaTime;
 }
 
 // virtual 
@@ -516,4 +517,17 @@ QString EntityMotionState::getName() {
         return _entity->getName();
     }
     return "";
+}
+
+// virtual 
+int16_t EntityMotionState::computeCollisionGroup() {
+    switch (computeObjectMotionType()){
+        case MOTION_TYPE_STATIC:
+            return COLLISION_GROUP_STATIC;
+        case MOTION_TYPE_KINEMATIC:
+            return COLLISION_GROUP_KINEMATIC;
+        default:
+            break;
+    }
+    return COLLISION_GROUP_DEFAULT;
 }

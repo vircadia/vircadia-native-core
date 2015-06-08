@@ -160,7 +160,6 @@ namespace render {
     }
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
-            args->_elementsTouched++;
             if (payload && payload->entity) {
                 payload->entity->render(args);
             }
@@ -212,6 +211,11 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
+            if (QUrl(getModelURL()) != _model->getURL()) {
+                qDebug() << "Updating model URL: " << getModelURL();
+                _model->setURL(getModelURL());
+            }
+
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
             // fix them up in the scene
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
