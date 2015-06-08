@@ -73,7 +73,7 @@ vec4 evalNormalColor(vec3 dir, float opacity) {
     return vec4(0.5 * dir + vec3(0.5), opacity);
 }
 
-vec4 evalAmbienGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss, float opacity) {
+vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss, float opacity) {
 
     // Need the light now
     Light light = getLight();
@@ -85,7 +85,7 @@ vec4 evalAmbienGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, 
     vec3 fragEyeDir;
     <$transformEyeToWorldDir(cam, fragEyeVectorView, fragEyeDir)$>
 
-    vec3 color = diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
+    vec3 color = opacity * diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
@@ -118,7 +118,7 @@ void main(void) {
     vec3 fragSpecular = getMaterialSpecular(mat);
     float fragGloss = getMaterialShininess(mat);
 
-    vec4 fragColor =  evalAmbienGlobalColor(1.0,
+    vec4 fragColor =  evalGlobalColor(1.0,
                                     fragPosition,
                                     fragNormal,
                                     fragDiffuse,
@@ -126,5 +126,5 @@ void main(void) {
                                     fragGloss,
                                     fragOpacity);
 
-    gl_FragColor = fragColor; //vec4(fragColor, fragOpacity);
+    gl_FragColor = fragColor;
 }

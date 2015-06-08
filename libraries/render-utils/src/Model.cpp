@@ -140,7 +140,8 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+     //   gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     // Good to go add the brand new pipeline
@@ -2174,11 +2175,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
-
-    float shininess = 0;
-    if (translucent) {
-        shininess = material->getShininess();
-    }
 
     if (material == nullptr) {
     //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";

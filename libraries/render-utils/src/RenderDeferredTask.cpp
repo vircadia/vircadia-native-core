@@ -130,18 +130,6 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
 
-  /*      // render translucent meshes afterwards
-        {
-            GLenum buffers[2];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            batch._glDrawBuffers(bufferCount, buffers);
-            args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
-         }
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
-*/
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -155,5 +143,8 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
         args->_context->render((*args->_batch));
         args->_batch = nullptr;
+
+        // reset blend function to standard...
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     }
 }
