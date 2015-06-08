@@ -537,7 +537,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
-                renderBillboard();
+                renderBillboard(renderArgs);
             }
             return;
         }
@@ -591,7 +591,7 @@ void Avatar::updateJointMappings() {
     // no-op; joint mappings come from skeleton model
 }
 
-void Avatar::renderBillboard() {
+void Avatar::renderBillboard(RenderArgs* renderArgs) {
     if (_billboard.isEmpty()) {
         return;
     }
@@ -604,44 +604,29 @@ void Avatar::renderBillboard() {
     if (!_billboardTexture->isLoaded()) {
         return;
     }
-
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
-
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_LIGHTING);
-
-    glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
     glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
     rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
+    
     // compute the size from the billboard camera parameters and scale
     float size = getBillboardSize();
-    glScalef(size, size, size);
+
+    Transform transform;
+    transform.setTranslation(_position);
+    transform.setRotation(rotation);
+    transform.setScale(size);
 
     glm::vec2 topLeft(-1.0f, -1.0f);
     glm::vec2 bottomRight(1.0f, 1.0f);
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+    
+    gpu::Batch& batch = *renderArgs->_batch;
+    batch.setUniformTexture(0, _billboardTexture->getGPUTexture());
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
-    glPopMatrix();
-
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-    glDisable(GL_ALPHA_TEST);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 float Avatar::getBillboardSize() const {
@@ -707,7 +692,7 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
 void Avatar::renderDisplayName(RenderArgs* renderArgs) {
     auto batch = renderArgs->_batch;
 
-    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats();
+    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f) {
         return;
@@ -718,27 +703,16 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
 
     glm::vec3 textPosition = getDisplayNamePosition();
 
-    // we need "always facing camera": we must remove the camera rotation from the stack
-    glm::vec3 frontAxis(0.0f, 0.0f, 1.0f);
-    if (inHMD) {
-        glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
-        frontAxis = camPosition - textPosition;
-    } else {
-        glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
-        frontAxis = glm::rotate(rotation, frontAxis);
-    }
-
-    frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
-    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
+    // we need "always facing camera": we must remove the camera rotation from the stac
+    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
 
     // TODO: Fix scaling - at some point this or the text rendering changed in scale.
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    scaleFactor /= 3.0f;
+    scaleFactor /= 3.5f;
 
-    // TODO: Fix rotation.  Currently it causes horizontal stretching, possibly due to a bad view matrix.
     Transform textTransform;
     textTransform.setTranslation(textPosition);
-    //textTransform.setRotation(glm::quat(glm::degrees(angle), glm::vec3(0.0f, 1.0f, 0.0f)));
+    textTransform.setRotation(rotation);
     textTransform.setScale(scaleFactor);
 
     // optionally render timing stats for this avatar with the display name
@@ -749,50 +723,45 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
         float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
         QString statsFormat = QString("(%1 Kbps, %2 Hz)");
-
         if (!renderedDisplayName.isEmpty()) {
             statsFormat.prepend(" - ");
         }
 
         QString statsText = statsFormat.arg(QString::number(kilobitsPerSecond, 'f', 2)).arg(getReceiveRate());
-        glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(statsText);
-
-        // add the extent required for the stats to whatever was calculated for the display name
-        nameDynamicRect.setWidth(nameDynamicRect.width() + extent.x);
-
-        if (extent.y > nameDynamicRect.height()) {
-            nameDynamicRect.setHeight(extent.y);
-        }
-
         renderedDisplayName += statsText;
+        
+        glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(renderedDisplayName);
+        nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
     }
 
     int text_x = -nameDynamicRect.width() / 2;
     int text_y = -nameDynamicRect.height() / 2;
 
     // draw a gray background
-    int left = text_x + nameDynamicRect.x();
+    int left = text_x;
     int right = left + nameDynamicRect.width();
-    int bottom = text_y + nameDynamicRect.y();
+    int bottom = text_y;
     int top = bottom + nameDynamicRect.height();
     const int border = 8;
     bottom -= border;
     left -= border;
     top += border;
     right += border;
-
+    
+    glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    glm::vec4 backgroundColor(0.2f, 0.2f, 0.2f,
+                              _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
+    
     auto backgroundTransform = textTransform;
     backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
     batch->setModelTransform(backgroundTransform);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(*batch, left, bottom, right - left, top - bottom, 3,
-            glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
-
-    glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-
+                                                                    backgroundColor);
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
     batch->setModelTransform(textTransform);
-    textRenderer(DISPLAYNAME)->draw(*batch, text_x, text_y, nameUTF8.data(), color);
+    textRenderer(DISPLAYNAME)->draw(*batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
 
 bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
@@ -1095,13 +1064,13 @@ float Avatar::getSkeletonHeight() const {
 
 float Avatar::getHeadHeight() const {
     Extents extents = getHead()->getFaceModel().getMeshExtents();
-    if (!extents.isEmpty()) {
+    if (!extents.isEmpty() && extents.isValid()) {
         return extents.maximum.y - extents.minimum.y;
     }
 
     extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
-    if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
+    if (!extents.isEmpty() && extents.isValid() && _skeletonModel.getNeckPosition(neckPosition)) {
         return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
     }
 
