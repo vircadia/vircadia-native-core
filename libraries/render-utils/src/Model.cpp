@@ -140,8 +140,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),
-     //   gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA, // For transparent only, this keep the highlight intensity
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     // Good to go add the brand new pipeline
