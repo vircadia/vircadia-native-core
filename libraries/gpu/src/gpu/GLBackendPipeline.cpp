@@ -71,6 +71,11 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
         _pipeline._program = 0;
         _pipeline._invalidProgram = true;
 
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        _pipeline._program_transformCamera_viewInverse = -1
+#endif
+
         _pipeline._state = nullptr;
         _pipeline._invalidState = true;
     } else {
@@ -83,6 +88,11 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
         if (_pipeline._program != pipelineObject->_program->_program) {
             _pipeline._program = pipelineObject->_program->_program;
             _pipeline._invalidProgram = true;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+            _pipeline._program_transformCamera_viewInverse = pipelineObject->_program->_transformCamera_viewInverse;
+#endif
         }
 
         // Now for the state
@@ -130,6 +140,15 @@ void GLBackend::updatePipeline() {
         }
         _pipeline._invalidState = false;
     }
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+    // If shader program needs the inverseView we need to provide it
+    // YES InverseView in the shade is called View on the Batch interface
+    if (_pipeline._program_transformCamera_viewInverse >= 0) {
+        glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, &_transform._view);
+    }
+#endif
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
