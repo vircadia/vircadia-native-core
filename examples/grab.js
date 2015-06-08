@@ -10,9 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var MOVE_TIMESCALE = 0.05;
+var MOVE_TIMESCALE = 0.1;
 var INV_MOVE_TIMESCALE = 1.0 / MOVE_TIMESCALE;
-var MAX_GRAB_DISTANCE = 100;
+var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 var CLOSE_ENOUGH = 0.001;
 var ZERO_VEC3 = { x: 0, y: 0, z: 0 };
 var ANGULAR_DAMPING_RATE = 0.40;
@@ -27,6 +27,9 @@ var gStartRotation;
 var gCurrentPosition;
 var gOriginalGravity = ZERO_VEC3;
 var gPlaneNormal = ZERO_VEC3;
+
+// gMaxGrabDistance is a function of the size of the object.
+var gMaxGrabDistance;
 
 // gGrabMode defines the degrees of freedom of the grab target positions 
 // relative to gGrabStartPosition options include: 
@@ -112,7 +115,7 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event) {
     var useMaxForwardGrab = false;
     if (Math.abs(dirDotNorm) > MIN_RAY_PLANE_DOT) {
         var distanceToIntersection = distanceFromPlane / dirDotNorm;
-        if (distanceToIntersection > 0 && distanceToIntersection < MAX_GRAB_DISTANCE) {
+        if (distanceToIntersection > 0 && distanceToIntersection < gMaxGrabDistance) {
             // ray points into the plane
             localIntersection = Vec3.multiply(pickRay.direction, distanceFromPlane / dirDotNorm);
         } else {
@@ -129,7 +132,7 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event) {
         // we re-route the intersection to be in front at max distance.
         var rayDirection = Vec3.subtract(pickRay.direction, Vec3.multiply(planeNormal, dirDotNorm));
         rayDirection = Vec3.normalize(rayDirection);
-        localIntersection = Vec3.multiply(rayDirection, MAX_GRAB_DISTANCE);
+        localIntersection = Vec3.multiply(rayDirection, gMaxGrabDistance);
         localIntersection = Vec3.sum(localIntersection, Vec3.multiply(planeNormal, distanceFromPlane));
     }
     var worldIntersection = Vec3.sum(cameraPosition, localIntersection);
@@ -188,7 +191,10 @@ function mousePressEvent(event) {
     var entityProperties = Entities.getEntityProperties(clickedEntity)
     var objectPosition = entityProperties.position;
     var cameraPosition = Camera.getPosition();
-    if (Vec3.distance(objectPosition, cameraPosition) > MAX_GRAB_DISTANCE) {
+
+    gBeaconHeight = Vec3.length(entityProperties.dimensions);
+    gMaxGrabDistance = gBeaconHeight / MAX_SOLID_ANGLE;
+    if (Vec3.distance(objectPosition, cameraPosition) > gMaxGrabDistance) {
         // don't allow grabs of things far away
         return;
     }
@@ -212,7 +218,6 @@ function mousePressEvent(event) {
 
     computeNewGrabPlane();
 
-    gBeaconHeight = Vec3.length(entityProperties.dimensions);
     updateDropLine(objectPosition);
 
     // TODO: play sounds again when we aren't leaking AudioInjector threads
@@ -272,9 +277,9 @@ function mouseMoveEvent(event) {
             newTargetPosition = mouseIntersectionWithPlane(gPointOnPlane, gPlaneNormal, event);
             var relativePosition = Vec3.subtract(newTargetPosition, cameraPosition);
             var distance = Vec3.length(relativePosition);
-            if (distance > MAX_GRAB_DISTANCE) {
+            if (distance > gMaxGrabDistance) {
                 // clamp distance
-                relativePosition = Vec3.multiply(relativePosition, MAX_GRAB_DISTANCE / distance);
+                relativePosition = Vec3.multiply(relativePosition, gMaxGrabDistance / distance);
                 newTargetPosition = Vec3.sum(relativePosition, cameraPosition);
             }
         }
@@ -321,7 +326,7 @@ function update(deltaTime) {
     var dPosition = Vec3.subtract(gTargetPosition, gCurrentPosition);
     var delta = Vec3.length(dPosition);
     if (delta > CLOSE_ENOUGH) {
-        var MAX_POSITION_DELTA = 0.50;
+        var MAX_POSITION_DELTA = 4.0;
         if (delta > MAX_POSITION_DELTA) {
             dPosition = Vec3.multiply(dPosition, MAX_POSITION_DELTA / delta);
         }
