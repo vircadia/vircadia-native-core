@@ -54,7 +54,6 @@ public:
     bool setScriptContents(const QString& scriptContents, const QString& fileNameString = QString(""));
 
     const QString& getScriptName() const { return _scriptName; }
-    void cleanupMenuItems();
 
     QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,

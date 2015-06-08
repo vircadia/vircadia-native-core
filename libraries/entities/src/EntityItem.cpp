@@ -25,6 +25,7 @@
 #include "EntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
+#include "EntitySimulation.h"
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
@@ -1332,5 +1333,48 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
         _simulatorID = value;
         _simulatorIDChangedTime = usecTimestampNow();
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+    }
+}
+
+bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
+    assert(action);
+    const QUuid& actionID = action->getID();
+    assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
+    _objectActions[actionID] = action;
+
+    assert(action->getOwnerEntity().get() == this);
+
+    simulation->addAction(action);
+
+    return false;
+}
+
+bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
+    if (!_objectActions.contains(actionID)) {
+        return false;
+    }
+    EntityActionPointer action = _objectActions[actionID];
+    return action->updateArguments(arguments);
+}
+
+bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
+    if (_objectActions.contains(actionID)) {
+        EntityActionPointer action = _objectActions[actionID];
+        _objectActions.remove(actionID);
+        action->setOwnerEntity(nullptr);
+        action->removeFromSimulation(simulation);
+        return true;
+    }
+    return false;
+}
+
+void EntityItem::clearActions(EntitySimulation* simulation) {
+    QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        i = _objectActions.erase(i);
+        action->setOwnerEntity(nullptr);
+        action->removeFromSimulation(simulation);
     }
 }

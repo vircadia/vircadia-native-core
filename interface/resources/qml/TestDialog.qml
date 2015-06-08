@@ -3,7 +3,7 @@ import QtQuick.Controls 1.2
 import QtQuick.Controls.Styles 1.3
 import "controls"
 
-Dialog {
+VrDialog {
     title: "Test Dialog"
     id: testDialog
     objectName: "TestDialog"

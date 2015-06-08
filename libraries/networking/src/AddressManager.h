@@ -35,7 +35,7 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(bool isConnected READ isConnected)
     Q_PROPERTY(QUrl href READ currentAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
-    Q_PROPERTY(QString hostname READ getRootPlaceName)
+    Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
 public:
     bool isConnected();
@@ -46,10 +46,11 @@ public:
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
 
-    const QString& getRootPlaceName() const { return _rootPlaceName; }
-    void setRootPlaceName(const QString& rootPlaceName);
+    const QString& getHost() const { return _host; }
+    void setHost(const QString& host);
 
     void attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath = QString());
+    void attemptDomainIDLookup(const QString& lookupString, const QString& overridePath = QString());
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -78,7 +79,7 @@ signals:
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
     void pathChangeRequired(const QString& newPath);
-    void rootPlaceNameChanged(const QString& newRootPlaceName);
+    void hostChanged(const QString& newHost);
 protected:
     AddressManager();
 private slots:
@@ -95,8 +96,9 @@ private:
     void handlePath(const QString& path);
     bool handleViewpoint(const QString& viewpointString, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
+    bool handleDomainID(const QString& host);
 
-    QString _rootPlaceName;
+    QString _host;
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;

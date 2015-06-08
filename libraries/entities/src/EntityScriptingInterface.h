@@ -54,14 +54,14 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
     Q_OBJECT
 public:
     EntityScriptingInterface();
-    
+
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
     virtual OctreeEditPacketSender* createPacketSender() { return new EntityEditPacketSender(); }
 
     void setEntityTree(EntityTree* modelTree);
     EntityTree* getEntityTree(EntityTree*) { return _entityTree; }
-    
+
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -88,11 +88,11 @@ public slots:
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
-    
+
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
-    
+
     /// finds models within the search sphere specified by the center point and radius
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
@@ -118,12 +118,15 @@ public slots:
     Q_INVOKABLE void setSendPhysicsUpdates(bool value);
     Q_INVOKABLE bool getSendPhysicsUpdates() const;
 
-    bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
     Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
 
     Q_INVOKABLE void dumpTree() const;
+
+    Q_INVOKABLE QUuid addAction(const QString& actionTypeString, const QUuid& entityID, const QVariantMap& arguments);
+    Q_INVOKABLE bool updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments);
+    Q_INVOKABLE bool deleteAction(const QUuid& entityID, const QUuid& actionID);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -152,6 +155,8 @@ signals:
     void clearingEntities();
 
 private:
+    bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
+    bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
