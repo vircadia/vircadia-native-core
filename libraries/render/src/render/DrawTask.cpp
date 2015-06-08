@@ -78,7 +78,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         }
 
         if (bound.isNull()) {
-            outItems.push_back(ItemIDAndBounds(itemDetails.id)); // One more Item to render
+            outItems.emplace_back(ItemIDAndBounds(itemDetails.id)); // One more Item to render
             continue;
         }
 
@@ -96,7 +96,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
                 bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
             }
             if (bigEnoughToRender) {
-                outItems.push_back(ItemIDAndBounds(itemDetails.id, bound)); // One more Item to render
+                outItems.emplace_back(ItemIDAndBounds(itemDetails.id, bound)); // One more Item to render
             } else {
                 renderDetails->_tooSmall++;
             }
@@ -247,13 +247,14 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(ItemIDAndBounds(id));
+        inItems.emplace_back(ItemIDAndBounds(id));
     }
     ItemIDsBounds& renderedItems = inItems;
 
     renderContext->_numFeedOpaqueItems = renderedItems.size();
 
     ItemIDsBounds culledItems;
+    culledItems.reserve(inItems.size());
     if (renderContext->_cullOpaque) {
         renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
         cullItems(sceneContext, renderContext, renderedItems, culledItems);
@@ -265,6 +266,7 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
 
     ItemIDsBounds sortedItems;
+    sortedItems.reserve(culledItems.size());
     if (renderContext->_sortOpaque) {
         depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
         renderedItems = sortedItems;
@@ -313,13 +315,14 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+        inItems.emplace_back(id);
     }
     ItemIDsBounds& renderedItems = inItems;
 
     renderContext->_numFeedTransparentItems = renderedItems.size();
 
     ItemIDsBounds culledItems;
+    culledItems.reserve(inItems.size());
     if (renderContext->_cullTransparent) {
         renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
         cullItems(sceneContext, renderContext, inItems, culledItems);
@@ -330,6 +333,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     renderContext->_numDrawnTransparentItems = renderedItems.size();
 
     ItemIDsBounds sortedItems;
+    sortedItems.reserve(culledItems.size());
     if (renderContext->_sortTransparent) {
         depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
         renderedItems = sortedItems;
@@ -393,10 +397,11 @@ template <> void render::jobRun(const DrawLight& job, const SceneContextPointer&
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+        inItems.emplace_back(id);
     }
 
     ItemIDsBounds culledItems;
+    culledItems.reserve(inItems.size());
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
     RenderArgs* args = renderContext->args;
@@ -420,7 +425,7 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+        inItems.emplace_back(id);
     }
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
