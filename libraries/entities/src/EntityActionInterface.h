@@ -19,7 +19,8 @@ class EntitySimulation;
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE,
-    ACTION_TYPE_PULL_TO_POINT
+    ACTION_TYPE_PULL_TO_POINT,
+    ACTION_TYPE_SPRING
 };
 
 
@@ -41,6 +42,7 @@ public:
 protected:
 
     static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
+    static glm::quat extractQuatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
     static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
 };
 

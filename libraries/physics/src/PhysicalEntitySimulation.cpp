@@ -13,6 +13,7 @@
 #include "PhysicsLogging.h"
 #include "ShapeManager.h"
 #include "ObjectActionPullToPoint.h"
+#include "ObjectActionSpring.h"
 
 #include "PhysicalEntitySimulation.h"
 
@@ -244,6 +245,9 @@ EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType typ
             return nullptr;
         case ACTION_TYPE_PULL_TO_POINT:
             action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity);
+            break;
+        case ACTION_TYPE_SPRING:
+            action = (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
             break;
     }
 

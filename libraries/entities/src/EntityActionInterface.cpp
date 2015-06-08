@@ -22,6 +22,9 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "pulltopoint") {
         return ACTION_TYPE_PULL_TO_POINT;
     }
+    if (normalizedActionTypeString == "spring") {
+        return ACTION_TYPE_SPRING;
+    }
 
     qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;
@@ -33,6 +36,8 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
             return "none";
         case ACTION_TYPE_PULL_TO_POINT:
             return "pullToPoint";
+        case ACTION_TYPE_SPRING:
+            return "spring";
     }
     assert(false);
     return "none";
@@ -43,21 +48,21 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     if (!arguments.contains(argumentName)) {
         qDebug() << objectName << "requires argument:" << argumentName;
         ok = false;
-        return vec3();
+        return glm::vec3();
     }
 
     QVariant resultV = arguments[argumentName];
     if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
         qDebug() << objectName << "argument" << argumentName << "must be a map";
         ok = false;
-        return vec3();
+        return glm::vec3();
     }
 
     QVariantMap resultVM = resultV.toMap();
     if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z")) {
         qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z";
         ok = false;
-        return vec3();
+        return glm::vec3();
     }
 
     QVariant xV = resultVM["x"];
@@ -73,11 +78,58 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     if (!xOk || !yOk || !zOk) {
         qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z and values of type float.";
         ok = false;
-        return vec3();
+        return glm::vec3();
     }
 
-    return vec3(x, y, z);
+    return glm::vec3(x, y, z);
 }
+
+
+glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
+                                                     QString argumentName, bool& ok) {
+    if (!arguments.contains(argumentName)) {
+        qDebug() << objectName << "requires argument:" << argumentName;
+        ok = false;
+        return glm::quat();
+    }
+
+    QVariant resultV = arguments[argumentName];
+    if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
+        qDebug() << objectName << "argument" << argumentName << "must be a map";
+        ok = false;
+        return glm::quat();
+    }
+
+    QVariantMap resultVM = resultV.toMap();
+    if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z")) {
+        qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z";
+        ok = false;
+        return glm::quat();
+    }
+
+    QVariant xV = resultVM["x"];
+    QVariant yV = resultVM["y"];
+    QVariant zV = resultVM["z"];
+    QVariant wV = resultVM["w"];
+
+    bool xOk = true;
+    bool yOk = true;
+    bool zOk = true;
+    bool wOk = true;
+    float x = xV.toFloat(&xOk);
+    float y = yV.toFloat(&yOk);
+    float z = zV.toFloat(&zOk);
+    float w = wV.toFloat(&wOk);
+    if (!xOk || !yOk || !zOk || !wOk) {
+        qDebug() << objectName << "argument" << argumentName
+                 << "must be a map with keys of x, y, z, w and values of type float.";
+        ok = false;
+        return glm::quat();
+    }
+
+    return glm::quat(x, y, z, w);
+}
+
 
 
 float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
