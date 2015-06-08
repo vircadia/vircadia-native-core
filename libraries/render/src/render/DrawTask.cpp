@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <assert.h>
 
-#include <QMap>
-
 #include "DrawTask.h"
 
 #include <PerfStat.h>
