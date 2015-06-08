@@ -17,6 +17,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSettings>
 #include <QtCore/QCoreApplication>
+#include <QDesktopServices>
 #include <QDebug>
 #include <QString>
 #include <QUrl>
@@ -40,10 +41,10 @@ class AutoUpdate : public QObject, public Dependency {
 public:
     // Methods
     AutoUpdate();
-    ~AutoUpdate();
     
     void checkForUpdate();
     QMap<int, QMap<QString, QString>> &getBuildData() { return *_builds; }
+    void performAutoUpdate(int version);
     
 public slots:
     
@@ -63,9 +64,7 @@ private:
     
 private slots:
     void parseLatestVersionData();
-    void debugBuildData();
     void checkVersionAndNotify();
-    void performAutoUpdate(int version);
 
 signals:
     void latestVersionDataParsed();

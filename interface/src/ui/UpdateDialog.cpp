@@ -13,7 +13,6 @@
 HIFI_QML_DEF(UpdateDialog)
 
 UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
-    qDebug() << "[LEOTEST] We are creating the dialog";
     auto applicationUpdater = DependencyManager::get<AutoUpdate>();
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
@@ -21,10 +20,6 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on " + applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
     _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " versions behind";
     _releaseNotes = applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
-}
-
-UpdateDialog::~UpdateDialog() {
-
 }
 
 QString UpdateDialog::updateAvailableDetails() const {
@@ -35,8 +30,7 @@ QString UpdateDialog::releaseNotes() const {
     return _releaseNotes;
 }
 
-void UpdateDialog::closeUpdateDialog() {
-    qDebug() << "[LEOTEST] Closing update dialog";
+void UpdateDialog::closeDialog() {
     hide();
 }
 
@@ -45,5 +39,6 @@ void UpdateDialog::hide() {
 }
 
 void UpdateDialog::triggerUpgrade() {
-    qDebug() << "[LEOTEST] Triggering download of build number";
+    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
+    applicationUpdater.data()->performAutoUpdate(applicationUpdater.data()->getBuildData().lastKey());
 }

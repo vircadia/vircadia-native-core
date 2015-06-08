@@ -23,7 +23,6 @@ class UpdateDialog : public OffscreenQmlDialog {
     
 public:
     UpdateDialog(QQuickItem* parent = nullptr);
-    ~UpdateDialog();
     QString updateAvailableDetails() const;
     QString releaseNotes() const;
     
@@ -34,7 +33,7 @@ private:
 protected:
     void hide();
     Q_INVOKABLE void triggerUpgrade();
-    Q_INVOKABLE void closeUpdateDialog();
+    Q_INVOKABLE void closeDialog();
 
 };
 

@@ -110,7 +110,6 @@ DialogContainer {
                             leftMargin: updateDialog.borderWidth
                         }
                     }
-                    
                 }
                 
                 Rectangle {
@@ -125,38 +124,19 @@ DialogContainer {
                         right: backgroundRectangle.right
                         rightMargin: 15
                     }
-                    Accessible.name: "Upgrade"
-                    Accessible.description: "Download and update to latest version"
-                    Accessible.role: Accessible.Button
-                    Accessible.onPressAction: {
-                        updateDialog.triggerBuildDownload()
-                    }
-                    
-                    
                     Text {
                         text: "Upgrade"
                         anchors {
                             verticalCenter: parent.verticalCenter
                             horizontalCenter: parent.horizontalCenter
                         }
-
                     }
-                }
-                
-                DropShadow {
-                    anchors.fill: downloadButton
-                    horizontalOffset: 2
-                    verticalOffset: 2
-                    radius: updateDialog.buttonRadius
-                    samples: 16
-                    color: "#80000000"
-                    source: downloadButton
-                }
-                
-                MouseArea {
-                    id: downloadButtonAction
-                    anchors.fill: downloadButton
-                    onClicked: updateDialog.triggerBuildDownload()
+                    MouseArea {
+                        id: downloadButtonAction
+                        anchors.fill: parent
+                        onClicked: updateDialog.triggerUpgrade()
+                        cursorShape: "PointingHandCursor"
+                    }
                 }
                 
                 Rectangle {
@@ -171,12 +151,6 @@ DialogContainer {
                         right: downloadButton.left
                         rightMargin: 15
                     }
-                    Accessible.name: "Cancel"
-                    Accessible.description: "Do not upgrade your current version"
-                    Accessible.role: Accessible.Button
-                    Accessible.onPressAction: {
-                        updateDialog.closeUpdateDialog()
-                    }
                     
                     Text {
                         text: "Cancel"
@@ -185,22 +159,12 @@ DialogContainer {
                             horizontalCenter: parent.horizontalCenter
                         }
                     }
-                }
-                
-                DropShadow {
-                    anchors.fill: cancelButton
-                    horizontalOffset: 2
-                    verticalOffset: 2
-                    radius: updateDialog.buttonRadius
-                    samples: 16
-                    color: "#80000000"
-                    source: cancelButton
-                }
-                
-                MouseArea {
-                    id: cancelButtonAction
-                    anchors.fill: cancelButton
-                    onClicked: updateDialog.closeUpdateDialog()
+                    MouseArea {
+                        id: cancelButtonAction
+                        anchors.fill: parent
+                        onClicked: updateDialog.closeDialog()
+                        cursorShape: "PointingHandCursor"
+                    }
                 }
             }
         }

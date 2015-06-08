@@ -29,10 +29,6 @@ AutoUpdate::AutoUpdate() {
     _builds = new QMap<int, QMap<QString, QString>>;
 }
 
-AutoUpdate::~AutoUpdate() {
-    qDebug() << "[LEOTEST] The object is now destroyed";
-}
-
 void AutoUpdate::checkForUpdate() {
     this->getLatestVersionData();
     
@@ -113,18 +109,7 @@ void AutoUpdate::parseLatestVersionData() {
     emit latestVersionDataParsed();
 }
 
-void AutoUpdate::debugBuildData() {
-    qDebug() << "[LEOTEST] We finished parsing the xml build data";
-    foreach (int key, _builds->keys()) {
-        qDebug() << "[LEOTEST] Build number: " << QString::number(key);
-        //foreach (QString detailsKey, _builds[key].keys()) {
-        //    qDebug() << "[LEOTEST] Key: " << detailsKey << " Value: " << _builds[key][detailsKey];
-        //}
-    }
-}
-
 void AutoUpdate::checkVersionAndNotify() {
-    qDebug() << "[LEOTEST] We are checking and notifying for updates";
     int latestVersionAvailable = _builds->lastKey();
     if (QCoreApplication::applicationVersion() != "dev" &&
         QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
@@ -133,7 +118,12 @@ void AutoUpdate::checkVersionAndNotify() {
 }
 
 void AutoUpdate::performAutoUpdate(int version) {
-    
+    // NOTE: This is not yet auto updating - however this is a checkpoint towards that end
+    // Next PR will handle the automatic download, upgrading and application restart
+    QMap<QString, QString> chosenVersion = _builds->value(version);
+    QUrl downloadUrl = chosenVersion.value("downloadUrl");
+    QDesktopServices::openUrl(downloadUrl);
+    QCoreApplication::quit();
 }
 
 void AutoUpdate::downloadUpdateVersion(int version) {
