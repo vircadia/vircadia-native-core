@@ -613,6 +613,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     float size = getBillboardSize();
 
     gpu::Batch& batch = *renderArgs->_batch;
+    batch._glEnable(GL_TEXTURE_2D);
     batch._glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
 
     Transform transform;
@@ -628,6 +629,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     batch._glBindTexture(GL_TEXTURE_2D, 0);
+    batch._glDisable(GL_TEXTURE_2D);
 }
 
 float Avatar::getBillboardSize() const {
