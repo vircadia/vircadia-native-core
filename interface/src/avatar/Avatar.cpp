@@ -612,10 +612,6 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     // compute the size from the billboard camera parameters and scale
     float size = getBillboardSize();
 
-    gpu::Batch& batch = *renderArgs->_batch;
-    batch._glEnable(GL_TEXTURE_2D);
-    batch._glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-
     Transform transform;
     transform.setTranslation(_position);
     transform.setRotation(rotation);
@@ -625,12 +621,12 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 bottomRight(1.0f, 1.0f);
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-
+    
+    gpu::Batch& batch = *renderArgs->_batch;
+    batch.setUniformTexture(0, _billboardTexture->getGPUTexture());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    batch._glDisable(GL_TEXTURE_2D);
 }
 
 float Avatar::getBillboardSize() const {
