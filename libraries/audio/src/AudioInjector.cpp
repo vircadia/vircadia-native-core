@@ -44,6 +44,8 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 
 void AudioInjector::setIsFinished(bool isFinished) {
     _isFinished = isFinished;
+    // In all paths, regardless of isFinished argument. restart() passes false to prepare for new play, and injectToMixer() needs _shouldStop reset.
+    _shouldStop = false;
     
     if (_isFinished) {
         emit finished();
@@ -55,7 +57,6 @@ void AudioInjector::setIsFinished(bool isFinished) {
         }
         
         _isStarted = false;
-        _shouldStop = false;
         
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
@@ -86,7 +87,7 @@ void AudioInjector::injectAudio() {
         }
     } else {
         qCDebug(audio) << "AudioInjector::injectAudio called but already started.";
-    }    
+    }
 }
 
 void AudioInjector::restart() {
@@ -271,6 +272,14 @@ void AudioInjector::stop() {
     if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
         setIsFinished(true);
+    } else {
+        // Wait for actual stop (because synchronous callers such as restart might immediately change state before
+        // the asynchronous injector has a chance to see that it should stop). This prevents issues where, e.g.,
+        // two stop()s are required after two restart()s.
+        while (!_isFinished) {
+            //qCDebug(audio) << AudioConstants::NETWORK_FRAME_USECS << AudioConstants::NETWORK_FRAME_MSECS;
+            usleep(AudioConstants::NETWORK_FRAME_USECS);
+        }
     }
 }
 
