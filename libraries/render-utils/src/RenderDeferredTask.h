@@ -14,8 +14,6 @@
 
 #include "render/DrawTask.h"
 
-#include "DeferredLightingEffect.h"
-
 class PrepareDeferred {
 public:
 };
@@ -23,11 +21,25 @@ namespace render {
 template <> void jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 }
 
+class RenderDeferred {
+public:
+};
+namespace render {
+template <> void jobRun(const RenderDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
+
 class ResolveDeferred {
 public:
 };
 namespace render {
 template <> void jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
+
+class DrawTransparentDeferred {
+public:
+};
+namespace render {
+template <> void jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 }
 
 class RenderDeferredTask : public render::Task {

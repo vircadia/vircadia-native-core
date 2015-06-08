@@ -86,6 +86,8 @@ TransformCamera getTransformCamera() {
     return camera;
 }
 
+uniform mat4 transformCamera_viewInverse;
+
 <@endif@>
 <@endfunc@>
 
@@ -99,6 +101,23 @@ TransformCamera getTransformCamera() {
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
     }
 <@else@>
+    <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+<@endif@>
+<@endfunc@>
+
+<@func $transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    <!// Equivalent to the following but hoppefully a tad more accurate
+      //return camera._projection * camera._view * object._model * pos; !>
+    { // transformModelToClipPos
+        vec4 _worldpos = (<$objectTransform$>._model * <$modelPos$>);
+        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
+        vec4 _eyepos =(<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+      //  <$eyePos$> = (<$cameraTransform$>._projectionInverse * <$clipPos$>);
+    }
+<@else@>
+    <$eyePos$> = gl_ModelViewMatrix * <$modelPos$>;
     <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
 <@endif@>
 <@endfunc@>
@@ -127,7 +146,7 @@ TransformCamera getTransformCamera() {
         <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
     }
 <@else@>
-    <$worldDir$> = vec3(gl_ModelViewMatrixInverse * vec4(<$eyeDir$>.xyz, 0.0));
+    <$worldDir$> = vec3(transformCamera_viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
 <@endif@>
 <@endfunc@>
 

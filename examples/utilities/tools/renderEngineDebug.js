@@ -66,19 +66,19 @@ panel.newCheckbox("Enable Render Transparent",
     function(value) { return (value); }
 );
 
-panel.newSlider("Num Feed Transparents", 0, 1000, 
+panel.newSlider("Num Feed Transparents", 0, 100, 
     function(value) { },
     function() { return Scene.getEngineNumFeedTransparentItems(); },
     function(value) { return (value); }
 );
 
-panel.newSlider("Num Drawn Transparents", 0, 1000, 
+panel.newSlider("Num Drawn Transparents", 0, 100, 
     function(value) { },
     function() { return Scene.getEngineNumDrawnTransparentItems(); },
     function(value) { return (value); }
 );
 
-panel.newSlider("Max Drawn Transparents", -1, 1000, 
+panel.newSlider("Max Drawn Transparents", -1, 100, 
     function(value) { Scene.setEngineMaxDrawnTransparentItems(value); },
     function() { return Scene.getEngineMaxDrawnTransparentItems(); },
     function(value) { return (value); }
