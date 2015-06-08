@@ -129,7 +129,7 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event) {
         // we re-route the intersection to be in front at max distance.
         var rayDirection = Vec3.subtract(pickRay.direction, Vec3.multiply(planeNormal, dirDotNorm));
         rayDirection = Vec3.normalize(rayDirection);
-        localIntersection = Vec3.multiply(rayDireciton, MAX_GRAB_DISTANCE);
+        localIntersection = Vec3.multiply(rayDirection, MAX_GRAB_DISTANCE);
         localIntersection = Vec3.sum(localIntersection, Vec3.multiply(planeNormal, distanceFromPlane));
     }
     var worldIntersection = Vec3.sum(cameraPosition, localIntersection);
