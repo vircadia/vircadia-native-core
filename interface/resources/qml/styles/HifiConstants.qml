@@ -13,10 +13,9 @@ Item {
         readonly property color hifiBlue: "#0e7077"
         readonly property color window: sysPalette.window
         readonly property color dialogBackground: sysPalette.window
-        //readonly property color dialogBackground: "#00000000"
         readonly property color inputBackground: "white"
         readonly property color background: sysPalette.dark
-        readonly property color text: sysPalette.text
+        readonly property color text: "#202020"
         readonly property color disabledText: "gray"
         readonly property color hintText: "gray"  // A bit darker than sysPalette.dark so that it is visible on the DK2
         readonly property color light: sysPalette.light
