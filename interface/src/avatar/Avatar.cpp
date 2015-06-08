@@ -707,7 +707,7 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
 void Avatar::renderDisplayName(RenderArgs* renderArgs) {
     auto batch = renderArgs->_batch;
 
-    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats();
+    bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f) {
         return;
@@ -718,27 +718,16 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
 
     glm::vec3 textPosition = getDisplayNamePosition();
 
-    // we need "always facing camera": we must remove the camera rotation from the stack
-    glm::vec3 frontAxis(0.0f, 0.0f, 1.0f);
-    if (inHMD) {
-        glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
-        frontAxis = camPosition - textPosition;
-    } else {
-        glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
-        frontAxis = glm::rotate(rotation, frontAxis);
-    }
-
-    frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
-    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
+    // we need "always facing camera": we must remove the camera rotation from the stac
+    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
 
     // TODO: Fix scaling - at some point this or the text rendering changed in scale.
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
     scaleFactor /= 3.0f;
 
-    // TODO: Fix rotation.  Currently it causes horizontal stretching, possibly due to a bad view matrix.
     Transform textTransform;
     textTransform.setTranslation(textPosition);
-    //textTransform.setRotation(glm::quat(glm::degrees(angle), glm::vec3(0.0f, 1.0f, 0.0f)));
+    textTransform.setRotation(rotation);
     textTransform.setScale(scaleFactor);
 
     // optionally render timing stats for this avatar with the display name
@@ -780,19 +769,21 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
     left -= border;
     top += border;
     right += border;
-
+    
+    glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
+    glm::vec4 backgroundColor(0.2f, 0.2f, 0.2f,
+                              _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA);
+    
     auto backgroundTransform = textTransform;
     backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
     batch->setModelTransform(backgroundTransform);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(*batch, left, bottom, right - left, top - bottom, 3,
-            glm::vec4(0.2f, 0.2f, 0.2f, _displayNameAlpha * DISPLAYNAME_BACKGROUND_ALPHA / DISPLAYNAME_ALPHA));
-
-    glm::vec4 color(0.93f, 0.93f, 0.93f, _displayNameAlpha);
-
+                                                                    backgroundColor);
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
+    //qDebug() << left << right << bottom << top;
     batch->setModelTransform(textTransform);
-    textRenderer(DISPLAYNAME)->draw(*batch, text_x, text_y, nameUTF8.data(), color);
+    textRenderer(DISPLAYNAME)->draw(*batch, text_x, text_y, nameUTF8.data(), textColor);
 }
 
 bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
@@ -1095,13 +1086,13 @@ float Avatar::getSkeletonHeight() const {
 
 float Avatar::getHeadHeight() const {
     Extents extents = getHead()->getFaceModel().getMeshExtents();
-    if (!extents.isEmpty()) {
+    if (!extents.isEmpty() && extents.isValid()) {
         return extents.maximum.y - extents.minimum.y;
     }
 
     extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
-    if (!extents.isEmpty() && _skeletonModel.getNeckPosition(neckPosition)) {
+    if (!extents.isEmpty() && extents.isValid() && _skeletonModel.getNeckPosition(neckPosition)) {
         return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
     }
 
