@@ -219,6 +219,7 @@ void OculusManager::deinit() {
 }
 
 void OculusManager::connect() {
+    qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;
 
     ovrInitParams initParams; memset(&initParams, 0, sizeof(initParams));
 #ifdef DEBUG
@@ -245,10 +246,13 @@ void OculusManager::connect() {
     }
 #endif
 
+    _isConnected = false;
+
+    // we're definitely not in "VR mode" so tell the menu that
+    Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
+
 #endif
     _calibrationState = UNCALIBRATED;
-    qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;
-    if (_ovrHmd) {
         if (!_isConnected) {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
@@ -677,6 +681,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 #ifdef Q_OS_WIN
     auto srcFboSize = finalFbo->getSize();
 
+    // Blit to the oculus provided texture
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
     _swapFbo->Bound(oglplus::Framebuffer::Target::Draw, [&] {
         glBlitFramebuffer(
@@ -684,6 +689,8 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
             0, 0, _swapFbo->size.x, _swapFbo->size.y,
             GL_COLOR_BUFFER_BIT, GL_NEAREST);
     });
+    
+    // Blit to the onscreen window
     auto destWindowSize = qApp->getDeviceSize();
     glBlitFramebuffer(
         0, 0, srcFboSize.x, srcFboSize.y,
@@ -691,6 +698,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
+    // Submit the frame to the Oculus SDK for timewarp and distortion
     for_each_eye([&](ovrEyeType eye) {
         _sceneLayer.RenderPose[eye] = eyeRenderPose[eye];
     });
@@ -705,23 +713,22 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         glEyeTexture.OGL.TexId = textureId;
     });
 
-    //ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    auto srcFboSize = finalFbo->getSize();
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-    auto destWindowSize = qApp->getDeviceSize();
-    glBlitFramebuffer(
-                      0, 0, srcFboSize.x, srcFboSize.y,
-                      0, 0, destWindowSize.width(), destWindowSize.height(),
-                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glCanvas->swapBuffers();
+    // restore our normal viewport
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
+    ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
+
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    auto srcFboSize = finalFbo->getSize();
+//    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+//    glBlitFramebuffer(
+//                      0, 0, srcFboSize.x, srcFboSize.y,
+//                      0, 0, deviceSize.width(), deviceSize.height(),
+//                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+//    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//    glCanvas->swapBuffers();
 #endif
     
 
-    // restore our normal viewport
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 }
 
 //Tries to reconnect to the sensors
