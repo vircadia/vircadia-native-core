@@ -115,7 +115,7 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         gpu::Batch batch;
         args->_batch = &batch;
 
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(renderContext->args);
+        
 
 
         glm::mat4 projMat;

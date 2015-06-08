@@ -78,7 +78,6 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
     // Need the light now
     Light light = getLight();
     TransformCamera cam = getTransformCamera();
-  //  mat4 viewMat = cam._viewInverse;
     vec3 fragNormal;
     <$transformEyeToWorldDir(cam, normal, fragNormal)$>
     vec3 fragEyeVectorView = normalize(-position);
@@ -91,7 +90,10 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
 
     color += vec3(opacity * diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
+    //return vec4(color, opacity);
     return vec4(color, opacity);
+    //return vec4(diffuse.rgb, opacity);
+    //return evalNormalColor(fragEyeDir, opacity);
 }
 
 // the diffuse texture

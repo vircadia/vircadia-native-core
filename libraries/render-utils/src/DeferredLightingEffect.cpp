@@ -555,9 +555,9 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     glPopMatrix();
 }
 
-void DeferredLightingEffect::setupTransparent(RenderArgs* args) {
+void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
     auto globalLight = _allocatedLights[_globalLights.front()];
-    args->_batch->setUniformBuffer(4, globalLight->getSchemaBuffer());
+    args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {

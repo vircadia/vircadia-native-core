@@ -144,9 +144,8 @@ void GLBackend::updatePipeline() {
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
     // If shader program needs the inverseView we need to provide it
-    // YES InverseView in the shade is called View on the Batch interface
     if (_pipeline._program_transformCamera_viewInverse >= 0) {
-        glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._view);
+        glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._transformCamera._viewInverse);
     }
 #endif
 }

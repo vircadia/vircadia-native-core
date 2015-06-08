@@ -292,14 +292,18 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
-    // Pipeline Stage
-    void do_setPipeline(Batch& batch, uint32 paramOffset);
-
-    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
-
+    // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
- 
+    
+    struct UniformStageState {
+        
+    };
+    
+    // Pipeline Stage
+    void do_setPipeline(Batch& batch, uint32 paramOffset);
+    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
     // Force to reset all the state fields indicated by the 'toBeReset" signature

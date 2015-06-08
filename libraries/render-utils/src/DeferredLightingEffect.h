@@ -70,7 +70,7 @@ public:
     void render();
     void copyBack(RenderArgs* args);
 
-    void setupTransparent(RenderArgs* args);
+    void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);

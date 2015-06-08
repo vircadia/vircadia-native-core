@@ -197,13 +197,17 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 #else
     locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
 #endif
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
     locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
+    
+
 
 }
 
@@ -2250,6 +2254,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
                                         textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+            }
+            
+            if (translucent && locations->lightBufferUnit >= 0) {
+                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
             }
         }
     }
