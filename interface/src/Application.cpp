@@ -3402,7 +3402,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     glEnable(GL_DEPTH_TEST);
     
    // Assuming nothing get's rendered through that
-   // DependencyManager::get<DeferredLightingEffect>()->prepare();
 
     if (!selfAvatarOnly) {
 
@@ -3428,12 +3427,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             renderArgs->_renderMode = renderMode;
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
-            
-            // This shouldn't matter anymore
-     /*       if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-                // Restaure polygon mode
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }*/
         }
 
         // render the ambient occlusion effect if enabled
@@ -3458,8 +3451,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
                 [](WorldBoxRenderData& payload) { 
                     payload._val++;
-                    // A test Update to proof the concept is woking
-                    // qCDebug(interfaceapp, "MyFirst update message!!!!! %u", payload._val);
                 });
     }
 
@@ -3474,12 +3465,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             skybox = skyStage->getSkybox();
         }
         DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
-
-       // Not needed anymore here, taken care off by the Engine
-        /*
-        PROFILE_RANGE("DeferredLighting"); 
-        PerformanceTimer perfTimer("lighting");
-        DependencyManager::get<DeferredLightingEffect>()->render();*/
     }
 
     {
@@ -3515,11 +3500,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
         
-        /*
-        qDebug() << "renderArgs._materialSwitches:" << renderArgs->_materialSwitches;
-        qDebug() << "renderArgs._trianglesRendered:" << renderArgs->_trianglesRendered;
-        qDebug() << "renderArgs._quadsRendered:" << renderArgs->_quadsRendered;
-        */
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
         sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
@@ -3776,7 +3756,6 @@ void Application::updateWindowTitle(){
 void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
-  //  _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.lockForWrite();
